@@ -80,9 +80,9 @@ impl<'a> Parser<'a> {
     fn parse_single_node(&mut self) -> Result<Node, LatexError> {
         let node = match &self.cur_token {
             Token::Number(number) => Node::Number(number.clone()),
-            Token::Letter(x, v) => Node::Letter(*x, *v),
+            Token::Letter(x, v) => Node::SingleLetterIdent(*x, *v),
             Token::Operator(op) => Node::Operator(*op),
-            Token::Function(fun) => Node::Function(fun.to_string(), None),
+            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(*space),
             Token::Sqrt => {
                 self.next_token();
@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::Function(lim.to_string(), None);
+                let lim = Node::MultiLetterIdent(lim.to_string(), None);
                 if self.peek_token_is(Token::Underscore) {
                     self.next_token();
                     self.next_token();
@@ -266,12 +266,22 @@ impl<'a> Parser<'a> {
             Token::NormalVariant => {
                 self.next_token();
                 let node = self.parse_node()?;
+                let node = if let Node::Row(nodes) = node {
+                    Node::Row(merge_single_letters(nodes))
+                } else {
+                    node
+                };
                 set_variant(node, MathVariant::Normal)
             }
             Token::Style(var) => {
                 let var = *var;
                 self.next_token();
                 let node = self.parse_node()?;
+                let node = if let Node::Row(nodes) = node {
+                    Node::Row(merge_single_letters(nodes))
+                } else {
+                    node
+                };
                 transform_text(node, var)
             }
             Token::Integral(int) => {
@@ -322,7 +332,7 @@ impl<'a> Parser<'a> {
                     Token::Paren(open) => *open,
                     Token::Operator('.') => "",
                     token => {
-                        return Err(LatexError::MissingParensethis {
+                        return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
                             got: token.clone(),
                         })
@@ -334,7 +344,7 @@ impl<'a> Parser<'a> {
                     Token::Paren(close) => close,
                     Token::Operator('.') => "",
                     token => {
-                        return Err(LatexError::MissingParensethis {
+                        return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
                             got: token.clone(),
                         })
@@ -379,9 +389,9 @@ impl<'a> Parser<'a> {
                     content => vec![content],
                 };
                 let node = if matches!(environment.as_str(), "align" | "align*" | "aligned") {
-                    Node::Aligned(content)
+                    Node::AlignedTable(content)
                 } else {
-                    let content = Node::Matrix(content);
+                    let content = Node::Table(content);
 
                     // 環境名により処理を分岐
                     match environment.as_str() {
@@ -415,7 +425,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 // 関数名を読み込む
                 let function = self.parse_text();
-                Node::Function(function, None)
+                Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
                 self.next_token();
@@ -485,7 +495,8 @@ impl<'a> Parser<'a> {
 
 fn set_variant(node: Node, var: MathVariant) -> Node {
     match node {
-        Node::Letter(x, _) => Node::Letter(x, var),
+        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
+        Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
         Node::Row(vec) => Node::Row(vec.into_iter().map(|node| set_variant(node, var)).collect()),
         node => node,
     }
@@ -493,13 +504,39 @@ fn set_variant(node: Node, var: MathVariant) -> Node {
 
 fn transform_text(node: Node, var: TextTransform) -> Node {
     match node {
-        Node::Letter(x, _) => {
-            let transformed = match var {
-                TextTransform::BoldScript => {}
-            }
-            Node::Letter(x, MathVariant::Normal)
-        },
-        Node::Row(vec) => Node::Row(vec.into_iter().map(|node| transform_text(node, var)).collect()),
+        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
+        Node::MultiLetterIdent(letters, _) => {
+            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
+        }
+        Node::Operator(op) => Node::SingleLetterIdent(var.transform(op), None),
+        Node::Row(vec) => Node::Row(
+            vec.into_iter()
+                .map(|node| transform_text(node, var))
+                .collect(),
+        ),
         node => node,
     }
+}
+
+fn merge_single_letters(nodes: Vec<Node>) -> Vec<Node> {
+    let mut new_nodes = Vec::new();
+    let mut collected: Option<String> = None;
+    for node in nodes {
+        if let Node::SingleLetterIdent(c, _) = node {
+            if let Some(ref mut letters) = collected {
+                letters.push(c); // we add another single letter
+            } else {
+                collected = Some(c.to_string()); // we start collecting
+            }
+        } else {
+            if let Some(letters) = collected.take() {
+                new_nodes.push(Node::MultiLetterIdent(letters, None));
+            }
+            new_nodes.push(node);
+        }
+    }
+    if let Some(letters) = collected {
+        new_nodes.push(Node::MultiLetterIdent(letters, None));
+    }
+    new_nodes
 }

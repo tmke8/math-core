@@ -4,7 +4,7 @@
 //! - Output: `Vec<Token>`
 //!
 
-use super::{token::Token, attribute::MathVariant};
+use super::{attribute::MathVariant, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -89,7 +89,7 @@ impl<'a> Lexer<'a> {
             ']' => Token::Paren("]"),
             '|' => Token::Paren("|"),
             '+' => Token::Operator('+'),
-            '-' => Token::Operator('-'),
+            '-' => Token::Operator('−'),
             '*' => Token::Operator('*'),
             '/' => Token::Operator('/'),
             '!' => Token::Operator('!'),
@@ -98,11 +98,13 @@ impl<'a> Lexer<'a> {
             '_' => Token::Underscore,
             '^' => Token::Circumflex,
             '&' => Token::Ampersand,
+            '~' => Token::Space(5. / 18.),
             '\u{0}' => Token::EOF,
             ':' => {
                 if self.peek == '=' {
                     self.read_char();
-                    Token::Paren(":=")
+                    // Token::Paren(":=")
+                    Token::Operator('≔')
                 } else {
                     Token::Operator(':')
                 }
@@ -114,9 +116,9 @@ impl<'a> Lexer<'a> {
                 if c.is_ascii_digit() {
                     return self.read_number();
                 } else if c.is_ascii_alphabetic() {
-                    Token::Letter(c, MathVariant::Default)
+                    Token::Letter(c, None)
                 } else {
-                    Token::Letter(c, MathVariant::Normal)
+                    Token::Letter(c, Some(MathVariant::Normal))
                 }
             }
         };
@@ -127,7 +129,7 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{token::Token, attribute::MathVariant};
+    use super::super::{attribute::MathVariant, token::Token};
     use super::*;
 
     #[test]
@@ -139,29 +141,26 @@ mod tests {
                 r"3.14.",
                 vec![Token::Number("3.14".to_owned()), Token::Operator('.')],
             ),
-            (r"x", vec![Token::Letter('x', MathVariant::Default)]),
-            (r"\pi", vec![Token::Letter('π', MathVariant::Default)]),
+            (r"x", vec![Token::Letter('x', None)]),
+            (r"\pi", vec![Token::Letter('π', None)]),
             (
                 r"x = 3.14",
                 vec![
-                    Token::Letter('x', MathVariant::Default),
+                    Token::Letter('x', None),
                     Token::Operator('='),
                     Token::Number("3.14".to_owned()),
                 ],
             ),
             (
                 r"\alpha\beta",
-                vec![
-                    Token::Letter('α', MathVariant::Default),
-                    Token::Letter('β', MathVariant::Default),
-                ],
+                vec![Token::Letter('α', None), Token::Letter('β', None)],
             ),
             (
                 r"x+y",
                 vec![
-                    Token::Letter('x', MathVariant::Default),
+                    Token::Letter('x', None),
                     Token::Operator('+'),
-                    Token::Letter('y', MathVariant::Default),
+                    Token::Letter('y', None),
                 ],
             ),
             (

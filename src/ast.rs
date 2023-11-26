@@ -1,13 +1,13 @@
-use super::attribute::{Accent, LineThickness, MathVariant, DisplayStyle};
+use super::attribute::{Accent, DisplayStyle, LineThickness, MathVariant};
 use std::fmt;
 
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Number(String),
-    Letter(char, MathVariant),
+    SingleLetterIdent(char, Option<MathVariant>),
     Operator(char),
-    Function(String, Option<Box<Node>>),
+    MultiLetterIdent(String, Option<MathVariant>),
     Space(f32),
     Subscript(Box<Node>, Box<Node>),
     Superscript(Box<Node>, Box<Node>),
@@ -48,8 +48,8 @@ pub enum Node {
         paren: &'static str,
     },
     Text(String),
-    Matrix(Vec<Node>),
-    Aligned(Vec<Node>),
+    Table(Vec<Node>),
+    AlignedTable(Vec<Node>),
     NewColumn,
     NewRow,
     Slashed(Box<Node>),
@@ -60,17 +60,14 @@ impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Node::Number(number) => write!(f, "<mn>{}</mn>", number),
-            Node::Letter(letter, var) => write!(f, "<mi{}>{}</mi>", var, letter),
-            Node::Operator(op) => {
-                if op == &'∂' {
-                    write!(f, r#"<mo mathvariant="italic">∂</mo>"#)
-                } else {
-                    write!(f, r#"<mo>{}</mo>"#, op)
-                }
-            }
-            Node::Function(fun, arg) => match arg {
-                Some(arg) => write!(f, "<mi>{}</mi><mo>&#x2061;</mo>{}", fun, arg),
-                None => write!(f, "<mi>{}</mi>", fun),
+            Node::SingleLetterIdent(letter, var) => match var {
+                Some(var) => write!(f, "<mi{}>{}</mi>", var, letter),
+                None => write!(f, "<mi>{}</mi>", letter),
+            },
+            Node::Operator(op) => write!(f, r#"<mo>{}</mo>"#, op),
+            Node::MultiLetterIdent(letters, var) => match var {
+                Some(var) => write!(f, "<mi{}>{}</mi>", var, letters),
+                None => write!(f, "<mi>{}</mi>", letters),
             },
             Node::Space(space) => write!(f, r#"<mspace width="{}em"/>"#, space),
             Node::Subscript(a, b) => write!(f, "<msub>{}{}</msub>", a, b),
@@ -138,11 +135,14 @@ impl fmt::Display for Node {
                 size, paren
             ),
             Node::Slashed(node) => match &**node {
-                Node::Letter(x, var) => write!(f, "<mi mathvariant=\"{}\">{}&#x0338;</mi>", var, x),
+                Node::SingleLetterIdent(x, var) => match var {
+                    Some(var) => write!(f, "<mi{}>{}&#x0338;</mi>", var, x),
+                    None => write!(f, "<mi>{}&#x0338;</mi>", x),
+                },
                 Node::Operator(x) => write!(f, "<mo>{}&#x0338;</mo>", x),
                 n => write!(f, "{}", n),
             },
-            Node::Matrix(content) => {
+            Node::Table(content) => {
                 let mut mathml = "<mtable><mtr><mtd>".to_string();
                 for (i, node) in content.iter().enumerate() {
                     match node {
@@ -167,7 +167,7 @@ impl fmt::Display for Node {
 
                 write!(f, "{}", mathml)
             }
-            Node::Aligned(content) => {
+            Node::AlignedTable(content) => {
                 let mut mathml =
                     "<mtable>\n<mtr><mtd style=\"text-align: right; padding-right: 0\">"
                         .to_string();
@@ -205,7 +205,7 @@ impl fmt::Display for Node {
                 write!(f, "{}", mathml)
             }
             Node::Text(text) => write!(f, "<mtext>{}</mtext>", text),
-            node => write!(f, "<merror><mtext>[Parse error: {:?}]</mtext></merror>", node),
+            node => write!(f, "<merror><mtext>Parse error: {:?}</mtext></merror>", node),
         }
     }
 }
@@ -219,10 +219,10 @@ mod tests {
     fn node_display() {
         let problems = vec![
             (Node::Number("3.14".to_owned()), "<mn>3.14</mn>"),
-            (Node::Letter('x', MathVariant::Default), "<mi>x</mi>"),
-            (Node::Letter('α', MathVariant::Default), "<mi>α</mi>"),
+            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
+            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
-                Node::Letter('あ', MathVariant::Normal),
+                Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
                 r#"<mi mathvariant="normal">あ</mi>"#,
             ),
             (
