@@ -12,6 +12,6 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-    let mathml = latex2mmlcore::replace(text).unwrap();
+    let mathml = latex2mmlc::replace(text).unwrap();
     println!("{}", mathml);
 }

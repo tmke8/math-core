@@ -84,17 +84,18 @@ impl<'a> Parser<'a> {
             Token::Operator(op) => Node::Operator(*op),
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(*space),
+            Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
             Token::Sqrt => {
                 self.next_token();
-                let degree = if self.cur_token_is(&Token::Paren("[")) {
+                if self.cur_token_is(&Token::Paren("[")) {
                     let degree = self.parse_group(&Token::Paren("]"))?;
                     self.next_token();
-                    Some(Box::new(degree))
+                    let content = self.parse_node()?;
+                    Node::Root(Box::new(degree), Box::new(content))
                 } else {
-                    None
-                };
-                let content = self.parse_node()?;
-                Node::Sqrt(degree, Box::new(content))
+                    let content = self.parse_node()?;
+                    Node::Sqrt(Box::new(content))
+                }
             }
             Token::Frac(displaystyle) => {
                 let displaystyle = *displaystyle;
@@ -361,7 +362,6 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 match self.parse_single_node()? {
                     Node::Operator(op) => Node::StretchedOp(stretchy, op.to_string()),
-                    Node::OtherOperator(op) => Node::StretchedOp(stretchy, op.to_owned()),
                     Node::Paren(op) => Node::StretchedOp(stretchy, op.to_string()),
                     _ => unimplemented!(),
                 }
@@ -433,8 +433,8 @@ impl<'a> Parser<'a> {
                 let text = self.parse_text();
                 Node::Text(text)
             }
-            Token::Ampersand => Node::NewColumn,
-            Token::NewLine => Node::NewRow,
+            Token::Ampersand => Node::ColumnSeparator,
+            Token::NewLine => Node::RowSeparator,
             token => Node::Undefined(format!("{:?}", token)),
         };
 

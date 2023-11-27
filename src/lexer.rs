@@ -98,7 +98,7 @@ impl<'a> Lexer<'a> {
             '_' => Token::Underscore,
             '^' => Token::Circumflex,
             '&' => Token::Ampersand,
-            '~' => Token::Space(5. / 18.),
+            '~' => Token::NonBreakingSpace,
             '\u{0}' => Token::EOF,
             ':' => {
                 if self.peek == '=' {

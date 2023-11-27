@@ -1,4 +1,4 @@
-use latex2mmlcore::{latex_to_mathml, Display};
+use latex2mmlc::{latex_to_mathml, Display};
 
 fn main() {
     let inputs = vec![

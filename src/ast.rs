@@ -32,7 +32,8 @@ pub enum Node {
         under: Box<Node>,
         over: Box<Node>,
     },
-    Sqrt(Option<Box<Node>>, Box<Node>),
+    Sqrt(Box<Node>),
+    Root(Box<Node>, Box<Node>),
     Frac(Box<Node>, Box<Node>, LineThickness, Option<DisplayStyle>),
     Row(Vec<Node>),
     Fenced {
@@ -41,7 +42,6 @@ pub enum Node {
         content: Box<Node>,
     },
     StretchedOp(bool, String),
-    OtherOperator(&'static str),
     Paren(&'static str),
     SizedParen {
         size: &'static str,
@@ -50,8 +50,8 @@ pub enum Node {
     Text(String),
     Table(Vec<Node>),
     AlignedTable(Vec<Node>),
-    NewColumn,
-    NewRow,
+    ColumnSeparator,
+    RowSeparator,
     Slashed(Box<Node>),
     Undefined(String),
 }
@@ -95,10 +95,8 @@ impl fmt::Display for Node {
                 under,
                 over,
             } => write!(f, r#"<munderover>{}{}{}</munderover>"#, target, under, over),
-            Node::Sqrt(degree, content) => match degree {
-                Some(deg) => write!(f, "<mroot>{}{}</mroot>", content, deg),
-                None => write!(f, "<msqrt>{}</msqrt>", content),
-            },
+            Node::Sqrt(content) => write!(f, "<msqrt>{}</msqrt>", content),
+            Node::Root(degree, content) => write!(f, "<mroot>{}{}</mroot>", content, degree),
             Node::Frac(num, denom, lt, style) => {
                 if let Some(style) = style {
                     write!(f, "<mfrac{}{}>{}{}</mfrac>", lt, style, num, denom)
@@ -128,7 +126,6 @@ impl fmt::Display for Node {
                 write!(f, r#"<mo stretchy="{}">{}</mo>"#, stretchy, op)
             }
             Node::Paren(paren) => write!(f, r#"<mo stretchy="false">{}</mo>"#, paren),
-            Node::OtherOperator(op) => write!(f, "<mo>{}</mo>", op),
             Node::SizedParen { size, paren } => write!(
                 f,
                 r#"<mrow><mo maxsize="{0}" minsize="{0}">{1}</mro></mrow>"#,
@@ -146,13 +143,13 @@ impl fmt::Display for Node {
                 let mut mathml = "<mtable><mtr><mtd>".to_string();
                 for (i, node) in content.iter().enumerate() {
                     match node {
-                        Node::NewColumn => {
+                        Node::ColumnSeparator => {
                             mathml.push_str("</mtd>");
                             if i < content.len() {
                                 mathml.push_str("<mtd>")
                             }
                         }
-                        Node::NewRow => {
+                        Node::RowSeparator => {
                             mathml.push_str("</mtd></mtr>");
                             if i < content.len() {
                                 mathml.push_str("<mtr><mtd>")
@@ -175,7 +172,7 @@ impl fmt::Display for Node {
                 let total_len = content.len();
                 for (i, node) in content.iter().enumerate() {
                     match node {
-                        Node::NewColumn => {
+                        Node::ColumnSeparator => {
                             mathml.push_str("</mtd>");
                             col += 1;
                             if i < total_len {
@@ -186,7 +183,7 @@ impl fmt::Display for Node {
                                 })
                             }
                         }
-                        Node::NewRow => {
+                        Node::RowSeparator => {
                             mathml.push_str("</mtd></mtr>");
                             if i < total_len {
                                 mathml.push_str(
