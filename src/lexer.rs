@@ -1,13 +1,10 @@
 //! Lexer
-//! 
+//!
 //! - Input: `String`
 //! - Output: `Vec<Token>`
-//! 
+//!
 
-use super::{
-    token::Token, 
-    attribute::Variant,
-};
+use super::{attribute::MathVariant, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -20,9 +17,9 @@ pub(crate) struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// 入力ソースコードを受け取り Lexer インスタンスを生成する.
     pub(crate) fn new(input: &'a str) -> Self {
-        let mut lexer = Lexer { 
+        let mut lexer = Lexer {
             input: input.chars(),
-            cur:  '\u{0}',
+            cur: '\u{0}',
             peek: '\u{0}',
         };
         lexer.read_char();
@@ -60,13 +57,15 @@ impl<'a> Lexer<'a> {
 
         Token::from_command(&command)
     }
-    
+
     /// 数字一つ分を読み込みトークンに変換する.
     fn read_number(&mut self) -> Token {
         let mut number = String::new();
         let mut has_period = false;
         while self.cur.is_ascii_digit() || (self.cur == '.' && !has_period) {
-            if self.cur == '.' { has_period = true; }
+            if self.cur == '.' {
+                has_period = true;
+            }
             number.push(self.read_char());
         }
         Token::Number(number)
@@ -89,31 +88,39 @@ impl<'a> Lexer<'a> {
             '[' => Token::Paren("["),
             ']' => Token::Paren("]"),
             '|' => Token::Paren("|"),
-            '+' => Token::Operator('+'), 
-            '-' => Token::Operator('-'),
+            '+' => Token::Operator('+'),
+            '-' => Token::Operator('−'),
             '*' => Token::Operator('*'),
             '/' => Token::Operator('/'),
             '!' => Token::Operator('!'),
-            '<' => Token::Operator('<'), 
-            '>' => Token::Operator('>'), 
+            '<' => Token::Operator('<'),
+            '>' => Token::Operator('>'),
             '_' => Token::Underscore,
             '^' => Token::Circumflex,
             '&' => Token::Ampersand,
+            '~' => Token::NonBreakingSpace,
             '\u{0}' => Token::EOF,
-            ':' => if self.peek == '=' {
-                self.read_char();
-                Token::Paren(":=")
-            } else { Token::Operator(':') },
-            '\\' => { return self.read_command(); },
+            ':' => {
+                if self.peek == '=' {
+                    self.read_char();
+                    // Token::Paren(":=")
+                    Token::Operator('≔')
+                } else {
+                    Token::Operator(':')
+                }
+            }
+            '\\' => {
+                return self.read_command();
+            }
             c => {
                 if c.is_ascii_digit() {
                     return self.read_number();
                 } else if c.is_ascii_alphabetic() {
-                    Token::Letter(c, Variant::Italic)
+                    Token::Letter(c, None)
                 } else {
-                    Token::Letter(c, Variant::Normal)
+                    Token::Letter(c, Some(MathVariant::Normal))
                 }
-            },
+            }
         };
         self.read_char();
         token
@@ -122,10 +129,7 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{
-        token::Token, 
-        attribute::Variant
-    };
+    use super::super::{attribute::MathVariant, token::Token};
     use super::*;
 
     #[test]
@@ -133,17 +137,36 @@ mod tests {
         let problems = vec![
             (r"3", vec![Token::Number("3".to_owned())]),
             (r"3.14", vec![Token::Number("3.14".to_owned())]),
-            (r"3.14.", vec![Token::Number("3.14".to_owned()), Token::Operator('.')]),
-            (r"x", vec![Token::Letter('x', Variant::Italic)]),
-            (r"\pi", vec![Token::Letter('π', Variant::Italic)]),
-            (r"x = 3.14", vec![
-                Token::Letter('x', Variant::Italic), 
-                Token::Operator('='), 
-                Token::Number("3.14".to_owned())
-            ]),
-            (r"\alpha\beta", vec![Token::Letter('α', Variant::Italic), Token::Letter('β', Variant::Italic)]),
-            (r"x+y", vec![Token::Letter('x', Variant::Italic), Token::Operator('+'), Token::Letter('y', Variant::Italic)]),
-            (r"\ 1", vec![Token::Space(1.), Token::Number("1".to_owned())]),
+            (
+                r"3.14.",
+                vec![Token::Number("3.14".to_owned()), Token::Operator('.')],
+            ),
+            (r"x", vec![Token::Letter('x', None)]),
+            (r"\pi", vec![Token::Letter('π', None)]),
+            (
+                r"x = 3.14",
+                vec![
+                    Token::Letter('x', None),
+                    Token::Operator('='),
+                    Token::Number("3.14".to_owned()),
+                ],
+            ),
+            (
+                r"\alpha\beta",
+                vec![Token::Letter('α', None), Token::Letter('β', None)],
+            ),
+            (
+                r"x+y",
+                vec![
+                    Token::Letter('x', None),
+                    Token::Operator('+'),
+                    Token::Letter('y', None),
+                ],
+            ),
+            (
+                r"\ 1",
+                vec![Token::Space(1.), Token::Number("1".to_owned())],
+            ),
         ];
 
         for (problem, answer) in problems.iter() {

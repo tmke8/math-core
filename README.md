@@ -1,10 +1,10 @@
-# latex2mathmlcore
+# latex2mmlc – LaTeX to MathML Core
 
 Forked from https://github.com/osanshouo/latex2mathml .
 <!-- [![Crate](https://img.shields.io/crates/v/latex2mathml.svg)](https://crates.io/crates/latex2mathml) -->
 <!-- [![docs.rs](https://docs.rs/latex2mathml/badge.svg)](https://docs.rs/latex2mathml/) -->
 
-`latex2mathmlcore` provides a functionality to convert LaTeX math equations to MathML Core.
+`latex2mmlc` provides a functionality to convert LaTeX math equations to MathML Core.
 This crate is implemented in pure Rust, so it works in any environments if Rust works (including WebAssembly).
 
 
@@ -20,11 +20,10 @@ This crate is implemented in pure Rust, so it works in any environments if Rust 
 - Integrals, e.g., `\int_0^\infty`, `\iint`, `\oint`, ...
 - Big operators, e.g., `\sum`, `\prod`, `\bigcup_{i = 0}^\infty`, ...
 - Limits and overset/underset, e.g., `\lim`, `\overset{}{}`, `\overbrace{}{}`, ...
-- Font styles, e.g. `\mathrm`, `\mathbf`, `\bm`, `\mathit`, `\mathsf`, `\mathscr`, `\mathbb`, `\mathfrak`, `\texttt`.
-  - MathML lacks calligraphic mathvariant: https://github.com/mathml-refresh/mathml/issues/61
+- Font styles, e.g. `\mathrm`, `\mathbf`, `\bm`, `\mathit`, `\mathsf`, `\mathscr`, `\mathbb`, `\mathfrak`, `\texttt`, `\mathcal` (same as `\mathscr` because Unicode doesn’t distinguish the two)
 - White spaces, e.g., `\!`, `\,`, `\:`, `\;`, `\ `, `\quad`, `\qquad`.
 - Matrix, e.g. `\begin{matrix}`, `\begin{pmatrix}`, `\begin{bmatrix}`, `\begin{vmatrix}`.
-- Multi-line equation `\begin{align}` (experimental, see below).
+- Multi-line equation `\begin{align}`, `\begin{align*}`, `\begin{aligned}`.
 - Feynman slash notation: `\slashed{\partial}`.
 
 See `examples/equations.rs` for examples. Note that all supported commands are defined in `src/token.rs`.
@@ -34,11 +33,6 @@ See `examples/equations.rs` for examples. Note that all supported commands are d
 - New line `\\`, except for ones in a matrix or align environment.
 - Alignment `&`, except for ones in a matrix or align environment.
 - Complicated sub/superscripts (`<mmultiscripts>`).
-
-Align environment `\begin{align} .. \end{align}` is experimentally supported from version 0.2.1, 
-as suggested in the [issue #2](https://github.com/osanshouo/latex2mathml/issues/2). 
-Because it is implemented using `matrix` environment, the output MathML is not recommended
-and rendered equation may be not well-formatted.
 
 Dollar sign `\$` is allowed for the `latex_to_mathml` function, but the `replace` function does not allow it.
 This is because the `replace` function assumes all dollar signs appear as boundaries of LaTeX equations.
@@ -51,10 +45,10 @@ If a feature you need is lacked, feel free to open an issue.
 For a single LaTeX equation:
 
 ```rust
-use latex2mathml::{latex_to_mathml, DisplayStyle};
+use latex2mathml::{latex_to_mathml, Display};
 
 let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-let mathml = latex_to_mathml(latex, DisplayStyle::Block).unwrap();
+let mathml = latex_to_mathml(latex, Display::Block).unwrap();
 println!("{}", mathml);
 ```
 

@@ -1,11 +1,11 @@
 [package]
-name = "latex2mathml"
-version = "0.2.3"
+name = "latex2mmlc"
+version = "0.1.0"
 authors = ["Hiromu Sugiura <h.sugiura0705@outlook.com>"]
-edition = "2018"
+edition = "2021"
 
-description   = "Convert LaTeX equations to MathML"
-repository    = "https://github.com/osanshouo/latex2mathml"
+description   = "Convert LaTeX equations to MathML Core"
+repository    = "https://github.com/tmke8/latex2mmlc"
 readme        = "README.md"
 license       = "MIT"
 keywords      = ["latex", "mathml"]

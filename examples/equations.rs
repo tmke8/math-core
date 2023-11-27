@@ -1,4 +1,4 @@
-use latex2mathml::{latex_to_mathml, DisplayStyle};
+use latex2mmlc::{latex_to_mathml, Display};
 
 fn main() {
     let inputs = vec![
@@ -53,14 +53,22 @@ fn main() {
         \begin{bmatrix} a & b \\ c & d \end{bmatrix} , 
         \begin{vmatrix} a & b \\ c & d \end{vmatrix}"#,
         r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
+        r#"\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}"#,
         r#"\lambda_\text{Compton} = \frac{ 2 \pi \hbar }{ m c }"#,
         r#"\int Y_{\ell m} ( \Omega ) Y_{\ell' m'} ( \Omega ) \, d^2 \Omega = \delta_{\ell \ell'} \delta_{m m'}"#,
+        r#"\asdf"#,
+        r#"fi~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing"#,
+        r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
     ];
 
-    let outputs = inputs.iter()
-        .map(|input| latex_to_mathml(input, DisplayStyle::Block).unwrap())
+    let outputs = inputs
+        .iter()
+        .map(|input| format!("<code>{}</code><p>{}</p>", input, latex_to_mathml(input, Display::Block).unwrap()))
         .collect::<Vec<_>>()
         .join("</div>\n<div>");
 
-    println!("<!DOCTYPE html><html><body>\n<div>{}</div>\n</body></html>", outputs);
+    println!(
+        "<!DOCTYPE html><html><body>\n<div>{}</div>\n</body></html>",
+        outputs
+    );
 }
