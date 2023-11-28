@@ -129,7 +129,7 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{attribute::MathVariant, token::Token};
+    use super::super::token::Token;
     use super::*;
 
     #[test]
