@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+expression: "\\sqrt[3]{x}"
+---
+<mroot>
+    <mi>x</mi>
+    <mn>3</mn>
+</mroot>
+

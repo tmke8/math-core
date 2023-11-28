@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+expression: x
+---
+<mi>x</mi>
+

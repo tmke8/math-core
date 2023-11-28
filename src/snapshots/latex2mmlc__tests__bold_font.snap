@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+expression: "\\bm{x}"
+---
+<mi>𝒙</mi>
+

@@ -1,0 +1,8 @@
+---
+source: src/lib.rs
+expression: "\\sqrt 2"
+---
+<msqrt>
+    <mn>2</mn>
+</msqrt>
+

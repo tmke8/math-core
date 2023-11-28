@@ -1,0 +1,17 @@
+---
+source: src/lib.rs
+expression: "\\left\\{ x  ( x + 2 ) \\right\\}"
+---
+<mrow>
+    <mo stretchy="true" form="prefix">{</mo>
+    <mrow>
+        <mi>x</mi>
+        <mo stretchy="false">(</mo>
+        <mi>x</mi>
+        <mo>+</mo>
+        <mn>2</mn>
+        <mo stretchy="false">)</mo>
+    </mrow>
+    <mo stretchy="true" form="postfix">}</mo>
+</mrow>
+

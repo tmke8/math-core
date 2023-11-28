@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+expression: "\\overset{n}{X}"
+---
+<mover>
+    <mi>X</mi>
+    <mi>n</mi>
+</mover>
+

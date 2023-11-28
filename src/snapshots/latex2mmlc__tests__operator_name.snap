@@ -1,0 +1,7 @@
+---
+source: src/lib.rs
+expression: "\\operatorname{sn} x"
+---
+<mi>sn</mi>
+<mi>x</mi>
+

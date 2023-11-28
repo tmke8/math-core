@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+expression: "\\frac{12}{5}"
+---
+<mfrac>
+    <mn>12</mn>
+    <mn>5</mn>
+</mfrac>
+

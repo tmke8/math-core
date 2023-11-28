@@ -1,0 +1,10 @@
+---
+source: src/lib.rs
+expression: "\\prod_n n"
+---
+<munder>
+    <mo>∏</mo>
+    <mi>n</mi>
+</munder>
+<mi>n</mi>
+

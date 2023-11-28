@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+expression: "f'"
+---
+<msup>
+    <mi>f</mi>
+    <mo>′</mo>
+</msup>
+
