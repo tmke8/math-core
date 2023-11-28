@@ -99,7 +99,7 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
 
     let mathml = nodes
         .iter()
-        .map(|node| format!("{}", node))
+        .map(|node| format!("{}\n", node))
         .collect::<String>();
 
     Ok(mathml)
@@ -286,100 +286,60 @@ fn convert_latex<P: AsRef<Path>>(fp: P) -> Result<(), Box<dyn std::error::Error>
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_snapshot;
+
     use super::convert_content;
 
     #[test]
     fn it_works() {
         let problems = vec![
-            (r"0", "<mn>0</mn>"),
-            (r"3.14", "<mn>3.14</mn>"),
-            (r"x", "<mi>x</mi>"),
-            (r"\alpha", "<mi>α</mi>"),
-            (r"\phi/\varphi", "<mi>ϕ</mi><mo>/</mo><mi>φ</mi>"),
+            ("integer", r"0"),
+            ("rational_number", r"3.14"),
+            ("single_variable", r"x"),
+            ("greek_letter", r"\alpha"),
+            ("greek_letters", r"\phi/\varphi"),
+            ("simple_expression", r"x = 3+\alpha"),
+            ("sine_function", r"\sin x"),
+            ("square_root", r"\sqrt 2"),
+            ("square_root_without_space", r"\sqrt12"),
+            ("complex_square_root", r"\sqrt{x+2}"),
+            ("cube_root", r"\sqrt[3]{x}"),
+            ("simple_fraction", r"\frac{1}{2}"),
+            ("fraction_without_space", r"\frac12"),
+            ("slightly_more_complex_fraction", r"\frac{12}{5}"),
+            ("superscript", r"x^2"),
+            ("double_subscript", r"g_{\mu\nu}"),
+            ("simple_accent", r"\dot{x}"),
+            ("operator_name", r"\operatorname{sn} x"),
+            ("simple_binomial_coefficient", r"\binom12"),
+            ("stretchy_parentheses", r"\left( x \right)"),
+            ("stretchy_one-sided_parenthesis", r"\left( x \right."),
+            ("simple_integral", r"\int dx"),
+            ("contour_integral", r"\oint_C dz"),
+            ("simple_overset", r"\overset{n}{X}"),
+            ("integral_with_limits", r"\int_0^1 dx"),
+            ("integral_with_reversed_limits", r"\int^1_0 dx"),
+            ("bold_font", r"\bm{x}"),
+            ("black_board_font", r"\mathbb{R}"),
+            ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
+            ("product", r"\prod_n n"),
+            ("underscore", r"x\ y"),
+            ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),
+            ("prime", r"f'"),
+            ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
             (
-                r"x = 3+\alpha",
-                "<mi>x</mi><mo>=</mo><mn>3</mn><mo>+</mo><mi>α</mi>",
-            ),
-            (r"\sin x", "<mi>sin</mi><mi>x</mi>"),
-            (r"\sqrt 2", "<msqrt><mn>2</mn></msqrt>"),
-            (r"\sqrt12", "<msqrt><mn>1</mn></msqrt><mn>2</mn>"),
-            (
-                r"\sqrt{x+2}",
-                "<msqrt><mrow><mi>x</mi><mo>+</mo><mn>2</mn></mrow></msqrt>",
-            ),
-            (r"\sqrt[3]{x}", "<mroot><mi>x</mi><mn>3</mn></mroot>"),
-            (r"\frac{1}{2}", "<mfrac><mn>1</mn><mn>2</mn></mfrac>"),
-            (r"\frac12", "<mfrac><mn>1</mn><mn>2</mn></mfrac>"),
-            (r"\frac{12}{5}", "<mfrac><mn>12</mn><mn>5</mn></mfrac>"),
-            (r"x^2", "<msup><mi>x</mi><mn>2</mn></msup>"),
-            (
-                r"g_{\mu\nu}",
-                "<msub><mi>g</mi><mrow><mi>μ</mi><mi>ν</mi></mrow></msub>",
-            ),
-            (
-                r"\dot{x}",
-                "<mover><mi>x</mi><mo accent=\"true\">\u{02d9}</mo></mover>",
-            ),
-            (r"\sin x", r#"<mi>sin</mi><mi>x</mi>"#),
-            (r"\operatorname{sn} x", r#"<mi>sn</mi><mi>x</mi>"#),
-            (
-                r"\binom12",
-                r#"<mrow><mo stretchy="true" form="prefix">(</mo><mfrac linethickness="0"><mn>1</mn><mn>2</mn></mfrac><mo stretchy="true" form="postfix">)</mo></mrow>"#,
-            ),
-            (
-                r"\left( x \right)",
-                r#"<mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo stretchy="true" form="postfix">)</mo></mrow>"#,
-            ),
-            (
-                r"\left( x \right.",
-                r#"<mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo stretchy="true" form="postfix"></mo></mrow>"#,
-            ),
-            (r"\int dx", r#"<mo>∫</mo><mi>d</mi><mi>x</mi>"#),
-            (
-                r"\oint_C dz",
-                r#"<msub><mo>∮</mo><mi>C</mi></msub><mi>d</mi><mi>z</mi>"#,
-            ),
-            (r"\overset{n}{X}", "<mover><mi>X</mi><mi>n</mi></mover>"),
-            (
-                r"\int_0^1 dx",
-                r#"<msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><mi>d</mi><mi>x</mi>"#,
-            ),
-            (
-                r"\int^1_0 dx",
-                r#"<msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><mi>d</mi><mi>x</mi>"#,
-            ),
-            (r"\bm{x}", r#"<mi>𝒙</mi>"#),
-            (r"\mathbb{R}", r#"<mi>ℝ</mi>"#),
-            (
-                r"\sum_{i = 0}^∞ i",
-                r#"<munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mi mathvariant="normal">∞</mi></munderover><mi>i</mi>"#,
-            ),
-            (
-                r"\prod_n n",
-                r#"<munder><mo>∏</mo><mi>n</mi></munder><mi>n</mi>"#,
-            ),
-            (r"x\ y", r#"<mi>x</mi><mspace width="1em"/><mi>y</mi>"#),
-            (
-                r"\left\{ x  ( x + 2 ) \right\}",
-                r#"<mrow><mo stretchy="true" form="prefix">{</mo><mrow><mi>x</mi><mo stretchy="false">(</mo><mi>x</mi><mo>+</mo><mn>2</mn><mo stretchy="false">)</mo></mrow><mo stretchy="true" form="postfix">}</mo></mrow>"#,
-            ),
-            (r"f'", r#"<msup><mi>f</mi><mo>′</mo></msup>"#),
-            (
-                r"\begin{pmatrix} x \\ y \end{pmatrix}",
-                r#"<mrow><mo stretchy="true" form="prefix">(</mo><mtable><mtr><mtd><mi>x</mi></mtd></mtr><mtr><mtd><mi>y</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">)</mo></mrow>"#,
-            ),
-            (
+                "align",
                 r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
-                r#"<mtable>
-<mtr><mtd style="text-align: right; padding-right: 0"><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mtd><mtd style="text-align: left; padding-left: 0"><mo>=</mo><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><mn>2</mn><mi>x</mi><mo>+</mo><mn>1</mn></mtd></mtr>
-<mtr><mtd style="text-align: right; padding-right: 0"></mtd><mtd style="text-align: left; padding-left: 0"><mo>=</mo><mo stretchy="false">(</mo><mi>x</mi><mo>+</mo><mn>1</mn><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mtd></mtr>
-</mtable>"#,
+            ),
+            (
+                "text_transforms",
+                r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
             ),
         ];
 
-        for (problem, answer) in problems.iter() {
+        for (name, problem) in problems.iter() {
             let mathml = convert_content(dbg!(problem)).unwrap();
-            assert_eq!(&mathml, answer);
+            assert_snapshot!(*name, &mathml, problem);
         }
     }
 }

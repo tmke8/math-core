@@ -1,0 +1,12 @@
+---
+source: src/lib.rs
+expression: "\\sqrt{x+2}"
+---
+<msqrt>
+    <mrow>
+        <mi>x</mi>
+        <mo>+</mo>
+        <mn>2</mn>
+    </mrow>
+</msqrt>
+

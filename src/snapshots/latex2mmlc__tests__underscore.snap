@@ -1,0 +1,8 @@
+---
+source: src/lib.rs
+expression: "x\\ y"
+---
+<mi>x</mi>
+<mspace width="1em"/>
+<mi>y</mi>
+

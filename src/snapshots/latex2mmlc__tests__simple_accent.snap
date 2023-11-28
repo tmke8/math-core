@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+expression: "\\dot{x}"
+---
+<mover>
+    <mi>x</mi>
+    <mo accent="true">˙</mo>
+</mover>
+

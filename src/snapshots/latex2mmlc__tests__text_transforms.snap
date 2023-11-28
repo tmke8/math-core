@@ -1,0 +1,21 @@
+---
+source: src/lib.rs
+expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
+---
+<mrow>
+    <mi>f</mi>
+    <mi>i</mi>
+</mrow>
+<mspace width="1em"/>
+<mrow>
+    <mi>𝑓𝑖</mi>
+</mrow>
+<mspace width="1em"/>
+<mrow>
+    <mi mathvariant="normal">fi</mi>
+</mrow>
+<mspace width="1em"/>
+<mrow>
+    <mi>𝚏𝚒</mi>
+</mrow>
+

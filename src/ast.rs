@@ -1,12 +1,14 @@
+use crate::token::Op;
+
 use super::attribute::{Accent, DisplayStyle, LineThickness, MathVariant};
-use std::fmt;
+use std::fmt::{self, Alignment};
 
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Number(String),
     SingleLetterIdent(char, Option<MathVariant>),
-    Operator(char),
+    Operator(Op),
     MultiLetterIdent(String, Option<MathVariant>),
     Space(f32),
     Subscript(Box<Node>, Box<Node>),
@@ -16,8 +18,8 @@ pub enum Node {
         sub: Box<Node>,
         sup: Box<Node>,
     },
-    OverOp(char, Accent, Box<Node>),
-    UnderOp(char, Accent, Box<Node>),
+    OverOp(Op, Accent, Box<Node>),
+    UnderOp(Op, Accent, Box<Node>),
     Overset {
         over: Box<Node>,
         target: Box<Node>,
@@ -26,7 +28,6 @@ pub enum Node {
         under: Box<Node>,
         target: Box<Node>,
     },
-    Under(Box<Node>, Box<Node>),
     UnderOver {
         target: Box<Node>,
         under: Box<Node>,
@@ -37,15 +38,15 @@ pub enum Node {
     Frac(Box<Node>, Box<Node>, LineThickness, Option<DisplayStyle>),
     Row(Vec<Node>),
     Fenced {
-        open: &'static str,
-        close: &'static str,
+        open: Op,
+        close: Op,
         content: Box<Node>,
     },
-    StretchedOp(bool, String),
-    Paren(&'static str),
+    StretchedOp(bool, Op),
+    Paren(Op),
     SizedParen {
         size: &'static str,
-        paren: &'static str,
+        paren: Op,
     },
     Text(String),
     Table(Vec<Node>),
@@ -56,61 +57,107 @@ pub enum Node {
     Undefined(String),
 }
 
+const INDENT: usize = 4;
+
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Compute the base indent for the node.
+        // We abuse the width field of the formatter to store the base indent.
+        let b = match (f.width(), f.align()) {
+            (Some(width), Some(Alignment::Right)) => width,
+            _ => 0,
+        };
+        // Compute the indent for the children of the node.
+        let i = b.saturating_add(INDENT);
+
         match self {
-            Node::Number(number) => write!(f, "<mn>{}</mn>", number),
+            Node::Number(number) => write!(f, "{:b$}<mn>{}</mn>", "", number),
             Node::SingleLetterIdent(letter, var) => match var {
-                Some(var) => write!(f, "<mi{}>{}</mi>", var, letter),
-                None => write!(f, "<mi>{}</mi>", letter),
+                Some(var) => write!(f, "{:b$}<mi{}>{}</mi>", "", var, letter),
+                None => write!(f, "{:b$}<mi>{}</mi>", "", letter),
             },
-            Node::Operator(op) => write!(f, r#"<mo>{}</mo>"#, op),
+            Node::Operator(Op(op)) => write!(f, "{:b$}<mo>{}</mo>", "", op),
             Node::MultiLetterIdent(letters, var) => match var {
-                Some(var) => write!(f, "<mi{}>{}</mi>", var, letters),
-                None => write!(f, "<mi>{}</mi>", letters),
+                Some(var) => write!(f, "{:b$}<mi{}>{}</mi>", "", var, letters,),
+                None => write!(f, "{:b$}<mi>{}</mi>", "", letters),
             },
-            Node::Space(space) => write!(f, r#"<mspace width="{}em"/>"#, space),
-            Node::Subscript(a, b) => write!(f, "<msub>{}{}</msub>", a, b),
-            Node::Superscript(a, b) => write!(f, "<msup>{}{}</msup>", a, b),
+            Node::Space(space) => write!(f, r#"{:b$}<mspace width="{}em"/>"#, "", space,),
+            Node::Subscript(base, sub) => write!(
+                f,
+                "{:b$}<msub>\n{:>i$}\n{:>i$}\n{:b$}</msub>",
+                "", base, sub, "",
+            ),
+            Node::Superscript(base, sup) => write!(
+                f,
+                "{:b$}<msup>\n{:>i$}\n{:>i$}\n{:b$}</msup>",
+                "", base, sup, "",
+            ),
             Node::SubSup { target, sub, sup } => {
-                write!(f, "<msubsup>{}{}{}</msubsup>", target, sub, sup)
+                write!(
+                    f,
+                    "{:b$}<msubsup>\n{:>i$}\n{:>i$}\n{:>i$}\n{:b$}</msubsup>",
+                    "", target, sub, sup, "",
+                )
             }
-            Node::OverOp(op, acc, target) => write!(
+            Node::OverOp(Op(c), acc, target) => write!(
                 f,
-                r#"<mover>{}<mo accent="{}">{}</mo></mover>"#,
-                target, acc, op
+                "{:b$}<mover>\n{:>i$}\n{:i$}<mo accent=\"{}\">{}</mo>\n{:b$}</mover>",
+                "", target, "", acc, c, "",
             ),
-            Node::UnderOp(op, acc, target) => write!(
+            Node::UnderOp(Op(c), acc, target) => write!(
                 f,
-                r#"<munder>{}<mo accent="{}">{}</mo></munder>"#,
-                target, acc, op
+                "{:b$}<munder>\n{:>i$}\n{:i$}<mo accent=\"{}\">{}</mo>\n{:b$}</munder>",
+                "", target, "", acc, c, "",
             ),
-            Node::Overset { over, target } => write!(f, r#"<mover>{}{}</mover>"#, target, over),
-            Node::Underset { under, target } => {
-                write!(f, r#"<munder>{}{}</munder>"#, target, under)
-            }
-            Node::Under(target, under) => write!(f, r#"<munder>{}{}</munder>"#, target, under),
+            Node::Overset { over, target } => write!(
+                f,
+                "{:b$}<mover>\n{:>i$}\n{:>i$}\n{:b$}</mover>",
+                "", target, over, ""
+            ),
+            Node::Underset { under, target } => write!(
+                f,
+                "{:b$}<munder>\n{:>i$}\n{:>i$}\n{:b$}</munder>",
+                "", target, under, ""
+            ),
             Node::UnderOver {
                 target,
                 under,
                 over,
-            } => write!(f, r#"<munderover>{}{}{}</munderover>"#, target, under, over),
-            Node::Sqrt(content) => write!(f, "<msqrt>{}</msqrt>", content),
-            Node::Root(degree, content) => write!(f, "<mroot>{}{}</mroot>", content, degree),
+            } => write!(
+                f,
+                "{:b$}<munderover>\n{:>i$}\n{:>i$}\n{:>i$}\n{:b$}</munderover>",
+                "", target, under, over, ""
+            ),
+            Node::Sqrt(content) => {
+                write!(f, "{:b$}<msqrt>\n{:>i$}\n{:b$}</msqrt>", "", content, "",)
+            }
+            Node::Root(degree, content) => write!(
+                f,
+                "{:b$}<mroot>\n{:>i$}\n{:>i$}\n{:b$}</mroot>",
+                "", content, degree, "",
+            ),
             Node::Frac(num, denom, lt, style) => {
                 if let Some(style) = style {
-                    write!(f, "<mfrac{}{}>{}{}</mfrac>", lt, style, num, denom)
+                    write!(
+                        f,
+                        "{:b$}<mfrac{}{}>\n{:>i$}\n{:>i$}\n{:b$}</mfrac>",
+                        "", lt, style, num, denom, ""
+                    )
                 } else {
-                    write!(f, "<mfrac{}>{}{}</mfrac>", lt, num, denom)
+                    write!(
+                        f,
+                        "{:b$}<mfrac{}>\n{:>i$}\n{:>i$}\n{:b$}</mfrac>",
+                        "", lt, num, denom, ""
+                    )
                 }
             }
-            Node::Row(vec) => write!(
-                f,
-                "<mrow>{}</mrow>",
-                vec.iter()
-                    .map(|node| format!("{}", node))
-                    .collect::<String>()
-            ),
+            Node::Row(vec) => {
+                write!(f, "{:b$}<mrow>\n", "",)?;
+                for node in vec.iter() {
+                    write!(f, "{:>i$}\n", node)?;
+                }
+                write!(f, "{:b$}</mrow>", "")
+            }
             Node::Fenced {
                 open,
                 close,
@@ -118,91 +165,105 @@ impl fmt::Display for Node {
             } => {
                 write!(
                     f,
-                    r#"<mrow><mo stretchy="true" form="prefix">{}</mo>{}<mo stretchy="true" form="postfix">{}</mo></mrow>"#,
-                    open, content, close
+                    r#"{:b$}<mrow>
+{:i$}<mo stretchy="true" form="prefix">{}</mo>
+{:>i$}
+{:i$}<mo stretchy="true" form="postfix">{}</mo>
+{:b$}</mrow>"#,
+                    "", "", open.0, content, "", close.0, ""
                 )
             }
-            Node::StretchedOp(stretchy, op) => {
-                write!(f, r#"<mo stretchy="{}">{}</mo>"#, stretchy, op)
+            Node::StretchedOp(stretchy, Op(c)) => {
+                write!(f, "{:b$}<mo stretchy=\"{}\">{}</mo>", "", stretchy, c)
             }
-            Node::Paren(paren) => write!(f, r#"<mo stretchy="false">{}</mo>"#, paren),
+            Node::Paren(Op(c)) => write!(f, "{:b$}<mo stretchy=\"false\">{}</mo>", "", c),
             Node::SizedParen { size, paren } => write!(
                 f,
-                r#"<mrow><mo maxsize="{0}" minsize="{0}">{1}</mro></mrow>"#,
-                size, paren
+                r#"{0:b$}<mrow><mo maxsize="{1}" minsize="{1}">{2}</mro></mrow>"#,
+                "", size, paren.0
             ),
             Node::Slashed(node) => match &**node {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => write!(f, "<mi{}>{}&#x0338;</mi>", var, x),
                     None => write!(f, "<mi>{}&#x0338;</mi>", x),
                 },
-                Node::Operator(x) => write!(f, "<mo>{}&#x0338;</mo>", x),
+                Node::Operator(Op(x)) => write!(f, "<mo>{}&#x0338;</mo>", x),
                 n => write!(f, "{}", n),
             },
             Node::Table(content) => {
-                let mut mathml = "<mtable><mtr><mtd>".to_string();
-                for (i, node) in content.iter().enumerate() {
+                let i2 = i.saturating_add(INDENT);
+                let i3 = i2.saturating_add(INDENT);
+                write!(f, "{:b$}<mtable>\n{:i$}<mtr>\n{:i2$}<mtd>\n", "", "", "")?;
+                let total_len = content.len();
+                for (j, node) in content.iter().enumerate() {
                     match node {
                         Node::ColumnSeparator => {
-                            mathml.push_str("</mtd>");
-                            if i < content.len() {
-                                mathml.push_str("<mtd>")
+                            write!(f, "{:i2$}</mtd>\n", "")?;
+                            if j < total_len {
+                                write!(f, "{:i2$}<mtd>\n", "")?;
                             }
                         }
                         Node::RowSeparator => {
-                            mathml.push_str("</mtd></mtr>");
-                            if i < content.len() {
-                                mathml.push_str("<mtr><mtd>")
+                            write!(f, "{:i2$}</mtd>\n{:i$}</mtr>\n", "", "")?;
+                            if j < total_len {
+                                write!(f, "{:i$}<mtr>\n{:i2$}<mtd>\n", "", "",)?;
                             }
                         }
                         node => {
-                            mathml = format!("{}{}", mathml, node);
+                            write!(f, "{:>i3$}\n", node)?;
                         }
                     }
                 }
-                mathml.push_str("</mtd></mtr></mtable>");
-
-                write!(f, "{}", mathml)
+                write!(f, "{:i2$}</mtd>\n{:i$}</mtr>\n{:b$}</mtable>", "", "", "")
             }
             Node::AlignedTable(content) => {
-                let mut mathml =
-                    "<mtable>\n<mtr><mtd style=\"text-align: right; padding-right: 0\">"
-                        .to_string();
+                let i2 = i.saturating_add(INDENT);
+                let i3 = i2.saturating_add(INDENT);
+                write!(f, "{:b$}<mtable>\n{:i$}<mtr>\n{:i2$}<mtd style=\"text-align: right; padding-right: 0\">\n", "", "", "")?;
                 let mut col = 0;
                 let total_len = content.len();
-                for (i, node) in content.iter().enumerate() {
+                for (j, node) in content.iter().enumerate() {
                     match node {
                         Node::ColumnSeparator => {
-                            mathml.push_str("</mtd>");
+                            write!(f, "{:i2$}</mtd>\n", "")?;
                             col += 1;
-                            if i < total_len {
-                                mathml.push_str(if col % 2 == 0 {
-                                    "<mtd style=\"text-align: right; padding-right: 0\">"
-                                } else {
-                                    "<mtd style=\"text-align: left; padding-left: 0\">"
-                                })
+                            if j < total_len {
+                                write!(
+                                    f,
+                                    "{:i2$}{}",
+                                    "",
+                                    if col % 2 == 0 {
+                                        "<mtd style=\"text-align: right; padding-right: 0\">\n"
+                                    } else {
+                                        "<mtd style=\"text-align: left; padding-left: 0\">\n"
+                                    },
+                                )?;
                             }
                         }
                         Node::RowSeparator => {
-                            mathml.push_str("</mtd></mtr>");
-                            if i < total_len {
-                                mathml.push_str(
-                                    "\n<mtr><mtd style=\"text-align: right; padding-right: 0\">",
-                                )
+                            write!(f, "{:i2$}</mtd>\n{:i$}</mtr>\n", "", "")?;
+                            if j < total_len {
+                                write!(
+                                    f,
+                                    "{:i$}<mtr>\n{:i2$}<mtd style=\"text-align: right; padding-right: 0\">\n",
+                                    "", "",
+                                )?;
                             }
                             col = 0;
                         }
                         node => {
-                            mathml = format!("{}{}", mathml, node);
+                            write!(f, "{:>i3$}\n", node)?;
                         }
                     }
                 }
-                mathml.push_str("</mtd></mtr>\n</mtable>");
-
-                write!(f, "{}", mathml)
+                write!(f, "{:i2$}</mtd>\n{:i$}</mtr>\n{:b$}</mtable>", "", "", "")
             }
-            Node::Text(text) => write!(f, "<mtext>{}</mtext>", text),
-            node => write!(f, "<merror><mtext>Parse error: {:?}</mtext></merror>", node),
+            Node::Text(text) => write!(f, "{:b$}<mtext>{}</mtext>", "", text),
+            node => write!(
+                f,
+                "{:b$}<merror><mtext>Parse error: {:?}</mtext></merror>",
+                "", node
+            ),
         }
     }
 }
@@ -221,10 +282,6 @@ mod tests {
             (
                 Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
                 r#"<mi mathvariant="normal">あ</mi>"#,
-            ),
-            (
-                Node::Row(vec![Node::Operator('+'), Node::Operator('-')]),
-                r"<mrow><mo>+</mo><mo>-</mo></mrow>",
             ),
         ];
         for (problem, answer) in problems.iter() {

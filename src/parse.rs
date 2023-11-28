@@ -1,9 +1,9 @@
 use super::{
     ast::Node,
-    attribute::{Accent, LineThickness, MathVariant, TextTransform},
+    attribute::{LineThickness, MathVariant, TextTransform},
     error::LatexError,
     lexer::Lexer,
-    token::Token,
+    token::{Op, Token},
 };
 
 #[derive(Debug, Clone)]
@@ -87,8 +87,8 @@ impl<'a> Parser<'a> {
             Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
             Token::Sqrt => {
                 self.next_token();
-                if self.cur_token_is(&Token::Paren("[")) {
-                    let degree = self.parse_group(&Token::Paren("]"))?;
+                if self.cur_token_is(&Token::Paren(Op('['))) {
+                    let degree = self.parse_group(&Token::Paren(Op(']')))?;
                     self.next_token();
                     let content = self.parse_node()?;
                     Node::Root(Box::new(degree), Box::new(content))
@@ -118,8 +118,8 @@ impl<'a> Parser<'a> {
                 let denominator = self.parse_node()?;
 
                 Node::Fenced {
-                    open: "(",
-                    close: ")",
+                    open: Op('('),
+                    close: Op(')'),
                     content: Box::new(Node::Frac(
                         Box::new(numerator),
                         Box::new(denominator),
@@ -223,7 +223,10 @@ impl<'a> Parser<'a> {
                                 over: Box::new(over),
                             }
                         } else {
-                            Node::Under(Box::new(Node::Operator(op)), Box::new(under))
+                            Node::Underset {
+                                target: Box::new(Node::Operator(op)),
+                                under: Box::new(under),
+                            }
                         }
                     }
                     Token::Circumflex => {
@@ -240,7 +243,10 @@ impl<'a> Parser<'a> {
                                 over: Box::new(over),
                             }
                         } else {
-                            Node::OverOp(op, Accent::False, Box::new(over))
+                            Node::Overset {
+                                over: Box::new(Node::Operator(op)),
+                                target: Box::new(over),
+                            }
                         }
                     }
                     _ => Node::Operator(op),
@@ -252,7 +258,10 @@ impl<'a> Parser<'a> {
                     self.next_token();
                     self.next_token();
                     let under = self.parse_single_node()?;
-                    Node::Under(Box::new(lim), Box::new(under))
+                    Node::Underset {
+                        target: Box::new(lim),
+                        under: Box::new(under),
+                    }
                 } else {
                     lim
                 }
@@ -326,12 +335,12 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::LBrace => self.parse_group(&Token::RBrace)?,
-            Token::Paren(paren) => Node::Paren(paren),
+            Token::Paren(paren) => Node::Paren(*paren),
             Token::Left => {
                 self.next_token();
                 let open = match &self.cur_token {
                     Token::Paren(open) => *open,
-                    Token::Operator('.') => "",
+                    Token::Operator(Op('.')) => Op('\u{0}'),
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
@@ -342,8 +351,8 @@ impl<'a> Parser<'a> {
                 let content = self.parse_group(&Token::Right)?;
                 self.next_token();
                 let close = match &self.cur_token {
-                    Token::Paren(close) => close,
-                    Token::Operator('.') => "",
+                    Token::Paren(close) => *close,
+                    Token::Operator(Op('.')) => Op('\u{0}'),
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
@@ -361,8 +370,8 @@ impl<'a> Parser<'a> {
                 let stretchy = true;
                 self.next_token();
                 match self.parse_single_node()? {
-                    Node::Operator(op) => Node::StretchedOp(stretchy, op.to_string()),
-                    Node::Paren(op) => Node::StretchedOp(stretchy, op.to_string()),
+                    Node::Operator(op) => Node::StretchedOp(stretchy, op),
+                    Node::Paren(op) => Node::StretchedOp(stretchy, op),
                     _ => unimplemented!(),
                 }
             }
@@ -373,7 +382,7 @@ impl<'a> Parser<'a> {
                     Token::Paren(paren) => Node::SizedParen { size, paren },
                     _ => {
                         return Err(LatexError::UnexpectedToken {
-                            expected: Token::Paren(""),
+                            expected: Token::Paren(Op('\u{0}')),
                             got: self.cur_token.clone(),
                         });
                     }
@@ -397,18 +406,18 @@ impl<'a> Parser<'a> {
                     match environment.as_str() {
                         "matrix" => content,
                         "pmatrix" => Node::Fenced {
-                            open: "(",
-                            close: ")",
+                            open: Op('('),
+                            close: Op(')'),
                             content: Box::new(content),
                         },
                         "bmatrix" => Node::Fenced {
-                            open: "[",
-                            close: "]",
+                            open: Op('['),
+                            close: Op(']'),
                             content: Box::new(content),
                         },
                         "vmatrix" => Node::Fenced {
-                            open: "|",
-                            close: "|",
+                            open: Op('|'),
+                            close: Op('|'),
                             content: Box::new(content),
                         },
                         environment => {
@@ -439,11 +448,11 @@ impl<'a> Parser<'a> {
         };
 
         match self.peek_token {
-            Token::Operator('\'') => {
+            Token::Operator(Op('\'')) => {
                 self.next_token();
                 Ok(Node::Superscript(
                     Box::new(node),
-                    Box::new(Node::Operator('′')),
+                    Box::new(Node::Operator(Op('′'))),
                 ))
             }
             _ => Ok(node),
@@ -508,7 +517,7 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
         Node::MultiLetterIdent(letters, _) => {
             Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
         }
-        Node::Operator(op) => Node::SingleLetterIdent(var.transform(op), None),
+        Node::Operator(Op(op)) => Node::SingleLetterIdent(var.transform(op), None),
         Node::Row(vec) => Node::Row(
             vec.into_iter()
                 .map(|node| transform_text(node, var))

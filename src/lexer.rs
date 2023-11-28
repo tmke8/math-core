@@ -4,7 +4,7 @@
 //! - Output: `Vec<Token>`
 //!
 
-use super::{attribute::MathVariant, token::Token};
+use super::{attribute::MathVariant, token::Op, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -76,25 +76,25 @@ impl<'a> Lexer<'a> {
         self.skip_whitespace();
 
         let token = match self.cur {
-            '=' => Token::Operator('='),
-            ';' => Token::Operator(';'),
-            ',' => Token::Operator(','),
-            '.' => Token::Operator('.'),
-            '\'' => Token::Operator('\''),
-            '(' => Token::Paren("("),
-            ')' => Token::Paren(")"),
+            '=' => Token::Operator(Op('=')),
+            ';' => Token::Operator(Op(';')),
+            ',' => Token::Operator(Op(',')),
+            '.' => Token::Operator(Op('.')),
+            '\'' => Token::Operator(Op('\'')),
+            '(' => Token::Paren(Op('(')),
+            ')' => Token::Paren(Op(')')),
             '{' => Token::LBrace,
             '}' => Token::RBrace,
-            '[' => Token::Paren("["),
-            ']' => Token::Paren("]"),
-            '|' => Token::Paren("|"),
-            '+' => Token::Operator('+'),
-            '-' => Token::Operator('−'),
-            '*' => Token::Operator('*'),
-            '/' => Token::Operator('/'),
-            '!' => Token::Operator('!'),
-            '<' => Token::Operator('<'),
-            '>' => Token::Operator('>'),
+            '[' => Token::Paren(Op('[')),
+            ']' => Token::Paren(Op(']')),
+            '|' => Token::Paren(Op('|')),
+            '+' => Token::Operator(Op('+')),
+            '-' => Token::Operator(Op('−')),
+            '*' => Token::Operator(Op('*')),
+            '/' => Token::Operator(Op('/')),
+            '!' => Token::Operator(Op('!')),
+            '<' => Token::Operator(Op('<')),
+            '>' => Token::Operator(Op('>')),
             '_' => Token::Underscore,
             '^' => Token::Circumflex,
             '&' => Token::Ampersand,
@@ -104,9 +104,9 @@ impl<'a> Lexer<'a> {
                 if self.peek == '=' {
                     self.read_char();
                     // Token::Paren(":=")
-                    Token::Operator('≔')
+                    Token::Operator(Op('≔'))
                 } else {
-                    Token::Operator(':')
+                    Token::Operator(Op(':'))
                 }
             }
             '\\' => {
@@ -139,7 +139,7 @@ mod tests {
             (r"3.14", vec![Token::Number("3.14".to_owned())]),
             (
                 r"3.14.",
-                vec![Token::Number("3.14".to_owned()), Token::Operator('.')],
+                vec![Token::Number("3.14".to_owned()), Token::Operator(Op('.'))],
             ),
             (r"x", vec![Token::Letter('x', None)]),
             (r"\pi", vec![Token::Letter('π', None)]),
@@ -147,7 +147,7 @@ mod tests {
                 r"x = 3.14",
                 vec![
                     Token::Letter('x', None),
-                    Token::Operator('='),
+                    Token::Operator(Op('=')),
                     Token::Number("3.14".to_owned()),
                 ],
             ),
@@ -159,7 +159,7 @@ mod tests {
                 r"x+y",
                 vec![
                     Token::Letter('x', None),
-                    Token::Operator('+'),
+                    Token::Operator(Op('+')),
                     Token::Letter('y', None),
                 ],
             ),

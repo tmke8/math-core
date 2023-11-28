@@ -1,0 +1,11 @@
+---
+source: src/lib.rs
+expression: "\\oint_C dz"
+---
+<msub>
+    <mo>∮</mo>
+    <mi>C</mi>
+</msub>
+<mi>d</mi>
+<mi>z</mi>
+

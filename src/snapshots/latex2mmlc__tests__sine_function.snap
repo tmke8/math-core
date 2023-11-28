@@ -1,0 +1,7 @@
+---
+source: src/lib.rs
+expression: "\\sin x"
+---
+<mi>sin</mi>
+<mi>x</mi>
+

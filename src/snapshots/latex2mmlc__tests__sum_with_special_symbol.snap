@@ -1,0 +1,15 @@
+---
+source: src/lib.rs
+expression: "\\sum_{i = 0}^∞ i"
+---
+<munderover>
+    <mo>∑</mo>
+    <mrow>
+        <mi>i</mi>
+        <mo>=</mo>
+        <mn>0</mn>
+    </mrow>
+    <mi mathvariant="normal">∞</mi>
+</munderover>
+<mi>i</mi>
+
