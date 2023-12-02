@@ -100,15 +100,7 @@ impl<'a> Lexer<'a> {
             '&' => Token::Ampersand,
             '~' => Token::NonBreakingSpace,
             '\u{0}' => Token::EOF,
-            ':' => {
-                if self.peek == '=' {
-                    self.read_char();
-                    // Token::Paren(":=")
-                    Token::Operator(Op('≔'))
-                } else {
-                    Token::Operator(Op(':'))
-                }
-            }
+            ':' => Token::Colon,
             '\\' => {
                 return self.read_command();
             }

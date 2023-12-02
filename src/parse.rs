@@ -277,7 +277,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let node = self.parse_node()?;
                 let node = if let Node::Row(nodes) = node {
-                    Node::Row(merge_single_letters(nodes))
+                    merge_single_letters(nodes)
                 } else {
                     node
                 };
@@ -288,7 +288,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let node = self.parse_node()?;
                 let node = if let Node::Row(nodes) = node {
-                    Node::Row(merge_single_letters(nodes))
+                    merge_single_letters(nodes)
                 } else {
                     node
                 };
@@ -334,6 +334,28 @@ impl<'a> Parser<'a> {
                     _ => Node::Operator(int),
                 }
             }
+            Token::Colon => match self.peek_token {
+                Token::Operator(op @ Op('=' | '≡')) => {
+                    self.next_token();
+                    Node::PseudoRow(vec![
+                        Node::OperatorWithSpacing {
+                            op: Op(':'),
+                            left: 2. / 9.,
+                            right: 0.,
+                        },
+                        Node::OperatorWithSpacing {
+                            op,
+                            left: 0.,
+                            right: f32::NAN,
+                        },
+                    ])
+                }
+                _ => Node::OperatorWithSpacing {
+                    op: Op(':'),
+                    left: 2. / 9.,
+                    right: 2. / 9.,
+                },
+            },
             Token::LBrace => self.parse_group(&Token::RBrace)?,
             Token::Paren(paren) => Node::Paren(*paren),
             Token::Left => {
@@ -527,7 +549,7 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
     }
 }
 
-fn merge_single_letters(nodes: Vec<Node>) -> Vec<Node> {
+fn merge_single_letters(nodes: Vec<Node>) -> Node {
     let mut new_nodes = Vec::new();
     let mut collected: Option<String> = None;
     for node in nodes {
@@ -547,5 +569,9 @@ fn merge_single_letters(nodes: Vec<Node>) -> Vec<Node> {
     if let Some(letters) = collected {
         new_nodes.push(Node::MultiLetterIdent(letters, None));
     }
-    new_nodes
+    if new_nodes.len() == 1 {
+        new_nodes.into_iter().nth(0).unwrap()
+    } else {
+        Node::Row(new_nodes)
+    }
 }

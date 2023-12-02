@@ -7,15 +7,9 @@ expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
     <mi>i</mi>
 </mrow>
 <mspace width="1em"/>
-<mrow>
-    <mi>𝑓𝑖</mi>
-</mrow>
+<mi>𝑓𝑖</mi>
 <mspace width="1em"/>
-<mrow>
-    <mi mathvariant="normal">fi</mi>
-</mrow>
+<mi mathvariant="normal">fi</mi>
 <mspace width="1em"/>
-<mrow>
-    <mi>𝚏𝚒</mi>
-</mrow>
+<mi>𝚏𝚒</mi>
 

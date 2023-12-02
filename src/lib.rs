@@ -99,7 +99,7 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
 
     let mathml = nodes
         .iter()
-        .map(|node| format!("{}\n", node))
+        .map(|node| format!("{}", node))
         .collect::<String>();
 
     Ok(mathml)
@@ -125,7 +125,8 @@ pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::L
     let mathml = convert_content(latex)?;
 
     Ok(format!(
-        r#"<math xmlns="http://www.w3.org/1998/Math/MathML" display="{}">{}</math>"#,
+        r#"<math xmlns="http://www.w3.org/1998/Math/MathML" display="{}">
+{}</math>"#,
         display, mathml
     ))
 }
@@ -335,6 +336,7 @@ mod tests {
                 "text_transforms",
                 r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
             ),
+            ("colon_fusion", r"a := 2 \land b :\equiv 3"),
         ];
 
         for (name, problem) in problems.iter() {
