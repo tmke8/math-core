@@ -59,6 +59,7 @@ fn main() {
         r#"\asdf"#,
         r#"{fi}~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing"#,
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
+        r"a := 2 \land b :\equiv 3 \land f : X\to Y",
     ];
 
     let outputs = inputs
