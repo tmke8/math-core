@@ -4,7 +4,11 @@
 //! - Output: `Vec<Token>`
 //!
 
-use super::{attribute::MathVariant, token::Op, token::Token};
+use super::{
+    attribute::MathVariant,
+    ops::{self, Op},
+    token::Token,
+};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -12,6 +16,7 @@ pub(crate) struct Lexer<'a> {
     input: std::str::Chars<'a>,
     pub(crate) cur: char,
     pub(crate) peek: char,
+    pub(crate) record_whitespace: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -21,6 +26,7 @@ impl<'a> Lexer<'a> {
             input: input.chars(),
             cur: '\u{0}',
             peek: '\u{0}',
+            record_whitespace: false,
         };
         lexer.read_char();
         lexer.read_char();
@@ -37,7 +43,10 @@ impl<'a> Lexer<'a> {
 
     /// 空白文字をスキップする.
     fn skip_whitespace(&mut self) {
-        while self.cur == ' ' || self.cur == '\t' || self.cur == '\n' || self.cur == '\r' {
+        if self.record_whitespace {
+            return;
+        }
+        while matches!(self.cur, ' ' | '\t' | '\n' | '\r') {
             self.read_char();
         }
     }
@@ -76,7 +85,7 @@ impl<'a> Lexer<'a> {
         self.skip_whitespace();
 
         let token = match self.cur {
-            '=' => Token::Operator(Op('=')),
+            '=' => Token::Operator(ops::EQUAL),
             ';' => Token::Operator(Op(';')),
             ',' => Token::Operator(Op(',')),
             '.' => Token::Operator(Op('.')),
@@ -101,6 +110,7 @@ impl<'a> Lexer<'a> {
             '~' => Token::NonBreakingSpace,
             '\u{0}' => Token::EOF,
             ':' => Token::Colon,
+            ' ' => Token::Letter('\u{A0}', None),
             '\\' => {
                 return self.read_command();
             }

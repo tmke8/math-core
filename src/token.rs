@@ -1,9 +1,7 @@
 use super::attribute::{Accent, DisplayStyle, MathVariant, TextTransform};
+use super::ops::{self, Op};
 
 const NORMAL: Option<MathVariant> = Some(MathVariant::Normal);
-
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Op(pub char);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -105,8 +103,8 @@ impl Token {
             "qquad" => Token::Space(2.),
             "langle" => Token::Paren(Op('〈')),
             "rangle" => Token::Paren(Op('〉')),
-            "{" => Token::Paren(Op('{')),
-            "}" => Token::Paren(Op('}')),
+            "{" => Token::Paren(ops::LEFT_CURLY_BRACKET),
+            "}" => Token::Paren(ops::RIGHT_CURLY_BRACKET),
             "lceil" => Token::Paren(Op('⌈')),
             "rceil" => Token::Paren(Op('⌉')),
             "lfloor" => Token::Paren(Op('⌊')),
@@ -350,7 +348,7 @@ impl Token {
             "neptune" => Token::Letter('♆', NORMAL),
             "astrosun" => Token::Letter('☉', NORMAL),
             "ascnode" => Token::Letter('☊', NORMAL),
-            "times" => Token::Operator(Op('×')),
+            "times" => Token::Operator(ops::TIMES),
             "oplus" => Token::Operator(Op('⊕')),
             "ominus" => Token::Operator(Op('⊖')),
             "otimes" => Token::Operator(Op('⊗')),

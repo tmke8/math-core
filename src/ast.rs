@@ -1,6 +1,6 @@
-use crate::token::Op;
+use crate::ops::Op;
 
-use super::attribute::{Accent, DisplayStyle, LineThickness, MathVariant};
+use super::attribute::{Accent, Align, DisplayStyle, LineThickness, MathVariant};
 use std::fmt::{self, Alignment};
 
 /// AST node
@@ -55,8 +55,7 @@ pub enum Node {
         paren: Op,
     },
     Text(String),
-    Table(Vec<Node>),
-    AlignedTable(Vec<Node>),
+    Table(Vec<Node>, Align),
     ColumnSeparator,
     RowSeparator,
     Slashed(Box<Node>),
@@ -82,21 +81,26 @@ impl fmt::Display for Node {
                 Some(var) => writeln!(f, "{:b$}<mi{}>{}</mi>", "", var, letter),
                 None => writeln!(f, "{:b$}<mi>{}</mi>", "", letter),
             },
-            Node::Operator(Op(op)) => writeln!(f, "{:b$}<mo>{}</mo>", "", op),
-            Node::OperatorWithSpacing {
-                op: Op(op),
-                left,
-                right,
-            } => match (left.is_finite(), right.is_finite()) {
-                (true, true) => writeln!(
-                    f,
-                    r#"{:b$}<mo lspace="{}em" rspace="{}em">{}</mo>"#,
-                    "", left, right, op
-                ),
-                (true, false) => writeln!(f, r#"{:b$}<mo lspace="{}em">{}</mo>"#, "", left, op),
-                (false, true) => writeln!(f, r#"{:b$}<mo rspace="{}em">{}</mo>"#, "", right, op),
-                (false, false) => writeln!(f, "{:b$}<mo>{}</mo>", "", op),
-            },
+            Node::Operator(op) => writeln!(f, "{:b$}<mo>{}</mo>", "", op.char()),
+            Node::OperatorWithSpacing { op, left, right } => {
+                match (left.is_finite(), right.is_finite()) {
+                    (true, true) => writeln!(
+                        f,
+                        r#"{:b$}<mo lspace="{}em" rspace="{}em">{}</mo>"#,
+                        "",
+                        left,
+                        right,
+                        op.char()
+                    ),
+                    (true, false) => {
+                        writeln!(f, r#"{:b$}<mo lspace="{}em">{}</mo>"#, "", left, op.char())
+                    }
+                    (false, true) => {
+                        writeln!(f, r#"{:b$}<mo rspace="{}em">{}</mo>"#, "", right, op.char())
+                    }
+                    (false, false) => writeln!(f, "{:b$}<mo>{}</mo>", "", op.char()),
+                }
+            }
             Node::MultiLetterIdent(letters, var) => match var {
                 Some(var) => writeln!(f, "{:b$}<mi{}>{}</mi>", "", var, letters,),
                 None => writeln!(f, "{:b$}<mi>{}</mi>", "", letters),
@@ -119,19 +123,29 @@ impl fmt::Display for Node {
                     "", target, sub, sup, "",
                 )
             }
-            Node::OverOp(Op(c), acc, target) => writeln!(
+            Node::OverOp(op, acc, target) => writeln!(
                 f,
                 r#"{:b$}<mover>
 {:>i$}{:i$}<mo accent="{}">{}</mo>
 {:b$}</mover>"#,
-                "", target, "", acc, c, "",
+                "",
+                target,
+                "",
+                acc,
+                op.char(),
+                "",
             ),
-            Node::UnderOp(Op(c), acc, target) => writeln!(
+            Node::UnderOp(op, acc, target) => writeln!(
                 f,
                 r#"{:b$}<munder>
 {:>i$}{:i$}<mo accent="{}">{}</mo>
 {:b$}</munder>"#,
-                "", target, "", acc, c, "",
+                "",
+                target,
+                "",
+                acc,
+                op.char(),
+                "",
             ),
             Node::Overset { over, target } => writeln!(
                 f,
@@ -202,10 +216,16 @@ impl fmt::Display for Node {
                     "", "", open.0, content, "", close.0, ""
                 )
             }
-            Node::StretchedOp(stretchy, Op(c)) => {
-                writeln!(f, r#"{:b$}<mo stretchy="{}">{}</mo>"#, "", stretchy, c)
+            Node::StretchedOp(stretchy, op) => {
+                writeln!(
+                    f,
+                    r#"{:b$}<mo stretchy="{}">{}</mo>"#,
+                    "",
+                    stretchy,
+                    op.char()
+                )
             }
-            Node::Paren(Op(c)) => writeln!(f, r#"{:b$}<mo stretchy="false">{}</mo>"#, "", c),
+            Node::Paren(op) => writeln!(f, r#"{:b$}<mo stretchy="false">{}</mo>"#, "", op.char()),
             Node::SizedParen { size, paren } => writeln!(
                 f,
                 r#"{0:b$}<mrow><mo maxsize="{1}" minsize="{1}">{2}</mro></mrow>"#,
@@ -216,40 +236,31 @@ impl fmt::Display for Node {
                     Some(var) => writeln!(f, "<mi{}>{}&#x0338;</mi>", var, x),
                     None => writeln!(f, "<mi>{}&#x0338;</mi>", x),
                 },
-                Node::Operator(Op(x)) => writeln!(f, "<mo>{}&#x0338;</mo>", x),
+                Node::Operator(x) => writeln!(f, "<mo>{}&#x0338;</mo>", x.char()),
                 n => write!(f, "{}", n),
             },
-            Node::Table(content) => {
+            Node::Table(content, align) => {
                 let i2 = i.saturating_add(INDENT);
                 let i3 = i2.saturating_add(INDENT);
-                writeln!(f, "{:b$}<mtable>\n{:i$}<mtr>\n{:i2$}<mtd>", "", "", "")?;
-                let total_len = content.len();
-                for (j, node) in content.iter().enumerate() {
-                    match node {
-                        Node::ColumnSeparator => {
-                            writeln!(f, "{:i2$}</mtd>", "")?;
-                            if j < total_len {
-                                writeln!(f, "{:i2$}<mtd>", "")?;
-                            }
-                        }
-                        Node::RowSeparator => {
-                            writeln!(f, "{:i2$}</mtd>\n{:i$}</mtr>", "", "")?;
-                            if j < total_len {
-                                writeln!(f, "{:i$}<mtr>\n{:i2$}<mtd>", "", "",)?;
-                            }
-                        }
-                        node => {
-                            write!(f, "{:>i3$}", node)?;
-                        }
+                let odd_col = match align {
+                    Align::Center => "<mtd>",
+                    Align::Left => "<mtd style=\"text-align: left; padding-right: 0\">",
+                    Align::Alternating => "<mtd style=\"text-align: right; padding-right: 0\">",
+                };
+                let even_col = match align {
+                    Align::Center => "<mtd>",
+                    Align::Left => {
+                        "<mtd style=\"text-align: left; padding-right: 0; padding-left: 1em\">"
                     }
-                }
-                writeln!(f, "{:i2$}</mtd>\n{:i$}</mtr>\n{:b$}</mtable>", "", "", "")
-            }
-            Node::AlignedTable(content) => {
-                let i2 = i.saturating_add(INDENT);
-                let i3 = i2.saturating_add(INDENT);
-                writeln!(f, "{:b$}<mtable>\n{:i$}<mtr>\n{:i2$}<mtd style=\"text-align: right; padding-right: 0\">", "", "", "")?;
-                let mut col = 0;
+                    Align::Alternating => "<mtd style=\"text-align: left; padding-left: 0\">",
+                };
+
+                let mut col: usize = 1;
+                writeln!(
+                    f,
+                    "{:b$}<mtable>\n{:i$}<mtr>\n{:i2$}{}",
+                    "", "", "", odd_col,
+                )?;
                 let total_len = content.len();
                 for (j, node) in content.iter().enumerate() {
                     match node {
@@ -261,24 +272,16 @@ impl fmt::Display for Node {
                                     f,
                                     "{:i2$}{}",
                                     "",
-                                    if col % 2 == 0 {
-                                        "<mtd style=\"text-align: right; padding-right: 0\">"
-                                    } else {
-                                        "<mtd style=\"text-align: left; padding-left: 0\">"
-                                    },
+                                    if col % 2 == 0 { even_col } else { odd_col },
                                 )?;
                             }
                         }
                         Node::RowSeparator => {
                             writeln!(f, "{:i2$}</mtd>\n{:i$}</mtr>", "", "")?;
                             if j < total_len {
-                                writeln!(
-                                    f,
-                                    "{:i$}<mtr>\n{:i2$}<mtd style=\"text-align: right; padding-right: 0\">",
-                                    "", "",
-                                )?;
+                                writeln!(f, "{:i$}<mtr>\n{:i2$}{}", "", "", odd_col,)?;
                             }
-                            col = 0;
+                            col = 1;
                         }
                         node => {
                             write!(f, "{:>i3$}", node)?;

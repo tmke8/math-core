@@ -71,6 +71,7 @@ pub mod ast;
 pub mod attribute;
 mod error;
 pub(crate) mod lexer;
+pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
 pub use error::LatexError;
@@ -337,6 +338,10 @@ mod tests {
                 r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
             ),
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
+            (
+                "cases",
+                r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
+            ),
         ];
 
         for (name, problem) in problems.iter() {
