@@ -3,7 +3,7 @@ pub struct Op(pub char);
 
 impl Op {
     #[inline]
-    pub fn char(&self) -> char {
+    pub fn char(self) -> char {
         self.0
     }
 }
