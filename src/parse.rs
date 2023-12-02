@@ -1,9 +1,10 @@
 use super::{
     ast::Node,
-    attribute::{LineThickness, MathVariant, TextTransform},
+    attribute::{Align, LineThickness, MathVariant, TextTransform},
     error::LatexError,
     lexer::Lexer,
-    token::{Op, Token},
+    ops::{self, Op},
+    token::Token,
 };
 
 #[derive(Debug, Clone)]
@@ -362,7 +363,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let open = match &self.cur_token {
                     Token::Paren(open) => *open,
-                    Token::Operator(Op('.')) => Op('\u{0}'),
+                    Token::Operator(Op('.')) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
@@ -374,7 +375,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let close = match &self.cur_token {
                     Token::Paren(close) => *close,
-                    Token::Operator(Op('.')) => Op('\u{0}'),
+                    Token::Operator(Op('.')) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
@@ -404,7 +405,7 @@ impl<'a> Parser<'a> {
                     Token::Paren(paren) => Node::SizedParen { size, paren },
                     _ => {
                         return Err(LatexError::UnexpectedToken {
-                            expected: Token::Paren(Op('\u{0}')),
+                            expected: Token::Paren(ops::NULL),
                             got: self.cur_token.clone(),
                         });
                     }
@@ -413,16 +414,22 @@ impl<'a> Parser<'a> {
             Token::Begin => {
                 self.next_token();
                 // 環境名を読み込む
-                let environment = self.parse_text();
+                let environment = self.parse_text(false);
                 // \begin..\end の中身を読み込む
                 let content = match self.parse_group(&Token::End)? {
                     Node::Row(content) => content,
                     content => vec![content],
                 };
                 let node = if matches!(environment.as_str(), "align" | "align*" | "aligned") {
-                    Node::AlignedTable(content)
+                    Node::Table(content, Align::Alternating)
+                } else if environment == "cases" {
+                    Node::Fenced {
+                        open: ops::LEFT_CURLY_BRACKET,
+                        close: ops::NULL,
+                        content: Box::new(Node::Table(content, Align::Left)),
+                    }
                 } else {
-                    let content = Node::Table(content);
+                    let content = Node::Table(content, Align::Center);
 
                     // 環境名により処理を分岐
                     match environment.as_str() {
@@ -448,20 +455,20 @@ impl<'a> Parser<'a> {
                     }
                 };
                 self.next_token();
-                let _ = self.parse_text();
+                let _ = self.parse_text(false);
 
                 node
             }
             Token::OperatorName => {
                 self.next_token();
                 // 関数名を読み込む
-                let function = self.parse_text();
+                let function = self.parse_text(false);
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
                 self.next_token();
                 // テキストを読み込む
-                let text = self.parse_text();
+                let text = self.parse_text(true);
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -508,9 +515,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_text(&mut self) -> String {
+    fn parse_text(&mut self, with_whitespace: bool) -> String {
         // `{` を読み飛ばす
         self.next_token();
+
+        self.l.record_whitespace = with_whitespace;
 
         // テキストを読み取る
         let mut text = String::new();
@@ -519,6 +528,7 @@ impl<'a> Parser<'a> {
             self.next_token();
         }
         // 終わったら最後の `}` を cur が指した状態で抜ける
+        self.l.record_whitespace = false;
 
         text
     }

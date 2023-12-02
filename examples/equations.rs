@@ -60,6 +60,7 @@ fn main() {
         r#"{fi}~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing"#,
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
         r"a := 2 \land b :\equiv 3 \land f : X\to Y",
+        r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
     ];
 
     let outputs = inputs

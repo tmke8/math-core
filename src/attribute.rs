@@ -63,6 +63,13 @@ impl fmt::Display for DisplayStyle {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum Align {
+    Center,
+    Left,
+    Alternating,
+}
+
 /// mi mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TextTransform {
