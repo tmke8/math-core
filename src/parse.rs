@@ -497,7 +497,7 @@ impl<'a> Parser<'a> {
         // `{` を読み飛ばす
         let mut cur_token = self.next_token();
 
-        self.l.record_whitespace = whitespace.into();
+        self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
 
         // テキストを読み取る
         let mut text = String::new();
@@ -515,15 +515,6 @@ impl<'a> Parser<'a> {
 enum WhiteSpace {
     Skip,
     Record,
-}
-
-impl Into<bool> for WhiteSpace {
-    fn into(self) -> bool {
-        match self {
-            WhiteSpace::Skip => false,
-            WhiteSpace::Record => true,
-        }
-    }
 }
 
 fn set_variant(node: Node, var: MathVariant) -> Node {
