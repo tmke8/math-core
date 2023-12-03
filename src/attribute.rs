@@ -1,7 +1,7 @@
 use std::fmt;
 
 /// mi mathvariant attribute
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MathVariant {
     Normal = 1,
 }
@@ -14,7 +14,7 @@ impl fmt::Display for MathVariant {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Accent {
     True,
     False,
@@ -29,7 +29,7 @@ impl fmt::Display for Accent {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LineThickness {
     Thin,
     Medium,
@@ -48,7 +48,7 @@ impl fmt::Display for LineThickness {
 }
 
 /// display style
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DisplayStyle {
     True = 1,
     False = 2,
@@ -93,10 +93,10 @@ pub enum TextTransform {
 }
 
 macro_rules! transform {
-    ($char:expr, [ $( ($start:expr, $end:expr, $offset:expr) ),* $(,)? ], [ $( ($index:expr, $target:expr) ),* $(,)? ] ) => {
+    ($char:expr, [ $( ($range:expr, $offset:expr) ),* $(,)? ], [ $( ($index:expr, $target:expr) ),* $(,)? ] ) => {
         'transform_block: {
             $(
-                if $char >= $start && $char <= $end {
+                if $range.contains(&$char) {
                     break 'transform_block std::char::from_u32($char as u32 + $offset).unwrap();
                 }
             )*
@@ -114,17 +114,17 @@ impl TextTransform {
     pub fn transform(&self, c: char) -> char {
         match self {
             TextTransform::BoldScript => {
-                transform!(c, [('A', 'Z', 0x1D48F), ('a', 'z', 0x1D489)], [])
+                transform!(c, [('A'..='Z', 0x1D48F), ('a'..='z', 0x1D489)], [])
             }
             TextTransform::BoldItalic => {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D427),
-                        ('a', 'z', 0x1D421),
-                        ('Α', 'Ρ', 0x1D38B),
-                        ('Σ', 'Ω', 0x1D38B),
-                        ('α', 'ω', 0x1D385),
+                        ('A'..='Z', 0x1D427),
+                        ('a'..='z', 0x1D421),
+                        ('Α'..='Ρ', 0x1D38B),
+                        ('Σ'..='Ω', 0x1D38B),
+                        ('α'..='ω', 0x1D385),
                     ],
                     [
                         ('ϴ', '𝜭'),
@@ -143,13 +143,13 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D3BF),
-                        ('a', 'z', 0x1D3B9),
-                        ('Α', 'Ρ', 0x1D317),
-                        ('Σ', 'Ω', 0x1D317),
-                        ('α', 'ω', 0x1D311),
-                        ('Ϝ', 'ϝ', 0x1D3EE),
-                        ('0', '9', 0x1D79E),
+                        ('A'..='Z', 0x1D3BF),
+                        ('a'..='z', 0x1D3B9),
+                        ('Α'..='Ρ', 0x1D317),
+                        ('Σ'..='Ω', 0x1D317),
+                        ('α'..='ω', 0x1D311),
+                        ('Ϝ'..='ϝ', 0x1D3EE),
+                        ('0'..='9', 0x1D79E),
                     ],
                     [
                         ('ϴ', '𝚹'),
@@ -168,12 +168,12 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'B', 0x1D4C3),
-                        ('D', 'G', 0x1D4C3),
-                        ('H', 'I', 0x20C4),
-                        ('J', 'Q', 0x1D4C3),
-                        ('S', 'Y', 0x1D4C3),
-                        ('a', 'z', 0x1D4BD),
+                        ('A'..='B', 0x1D4C3),
+                        ('D'..='G', 0x1D4C3),
+                        ('H'..='I', 0x20C4),
+                        ('J'..='Q', 0x1D4C3),
+                        ('S'..='Y', 0x1D4C3),
+                        ('a'..='z', 0x1D4BD),
                     ],
                     [('C', 'ℭ'), ('R', 'ℜ'), ('Z', 'ℨ')]
                 )
@@ -182,15 +182,15 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('C', 'D', 0x1D45B),
-                        ('E', 'F', 0x20EB),
-                        ('H', 'I', 0x20C3),
-                        ('J', 'K', 0x1D45B),
-                        ('N', 'Q', 0x1D45B),
-                        ('S', 'Z', 0x1D45B),
-                        ('a', 'd', 0x1D455),
-                        ('h', 'n', 0x1D455),
-                        ('p', 'z', 0x1D455),
+                        ('C'..='D', 0x1D45B),
+                        ('E'..='F', 0x20EB),
+                        ('H'..='I', 0x20C3),
+                        ('J'..='K', 0x1D45B),
+                        ('N'..='Q', 0x1D45B),
+                        ('S'..='Z', 0x1D45B),
+                        ('a'..='d', 0x1D455),
+                        ('h'..='n', 0x1D455),
+                        ('p'..='z', 0x1D455),
                     ],
                     [
                         ('A', '𝒜'),
@@ -210,9 +210,9 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D62F),
-                        ('a', 'z', 0x1D629),
-                        ('0', '9', 0x1D7C6),
+                        ('A'..='Z', 0x1D62F),
+                        ('a'..='z', 0x1D629),
+                        ('0'..='9', 0x1D7C6),
                     ],
                     []
                 )
@@ -221,25 +221,25 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D55F),
-                        ('a', 'z', 0x1D559),
-                        ('0', '9', 0x1D7B2),
+                        ('A'..='Z', 0x1D55F),
+                        ('a'..='z', 0x1D559),
+                        ('0'..='9', 0x1D7B2),
                     ],
                     []
                 )
             }
             TextTransform::BoldFraktur => {
-                transform!(c, [('A', 'Z', 0x1D52B), ('a', 'z', 0x1D525)], [])
+                transform!(c, [('A'..='Z', 0x1D52B), ('a'..='z', 0x1D525)], [])
             }
             TextTransform::SansSerifBoldItalic => {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D5FB),
-                        ('a', 'z', 0x1D5F5),
-                        ('Α', 'Ρ', 0x1D3FF),
-                        ('Σ', 'Ω', 0x1D3FF),
-                        ('α', 'ω', 0x1D3F9),
+                        ('A'..='Z', 0x1D5FB),
+                        ('a'..='z', 0x1D5F5),
+                        ('Α'..='Ρ', 0x1D3FF),
+                        ('Σ'..='Ω', 0x1D3FF),
+                        ('α'..='ω', 0x1D3F9),
                     ],
                     [
                         ('ϴ', '𝞡'),
@@ -255,18 +255,18 @@ impl TextTransform {
                 )
             }
             TextTransform::SansSerifItalic => {
-                transform!(c, [('A', 'Z', 0x1D5C7), ('a', 'z', 0x1D5C1)], [])
+                transform!(c, [('A'..='Z', 0x1D5C7), ('a'..='z', 0x1D5C1)], [])
             }
             TextTransform::BoldSansSerif => {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D593),
-                        ('a', 'z', 0x1D58D),
-                        ('Α', 'Ρ', 0x1D3C5),
-                        ('Σ', 'Ω', 0x1D3C5),
-                        ('α', 'ω', 0x1D3BF),
-                        ('0', '9', 0x1D7BC),
+                        ('A'..='Z', 0x1D593),
+                        ('a'..='z', 0x1D58D),
+                        ('Α'..='Ρ', 0x1D3C5),
+                        ('Σ'..='Ω', 0x1D3C5),
+                        ('α'..='ω', 0x1D3BF),
+                        ('0'..='9', 0x1D7BC),
                     ],
                     [
                         ('ϴ', '𝝧'),
@@ -285,13 +285,13 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'B', 0x1D4F7),
-                        ('D', 'G', 0x1D4F7),
-                        ('I', 'M', 0x1D4F7),
-                        ('P', 'Q', 0x20C9),
-                        ('S', 'Y', 0x1D4F7),
-                        ('a', 'z', 0x1D4F1),
-                        ('0', '9', 0x1D7A8),
+                        ('A'..='B', 0x1D4F7),
+                        ('D'..='G', 0x1D4F7),
+                        ('I'..='M', 0x1D4F7),
+                        ('P'..='Q', 0x20C9),
+                        ('S'..='Y', 0x1D4F7),
+                        ('a'..='z', 0x1D4F1),
+                        ('0'..='9', 0x1D7A8),
                     ],
                     [('C', 'ℂ'), ('H', 'ℍ'), ('N', 'ℕ'), ('R', 'ℝ'), ('Z', 'ℤ')]
                 )
@@ -300,12 +300,12 @@ impl TextTransform {
                 transform!(
                     c,
                     [
-                        ('A', 'Z', 0x1D3F3),
-                        ('a', 'g', 0x1D3ED),
-                        ('i', 'z', 0x1D3ED),
-                        ('Α', 'Ρ', 0x1D351),
-                        ('Σ', 'Ω', 0x1D351),
-                        ('α', 'ω', 0x1D34B),
+                        ('A'..='Z', 0x1D3F3),
+                        ('a'..='g', 0x1D3ED),
+                        ('i'..='z', 0x1D3ED),
+                        ('Α'..='Ρ', 0x1D351),
+                        ('Σ'..='Ω', 0x1D351),
+                        ('α'..='ω', 0x1D34B),
                     ],
                     [
                         ('h', 'ℎ'),

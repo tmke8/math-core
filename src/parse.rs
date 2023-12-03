@@ -3,72 +3,69 @@ use super::{
     attribute::{Align, LineThickness, MathVariant, TextTransform},
     error::LatexError,
     lexer::Lexer,
-    ops::{self, Op},
+    ops,
     token::Token,
 };
+use std::mem;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Parser<'a> {
     l: Lexer<'a>,
-    cur_token: Token,
     peek_token: Token,
 }
 impl<'a> Parser<'a> {
     pub(crate) fn new(l: Lexer<'a>) -> Self {
         let mut p = Parser {
             l,
-            cur_token: Token::Illegal('\u{0}'),
-            peek_token: Token::Illegal('\u{0}'),
+            peek_token: Token::Null,
         };
-        p.next_token();
+        // Discard the null token we just stored in `peek_token`.
+        // This loads the first real token into `peek_token`.
         p.next_token();
         p
     }
 
-    fn next_token(&mut self) {
-        self.cur_token = self.peek_token.clone();
-        self.peek_token = if self.cur_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
+    fn next_token(&mut self) -> Token {
+        let peek_token = if self.peek_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
             let num = self.l.cur;
             self.l.read_char();
             Token::Number(format!("{}", num))
         } else {
             self.l.next_token()
         };
+        // Return the previous peek token and store the new peek token.
+        mem::replace(&mut self.peek_token, peek_token)
     }
 
-    fn cur_token_is(&self, expected_token: &Token) -> bool {
-        &self.cur_token == expected_token
-    }
-
+    #[inline]
     fn peek_token_is(&self, expected_token: Token) -> bool {
         self.peek_token == expected_token
     }
 
     pub(crate) fn parse(&mut self) -> Result<Vec<Node>, LatexError> {
         let mut nodes = Vec::new();
+        let mut cur_token = self.next_token();
 
-        while !self.cur_token_is(&Token::EOF) {
-            nodes.push(self.parse_node()?);
-            self.next_token();
+        while cur_token != Token::EOF {
+            nodes.push(self.parse_node(cur_token)?);
+            cur_token = self.next_token();
         }
 
         Ok(nodes)
     }
 
-    fn parse_node(&mut self) -> Result<Node, LatexError> {
-        let left = self.parse_single_node()?;
+    fn parse_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+        let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
             Token::Underscore => {
-                self.next_token();
-                self.next_token();
-                let right = self.parse_node()?;
+                self.next_token(); // Discard the underscore token.
+                let right = self.parse_token()?;
                 Ok(Node::Subscript(Box::new(left), Box::new(right)))
             }
             Token::Circumflex => {
-                self.next_token();
-                self.next_token();
-                let right = self.parse_node()?;
+                self.next_token(); // Discard the circumflex token.
+                let right = self.parse_token()?;
                 Ok(Node::Superscript(Box::new(left), Box::new(right)))
             }
             _ => Ok(left),
@@ -78,32 +75,28 @@ impl<'a> Parser<'a> {
     // 中置演算子 `_`, `^`, '\'' が続くかどうかを気にせずに, 直後のノードを読む
     //
     // 注) 中置演算子を考慮して正しくノードを読む場合は `parse_node()` を使う.
-    fn parse_single_node(&mut self) -> Result<Node, LatexError> {
-        let node = match &self.cur_token {
-            Token::Number(number) => Node::Number(number.clone()),
-            Token::Letter(x, v) => Node::SingleLetterIdent(*x, *v),
-            Token::Operator(op) => Node::Operator(*op),
+    fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+        let node = match cur_token {
+            Token::Number(number) => Node::Number(number),
+            Token::Letter(x, v) => Node::SingleLetterIdent(x, v),
+            Token::Operator(op) => Node::Operator(op),
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
-            Token::Space(space) => Node::Space(*space),
+            Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
             Token::Sqrt => {
-                self.next_token();
-                if self.cur_token_is(&Token::Paren(Op('['))) {
-                    let degree = self.parse_group(&Token::Paren(Op(']')))?;
-                    self.next_token();
-                    let content = self.parse_node()?;
+                let next_token = self.next_token();
+                if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
+                    let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
+                    let content = self.parse_token()?;
                     Node::Root(Box::new(degree), Box::new(content))
                 } else {
-                    let content = self.parse_node()?;
+                    let content = self.parse_node(next_token)?;
                     Node::Sqrt(Box::new(content))
                 }
             }
             Token::Frac(displaystyle) => {
-                let displaystyle = *displaystyle;
-                self.next_token();
-                let numerator = self.parse_node()?;
-                self.next_token();
-                let denominator = self.parse_node()?;
+                let numerator = self.parse_token()?;
+                let denominator = self.parse_token()?;
                 Node::Frac(
                     Box::new(numerator),
                     Box::new(denominator),
@@ -112,15 +105,12 @@ impl<'a> Parser<'a> {
                 )
             }
             Token::Binom(displaystyle) => {
-                let displaystyle = *displaystyle;
-                self.next_token();
-                let numerator = self.parse_node()?;
-                self.next_token();
-                let denominator = self.parse_node()?;
+                let numerator = self.parse_token()?;
+                let denominator = self.parse_token()?;
 
                 Node::Fenced {
-                    open: Op('('),
-                    close: Op(')'),
+                    open: ops::LEFT_PARENTHESIS,
+                    close: ops::RIGHT_PARENTHESIS,
                     content: Box::new(Node::Frac(
                         Box::new(numerator),
                         Box::new(denominator),
@@ -130,45 +120,34 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Over(op, acc) => {
-                let (op, acc) = (*op, *acc);
-                self.next_token();
-                let target = self.parse_node()?;
+                let target = self.parse_token()?;
                 Node::OverOp(op, acc, Box::new(target))
             }
             Token::Under(op, acc) => {
-                let (op, acc) = (*op, *acc);
-                self.next_token();
-                let target = self.parse_node()?;
+                let target = self.parse_token()?;
                 Node::UnderOp(op, acc, Box::new(target))
             }
             Token::Overset => {
-                self.next_token();
-                let over = self.parse_node()?;
-                self.next_token();
-                let target = self.parse_node()?;
+                let over = self.parse_token()?;
+                let target = self.parse_token()?;
                 Node::Overset {
                     over: Box::new(over),
                     target: Box::new(target),
                 }
             }
             Token::Underset => {
-                self.next_token();
-                let under = self.parse_node()?;
-                self.next_token();
-                let target = self.parse_node()?;
+                let under = self.parse_token()?;
+                let target = self.parse_token()?;
                 Node::Underset {
                     under: Box::new(under),
                     target: Box::new(target),
                 }
             }
             Token::Overbrace(x) => {
-                let x = *x;
-                self.next_token();
-                let target = self.parse_single_node()?;
+                let target = self.parse_single_token()?;
                 if self.peek_token_is(Token::Circumflex) {
-                    self.next_token();
-                    self.next_token();
-                    let expl = self.parse_single_node()?;
+                    self.next_token(); // Discard the circumflex token.
+                    let expl = self.parse_single_token()?;
                     let over = Node::Overset {
                         over: Box::new(expl),
                         target: Box::new(Node::Operator(x)),
@@ -185,13 +164,10 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Underbrace(x) => {
-                let x = *x;
-                self.next_token();
-                let target = self.parse_single_node()?;
+                let target = self.parse_single_token()?;
                 if self.peek_token_is(Token::Underscore) {
-                    self.next_token();
-                    self.next_token();
-                    let expl = self.parse_single_node()?;
+                    self.next_token(); // Discard the underscore token.
+                    let expl = self.parse_single_token()?;
                     let under = Node::Underset {
                         under: Box::new(expl),
                         target: Box::new(Node::Operator(x)),
@@ -207,58 +183,50 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            Token::BigOp(op) => {
-                let op = *op;
-                match self.peek_token {
-                    Token::Underscore => {
-                        self.next_token();
-                        self.next_token();
-                        let under = self.parse_single_node()?;
-                        if self.peek_token_is(Token::Circumflex) {
-                            self.next_token();
-                            self.next_token();
-                            let over = self.parse_single_node()?;
-                            Node::UnderOver {
-                                target: Box::new(Node::Operator(op)),
-                                under: Box::new(under),
-                                over: Box::new(over),
-                            }
-                        } else {
-                            Node::Underset {
-                                target: Box::new(Node::Operator(op)),
-                                under: Box::new(under),
-                            }
+            Token::BigOp(op) => match self.peek_token {
+                Token::Underscore => {
+                    self.next_token(); // Discard the underscore token.
+                    let under = self.parse_single_token()?;
+                    if self.peek_token_is(Token::Circumflex) {
+                        self.next_token(); // Discard the circumflex token.
+                        let over = self.parse_single_token()?;
+                        Node::UnderOver {
+                            target: Box::new(Node::Operator(op)),
+                            under: Box::new(under),
+                            over: Box::new(over),
+                        }
+                    } else {
+                        Node::Underset {
+                            target: Box::new(Node::Operator(op)),
+                            under: Box::new(under),
                         }
                     }
-                    Token::Circumflex => {
-                        self.next_token();
-                        self.next_token();
-                        let over = self.parse_single_node()?;
-                        if self.peek_token_is(Token::Underscore) {
-                            self.next_token();
-                            self.next_token();
-                            let under = self.parse_single_node()?;
-                            Node::UnderOver {
-                                target: Box::new(Node::Operator(op)),
-                                under: Box::new(under),
-                                over: Box::new(over),
-                            }
-                        } else {
-                            Node::Overset {
-                                over: Box::new(Node::Operator(op)),
-                                target: Box::new(over),
-                            }
-                        }
-                    }
-                    _ => Node::Operator(op),
                 }
-            }
+                Token::Circumflex => {
+                    self.next_token(); // Discard the circumflex token.
+                    let over = self.parse_single_token()?;
+                    if self.peek_token_is(Token::Underscore) {
+                        self.next_token(); // Discard the underscore token.
+                        let under = self.parse_single_token()?;
+                        Node::UnderOver {
+                            target: Box::new(Node::Operator(op)),
+                            under: Box::new(under),
+                            over: Box::new(over),
+                        }
+                    } else {
+                        Node::Overset {
+                            over: Box::new(Node::Operator(op)),
+                            target: Box::new(over),
+                        }
+                    }
+                }
+                _ => Node::Operator(op),
+            },
             Token::Lim(lim) => {
                 let lim = Node::MultiLetterIdent(lim.to_string(), None);
                 if self.peek_token_is(Token::Underscore) {
-                    self.next_token();
-                    self.next_token();
-                    let under = self.parse_single_node()?;
+                    self.next_token(); // Discard the underscore token.
+                    let under = self.parse_single_token()?;
                     Node::Underset {
                         target: Box::new(lim),
                         under: Box::new(under),
@@ -268,15 +236,13 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Slashed => {
-                self.next_token();
-                self.next_token();
-                let node = self.parse_node()?;
-                self.next_token();
+                self.next_token(); // Optimistically skip the next token.
+                let node = self.parse_token()?;
+                self.next_token(); // Optimistically skip the next token.
                 Node::Slashed(Box::new(node))
             }
             Token::NormalVariant => {
-                self.next_token();
-                let node = self.parse_node()?;
+                let node = self.parse_token()?;
                 let node = if let Node::Row(nodes) = node {
                     merge_single_letters(nodes)
                 } else {
@@ -285,9 +251,7 @@ impl<'a> Parser<'a> {
                 set_variant(node, MathVariant::Normal)
             }
             Token::Style(var) => {
-                let var = *var;
-                self.next_token();
-                let node = self.parse_node()?;
+                let node = self.parse_token()?;
                 let node = if let Node::Row(nodes) = node {
                     merge_single_letters(nodes)
                 } else {
@@ -295,52 +259,48 @@ impl<'a> Parser<'a> {
                 };
                 transform_text(node, var)
             }
-            Token::Integral(int) => {
-                let int = *int;
-                match self.peek_token {
-                    Token::Underscore => {
-                        self.next_token();
-                        self.next_token();
-                        let sub = self.parse_single_node()?;
-                        if self.peek_token_is(Token::Circumflex) {
-                            self.next_token();
-                            self.next_token();
-                            let sup = self.parse_single_node()?;
-                            Node::SubSup {
-                                target: Box::new(Node::Operator(int)),
-                                sub: Box::new(sub),
-                                sup: Box::new(sup),
-                            }
-                        } else {
-                            Node::Subscript(Box::new(Node::Operator(int)), Box::new(sub))
+            Token::Integral(int) => match self.peek_token {
+                Token::Underscore => {
+                    self.next_token(); // Discard the underscore token.
+                    let sub = self.parse_single_token()?;
+                    if self.peek_token_is(Token::Circumflex) {
+                        self.next_token(); // Discard the circumflex token.
+                        let sup = self.parse_single_token()?;
+                        Node::SubSup {
+                            target: Box::new(Node::Operator(int)),
+                            sub: Box::new(sub),
+                            sup: Box::new(sup),
                         }
+                    } else {
+                        Node::Subscript(Box::new(Node::Operator(int)), Box::new(sub))
                     }
-                    Token::Circumflex => {
-                        self.next_token();
-                        self.next_token();
-                        let sup = self.parse_single_node()?;
-                        if self.peek_token_is(Token::Underscore) {
-                            self.next_token();
-                            self.next_token();
-                            let sub = self.parse_single_node()?;
-                            Node::SubSup {
-                                target: Box::new(Node::Operator(int)),
-                                sub: Box::new(sub),
-                                sup: Box::new(sup),
-                            }
-                        } else {
-                            Node::Superscript(Box::new(Node::Operator(int)), Box::new(sup))
-                        }
-                    }
-                    _ => Node::Operator(int),
                 }
-            }
+                Token::Circumflex => {
+                    self.next_token(); // Discard the circumflex token.
+                    let sup = self.parse_single_token()?;
+                    if self.peek_token_is(Token::Underscore) {
+                        self.next_token(); // Discard the underscore token.
+                        let sub = self.parse_single_token()?;
+                        Node::SubSup {
+                            target: Box::new(Node::Operator(int)),
+                            sub: Box::new(sub),
+                            sup: Box::new(sup),
+                        }
+                    } else {
+                        Node::Superscript(Box::new(Node::Operator(int)), Box::new(sup))
+                    }
+                }
+                _ => Node::Operator(int),
+            },
             Token::Colon => match self.peek_token {
-                Token::Operator(op @ Op('=' | '≡')) => {
-                    self.next_token();
+                Token::Operator(ops::EQUAL | ops::EQUIV) => {
+                    let Token::Operator(op) = self.next_token() else {
+                        // We have just verified that the next token is an operator.
+                        unreachable!()
+                    };
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
-                            op: Op(':'),
+                            op: ops::COLON,
                             left: 2. / 9.,
                             right: 0.,
                         },
@@ -352,34 +312,32 @@ impl<'a> Parser<'a> {
                     ])
                 }
                 _ => Node::OperatorWithSpacing {
-                    op: Op(':'),
+                    op: ops::COLON,
                     left: 2. / 9.,
                     right: 2. / 9.,
                 },
             },
-            Token::LBrace => self.parse_group(&Token::RBrace)?,
-            Token::Paren(paren) => Node::Paren(*paren),
+            Token::LBrace => self.parse_group(Token::RBrace)?,
+            Token::Paren(paren) => Node::Paren(paren),
             Token::Left => {
-                self.next_token();
-                let open = match &self.cur_token {
-                    Token::Paren(open) => *open,
-                    Token::Operator(Op('.')) => ops::NULL,
+                let open = match self.next_token() {
+                    Token::Paren(open) => open,
+                    Token::Operator(ops::DOT) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
-                            got: token.clone(),
+                            got: token,
                         })
                     }
                 };
-                let content = self.parse_group(&Token::Right)?;
-                self.next_token();
-                let close = match &self.cur_token {
-                    Token::Paren(close) => *close,
-                    Token::Operator(Op('.')) => ops::NULL,
+                let content = self.parse_group(Token::Right)?;
+                let close = match self.next_token() {
+                    Token::Paren(close) => close,
+                    Token::Operator(ops::DOT) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
-                            got: token.clone(),
+                            got: token,
                         })
                     }
                 };
@@ -391,32 +349,28 @@ impl<'a> Parser<'a> {
             }
             Token::Middle => {
                 let stretchy = true;
-                self.next_token();
-                match self.parse_single_node()? {
+                let tok = self.next_token();
+                match self.parse_single_node(tok)? {
                     Node::Operator(op) => Node::StretchedOp(stretchy, op),
                     Node::Paren(op) => Node::StretchedOp(stretchy, op),
                     _ => unimplemented!(),
                 }
             }
-            Token::Big(size) => {
-                let size = *size;
-                self.next_token();
-                match self.cur_token {
-                    Token::Paren(paren) => Node::SizedParen { size, paren },
-                    _ => {
-                        return Err(LatexError::UnexpectedToken {
-                            expected: Token::Paren(ops::NULL),
-                            got: self.cur_token.clone(),
-                        });
-                    }
+            Token::Big(size) => match self.next_token() {
+                Token::Paren(paren) => Node::SizedParen { size, paren },
+                tok => {
+                    return Err(LatexError::UnexpectedToken {
+                        expected: Token::Paren(ops::NULL),
+                        got: tok,
+                    });
                 }
-            }
+            },
             Token::Begin => {
                 self.next_token();
                 // 環境名を読み込む
-                let environment = self.parse_text(false);
+                let environment = self.parse_text(WhiteSpace::Skip);
                 // \begin..\end の中身を読み込む
-                let content = match self.parse_group(&Token::End)? {
+                let content = match self.parse_group(Token::End)? {
                     Node::Row(content) => content,
                     content => vec![content],
                 };
@@ -435,18 +389,18 @@ impl<'a> Parser<'a> {
                     match environment.as_str() {
                         "matrix" => content,
                         "pmatrix" => Node::Fenced {
-                            open: Op('('),
-                            close: Op(')'),
+                            open: ops::LEFT_PARENTHESIS,
+                            close: ops::RIGHT_PARENTHESIS,
                             content: Box::new(content),
                         },
                         "bmatrix" => Node::Fenced {
-                            open: Op('['),
-                            close: Op(']'),
+                            open: ops::LEFT_SQUARE_BRACKET,
+                            close: ops::RIGHT_SQUARE_BRACKET,
                             content: Box::new(content),
                         },
                         "vmatrix" => Node::Fenced {
-                            open: Op('|'),
-                            close: Op('|'),
+                            open: ops::VERTICAL_LINE,
+                            close: ops::VERTICAL_LINE,
                             content: Box::new(content),
                         },
                         environment => {
@@ -455,20 +409,32 @@ impl<'a> Parser<'a> {
                     }
                 };
                 self.next_token();
-                let _ = self.parse_text(false);
+                let _ = self.parse_text(WhiteSpace::Skip);
 
                 node
             }
             Token::OperatorName => {
-                self.next_token();
+                let next_token = self.next_token();
+                if !matches!(next_token, Token::LBrace) {
+                    return Err(LatexError::UnexpectedToken {
+                        expected: Token::LBrace,
+                        got: next_token,
+                    });
+                }
                 // 関数名を読み込む
-                let function = self.parse_text(false);
+                let function = self.parse_text(WhiteSpace::Skip);
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
-                self.next_token();
+                let next_token = self.next_token();
+                if !matches!(next_token, Token::LBrace) {
+                    return Err(LatexError::UnexpectedToken {
+                        expected: Token::LBrace,
+                        got: next_token,
+                    });
+                }
                 // テキストを読み込む
-                let text = self.parse_text(true);
+                let text = self.parse_text(WhiteSpace::Record);
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -477,55 +443,67 @@ impl<'a> Parser<'a> {
         };
 
         match self.peek_token {
-            Token::Operator(Op('\'')) => {
-                self.next_token();
+            Token::Operator(ops::APOS) => {
+                self.next_token(); // Discard the apostrophe token.
                 Ok(Node::Superscript(
                     Box::new(node),
-                    Box::new(Node::Operator(Op('′'))),
+                    Box::new(Node::Operator(ops::PRIME)),
                 ))
             }
             _ => Ok(node),
         }
     }
 
-    fn parse_group(&mut self, end_token: &Token) -> Result<Node, LatexError> {
-        self.next_token();
+    #[inline]
+    fn parse_token(&mut self) -> Result<Node, LatexError> {
+        let token = self.next_token();
+        self.parse_node(token)
+    }
+
+    #[inline]
+    fn parse_single_token(&mut self) -> Result<Node, LatexError> {
+        let token = self.next_token();
+        self.parse_single_node(token)
+    }
+
+    fn parse_group(&mut self, end_token: Token) -> Result<Node, LatexError> {
+        let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
         while {
-            if self.cur_token_is(&Token::EOF) {
+            if cur_token == Token::EOF {
                 // 閉じ括弧がないまま入力が終了した場合
                 return Err(LatexError::UnexpectedToken {
-                    expected: end_token.clone(),
-                    got: self.cur_token.clone(),
+                    expected: end_token,
+                    got: cur_token,
                 });
             }
 
-            !self.cur_token_is(end_token)
+            cur_token != end_token
         } {
-            nodes.push(self.parse_node()?);
-            self.next_token();
+            nodes.push(self.parse_node(cur_token)?);
+            cur_token = self.next_token();
         }
 
         if nodes.len() == 1 {
-            let node = nodes.into_iter().nth(0).unwrap();
+            let node = nodes.into_iter().next().unwrap();
             Ok(node)
         } else {
             Ok(Node::Row(nodes))
         }
     }
 
-    fn parse_text(&mut self, with_whitespace: bool) -> String {
+    fn parse_text(&mut self, whitespace: WhiteSpace) -> String {
         // `{` を読み飛ばす
-        self.next_token();
+        let mut cur_token = self.next_token();
 
-        self.l.record_whitespace = with_whitespace;
+        self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
 
         // テキストを読み取る
         let mut text = String::new();
-        while let Token::Letter(x, _) = self.cur_token {
+        while let Token::Letter(x, _) = cur_token {
             text.push(x);
-            self.next_token();
+            cur_token = self.next_token();
         }
         // 終わったら最後の `}` を cur が指した状態で抜ける
         self.l.record_whitespace = false;
@@ -534,11 +512,20 @@ impl<'a> Parser<'a> {
     }
 }
 
+enum WhiteSpace {
+    Skip,
+    Record,
+}
+
 fn set_variant(node: Node, var: MathVariant) -> Node {
     match node {
         Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
         Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
-        Node::Row(vec) => Node::Row(vec.into_iter().map(|node| set_variant(node, var)).collect()),
+        Node::Row(vec) => Node::Row(
+            vec.into_iter()
+                .map(|node| set_variant(node, var.clone()))
+                .collect(),
+        ),
         node => node,
     }
 }
@@ -549,7 +536,7 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
         Node::MultiLetterIdent(letters, _) => {
             Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
         }
-        Node::Operator(Op(op)) => Node::SingleLetterIdent(var.transform(op), None),
+        Node::Operator(op) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
         Node::Row(vec) => Node::Row(
             vec.into_iter()
                 .map(|node| transform_text(node, var))
@@ -580,7 +567,7 @@ fn merge_single_letters(nodes: Vec<Node>) -> Node {
         new_nodes.push(Node::MultiLetterIdent(letters, None));
     }
     if new_nodes.len() == 1 {
-        new_nodes.into_iter().nth(0).unwrap()
+        new_nodes.into_iter().next().unwrap()
     } else {
         Node::Row(new_nodes)
     }
