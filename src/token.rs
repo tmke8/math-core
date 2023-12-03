@@ -5,7 +5,7 @@ const NORMAL: Option<MathVariant> = Some(MathVariant::Normal);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    Illegal(char),
+    Null,
     EOF,
     Begin,
     End,
@@ -50,10 +50,10 @@ pub enum Token {
 
 impl Token {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
-        match self {
-            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Style(_) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Style(_)
+        )
     }
 
     pub fn from_command(command: &str) -> Token {

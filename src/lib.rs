@@ -162,7 +162,7 @@ pub fn replace(input: &str) -> Result<String, error::LatexError> {
         .windows(2)
         .enumerate()
         .filter_map(|(i, window)| {
-            if window == &[b'$', b'$'] {
+            if window == [b'$', b'$'] {
                 Some(i)
             } else {
                 None
@@ -279,7 +279,7 @@ pub fn convert_html<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn std::error::E
 fn convert_latex<P: AsRef<Path>>(fp: P) -> Result<(), Box<dyn std::error::Error>> {
     let original = fs::read_to_string(&fp)?;
     let converted = replace(&original)?;
-    if &original != &converted {
+    if original != converted {
         let mut fp = fs::File::create(fp)?;
         fp.write_all(converted.as_bytes())?;
     }

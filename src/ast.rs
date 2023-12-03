@@ -69,8 +69,10 @@ impl Node {
         // Compute the indent for the children of the node.
         let child_indent = base_indent.saturating_add(INDENT);
 
-        // Get the base indent out of the way.
-        write!(f, "{:base_indent$}", "")?;
+        if !matches!(self, Node::PseudoRow(_)) {
+            // Get the base indent out of the way.
+            write!(f, "{:base_indent$}", "")?;
+        }
 
         match self {
             Node::Number(number) => writeln!(f, "<mn>{}</mn>", number),
