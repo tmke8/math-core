@@ -4,6 +4,7 @@ members = [
     # "latex2mmlc_cli",
     "latex2mmlc_python",
 ]
+resolver = "2"
 
 [workspace.package]
 edition = "2021"

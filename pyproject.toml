@@ -4,6 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "latex2mmlc"
+readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
