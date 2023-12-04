@@ -37,7 +37,6 @@ pub enum Token {
     Under(Op, Accent),
     Operator(Op),
     Colon,
-    ParenPlaceholder,
     BigOp(Op),
     Letter(char, Option<MathVariant>),
     Number(String),
@@ -45,7 +44,7 @@ pub enum Token {
     OperatorName,
     Slashed,
     Text,
-    Command(String),
+    UnknownCommand(String),
 }
 
 impl Token {
@@ -560,7 +559,7 @@ impl Token {
             "Vdash" => Token::Operator(Op('⊩')),
             "models" => Token::Operator(Op('⊨')),
             "slashed" => Token::Slashed,
-            command => Token::Command(command.to_owned()),
+            command => Token::UnknownCommand(command.to_owned()),
         }
     }
 }

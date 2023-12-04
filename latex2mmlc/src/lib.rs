@@ -42,26 +42,6 @@
 //! println!("{}", mathml);
 //! ```
 //!
-//! For converting a document including LaTeX equations, the function [`replace`](./fn.replace.html)
-//! may be useful.
-//!
-//! ```rust
-//! let latex = r#"The error function $\erf ( x )$ is defined by
-//! $$\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt .$$"#;
-//!
-//! let mathml = latex2mmlc::replace(latex).unwrap();
-//! println!("{}", mathml);
-//! ```
-//!
-//! If you want to transform the equations in a directory recursively, the function
-//! [`convert_html`](./fn.convert_html.html) is useful.
-//!
-//! ```rust
-//! use latex2mmlc::convert_html;
-//!
-//! convert_html("./target/doc").unwrap();
-//! ```
-//!
 //! For more examples and list of supported LaTeX commands, please check
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
@@ -75,7 +55,7 @@ pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
 pub use error::LatexError;
-use std::{fmt, fs, io::Write, path::Path};
+use std::fmt;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,10 +78,7 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
     let mut p = parse::Parser::new(l);
     let nodes = p.parse()?;
 
-    let mathml = nodes
-        .iter()
-        .map(|node| format!("{}", node))
-        .collect::<String>();
+    let mathml = nodes.to_string();
 
     Ok(mathml)
 }
@@ -132,168 +109,17 @@ pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::L
     ))
 }
 
-/// Find LaTeX equations and replace them to MathML.
-///
-/// - inline-math: `$..$`
-/// - display-math: `$$..$$`
-///
-/// Note that dollar signs that do not enclose a LaTeX equation (e.g. `This apple is $3.`) must not appear
-/// in the input string. Dollar sings in LaTeX equation (i.e. `\$` command) must also not appear.
-/// Please use `&dollar;`, instead of `$`, outside LaTeX equations.
-///
-/// ```rust
-/// let input = r#"$E = m c^2$ is the most famous equation derived by Einstein.
-/// In fact, this relation is a spacial case of the equation
-/// $$E = \sqrt{ m^2 c^4 + p^2 c^2 } ,$$
-/// which describes the relation between energy and momentum."#;
-/// let output = latex2mmlc::replace(input).unwrap();
-/// println!("{}", output);
-/// ```
-///
-/// `examples/document.rs` gives a sample code using this function.
-///
-pub fn replace(input: &str) -> Result<String, error::LatexError> {
-    let mut input: Vec<u8> = input.as_bytes().to_owned();
-
-    //**** Convert block-math ****//
-
-    // `$$` に一致するインデックスのリストを生成
-    let idx = input
-        .windows(2)
-        .enumerate()
-        .filter_map(|(i, window)| {
-            if window == [b'$', b'$'] {
-                Some(i)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<usize>>();
-    if idx.len() % 2 != 0 {
-        return Err(LatexError::InvalidNumberOfDollarSigns);
-    }
-
-    if idx.len() > 1 {
-        let mut output = Vec::new();
-        output.extend_from_slice(&input[0..idx[0]]);
-        for i in (0..idx.len() - 1).step_by(2) {
-            {
-                // convert LaTeX to MathML
-                let input = &input[idx[i] + 2..idx[i + 1]];
-                let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Block)?;
-                output.extend_from_slice(mathml.as_bytes());
-            }
-
-            if i + 2 < idx.len() {
-                output.extend_from_slice(&input[idx[i + 1] + 2..idx[i + 2]]);
-            } else {
-                output.extend_from_slice(&input[idx.last().unwrap() + 2..]);
-            }
-        }
-
-        input = output;
-    }
-
-    //**** Convert inline-math ****//
-
-    // `$` に一致するインデックスのリストを生成
-    let idx = input
-        .iter()
-        .enumerate()
-        .filter_map(|(i, byte)| if byte == &b'$' { Some(i) } else { None })
-        .collect::<Vec<usize>>();
-    if idx.len() % 2 != 0 {
-        return Err(LatexError::InvalidNumberOfDollarSigns);
-    }
-
-    if idx.len() > 1 {
-        let mut output = Vec::new();
-        output.extend_from_slice(&input[0..idx[0]]);
-        for i in (0..idx.len() - 1).step_by(2) {
-            {
-                // convert LaTeX to MathML
-                let input = &input[idx[i] + 1..idx[i + 1]];
-                let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Inline)?;
-                output.extend_from_slice(mathml.as_bytes());
-            }
-
-            if i + 2 < idx.len() {
-                output.extend_from_slice(&input[idx[i + 1] + 1..idx[i + 2]]);
-            } else {
-                output.extend_from_slice(&input[idx.last().unwrap() + 1..]);
-            }
-        }
-
-        input = output;
-    }
-
-    unsafe { Ok(String::from_utf8_unchecked(input)) }
-}
-
-/// Convert all LaTeX expressions for all HTMLs in a given directory.
-///
-/// The argument of this function can be a file name or a directory name.
-/// For the latter case, all HTML files in the directory is coneverted.
-/// If conversion is failed for a file, then this function does not change
-/// the file. The extension of HTML files must be ".html", and `.htm` files
-/// are ignored.
-///
-/// Note that this function uses `latex2mmlc::replace`, so the dollar signs
-/// are not allowed except for ones enclosing a LaTeX expression.
-///
-/// # Examples
-///
-/// This function is meant to replace all LaTeX equations in HTML files
-/// generated by `cargo doc`.
-///
-/// ```rust
-/// use latex2mmlc::convert_html;
-///
-/// convert_html("./target/doc").unwrap();
-/// ```
-///
-/// Then all LaTeX equations in HTML files under the directory `./target/doc`
-/// will be converted into MathML.
-///
-pub fn convert_html<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
-    if path.as_ref().is_dir() {
-        for entry in fs::read_dir(path)?.filter_map(Result::ok) {
-            convert_html(&entry.path())?
-        }
-    } else if path.as_ref().is_file() {
-        if let Some(ext) = path.as_ref().extension() {
-            if ext == "html" {
-                match convert_latex(&path) {
-                    Ok(_) => (),
-                    Err(e) => eprintln!("LaTeX2MathML Error: {}", e),
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn convert_latex<P: AsRef<Path>>(fp: P) -> Result<(), Box<dyn std::error::Error>> {
-    let original = fs::read_to_string(&fp)?;
-    let converted = replace(&original)?;
-    if original != converted {
-        let mut fp = fs::File::create(fp)?;
-        fp.write_all(converted.as_bytes())?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
 
+    use crate::token::Token;
+    use crate::{LatexError, ops};
+
     use super::convert_content;
 
     #[test]
-    fn it_works() {
+    fn full_tests() {
         let problems = vec![
             ("integer", r"0"),
             ("rational_number", r"3.14"),
@@ -344,9 +170,39 @@ mod tests {
             ),
         ];
 
-        for (name, problem) in problems.iter() {
+        for (name, problem) in problems.into_iter() {
             let mathml = convert_content(dbg!(problem)).unwrap();
-            assert_snapshot!(*name, &mathml, problem);
+            assert_snapshot!(name, &mathml, problem);
+        }
+    }
+
+    #[test]
+    fn error_test() {
+        let problems = vec![
+            (r"\end{matrix}", LatexError::UnexpectedClose(Token::End)),
+            (r"}", LatexError::UnexpectedClose(Token::RBrace)),
+            (r"\asdf", LatexError::UnknownCommand("asdf".to_string())),
+            (
+                r"\begin{xmatrix} 1 \end{xmatrix}",
+                LatexError::UnknownEnvironment("xmatrix".to_string()),
+            ),
+            (
+                r"\operatorname[lim}",
+                LatexError::UnexpectedToken {
+                    expected: Token::LBrace,
+                    got: Token::Paren(ops::LEFT_SQUARE_BRACKET),
+                },
+            ),
+        ];
+
+        for (problem, expected_error) in problems.into_iter() {
+            let result = convert_content(dbg!(problem));
+            assert!(
+                matches!(&result, Err(err) if *err == expected_error),
+                "Input: {}, Result: {:?}",
+                problem,
+                result
+            );
         }
     }
 }

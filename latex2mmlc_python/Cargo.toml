@@ -1,0 +1,13 @@
+[package]
+name = "latex2mmlc_python"
+version = "0.1.0"
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "latex2mmlc_python"
+crate-type = ["cdylib"]
+
+[dependencies]
+latex2mmlc = { path = "../latex2mmlc" }
+pyo3 = "0.19.0"

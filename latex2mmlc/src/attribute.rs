@@ -111,6 +111,7 @@ macro_rules! transform {
 }
 
 impl TextTransform {
+    #[allow(clippy::manual_is_ascii_check)]
     pub fn transform(&self, c: char) -> char {
         match self {
             TextTransform::BoldScript => {

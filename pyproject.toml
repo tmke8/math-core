@@ -1,0 +1,22 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "latex2mmlc"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+[project.optional-dependencies]
+tests = ["pytest"]
+dynamic = ["version"]
+
+[tool.maturin]
+manifest-path = "latex2mmlc_python/Cargo.toml"
+python-source = "python"
+module-name = "latex2mmlc._latex2mmlc_rust"
+features = ["pyo3/extension-module"]
