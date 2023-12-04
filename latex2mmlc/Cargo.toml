@@ -1,0 +1,17 @@
+[package]
+name = "latex2mmlc"
+version = "0.1.0"
+authors = ["Hiromu Sugiura <h.sugiura0705@outlook.com>", "Thomas Kehrenberg <tmke8@posteo.net>"]
+edition = { workspace = true }
+
+description   = "Convert LaTeX equations to MathML Core"
+repository    = "https://github.com/tmke8/latex2mmlc"
+readme        = "README.md"
+license       = "MIT"
+keywords      = ["latex", "mathml"]
+categories    = ["science"]
+
+[dependencies]
+
+[dev-dependencies]
+insta = { version = "1.34.0", features = ["default"] }

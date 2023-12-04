@@ -56,7 +56,6 @@ fn main() {
         r#"\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}"#,
         r#"\lambda_\text{Compton} = \frac{ 2 \pi \hbar }{ m c }"#,
         r#"\int Y_{\ell m} ( \Omega ) Y_{\ell' m'} ( \Omega ) \, d^2 \Omega = \delta_{\ell \ell'} \delta_{m m'}"#,
-        r#"\asdf"#,
         r#"{fi}~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing"#,
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
         r"a := 2 \land b :\equiv 3 \land f : X\to Y",

@@ -59,13 +59,12 @@ pub enum Node {
     ColumnSeparator,
     RowSeparator,
     Slashed(Box<Node>),
-    Undefined(String),
 }
 
 const INDENT: usize = 4;
 
 impl Node {
-    fn render(&self, f: &mut fmt::Formatter<'_>, base_indent: usize) -> fmt::Result {
+    pub fn render(&self, f: &mut fmt::Formatter<'_>, base_indent: usize) -> fmt::Result {
         // Compute the indent for the children of the node.
         let child_indent = base_indent.saturating_add(INDENT);
 
@@ -295,7 +294,7 @@ impl Node {
                 )
             }
             Node::Text(text) => writeln!(f, "<mtext>{}</mtext>", text),
-            node => writeln!(f, "<merror><mtext>Parse error: {:?}</mtext></merror>", node),
+            Node::ColumnSeparator | Node::RowSeparator => Ok(()),
         }
     }
 }

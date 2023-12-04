@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
         self.peek_token == expected_token
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Vec<Node>, LatexError> {
+    pub(crate) fn parse(&mut self) -> Result<Node, LatexError> {
         let mut nodes = Vec::new();
         let mut cur_token = self.next_token();
 
@@ -51,7 +51,12 @@ impl<'a> Parser<'a> {
             cur_token = self.next_token();
         }
 
-        Ok(nodes)
+        if nodes.len() == 1 {
+            let node = nodes.into_iter().next().unwrap();
+            Ok(node)
+        } else {
+            Ok(Node::PseudoRow(nodes))
+        }
     }
 
     fn parse_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
@@ -439,7 +444,15 @@ impl<'a> Parser<'a> {
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
-            token => Node::Undefined(format!("{:?}", token)),
+            Token::Null | Token::EOF | Token::Underscore | Token::Circumflex => {
+                unreachable!()
+            }
+            Token::UnknownCommand(name) => {
+                return Err(LatexError::UnknownCommand(name));
+            }
+            tok @ (Token::End | Token::Right | Token::RBrace) => {
+                return Err(LatexError::UnexpectedClose(tok))
+            }
         };
 
         match self.peek_token {
