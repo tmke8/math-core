@@ -1,3 +1,5 @@
+use crate::attribute::Accent;
+
 use super::{
     ast::Node,
     attribute::{Align, LineThickness, MathVariant, TextTransform},
@@ -83,7 +85,8 @@ impl<'a> Parser<'a> {
     fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
-            Token::Letter(x, v) => Node::SingleLetterIdent(x, v),
+            Token::Letter(x) => Node::SingleLetterIdent(x, None),
+            Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op),
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(space),
@@ -124,13 +127,13 @@ impl<'a> Parser<'a> {
                     )),
                 }
             }
-            Token::Over(op, acc) => {
+            Token::Over(op) => {
                 let target = self.parse_token()?;
-                Node::OverOp(op, acc, Box::new(target))
+                Node::OverOp(op, Accent::True, Box::new(target))
             }
-            Token::Under(op, acc) => {
+            Token::Under(op) => {
                 let target = self.parse_token()?;
-                Node::UnderOp(op, acc, Box::new(target))
+                Node::UnderOp(op, Accent::True, Box::new(target))
             }
             Token::Overset => {
                 let over = self.parse_token()?;
@@ -371,84 +374,79 @@ impl<'a> Parser<'a> {
                 }
             },
             Token::Begin => {
-                self.next_token();
                 // 環境名を読み込む
-                let environment = self.parse_text(WhiteSpace::Skip);
+                let environment = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
                 // \begin..\end の中身を読み込む
                 let content = match self.parse_group(Token::End)? {
                     Node::Row(content) => content,
                     content => vec![content],
                 };
-                let node = if matches!(environment.as_str(), "align" | "align*" | "aligned") {
-                    Node::Table(content, Align::Alternating)
-                } else if environment == "cases" {
-                    Node::Fenced {
+                let node = match environment.as_str() {
+                    "align" | "align*" | "aligned" => Node::Table(content, Align::Alternating),
+                    "cases" => Node::Fenced {
                         open: ops::LEFT_CURLY_BRACKET,
                         close: ops::NULL,
                         content: Box::new(Node::Table(content, Align::Left)),
-                    }
-                } else {
-                    let content = Node::Table(content, Align::Center);
-
-                    // 環境名により処理を分岐
-                    match environment.as_str() {
-                        "matrix" => content,
-                        "pmatrix" => Node::Fenced {
-                            open: ops::LEFT_PARENTHESIS,
-                            close: ops::RIGHT_PARENTHESIS,
-                            content: Box::new(content),
-                        },
-                        "bmatrix" => Node::Fenced {
-                            open: ops::LEFT_SQUARE_BRACKET,
-                            close: ops::RIGHT_SQUARE_BRACKET,
-                            content: Box::new(content),
-                        },
-                        "vmatrix" => Node::Fenced {
-                            open: ops::VERTICAL_LINE,
-                            close: ops::VERTICAL_LINE,
-                            content: Box::new(content),
-                        },
-                        environment => {
-                            return Err(LatexError::UnknownEnvironment(environment.to_owned()));
-                        }
+                    },
+                    "matrix" => Node::Table(content, Align::Center),
+                    "pmatrix" => Node::Fenced {
+                        open: ops::LEFT_PARENTHESIS,
+                        close: ops::RIGHT_PARENTHESIS,
+                        content: Box::new(Node::Table(content, Align::Center)),
+                    },
+                    "bmatrix" => Node::Fenced {
+                        open: ops::LEFT_SQUARE_BRACKET,
+                        close: ops::RIGHT_SQUARE_BRACKET,
+                        content: Box::new(Node::Table(content, Align::Center)),
+                    },
+                    "vmatrix" => Node::Fenced {
+                        open: ops::VERTICAL_LINE,
+                        close: ops::VERTICAL_LINE,
+                        content: Box::new(Node::Table(content, Align::Center)),
+                    },
+                    _ => {
+                        return Err(LatexError::UnknownEnvironment(environment));
                     }
                 };
-                self.next_token();
-                let _ = self.parse_text(WhiteSpace::Skip);
+                let end_name = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                if end_name != environment {
+                    return Err(LatexError::MismatchedEnvironment {
+                        expected: environment,
+                        got: end_name,
+                    });
+                }
 
                 node
             }
             Token::OperatorName => {
-                let next_token = self.next_token();
-                if !matches!(next_token, Token::LBrace) {
+                if !self.peek_token_is(Token::LBrace) {
                     return Err(LatexError::UnexpectedToken {
                         expected: Token::LBrace,
-                        got: next_token,
+                        got: self.next_token(),
                     });
                 }
                 // 関数名を読み込む
-                let function = self.parse_text(WhiteSpace::Skip);
+                let function = self.parse_text_group(Token::RBrace, WhiteSpace::Skip)?;
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
-                let next_token = self.next_token();
-                if !matches!(next_token, Token::LBrace) {
+                if !self.peek_token_is(Token::LBrace) {
                     return Err(LatexError::UnexpectedToken {
                         expected: Token::LBrace,
-                        got: next_token,
+                        got: self.next_token(),
                     });
                 }
                 // テキストを読み込む
-                let text = self.parse_text(WhiteSpace::Record);
+                let text = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
-            Token::Null | Token::EOF | Token::Underscore | Token::Circumflex => {
-                unreachable!()
-            }
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
+            }
+            Token::Null | Token::EOF | Token::Underscore | Token::Circumflex => {
+                unreachable!()
             }
             tok @ (Token::End | Token::Right | Token::RBrace) => {
                 return Err(LatexError::UnexpectedClose(tok))
@@ -506,22 +504,44 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_text(&mut self, whitespace: WhiteSpace) -> String {
-        // `{` を読み飛ばす
-        let mut cur_token = self.next_token();
-
+    fn parse_text_group(
+        &mut self,
+        end_token: Token,
+        whitespace: WhiteSpace,
+    ) -> Result<String, LatexError> {
+        // We immediately start recording whitespace, so that the peek token field
+        // can be filled with whitespace characters.
         self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
+        self.next_token(); // Discard the opening brace token.
 
-        // テキストを読み取る
         let mut text = String::new();
-        while let Token::Letter(x, _) = cur_token {
-            text.push(x);
-            cur_token = self.next_token();
-        }
-        // 終わったら最後の `}` を cur が指した状態で抜ける
-        self.l.record_whitespace = false;
 
-        text
+        loop {
+            match &self.peek_token {
+                Token::Letter(x) | Token::NormalLetter(x) => {
+                    text.push(*x); // Copy the character.
+                    self.next_token(); // Discard the token.
+                }
+                _ => {
+                    // We turn off the whitespace recording here because we don't want to put
+                    // any whitespace chracters into the peek token field.
+                    self.l.record_whitespace = false;
+                    // Get whatever non-letter token is next.
+                    // (We know it is not a letter because we matched on the peek token.)
+                    let non_letter_tok = self.next_token();
+                    if non_letter_tok == end_token {
+                        break; // Everything is fine.
+                    } else {
+                        return Err(LatexError::UnexpectedToken {
+                            expected: end_token,
+                            got: non_letter_tok,
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(text)
     }
 }
 

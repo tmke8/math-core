@@ -114,7 +114,7 @@ mod tests {
     use insta::assert_snapshot;
 
     use crate::token::Token;
-    use crate::{LatexError, ops};
+    use crate::{ops, LatexError};
 
     use super::convert_content;
 
@@ -166,7 +166,7 @@ mod tests {
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
             (
                 "cases",
-                r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
+                r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise}\end{cases}",
             ),
         ];
 
@@ -191,6 +191,24 @@ mod tests {
                 LatexError::UnexpectedToken {
                     expected: Token::LBrace,
                     got: Token::Paren(ops::LEFT_SQUARE_BRACKET),
+                },
+            ),
+            (
+                r"\begin{matrix} 1 \end{bmatrix}",
+                LatexError::MismatchedEnvironment {
+                    expected: "matrix".to_string(),
+                    got: "bmatrix".to_string(),
+                },
+            ),
+            (
+                r"\begin{  pmatrix   } x \\ y \end{pmatrix}",
+                LatexError::UnknownEnvironment("\u{a0}\u{a0}pmatrix\u{a0}\u{a0}\u{a0}".to_string()),
+            ),
+            (
+                r"\begin{matrix] 1 \end{matrix}",
+                LatexError::UnexpectedToken {
+                    expected: Token::RBrace,
+                    got: Token::Paren(ops::RIGHT_SQUARE_BRACKET),
                 },
             ),
         ];
