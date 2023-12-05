@@ -12,6 +12,7 @@ pub enum LatexError {
     },
     UnknownEnvironment(String),
     UnknownCommand(String),
+    MismatchedEnvironment{ expected: String, got: String},
 }
 
 impl fmt::Display for LatexError {
@@ -33,6 +34,9 @@ impl fmt::Display for LatexError {
             ),
             LatexError::UnknownCommand(cmd) => write!(f,
                 "An unknown command \"\\{}\"", cmd
+            ),
+            LatexError::MismatchedEnvironment { expected, got } => write!(f,
+                "Expected \"\\end{{{}}}\", but got \"\\end{{{}}}\"", expected, got
             ),
         }
     }

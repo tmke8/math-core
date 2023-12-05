@@ -4,14 +4,13 @@
 //! - Output: `Vec<Token>`
 //!
 
-use super::{attribute::MathVariant, ops, token::Token};
+use super::{ops, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
     input: std::str::Chars<'a>,
     pub(crate) cur: char,
-    pub(crate) peek: char,
     pub(crate) record_whitespace: bool,
 }
 
@@ -21,20 +20,15 @@ impl<'a> Lexer<'a> {
         let mut lexer = Lexer {
             input: input.chars(),
             cur: '\u{0}',
-            peek: '\u{0}',
             record_whitespace: false,
         };
-        lexer.read_char();
         lexer.read_char();
         lexer
     }
 
     /// 1 文字進む.
-    pub(crate) fn read_char(&mut self) -> char {
-        let c = self.cur;
-        self.cur = self.peek;
-        self.peek = self.input.next().unwrap_or('\u{0}');
-        c
+    pub(crate) fn read_char(&mut self) {
+        self.cur = self.input.next().unwrap_or('\u{0}');
     }
 
     /// 空白文字をスキップする.
@@ -49,18 +43,19 @@ impl<'a> Lexer<'a> {
 
     /// コマンド一つ分を読み込みトークンに変換する.
     fn read_command(&mut self) -> Token {
-        // `\\` を読み飛ばす
-        self.read_char();
         let mut command = String::new();
         // 1 文字は確実に読む
-        let first = self.read_char();
+        self.read_char();
+        let first = self.cur;
         command.push(first);
+        self.read_char();
         // ASCII アルファベットなら続けて読む
         while first.is_ascii_alphabetic() && self.cur.is_ascii_alphabetic() {
-            command.push(self.read_char());
+            command.push(self.cur);
+            self.read_char();
         }
 
-        Token::from_command(&command)
+        Token::from_command(command)
     }
 
     /// 数字一つ分を読み込みトークンに変換する.
@@ -71,7 +66,8 @@ impl<'a> Lexer<'a> {
             if self.cur == '.' {
                 has_period = true;
             }
-            number.push(self.read_char());
+            number.push(self.cur);
+            self.read_char();
         }
         Token::Number(number)
     }
@@ -106,7 +102,7 @@ impl<'a> Lexer<'a> {
             '~' => Token::NonBreakingSpace,
             '\u{0}' => Token::EOF,
             ':' => Token::Colon,
-            ' ' => Token::Letter('\u{A0}', None),
+            ' ' => Token::Letter('\u{A0}'),
             '\\' => {
                 return self.read_command();
             }
@@ -114,9 +110,9 @@ impl<'a> Lexer<'a> {
                 if c.is_ascii_digit() {
                     return self.read_number();
                 } else if c.is_ascii_alphabetic() {
-                    Token::Letter(c, None)
+                    Token::Letter(c)
                 } else {
-                    Token::Letter(c, Some(MathVariant::Normal))
+                    Token::NormalLetter(c)
                 }
             }
         };
@@ -139,26 +135,23 @@ mod tests {
                 r"3.14.",
                 vec![Token::Number("3.14".to_owned()), Token::Operator(ops::DOT)],
             ),
-            (r"x", vec![Token::Letter('x', None)]),
-            (r"\pi", vec![Token::Letter('π', None)]),
+            (r"x", vec![Token::Letter('x')]),
+            (r"\pi", vec![Token::Letter('π')]),
             (
                 r"x = 3.14",
                 vec![
-                    Token::Letter('x', None),
+                    Token::Letter('x'),
                     Token::Operator(ops::EQUAL),
                     Token::Number("3.14".to_owned()),
                 ],
             ),
-            (
-                r"\alpha\beta",
-                vec![Token::Letter('α', None), Token::Letter('β', None)],
-            ),
+            (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
             (
                 r"x+y",
                 vec![
-                    Token::Letter('x', None),
+                    Token::Letter('x'),
                     Token::Operator(ops::PLUS),
-                    Token::Letter('y', None),
+                    Token::Letter('y'),
                 ],
             ),
             (
