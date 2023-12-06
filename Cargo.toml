@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "latex2mmlc",
-    # "latex2mmlc_cli",
+    "latex2mmlc_cli",
     "latex2mmlc_python",
 ]
 resolver = "2"

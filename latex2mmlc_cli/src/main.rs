@@ -20,9 +20,104 @@
 //! convert_html("./target/doc").unwrap();
 //! ```
 
-use std::{fs, io::Write, path::Path};
+use std::{
+    fmt, fs,
+    io::{Read, Write},
+    path::{Path, PathBuf},
+};
 
 use latex2mmlc::{latex_to_mathml, Display, LatexError};
+
+use clap::Parser;
+
+/// Converts LaTeX formulas to MathML
+#[derive(Parser, Debug)]
+#[command(version, about = "Converts LaTeX formulas to MathML", long_about = None)]
+struct Args {
+    /// The HTML file to process
+    #[arg(conflicts_with = "formula", value_name = "FILE")]
+    file: Option<PathBuf>,
+
+    /// Sets the custom delimiter for LaTeX formulas
+    #[arg(short, long, default_value = "$$", conflicts_with = "formula")]
+    delimiter: String,
+
+    /// Look recursively for HTML files in the given directory
+    #[arg(short, long, conflicts_with = "formula")]
+    recursive: bool,
+
+    /// Specifies a single LaTeX formula
+    #[arg(short, long, conflicts_with = "file")]
+    formula: Option<String>,
+
+    /// Sets the display style for the formula to "inline"
+    #[arg(short, long, requires = "formula", group = "mode")]
+    inline: bool,
+
+    /// Sets the display style for the formula to "block"
+    #[arg(short, long, requires = "formula", group = "mode")]
+    block: bool,
+}
+
+fn main() {
+    let args = Args::parse();
+    if let Some(ref fpath) = args.file {
+        if fpath == &PathBuf::from("-") {
+            let mut buffer = String::new();
+            if let Err(e) = std::io::stdin().read_to_string(&mut buffer) {
+                eprintln!("IO Error: {}", e);
+                std::process::exit(1);
+            }
+            convert_and_exit(&args, &buffer);
+        } else {
+            let result = if args.recursive {
+                convert_html(fpath)
+            } else {
+                convert_latex(fpath)
+            };
+            if let Err(e) = result {
+                eprintln!("LaTeX2MathML Error: {}", e);
+                std::process::exit(2);
+            }
+        }
+    } else if let Some(ref formula) = args.formula {
+        convert_and_exit(&args, &formula);
+    }
+}
+
+fn convert_and_exit(args: &Args, latex: &str) {
+    let display = if args.block {
+        Display::Block
+    } else {
+        Display::Inline
+    };
+    match latex_to_mathml(latex, display) {
+        Ok(mathml) => println!("{}", mathml),
+        Err(e) => {
+            eprintln!("LaTeX2MathML Error: {}", e);
+            std::process::exit(2);
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum ConversionError {
+    InvalidNumberOfDollarSigns,
+    LatexError(LatexError),
+}
+
+impl fmt::Display for ConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConversionError::InvalidNumberOfDollarSigns => {
+                write!(f, "Invalid number of dollar signs")
+            }
+            ConversionError::LatexError(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ConversionError {}
 
 /// Find LaTeX equations and replace them to MathML.
 ///
@@ -44,7 +139,7 @@ use latex2mmlc::{latex_to_mathml, Display, LatexError};
 ///
 /// `examples/document.rs` gives a sample code using this function.
 ///
-pub fn replace(input: &str) -> Result<String, LatexError> {
+fn replace(input: &str) -> Result<String, ConversionError> {
     let mut input: Vec<u8> = input.as_bytes().to_owned();
 
     //**** Convert block-math ****//
@@ -62,7 +157,7 @@ pub fn replace(input: &str) -> Result<String, LatexError> {
         })
         .collect::<Vec<usize>>();
     if idx.len() % 2 != 0 {
-        return Err(LatexError::InvalidNumberOfDollarSigns);
+        return Err(ConversionError::InvalidNumberOfDollarSigns);
     }
 
     if idx.len() > 1 {
@@ -73,7 +168,8 @@ pub fn replace(input: &str) -> Result<String, LatexError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Block)?;
+                let mathml = latex_to_mathml(input, Display::Block)
+                    .map_err(|e| ConversionError::LatexError(e))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -96,7 +192,7 @@ pub fn replace(input: &str) -> Result<String, LatexError> {
         .filter_map(|(i, byte)| if byte == &b'$' { Some(i) } else { None })
         .collect::<Vec<usize>>();
     if idx.len() % 2 != 0 {
-        return Err(LatexError::InvalidNumberOfDollarSigns);
+        return Err(ConversionError::InvalidNumberOfDollarSigns);
     }
 
     if idx.len() > 1 {
@@ -107,7 +203,8 @@ pub fn replace(input: &str) -> Result<String, LatexError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Inline)?;
+                let mathml = latex_to_mathml(input, Display::Inline)
+                    .map_err(|e| ConversionError::LatexError(e))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -178,10 +275,6 @@ fn convert_latex<P: AsRef<Path>>(fp: P) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-pub fn main() {
-    unimplemented!();
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -200,7 +293,7 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-        let mathml = latex2mmlc::replace(text).unwrap();
+        let mathml = crate::replace(text).unwrap();
         println!("{}", mathml);
     }
 }
