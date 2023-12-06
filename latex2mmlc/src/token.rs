@@ -294,7 +294,7 @@ impl Token {
             "Im" => Token::NormalLetter('ℑ'),
             "complement" => Token::NormalLetter('∁'),
             "emptyset" => Token::NormalLetter('∅'),
-            "varnothing" => Token::Letter('ø'),
+            "varnothing" => Token::Letter('⌀'),
             "therefore" => Token::NormalLetter('∴'),
             "because" => Token::NormalLetter('∵'),
             "Diamond" => Token::NormalLetter('◊'),

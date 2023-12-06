@@ -12,7 +12,7 @@ pub enum LatexError {
     },
     UnknownEnvironment(String),
     UnknownCommand(String),
-    MismatchedEnvironment{ expected: String, got: String},
+    MismatchedEnvironment{ expected: String, got: String },
 }
 
 impl fmt::Display for LatexError {
