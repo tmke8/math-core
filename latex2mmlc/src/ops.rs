@@ -4,7 +4,7 @@ pub struct Op(pub char);
 impl Op {
     #[inline]
     pub fn char(&self) -> char {
-        self.0.clone()
+        self.0 // Copy the char.
     }
 
     #[inline]

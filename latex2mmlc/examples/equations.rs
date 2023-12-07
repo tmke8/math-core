@@ -76,7 +76,20 @@ fn main() {
         .join("</div>\n<div>");
 
     println!(
-        "<!DOCTYPE html><html><body>\n<div>{}</div>\n</body></html>",
+        r#"<!DOCTYPE html><html lang="en">
+    <style>
+        @font-face {{
+          font-family: Libertinus Math;
+          src: url('LibertinusMath-Regular.woff2');
+        }}
+        math {{
+            font-family: 'Libertinus Math', 'Libertinus Serif', serif;
+            font-feature-settings: "ss08", 'ssty';
+        }}
+    </style>
+<body>
+    <div>{}</div>
+</body></html>"#,
         outputs
     );
 }

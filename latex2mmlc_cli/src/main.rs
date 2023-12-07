@@ -81,7 +81,7 @@ fn main() {
             }
         }
     } else if let Some(ref formula) = args.formula {
-        convert_and_exit(&args, &formula);
+        convert_and_exit(&args, formula);
     }
 }
 
@@ -169,7 +169,7 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
                 let mathml = latex_to_mathml(input, Display::Block)
-                    .map_err(|e| ConversionError::LatexError(e))?;
+                    .map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -204,7 +204,7 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
                 let mathml = latex_to_mathml(input, Display::Inline)
-                    .map_err(|e| ConversionError::LatexError(e))?;
+                    .map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 

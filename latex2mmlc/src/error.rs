@@ -7,12 +7,17 @@ pub enum LatexError {
         expected: Token, got: Token,
     },
     UnexpectedClose(Token),
+    UnexpectedEOF,
     MissingParenthesis {
         location: Token, got: Token,
     },
     UnknownEnvironment(String),
     UnknownCommand(String),
     MismatchedEnvironment{ expected: String, got: String },
+    InvalidCharacter {
+        expected: &'static str,
+        got: char,
+    }
 }
 
 impl fmt::Display for LatexError {
@@ -23,21 +28,28 @@ impl fmt::Display for LatexError {
                 expected, got
             ),
             LatexError::UnexpectedClose(got) => write!(f,
-                "Got an unexpected closing token: \"{:?}\"", got
+                "Unexpected closing token: \"{:?}\"", got
+            ),
+            LatexError::UnexpectedEOF => write!(f,
+                "Unexpected end of file"
             ),
             LatexError::MissingParenthesis{location, got} => write!(f, 
                 "There must be a parenthesis after \"{:?}\", but not found. Insted, \"{:?}\" was found.",
                 location, got
             ),
             LatexError::UnknownEnvironment(environment) => write!(f,
-                "An unknown environment \"{}\"", environment
+                "Unknown environment \"{}\"", environment
             ),
             LatexError::UnknownCommand(cmd) => write!(f,
-                "An unknown command \"\\{}\"", cmd
+                "Unknown command \"\\{}\"", cmd
             ),
             LatexError::MismatchedEnvironment { expected, got } => write!(f,
                 "Expected \"\\end{{{}}}\", but got \"\\end{{{}}}\"", expected, got
             ),
+            LatexError::InvalidCharacter { expected, got } => write!(f,
+                "Expected {}, but got \"{}\"", expected, got
+            ),
+                    
         }
     }
 }

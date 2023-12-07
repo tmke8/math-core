@@ -445,16 +445,22 @@ impl<'a> Parser<'a> {
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
-            tok @ (Token::Underscore | Token::Circumflex) => {
-                return Err(LatexError::UnexpectedToken {
-                    expected: Token::Letter('\u{0}'),
-                    got: tok,
+            Token::Underscore => {
+                return Err(LatexError::InvalidCharacter {
+                    expected: "identifier",
+                    got: '_',
                 });
-                            
             }
-            Token::Null | Token::EOF => {
+            Token::Circumflex => {
+                return Err(LatexError::InvalidCharacter {
+                    expected: "identifier",
+                    got: '^',
+                });
+            }
+            Token::Null => {
                 unreachable!()
             }
+            Token::EOF => return Err(LatexError::UnexpectedEOF),
             tok @ (Token::End | Token::Right | Token::RBrace) => {
                 return Err(LatexError::UnexpectedClose(tok))
             }
