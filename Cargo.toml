@@ -3,12 +3,18 @@ members = [
     "latex2mmlc",
     "latex2mmlc_cli",
     "latex2mmlc_python",
+    "latex2mmlc_wasm",
 ]
 resolver = "2"
 
 [workspace.package]
 edition = "2021"
+license = "MIT"
 
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+
+[profile.release.package.latex2mmlc_wasm]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

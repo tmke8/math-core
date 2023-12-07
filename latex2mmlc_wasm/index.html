@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LaTeX to MathML</title>
+<script type="module" src="./main.js"></script>
+<style>
+html {
+    font-size: 18px;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+#outputField {
+    border: 1px solid black;
+    padding: 0.3rem;
+    min-height: 3rem;
+}
+</style>
+<body>
+    <script type="module">
+      import init from './pkg/latex2mmlc_wasm.js';
+      init();
+    </script>
+    <h1>Convert LaTeX to MathML</h1>
+    <textarea rows="10" cols="40" id="inputField" placeholder="LaTeX formula here"></textarea>
+    <div id="outputField"></div>

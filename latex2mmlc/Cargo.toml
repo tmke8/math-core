@@ -7,7 +7,7 @@ edition = { workspace = true }
 description   = "Convert LaTeX equations to MathML Core"
 repository    = "https://github.com/tmke8/latex2mmlc"
 readme        = "README.md"
-license       = "MIT"
+license       = { workspace = true }
 keywords      = ["latex", "mathml"]
 categories    = ["science"]
 

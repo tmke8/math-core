@@ -211,11 +211,19 @@ mod tests {
                     got: Token::Paren(ops::RIGHT_SQUARE_BRACKET),
                 },
             ),
+            (r"x^", LatexError::UnexpectedEOF),
             (
                 r"x^^",
-                LatexError::UnexpectedToken {
-                    expected: Token::Letter('\0'),
-                    got: Token::Circumflex,
+                LatexError::InvalidCharacter {
+                    expected: "identifier",
+                    got: '^',
+                },
+            ),
+            (
+                r"x^_",
+                LatexError::InvalidCharacter {
+                    expected: "identifier",
+                    got: '_',
                 },
             ),
         ];
