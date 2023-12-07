@@ -38,5 +38,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: "Run wasm-pack"
         run: |
-          cd latexmmlc_wasm
+          cd latex2mmlc_wasm
           wasm-pack test --node
