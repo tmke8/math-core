@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\begin{matrix} 1 \\end{bmatrix}"
+---
+MismatchedEnvironment {
+    expected: "matrix",
+    got: "bmatrix",
+}

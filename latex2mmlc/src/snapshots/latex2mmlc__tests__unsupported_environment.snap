@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\begin{xmatrix} 1 \\end{xmatrix}"
+---
+UnknownEnvironment(
+    "xmatrix",
+)

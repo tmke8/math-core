@@ -113,9 +113,6 @@ pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::L
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::token::Token;
-    use crate::{ops, LatexError};
-
     use super::convert_content;
 
     #[test]
@@ -179,63 +176,31 @@ mod tests {
     #[test]
     fn error_test() {
         let problems = vec![
-            (r"\end{matrix}", LatexError::UnexpectedClose(Token::End)),
-            (r"}", LatexError::UnexpectedClose(Token::RBrace)),
-            (r"\asdf", LatexError::UnknownCommand("asdf".to_string())),
+            ("end_without_open", r"\end{matrix}"),
+            ("curly_close_without_open", r"}"),
+            ("unsupported_command", r"\asdf"),
             (
+                "unsupported_environment",
                 r"\begin{xmatrix} 1 \end{xmatrix}",
-                LatexError::UnknownEnvironment("xmatrix".to_string()),
             ),
+            ("incorrect_bracket", r"\operatorname[lim}"),
+            ("mismatched_begin_end", r"\begin{matrix} 1 \end{bmatrix}"),
             (
-                r"\operatorname[lim}",
-                LatexError::UnexpectedToken {
-                    expected: Token::LBrace,
-                    got: Token::Paren(ops::LEFT_SQUARE_BRACKET),
-                },
-            ),
-            (
-                r"\begin{matrix} 1 \end{bmatrix}",
-                LatexError::MismatchedEnvironment {
-                    expected: "matrix".to_string(),
-                    got: "bmatrix".to_string(),
-                },
-            ),
-            (
+                "spaces_in_env_name",
                 r"\begin{  pmatrix   } x \\ y \end{pmatrix}",
-                LatexError::UnknownEnvironment("\u{a0}\u{a0}pmatrix\u{a0}\u{a0}\u{a0}".to_string()),
             ),
             (
+                "incorrect_bracket_in_begin",
                 r"\begin{matrix] 1 \end{matrix}",
-                LatexError::UnexpectedToken {
-                    expected: Token::RBrace,
-                    got: Token::Paren(ops::RIGHT_SQUARE_BRACKET),
-                },
             ),
-            (r"x^", LatexError::UnexpectedEOF),
-            (
-                r"x^^",
-                LatexError::InvalidCharacter {
-                    expected: "identifier",
-                    got: '^',
-                },
-            ),
-            (
-                r"x^_",
-                LatexError::InvalidCharacter {
-                    expected: "identifier",
-                    got: '_',
-                },
-            ),
+            ("incomplete_sup", r"x^"),
+            ("invalid_sup", r"x^^"),
+            ("invalid_sub_sup", r"x^_"),
         ];
 
-        for (problem, expected_error) in problems.into_iter() {
-            let result = convert_content(dbg!(problem));
-            assert!(
-                matches!(&result, Err(err) if *err == expected_error),
-                "Input: {}, Result: {:?}",
-                problem,
-                result
-            );
+        for (name, problem) in problems.into_iter() {
+            let error = format!("{:#?}", convert_content(problem).unwrap_err());
+            assert_snapshot!(name, &error, problem);
         }
     }
 }

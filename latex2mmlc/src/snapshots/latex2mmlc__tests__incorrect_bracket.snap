@@ -1,0 +1,12 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\operatorname[lim}"
+---
+UnexpectedToken {
+    expected: LBrace,
+    got: Paren(
+        Op(
+            '[',
+        ),
+    ),
+}
