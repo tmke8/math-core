@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\begin{  pmatrix   } x \\\\ y \\end{pmatrix}"
+---
+UnknownEnvironment(
+    "\u{a0}\u{a0}pmatrix\u{a0}\u{a0}\u{a0}",
+)

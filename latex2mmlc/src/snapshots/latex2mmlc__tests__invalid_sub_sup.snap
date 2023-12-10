@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: x^_
+---
+InvalidCharacter {
+    expected: "identifier",
+    got: '_',
+}
