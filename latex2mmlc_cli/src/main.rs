@@ -51,38 +51,50 @@ struct Args {
     formula: Option<String>,
 
     /// Sets the display style for the formula to "inline"
-    #[arg(short, long, requires = "formula", group = "mode")]
+    #[arg(short, long, conflicts_with = "file", group = "mode")]
     inline: bool,
 
     /// Sets the display style for the formula to "block"
-    #[arg(short, long, requires = "formula", group = "mode")]
+    #[arg(short, long, conflicts_with = "file", group = "mode")]
     block: bool,
 }
 
 fn main() {
     let args = Args::parse();
     if let Some(ref fpath) = args.file {
-        if fpath == &PathBuf::from("-") {
-            let mut buffer = String::new();
-            if let Err(e) = std::io::stdin().read_to_string(&mut buffer) {
-                eprintln!("IO Error: {}", e);
-                std::process::exit(1);
+        let result = if fpath == &PathBuf::from("-") {
+            match replace(&read_stdin()) {
+                Ok(mathml) => {
+                    println!("{}", mathml);
+                    Ok(())
+                }
+                Err(e) => Err(e),
             }
-            convert_and_exit(&args, &buffer);
         } else {
-            let result = if args.recursive {
-                convert_html(fpath)
+            if args.recursive {
+                convert_html_recursive(fpath)
             } else {
-                convert_latex(fpath)
-            };
-            if let Err(e) = result {
-                eprintln!("LaTeX2MathML Error: {}", e);
-                std::process::exit(2);
+                convert_html(fpath)
             }
+        };
+        if let Err(e) = result {
+            eprintln!("LaTeX2MathML Error: {}", e);
+            std::process::exit(2);
         }
     } else if let Some(ref formula) = args.formula {
         convert_and_exit(&args, formula);
+    } else {
+        convert_and_exit(&args, &read_stdin());
     }
+}
+
+fn read_stdin() -> String {
+    let mut buffer = String::new();
+    if let Err(e) = std::io::stdin().read_to_string(&mut buffer) {
+        eprintln!("IO Error: {}", e);
+        std::process::exit(1);
+    }
+    buffer
 }
 
 fn convert_and_exit(args: &Args, latex: &str) {
@@ -100,9 +112,10 @@ fn convert_and_exit(args: &Args, latex: &str) {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 enum ConversionError {
     InvalidNumberOfDollarSigns,
+    IOError(std::io::Error),
     LatexError(LatexError),
 }
 
@@ -113,6 +126,7 @@ impl fmt::Display for ConversionError {
                 write!(f, "Invalid number of dollar signs")
             }
             ConversionError::LatexError(e) => write!(f, "{}", e),
+            ConversionError::IOError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -168,8 +182,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Block)
-                    .map_err(ConversionError::LatexError)?;
+                let mathml =
+                    latex_to_mathml(input, Display::Block).map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -203,8 +217,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Inline)
-                    .map_err(ConversionError::LatexError)?;
+                let mathml =
+                    latex_to_mathml(input, Display::Inline).map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -246,15 +260,16 @@ fn replace(input: &str) -> Result<String, ConversionError> {
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-pub fn convert_html<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
+fn convert_html_recursive<P: AsRef<Path>>(path: P) -> Result<(), ConversionError> {
     if path.as_ref().is_dir() {
-        for entry in fs::read_dir(path)?.filter_map(Result::ok) {
-            convert_html(&entry.path())?
+        let dir = fs::read_dir(path).map_err(ConversionError::IOError)?;
+        for entry in dir.filter_map(Result::ok) {
+            convert_html_recursive(&entry.path())?
         }
     } else if path.as_ref().is_file() {
         if let Some(ext) = path.as_ref().extension() {
             if ext == "html" {
-                match convert_latex(&path) {
+                match convert_html(&path) {
                     Ok(_) => (),
                     Err(e) => eprintln!("LaTeX2MathML Error: {}", e),
                 }
@@ -265,12 +280,13 @@ pub fn convert_html<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-fn convert_latex<P: AsRef<Path>>(fp: P) -> Result<(), Box<dyn std::error::Error>> {
-    let original = fs::read_to_string(&fp)?;
+fn convert_html<P: AsRef<Path>>(fp: P) -> Result<(), ConversionError> {
+    let original = fs::read_to_string(&fp).map_err(ConversionError::IOError)?;
     let converted = replace(&original)?;
     if original != converted {
-        let mut fp = fs::File::create(fp)?;
-        fp.write_all(converted.as_bytes())?;
+        let mut fp = fs::File::create(fp).map_err(ConversionError::IOError)?;
+        fp.write_all(converted.as_bytes())
+            .map_err(ConversionError::IOError)?;
     }
     Ok(())
 }
