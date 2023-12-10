@@ -1,13 +1,17 @@
-use wasm_bindgen::prelude::*;
 use latex2mmlc::{latex_to_mathml, Display};
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn convert(content: &str) -> Result<String, JsValue> {
-    match latex_to_mathml(content, Display::Inline) {
+pub fn convert(content: &str, block: bool) -> Result<String, JsValue> {
+    match latex_to_mathml(
+        content,
+        if block {
+            Display::Block
+        } else {
+            Display::Inline
+        },
+    ) {
         Ok(result) => Ok(result),
-        Err(e) => {
-            Err(JsValue::from_str(&format!("Conversion failed: {:?}", e)))
-        }
+        Err(e) => Err(JsValue::from_str(&format!("Conversion failed: {:?}", e))),
     }
 }
-
