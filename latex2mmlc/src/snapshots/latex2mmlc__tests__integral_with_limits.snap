@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\int_0^1 dx"
 ---
+<math>
 <msubsup>
     <mo>∫</mo>
     <mn>0</mn>
@@ -9,4 +10,4 @@ expression: "\\int_0^1 dx"
 </msubsup>
 <mi>d</mi>
 <mi>x</mi>
-
+</math>

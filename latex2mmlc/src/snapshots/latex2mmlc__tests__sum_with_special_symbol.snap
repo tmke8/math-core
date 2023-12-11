@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\sum_{i = 0}^∞ i"
 ---
+<math>
 <munderover>
     <mo>∑</mo>
     <mrow>
@@ -12,4 +13,4 @@ expression: "\\sum_{i = 0}^∞ i"
     <mi mathvariant="normal">∞</mi>
 </munderover>
 <mi>i</mi>
-
+</math>

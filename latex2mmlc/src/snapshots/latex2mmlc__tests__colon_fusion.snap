@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "a := 2 \\land b :\\equiv 3"
 ---
+<math>
 <mi>a</mi>
 <mo lspace="0.22222222em" rspace="0em">:</mo>
 <mo lspace="0em">=</mo>
@@ -11,4 +12,4 @@ expression: "a := 2 \\land b :\\equiv 3"
 <mo lspace="0.22222222em" rspace="0em">:</mo>
 <mo lspace="0em">≡</mo>
 <mn>3</mn>
-
+</math>

@@ -1,10 +1,11 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "x = 3+\\alpha"
 ---
+<math>
 <mi>x</mi>
 <mo>=</mo>
 <mn>3</mn>
 <mo>+</mo>
 <mi>α</mi>
-
+</math>

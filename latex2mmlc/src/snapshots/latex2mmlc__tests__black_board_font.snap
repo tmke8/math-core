@@ -1,6 +1,7 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\mathbb{R}"
 ---
+<math>
 <mi>ℝ</mi>
-
+</math>

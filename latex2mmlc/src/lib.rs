@@ -102,16 +102,17 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
 pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::LatexError> {
     let mathml = convert_content(latex)?;
 
-    Ok(format!(
-        r#"<math xmlns="http://www.w3.org/1998/Math/MathML" display="{}">
-{}</math>"#,
-        display, mathml
-    ))
+    match display {
+        Display::Block => Ok(format!("<math display=\"block\">{}\n</math>", mathml)),
+        Display::Inline => Ok(format!("<math>{}\n</math>", mathml)),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
+
+    use crate::{latex_to_mathml, Display};
 
     use super::convert_content;
 
@@ -168,7 +169,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = convert_content(dbg!(problem)).unwrap();
+            let mathml = latex_to_mathml(problem, Display::Inline).unwrap();
             assert_snapshot!(name, &mathml, problem);
         }
     }

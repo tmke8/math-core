@@ -1,9 +1,10 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\frac{12}{5}"
 ---
+<math>
 <mfrac>
     <mn>12</mn>
     <mn>5</mn>
 </mfrac>
-
+</math>

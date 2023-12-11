@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\binom12"
 ---
+<math>
 <mrow>
     <mo stretchy="true" form="prefix">(</mo>
     <mfrac linethickness="0">
@@ -10,4 +11,4 @@ expression: "\\binom12"
     </mfrac>
     <mo stretchy="true" form="postfix">)</mo>
 </mrow>
-
+</math>

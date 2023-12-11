@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{align}"
 ---
+<math>
 <mtable>
     <mtr>
         <mtd style="text-align: right; padding-right: 0">
@@ -39,4 +40,4 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
         </mtd>
     </mtr>
 </mtable>
-
+</math>

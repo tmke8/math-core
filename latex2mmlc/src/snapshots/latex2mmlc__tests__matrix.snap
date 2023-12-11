@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
+<math>
 <mrow>
     <mo stretchy="true" form="prefix">(</mo>
     <mtable>
@@ -18,4 +19,4 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
     </mtable>
     <mo stretchy="true" form="postfix">)</mo>
 </mrow>
-
+</math>

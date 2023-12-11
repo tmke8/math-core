@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\sqrt{x+2}"
 ---
+<math>
 <msqrt>
     <mrow>
         <mi>x</mi>
@@ -9,4 +10,4 @@ expression: "\\sqrt{x+2}"
         <mn>2</mn>
     </mrow>
 </msqrt>
-
+</math>

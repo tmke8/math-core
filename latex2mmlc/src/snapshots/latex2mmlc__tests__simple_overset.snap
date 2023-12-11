@@ -1,9 +1,10 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\overset{n}{X}"
 ---
+<math>
 <mover>
     <mi>X</mi>
     <mi>n</mi>
 </mover>
-
+</math>

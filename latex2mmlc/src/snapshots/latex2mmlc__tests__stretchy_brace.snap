@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\left\\{ x  ( x + 2 ) \\right\\}"
 ---
+<math>
 <mrow>
     <mo stretchy="true" form="prefix">{</mo>
     <mrow>
@@ -14,4 +15,4 @@ expression: "\\left\\{ x  ( x + 2 ) \\right\\}"
     </mrow>
     <mo stretchy="true" form="postfix">}</mo>
 </mrow>
-
+</math>

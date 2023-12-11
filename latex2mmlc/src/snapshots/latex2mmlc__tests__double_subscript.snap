@@ -1,7 +1,8 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "g_{\\mu\\nu}"
 ---
+<math>
 <msub>
     <mi>g</mi>
     <mrow>
@@ -9,4 +10,4 @@ expression: "g_{\\mu\\nu}"
         <mi>ν</mi>
     </mrow>
 </msub>
-
+</math>
