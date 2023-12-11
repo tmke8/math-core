@@ -54,8 +54,11 @@ impl<'a> Parser<'a> {
         }
 
         if nodes.len() == 1 {
-            let node = nodes.into_iter().next().unwrap();
-            Ok(node)
+            // Safety: `nodes` is not empty.
+            unsafe {
+                let node = nodes.into_iter().next().unwrap_unchecked();
+                Ok(node)
+            }
         } else {
             Ok(Node::PseudoRow(nodes))
         }
@@ -510,8 +513,11 @@ impl<'a> Parser<'a> {
         }
 
         if nodes.len() == 1 {
-            let node = nodes.into_iter().next().unwrap();
-            Ok(node)
+            // Safety: `nodes` is not empty.
+            unsafe {
+                let node = nodes.into_iter().next().unwrap_unchecked();
+                Ok(node)
+            }
         } else {
             Ok(Node::Row(nodes))
         }
@@ -613,7 +619,8 @@ fn merge_single_letters(nodes: Vec<Node>) -> Node {
         new_nodes.push(Node::MultiLetterIdent(letters, None));
     }
     if new_nodes.len() == 1 {
-        new_nodes.into_iter().next().unwrap()
+        // Safety: `new_nodes` is not empty.
+        unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
     } else {
         Node::Row(new_nodes)
     }
