@@ -100,8 +100,7 @@ impl Node {
                     Some(stretchy) => push!(s, "<mo", stretchy, ">"),
                     None => push!(s, "<mo>"),
                 }
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, op, "</mo>");
             }
             Node::OperatorWithSpacing { op, left, right } => {
                 match (left, right) {
@@ -116,8 +115,7 @@ impl Node {
                     }
                     (None, None) => s.push_str("<mo>"),
                 }
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, op, "</mo>");
             }
             Node::MultiLetterIdent(letters, var) => {
                 match var {
@@ -153,9 +151,7 @@ impl Node {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
                 new_line(s, child_indent);
-                push!(s, "<mo accent=\"", acc, "\">");
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, "<mo accent=\"", acc, "\">", op, "</mo>");
                 new_line(s, base_indent);
                 push!(s, "</mover>")
             }
@@ -163,9 +159,7 @@ impl Node {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
                 new_line(s, child_indent);
-                push!(s, "<mo accent=\"", acc, "\">");
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, "<mo accent=\"", acc, "\">", op, "</mo>");
                 new_line(s, base_indent);
                 push!(s, "</munder>")
             }
@@ -239,28 +233,22 @@ impl Node {
             } => {
                 push!(s, "<mrow>");
                 new_line(s, child_indent);
-                push!(s, "<mo stretchy=\"true\" form=\"prefix\">");
-                s.push(open.char());
-                s.push_str("</mo>");
+                push!(s, "<mo stretchy=\"true\" form=\"prefix\">", open, "</mo>");
                 content.emit(s, child_indent);
                 new_line(s, child_indent);
-                push!(s, "<mo stretchy=\"true\" form=\"postfix\">");
-                s.push(close.char());
-                s.push_str("</mo>");
+                push!(s, "<mo stretchy=\"true\" form=\"postfix\">", close, "</mo>");
                 new_line(s, base_indent);
                 push!(s, "</mrow>")
             }
             Node::SizedParen { size, paren } => {
-                push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
-                s.push(paren.char());
-                s.push_str("</mo>");
+                push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">", paren, "</mo>");
             }
             Node::Slashed(node) => match &**node {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => push!(s, "<mi", var, ">", x.to_string(), "&#x0338;</mi>"),
                     None => push!(s, "<mi>", x.to_string(), "&#x0338;</mi>"),
                 },
-                Node::Operator(x, _) => push!(s, "<mo>{}&#x0338;</mo>", x.char().to_string()),
+                Node::Operator(x, _) => push!(s, "<mo>{}&#x0338;</mo>", x),
                 n => n.emit(s, base_indent),
             },
             Node::Table(content, align) => {

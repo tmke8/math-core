@@ -587,7 +587,10 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
         Node::MultiLetterIdent(letters, _) => {
             Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
         }
-        Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
+        Node::Operator(op, _) => Node::SingleLetterIdent(
+            var.transform(op.str().chars().next().unwrap_or('\u{0}')),
+            None,
+        ),
         Node::Row(vec) => Node::Row(
             vec.into_iter()
                 .map(|node| transform_text(node, var))

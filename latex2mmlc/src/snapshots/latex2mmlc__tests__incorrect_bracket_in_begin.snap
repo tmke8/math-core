@@ -6,7 +6,7 @@ UnexpectedToken {
     expected: RBrace,
     got: Paren(
         Op(
-            ']',
+            "]",
         ),
     ),
 }

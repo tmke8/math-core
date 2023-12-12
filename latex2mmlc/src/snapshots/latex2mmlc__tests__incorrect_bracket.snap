@@ -6,7 +6,7 @@ UnexpectedToken {
     expected: LBrace,
     got: Paren(
         Op(
-            '[',
+            "[",
         ),
     ),
 }
