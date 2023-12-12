@@ -3,5 +3,5 @@ source: latex2mmlc/src/lib.rs
 expression: "\\alpha"
 ---
 <math>
-<mi>α</mi>
+    <mi>α</mi>
 </math>

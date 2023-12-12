@@ -3,6 +3,6 @@ source: latex2mmlc/src/lib.rs
 expression: "\\sin x"
 ---
 <math>
-<mi>sin</mi>
-<mi>x</mi>
+    <mi>sin</mi>
+    <mi>x</mi>
 </math>

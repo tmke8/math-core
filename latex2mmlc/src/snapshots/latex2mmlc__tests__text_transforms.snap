@@ -3,14 +3,14 @@ source: latex2mmlc/src/lib.rs
 expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
 ---
 <math>
-<mrow>
-    <mi>f</mi>
-    <mi>i</mi>
-</mrow>
-<mspace width="1em"/>
-<mi>𝑓𝑖</mi>
-<mspace width="1em"/>
-<mi mathvariant="normal">fi</mi>
-<mspace width="1em"/>
-<mi>𝚏𝚒</mi>
+    <mrow>
+        <mi>f</mi>
+        <mi>i</mi>
+    </mrow>
+    <mspace width="1em"/>
+    <mi>𝑓𝑖</mi>
+    <mspace width="1em"/>
+    <mi mathvariant="normal">fi</mi>
+    <mspace width="1em"/>
+    <mi>𝚏𝚒</mi>
 </math>

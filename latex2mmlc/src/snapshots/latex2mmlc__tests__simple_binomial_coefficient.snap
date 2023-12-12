@@ -3,12 +3,12 @@ source: latex2mmlc/src/lib.rs
 expression: "\\binom12"
 ---
 <math>
-<mrow>
-    <mo stretchy="true" form="prefix">(</mo>
-    <mfrac linethickness="0">
-        <mn>1</mn>
-        <mn>2</mn>
-    </mfrac>
-    <mo stretchy="true" form="postfix">)</mo>
-</mrow>
+    <mrow>
+        <mo stretchy="true" form="prefix">(</mo>
+        <mfrac linethickness="0">
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo stretchy="true" form="postfix">)</mo>
+    </mrow>
 </math>

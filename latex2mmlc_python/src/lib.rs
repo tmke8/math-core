@@ -8,7 +8,7 @@ create_exception!(_latex2mmlc_rust, LatexError, PyException);
 
 /// Convert LaTeX equation to MathML.
 #[pyfunction]
-fn convert_latex(latex: &str, block: bool) -> PyResult<String> {
+fn convert_latex(latex: &str, block: bool, pretty: bool) -> PyResult<String> {
     latex_to_mathml(
         latex,
         if block {
@@ -16,6 +16,7 @@ fn convert_latex(latex: &str, block: bool) -> PyResult<String> {
         } else {
             Display::Inline
         },
+        pretty,
     )
     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))
 }

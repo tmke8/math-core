@@ -3,7 +3,7 @@ source: latex2mmlc/src/lib.rs
 expression: "\\phi/\\varphi"
 ---
 <math>
-<mi>ϕ</mi>
-<mo>/</mo>
-<mi>φ</mi>
+    <mi>ϕ</mi>
+    <mo>/</mo>
+    <mi>φ</mi>
 </math>

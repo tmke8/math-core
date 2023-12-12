@@ -85,7 +85,11 @@ impl Node {
 
     pub fn emit(&self, s: &mut String, base_indent: usize) {
         // Compute the indent for the children of the node.
-        let child_indent = base_indent.saturating_add(1);
+        let child_indent = if base_indent > 0 {
+            base_indent.saturating_add(1)
+        } else {
+            0
+        };
 
         if !matches!(self, Node::PseudoRow(_)) {
             // Get the base indent out of the way.
@@ -254,8 +258,16 @@ impl Node {
                 n => n.emit(s, base_indent),
             },
             Node::Table(content, align) => {
-                let child_indent2 = child_indent.saturating_add(1);
-                let child_indent3 = child_indent2.saturating_add(1);
+                let child_indent2 = if base_indent > 0 {
+                    child_indent.saturating_add(1)
+                } else {
+                    0
+                };
+                let child_indent3 = if base_indent > 0 {
+                    child_indent2.saturating_add(1)
+                } else {
+                    0
+                };
                 let odd_col = match align {
                     Align::Center => "<mtd>",
                     Align::Left => r#"<mtd style="text-align: left; padding-right: 0">"#,
@@ -312,7 +324,9 @@ impl Node {
 }
 
 fn new_line_and_indent(s: &mut String, indent_num: usize) {
-    s.push('\n');
+    if indent_num > 0 {
+        s.push('\n');
+    }
     for _ in 0..indent_num {
         s.push_str(INDENT);
     }
@@ -326,12 +340,12 @@ mod tests {
     #[test]
     fn node_display() {
         let problems = vec![
-            (Node::Number("3.14".to_owned()), "\n<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', None), "\n<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', None), "\n<mi>α</mi>"),
+            (Node::Number("3.14".to_owned()), "<mn>3.14</mn>"),
+            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
+            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
                 Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
-                "\n<mi mathvariant=\"normal\">あ</mi>",
+                "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];
         for (problem, answer) in problems.iter() {

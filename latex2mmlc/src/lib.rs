@@ -38,7 +38,7 @@
 //! use latex2mmlc::{latex_to_mathml, Display};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mathml = latex_to_mathml(latex, Display::Block).unwrap();
+//! let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -78,15 +78,19 @@ fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
 /// use latex2mmlc::{latex_to_mathml, Display};
 ///
 /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let mathml = latex_to_mathml(latex, Display::Inline).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Inline, true).unwrap();
 /// println!("{}", mathml);
 ///
 /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::LatexError> {
+pub fn latex_to_mathml(
+    latex: &str,
+    display: Display,
+    pretty: bool,
+) -> Result<String, error::LatexError> {
     let nodes = get_nodes(latex)?;
 
     let mut output = match display {
@@ -94,8 +98,11 @@ pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::L
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, 0);
-    output.push_str("\n</math>");
+    nodes.emit(&mut output, if pretty { 1 } else { 0 });
+    if pretty {
+        output.push('\n');
+    }
+    output.push_str("</math>");
     Ok(output)
 }
 
@@ -103,7 +110,7 @@ pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::L
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{error, latex_to_mathml, Display};
+    use crate::{error, latex_to_mathml};
 
     use super::get_nodes;
 
@@ -165,7 +172,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, Display::Inline).unwrap();
+            let mathml = latex_to_mathml(problem, crate::Display::Inline, true).unwrap();
             assert_snapshot!(name, &mathml, problem);
         }
     }

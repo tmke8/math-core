@@ -3,11 +3,11 @@ source: latex2mmlc/src/lib.rs
 expression: "\\int^1_0 dx"
 ---
 <math>
-<msubsup>
-    <mo>∫</mo>
-    <mn>0</mn>
-    <mn>1</mn>
-</msubsup>
-<mi>d</mi>
-<mi>x</mi>
+    <msubsup>
+        <mo>∫</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </msubsup>
+    <mi>d</mi>
+    <mi>x</mi>
 </math>

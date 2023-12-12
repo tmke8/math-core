@@ -8,6 +8,14 @@ function isBlock() {
     return selectedRadio ? selectedRadio.value === 'block' : true;
 }
 
+function isPrettyPrint() {
+    // Query the fieldset for the checked radio button
+    var selectedRadio = document.querySelector('#prettyprint input[type="radio"]:checked');
+    
+    // Check the value and return true if it's 'block', false if it's 'inline'
+    return selectedRadio ? selectedRadio.value === 'true' : true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const inputField = document.getElementById('inputField');
     const outputField = document.getElementById('outputField');
@@ -16,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateOutput() {
         try {
             const input = inputField.value;
-            const output = convert(input, isBlock());
+            const output = convert(input, isBlock(), isPrettyPrint());
             outputField.innerHTML = output;
             outputCode.textContent = output;
         } catch (error) {
@@ -30,6 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('#displaystyle input[type="radio"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            updateOutput();
+        });
+    });
+
+    document.querySelectorAll('#prettyprint input[type="radio"]').forEach((radio) => {
         radio.addEventListener('change', () => {
             updateOutput();
         });
