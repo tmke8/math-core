@@ -1,7 +1,9 @@
-use super::attribute::{DisplayStyle, TextTransform};
-use super::ops::{self, Op};
+use strum_macros::AsRefStr;
 
-#[derive(Debug, Clone, PartialEq)]
+use crate::attribute::{DisplayStyle, TextTransform};
+use crate::ops::{self, Op};
+
+#[derive(Debug, Clone, PartialEq, AsRefStr)]
 pub enum Token {
     Null,
     EOF,

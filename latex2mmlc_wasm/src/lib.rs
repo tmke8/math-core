@@ -16,6 +16,6 @@ pub fn convert(content: &str, block: bool) -> Result<String, JsValue> {
         },
     ) {
         Ok(result) => Ok(result),
-        Err(e) => Err(JsValue::from_str(&format!("Conversion failed: {:?}", e))),
+        Err(e) => Err(JsValue::from_str(&e.string())),
     }
 }
