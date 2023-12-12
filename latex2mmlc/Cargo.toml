@@ -12,6 +12,7 @@ keywords      = ["latex", "mathml"]
 categories    = ["science"]
 
 [dependencies]
+strum_macros = "0.25.3"
 
 [dev-dependencies]
 insta = { version = "1.34.0", features = ["default"] }

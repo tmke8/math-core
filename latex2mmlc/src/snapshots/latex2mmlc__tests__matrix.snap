@@ -1,21 +1,22 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
-<mrow>
-    <mo stretchy="true" form="prefix">(</mo>
-    <mtable>
-        <mtr>
-            <mtd>
-                <mi>x</mi>
-            </mtd>
-        </mtr>
-        <mtr>
-            <mtd>
-                <mi>y</mi>
-            </mtd>
-        </mtr>
-    </mtable>
-    <mo stretchy="true" form="postfix">)</mo>
-</mrow>
-
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">(</mo>
+        <mtable>
+            <mtr>
+                <mtd>
+                    <mi>x</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>y</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo stretchy="true" form="postfix">)</mo>
+    </mrow>
+</math>

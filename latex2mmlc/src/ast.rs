@@ -1,21 +1,19 @@
+use crate::attribute::{Accent, Align, DisplayStyle, LineThickness, MathVariant, Stretchy};
 use crate::ops::Op;
-
-use super::attribute::{Accent, Align, DisplayStyle, LineThickness, MathVariant};
-use std::fmt;
 
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Number(String),
     SingleLetterIdent(char, Option<MathVariant>),
-    Operator(Op),
+    Operator(Op, Option<Stretchy>),
     OperatorWithSpacing {
         op: Op,
-        left: f32,
-        right: f32,
+        left: Option<&'static str>,
+        right: Option<&'static str>,
     },
     MultiLetterIdent(String, Option<MathVariant>),
-    Space(f32),
+    Space(&'static str),
     Subscript(Box<Node>, Box<Node>),
     Superscript(Box<Node>, Box<Node>),
     SubSup {
@@ -48,8 +46,6 @@ pub enum Node {
         close: Op,
         content: Box<Node>,
     },
-    StretchedOp(bool, Op),
-    Paren(Op),
     SizedParen {
         size: &'static str,
         paren: Op,
@@ -61,194 +57,221 @@ pub enum Node {
     Slashed(Box<Node>),
 }
 
-const INDENT: usize = 4;
+const INDENT: &'static str = "    ";
+
+macro_rules! push {
+    ($buf:expr, $($s:expr),+ $(,)?) => {{
+        /* use std::ops::AddAssign;
+        let mut len = 0;
+        $(len.add_assign(AsRef::<str>::as_ref(&$s).len());)+
+        $buf.reserve(len); */
+        $($buf.push_str($s.as_ref());)+
+    }};
+}
+
+macro_rules! pushln {
+    ($buf:expr, $indent:expr, $($s:expr),+ $(,)?) => {
+        new_line_and_indent($buf, $indent);
+        push!($buf, $($s),+)
+    };
+}
 
 impl Node {
-    pub fn render(&self, f: &mut fmt::Formatter<'_>, base_indent: usize) -> fmt::Result {
+    pub fn render(&self) -> String {
+        let mut buf = String::new();
+        self.emit(&mut buf, 0);
+        buf
+    }
+
+    pub fn emit(&self, s: &mut String, base_indent: usize) {
         // Compute the indent for the children of the node.
-        let child_indent = base_indent.saturating_add(INDENT);
+        let child_indent = if base_indent > 0 {
+            base_indent.saturating_add(1)
+        } else {
+            0
+        };
 
         if !matches!(self, Node::PseudoRow(_)) {
             // Get the base indent out of the way.
-            write!(f, "{:base_indent$}", "")?;
+            new_line_and_indent(s, base_indent);
         }
 
         match self {
-            Node::Number(number) => writeln!(f, "<mn>{}</mn>", number),
-            Node::SingleLetterIdent(letter, var) => match var {
-                Some(var) => writeln!(f, "<mi{}>{}</mi>", var, letter),
-                None => writeln!(f, "<mi>{}</mi>", letter),
-            },
-            Node::Operator(op) => writeln!(f, "<mo>{}</mo>", op.char()),
-            Node::OperatorWithSpacing { op, left, right } => {
-                match (left.is_finite(), right.is_finite()) {
-                    (true, true) => writeln!(
-                        f,
-                        r#"<mo lspace="{}em" rspace="{}em">{}</mo>"#,
-                        left,
-                        right,
-                        op.char()
-                    ),
-                    (true, false) => {
-                        writeln!(f, r#"<mo lspace="{}em">{}</mo>"#, left, op.char())
-                    }
-                    (false, true) => {
-                        writeln!(f, r#"<mo rspace="{}em">{}</mo>"#, right, op.char())
-                    }
-                    (false, false) => writeln!(f, "<mo>{}</mo>", op.char()),
-                }
+            Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
+            Node::SingleLetterIdent(letter, var) => {
+                match var {
+                    Some(var) => push!(s, "<mi", var, ">"),
+                    None => push!(s, "<mi>"),
+                };
+                s.push(*letter);
+                s.push_str("</mi>");
             }
-            Node::MultiLetterIdent(letters, var) => match var {
-                Some(var) => writeln!(f, "<mi{}>{}</mi>", var, letters,),
-                None => writeln!(f, "<mi>{}</mi>", letters),
-            },
-            Node::Space(space) => writeln!(f, r#"<mspace width="{}em"/>"#, space,),
+            Node::Operator(op, stretchy) => {
+                match stretchy {
+                    Some(stretchy) => push!(s, "<mo", stretchy, ">"),
+                    None => push!(s, "<mo>"),
+                }
+                s.push(op.char());
+                s.push_str("</mo>");
+            }
+            Node::OperatorWithSpacing { op, left, right } => {
+                match (left, right) {
+                    (Some(left), Some(right)) => {
+                        push!(s, "<mo lspace=\"", left, "em\" rspace=\"", right, "em\">",)
+                    }
+                    (Some(left), None) => {
+                        push!(s, "<mo lspace=\"", left, "em\">")
+                    }
+                    (None, Some(right)) => {
+                        push!(s, "<mo rspace=\"", right, "em\">")
+                    }
+                    (None, None) => s.push_str("<mo>"),
+                }
+                s.push(op.char());
+                s.push_str("</mo>");
+            }
+            Node::MultiLetterIdent(letters, var) => {
+                match var {
+                    Some(var) => push!(s, "<mi", var, ">"),
+                    None => s.push_str("<mi>"),
+                }
+                push!(s, letters, "</mi>");
+            }
+            Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             Node::Subscript(base, sub) => {
-                writeln!(f, "<msub>")?;
-                base.render(f, child_indent)?;
-                sub.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</msub>", "")
+                push!(s, "<msub>");
+                base.emit(s, child_indent);
+                sub.emit(s, child_indent);
+                pushln!(s, base_indent, "</msub>");
             }
             Node::Superscript(base, sup) => {
-                writeln!(f, "<msup>")?;
-                base.render(f, child_indent)?;
-                sup.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</msup>", "")
+                push!(s, "<msup>");
+                base.emit(s, child_indent);
+                sup.emit(s, child_indent);
+                pushln!(s, base_indent, "</msup>");
             }
             Node::SubSup { target, sub, sup } => {
-                writeln!(f, "<msubsup>")?;
-                target.render(f, child_indent)?;
-                sub.render(f, child_indent)?;
-                sup.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</msubsup>", "")
+                push!(s, "<msubsup>");
+                target.emit(s, child_indent);
+                sub.emit(s, child_indent);
+                sup.emit(s, child_indent);
+                pushln!(s, base_indent, "</msubsup>");
             }
             Node::OverOp(op, acc, target) => {
-                writeln!(f, "<mover>")?;
-                target.render(f, child_indent)?;
-                writeln!(
-                    f,
-                    r#"{:child_indent$}<mo accent="{}">{}</mo>"#,
-                    "",
-                    acc,
-                    op.char()
-                )?;
-                writeln!(f, "{:base_indent$}</mover>", "")
+                push!(s, "<mover>");
+                target.emit(s, child_indent);
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
+                s.push(op.char());
+                s.push_str("</mo>");
+                pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
-                writeln!(f, "<munder>")?;
-                target.render(f, child_indent)?;
-                writeln!(
-                    f,
-                    r#"{:child_indent$}<mo accent="{}">{}</mo>"#,
-                    "",
-                    acc,
-                    op.char()
-                )?;
-                writeln!(f, "{:base_indent$}</munder>", "")
+                push!(s, "<munder>");
+                target.emit(s, child_indent);
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
+                s.push(op.char());
+                s.push_str("</mo>");
+                pushln!(s, base_indent, "</munder>");
             }
             Node::Overset { over, target } => {
-                writeln!(f, "<mover>")?;
-                target.render(f, child_indent)?;
-                over.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</mover>", "")
+                push!(s, "<mover>");
+                target.emit(s, child_indent);
+                over.emit(s, child_indent);
+                pushln!(s, base_indent, "</mover>");
             }
             Node::Underset { under, target } => {
-                writeln!(f, "<munder>")?;
-                target.render(f, child_indent)?;
-                under.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</munder>", "")
+                push!(s, "<munder>");
+                target.emit(s, child_indent);
+                under.emit(s, child_indent);
+                pushln!(s, base_indent, "</munder>");
             }
             Node::UnderOver {
                 target,
                 under,
                 over,
             } => {
-                writeln!(f, "<munderover>")?;
-                target.render(f, child_indent)?;
-                under.render(f, child_indent)?;
-                over.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</munderover>", "")
+                push!(s, "<munderover>");
+                target.emit(s, child_indent);
+                under.emit(s, child_indent);
+                over.emit(s, child_indent);
+                pushln!(s, base_indent, "</munderover>");
             }
             Node::Sqrt(content) => {
-                writeln!(f, "<msqrt>")?;
-                content.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</msqrt>", "")
+                push!(s, "<msqrt>");
+                content.emit(s, child_indent);
+                pushln!(s, base_indent, "</msqrt>");
             }
             Node::Root(degree, content) => {
-                writeln!(f, "<mroot>")?;
-                content.render(f, child_indent)?;
-                degree.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</mroot>", "")
+                push!(s, "<mroot>");
+                content.emit(s, child_indent);
+                degree.emit(s, child_indent);
+                pushln!(s, base_indent, "</mroot>");
             }
             Node::Frac(num, denom, lt, style) => {
                 if let Some(style) = style {
-                    writeln!(f, "<mfrac{}{}>", lt, style)?;
+                    push!(s, "<mfrac", lt, style, ">");
                 } else {
-                    writeln!(f, "<mfrac{}>", lt)?;
+                    push!(s, "<mfrac", lt, ">");
                 }
-                num.render(f, child_indent)?;
-                denom.render(f, child_indent)?;
-                writeln!(f, "{:base_indent$}</mfrac>", "")
+                num.emit(s, child_indent);
+                denom.emit(s, child_indent);
+                pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row(vec) => {
-                writeln!(f, "<mrow>")?;
+                push!(s, "<mrow>");
                 for node in vec.iter() {
-                    node.render(f, child_indent)?;
+                    node.emit(s, child_indent);
                 }
-                writeln!(f, "{:base_indent$}</mrow>", "")
+                pushln!(s, base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
-                    node.render(f, base_indent)?;
+                    node.emit(s, base_indent);
                 }
-                Ok(())
             }
             Node::Fenced {
                 open,
                 close,
                 content,
             } => {
-                writeln!(
-                    f,
-                    "<mrow>\n{:child_indent$}<mo stretchy=\"true\" form=\"prefix\">{}</mo>",
-                    "",
-                    open.char()
-                )?;
-                content.render(f, child_indent)?;
-                writeln!(
-                    f,
-                    "{:child_indent$}<mo stretchy=\"true\" form=\"postfix\">{}</mo>",
-                    "",
-                    close.char(),
-                )?;
-                writeln!(f, "{:base_indent$}</mrow>", "")
+                push!(s, "<mrow>");
+                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
+                s.push(open.char());
+                s.push_str("</mo>");
+                content.emit(s, child_indent);
+                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
+                s.push(close.char());
+                s.push_str("</mo>");
+                pushln!(s, base_indent, "</mrow>");
             }
-            Node::StretchedOp(stretchy, op) => {
-                writeln!(f, r#"<mo stretchy="{}">{}</mo>"#, stretchy, op.char())
+            Node::SizedParen { size, paren } => {
+                push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
+                s.push(paren.char());
+                s.push_str("</mo>");
             }
-            Node::Paren(op) => writeln!(f, r#"<mo stretchy="false">{}</mo>"#, op.char()),
-            Node::SizedParen { size, paren } => writeln!(
-                f,
-                r#"<mrow><mo maxsize="{0}" minsize="{0}">{1}</mro></mrow>"#,
-                size,
-                paren.char()
-            ),
             Node::Slashed(node) => match &**node {
                 Node::SingleLetterIdent(x, var) => match var {
-                    Some(var) => writeln!(f, "<mi{}>{}&#x0338;</mi>", var, x),
-                    None => writeln!(f, "<mi>{}&#x0338;</mi>", x),
+                    Some(var) => push!(s, "<mi", var, ">", x.to_string(), "&#x0338;</mi>"),
+                    None => push!(s, "<mi>", x.to_string(), "&#x0338;</mi>"),
                 },
-                Node::Operator(x) => writeln!(f, "<mo>{}&#x0338;</mo>", x.char()),
-                n => n.render(f, base_indent),
+                Node::Operator(x, _) => push!(s, "<mo>{}&#x0338;</mo>", x.char().to_string()),
+                n => n.emit(s, base_indent),
             },
             Node::Table(content, align) => {
-                let i1 = child_indent;
-                let i2 = child_indent.saturating_add(INDENT);
-                let i3 = i2.saturating_add(INDENT);
+                let child_indent2 = if base_indent > 0 {
+                    child_indent.saturating_add(1)
+                } else {
+                    0
+                };
+                let child_indent3 = if base_indent > 0 {
+                    child_indent2.saturating_add(1)
+                } else {
+                    0
+                };
                 let odd_col = match align {
                     Align::Center => "<mtd>",
-                    Align::Left => "<mtd style=\"text-align: left; padding-right: 0\">",
-                    Align::Alternating => "<mtd style=\"text-align: right; padding-right: 0\">",
+                    Align::Left => r#"<mtd style="text-align: left; padding-right: 0">"#,
+                    Align::Alternating => r#"<mtd style="text-align: right; padding-right: 0">"#,
                 };
                 let even_col = match align {
                     Align::Center => "<mtd>",
@@ -259,49 +282,53 @@ impl Node {
                 };
 
                 let mut col: usize = 1;
-                writeln!(f, "<mtable>\n{:i1$}<mtr>\n{:i2$}{}", "", "", odd_col,)?;
+                push!(s, "<mtable>");
+                pushln!(s, child_indent, "<mtr>");
+                pushln!(s, child_indent2, odd_col);
                 let total_len = content.len();
                 for (j, node) in content.iter().enumerate() {
                     match node {
                         Node::ColumnSeparator => {
-                            writeln!(f, "{:i2$}</mtd>", "")?;
+                            pushln!(s, child_indent2, "</mtd>");
                             col += 1;
                             if j < total_len {
-                                writeln!(
-                                    f,
-                                    "{:i2$}{}",
-                                    "",
-                                    if col % 2 == 0 { even_col } else { odd_col },
-                                )?;
+                                pushln!(
+                                    s,
+                                    child_indent2,
+                                    if col % 2 == 0 { even_col } else { odd_col }
+                                );
                             }
                         }
                         Node::RowSeparator => {
-                            writeln!(f, "{:i2$}</mtd>\n{:i1$}</mtr>", "", "")?;
+                            pushln!(s, child_indent2, "</mtd>");
+                            pushln!(s, child_indent, "</mtr>");
                             if j < total_len {
-                                writeln!(f, "{:i1$}<mtr>\n{:i2$}{}", "", "", odd_col,)?;
+                                pushln!(s, child_indent, "<mtr>");
+                                pushln!(s, child_indent2, odd_col);
                             }
                             col = 1;
                         }
                         node => {
-                            node.render(f, i3)?;
+                            node.emit(s, child_indent3);
                         }
                     }
                 }
-                writeln!(
-                    f,
-                    "{:i2$}</mtd>\n{:i1$}</mtr>\n{:base_indent$}</mtable>",
-                    "", "", ""
-                )
+                pushln!(s, child_indent2, "</mtd>");
+                pushln!(s, child_indent, "</mtr>");
+                pushln!(s, base_indent, "</mtable>");
             }
-            Node::Text(text) => writeln!(f, "<mtext>{}</mtext>", text),
-            Node::ColumnSeparator | Node::RowSeparator => Ok(()),
+            Node::Text(text) => push!(s, "<mtext>", text, "</mtext>"),
+            Node::ColumnSeparator | Node::RowSeparator => (),
         }
     }
 }
 
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.render(f, 0)
+fn new_line_and_indent(s: &mut String, indent_num: usize) {
+    if indent_num > 0 {
+        s.push('\n');
+    }
+    for _ in 0..indent_num {
+        s.push_str(INDENT);
     }
 }
 
@@ -313,16 +340,16 @@ mod tests {
     #[test]
     fn node_display() {
         let problems = vec![
-            (Node::Number("3.14".to_owned()), "<mn>3.14</mn>\n"),
-            (Node::SingleLetterIdent('x', None), "<mi>x</mi>\n"),
-            (Node::SingleLetterIdent('α', None), "<mi>α</mi>\n"),
+            (Node::Number("3.14".to_owned()), "<mn>3.14</mn>"),
+            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
+            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
                 Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
-                "<mi mathvariant=\"normal\">あ</mi>\n",
+                "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];
         for (problem, answer) in problems.iter() {
-            assert_eq!(&format!("{}", problem), answer);
+            assert_eq!(&problem.render(), answer);
         }
     }
 }

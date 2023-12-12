@@ -1,15 +1,13 @@
-use std::fmt;
-
 /// mi mathvariant attribute
 #[derive(Debug, Clone, PartialEq)]
 pub enum MathVariant {
     Normal = 1,
 }
 
-impl fmt::Display for MathVariant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl AsRef<str> for MathVariant {
+    fn as_ref(&self) -> &str {
         match self {
-            MathVariant::Normal => write!(f, r#" mathvariant="normal""#),
+            MathVariant::Normal => r#" mathvariant="normal""#,
         }
     }
 }
@@ -20,11 +18,11 @@ pub enum Accent {
     False,
 }
 
-impl fmt::Display for Accent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl AsRef<str> for Accent {
+    fn as_ref(&self) -> &str {
         match self {
-            Accent::True => write!(f, "true"),
-            Accent::False => write!(f, "false"),
+            Accent::True => "true",
+            Accent::False => "false",
         }
     }
 }
@@ -34,15 +32,30 @@ pub enum LineThickness {
     Thin,
     Medium,
     Thick,
-    Length(u8),
+    Zero,
 }
-impl fmt::Display for LineThickness {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl AsRef<str> for LineThickness {
+    fn as_ref(&self) -> &str {
         match self {
-            LineThickness::Thin => write!(f, r#" linethickness="thin""#),
-            LineThickness::Medium => write!(f, r#""#),
-            LineThickness::Thick => write!(f, r#" linethickness="medium""#),
-            LineThickness::Length(l) => write!(f, r#" linethickness="{}""#, l),
+            LineThickness::Thin => r#" linethickness="thin""#,
+            LineThickness::Medium => r#""#,
+            LineThickness::Thick => r#" linethickness="medium""#,
+            LineThickness::Zero => r#" linethickness="0""#,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Stretchy {
+    True = 1,
+    False = 2,
+}
+
+impl AsRef<str> for Stretchy {
+    fn as_ref(&self) -> &str {
+        match self {
+            Stretchy::True => r#" stretchy="true""#,
+            Stretchy::False => r#" stretchy="false""#,
         }
     }
 }
@@ -54,11 +67,11 @@ pub enum DisplayStyle {
     False = 2,
 }
 
-impl fmt::Display for DisplayStyle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl AsRef<str> for DisplayStyle {
+    fn as_ref(&self) -> &str {
         match self {
-            DisplayStyle::True => write!(f, r#" displaystyle="true""#),
-            DisplayStyle::False => write!(f, r#" displaystyle="false""#),
+            DisplayStyle::True => r#" displaystyle="true""#,
+            DisplayStyle::False => r#" displaystyle="false""#,
         }
     }
 }

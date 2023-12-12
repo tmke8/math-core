@@ -103,7 +103,8 @@ fn convert_and_exit(args: &Args, latex: &str) {
     } else {
         Display::Inline
     };
-    match latex_to_mathml(latex, display) {
+    let pretty = true;
+    match latex_to_mathml(latex, display, pretty) {
         Ok(mathml) => println!("{}", mathml),
         Err(e) => {
             eprintln!("LaTeX2MathML Error: {}", e);
@@ -182,8 +183,9 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml =
-                    latex_to_mathml(input, Display::Block).map_err(ConversionError::LatexError)?;
+                let pretty = true;
+                let mathml = latex_to_mathml(input, Display::Block, pretty)
+                    .map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -217,8 +219,9 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml =
-                    latex_to_mathml(input, Display::Inline).map_err(ConversionError::LatexError)?;
+                let pretty = true;
+                let mathml = latex_to_mathml(input, Display::Inline, pretty)
+                    .map_err(ConversionError::LatexError)?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 

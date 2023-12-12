@@ -69,7 +69,7 @@ fn main() {
             format!(
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
-                latex_to_mathml(input, Display::Block).unwrap()
+                latex_to_mathml(input, Display::Block, true).unwrap()
             )
         })
         .collect::<Vec<_>>()

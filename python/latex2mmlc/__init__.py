@@ -11,5 +11,5 @@ class Display(Enum):
     BLOCK = True
 
 
-def convert_latex(latex: str, display: Display = Display.INLINE) -> str:
-    return _convert_latex(latex, display.value)
+def convert_latex(latex: str, display: Display = Display.INLINE, pretty: bool = True) -> str:
+    return _convert_latex(latex, display.value, pretty)

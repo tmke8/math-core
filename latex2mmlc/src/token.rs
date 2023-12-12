@@ -1,7 +1,9 @@
-use super::attribute::{DisplayStyle, TextTransform};
-use super::ops::{self, Op};
+use strum_macros::AsRefStr;
 
-#[derive(Debug, Clone, PartialEq)]
+use crate::attribute::{DisplayStyle, TextTransform};
+use crate::ops::{self, Op};
+
+#[derive(Debug, Clone, PartialEq, AsRefStr)]
 pub enum Token {
     Null,
     EOF,
@@ -26,7 +28,7 @@ pub enum Token {
     Sqrt,
     Integral(Op),
     Lim(&'static str),
-    Space(f32),
+    Space(&'static str),
     NonBreakingSpace,
     Style(TextTransform),
     NormalVariant,
@@ -92,13 +94,13 @@ impl Token {
             "underparen" => Token::Underbrace(Op('\u{23dd}')),
             "overbracket" => Token::Overbrace(Op('\u{23b4}')),
             "underbracket" => Token::Underbrace(Op('\u{23b5}')),
-            "!" => Token::Space(-3. / 18.),
-            "," => Token::Space(3. / 18.),
-            ":" => Token::Space(4. / 18.),
-            ";" => Token::Space(5. / 18.),
-            " " => Token::Space(1.),
-            "quad" => Token::Space(1.),
-            "qquad" => Token::Space(2.),
+            "!" => Token::Space("-0.1667"),
+            "," => Token::Space("0.1667"),
+            ":" => Token::Space("0.2222"),
+            ";" => Token::Space("0.2778"),
+            " " => Token::Space("1"),
+            "quad" => Token::Space("1"),
+            "qquad" => Token::Space("2"),
             "langle" => Token::Paren(Op('〈')),
             "rangle" => Token::Paren(Op('〉')),
             "{" => Token::Paren(ops::LEFT_CURLY_BRACKET),

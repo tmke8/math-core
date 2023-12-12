@@ -1,13 +1,14 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\binom12"
 ---
-<mrow>
-    <mo stretchy="true" form="prefix">(</mo>
-    <mfrac linethickness="0">
-        <mn>1</mn>
-        <mn>2</mn>
-    </mfrac>
-    <mo stretchy="true" form="postfix">)</mo>
-</mrow>
-
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">(</mo>
+        <mfrac linethickness="0">
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo stretchy="true" form="postfix">)</mo>
+    </mrow>
+</math>

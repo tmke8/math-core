@@ -1,9 +1,10 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\sqrt[3]{x}"
 ---
-<mroot>
-    <mi>x</mi>
-    <mn>3</mn>
-</mroot>
-
+<math>
+    <mroot>
+        <mi>x</mi>
+        <mn>3</mn>
+    </mroot>
+</math>

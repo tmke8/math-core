@@ -1,11 +1,12 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\oint_C dz"
 ---
-<msub>
-    <mo>∮</mo>
-    <mi>C</mi>
-</msub>
-<mi>d</mi>
-<mi>z</mi>
-
+<math>
+    <msub>
+        <mo>∮</mo>
+        <mi>C</mi>
+    </msub>
+    <mi>d</mi>
+    <mi>z</mi>
+</math>

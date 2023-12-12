@@ -1,10 +1,11 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\prod_n n"
 ---
-<munder>
-    <mo>∏</mo>
+<math>
+    <munder>
+        <mo>∏</mo>
+        <mi>n</mi>
+    </munder>
     <mi>n</mi>
-</munder>
-<mi>n</mi>
-
+</math>

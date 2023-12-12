@@ -1,9 +1,10 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "f'"
 ---
-<msup>
-    <mi>f</mi>
-    <mo>′</mo>
-</msup>
-
+<math>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+</math>

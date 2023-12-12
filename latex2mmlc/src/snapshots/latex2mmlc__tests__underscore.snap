@@ -1,8 +1,9 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "x\\ y"
 ---
-<mi>x</mi>
-<mspace width="1em"/>
-<mi>y</mi>
-
+<math>
+    <mi>x</mi>
+    <mspace width="1em"/>
+    <mi>y</mi>
+</math>

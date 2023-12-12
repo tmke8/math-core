@@ -1,12 +1,13 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "g_{\\mu\\nu}"
 ---
-<msub>
-    <mi>g</mi>
-    <mrow>
-        <mi>μ</mi>
-        <mi>ν</mi>
-    </mrow>
-</msub>
-
+<math>
+    <msub>
+        <mi>g</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msub>
+</math>

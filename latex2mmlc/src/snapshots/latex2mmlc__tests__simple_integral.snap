@@ -1,8 +1,9 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\int dx"
 ---
-<mo>∫</mo>
-<mi>d</mi>
-<mi>x</mi>
-
+<math>
+    <mo>∫</mo>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

@@ -38,7 +38,7 @@
 //! use latex2mmlc::{latex_to_mathml, Display};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mathml = latex_to_mathml(latex, Display::Block).unwrap();
+//! let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -55,7 +55,6 @@ pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
 pub use error::LatexError;
-use std::fmt;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,23 +63,11 @@ pub enum Display {
     Inline,
 }
 
-impl fmt::Display for Display {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Display::Block => write!(f, "block"),
-            Display::Inline => write!(f, "inline"),
-        }
-    }
-}
-
-fn convert_content(latex: &str) -> Result<String, error::LatexError> {
+fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
     let l = lexer::Lexer::new(latex);
     let mut p = parse::Parser::new(l);
     let nodes = p.parse()?;
-
-    let mathml = nodes.to_string();
-
-    Ok(mathml)
+    Ok(nodes)
 }
 
 /// Convert LaTeX text to MathML.
@@ -91,29 +78,46 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
 /// use latex2mmlc::{latex_to_mathml, Display};
 ///
 /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let mathml = latex_to_mathml(latex, Display::Inline).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Inline, true).unwrap();
 /// println!("{}", mathml);
 ///
 /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::LatexError> {
-    let mathml = convert_content(latex)?;
+pub fn latex_to_mathml(
+    latex: &str,
+    display: Display,
+    pretty: bool,
+) -> Result<String, error::LatexError> {
+    let nodes = get_nodes(latex)?;
 
-    Ok(format!(
-        r#"<math xmlns="http://www.w3.org/1998/Math/MathML" display="{}">
-{}</math>"#,
-        display, mathml
-    ))
+    let mut output = match display {
+        Display::Block => "<math display=\"block\">".to_string(),
+        Display::Inline => "<math>".to_string(),
+    };
+
+    nodes.emit(&mut output, if pretty { 1 } else { 0 });
+    if pretty {
+        output.push('\n');
+    }
+    output.push_str("</math>");
+    Ok(output)
 }
 
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
 
-    use super::convert_content;
+    use crate::{error, latex_to_mathml};
+
+    use super::get_nodes;
+
+    fn convert_content(latex: &str) -> Result<String, error::LatexError> {
+        let nodes = get_nodes(latex)?;
+        Ok(nodes.render())
+    }
 
     #[test]
     fn full_tests() {
@@ -168,7 +172,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = convert_content(dbg!(problem)).unwrap();
+            let mathml = latex_to_mathml(problem, crate::Display::Inline, true).unwrap();
             assert_snapshot!(name, &mathml, problem);
         }
     }

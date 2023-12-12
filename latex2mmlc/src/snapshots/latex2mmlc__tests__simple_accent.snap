@@ -1,9 +1,10 @@
 ---
-source: src/lib.rs
+source: latex2mmlc/src/lib.rs
 expression: "\\dot{x}"
 ---
-<mover>
-    <mi>x</mi>
-    <mo accent="true">˙</mo>
-</mover>
-
+<math>
+    <mover>
+        <mi>x</mi>
+        <mo accent="true">˙</mo>
+    </mover>
+</math>
