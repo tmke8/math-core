@@ -156,7 +156,7 @@ mod tests {
             ),
             (
                 r"\ 1",
-                vec![Token::Space(1.), Token::Number("1".to_owned())],
+                vec![Token::Space("1"), Token::Number("1".to_owned())],
             ),
         ];
 

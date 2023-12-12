@@ -1,4 +1,4 @@
-use crate::attribute::Accent;
+use crate::attribute::{Accent, Stretchy};
 
 use super::{
     ast::Node,
@@ -31,7 +31,7 @@ impl<'a> Parser<'a> {
         let peek_token = if self.peek_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
             let num = self.l.cur;
             self.l.read_char();
-            Token::Number(format!("{}", num))
+            Token::Number(num.to_string())
         } else {
             self.l.next_token()
         };
@@ -90,7 +90,7 @@ impl<'a> Parser<'a> {
             Token::Number(number) => Node::Number(number),
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op),
+            Token::Operator(op) => Node::Operator(op, None),
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
@@ -125,7 +125,7 @@ impl<'a> Parser<'a> {
                     content: Box::new(Node::Frac(
                         Box::new(numerator),
                         Box::new(denominator),
-                        LineThickness::Length(0),
+                        LineThickness::Zero,
                         displaystyle,
                     )),
                 }
@@ -161,7 +161,7 @@ impl<'a> Parser<'a> {
                     let expl = self.parse_single_token()?;
                     let over = Node::Overset {
                         over: Box::new(expl),
-                        target: Box::new(Node::Operator(x)),
+                        target: Box::new(Node::Operator(x, None)),
                     };
                     Node::Overset {
                         over: Box::new(over),
@@ -169,7 +169,7 @@ impl<'a> Parser<'a> {
                     }
                 } else {
                     Node::Overset {
-                        over: Box::new(Node::Operator(x)),
+                        over: Box::new(Node::Operator(x, None)),
                         target: Box::new(target),
                     }
                 }
@@ -181,7 +181,7 @@ impl<'a> Parser<'a> {
                     let expl = self.parse_single_token()?;
                     let under = Node::Underset {
                         under: Box::new(expl),
-                        target: Box::new(Node::Operator(x)),
+                        target: Box::new(Node::Operator(x, None)),
                     };
                     Node::Underset {
                         under: Box::new(under),
@@ -189,7 +189,7 @@ impl<'a> Parser<'a> {
                     }
                 } else {
                     Node::Underset {
-                        under: Box::new(Node::Operator(x)),
+                        under: Box::new(Node::Operator(x, None)),
                         target: Box::new(target),
                     }
                 }
@@ -202,13 +202,13 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the circumflex token.
                         let over = self.parse_single_token()?;
                         Node::UnderOver {
-                            target: Box::new(Node::Operator(op)),
+                            target: Box::new(Node::Operator(op, None)),
                             under: Box::new(under),
                             over: Box::new(over),
                         }
                     } else {
                         Node::Underset {
-                            target: Box::new(Node::Operator(op)),
+                            target: Box::new(Node::Operator(op, None)),
                             under: Box::new(under),
                         }
                     }
@@ -220,18 +220,18 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the underscore token.
                         let under = self.parse_single_token()?;
                         Node::UnderOver {
-                            target: Box::new(Node::Operator(op)),
+                            target: Box::new(Node::Operator(op, None)),
                             under: Box::new(under),
                             over: Box::new(over),
                         }
                     } else {
                         Node::Overset {
-                            over: Box::new(Node::Operator(op)),
+                            over: Box::new(Node::Operator(op, None)),
                             target: Box::new(over),
                         }
                     }
                 }
-                _ => Node::Operator(op),
+                _ => Node::Operator(op, None),
             },
             Token::Lim(lim) => {
                 let lim = Node::MultiLetterIdent(lim.to_string(), None);
@@ -278,12 +278,12 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the circumflex token.
                         let sup = self.parse_single_token()?;
                         Node::SubSup {
-                            target: Box::new(Node::Operator(int)),
+                            target: Box::new(Node::Operator(int, None)),
                             sub: Box::new(sub),
                             sup: Box::new(sup),
                         }
                     } else {
-                        Node::Subscript(Box::new(Node::Operator(int)), Box::new(sub))
+                        Node::Subscript(Box::new(Node::Operator(int, None)), Box::new(sub))
                     }
                 }
                 Token::Circumflex => {
@@ -293,15 +293,15 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the underscore token.
                         let sub = self.parse_single_token()?;
                         Node::SubSup {
-                            target: Box::new(Node::Operator(int)),
+                            target: Box::new(Node::Operator(int, None)),
                             sub: Box::new(sub),
                             sup: Box::new(sup),
                         }
                     } else {
-                        Node::Superscript(Box::new(Node::Operator(int)), Box::new(sup))
+                        Node::Superscript(Box::new(Node::Operator(int, None)), Box::new(sup))
                     }
                 }
-                _ => Node::Operator(int),
+                _ => Node::Operator(int, None),
             },
             Token::Colon => match self.peek_token {
                 Token::Operator(ops::EQUAL | ops::EQUIV) => {
@@ -312,24 +312,24 @@ impl<'a> Parser<'a> {
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
-                            left: 2. / 9.,
-                            right: 0.,
+                            left: Some("0.2222"),
+                            right: Some("0"),
                         },
                         Node::OperatorWithSpacing {
                             op,
-                            left: 0.,
-                            right: f32::NAN,
+                            left: Some("0"),
+                            right: None,
                         },
                     ])
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
-                    left: 2. / 9.,
-                    right: 2. / 9.,
+                    left: Some("0.2222"),
+                    right: Some("0.2222"),
                 },
             },
             Token::LBrace => self.parse_group(Token::RBrace)?,
-            Token::Paren(paren) => Node::Paren(paren),
+            Token::Paren(paren) => Node::Operator(paren, Some(Stretchy::False)),
             Token::Left => {
                 let open = match self.next_token() {
                     Token::Paren(open) => open,
@@ -359,11 +359,10 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Middle => {
-                let stretchy = true;
+                let stretchy = Some(Stretchy::True);
                 let tok = self.next_token();
                 match self.parse_single_node(tok)? {
-                    Node::Operator(op) => Node::StretchedOp(stretchy, op),
-                    Node::Paren(op) => Node::StretchedOp(stretchy, op),
+                    Node::Operator(op, _) => Node::Operator(op, stretchy),
                     _ => unimplemented!(),
                 }
             }
@@ -474,7 +473,7 @@ impl<'a> Parser<'a> {
                 self.next_token(); // Discard the apostrophe token.
                 Ok(Node::Superscript(
                     Box::new(node),
-                    Box::new(Node::Operator(ops::PRIME)),
+                    Box::new(Node::Operator(ops::PRIME, None)),
                 ))
             }
             _ => Ok(node),
@@ -588,7 +587,7 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
         Node::MultiLetterIdent(letters, _) => {
             Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
         }
-        Node::Operator(op) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
+        Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
         Node::Row(vec) => Node::Row(
             vec.into_iter()
                 .map(|node| transform_text(node, var))

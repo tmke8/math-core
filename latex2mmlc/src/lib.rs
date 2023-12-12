@@ -55,7 +55,6 @@ pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
 pub use error::LatexError;
-use std::fmt;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,23 +63,11 @@ pub enum Display {
     Inline,
 }
 
-impl fmt::Display for Display {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Display::Block => write!(f, "block"),
-            Display::Inline => write!(f, "inline"),
-        }
-    }
-}
-
-fn convert_content(latex: &str) -> Result<String, error::LatexError> {
+fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
     let l = lexer::Lexer::new(latex);
     let mut p = parse::Parser::new(l);
     let nodes = p.parse()?;
-
-    let mathml = nodes.to_string();
-
-    Ok(mathml)
+    Ok(nodes)
 }
 
 /// Convert LaTeX text to MathML.
@@ -100,21 +87,30 @@ fn convert_content(latex: &str) -> Result<String, error::LatexError> {
 /// ```
 ///
 pub fn latex_to_mathml(latex: &str, display: Display) -> Result<String, error::LatexError> {
-    let mathml = convert_content(latex)?;
+    let nodes = get_nodes(latex)?;
 
-    match display {
-        Display::Block => Ok(format!("<math display=\"block\">{}\n</math>", mathml)),
-        Display::Inline => Ok(format!("<math>{}\n</math>", mathml)),
-    }
+    let mut output = match display {
+        Display::Block => "<math display=\"block\">".to_string(),
+        Display::Inline => "<math>".to_string(),
+    };
+
+    nodes.emit(&mut output, 0);
+    output.push_str("\n</math>");
+    Ok(output)
 }
 
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{latex_to_mathml, Display};
+    use crate::{error, latex_to_mathml, Display};
 
-    use super::convert_content;
+    use super::get_nodes;
+
+    fn convert_content(latex: &str) -> Result<String, error::LatexError> {
+        let nodes = get_nodes(latex)?;
+        Ok(nodes.render())
+    }
 
     #[test]
     fn full_tests() {
