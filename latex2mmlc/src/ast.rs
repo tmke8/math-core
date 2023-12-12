@@ -69,6 +69,13 @@ macro_rules! push {
     }};
 }
 
+macro_rules! pushln {
+    ($buf:expr, $indent:expr, $($s:expr),+ $(,)?) => {
+        new_line_and_indent($buf, $indent);
+        push!($buf, $($s),+)
+    };
+}
+
 impl Node {
     pub fn render(&self) -> String {
         let mut buf = String::new();
@@ -82,7 +89,7 @@ impl Node {
 
         if !matches!(self, Node::PseudoRow(_)) {
             // Get the base indent out of the way.
-            new_line(s, base_indent);
+            new_line_and_indent(s, base_indent);
         }
 
         match self {
@@ -131,57 +138,48 @@ impl Node {
                 push!(s, "<msub>");
                 base.emit(s, child_indent);
                 sub.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</msub>")
+                pushln!(s, base_indent, "</msub>");
             }
             Node::Superscript(base, sup) => {
                 push!(s, "<msup>");
                 base.emit(s, child_indent);
                 sup.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</msup>")
+                pushln!(s, base_indent, "</msup>");
             }
             Node::SubSup { target, sub, sup } => {
                 push!(s, "<msubsup>");
                 target.emit(s, child_indent);
                 sub.emit(s, child_indent);
                 sup.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</msubsup>")
+                pushln!(s, base_indent, "</msubsup>");
             }
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
-                new_line(s, child_indent);
-                push!(s, "<mo accent=\"", acc, "\">");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
                 s.push(op.char());
                 s.push_str("</mo>");
-                new_line(s, base_indent);
-                push!(s, "</mover>")
+                pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
-                new_line(s, child_indent);
-                push!(s, "<mo accent=\"", acc, "\">");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
                 s.push(op.char());
                 s.push_str("</mo>");
-                new_line(s, base_indent);
-                push!(s, "</munder>")
+                pushln!(s, base_indent, "</munder>");
             }
             Node::Overset { over, target } => {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
                 over.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</mover>")
+                pushln!(s, base_indent, "</mover>");
             }
             Node::Underset { under, target } => {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
                 under.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</munder>")
+                pushln!(s, base_indent, "</munder>");
             }
             Node::UnderOver {
                 target,
@@ -192,21 +190,18 @@ impl Node {
                 target.emit(s, child_indent);
                 under.emit(s, child_indent);
                 over.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</munderover>")
+                pushln!(s, base_indent, "</munderover>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
                 content.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</msqrt>")
+                pushln!(s, base_indent, "</msqrt>");
             }
             Node::Root(degree, content) => {
                 push!(s, "<mroot>");
                 content.emit(s, child_indent);
                 degree.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</mroot>")
+                pushln!(s, base_indent, "</mroot>");
             }
             Node::Frac(num, denom, lt, style) => {
                 if let Some(style) = style {
@@ -216,16 +211,14 @@ impl Node {
                 }
                 num.emit(s, child_indent);
                 denom.emit(s, child_indent);
-                new_line(s, base_indent);
-                push!(s, "</mfrac>")
+                pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row(vec) => {
                 push!(s, "<mrow>");
                 for node in vec.iter() {
                     node.emit(s, child_indent);
                 }
-                new_line(s, base_indent);
-                push!(s, "</mrow>")
+                pushln!(s, base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
@@ -238,17 +231,14 @@ impl Node {
                 content,
             } => {
                 push!(s, "<mrow>");
-                new_line(s, child_indent);
-                push!(s, "<mo stretchy=\"true\" form=\"prefix\">");
+                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
                 s.push(open.char());
                 s.push_str("</mo>");
                 content.emit(s, child_indent);
-                new_line(s, child_indent);
-                push!(s, "<mo stretchy=\"true\" form=\"postfix\">");
+                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
                 s.push(close.char());
                 s.push_str("</mo>");
-                new_line(s, base_indent);
-                push!(s, "</mrow>")
+                pushln!(s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
@@ -268,8 +258,8 @@ impl Node {
                 let child_indent3 = child_indent2.saturating_add(1);
                 let odd_col = match align {
                     Align::Center => "<mtd>",
-                    Align::Left => "<mtd style=\"text-align: left; padding-right: 0\">",
-                    Align::Alternating => "<mtd style=\"text-align: right; padding-right: 0\">",
+                    Align::Left => r#"<mtd style="text-align: left; padding-right: 0">"#,
+                    Align::Alternating => r#"<mtd style="text-align: right; padding-right: 0">"#,
                 };
                 let even_col = match align {
                     Align::Center => "<mtd>",
@@ -281,32 +271,28 @@ impl Node {
 
                 let mut col: usize = 1;
                 push!(s, "<mtable>");
-                new_line(s, child_indent);
-                push!(s, "<mtr>");
-                new_line(s, child_indent2);
-                push!(s, odd_col);
+                pushln!(s, child_indent, "<mtr>");
+                pushln!(s, child_indent2, odd_col);
                 let total_len = content.len();
                 for (j, node) in content.iter().enumerate() {
                     match node {
                         Node::ColumnSeparator => {
-                            new_line(s, child_indent2);
-                            push!(s, "</mtd>");
+                            pushln!(s, child_indent2, "</mtd>");
                             col += 1;
                             if j < total_len {
-                                new_line(s, child_indent2);
-                                push!(s, if col % 2 == 0 { even_col } else { odd_col });
+                                pushln!(
+                                    s,
+                                    child_indent2,
+                                    if col % 2 == 0 { even_col } else { odd_col }
+                                );
                             }
                         }
                         Node::RowSeparator => {
-                            new_line(s, child_indent2);
-                            push!(s, "</mtd>");
-                            new_line(s, child_indent);
-                            push!(s, "</mtr>");
+                            pushln!(s, child_indent2, "</mtd>");
+                            pushln!(s, child_indent, "</mtr>");
                             if j < total_len {
-                                new_line(s, child_indent);
-                                push!(s, "<mtr>");
-                                new_line(s, child_indent2);
-                                push!(s, odd_col);
+                                pushln!(s, child_indent, "<mtr>");
+                                pushln!(s, child_indent2, odd_col);
                             }
                             col = 1;
                         }
@@ -315,12 +301,9 @@ impl Node {
                         }
                     }
                 }
-                new_line(s, child_indent2);
-                push!(s, "</mtd>");
-                new_line(s, child_indent);
-                push!(s, "</mtr>");
-                new_line(s, base_indent);
-                push!(s, "</mtable>")
+                pushln!(s, child_indent2, "</mtd>");
+                pushln!(s, child_indent, "</mtr>");
+                pushln!(s, base_indent, "</mtable>");
             }
             Node::Text(text) => push!(s, "<mtext>", text, "</mtext>"),
             Node::ColumnSeparator | Node::RowSeparator => (),
@@ -328,7 +311,7 @@ impl Node {
     }
 }
 
-fn new_line(s: &mut String, indent_num: usize) {
+fn new_line_and_indent(s: &mut String, indent_num: usize) {
     s.push('\n');
     for _ in 0..indent_num {
         s.push_str(INDENT);
