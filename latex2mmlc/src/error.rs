@@ -22,11 +22,11 @@ impl LatexError {
         let mut s = String::new();
         match self {
             LatexError::UnexpectedToken { expected, got } => {
-                s.push_str("The token \"");
+                s.push_str("Expected token \"");
                 s.push_str(expected.as_ref());
-                s.push_str("\" is expected, but the token \"");
+                s.push_str("\", but found token \"");
                 s.push_str(got.as_ref());
-                s.push_str("\" was found.");
+                s.push_str("\".");
             }
             LatexError::UnexpectedClose(got) => {
                 s.push_str("Unexpected closing token: \"");

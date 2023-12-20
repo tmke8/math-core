@@ -54,11 +54,8 @@ impl<'a> Parser<'a> {
         }
 
         if nodes.len() == 1 {
-            // Safety: `nodes` is not empty.
-            unsafe {
-                let node = nodes.into_iter().next().unwrap_unchecked();
-                Ok(node)
-            }
+            // SAFETY: `nodes` is not empty.
+            unsafe { Ok(nodes.into_iter().next().unwrap_unchecked()) }
         } else {
             Ok(Node::PseudoRow(nodes))
         }
@@ -82,9 +79,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // 中置演算子 `_`, `^`, '\'' が続くかどうかを気にせずに, 直後のノードを読む
+    // Read the node immediately after without worrying about whether
+    // the infix operator `_`, `^`, '\' '' will continue
     //
-    // 注) 中置演算子を考慮して正しくノードを読む場合は `parse_node()` を使う.
+    // Note: Use `parse_node()` when reading nodes correctly in
+    // consideration of infix operators.
     fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
@@ -376,9 +375,9 @@ impl<'a> Parser<'a> {
                 }
             },
             Token::Begin => {
-                // 環境名を読み込む
+                // Read the environment name.
                 let environment = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
-                // \begin..\end の中身を読み込む
+                // Read the contents of \begin..\end.
                 let content = match self.parse_group(Token::End)? {
                     Node::Row(content) => content,
                     content => vec![content],
@@ -427,7 +426,7 @@ impl<'a> Parser<'a> {
                         got: self.next_token(),
                     });
                 }
-                // 関数名を読み込む
+                // Read the function name.
                 let function = self.parse_text_group(Token::RBrace, WhiteSpace::Skip)?;
                 Node::MultiLetterIdent(function, None)
             }
@@ -438,7 +437,7 @@ impl<'a> Parser<'a> {
                         got: self.next_token(),
                     });
                 }
-                // テキストを読み込む
+                // Read the text.
                 let text = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
                 Node::Text(text)
             }
@@ -498,7 +497,7 @@ impl<'a> Parser<'a> {
 
         while {
             if cur_token == Token::EOF {
-                // 閉じ括弧がないまま入力が終了した場合
+                // When the input is completed without closed parentheses.
                 return Err(LatexError::UnexpectedToken {
                     expected: end_token,
                     got: cur_token,
@@ -512,11 +511,8 @@ impl<'a> Parser<'a> {
         }
 
         if nodes.len() == 1 {
-            // Safety: `nodes` is not empty.
-            unsafe {
-                let node = nodes.into_iter().next().unwrap_unchecked();
-                Ok(node)
-            }
+            // SAFETY: `nodes` is not empty.
+            unsafe { Ok(nodes.into_iter().next().unwrap_unchecked()) }
         } else {
             Ok(Node::Row(nodes))
         }
@@ -618,7 +614,7 @@ fn merge_single_letters(nodes: Vec<Node>) -> Node {
         new_nodes.push(Node::MultiLetterIdent(letters, None));
     }
     if new_nodes.len() == 1 {
-        // Safety: `new_nodes` is not empty.
+        // SAFETY: `new_nodes` is not empty.
         unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
     } else {
         Node::Row(new_nodes)

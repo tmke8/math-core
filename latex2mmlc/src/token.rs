@@ -6,8 +6,11 @@ use crate::ops::{self, Op};
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
 pub enum Token {
     Null,
+    #[strum(serialize = "end of document")]
     EOF,
+    #[strum(serialize = "\\begin{...}")]
     Begin,
+    #[strum(serialize = "\\end{...}")]
     End,
     Ampersand,
     NewLine,
@@ -15,7 +18,9 @@ pub enum Token {
     Right,
     Middle,
     Paren(Op),
+    #[strum(serialize = "{")]
     LBrace,
+    #[strum(serialize = "}")]
     RBrace,
     Frac(Option<DisplayStyle>),
     Underscore,

@@ -15,7 +15,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// 入力ソースコードを受け取り Lexer インスタンスを生成する.
+    /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(input: &'a str) -> Self {
         let mut lexer = Lexer {
             input: input.chars(),
@@ -26,12 +26,12 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
-    /// 1 文字進む.
+    /// One character progresses.
     pub(crate) fn read_char(&mut self) {
         self.cur = self.input.next().unwrap_or('\u{0}');
     }
 
-    /// 空白文字をスキップする.
+    /// Skip blank characters.
     fn skip_whitespace(&mut self) {
         if self.record_whitespace {
             return;
@@ -41,24 +41,25 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// コマンド一つ分を読み込みトークンに変換する.
+    /// Read one command to a token.
     fn read_command(&mut self) -> Token {
         let mut command = String::new();
-        // 1 文字は確実に読む
+
+        // Always read at least one character.
         self.read_char();
         let first = self.cur;
         command.push(first);
+
+        // Read in all ASCII characters.
         self.read_char();
-        // ASCII アルファベットなら続けて読む
         while first.is_ascii_alphabetic() && self.cur.is_ascii_alphabetic() {
             command.push(self.cur);
             self.read_char();
         }
-
         Token::from_command(command)
     }
 
-    /// 数字一つ分を読み込みトークンに変換する.
+    /// Read one number into a token.
     fn read_number(&mut self) -> Token {
         let mut number = String::new();
         let mut has_period = false;
@@ -72,7 +73,7 @@ impl<'a> Lexer<'a> {
         Token::Number(number)
     }
 
-    /// 次のトークンを生成する.
+    /// Generate the next token.
     pub(crate) fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
