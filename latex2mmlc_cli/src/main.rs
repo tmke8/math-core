@@ -159,7 +159,7 @@ fn replace(input: &str) -> Result<String, ConversionError> {
 
     //**** Convert block-math ****//
 
-    // `$$` に一致するインデックスのリストを生成
+    // Generate an index list that matches `$$`
     let idx = input
         .windows(2)
         .enumerate()
@@ -201,7 +201,7 @@ fn replace(input: &str) -> Result<String, ConversionError> {
 
     //**** Convert inline-math ****//
 
-    // `$` に一致するインデックスのリストを生成
+    // Generate an index list that matches `$`
     let idx = input
         .iter()
         .enumerate()
