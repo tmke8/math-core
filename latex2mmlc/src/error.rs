@@ -19,54 +19,42 @@ impl LatexError {
     /// This serves the same purpose as the `Display` implementation,
     /// but produces more compact WASM code.
     pub fn string(&self) -> String {
-        let mut s = String::new();
         match self {
             LatexError::UnexpectedToken { expected, got } => {
-                s.push_str("Expected token \"");
-                s.push_str(expected.as_ref());
-                s.push_str("\", but found token \"");
-                s.push_str(got.as_ref());
-                s.push_str("\".");
+                "Expected token \"".to_string()
+                    + expected.as_ref()
+                    + "\", but found token \""
+                    + got.as_ref()
+                    + "\"."
             }
             LatexError::UnexpectedClose(got) => {
-                s.push_str("Unexpected closing token: \"");
-                s.push_str(got.as_ref());
-                s.push('"');
+                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
             }
-            LatexError::UnexpectedEOF => s.push_str("Unexpected end of file"),
+            LatexError::UnexpectedEOF => "Unexpected end of file.".to_string(),
             LatexError::MissingParenthesis { location, got } => {
-                s.push_str("There must be a parenthesis after \"");
-                s.push_str(location.as_ref());
-                s.push_str("\", but not found. Instead, \"");
-                s.push_str(got.as_ref());
-                s.push_str("\" was found.");
+                "There must be a parenthesis after \"".to_string()
+                    + location.as_ref()
+                    + "\", but not found. Instead, \""
+                    + got.as_ref()
+                    + "\" was found."
             }
             LatexError::UnknownEnvironment(environment) => {
-                s.push_str("Unknown environment \"");
-                s.push_str(environment);
-                s.push('"');
+                "Unknown environment \"".to_string() + environment + "\"."
             }
-            LatexError::UnknownCommand(cmd) => {
-                s.push_str("Unknown command \"\\");
-                s.push_str(cmd);
-                s.push('"');
-            }
+            LatexError::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
             LatexError::MismatchedEnvironment { expected, got } => {
-                s.push_str("Expected \"\\end{");
-                s.push_str(expected);
-                s.push_str("}\", but got \"\\end{");
-                s.push_str(got);
-                s.push_str("}\"");
+                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\""
             }
             LatexError::InvalidCharacter { expected, got } => {
-                s.push_str("Expected ");
-                s.push_str(expected);
-                s.push_str(", but got \"");
-                s.push(*got);
-                s.push('"');
+                // 4-byte buffer is enough for any UTF-8 character.
+                let mut b = [0; 4];
+                "Expected ".to_string()
+                    + expected
+                    + ", but got \""
+                    + got.encode_utf8(&mut b)
+                    + "\"."
             }
         }
-        s
     }
 }
 
