@@ -7,6 +7,7 @@ impl Op {
         self.0
     }
 
+    #[inline]
     pub fn str_ref<'a>(&self, buf: &'a mut [u8]) -> &'a mut str {
         self.0.encode_utf8(buf)
     }
