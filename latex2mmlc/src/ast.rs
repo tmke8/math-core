@@ -57,7 +57,7 @@ pub enum Node {
     Slashed(Box<Node>),
 }
 
-const INDENT: &'static str = "    ";
+const INDENT: &str = "    ";
 
 macro_rules! push {
     ($buf:expr, $($s:expr),+ $(,)?) => {{

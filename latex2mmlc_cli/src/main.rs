@@ -70,12 +70,10 @@ fn main() {
                 }
                 Err(e) => Err(e),
             }
+        } else if args.recursive {
+            convert_html_recursive(fpath)
         } else {
-            if args.recursive {
-                convert_html_recursive(fpath)
-            } else {
-                convert_html(fpath)
-            }
+            convert_html(fpath)
         };
         if let Err(e) = result {
             eprintln!("LaTeX2MathML Error: {}", e);

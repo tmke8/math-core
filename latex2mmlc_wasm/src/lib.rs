@@ -6,7 +6,7 @@ use latex2mmlc::{latex_to_mathml, Display};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn convert(content: &str, block: bool, pretty: bool) -> Result<String, JsValue> {
+pub fn convert(content: &str, block: bool, pretty: bool) -> Result<JsValue, JsValue> {
     match latex_to_mathml(
         content,
         if block {
@@ -16,7 +16,7 @@ pub fn convert(content: &str, block: bool, pretty: bool) -> Result<String, JsVal
         },
         pretty,
     ) {
-        Ok(result) => Ok(result),
+        Ok(result) => Ok(JsValue::from_str(&result)),
         Err(e) => Err(JsValue::from_str(&e.string())),
     }
 }
