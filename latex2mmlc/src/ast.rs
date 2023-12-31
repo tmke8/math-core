@@ -96,6 +96,10 @@ impl Node {
             new_line_and_indent(s, base_indent);
         }
 
+        // Buffer for `char::encode_utf8()`.
+        // Not all branches use this, but it's just 4 bytes.
+        let mut b = [0; 4];
+
         match self {
             Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
             Node::SingleLetterIdent(letter, var) => {
@@ -103,16 +107,14 @@ impl Node {
                     Some(var) => push!(s, "<mi", var, ">"),
                     None => push!(s, "<mi>"),
                 };
-                s.push(*letter);
-                s.push_str("</mi>");
+                push!(s, letter.encode_utf8(&mut b), "</mi>");
             }
             Node::Operator(op, stretchy) => {
                 match stretchy {
                     Some(stretchy) => push!(s, "<mo", stretchy, ">"),
                     None => push!(s, "<mo>"),
                 }
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, op.str_ref(&mut b), "</mo>");
             }
             Node::OperatorWithSpacing { op, left, right } => {
                 match (left, right) {
@@ -127,8 +129,7 @@ impl Node {
                     }
                     (None, None) => s.push_str("<mo>"),
                 }
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, op.str_ref(&mut b), "</mo>");
             }
             Node::MultiLetterIdent(letters, var) => {
                 match var {
@@ -158,19 +159,17 @@ impl Node {
                 pushln!(s, base_indent, "</msubsup>");
             }
             Node::OverOp(op, acc, target) => {
+                let op = op.str_ref(&mut b);
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
-                s.push(op.char());
-                s.push_str("</mo>");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
-                s.push(op.char());
-                s.push_str("</mo>");
+                push!(s, op.str_ref(&mut b), "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Overset { over, target } => {
@@ -236,25 +235,26 @@ impl Node {
             } => {
                 push!(s, "<mrow>");
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
-                s.push(open.char());
-                s.push_str("</mo>");
+                push!(s, open.str_ref(&mut b), "</mo>");
                 content.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
-                s.push(close.char());
-                s.push_str("</mo>");
+                push!(s, close.str_ref(&mut b), "</mo>");
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
-                s.push(paren.char());
-                s.push_str("</mo>");
+                push!(s, paren.str_ref(&mut b), "</mo>");
             }
             Node::Slashed(node) => match &**node {
                 Node::SingleLetterIdent(x, var) => match var {
-                    Some(var) => push!(s, "<mi", var, ">", x.to_string(), "&#x0338;</mi>"),
-                    None => push!(s, "<mi>", x.to_string(), "&#x0338;</mi>"),
+                    Some(var) => {
+                        push!(s, "<mi", var, ">", x.encode_utf8(&mut b), "&#x0338;</mi>")
+                    }
+                    None => push!(s, "<mi>", x.encode_utf8(&mut b), "&#x0338;</mi>"),
                 },
-                Node::Operator(x, _) => push!(s, "<mo>{}&#x0338;</mo>", x.char().to_string()),
+                Node::Operator(x, _) => {
+                    push!(s, "<mo>{}&#x0338;</mo>", x.str_ref(&mut b))
+                }
                 n => n.emit(s, base_indent),
             },
             Node::Table(content, align) => {

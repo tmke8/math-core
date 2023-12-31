@@ -3,13 +3,13 @@ pub struct Op(pub char);
 
 impl Op {
     #[inline]
-    pub fn char(&self) -> char {
-        self.0 // Copy the char.
+    pub fn into_char(self) -> char {
+        self.0
     }
 
     #[inline]
-    pub fn into_char(self) -> char {
-        self.0
+    pub fn str_ref<'a>(&self, buf: &'a mut [u8]) -> &'a mut str {
+        self.0.encode_utf8(buf)
     }
 }
 
