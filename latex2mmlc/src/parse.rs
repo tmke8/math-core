@@ -311,11 +311,13 @@ impl<'a> Parser<'a> {
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
+                            stretchy: None,
                             left: Some("0.2222"),
                             right: Some("0"),
                         },
                         Node::OperatorWithSpacing {
                             op,
+                            stretchy: None,
                             left: Some("0"),
                             right: None,
                         },
@@ -323,6 +325,7 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
+                    stretchy: None,
                     left: Some("0.2222"),
                     right: Some("0.2222"),
                 },

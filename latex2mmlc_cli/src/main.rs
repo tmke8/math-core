@@ -101,8 +101,7 @@ fn convert_and_exit(args: &Args, latex: &str) {
     } else {
         Display::Inline
     };
-    let pretty = true;
-    match latex_to_mathml(latex, display, pretty) {
+    match latex_to_mathml(latex, display, false) {
         Ok(mathml) => println!("{}", mathml),
         Err(e) => {
             eprintln!("LaTeX2MathML Error: {}", e);
@@ -115,7 +114,7 @@ fn convert_and_exit(args: &Args, latex: &str) {
 enum ConversionError {
     InvalidNumberOfDollarSigns,
     IOError(std::io::Error),
-    LatexError(LatexError),
+    LatexError(LatexError, String),
 }
 
 impl fmt::Display for ConversionError {
@@ -124,7 +123,7 @@ impl fmt::Display for ConversionError {
             ConversionError::InvalidNumberOfDollarSigns => {
                 write!(f, "Invalid number of dollar signs")
             }
-            ConversionError::LatexError(e) => write!(f, "{}", e),
+            ConversionError::LatexError(e, input) => write!(f, "Error in '{}':\n{}", input, e),
             ConversionError::IOError(e) => write!(f, "{}", e),
         }
     }
@@ -181,9 +180,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let pretty = true;
-                let mathml = latex_to_mathml(input, Display::Block, pretty)
-                    .map_err(ConversionError::LatexError)?;
+                let mathml = latex_to_mathml(input, Display::Block, false)
+                    .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 
@@ -217,9 +215,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let pretty = true;
-                let mathml = latex_to_mathml(input, Display::Inline, pretty)
-                    .map_err(ConversionError::LatexError)?;
+                let mathml = latex_to_mathml(input, Display::Inline, false)
+                    .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
 

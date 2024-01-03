@@ -9,6 +9,7 @@ pub enum Node {
     Operator(Op, Option<Stretchy>),
     OperatorWithSpacing {
         op: Op,
+        stretchy: Option<Stretchy>,
         left: Option<&'static str>,
         right: Option<&'static str>,
     },
@@ -116,20 +117,23 @@ impl Node {
                 }
                 push!(s, op.str_ref(&mut b), "</mo>");
             }
-            Node::OperatorWithSpacing { op, left, right } => {
+            Node::OperatorWithSpacing { op, stretchy, left, right } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
-                        push!(s, "<mo lspace=\"", left, "em\" rspace=\"", right, "em\">",)
+                        push!(s, "<mo lspace=\"", left, "em\" rspace=\"", right, "em\"",)
                     }
                     (Some(left), None) => {
-                        push!(s, "<mo lspace=\"", left, "em\">")
+                        push!(s, "<mo lspace=\"", left, "em\"")
                     }
                     (None, Some(right)) => {
-                        push!(s, "<mo rspace=\"", right, "em\">")
+                        push!(s, "<mo rspace=\"", right, "em\"")
                     }
-                    (None, None) => s.push_str("<mo>"),
+                    (None, None) => s.push_str("<mo"),
                 }
-                push!(s, op.str_ref(&mut b), "</mo>");
+                if let Some(stretchy) = stretchy {
+                    push!(s, stretchy);
+                }
+                push!(s, ">", op.str_ref(&mut b), "</mo>");
             }
             Node::MultiLetterIdent(letters, var) => {
                 match var {
