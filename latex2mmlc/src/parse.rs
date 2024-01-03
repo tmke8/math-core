@@ -1,4 +1,4 @@
-use crate::attribute::{Accent, Stretchy};
+use crate::attribute::{Accent, PhantomWidth, Stretchy};
 
 use super::{
     ast::Node,
@@ -311,11 +311,13 @@ impl<'a> Parser<'a> {
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
+                            stretchy: None,
                             left: Some("0.2222"),
                             right: Some("0"),
                         },
                         Node::OperatorWithSpacing {
                             op,
+                            stretchy: None,
                             left: Some("0"),
                             right: None,
                         },
@@ -323,6 +325,7 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
+                    stretchy: None,
                     left: Some("0.2222"),
                     right: Some("0.2222"),
                 },
@@ -443,6 +446,15 @@ impl<'a> Parser<'a> {
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
+            Token::Mathstrut => Node::Phantom(
+                Box::new(Node::OperatorWithSpacing {
+                    op: ops::LEFT_PARENTHESIS,
+                    stretchy: Some(Stretchy::False),
+                    left: Some("0"),
+                    right: Some("0"),
+                }),
+                PhantomWidth::Zero,
+            ),
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }

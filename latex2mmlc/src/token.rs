@@ -50,6 +50,7 @@ pub enum Token {
     OperatorName,
     Slashed,
     Text,
+    Mathstrut,
     UnknownCommand(String),
 }
 
@@ -77,6 +78,7 @@ impl Token {
             "mathsf" => Token::Style(TextTransform::SansSerif),
             "texttt" => Token::Style(TextTransform::Monospace),
             "boldsymbol" => Token::Style(TextTransform::BoldItalic),
+            "mathstrut" => Token::Mathstrut,
             "text" => Token::Text,
             "sqrt" => Token::Sqrt,
             "frac" => Token::Frac(None),
@@ -364,6 +366,7 @@ impl Token {
             "pm" => Token::Operator(Op('±')),
             "mp" => Token::Operator(Op('∓')),
             "cdot" => Token::Operator(Op('·')),
+            "dots" => Token::Operator(Op('…')),
             "cdots" => Token::Operator(Op('⋯')),
             "vdots" => Token::Operator(Op('⋮')),
             "ldots" => Token::Operator(Op('…')),
@@ -444,6 +447,8 @@ impl Token {
             "gt" => Token::Operator(ops::GT),
             "leq" => Token::Operator(Op('≤')),
             "geq" => Token::Operator(Op('≥')),
+            "le" => Token::Operator(Op('≤')),
+            "ge" => Token::Operator(Op('≥')),
             "ll" => Token::Operator(Op('≪')),
             "gg" => Token::Operator(Op('≫')),
             "lessapprox" => Token::Operator(Op('⪅')),
