@@ -1,4 +1,6 @@
-use crate::attribute::{Accent, Align, DisplayStyle, LineThickness, MathVariant, Stretchy};
+use crate::attribute::{
+    Accent, Align, DisplayStyle, LineThickness, MathVariant, PhantomWidth, Stretchy,
+};
 use crate::ops::Op;
 
 /// AST node
@@ -42,6 +44,7 @@ pub enum Node {
     Frac(Box<Node>, Box<Node>, LineThickness, Option<DisplayStyle>),
     Row(Vec<Node>),
     PseudoRow(Vec<Node>),
+    Phantom(Box<Node>, PhantomWidth),
     Fenced {
         open: Op,
         close: Op,
@@ -231,6 +234,11 @@ impl Node {
                 for node in vec.iter() {
                     node.emit(s, base_indent);
                 }
+            }
+            Node::Phantom(node, width) => {
+                push!(s, "<mphantom", width, ">");
+                node.emit(s, child_indent);
+                pushln!(s, base_indent, "</mphantom>");
             }
             Node::Fenced {
                 open,

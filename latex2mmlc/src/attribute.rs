@@ -1,3 +1,5 @@
+use strum_macros::AsRefStr;
+
 /// mi mathvariant attribute
 #[derive(Debug, Clone, PartialEq)]
 pub enum MathVariant {
@@ -81,6 +83,14 @@ pub enum Align {
     Center,
     Left,
     Alternating,
+}
+
+#[derive(Debug, Clone, PartialEq, AsRefStr)]
+pub enum PhantomWidth {
+    #[strum(serialize = " style=\"width:0\"")]
+    Zero,
+    #[strum(serialize = "")]
+    Default,
 }
 
 /// mi mathvariant attribute
