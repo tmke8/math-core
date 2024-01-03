@@ -1,3 +1,4 @@
+use bumpalo::Bump;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -15,7 +16,9 @@ fn convert_latex<'a>(
     block: bool,
     pretty: bool,
 ) -> PyResult<&'a PyString> {
+    let alloc = &Bump::new();
     let result = latex_to_mathml(
+        alloc,
         latex,
         if block {
             Display::Block

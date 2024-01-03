@@ -1,6 +1,11 @@
-use crate::attribute::{Accent, PhantomWidth, Stretchy};
+use bumpalo::{
+    boxed::Box,
+    collections::{CollectIn, String, Vec},
+    Bump,
+};
 
-use super::{
+use crate::attribute::{Accent, PhantomWidth, Stretchy};
+use crate::{
     ast::Node,
     attribute::{Align, LineThickness, MathVariant, TextTransform},
     error::LatexError,
@@ -13,13 +18,15 @@ use std::mem;
 #[derive(Debug, Clone)]
 pub(crate) struct Parser<'a> {
     l: Lexer<'a>,
-    peek_token: Token,
+    peek_token: Token<'a>,
+    alloc: &'a Bump,
 }
 impl<'a> Parser<'a> {
-    pub(crate) fn new(l: Lexer<'a>) -> Self {
+    pub(crate) fn new(l: Lexer<'a>, alloc: &'a Bump) -> Self {
         let mut p = Parser {
             l,
             peek_token: Token::Null,
+            alloc,
         };
         // Discard the null token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -27,11 +34,13 @@ impl<'a> Parser<'a> {
         p
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'a> {
         let peek_token = if self.peek_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
             let num = self.l.cur;
             self.l.read_char();
-            Token::Number(num.to_string())
+            let mut buf: String<'a> = String::new_in(self.alloc);
+            buf.push(num);
+            Token::<'a>::Number(buf)
         } else {
             self.l.next_token()
         };
@@ -44,8 +53,8 @@ impl<'a> Parser<'a> {
         self.peek_token == expected_token
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node, LatexError> {
-        let mut nodes = Vec::new();
+    pub(crate) fn parse(&mut self) -> Result<Node<'a>, LatexError<'a>> {
+        let mut nodes = Vec::new_in(self.alloc);
         let mut cur_token = self.next_token();
 
         while cur_token != Token::EOF {
@@ -61,19 +70,25 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
             Token::Underscore => {
                 self.next_token(); // Discard the underscore token.
                 let right = self.parse_token()?;
-                Ok(Node::Subscript(Box::new(left), Box::new(right)))
+                Ok(Node::Subscript(
+                    Box::new_in(left, self.alloc),
+                    Box::new_in(right, self.alloc),
+                ))
             }
             Token::Circumflex => {
                 self.next_token(); // Discard the circumflex token.
                 let right = self.parse_token()?;
-                Ok(Node::Superscript(Box::new(left), Box::new(right)))
+                Ok(Node::Superscript(
+                    Box::new_in(left, self.alloc),
+                    Box::new_in(right, self.alloc),
+                ))
             }
             _ => Ok(left),
         }
@@ -84,32 +99,37 @@ impl<'a> Parser<'a> {
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
-    fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
-            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
+            Token::Function(fun) => {
+                Node::MultiLetterIdent(String::from_str_in(fun, self.alloc), None)
+            }
             Token::Space(space) => Node::Space(space),
-            Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
+            Token::NonBreakingSpace => Node::Text(String::from_str_in("\u{A0}", self.alloc)),
             Token::Sqrt => {
                 let next_token = self.next_token();
                 if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     let content = self.parse_token()?;
-                    Node::Root(Box::new(degree), Box::new(content))
+                    Node::Root(
+                        Box::new_in(degree, self.alloc),
+                        Box::new_in(content, self.alloc),
+                    )
                 } else {
                     let content = self.parse_node(next_token)?;
-                    Node::Sqrt(Box::new(content))
+                    Node::Sqrt(Box::new_in(content, self.alloc))
                 }
             }
             Token::Frac(displaystyle) => {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 Node::Frac(
-                    Box::new(numerator),
-                    Box::new(denominator),
+                    Box::new_in(numerator, self.alloc),
+                    Box::new_in(denominator, self.alloc),
                     LineThickness::Medium,
                     displaystyle,
                 )
@@ -121,36 +141,39 @@ impl<'a> Parser<'a> {
                 Node::Fenced {
                     open: ops::LEFT_PARENTHESIS,
                     close: ops::RIGHT_PARENTHESIS,
-                    content: Box::new(Node::Frac(
-                        Box::new(numerator),
-                        Box::new(denominator),
-                        LineThickness::Zero,
-                        displaystyle,
-                    )),
+                    content: Box::new_in(
+                        Node::Frac(
+                            Box::new_in(numerator, self.alloc),
+                            Box::new_in(denominator, self.alloc),
+                            LineThickness::Zero,
+                            displaystyle,
+                        ),
+                        self.alloc,
+                    ),
                 }
             }
             Token::Over(op) => {
                 let target = self.parse_token()?;
-                Node::OverOp(op, Accent::True, Box::new(target))
+                Node::OverOp(op, Accent::True, Box::new_in(target, self.alloc))
             }
             Token::Under(op) => {
                 let target = self.parse_token()?;
-                Node::UnderOp(op, Accent::True, Box::new(target))
+                Node::UnderOp(op, Accent::True, Box::new_in(target, self.alloc))
             }
             Token::Overset => {
                 let over = self.parse_token()?;
                 let target = self.parse_token()?;
                 Node::Overset {
-                    over: Box::new(over),
-                    target: Box::new(target),
+                    over: Box::new_in(over, self.alloc),
+                    target: Box::new_in(target, self.alloc),
                 }
             }
             Token::Underset => {
                 let under = self.parse_token()?;
                 let target = self.parse_token()?;
                 Node::Underset {
-                    under: Box::new(under),
-                    target: Box::new(target),
+                    under: Box::new_in(under, self.alloc),
+                    target: Box::new_in(target, self.alloc),
                 }
             }
             Token::Overbrace(x) => {
@@ -159,17 +182,17 @@ impl<'a> Parser<'a> {
                     self.next_token(); // Discard the circumflex token.
                     let expl = self.parse_single_token()?;
                     let over = Node::Overset {
-                        over: Box::new(expl),
-                        target: Box::new(Node::Operator(x, None)),
+                        over: Box::new_in(expl, self.alloc),
+                        target: Box::new_in(Node::Operator(x, None), self.alloc),
                     };
                     Node::Overset {
-                        over: Box::new(over),
-                        target: Box::new(target),
+                        over: Box::new_in(over, self.alloc),
+                        target: Box::new_in(target, self.alloc),
                     }
                 } else {
                     Node::Overset {
-                        over: Box::new(Node::Operator(x, None)),
-                        target: Box::new(target),
+                        over: Box::new_in(Node::Operator(x, None), self.alloc),
+                        target: Box::new_in(target, self.alloc),
                     }
                 }
             }
@@ -179,17 +202,17 @@ impl<'a> Parser<'a> {
                     self.next_token(); // Discard the underscore token.
                     let expl = self.parse_single_token()?;
                     let under = Node::Underset {
-                        under: Box::new(expl),
-                        target: Box::new(Node::Operator(x, None)),
+                        under: Box::new_in(expl, self.alloc),
+                        target: Box::new_in(Node::Operator(x, None), self.alloc),
                     };
                     Node::Underset {
-                        under: Box::new(under),
-                        target: Box::new(target),
+                        under: Box::new_in(under, self.alloc),
+                        target: Box::new_in(target, self.alloc),
                     }
                 } else {
                     Node::Underset {
-                        under: Box::new(Node::Operator(x, None)),
-                        target: Box::new(target),
+                        under: Box::new_in(Node::Operator(x, None), self.alloc),
+                        target: Box::new_in(target, self.alloc),
                     }
                 }
             }
@@ -201,14 +224,14 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the circumflex token.
                         let over = self.parse_single_token()?;
                         Node::UnderOver {
-                            target: Box::new(Node::Operator(op, None)),
-                            under: Box::new(under),
-                            over: Box::new(over),
+                            target: Box::new_in(Node::Operator(op, None), self.alloc),
+                            under: Box::new_in(under, self.alloc),
+                            over: Box::new_in(over, self.alloc),
                         }
                     } else {
                         Node::Underset {
-                            target: Box::new(Node::Operator(op, None)),
-                            under: Box::new(under),
+                            target: Box::new_in(Node::Operator(op, None), self.alloc),
+                            under: Box::new_in(under, self.alloc),
                         }
                     }
                 }
@@ -219,27 +242,27 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the underscore token.
                         let under = self.parse_single_token()?;
                         Node::UnderOver {
-                            target: Box::new(Node::Operator(op, None)),
-                            under: Box::new(under),
-                            over: Box::new(over),
+                            target: Box::new_in(Node::Operator(op, None), self.alloc),
+                            under: Box::new_in(under, self.alloc),
+                            over: Box::new_in(over, self.alloc),
                         }
                     } else {
                         Node::Overset {
-                            over: Box::new(Node::Operator(op, None)),
-                            target: Box::new(over),
+                            over: Box::new_in(Node::Operator(op, None), self.alloc),
+                            target: Box::new_in(over, self.alloc),
                         }
                     }
                 }
                 _ => Node::Operator(op, None),
             },
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim.to_string(), None);
+                let lim = Node::MultiLetterIdent(String::from_str_in(lim, self.alloc), None);
                 if self.peek_token_is(Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: Box::new(lim),
-                        under: Box::new(under),
+                        target: Box::new_in(lim, self.alloc),
+                        under: Box::new_in(under, self.alloc),
                     }
                 } else {
                     lim
@@ -249,25 +272,25 @@ impl<'a> Parser<'a> {
                 self.next_token(); // Optimistically skip the next token.
                 let node = self.parse_token()?;
                 self.next_token(); // Optimistically skip the next token.
-                Node::Slashed(Box::new(node))
+                Node::Slashed(Box::new_in(node, self.alloc))
             }
             Token::NormalVariant => {
                 let node = self.parse_token()?;
                 let node = if let Node::Row(nodes) = node {
-                    merge_single_letters(nodes)
+                    self.merge_single_letters(nodes)
                 } else {
                     node
                 };
-                set_variant(node, MathVariant::Normal)
+                self.set_variant(node, MathVariant::Normal)
             }
             Token::Style(var) => {
                 let node = self.parse_token()?;
                 let node = if let Node::Row(nodes) = node {
-                    merge_single_letters(nodes)
+                    self.merge_single_letters(nodes)
                 } else {
                     node
                 };
-                transform_text(node, var)
+                self.transform_text(node, var)
             }
             Token::Integral(int) => match self.peek_token {
                 Token::Underscore => {
@@ -277,12 +300,15 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the circumflex token.
                         let sup = self.parse_single_token()?;
                         Node::SubSup {
-                            target: Box::new(Node::Operator(int, None)),
-                            sub: Box::new(sub),
-                            sup: Box::new(sup),
+                            target: Box::new_in(Node::Operator(int, None), self.alloc),
+                            sub: Box::new_in(sub, self.alloc),
+                            sup: Box::new_in(sup, self.alloc),
                         }
                     } else {
-                        Node::Subscript(Box::new(Node::Operator(int, None)), Box::new(sub))
+                        Node::Subscript(
+                            Box::new_in(Node::Operator(int, None), self.alloc),
+                            Box::new_in(sub, self.alloc),
+                        )
                     }
                 }
                 Token::Circumflex => {
@@ -292,12 +318,15 @@ impl<'a> Parser<'a> {
                         self.next_token(); // Discard the underscore token.
                         let sub = self.parse_single_token()?;
                         Node::SubSup {
-                            target: Box::new(Node::Operator(int, None)),
-                            sub: Box::new(sub),
-                            sup: Box::new(sup),
+                            target: Box::new_in(Node::Operator(int, None), self.alloc),
+                            sub: Box::new_in(sub, self.alloc),
+                            sup: Box::new_in(sup, self.alloc),
                         }
                     } else {
-                        Node::Superscript(Box::new(Node::Operator(int, None)), Box::new(sup))
+                        Node::Superscript(
+                            Box::new_in(Node::Operator(int, None), self.alloc),
+                            Box::new_in(sup, self.alloc),
+                        )
                     }
                 }
                 _ => Node::Operator(int, None),
@@ -308,7 +337,8 @@ impl<'a> Parser<'a> {
                         // We have just verified that the next token is an operator.
                         unreachable!()
                     };
-                    Node::PseudoRow(vec![
+                    Node::PseudoRow(bumpalo::vec![
+                        in self.alloc;
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
                             stretchy: None,
@@ -357,7 +387,7 @@ impl<'a> Parser<'a> {
                 Node::Fenced {
                     open,
                     close,
-                    content: Box::new(content),
+                    content: Box::new_in(content, self.alloc),
                 }
             }
             Token::Middle => {
@@ -383,30 +413,30 @@ impl<'a> Parser<'a> {
                 // Read the contents of \begin..\end.
                 let content = match self.parse_group(Token::End)? {
                     Node::Row(content) => content,
-                    content => vec![content],
+                    content => bumpalo::vec![in self.alloc; content],
                 };
                 let node = match environment.as_str() {
                     "align" | "align*" | "aligned" => Node::Table(content, Align::Alternating),
                     "cases" => Node::Fenced {
                         open: ops::LEFT_CURLY_BRACKET,
                         close: ops::NULL,
-                        content: Box::new(Node::Table(content, Align::Left)),
+                        content: Box::new_in(Node::Table(content, Align::Left), self.alloc),
                     },
                     "matrix" => Node::Table(content, Align::Center),
                     "pmatrix" => Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new_in(Node::Table(content, Align::Center), self.alloc),
                     },
                     "bmatrix" => Node::Fenced {
                         open: ops::LEFT_SQUARE_BRACKET,
                         close: ops::RIGHT_SQUARE_BRACKET,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new_in(Node::Table(content, Align::Center), self.alloc),
                     },
                     "vmatrix" => Node::Fenced {
                         open: ops::VERTICAL_LINE,
                         close: ops::VERTICAL_LINE,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new_in(Node::Table(content, Align::Center), self.alloc),
                     },
                     _ => {
                         return Err(LatexError::UnknownEnvironment(environment));
@@ -447,12 +477,15 @@ impl<'a> Parser<'a> {
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
             Token::Mathstrut => Node::Phantom(
-                Box::new(Node::OperatorWithSpacing {
-                    op: ops::LEFT_PARENTHESIS,
-                    stretchy: Some(Stretchy::False),
-                    left: Some("0"),
-                    right: Some("0"),
-                }),
+                Box::new_in(
+                    Node::OperatorWithSpacing {
+                        op: ops::LEFT_PARENTHESIS,
+                        stretchy: Some(Stretchy::False),
+                        left: Some("0"),
+                        right: Some("0"),
+                    },
+                    self.alloc,
+                ),
                 PhantomWidth::Zero,
             ),
             Token::UnknownCommand(name) => {
@@ -483,8 +516,8 @@ impl<'a> Parser<'a> {
             Token::Operator(ops::APOS) => {
                 self.next_token(); // Discard the apostrophe token.
                 Ok(Node::Superscript(
-                    Box::new(node),
-                    Box::new(Node::Operator(ops::PRIME, None)),
+                    Box::new_in(node, self.alloc),
+                    Box::new_in(Node::Operator(ops::PRIME, None), self.alloc),
                 ))
             }
             _ => Ok(node),
@@ -492,20 +525,20 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_single_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
 
-    fn parse_group(&mut self, end_token: Token) -> Result<Node, LatexError> {
+    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let mut cur_token = self.next_token();
-        let mut nodes = Vec::new();
+        let mut nodes = Vec::new_in(self.alloc);
 
         while {
             if cur_token == Token::EOF {
@@ -532,15 +565,15 @@ impl<'a> Parser<'a> {
 
     fn parse_text_group(
         &mut self,
-        end_token: Token,
+        end_token: Token<'a>,
         whitespace: WhiteSpace,
-    ) -> Result<String, LatexError> {
+    ) -> Result<String<'a>, LatexError<'a>> {
         // We immediately start recording whitespace, so that the peek token field
         // can be filled with whitespace characters.
         self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
         self.next_token(); // Discard the opening brace token.
 
-        let mut text = String::new();
+        let mut text = String::new_in(self.alloc);
 
         loop {
             match &self.peek_token {
@@ -569,66 +602,72 @@ impl<'a> Parser<'a> {
 
         Ok(text)
     }
+
+    fn set_variant(&self, node: Node<'a>, var: MathVariant) -> Node<'a> {
+        match node {
+            Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
+            Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
+            Node::Row(vec) => Node::Row(
+                vec.into_iter()
+                    .map(|node| self.set_variant(node, var.clone()))
+                    .collect_in(self.alloc),
+            ),
+            node => node,
+        }
+    }
+
+    fn transform_text(&self, node: Node<'a>, var: TextTransform) -> Node<'a> {
+        match node {
+            Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
+            Node::MultiLetterIdent(letters, _) => Node::MultiLetterIdent(
+                letters
+                    .chars()
+                    .map(|c| var.transform(c))
+                    .collect_in(self.alloc),
+                None,
+            ),
+            Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
+            Node::Row(vec) => Node::Row(
+                vec.into_iter()
+                    .map(|node| self.transform_text(node, var))
+                    .collect_in(self.alloc),
+            ),
+            node => node,
+        }
+    }
+
+    fn merge_single_letters(&self, nodes: Vec<'a, Node<'a>>) -> Node<'a> {
+        let mut new_nodes = Vec::new_in(self.alloc);
+        let mut collected: Option<String> = None;
+        for node in nodes {
+            if let Node::SingleLetterIdent(c, _) = node {
+                if let Some(ref mut letters) = collected {
+                    letters.push(c); // we add another single letter
+                } else {
+                    let mut buf = String::new_in(self.alloc);
+                    buf.push(c);
+                    collected = Some(buf); // we start collecting
+                }
+            } else {
+                if let Some(letters) = collected.take() {
+                    new_nodes.push(Node::MultiLetterIdent(letters, None));
+                }
+                new_nodes.push(node);
+            }
+        }
+        if let Some(letters) = collected {
+            new_nodes.push(Node::MultiLetterIdent(letters, None));
+        }
+        if new_nodes.len() == 1 {
+            // SAFETY: `new_nodes` is not empty.
+            unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
+        } else {
+            Node::Row(new_nodes)
+        }
+    }
 }
 
 enum WhiteSpace {
     Skip,
     Record,
-}
-
-fn set_variant(node: Node, var: MathVariant) -> Node {
-    match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
-        Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
-        Node::Row(vec) => Node::Row(
-            vec.into_iter()
-                .map(|node| set_variant(node, var.clone()))
-                .collect(),
-        ),
-        node => node,
-    }
-}
-
-fn transform_text(node: Node, var: TextTransform) -> Node {
-    match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
-        Node::MultiLetterIdent(letters, _) => {
-            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
-        }
-        Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into_char()), None),
-        Node::Row(vec) => Node::Row(
-            vec.into_iter()
-                .map(|node| transform_text(node, var))
-                .collect(),
-        ),
-        node => node,
-    }
-}
-
-fn merge_single_letters(nodes: Vec<Node>) -> Node {
-    let mut new_nodes = Vec::new();
-    let mut collected: Option<String> = None;
-    for node in nodes {
-        if let Node::SingleLetterIdent(c, _) = node {
-            if let Some(ref mut letters) = collected {
-                letters.push(c); // we add another single letter
-            } else {
-                collected = Some(c.to_string()); // we start collecting
-            }
-        } else {
-            if let Some(letters) = collected.take() {
-                new_nodes.push(Node::MultiLetterIdent(letters, None));
-            }
-            new_nodes.push(node);
-        }
-    }
-    if let Some(letters) = collected {
-        new_nodes.push(Node::MultiLetterIdent(letters, None));
-    }
-    if new_nodes.len() == 1 {
-        // SAFETY: `new_nodes` is not empty.
-        unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
-    } else {
-        Node::Row(new_nodes)
-    }
 }

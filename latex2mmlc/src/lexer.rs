@@ -3,8 +3,10 @@
 //! - Input: `String`
 //! - Output: `Vec<Token>`
 //!
+use bumpalo::collections::String;
+use bumpalo::Bump;
 
-use super::{ops, token::Token};
+use crate::{ops, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -12,15 +14,17 @@ pub(crate) struct Lexer<'a> {
     input: std::str::Chars<'a>,
     pub(crate) cur: char,
     pub(crate) record_whitespace: bool,
+    alloc: &'a Bump,
 }
 
 impl<'a> Lexer<'a> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str, alloc: &'a Bump) -> Self {
         let mut lexer = Lexer {
             input: input.chars(),
             cur: '\u{0}',
             record_whitespace: false,
+            alloc,
         };
         lexer.read_char();
         lexer
@@ -42,8 +46,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one command to a token.
-    fn read_command(&mut self) -> Token {
-        let mut command = String::new();
+    fn read_command(&mut self) -> Token<'a> {
+        let mut command = String::new_in(self.alloc);
 
         // Always read at least one character.
         self.read_char();
@@ -60,8 +64,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one number into a token.
-    fn read_number(&mut self) -> Token {
-        let mut number = String::new();
+    fn read_number(&mut self) -> Token<'a> {
+        let mut number = String::new_in(self.alloc);
         let mut has_period = false;
         while self.cur.is_ascii_digit() || (self.cur == '.' && !has_period) {
             if self.cur == '.' {
@@ -74,7 +78,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Token {
+    pub(crate) fn next_token(&mut self) -> Token<'a> {
         self.skip_whitespace();
 
         let token = match self.cur {
@@ -124,17 +128,21 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::collections::String;
+    use bumpalo::Bump;
+
     use super::super::token::Token;
     use super::*;
 
     #[test]
     fn lexer_test() {
+        let alloc = &Bump::new();
         let problems = vec![
-            (r"3", vec![Token::Number("3".to_owned())]),
-            (r"3.14", vec![Token::Number("3.14".to_owned())]),
+            (r"3", vec![Token::Number(String::from_str_in("3", alloc))]),
+            (r"3.14", vec![Token::Number(String::from_str_in("3.14", alloc))]),
             (
                 r"3.14.",
-                vec![Token::Number("3.14".to_owned()), Token::Operator(ops::DOT)],
+                vec![Token::Number(String::from_str_in("3.14", alloc)), Token::Operator(ops::DOT)],
             ),
             (r"x", vec![Token::Letter('x')]),
             (r"\pi", vec![Token::Letter('π')]),
@@ -143,7 +151,7 @@ mod tests {
                 vec![
                     Token::Letter('x'),
                     Token::Operator(ops::EQUAL),
-                    Token::Number("3.14".to_owned()),
+                    Token::Number(String::from_str_in("3.14", alloc)),
                 ],
             ),
             (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
@@ -157,12 +165,12 @@ mod tests {
             ),
             (
                 r"\ 1",
-                vec![Token::Space("1"), Token::Number("1".to_owned())],
+                vec![Token::Space("1"), Token::Number(String::from_str_in("1", alloc))],
             ),
         ];
 
         for (problem, answer) in problems.iter() {
-            let mut lexer = Lexer::new(problem);
+            let mut lexer = Lexer::new(problem, alloc);
             for answer in answer.iter() {
                 assert_eq!(&lexer.next_token(), answer);
             }

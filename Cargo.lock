@@ -227,6 +227,7 @@ dependencies = [
 name = "latex2mmlc"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "insta",
  "strum_macros",
 ]
@@ -235,6 +236,7 @@ dependencies = [
 name = "latex2mmlc_cli"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "clap",
  "latex2mmlc",
 ]
@@ -243,6 +245,7 @@ dependencies = [
 name = "latex2mmlc_python"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "latex2mmlc",
  "pyo3",
 ]
@@ -251,6 +254,7 @@ dependencies = [
 name = "latex2mmlc_wasm"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "latex2mmlc",
  "wasm-bindgen",
  "wasm-bindgen-test",

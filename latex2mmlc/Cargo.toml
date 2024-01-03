@@ -12,6 +12,7 @@ keywords      = ["latex", "mathml"]
 categories    = ["science"]
 
 [dependencies]
+bumpalo = { workspace = true }
 strum_macros = "0.25.3"
 
 [dev-dependencies]

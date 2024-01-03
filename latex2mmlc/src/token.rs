@@ -1,10 +1,11 @@
+use bumpalo::collections::String;
 use strum_macros::AsRefStr;
 
 use crate::attribute::{DisplayStyle, TextTransform};
 use crate::ops::{self, Op};
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
-pub enum Token {
+pub enum Token<'a> {
     Null,
     #[strum(serialize = "end of document")]
     EOF,
@@ -45,16 +46,16 @@ pub enum Token {
     BigOp(Op),
     Letter(char),
     NormalLetter(char),
-    Number(String),
+    Number(String<'a>),
     Function(&'static str),
     OperatorName,
     Slashed,
     Text,
     Mathstrut,
-    UnknownCommand(String),
+    UnknownCommand(String<'a>),
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
@@ -62,7 +63,7 @@ impl Token {
         )
     }
 
-    pub fn from_command(command: String) -> Token {
+    pub fn from_command(command: String<'a>) -> Token<'a> {
         match command.as_str() {
             "mathrm" => Token::NormalVariant,
             "textit" => Token::Style(TextTransform::Italic),

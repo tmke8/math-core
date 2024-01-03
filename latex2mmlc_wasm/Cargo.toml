@@ -11,6 +11,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 latex2mmlc = { path = "../latex2mmlc" }
+
+bumpalo = { workspace = true }
 wasm-bindgen = "0.2.89"
 wee_alloc = "0.4.5"
 

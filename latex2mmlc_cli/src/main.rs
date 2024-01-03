@@ -26,6 +26,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bumpalo::Bump;
+
 use latex2mmlc::{latex_to_mathml, Display, LatexError};
 
 use clap::Parser;
@@ -101,7 +103,8 @@ fn convert_and_exit(args: &Args, latex: &str) {
     } else {
         Display::Inline
     };
-    match latex_to_mathml(latex, display, false) {
+    let alloc = Bump::new();
+    match latex_to_mathml(&alloc, latex, display, false) {
         Ok(mathml) => println!("{}", mathml),
         Err(e) => {
             eprintln!("LaTeX2MathML Error: {}", e);
@@ -111,13 +114,13 @@ fn convert_and_exit(args: &Args, latex: &str) {
 }
 
 #[derive(Debug)]
-enum ConversionError {
+enum ConversionError<'a> {
     InvalidNumberOfDollarSigns,
     IOError(std::io::Error),
-    LatexError(LatexError, String),
+    LatexError(LatexError<'a>, String),
 }
 
-impl fmt::Display for ConversionError {
+impl<'a> fmt::Display for ConversionError<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConversionError::InvalidNumberOfDollarSigns => {
@@ -129,7 +132,7 @@ impl fmt::Display for ConversionError {
     }
 }
 
-impl std::error::Error for ConversionError {}
+impl<'a> std::error::Error for ConversionError<'a> {}
 
 /// Find LaTeX equations and replace them to MathML.
 ///
@@ -151,7 +154,7 @@ impl std::error::Error for ConversionError {}
 ///
 /// `examples/document.rs` gives a sample code using this function.
 ///
-fn replace(input: &str) -> Result<String, ConversionError> {
+fn replace<'a>(input: &'a str) -> Result<String, ConversionError<'a>> {
     let mut input: Vec<u8> = input.as_bytes().to_owned();
 
     //**** Convert block-math ****//
@@ -180,7 +183,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 2..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Block, false)
+                let alloc = &Bump::new();
+                let mathml = latex_to_mathml(alloc, input, Display::Block, false)
                     .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
@@ -215,7 +219,8 @@ fn replace(input: &str) -> Result<String, ConversionError> {
                 // convert LaTeX to MathML
                 let input = &input[idx[i] + 1..idx[i + 1]];
                 let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Inline, false)
+                let alloc = &Bump::new();
+                let mathml = latex_to_mathml(alloc, input, Display::Inline, false)
                     .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
                 output.extend_from_slice(mathml.as_bytes());
             }
@@ -258,7 +263,7 @@ fn replace(input: &str) -> Result<String, ConversionError> {
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive<P: AsRef<Path>>(path: P) -> Result<(), ConversionError> {
+fn convert_html_recursive<'a, P: AsRef<Path>>(path: P) -> Result<(), ConversionError<'a>> {
     if path.as_ref().is_dir() {
         let dir = fs::read_dir(path).map_err(ConversionError::IOError)?;
         for entry in dir.filter_map(Result::ok) {
@@ -278,7 +283,7 @@ fn convert_html_recursive<P: AsRef<Path>>(path: P) -> Result<(), ConversionError
     Ok(())
 }
 
-fn convert_html<P: AsRef<Path>>(fp: P) -> Result<(), ConversionError> {
+fn convert_html<'a, P: AsRef<Path>>(fp: P) -> Result<(), ConversionError<'a>> {
     let original = fs::read_to_string(&fp).map_err(ConversionError::IOError)?;
     let converted = replace(&original)?;
     if original != converted {

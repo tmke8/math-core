@@ -47,6 +47,8 @@
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
 
+use bumpalo::{collections::String, Bump};
+
 pub mod ast;
 pub mod attribute;
 mod error;
@@ -63,11 +65,10 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
-    let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l);
-    let nodes = p.parse()?;
-    Ok(nodes)
+fn get_nodes<'a>(alloc: &'a Bump, latex: &'a str) -> Result<ast::Node<'a>, error::LatexError<'a>> {
+    let l = lexer::Lexer::new(latex, alloc);
+    let mut p = parse::Parser::new(l, alloc);
+    p.parse()
 }
 
 /// Convert LaTeX text to MathML.
@@ -86,16 +87,17 @@ fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(
-    latex: &str,
+pub fn latex_to_mathml<'a>(
+    alloc: &'a Bump,
+    latex: &'a str,
     display: Display,
     pretty: bool,
-) -> Result<String, error::LatexError> {
-    let nodes = get_nodes(latex)?;
+) -> Result<String<'a>, error::LatexError<'a>> {
+    let nodes = get_nodes(alloc, latex)?;
 
     let mut output = match display {
-        Display::Block => "<math display=\"block\">".to_string(),
-        Display::Inline => "<math>".to_string(),
+        Display::Block => String::from_str_in("<math display=\"block\">", alloc),
+        Display::Inline => String::from_str_in("<math>", alloc),
     };
 
     nodes.emit(&mut output, if pretty { 1 } else { 0 });
@@ -108,16 +110,12 @@ pub fn latex_to_mathml(
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
     use insta::assert_snapshot;
 
-    use crate::{error, latex_to_mathml};
+    use crate::latex_to_mathml;
 
     use super::get_nodes;
-
-    fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let nodes = get_nodes(latex)?;
-        Ok(nodes.render())
-    }
 
     #[test]
     fn full_tests() {
@@ -173,7 +171,8 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, true).unwrap();
+            let alloc = Bump::new();
+            let mathml = latex_to_mathml(&alloc, problem, crate::Display::Inline, true).unwrap();
             assert_snapshot!(name, &mathml, problem);
         }
     }
@@ -204,7 +203,9 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let error = format!("{:#?}", convert_content(problem).unwrap_err());
+            let alloc = &Bump::new();
+            let results = get_nodes(alloc, problem);
+            let error = format!("{:#?}", results.unwrap_err());
             assert_snapshot!(name, &error, problem);
         }
     }

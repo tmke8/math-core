@@ -1,12 +1,14 @@
+use bumpalo::{Bump, boxed::Box, collections::{String, Vec}};
+
 use crate::attribute::{
     Accent, Align, DisplayStyle, LineThickness, MathVariant, PhantomWidth, Stretchy,
 };
 use crate::ops::Op;
 
 /// AST node
-#[derive(Debug, Clone, PartialEq)]
-pub enum Node {
-    Number(String),
+#[derive(Debug, PartialEq)]
+pub enum Node<'a> {
+    Number(String<'a>),
     SingleLetterIdent(char, Option<MathVariant>),
     Operator(Op, Option<Stretchy>),
     OperatorWithSpacing {
@@ -15,50 +17,50 @@ pub enum Node {
         left: Option<&'static str>,
         right: Option<&'static str>,
     },
-    MultiLetterIdent(String, Option<MathVariant>),
+    MultiLetterIdent(String<'a>, Option<MathVariant>),
     Space(&'static str),
-    Subscript(Box<Node>, Box<Node>),
-    Superscript(Box<Node>, Box<Node>),
+    Subscript(Box<'a, Node<'a>>, Box<'a, Node<'a>>),
+    Superscript(Box<'a, Node<'a>>, Box<'a, Node<'a>>),
     SubSup {
-        target: Box<Node>,
-        sub: Box<Node>,
-        sup: Box<Node>,
+        target: Box<'a, Node<'a>>,
+        sub: Box<'a, Node<'a>>,
+        sup: Box<'a, Node<'a>>,
     },
-    OverOp(Op, Accent, Box<Node>),
-    UnderOp(Op, Accent, Box<Node>),
+    OverOp(Op, Accent, Box<'a, Node<'a>>),
+    UnderOp(Op, Accent, Box<'a, Node<'a>>),
     Overset {
-        over: Box<Node>,
-        target: Box<Node>,
+        over: Box<'a, Node<'a>>,
+        target: Box<'a, Node<'a>>,
     },
     Underset {
-        under: Box<Node>,
-        target: Box<Node>,
+        under: Box<'a, Node<'a>>,
+        target: Box<'a, Node<'a>>,
     },
     UnderOver {
-        target: Box<Node>,
-        under: Box<Node>,
-        over: Box<Node>,
+        target: Box<'a, Node<'a>>,
+        under: Box<'a, Node<'a>>,
+        over: Box<'a, Node<'a>>,
     },
-    Sqrt(Box<Node>),
-    Root(Box<Node>, Box<Node>),
-    Frac(Box<Node>, Box<Node>, LineThickness, Option<DisplayStyle>),
-    Row(Vec<Node>),
-    PseudoRow(Vec<Node>),
-    Phantom(Box<Node>, PhantomWidth),
+    Sqrt(Box<'a, Node<'a>>),
+    Root(Box<'a, Node<'a>>, Box<'a, Node<'a>>),
+    Frac(Box<'a, Node<'a>>, Box<'a, Node<'a>>, LineThickness, Option<DisplayStyle>),
+    Row(Vec<'a, Node<'a>>),
+    PseudoRow(Vec<'a, Node<'a>>),
+    Phantom(Box<'a, Node<'a>>, PhantomWidth),
     Fenced {
         open: Op,
         close: Op,
-        content: Box<Node>,
+        content: Box<'a, Node<'a>>,
     },
     SizedParen {
         size: &'static str,
         paren: Op,
     },
-    Text(String),
-    Table(Vec<Node>, Align),
+    Text(String<'a>),
+    Table(Vec<'a, Node<'a>>, Align),
     ColumnSeparator,
     RowSeparator,
-    Slashed(Box<Node>),
+    Slashed(Box<'a, Node<'a>>),
 }
 
 const INDENT: &str = "    ";
@@ -80,9 +82,9 @@ macro_rules! pushln {
     };
 }
 
-impl Node {
-    pub fn render(&self) -> String {
-        let mut buf = String::new();
+impl<'a> Node<'a> {
+    pub fn render(&self, alloc: &'a Bump) -> String<'a> {
+        let mut buf = String::new_in(alloc);
         self.emit(&mut buf, 0);
         buf
     }
@@ -346,13 +348,16 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::{Bump, collections::String};
+
     use super::super::attribute::MathVariant;
     use super::Node;
 
     #[test]
     fn node_display() {
+        let alloc = Bump::new();
         let problems = vec![
-            (Node::Number("3.14".to_owned()), "<mn>3.14</mn>"),
+            (Node::Number(String::from_str_in("3.14", &alloc)), "<mn>3.14</mn>"),
             (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
             (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
@@ -361,7 +366,7 @@ mod tests {
             ),
         ];
         for (problem, answer) in problems.iter() {
-            assert_eq!(&problem.render(), answer);
+            assert_eq!(&problem.render(&alloc), answer);
         }
     }
 }

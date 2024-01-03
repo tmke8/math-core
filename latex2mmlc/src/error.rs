@@ -1,67 +1,81 @@
-use super::token::Token;
 use std::fmt;
 
+use bumpalo::{collections::String, Bump};
+
+use crate::token::Token;
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum LatexError {
-    UnexpectedToken { expected: Token, got: Token },
-    UnexpectedClose(Token),
+pub enum LatexError<'a> {
+    UnexpectedToken {
+        expected: Token<'a>,
+        got: Token<'a>,
+    },
+    UnexpectedClose(Token<'a>),
     UnexpectedEOF,
-    MissingParenthesis { location: Token, got: Token },
-    UnknownEnvironment(String),
-    UnknownCommand(String),
-    MismatchedEnvironment { expected: String, got: String },
-    InvalidCharacter { expected: &'static str, got: char },
+    MissingParenthesis {
+        location: Token<'a>,
+        got: Token<'a>,
+    },
+    UnknownEnvironment(String<'a>),
+    UnknownCommand(String<'a>),
+    MismatchedEnvironment {
+        expected: String<'a>,
+        got: String<'a>,
+    },
+    InvalidCharacter {
+        expected: &'static str,
+        got: char,
+    },
 }
 
-impl LatexError {
+impl<'a> LatexError<'a> {
     /// Returns the error message as a string.
     ///
     /// This serves the same purpose as the `Display` implementation,
     /// but produces more compact WASM code.
-    pub fn string(&self) -> String {
+    pub fn string(&self, alloc: &'a Bump) -> String<'a> {
+        let s = String::new_in(alloc);
         match self {
             LatexError::UnexpectedToken { expected, got } => {
-                "Expected token \"".to_string()
+                s + "Expected token \""
                     + expected.as_ref()
                     + "\", but found token \""
                     + got.as_ref()
                     + "\"."
             }
             LatexError::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
+                s + "Unexpected closing token: \"" + got.as_ref() + "\"."
             }
-            LatexError::UnexpectedEOF => "Unexpected end of file.".to_string(),
+            LatexError::UnexpectedEOF => s + "Unexpected end of file.",
             LatexError::MissingParenthesis { location, got } => {
-                "There must be a parenthesis after \"".to_string()
+                s + "There must be a parenthesis after \""
                     + location.as_ref()
                     + "\", but not found. Instead, \""
                     + got.as_ref()
                     + "\" was found."
             }
             LatexError::UnknownEnvironment(environment) => {
-                "Unknown environment \"".to_string() + environment + "\"."
+                s + "Unknown environment \"" + environment + "\"."
             }
-            LatexError::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
+            LatexError::UnknownCommand(cmd) => s + "Unknown command \"\\" + cmd + "\".",
             LatexError::MismatchedEnvironment { expected, got } => {
-                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\""
+                s + "Expected \"\\end{" + expected + "}\", but got \"\\end{" + got + "}\""
             }
             LatexError::InvalidCharacter { expected, got } => {
                 // 4-byte buffer is enough for any UTF-8 character.
                 let mut b = [0; 4];
-                "Expected ".to_string()
-                    + expected
-                    + ", but got \""
-                    + got.encode_utf8(&mut b)
-                    + "\"."
+                s + "Expected " + expected + ", but got \"" + got.encode_utf8(&mut b) + "\"."
             }
         }
     }
 }
 
-impl fmt::Display for LatexError {
+impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.string())
+        let alloc = Bump::new();
+        let output = self.string(&alloc);
+        write!(f, "{}", output)
     }
 }
 
-impl std::error::Error for LatexError {}
+impl std::error::Error for LatexError<'_> {}
