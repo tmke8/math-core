@@ -50,6 +50,7 @@ pub enum Token {
     OperatorName,
     Slashed,
     Text,
+    Mathstrut,
     UnknownCommand(String),
 }
 
@@ -77,6 +78,7 @@ impl Token {
             "mathsf" => Token::Style(TextTransform::SansSerif),
             "texttt" => Token::Style(TextTransform::Monospace),
             "boldsymbol" => Token::Style(TextTransform::BoldItalic),
+            "mathstrut" => Token::Mathstrut,
             "text" => Token::Text,
             "sqrt" => Token::Sqrt,
             "frac" => Token::Frac(None),

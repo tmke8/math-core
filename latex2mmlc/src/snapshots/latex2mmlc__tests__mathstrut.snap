@@ -1,0 +1,9 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathstrut"
+---
+<math>
+    <mphantom style="width:0">
+        <mo lspace="0em" rspace="0em" stretchy="false">(</mo>
+    </mphantom>
+</math>
