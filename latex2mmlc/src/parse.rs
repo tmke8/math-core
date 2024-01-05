@@ -28,13 +28,7 @@ impl<'a> Parser<'a> {
     }
 
     fn next_token(&mut self) -> Token {
-        let peek_token = if self.peek_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
-            let num = self.l.cur;
-            self.l.read_char();
-            Token::Number(num.to_string())
-        } else {
-            self.l.next_token()
-        };
+        let peek_token = self.l.next_token(self.peek_token.acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek_token, peek_token)
     }

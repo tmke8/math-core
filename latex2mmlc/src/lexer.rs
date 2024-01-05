@@ -10,7 +10,7 @@ use super::{ops, token::Token};
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
     input: std::str::Chars<'a>,
-    pub(crate) cur: char,
+    cur: char,
 }
 
 impl<'a> Lexer<'a> {
@@ -89,7 +89,12 @@ impl<'a> Lexer<'a> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Token {
+    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token {
+        if wants_digit && self.cur.is_ascii_digit() {
+            let num = self.cur;
+            self.read_char();
+            return Token::Number(num.to_string());
+        }
         self.skip_whitespace();
 
         let token = match self.cur {
@@ -179,7 +184,7 @@ mod tests {
         for (problem, answer) in problems.iter() {
             let mut lexer = Lexer::new(problem);
             for answer in answer.iter() {
-                assert_eq!(&lexer.next_token(), answer);
+                assert_eq!(&lexer.next_token(false), answer);
             }
         }
     }
