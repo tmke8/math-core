@@ -122,6 +122,8 @@ mod tests {
     #[test]
     fn full_tests() {
         let problems = vec![
+            ("empty", r""),
+            ("text", r"\text{hi}xx"),
             ("integer", r"0"),
             ("rational_number", r"3.14"),
             ("single_variable", r"x"),
@@ -167,7 +169,7 @@ mod tests {
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
             (
                 "cases",
-                r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise}\end{cases}",
+                r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
             ),
             ("mathstrut", r"\mathstrut"),
         ];

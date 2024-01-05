@@ -98,7 +98,7 @@ impl<'a> Parser<'a> {
                 if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     let content = self.parse_token()?;
-                    Node::Root(Box::new(degree), Box::new(content))
+                    Node::Root(Box::new(squeeze(degree)), Box::new(content))
                 } else {
                     let content = self.parse_node(next_token)?;
                     Node::Sqrt(Box::new(content))
@@ -330,7 +330,7 @@ impl<'a> Parser<'a> {
                     right: Some("0.2222"),
                 },
             },
-            Token::LBrace => self.parse_group(Token::RBrace)?,
+            Token::LBrace => squeeze(self.parse_group(Token::RBrace)?),
             Token::Paren(paren) => Node::Operator(paren, Some(Stretchy::False)),
             Token::Left => {
                 let open = match self.next_token() {
@@ -357,7 +357,7 @@ impl<'a> Parser<'a> {
                 Node::Fenced {
                     open,
                     close,
-                    content: Box::new(content),
+                    content: Box::new(squeeze(content)),
                 }
             }
             Token::Middle => {
@@ -379,40 +379,36 @@ impl<'a> Parser<'a> {
             },
             Token::Begin => {
                 // Read the environment name.
-                let environment = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                let environment = self.parse_text_group(WhiteSpace::Record)?;
                 // Read the contents of \begin..\end.
-                let content = match self.parse_group(Token::End)? {
-                    Node::Row(content) => content,
-                    content => vec![content],
-                };
                 let node = match environment.as_str() {
-                    "align" | "align*" | "aligned" => Node::Table(content, Align::Alternating),
+                    "align" | "align*" | "aligned" => self.parse_table(Align::Alternating)?,
                     "cases" => Node::Fenced {
                         open: ops::LEFT_CURLY_BRACKET,
                         close: ops::NULL,
-                        content: Box::new(Node::Table(content, Align::Left)),
+                        content: Box::new(self.parse_table(Align::Left)?),
                     },
-                    "matrix" => Node::Table(content, Align::Center),
+                    "matrix" => self.parse_table(Align::Center)?,
                     "pmatrix" => Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     "bmatrix" => Node::Fenced {
                         open: ops::LEFT_SQUARE_BRACKET,
                         close: ops::RIGHT_SQUARE_BRACKET,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     "vmatrix" => Node::Fenced {
                         open: ops::VERTICAL_LINE,
                         close: ops::VERTICAL_LINE,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     _ => {
                         return Err(LatexError::UnknownEnvironment(environment));
                     }
                 };
-                let end_name = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                let end_name = self.parse_text_group(WhiteSpace::Record)?;
                 if end_name != environment {
                     return Err(LatexError::MismatchedEnvironment {
                         expected: environment,
@@ -430,7 +426,7 @@ impl<'a> Parser<'a> {
                     });
                 }
                 // Read the function name.
-                let function = self.parse_text_group(Token::RBrace, WhiteSpace::Skip)?;
+                let function = self.parse_text_group(WhiteSpace::Skip)?;
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
@@ -441,7 +437,7 @@ impl<'a> Parser<'a> {
                     });
                 }
                 // Read the text.
-                let text = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                let text = self.parse_text_group(WhiteSpace::Record)?;
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -503,7 +499,8 @@ impl<'a> Parser<'a> {
         self.parse_single_node(token)
     }
 
-    fn parse_group(&mut self, end_token: Token) -> Result<Node, LatexError> {
+    /// Parse the contents of a group which can contain any expression.
+    fn parse_group(&mut self, end_token: Token) -> Result<Vec<Node>, LatexError> {
         let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
@@ -521,59 +518,42 @@ impl<'a> Parser<'a> {
             nodes.push(self.parse_node(cur_token)?);
             cur_token = self.next_token();
         }
-
-        if nodes.len() == 1 {
-            // SAFETY: `nodes` is not empty.
-            unsafe { Ok(nodes.into_iter().next().unwrap_unchecked()) }
-        } else {
-            Ok(Node::Row(nodes))
-        }
+        Ok(nodes)
     }
 
-    fn parse_text_group(
-        &mut self,
-        end_token: Token,
-        whitespace: WhiteSpace,
-    ) -> Result<String, LatexError> {
-        // We immediately start recording whitespace, so that the peek token field
-        // can be filled with whitespace characters.
-        self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
-        self.next_token(); // Discard the opening brace token.
-
-        let mut text = String::new();
-
-        loop {
-            match &self.peek_token {
-                Token::Letter(x) | Token::NormalLetter(x) => {
-                    text.push(*x); // Copy the character.
-                    self.next_token(); // Discard the token.
+    /// Parse the contents of a group which can only contain text.
+    fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError> {
+        let result = self
+            .l
+            .read_text_content(matches!(whitespace, WhiteSpace::Skip))
+            .ok_or({
+                LatexError::UnexpectedToken {
+                    expected: Token::RBrace,
+                    got: Token::EOF,
                 }
-                _ => {
-                    // We turn off the whitespace recording here because we don't want to put
-                    // any whitespace chracters into the peek token field.
-                    self.l.record_whitespace = false;
-                    // Get whatever non-letter token is next.
-                    // (We know it is not a letter because we matched on the peek token.)
-                    let non_letter_tok = self.next_token();
-                    if non_letter_tok == end_token {
-                        break; // Everything is fine.
-                    } else {
-                        return Err(LatexError::UnexpectedToken {
-                            expected: end_token,
-                            got: non_letter_tok,
-                        });
-                    }
-                }
-            }
-        }
+            });
+        self.next_token(); // Discard the opening token (which is still stored as `peek`).
+        result
+    }
 
-        Ok(text)
+    #[inline]
+    fn parse_table(&mut self, align: Align) -> Result<Node, LatexError> {
+        Ok(Node::Table(self.parse_group(Token::End)?, align))
     }
 }
 
 enum WhiteSpace {
     Skip,
     Record,
+}
+
+fn squeeze(nodes: Vec<Node>) -> Node {
+    if nodes.len() == 1 {
+        // SAFETY: `nodes` is not empty.
+        unsafe { nodes.into_iter().next().unwrap_unchecked() }
+    } else {
+        Node::Row(nodes)
+    }
 }
 
 fn set_variant(node: Node, var: MathVariant) -> Node {

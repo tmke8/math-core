@@ -11,7 +11,6 @@ use super::{ops, token::Token};
 pub(crate) struct Lexer<'a> {
     input: std::str::Chars<'a>,
     pub(crate) cur: char,
-    pub(crate) record_whitespace: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -20,7 +19,6 @@ impl<'a> Lexer<'a> {
         let mut lexer = Lexer {
             input: input.chars(),
             cur: '\u{0}',
-            record_whitespace: false,
         };
         lexer.read_char();
         lexer
@@ -33,9 +31,6 @@ impl<'a> Lexer<'a> {
 
     /// Skip blank characters.
     fn skip_whitespace(&mut self) {
-        if self.record_whitespace {
-            return;
-        }
         while matches!(self.cur, ' ' | '\t' | '\n' | '\r') {
             self.read_char();
         }
@@ -71,6 +66,26 @@ impl<'a> Lexer<'a> {
             self.read_char();
         }
         Token::Number(number)
+    }
+
+    /// Read text until the next `}`.
+    pub(crate) fn read_text_content(&mut self, skip_whitespace: bool) -> Option<String> {
+        let mut text = String::new();
+        if skip_whitespace {
+            self.skip_whitespace();
+        }
+        while self.cur != '}' {
+            if self.cur == '\u{0}' {
+                return None;
+            }
+            text.push(self.cur);
+            self.read_char();
+            if skip_whitespace {
+                self.skip_whitespace();
+            }
+        }
+        self.read_char(); // Discard the closing brace.
+        Some(text)
     }
 
     /// Generate the next token.
