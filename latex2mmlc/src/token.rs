@@ -41,6 +41,8 @@ pub enum Token<'a> {
     Over(Op),
     Under(Op),
     Operator(Op),
+    OpGreaterThan,
+    OpLessThan,
     Colon,
     BigOp(Op),
     Letter(char),

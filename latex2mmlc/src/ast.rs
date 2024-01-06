@@ -9,6 +9,8 @@ pub enum Node {
     Number(String),
     SingleLetterIdent(char, Option<MathVariant>),
     Operator(Op, Option<Stretchy>),
+    OpGreaterThan,
+    OpLessThan,
     OperatorWithSpacing {
         op: Op,
         stretchy: Option<Stretchy>,
@@ -120,6 +122,8 @@ impl Node {
                 }
                 push!(s, op.str_ref(&mut b), "</mo>");
             }
+            Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
+            Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
             Node::OperatorWithSpacing { op, stretchy, left, right } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {

@@ -173,6 +173,7 @@ mod tests {
                 r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
             ),
             ("mathstrut", r"\mathstrut"),
+            ("greater_than", r"x > y"),
         ];
 
         for (name, problem) in problems.into_iter() {
