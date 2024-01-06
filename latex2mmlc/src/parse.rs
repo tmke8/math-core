@@ -37,7 +37,7 @@ impl<'a> Parser<'a> {
         self.peek_token == expected_token
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node, LatexError<'a>> {
+    pub(crate) fn parse(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let mut nodes = Vec::new();
         let mut cur_token = self.next_token();
 
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
+    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
-    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
+    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let node = match cur_token {
             Token::Number(number, op) => match op {
                 ops::NULL => Node::Number(number),
@@ -474,19 +474,19 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node, LatexError<'a>> {
+    fn parse_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node, LatexError<'a>> {
+    fn parse_single_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
 
     /// Parse the contents of a group which can contain any expression.
-    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node>, LatexError<'a>> {
+    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node<'a>>, LatexError<'a>> {
         let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
@@ -520,7 +520,7 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_table(&mut self, align: Align) -> Result<Node, LatexError<'a>> {
+    fn parse_table(&mut self, align: Align) -> Result<Node<'a>, LatexError<'a>> {
         Ok(Node::Table(self.parse_group(Token::End)?, align))
     }
 

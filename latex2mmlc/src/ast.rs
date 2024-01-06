@@ -4,9 +4,9 @@ use crate::attribute::{
 use crate::ops::Op;
 
 /// AST node
-#[derive(Debug, Clone, PartialEq)]
-pub enum Node {
-    Number(String),
+#[derive(Debug, PartialEq)]
+pub enum Node<'a> {
+    Number(&'a str),
     SingleLetterIdent(char, Option<MathVariant>),
     Operator(Op, Option<Stretchy>),
     OpGreaterThan,
@@ -19,48 +19,53 @@ pub enum Node {
     },
     MultiLetterIdent(String, Option<MathVariant>),
     Space(&'static str),
-    Subscript(Box<Node>, Box<Node>),
-    Superscript(Box<Node>, Box<Node>),
+    Subscript(Box<Node<'a>>, Box<Node<'a>>),
+    Superscript(Box<Node<'a>>, Box<Node<'a>>),
     SubSup {
-        target: Box<Node>,
-        sub: Box<Node>,
-        sup: Box<Node>,
+        target: Box<Node<'a>>,
+        sub: Box<Node<'a>>,
+        sup: Box<Node<'a>>,
     },
-    OverOp(Op, Accent, Box<Node>),
-    UnderOp(Op, Accent, Box<Node>),
+    OverOp(Op, Accent, Box<Node<'a>>),
+    UnderOp(Op, Accent, Box<Node<'a>>),
     Overset {
-        over: Box<Node>,
-        target: Box<Node>,
+        over: Box<Node<'a>>,
+        target: Box<Node<'a>>,
     },
     Underset {
-        under: Box<Node>,
-        target: Box<Node>,
+        under: Box<Node<'a>>,
+        target: Box<Node<'a>>,
     },
     UnderOver {
-        target: Box<Node>,
-        under: Box<Node>,
-        over: Box<Node>,
+        target: Box<Node<'a>>,
+        under: Box<Node<'a>>,
+        over: Box<Node<'a>>,
     },
-    Sqrt(Box<Node>),
-    Root(Box<Node>, Box<Node>),
-    Frac(Box<Node>, Box<Node>, LineThickness, Option<DisplayStyle>),
-    Row(Vec<Node>),
-    PseudoRow(Vec<Node>),
-    Phantom(Box<Node>, PhantomWidth),
+    Sqrt(Box<Node<'a>>),
+    Root(Box<Node<'a>>, Box<Node<'a>>),
+    Frac(
+        Box<Node<'a>>,
+        Box<Node<'a>>,
+        LineThickness,
+        Option<DisplayStyle>,
+    ),
+    Row(Vec<Node<'a>>),
+    PseudoRow(Vec<Node<'a>>),
+    Phantom(Box<Node<'a>>, PhantomWidth),
     Fenced {
         open: Op,
         close: Op,
-        content: Box<Node>,
+        content: Box<Node<'a>>,
     },
     SizedParen {
         size: &'static str,
         paren: Op,
     },
     Text(String),
-    Table(Vec<Node>, Align),
+    Table(Vec<Node<'a>>, Align),
     ColumnSeparator,
     RowSeparator,
-    Slashed(Box<Node>),
+    Slashed(Box<Node<'a>>),
 }
 
 const INDENT: &str = "    ";
@@ -82,7 +87,7 @@ macro_rules! pushln {
     };
 }
 
-impl Node {
+impl<'a> Node<'a> {
     pub fn render(&self) -> String {
         let mut buf = String::new();
         self.emit(&mut buf, 0);
@@ -124,7 +129,12 @@ impl Node {
             }
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
-            Node::OperatorWithSpacing { op, stretchy, left, right } => {
+            Node::OperatorWithSpacing {
+                op,
+                stretchy,
+                left,
+                right,
+            } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
                         push!(s, "<mo lspace=\"", left, "em\" rspace=\"", right, "em\"",)
@@ -356,7 +366,7 @@ mod tests {
     #[test]
     fn node_display() {
         let problems = vec![
-            (Node::Number("3.14".to_owned()), "<mn>3.14</mn>"),
+            (Node::Number("3.14"), "<mn>3.14</mn>"),
             (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
             (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (

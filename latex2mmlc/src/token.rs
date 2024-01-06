@@ -52,7 +52,7 @@ pub enum Token<'a> {
     BigOp(Op),
     Letter(char),
     NormalLetter(char),
-    Number(String, Op),
+    Number(&'a str, Op),
     Function(&'static str),
     OperatorName,
     Slashed,

@@ -12,6 +12,7 @@ use crate::{ops, token::Token};
 pub(crate) struct Lexer<'a> {
     input: std::str::CharIndices<'a>,
     cur: char,
+    input_string: &'a str,
 }
 
 impl<'a> Lexer<'a> {
@@ -20,6 +21,7 @@ impl<'a> Lexer<'a> {
         let mut lexer = Lexer {
             input: input.char_indices(),
             cur: '\u{0}',
+            input_string: input,
         };
         lexer.read_char();
         lexer
@@ -69,21 +71,35 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one number into a token.
-    fn read_number(&mut self) -> (String, Op) {
-        let mut number = String::new();
+    fn read_number(&mut self) -> (&'a str, Op) {
+        let len = self.input_string.len();
 
-        while self.cur.is_ascii_digit() || matches!(self.cur, '.' | ',') {
+        let mut candidate = self.cur;
+        let mut start = 0;
+        let mut end = 0;
+        while candidate.is_ascii_digit() || matches!(candidate, '.' | ',') {
             // Before we accept the current character, we need to check the next one.
-            let candidate = self.cur;
-            self.read_char();
-            if !candidate.is_ascii_digit() && !self.cur.is_ascii_digit() {
+            let (offset, next) = self.input.next().unwrap_or((len, '\u{0}'));
+            if start == end {
+                // We need to find the start of the number, but the problem is that
+                // we already read the first character.
+                // But because the first character is an ASCII digit, we can just
+                // subtract 1 from the offset of the next character to get the start.
+                start = offset - 1;
+            }
+            if !candidate.is_ascii_digit() && !next.is_ascii_digit() {
                 // If neither the candiate character nor the next character is a digit,
                 // we stop.
                 // But we need to return the `candidate` character.
+                let number = unsafe { self.input_string.get_unchecked(start..end) };
+                self.cur = next;
                 return (number, Op(candidate));
             }
-            number.push(candidate);
+            candidate = next;
+            end = offset;
         }
+        self.cur = candidate;
+        let number = unsafe { self.input_string.get_unchecked(start..end) };
         (number, ops::NULL)
     }
 
@@ -114,9 +130,10 @@ impl<'a> Lexer<'a> {
     /// Generate the next token.
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
         if wants_digit && self.cur.is_ascii_digit() {
-            let num = self.cur;
-            self.read_char();
-            return Token::Number(num.to_string(), ops::NULL);
+            let (end, next) = self.read_char_directly();
+            self.cur = next;
+            let num = unsafe { self.input_string.get_unchecked((end - 1)..end) };
+            return Token::Number(num, ops::NULL);
         }
         self.skip_whitespace();
 
@@ -180,15 +197,15 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = vec![
-            (r"3", vec![Token::Number("3".to_owned(), ops::NULL)]),
-            (r"3.14", vec![Token::Number("3.14".to_owned(), ops::NULL)]),
-            (r"3.14.", vec![Token::Number("3.14".to_owned(), ops::DOT)]),
+            (r"3", vec![Token::Number("3", ops::NULL)]),
+            (r"3.14", vec![Token::Number("3.14", ops::NULL)]),
+            (r"3.14.", vec![Token::Number("3.14", ops::DOT)]),
             (
                 r"3..14",
                 vec![
-                    Token::Number("3".to_owned(), ops::DOT),
+                    Token::Number("3", ops::DOT),
                     Token::Operator(ops::DOT),
-                    Token::Number("14".to_owned(), ops::NULL),
+                    Token::Number("14", ops::NULL),
                 ],
             ),
             (r"x", vec![Token::Letter('x')]),
@@ -198,7 +215,7 @@ mod tests {
                 vec![
                     Token::Letter('x'),
                     Token::Operator(ops::EQUAL),
-                    Token::Number("3.14".to_owned(), ops::NULL),
+                    Token::Number("3.14", ops::NULL),
                 ],
             ),
             (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
@@ -212,7 +229,7 @@ mod tests {
             ),
             (
                 r"\ 1",
-                vec![Token::Space("1"), Token::Number("1".to_owned(), ops::NULL)],
+                vec![Token::Space("1"), Token::Number("1", ops::NULL)],
             ),
         ];
 
