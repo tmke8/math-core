@@ -2,11 +2,6 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin{matrix] 1 \\end{matrix}"
 ---
-UnexpectedToken {
-    expected: RBrace,
-    got: Paren(
-        Op(
-            ']',
-        ),
-    ),
-}
+UnknownEnvironment(
+    "matrix] 1 \\end{matrix",
+)

@@ -1,19 +1,18 @@
-use crate::attribute::{Accent, PhantomWidth, Stretchy};
+use std::mem;
 
-use super::{
+use crate::{
     ast::Node,
-    attribute::{Align, LineThickness, MathVariant, TextTransform},
+    attribute::{Accent, Align, LineThickness, MathVariant, PhantomWidth, Stretchy, TextTransform},
     error::LatexError,
-    lexer::Lexer,
+    lexer::{Lexer, WhiteSpace},
     ops,
     token::Token,
 };
-use std::mem;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Parser<'a> {
     l: Lexer<'a>,
-    peek_token: Token,
+    peek_token: Token<'a>,
 }
 impl<'a> Parser<'a> {
     pub(crate) fn new(l: Lexer<'a>) -> Self {
@@ -27,24 +26,18 @@ impl<'a> Parser<'a> {
         p
     }
 
-    fn next_token(&mut self) -> Token {
-        let peek_token = if self.peek_token.acts_on_a_digit() && self.l.cur.is_ascii_digit() {
-            let num = self.l.cur;
-            self.l.read_char();
-            Token::Number(num.to_string())
-        } else {
-            self.l.next_token()
-        };
+    fn next_token(&mut self) -> Token<'a> {
+        let peek_token = self.l.next_token(self.peek_token.acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek_token, peek_token)
     }
 
     #[inline]
-    fn peek_token_is(&self, expected_token: Token) -> bool {
+    fn peek_token_is(&self, expected_token: Token<'a>) -> bool {
         self.peek_token == expected_token
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node, LatexError> {
+    pub(crate) fn parse(&mut self) -> Result<Node, LatexError<'a>> {
         let mut nodes = Vec::new();
         let mut cur_token = self.next_token();
 
@@ -61,7 +54,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
@@ -84,12 +77,17 @@ impl<'a> Parser<'a> {
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
-    fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
         let node = match cur_token {
-            Token::Number(number) => Node::Number(number),
+            Token::Number(number, op) => match op {
+                ops::NULL => Node::Number(number),
+                op => Node::PseudoRow(vec![Node::Number(number), Node::Operator(op, None)]),
+            },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
+            Token::OpGreaterThan => Node::OpGreaterThan,
+            Token::OpLessThan => Node::OpLessThan,
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
@@ -98,7 +96,7 @@ impl<'a> Parser<'a> {
                 if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     let content = self.parse_token()?;
-                    Node::Root(Box::new(degree), Box::new(content))
+                    Node::Root(Box::new(squeeze(degree)), Box::new(content))
                 } else {
                     let content = self.parse_node(next_token)?;
                     Node::Sqrt(Box::new(content))
@@ -261,7 +259,7 @@ impl<'a> Parser<'a> {
                 set_variant(node, MathVariant::Normal)
             }
             Token::Style(var) => {
-                let node = self.parse_token()?;
+                let node = self.parse_single_token()?;
                 let node = if let Node::Row(nodes) = node {
                     merge_single_letters(nodes)
                 } else {
@@ -302,12 +300,10 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::Operator(int, None),
             },
-            Token::Colon => match self.peek_token {
-                Token::Operator(ops::EQUAL | ops::EQUIV) => {
-                    let Token::Operator(op) = self.next_token() else {
-                        // We have just verified that the next token is an operator.
-                        unreachable!()
-                    };
+            Token::Colon => match &self.peek_token {
+                Token::Operator(op @ (ops::EQUAL | ops::EQUIV)) => {
+                    let op = op.clone();
+                    self.next_token(); // Discard the operator token.
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
@@ -330,7 +326,7 @@ impl<'a> Parser<'a> {
                     right: Some("0.2222"),
                 },
             },
-            Token::LBrace => self.parse_group(Token::RBrace)?,
+            Token::LBrace => squeeze(self.parse_group(Token::RBrace)?),
             Token::Paren(paren) => Node::Operator(paren, Some(Stretchy::False)),
             Token::Left => {
                 let open = match self.next_token() {
@@ -357,17 +353,18 @@ impl<'a> Parser<'a> {
                 Node::Fenced {
                     open,
                     close,
-                    content: Box::new(content),
+                    content: Box::new(squeeze(content)),
                 }
             }
-            Token::Middle => {
-                let stretchy = Some(Stretchy::True);
-                let tok = self.next_token();
-                match self.parse_single_node(tok)? {
-                    Node::Operator(op, _) => Node::Operator(op, stretchy),
-                    _ => unimplemented!(),
+            Token::Middle => match self.next_token() {
+                Token::Operator(op) | Token::Paren(op) => Node::Operator(op, Some(Stretchy::True)),
+                tok => {
+                    return Err(LatexError::UnexpectedToken {
+                        expected: Token::Operator(ops::NULL),
+                        got: tok,
+                    })
                 }
-            }
+            },
             Token::Big(size) => match self.next_token() {
                 Token::Paren(paren) => Node::SizedParen { size, paren },
                 tok => {
@@ -378,41 +375,39 @@ impl<'a> Parser<'a> {
                 }
             },
             Token::Begin => {
+                self.check_lbrace()?;
                 // Read the environment name.
-                let environment = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                let environment = self.parse_text_group(WhiteSpace::Record)?;
                 // Read the contents of \begin..\end.
-                let content = match self.parse_group(Token::End)? {
-                    Node::Row(content) => content,
-                    content => vec![content],
-                };
                 let node = match environment.as_str() {
-                    "align" | "align*" | "aligned" => Node::Table(content, Align::Alternating),
+                    "align" | "align*" | "aligned" => self.parse_table(Align::Alternating)?,
                     "cases" => Node::Fenced {
                         open: ops::LEFT_CURLY_BRACKET,
                         close: ops::NULL,
-                        content: Box::new(Node::Table(content, Align::Left)),
+                        content: Box::new(self.parse_table(Align::Left)?),
                     },
-                    "matrix" => Node::Table(content, Align::Center),
+                    "matrix" => self.parse_table(Align::Center)?,
                     "pmatrix" => Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     "bmatrix" => Node::Fenced {
                         open: ops::LEFT_SQUARE_BRACKET,
                         close: ops::RIGHT_SQUARE_BRACKET,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     "vmatrix" => Node::Fenced {
                         open: ops::VERTICAL_LINE,
                         close: ops::VERTICAL_LINE,
-                        content: Box::new(Node::Table(content, Align::Center)),
+                        content: Box::new(self.parse_table(Align::Center)?),
                     },
                     _ => {
                         return Err(LatexError::UnknownEnvironment(environment));
                     }
                 };
-                let end_name = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                self.check_lbrace()?;
+                let end_name = self.parse_text_group(WhiteSpace::Record)?;
                 if end_name != environment {
                     return Err(LatexError::MismatchedEnvironment {
                         expected: environment,
@@ -423,25 +418,15 @@ impl<'a> Parser<'a> {
                 node
             }
             Token::OperatorName => {
-                if !self.peek_token_is(Token::LBrace) {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::LBrace,
-                        got: self.next_token(),
-                    });
-                }
+                self.check_lbrace()?;
                 // Read the function name.
-                let function = self.parse_text_group(Token::RBrace, WhiteSpace::Skip)?;
+                let function = self.parse_text_group(WhiteSpace::Skip)?;
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
-                if !self.peek_token_is(Token::LBrace) {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::LBrace,
-                        got: self.next_token(),
-                    });
-                }
+                self.check_lbrace()?;
                 // Read the text.
-                let text = self.parse_text_group(Token::RBrace, WhiteSpace::Record)?;
+                let text = self.parse_text_group(WhiteSpace::Convert)?;
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -470,10 +455,7 @@ impl<'a> Parser<'a> {
                     got: '^',
                 });
             }
-            Token::Null => {
-                unreachable!()
-            }
-            Token::EOF => return Err(LatexError::UnexpectedEOF),
+            Token::EOF | Token::Null => return Err(LatexError::UnexpectedEOF),
             tok @ (Token::End | Token::Right | Token::RBrace) => {
                 return Err(LatexError::UnexpectedClose(tok))
             }
@@ -492,18 +474,19 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_token(&mut self) -> Result<Node, LatexError<'a>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_single_token(&mut self) -> Result<Node, LatexError<'a>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
 
-    fn parse_group(&mut self, end_token: Token) -> Result<Node, LatexError> {
+    /// Parse the contents of a group which can contain any expression.
+    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node>, LatexError<'a>> {
         let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
@@ -521,59 +504,44 @@ impl<'a> Parser<'a> {
             nodes.push(self.parse_node(cur_token)?);
             cur_token = self.next_token();
         }
-
-        if nodes.len() == 1 {
-            // SAFETY: `nodes` is not empty.
-            unsafe { Ok(nodes.into_iter().next().unwrap_unchecked()) }
-        } else {
-            Ok(Node::Row(nodes))
-        }
+        Ok(nodes)
     }
 
-    fn parse_text_group(
-        &mut self,
-        end_token: Token,
-        whitespace: WhiteSpace,
-    ) -> Result<String, LatexError> {
-        // We immediately start recording whitespace, so that the peek token field
-        // can be filled with whitespace characters.
-        self.l.record_whitespace = matches!(whitespace, WhiteSpace::Record);
-        self.next_token(); // Discard the opening brace token.
-
-        let mut text = String::new();
-
-        loop {
-            match &self.peek_token {
-                Token::Letter(x) | Token::NormalLetter(x) => {
-                    text.push(*x); // Copy the character.
-                    self.next_token(); // Discard the token.
-                }
-                _ => {
-                    // We turn off the whitespace recording here because we don't want to put
-                    // any whitespace chracters into the peek token field.
-                    self.l.record_whitespace = false;
-                    // Get whatever non-letter token is next.
-                    // (We know it is not a letter because we matched on the peek token.)
-                    let non_letter_tok = self.next_token();
-                    if non_letter_tok == end_token {
-                        break; // Everything is fine.
-                    } else {
-                        return Err(LatexError::UnexpectedToken {
-                            expected: end_token,
-                            got: non_letter_tok,
-                        });
-                    }
-                }
+    /// Parse the contents of a group which can only contain text.
+    fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError<'a>> {
+        let result = self.l.read_text_content(whitespace).ok_or({
+            LatexError::UnexpectedToken {
+                expected: Token::RBrace,
+                got: Token::EOF,
             }
-        }
+        });
+        self.next_token(); // Discard the opening token (which is still stored as `peek`).
+        result
+    }
 
-        Ok(text)
+    #[inline]
+    fn parse_table(&mut self, align: Align) -> Result<Node, LatexError<'a>> {
+        Ok(Node::Table(self.parse_group(Token::End)?, align))
+    }
+
+    fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
+        if !self.peek_token_is(Token::LBrace) {
+            return Err(LatexError::UnexpectedToken {
+                expected: Token::LBrace,
+                got: self.next_token(),
+            });
+        }
+        Ok(())
     }
 }
 
-enum WhiteSpace {
-    Skip,
-    Record,
+fn squeeze(nodes: Vec<Node>) -> Node {
+    if nodes.len() == 1 {
+        // SAFETY: `nodes` is not empty.
+        unsafe { nodes.into_iter().next().unwrap_unchecked() }
+    } else {
+        Node::Row(nodes)
+    }
 }
 
 fn set_variant(node: Node, var: MathVariant) -> Node {

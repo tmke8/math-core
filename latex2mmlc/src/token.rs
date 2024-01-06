@@ -4,7 +4,7 @@ use crate::attribute::{DisplayStyle, TextTransform};
 use crate::ops::{self, Op};
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
-pub enum Token {
+pub enum Token<'a> {
     Null,
     #[strum(serialize = "end of document")]
     EOF,
@@ -12,6 +12,7 @@ pub enum Token {
     Begin,
     #[strum(serialize = "\\end{...}")]
     End,
+    #[strum(serialize = "&")]
     Ampersand,
     NewLine,
     Left,
@@ -30,6 +31,7 @@ pub enum Token {
     Underset,
     Overbrace(Op),
     Underbrace(Op),
+    #[strum(serialize = "\\sqrt")]
     Sqrt,
     Integral(Op),
     Lim(&'static str),
@@ -41,20 +43,25 @@ pub enum Token {
     Over(Op),
     Under(Op),
     Operator(Op),
+    #[strum(serialize = ">")]
+    OpGreaterThan,
+    #[strum(serialize = "<")]
+    OpLessThan,
+    #[strum(serialize = ":")]
     Colon,
     BigOp(Op),
     Letter(char),
     NormalLetter(char),
-    Number(String),
+    Number(String, Op),
     Function(&'static str),
     OperatorName,
     Slashed,
     Text,
     Mathstrut,
-    UnknownCommand(String),
+    UnknownCommand(&'a str),
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
@@ -62,8 +69,8 @@ impl Token {
         )
     }
 
-    pub fn from_command(command: String) -> Token {
-        match command.as_str() {
+    pub fn from_command(command: &'a str) -> Token<'a> {
+        match command {
             "mathrm" => Token::NormalVariant,
             "textit" => Token::Style(TextTransform::Italic),
             "mathit" => Token::Style(TextTransform::Italic),
@@ -443,8 +450,8 @@ impl Token {
             "forall" => Token::Operator(ops::FORALL),
             "exists" => Token::Operator(ops::EXISTS),
             "nexists" => Token::Operator(Op('∄')),
-            "lt" => Token::Operator(ops::LT),
-            "gt" => Token::Operator(ops::GT),
+            "lt" => Token::OpLessThan,
+            "gt" => Token::OpGreaterThan,
             "leq" => Token::Operator(Op('≤')),
             "geq" => Token::Operator(Op('≥')),
             "le" => Token::Operator(Op('≤')),

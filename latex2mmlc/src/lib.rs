@@ -90,7 +90,7 @@ pub fn latex_to_mathml(
     latex: &str,
     display: Display,
     pretty: bool,
-) -> Result<String, error::LatexError> {
+) -> Result<String, error::LatexError<'_>> {
     let nodes = get_nodes(latex)?;
 
     let mut output = match display {
@@ -122,8 +122,11 @@ mod tests {
     #[test]
     fn full_tests() {
         let problems = vec![
+            ("empty", r""),
+            ("text", r"\text{hi}xx"),
             ("integer", r"0"),
             ("rational_number", r"3.14"),
+            ("long_number", r"3,453,435.3453"),
             ("single_variable", r"x"),
             ("greek_letter", r"\alpha"),
             ("greek_letters", r"\phi/\varphi"),
@@ -167,9 +170,11 @@ mod tests {
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
             (
                 "cases",
-                r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise}\end{cases}",
+                r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
             ),
             ("mathstrut", r"\mathstrut"),
+            ("greater_than", r"x > y"),
+            ("text_transform_sup", r"\mathbb{N} \cup \mathbb{N}^+"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -201,6 +206,8 @@ mod tests {
             ("incomplete_sup", r"x^"),
             ("invalid_sup", r"x^^"),
             ("invalid_sub_sup", r"x^_"),
+            ("unicode_command", r"\éx"),
+            ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
         ];
 
         for (name, problem) in problems.into_iter() {
