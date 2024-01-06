@@ -25,9 +25,14 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
+    #[inline]
+    fn read_char_directly(&mut self) -> (usize, char) {
+        self.input.next().unwrap_or((0, '\u{0}'))
+    }
+
     /// One character progresses.
     fn read_char(&mut self) {
-        self.cur = self.input.next().unwrap_or((0, '\u{0}')).1;
+        self.cur = self.read_char_directly().1;
     }
 
     /// Skip blank characters.
@@ -44,7 +49,7 @@ impl<'a> Lexer<'a> {
         let len = whole_string.len();
 
         // Always read at least one character.
-        let (start, first) = self.input.next().unwrap_or((0, '\u{0}'));
+        let (start, first) = self.read_char_directly();
 
         if !first.is_ascii_alphabetic() {
             let (end, next) = self.input.next().unwrap_or((start + len, '\u{0}'));
@@ -66,19 +71,18 @@ impl<'a> Lexer<'a> {
     /// Read one number into a token.
     fn read_number(&mut self) -> (String, Op) {
         let mut number = String::new();
-        let mut last = self.cur;
-        self.read_char();
-        while last.is_ascii_digit() || (matches!(last, '.' | ',') && self.cur.is_ascii_digit()) {
-            number.push(last);
-            if self.cur.is_ascii_digit() || matches!(self.cur, '.' | ',') {
-                last = self.cur;
-                self.read_char();
-            } else {
-                return (number, ops::NULL);
+
+        while self.cur.is_ascii_digit() || matches!(self.cur, '.' | ',') {
+            // Before we accept the current character, we need to check the next one.
+            let candidate = self.cur;
+            self.read_char();
+            if !candidate.is_ascii_digit() && !self.cur.is_ascii_digit() {
+                // If neither the candiate character nor the next character is a digit,
+                // we stop.
+                // But we need to return the `candidate` character.
+                return (number, Op(candidate));
             }
-        }
-        if matches!(last, '.' | ',') {
-            return (number, Op(last));
+            number.push(candidate);
         }
         (number, ops::NULL)
     }
