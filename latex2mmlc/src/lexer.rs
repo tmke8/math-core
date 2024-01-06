@@ -49,7 +49,7 @@ impl<'a> Lexer<'a> {
             let (end, next) = self.input.next().unwrap_or((start + len, '\u{0}'));
             self.cur = next;
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-            return unsafe { &whole_string.get_unchecked(0..(end - start)) };
+            return unsafe { whole_string.get_unchecked(0..(end - start)) };
         }
 
         // Read in all ASCII characters.
@@ -59,7 +59,7 @@ impl<'a> Lexer<'a> {
         }
         self.cur = next;
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-        unsafe { &whole_string.get_unchecked(0..(end - start)) }
+        unsafe { whole_string.get_unchecked(0..(end - start)) }
     }
 
     /// Read one number into a token.

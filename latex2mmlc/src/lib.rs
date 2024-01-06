@@ -90,7 +90,7 @@ pub fn latex_to_mathml(
     latex: &str,
     display: Display,
     pretty: bool,
-) -> Result<String, error::LatexError> {
+) -> Result<String, error::LatexError<'_>> {
     let nodes = get_nodes(latex)?;
 
     let mut output = match display {

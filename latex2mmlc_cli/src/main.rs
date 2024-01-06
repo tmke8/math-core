@@ -62,23 +62,19 @@ struct Args {
 fn main() {
     let args = Args::parse();
     if let Some(ref fpath) = args.file {
-        let result = if fpath == &PathBuf::from("-") {
-            match replace(&read_stdin()) {
+        if fpath == &PathBuf::from("-") {
+            let input = read_stdin();
+            match replace(&input) {
                 Ok(mathml) => {
                     println!("{}", mathml);
-                    Ok(())
                 }
-                Err(e) => Err(e),
-            }
+                Err(e) => exit_latex_error(e),
+            };
         } else if args.recursive {
-            convert_html_recursive(fpath)
+            convert_html_recursive(fpath);
         } else {
-            convert_html(fpath)
+            convert_html(fpath);
         };
-        if let Err(e) = result {
-            eprintln!("LaTeX2MathML Error: {}", e);
-            std::process::exit(2);
-        }
     } else if let Some(ref formula) = args.formula {
         convert_and_exit(&args, formula);
     } else {
@@ -89,8 +85,7 @@ fn main() {
 fn read_stdin() -> String {
     let mut buffer = String::new();
     if let Err(e) = std::io::stdin().read_to_string(&mut buffer) {
-        eprintln!("IO Error: {}", e);
-        std::process::exit(1);
+        exit_io_error(e);
     }
     buffer
 }
@@ -103,33 +98,28 @@ fn convert_and_exit(args: &Args, latex: &str) {
     };
     match latex_to_mathml(latex, display, false) {
         Ok(mathml) => println!("{}", mathml),
-        Err(e) => {
-            eprintln!("LaTeX2MathML Error: {}", e);
-            std::process::exit(2);
-        }
+        Err(e) => exit_latex_error(e),
     }
 }
 
 #[derive(Debug)]
-enum ConversionError {
+enum ConversionError<'a> {
     InvalidNumberOfDollarSigns,
-    IOError(std::io::Error),
-    LatexError(LatexError, String),
+    LatexError(LatexError<'a>, &'a str),
 }
 
-impl fmt::Display for ConversionError {
+impl fmt::Display for ConversionError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConversionError::InvalidNumberOfDollarSigns => {
                 write!(f, "Invalid number of dollar signs")
             }
             ConversionError::LatexError(e, input) => write!(f, "Error in '{}':\n{}", input, e),
-            ConversionError::IOError(e) => write!(f, "{}", e),
         }
     }
 }
 
-impl std::error::Error for ConversionError {}
+impl std::error::Error for ConversionError<'_> {}
 
 /// Find LaTeX equations and replace them to MathML.
 ///
@@ -151,86 +141,48 @@ impl std::error::Error for ConversionError {}
 ///
 /// `examples/document.rs` gives a sample code using this function.
 ///
-fn replace(input: &str) -> Result<String, ConversionError> {
-    let mut input: Vec<u8> = input.as_bytes().to_owned();
+fn replace(input: &str) -> Result<String, ConversionError<'_>> {
+    let mut output = String::with_capacity(input.len());
 
     //**** Convert block-math ****//
 
-    // Generate an index list that matches `$$`
-    let idx = input
-        .windows(2)
-        .enumerate()
-        .filter_map(|(i, window)| {
-            if window == [b'$', b'$'] {
-                Some(i)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<usize>>();
-    if idx.len() % 2 != 0 {
+    // Generate an index list that matches `$$`.
+    let slices: Vec<&str> = input.split("$$").collect();
+    if slices.len() % 2 == 0 {
         return Err(ConversionError::InvalidNumberOfDollarSigns);
     }
 
-    if idx.len() > 1 {
-        let mut output = Vec::new();
-        output.extend_from_slice(&input[0..idx[0]]);
-        for i in (0..idx.len() - 1).step_by(2) {
-            {
-                // convert LaTeX to MathML
-                let input = &input[idx[i] + 2..idx[i + 1]];
-                let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Block, false)
-                    .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
-                output.extend_from_slice(mathml.as_bytes());
+    for (i, outer_slice) in slices.iter().enumerate() {
+        if i % 2 == 0 {
+            //**** Convert inline-math ****//
+
+            // Generate an index list that matches `$`.
+            // (Any `$` that we can still find has to be an inline-math delimiter,
+            // because we have already converted the block-math delimiters `$$`.)
+            let inner_slices: Vec<&str> = outer_slice.split('$').collect();
+            if inner_slices.len() % 2 == 0 {
+                return Err(ConversionError::InvalidNumberOfDollarSigns);
             }
 
-            if i + 2 < idx.len() {
-                output.extend_from_slice(&input[idx[i + 1] + 2..idx[i + 2]]);
-            } else {
-                output.extend_from_slice(&input[idx.last().unwrap() + 2..]);
+            for (i, inner_slice) in inner_slices.iter().enumerate() {
+                if i % 2 == 0 {
+                    output += inner_slice;
+                } else {
+                    // convert LaTeX to MathML
+                    let mathml = latex_to_mathml(inner_slice, Display::Inline, false)
+                        .map_err(|e| ConversionError::LatexError(e, inner_slice))?;
+                    output += &mathml;
+                }
             }
+        } else {
+            // convert LaTeX to MathML
+            let mathml = latex_to_mathml(outer_slice, Display::Block, false)
+                .map_err(|e| ConversionError::LatexError(e, outer_slice))?;
+            output += &mathml;
         }
-
-        input = output;
     }
 
-    //**** Convert inline-math ****//
-
-    // Generate an index list that matches `$`
-    let idx = input
-        .iter()
-        .enumerate()
-        .filter_map(|(i, byte)| if byte == &b'$' { Some(i) } else { None })
-        .collect::<Vec<usize>>();
-    if idx.len() % 2 != 0 {
-        return Err(ConversionError::InvalidNumberOfDollarSigns);
-    }
-
-    if idx.len() > 1 {
-        let mut output = Vec::new();
-        output.extend_from_slice(&input[0..idx[0]]);
-        for i in (0..idx.len() - 1).step_by(2) {
-            {
-                // convert LaTeX to MathML
-                let input = &input[idx[i] + 1..idx[i + 1]];
-                let input = unsafe { std::str::from_utf8_unchecked(input) };
-                let mathml = latex_to_mathml(input, Display::Inline, false)
-                    .map_err(|e| ConversionError::LatexError(e, input.to_string()))?;
-                output.extend_from_slice(mathml.as_bytes());
-            }
-
-            if i + 2 < idx.len() {
-                output.extend_from_slice(&input[idx[i + 1] + 1..idx[i + 2]]);
-            } else {
-                output.extend_from_slice(&input[idx.last().unwrap() + 1..]);
-            }
-        }
-
-        input = output;
-    }
-
-    unsafe { Ok(String::from_utf8_unchecked(input)) }
+    Ok(output)
 }
 
 /// Convert all LaTeX expressions for all HTMLs in a given directory.
@@ -258,35 +210,39 @@ fn replace(input: &str) -> Result<String, ConversionError> {
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive<P: AsRef<Path>>(path: P) -> Result<(), ConversionError> {
+fn convert_html_recursive<P: AsRef<Path>>(path: P) {
     if path.as_ref().is_dir() {
-        let dir = fs::read_dir(path).map_err(ConversionError::IOError)?;
+        let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(&entry.path())?
+            convert_html_recursive(&entry.path())
         }
     } else if path.as_ref().is_file() {
         if let Some(ext) = path.as_ref().extension() {
             if ext == "html" {
-                match convert_html(&path) {
-                    Ok(_) => (),
-                    Err(e) => eprintln!("LaTeX2MathML Error: {}", e),
-                }
+                convert_html(&path);
             }
         }
     }
-
-    Ok(())
 }
 
-fn convert_html<P: AsRef<Path>>(fp: P) -> Result<(), ConversionError> {
-    let original = fs::read_to_string(&fp).map_err(ConversionError::IOError)?;
-    let converted = replace(&original)?;
+fn convert_html<P: AsRef<Path>>(fp: P) {
+    let original = fs::read_to_string(&fp).unwrap_or_else(|e| exit_io_error(e));
+    let converted = replace(&original).unwrap_or_else(|e| exit_latex_error(e));
     if original != converted {
-        let mut fp = fs::File::create(fp).map_err(ConversionError::IOError)?;
+        let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
-            .map_err(ConversionError::IOError)?;
+            .unwrap_or_else(|e| exit_io_error(e));
     }
-    Ok(())
+}
+
+fn exit_latex_error<E: std::error::Error>(e: E) -> ! {
+    eprintln!("LaTeX2MathML Error: {}", e);
+    std::process::exit(2);
+}
+
+fn exit_io_error(e: std::io::Error) -> ! {
+    eprintln!("IO Error: {}", e);
+    std::process::exit(1);
 }
 
 #[cfg(test)]
