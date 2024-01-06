@@ -126,6 +126,7 @@ mod tests {
             ("text", r"\text{hi}xx"),
             ("integer", r"0"),
             ("rational_number", r"3.14"),
+            ("long_number", r"3,453,435.3453"),
             ("single_variable", r"x"),
             ("greek_letter", r"\alpha"),
             ("greek_letters", r"\phi/\varphi"),

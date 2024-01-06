@@ -4,7 +4,8 @@
 //! - Output: `Vec<Token>`
 //!
 
-use super::{ops, token::Token};
+use crate::ops::Op;
+use crate::{ops, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -37,7 +38,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one command to a token.
-    fn read_command(&mut self) -> Token {
+    fn read_command(&mut self) -> String {
         let mut command = String::new();
 
         // Always read at least one character.
@@ -45,27 +46,37 @@ impl<'a> Lexer<'a> {
         let first = self.cur;
         command.push(first);
 
-        // Read in all ASCII characters.
         self.read_char();
-        while first.is_ascii_alphabetic() && self.cur.is_ascii_alphabetic() {
+        if !first.is_ascii_alphabetic() {
+            return command;
+        }
+
+        // Read in all ASCII characters.
+        while self.cur.is_ascii_alphabetic() {
             command.push(self.cur);
             self.read_char();
         }
-        Token::from_command(command)
+        command
     }
 
     /// Read one number into a token.
-    fn read_number(&mut self) -> Token {
+    fn read_number(&mut self) -> (String, Op) {
         let mut number = String::new();
-        let mut has_period = false;
-        while self.cur.is_ascii_digit() || (self.cur == '.' && !has_period) {
-            if self.cur == '.' {
-                has_period = true;
+        let mut last = self.cur;
+        self.read_char();
+        while last.is_ascii_digit() || (matches!(last, '.' | ',') && self.cur.is_ascii_digit()) {
+            number.push(last);
+            if self.cur.is_ascii_digit() || matches!(self.cur, '.' | ',') {
+                last = self.cur;
+                self.read_char();
+            } else {
+                return (number, ops::NULL);
             }
-            number.push(self.cur);
-            self.read_char();
         }
-        Token::Number(number)
+        if matches!(last, '.' | ',') {
+            return (number, Op(last));
+        }
+        (number, ops::NULL)
     }
 
     /// Read text until the next `}`.
@@ -93,7 +104,7 @@ impl<'a> Lexer<'a> {
         if wants_digit && self.cur.is_ascii_digit() {
             let num = self.cur;
             self.read_char();
-            return Token::Number(num.to_string());
+            return Token::Number(num.to_string(), ops::NULL);
         }
         self.skip_whitespace();
 
@@ -125,11 +136,12 @@ impl<'a> Lexer<'a> {
             ':' => Token::Colon,
             ' ' => Token::Letter('\u{A0}'),
             '\\' => {
-                return self.read_command();
+                return Token::from_command(self.read_command());
             }
             c => {
                 if c.is_ascii_digit() {
-                    return self.read_number();
+                    let (num, op) = self.read_number();
+                    return Token::Number(num, op);
                 } else if c.is_ascii_alphabetic() {
                     Token::Letter(c)
                 } else {
@@ -150,11 +162,16 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = vec![
-            (r"3", vec![Token::Number("3".to_owned())]),
-            (r"3.14", vec![Token::Number("3.14".to_owned())]),
+            (r"3", vec![Token::Number("3".to_owned(), ops::NULL)]),
+            (r"3.14", vec![Token::Number("3.14".to_owned(), ops::NULL)]),
+            (r"3.14.", vec![Token::Number("3.14".to_owned(), ops::DOT)]),
             (
-                r"3.14.",
-                vec![Token::Number("3.14".to_owned()), Token::Operator(ops::DOT)],
+                r"3..14",
+                vec![
+                    Token::Number("3".to_owned(), ops::DOT),
+                    Token::Operator(ops::DOT),
+                    Token::Number("14".to_owned(), ops::NULL),
+                ],
             ),
             (r"x", vec![Token::Letter('x')]),
             (r"\pi", vec![Token::Letter('π')]),
@@ -163,7 +180,7 @@ mod tests {
                 vec![
                     Token::Letter('x'),
                     Token::Operator(ops::EQUAL),
-                    Token::Number("3.14".to_owned()),
+                    Token::Number("3.14".to_owned(), ops::NULL),
                 ],
             ),
             (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
@@ -177,7 +194,7 @@ mod tests {
             ),
             (
                 r"\ 1",
-                vec![Token::Space("1"), Token::Number("1".to_owned())],
+                vec![Token::Space("1"), Token::Number("1".to_owned(), ops::NULL)],
             ),
         ];
 

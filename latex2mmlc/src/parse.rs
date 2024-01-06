@@ -80,7 +80,10 @@ impl<'a> Parser<'a> {
     // consideration of infix operators.
     fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
         let node = match cur_token {
-            Token::Number(number) => Node::Number(number),
+            Token::Number(number, op) => match op {
+                ops::NULL => Node::Number(number),
+                op => Node::PseudoRow(vec![Node::Number(number), Node::Operator(op, None)]),
+            },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
