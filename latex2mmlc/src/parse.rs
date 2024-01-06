@@ -259,7 +259,7 @@ impl<'a> Parser<'a> {
                 set_variant(node, MathVariant::Normal)
             }
             Token::Style(var) => {
-                let node = self.parse_token()?;
+                let node = self.parse_single_token()?;
                 let node = if let Node::Row(nodes) = node {
                     merge_single_letters(nodes)
                 } else {

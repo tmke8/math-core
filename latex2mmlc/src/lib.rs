@@ -174,6 +174,7 @@ mod tests {
             ),
             ("mathstrut", r"\mathstrut"),
             ("greater_than", r"x > y"),
+            ("text_transform_sup", r"\mathbb{N} \cup \mathbb{N}^+"),
         ];
 
         for (name, problem) in problems.into_iter() {
