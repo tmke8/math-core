@@ -4,7 +4,7 @@ use crate::attribute::{DisplayStyle, TextTransform};
 use crate::ops::{self, Op};
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
-pub enum Token {
+pub enum Token<'a> {
     Null,
     #[strum(serialize = "end of document")]
     EOF,
@@ -51,10 +51,10 @@ pub enum Token {
     Slashed,
     Text,
     Mathstrut,
-    UnknownCommand(String),
+    UnknownCommand(&'a str),
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
@@ -62,8 +62,8 @@ impl Token {
         )
     }
 
-    pub fn from_command(command: String) -> Token {
-        match command.as_str() {
+    pub fn from_command(command: &'a str) -> Token<'a> {
+        match command {
             "mathrm" => Token::NormalVariant,
             "textit" => Token::Style(TextTransform::Italic),
             "mathit" => Token::Style(TextTransform::Italic),

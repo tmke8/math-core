@@ -2,18 +2,18 @@ use super::token::Token;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LatexError {
-    UnexpectedToken { expected: Token, got: Token },
-    UnexpectedClose(Token),
+pub enum LatexError<'a> {
+    UnexpectedToken { expected: Token<'a>, got: Token<'a> },
+    UnexpectedClose(Token<'a>),
     UnexpectedEOF,
-    MissingParenthesis { location: Token, got: Token },
+    MissingParenthesis { location: Token<'a>, got: Token<'a> },
     UnknownEnvironment(String),
-    UnknownCommand(String),
+    UnknownCommand(&'a str),
     MismatchedEnvironment { expected: String, got: String },
     InvalidCharacter { expected: &'static str, got: char },
 }
 
-impl LatexError {
+impl<'a> LatexError<'a> {
     /// Returns the error message as a string.
     ///
     /// This serves the same purpose as the `Display` implementation,
@@ -58,10 +58,10 @@ impl LatexError {
     }
 }
 
-impl fmt::Display for LatexError {
+impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.string())
     }
 }
 
-impl std::error::Error for LatexError {}
+impl std::error::Error for LatexError<'_> {}

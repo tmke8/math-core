@@ -10,7 +10,7 @@ use crate::{ops, token::Token};
 /// Lexer
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
-    input: std::str::Chars<'a>,
+    input: std::str::CharIndices<'a>,
     cur: char,
 }
 
@@ -18,7 +18,7 @@ impl<'a> Lexer<'a> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(input: &'a str) -> Self {
         let mut lexer = Lexer {
-            input: input.chars(),
+            input: input.char_indices(),
             cur: '\u{0}',
         };
         lexer.read_char();
@@ -26,8 +26,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// One character progresses.
-    pub(crate) fn read_char(&mut self) {
-        self.cur = self.input.next().unwrap_or('\u{0}');
+    fn read_char(&mut self) {
+        self.cur = self.input.next().unwrap_or((0, '\u{0}')).1;
     }
 
     /// Skip blank characters.
@@ -38,25 +38,28 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one command to a token.
-    fn read_command(&mut self) -> String {
-        let mut command = String::new();
+    fn read_command(&mut self) -> &'a str {
+        let whole_string: &'a str = self.input.as_str();
+        let len = whole_string.len();
 
         // Always read at least one character.
-        self.read_char();
-        let first = self.cur;
-        command.push(first);
+        let (start, first) = self.input.next().unwrap_or((0, '\u{0}'));
 
-        self.read_char();
         if !first.is_ascii_alphabetic() {
-            return command;
+            let (end, next) = self.input.next().unwrap_or((start + len, '\u{0}'));
+            self.cur = next;
+            // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
+            return unsafe { &whole_string.get_unchecked(0..(end - start)) };
         }
 
         // Read in all ASCII characters.
-        while self.cur.is_ascii_alphabetic() {
-            command.push(self.cur);
-            self.read_char();
+        let (mut end, mut next) = self.input.next().unwrap_or((start, '\u{0}'));
+        while next.is_ascii_alphabetic() {
+            (end, next) = self.input.next().unwrap_or((start + len, '\u{0}'));
         }
-        command
+        self.cur = next;
+        // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
+        unsafe { &whole_string.get_unchecked(0..(end - start)) }
     }
 
     /// Read one number into a token.
@@ -100,7 +103,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token {
+    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
         if wants_digit && self.cur.is_ascii_digit() {
             let num = self.cur;
             self.read_char();

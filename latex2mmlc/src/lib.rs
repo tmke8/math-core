@@ -204,6 +204,7 @@ mod tests {
             ("incomplete_sup", r"x^"),
             ("invalid_sup", r"x^^"),
             ("invalid_sub_sup", r"x^_"),
+            ("unicode_command", r"\éx"),
         ];
 
         for (name, problem) in problems.into_iter() {

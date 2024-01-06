@@ -13,7 +13,7 @@ use std::mem;
 #[derive(Debug, Clone)]
 pub(crate) struct Parser<'a> {
     l: Lexer<'a>,
-    peek_token: Token,
+    peek_token: Token<'a>,
 }
 impl<'a> Parser<'a> {
     pub(crate) fn new(l: Lexer<'a>) -> Self {
@@ -27,18 +27,18 @@ impl<'a> Parser<'a> {
         p
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'a> {
         let peek_token = self.l.next_token(self.peek_token.acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek_token, peek_token)
     }
 
     #[inline]
-    fn peek_token_is(&self, expected_token: Token) -> bool {
+    fn peek_token_is(&self, expected_token: Token<'a>) -> bool {
         self.peek_token == expected_token
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node, LatexError> {
+    pub(crate) fn parse(&mut self) -> Result<Node, LatexError<'a>> {
         let mut nodes = Vec::new();
         let mut cur_token = self.next_token();
 
@@ -55,7 +55,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
-    fn parse_single_node(&mut self, cur_token: Token) -> Result<Node, LatexError> {
+    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node, LatexError<'a>> {
         let node = match cur_token {
             Token::Number(number, op) => match op {
                 ops::NULL => Node::Number(number),
@@ -485,19 +485,19 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_token(&mut self) -> Result<Node, LatexError<'a>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node, LatexError> {
+    fn parse_single_token(&mut self) -> Result<Node, LatexError<'a>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
 
     /// Parse the contents of a group which can contain any expression.
-    fn parse_group(&mut self, end_token: Token) -> Result<Vec<Node>, LatexError> {
+    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node>, LatexError<'a>> {
         let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
@@ -519,7 +519,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse the contents of a group which can only contain text.
-    fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError> {
+    fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError<'a>> {
         let result = self
             .l
             .read_text_content(matches!(whitespace, WhiteSpace::Skip))
@@ -534,7 +534,7 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_table(&mut self, align: Align) -> Result<Node, LatexError> {
+    fn parse_table(&mut self, align: Align) -> Result<Node, LatexError<'a>> {
         Ok(Node::Table(self.parse_group(Token::End)?, align))
     }
 }
