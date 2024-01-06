@@ -47,6 +47,8 @@ pub enum Token<'a> {
     OpGreaterThan,
     #[strum(serialize = "<")]
     OpLessThan,
+    #[strum(serialize = "\\&")]
+    OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
     BigOp(Op),
@@ -327,7 +329,7 @@ impl<'a> Token<'a> {
             "P" => Token::NormalLetter('¶'),
             "%" => Token::NormalLetter('%'),
             "_" => Token::NormalLetter('_'),
-            "&" => Token::NormalLetter('&'),
+            "&" => Token::OpAmpersand,
             "#" => Token::NormalLetter('#'),
             "$" => Token::NormalLetter('$'),
             "copyright" => Token::NormalLetter('©'),

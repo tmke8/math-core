@@ -11,6 +11,7 @@ pub enum Node<'a> {
     Operator(Op, Option<Stretchy>),
     OpGreaterThan,
     OpLessThan,
+    OpAmpersand,
     OperatorWithSpacing {
         op: Op,
         stretchy: Option<Stretchy>,
@@ -129,6 +130,7 @@ impl<'a> Node<'a> {
             }
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
+            Node::OpAmpersand => push!(s, "<mo>&amp;</mo>"),
             Node::OperatorWithSpacing {
                 op,
                 stretchy,
