@@ -88,6 +88,7 @@ impl<'a> Parser<'a> {
             Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
+            Token::OpAmpersand => Node::OpAmpersand,
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
