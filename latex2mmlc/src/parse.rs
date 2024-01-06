@@ -298,12 +298,10 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::Operator(int, None),
             },
-            Token::Colon => match self.peek_token {
-                Token::Operator(ops::EQUAL | ops::EQUIV) => {
-                    let Token::Operator(op) = self.next_token() else {
-                        // We have just verified that the next token is an operator.
-                        unreachable!()
-                    };
+            Token::Colon => match &self.peek_token {
+                Token::Operator(op @ (ops::EQUAL | ops::EQUIV)) => {
+                    let op = op.clone();
+                    self.next_token(); // Discard the operator token.
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
@@ -356,14 +354,15 @@ impl<'a> Parser<'a> {
                     content: Box::new(squeeze(content)),
                 }
             }
-            Token::Middle => {
-                let stretchy = Some(Stretchy::True);
-                let tok = self.next_token();
-                match self.parse_single_node(tok)? {
-                    Node::Operator(op, _) => Node::Operator(op, stretchy),
-                    _ => unimplemented!(),
+            Token::Middle => match self.next_token() {
+                Token::Operator(op) | Token::Paren(op) => Node::Operator(op, Some(Stretchy::True)),
+                tok => {
+                    return Err(LatexError::UnexpectedToken {
+                        expected: Token::Operator(ops::NULL),
+                        got: tok,
+                    })
                 }
-            }
+            },
             Token::Big(size) => match self.next_token() {
                 Token::Paren(paren) => Node::SizedParen { size, paren },
                 tok => {
@@ -454,10 +453,7 @@ impl<'a> Parser<'a> {
                     got: '^',
                 });
             }
-            Token::Null => {
-                unreachable!()
-            }
-            Token::EOF => return Err(LatexError::UnexpectedEOF),
+            Token::EOF | Token::Null => return Err(LatexError::UnexpectedEOF),
             tok @ (Token::End | Token::Right | Token::RBrace) => {
                 return Err(LatexError::UnexpectedClose(tok))
             }
