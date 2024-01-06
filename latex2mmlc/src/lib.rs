@@ -205,6 +205,7 @@ mod tests {
             ("invalid_sup", r"x^^"),
             ("invalid_sub_sup", r"x^_"),
             ("unicode_command", r"\éx"),
+            ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
         ];
 
         for (name, problem) in problems.into_iter() {

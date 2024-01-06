@@ -1,5 +1,6 @@
-use super::token::Token;
 use std::fmt;
+
+use crate::token::Token;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LatexError<'a> {

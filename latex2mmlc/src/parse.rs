@@ -1,14 +1,13 @@
-use crate::attribute::{Accent, PhantomWidth, Stretchy};
+use std::mem;
 
-use super::{
+use crate::{
     ast::Node,
-    attribute::{Align, LineThickness, MathVariant, TextTransform},
+    attribute::{Accent, Align, LineThickness, MathVariant, PhantomWidth, Stretchy, TextTransform},
     error::LatexError,
-    lexer::Lexer,
+    lexer::{Lexer, WhiteSpace},
     ops,
     token::Token,
 };
-use std::mem;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Parser<'a> {
@@ -375,6 +374,7 @@ impl<'a> Parser<'a> {
                 }
             },
             Token::Begin => {
+                self.check_lbrace()?;
                 // Read the environment name.
                 let environment = self.parse_text_group(WhiteSpace::Record)?;
                 // Read the contents of \begin..\end.
@@ -405,6 +405,7 @@ impl<'a> Parser<'a> {
                         return Err(LatexError::UnknownEnvironment(environment));
                     }
                 };
+                self.check_lbrace()?;
                 let end_name = self.parse_text_group(WhiteSpace::Record)?;
                 if end_name != environment {
                     return Err(LatexError::MismatchedEnvironment {
@@ -416,25 +417,15 @@ impl<'a> Parser<'a> {
                 node
             }
             Token::OperatorName => {
-                if !self.peek_token_is(Token::LBrace) {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::LBrace,
-                        got: self.next_token(),
-                    });
-                }
+                self.check_lbrace()?;
                 // Read the function name.
                 let function = self.parse_text_group(WhiteSpace::Skip)?;
                 Node::MultiLetterIdent(function, None)
             }
             Token::Text => {
-                if !self.peek_token_is(Token::LBrace) {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::LBrace,
-                        got: self.next_token(),
-                    });
-                }
+                self.check_lbrace()?;
                 // Read the text.
-                let text = self.parse_text_group(WhiteSpace::Record)?;
+                let text = self.parse_text_group(WhiteSpace::Convert)?;
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -520,15 +511,12 @@ impl<'a> Parser<'a> {
 
     /// Parse the contents of a group which can only contain text.
     fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError<'a>> {
-        let result = self
-            .l
-            .read_text_content(matches!(whitespace, WhiteSpace::Skip))
-            .ok_or({
-                LatexError::UnexpectedToken {
-                    expected: Token::RBrace,
-                    got: Token::EOF,
-                }
-            });
+        let result = self.l.read_text_content(whitespace).ok_or({
+            LatexError::UnexpectedToken {
+                expected: Token::RBrace,
+                got: Token::EOF,
+            }
+        });
         self.next_token(); // Discard the opening token (which is still stored as `peek`).
         result
     }
@@ -537,11 +525,16 @@ impl<'a> Parser<'a> {
     fn parse_table(&mut self, align: Align) -> Result<Node, LatexError<'a>> {
         Ok(Node::Table(self.parse_group(Token::End)?, align))
     }
-}
 
-enum WhiteSpace {
-    Skip,
-    Record,
+    fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
+        if !self.peek_token_is(Token::LBrace) {
+            return Err(LatexError::UnexpectedToken {
+                expected: Token::LBrace,
+                got: self.next_token(),
+            });
+        }
+        Ok(())
+    }
 }
 
 fn squeeze(nodes: Vec<Node>) -> Node {

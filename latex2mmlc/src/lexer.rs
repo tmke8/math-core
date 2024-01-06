@@ -38,6 +38,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one command to a token.
+    #[inline]
     fn read_command(&mut self) -> &'a str {
         let whole_string: &'a str = self.input.as_str();
         let len = whole_string.len();
@@ -83,18 +84,22 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read text until the next `}`.
-    pub(crate) fn read_text_content(&mut self, skip_whitespace: bool) -> Option<String> {
+    pub(crate) fn read_text_content(&mut self, whitespace: WhiteSpace) -> Option<String> {
         let mut text = String::new();
-        if skip_whitespace {
+        if matches!(whitespace, WhiteSpace::Skip) {
             self.skip_whitespace();
         }
         while self.cur != '}' {
             if self.cur == '\u{0}' {
                 return None;
             }
-            text.push(self.cur);
+            if matches!(whitespace, WhiteSpace::Convert) && self.cur == ' ' {
+                text.push('\u{A0}')
+            } else {
+                text.push(self.cur);
+            }
             self.read_char();
-            if skip_whitespace {
+            if matches!(whitespace, WhiteSpace::Skip) {
                 self.skip_whitespace();
             }
         }
@@ -155,6 +160,12 @@ impl<'a> Lexer<'a> {
         self.read_char();
         token
     }
+}
+
+pub(crate) enum WhiteSpace {
+    Skip,
+    Record,
+    Convert,
 }
 
 #[cfg(test)]
