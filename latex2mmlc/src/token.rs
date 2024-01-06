@@ -12,6 +12,7 @@ pub enum Token<'a> {
     Begin,
     #[strum(serialize = "\\end{...}")]
     End,
+    #[strum(serialize = "&")]
     Ampersand,
     NewLine,
     Left,
@@ -30,6 +31,7 @@ pub enum Token<'a> {
     Underset,
     Overbrace(Op),
     Underbrace(Op),
+    #[strum(serialize = "\\sqrt")]
     Sqrt,
     Integral(Op),
     Lim(&'static str),
@@ -41,8 +43,11 @@ pub enum Token<'a> {
     Over(Op),
     Under(Op),
     Operator(Op),
+    #[strum(serialize = ">")]
     OpGreaterThan,
+    #[strum(serialize = "<")]
     OpLessThan,
+    #[strum(serialize = ":")]
     Colon,
     BigOp(Op),
     Letter(char),
@@ -445,8 +450,8 @@ impl<'a> Token<'a> {
             "forall" => Token::Operator(ops::FORALL),
             "exists" => Token::Operator(ops::EXISTS),
             "nexists" => Token::Operator(Op('∄')),
-            "lt" => Token::Operator(ops::LT),
-            "gt" => Token::Operator(ops::GT),
+            "lt" => Token::OpLessThan,
+            "gt" => Token::OpGreaterThan,
             "leq" => Token::Operator(Op('≤')),
             "geq" => Token::Operator(Op('≥')),
             "le" => Token::Operator(Op('≤')),
