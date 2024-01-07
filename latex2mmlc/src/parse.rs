@@ -9,7 +9,7 @@ use crate::{
     token::Token,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Parser<'a> {
     l: Lexer<'a>,
     peek_token: Token<'a>,
@@ -32,16 +32,11 @@ impl<'a> Parser<'a> {
         mem::replace(&mut self.peek_token, peek_token)
     }
 
-    #[inline]
-    fn peek_token_is(&self, expected_token: Token<'a>) -> bool {
-        self.peek_token == expected_token
-    }
-
     pub(crate) fn parse(&mut self) -> Result<Node<'a>, LatexError<'a>> {
         let mut nodes = Vec::new();
         let mut cur_token = self.next_token();
 
-        while cur_token != Token::EOF {
+        while !matches!(cur_token, Token::EOF) {
             nodes.push(self.parse_node(cur_token)?);
             cur_token = self.next_token();
         }
@@ -94,7 +89,7 @@ impl<'a> Parser<'a> {
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
                 let next_token = self.next_token();
-                if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
+                if matches!(next_token, Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     let content = self.parse_token()?;
                     Node::Root(Box::new(squeeze(degree)), Box::new(content))
@@ -151,8 +146,8 @@ impl<'a> Parser<'a> {
             ref tok @ (Token::Overbrace(x) | Token::Underbrace(x)) => {
                 let is_over = matches!(tok, Token::Overbrace(_));
                 let target = self.parse_single_token()?;
-                if (is_over && self.peek_token_is(Token::Circumflex))
-                    || (!is_over && self.peek_token_is(Token::Underscore))
+                if (is_over && matches!(self.peek_token, Token::Circumflex))
+                    || (!is_over && matches!(self.peek_token, Token::Underscore))
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = Box::new(self.parse_single_token()?);
@@ -186,8 +181,8 @@ impl<'a> Parser<'a> {
                     let is_underscore = matches!(tok, Token::Underscore);
                     self.next_token(); // Discard the underscore or circumflex token.
                     let symbol = self.parse_single_token()?;
-                    if (is_underscore && self.peek_token_is(Token::Circumflex))
-                        || (!is_underscore && self.peek_token_is(Token::Underscore))
+                    if (is_underscore && matches!(self.peek_token, Token::Circumflex))
+                        || (!is_underscore && matches!(self.peek_token, Token::Underscore))
                     {
                         self.next_token(); // Discard the circumflex or underscore token.
                         let second_symbol = self.parse_single_token()?;
@@ -215,7 +210,7 @@ impl<'a> Parser<'a> {
             },
             Token::Lim(lim) => {
                 let lim = Node::MultiLetterIdent(lim.to_string(), None);
-                if self.peek_token_is(Token::Underscore) {
+                if matches!(self.peek_token, Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
@@ -254,7 +249,7 @@ impl<'a> Parser<'a> {
                 Token::Underscore => {
                     self.next_token(); // Discard the underscore token.
                     let sub = self.parse_single_token()?;
-                    if self.peek_token_is(Token::Circumflex) {
+                    if matches!(self.peek_token, Token::Circumflex) {
                         self.next_token(); // Discard the circumflex token.
                         let sup = self.parse_single_token()?;
                         Node::SubSup {
@@ -269,7 +264,7 @@ impl<'a> Parser<'a> {
                 Token::Circumflex => {
                     self.next_token(); // Discard the circumflex token.
                     let sup = self.parse_single_token()?;
-                    if self.peek_token_is(Token::Underscore) {
+                    if matches!(self.peek_token, Token::Underscore) {
                         self.next_token(); // Discard the underscore token.
                         let sub = self.parse_single_token()?;
                         Node::SubSup {
@@ -476,7 +471,7 @@ impl<'a> Parser<'a> {
         let mut nodes = Vec::new();
 
         while {
-            if cur_token == Token::EOF {
+            if matches!(cur_token, Token::EOF) {
                 // When the input is completed without closed parentheses.
                 return Err(LatexError::UnexpectedToken {
                     expected: end_token,
@@ -511,7 +506,7 @@ impl<'a> Parser<'a> {
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
-        if !self.peek_token_is(Token::LBrace) {
+        if !matches!(self.peek_token, Token::LBrace) {
             return Err(LatexError::UnexpectedToken {
                 expected: Token::LBrace,
                 got: self.next_token(),

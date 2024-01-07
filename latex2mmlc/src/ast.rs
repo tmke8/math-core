@@ -4,7 +4,7 @@ use crate::attribute::{
 use crate::ops::Op;
 
 /// AST node
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Node<'a> {
     Number(&'a str),
     SingleLetterIdent(char, Option<MathVariant>),

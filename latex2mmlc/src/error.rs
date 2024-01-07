@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::token::Token;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum LatexError<'a> {
     UnexpectedToken { expected: Token<'a>, got: Token<'a> },
     UnexpectedClose(Token<'a>),

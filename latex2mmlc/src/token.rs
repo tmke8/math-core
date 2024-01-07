@@ -3,7 +3,7 @@ use strum_macros::AsRefStr;
 use crate::attribute::{DisplayStyle, TextTransform};
 use crate::ops::{self, Op};
 
-#[derive(Debug, Clone, PartialEq, AsRefStr)]
+#[derive(Debug, PartialEq, AsRefStr)]
 pub enum Token<'a> {
     Null,
     #[strum(serialize = "end of document")]
