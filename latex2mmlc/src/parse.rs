@@ -473,10 +473,7 @@ impl<'a> Parser<'a> {
         while {
             if matches!(cur_token, Token::EOF) {
                 // When the input is completed without closed parentheses.
-                return Err(LatexError::UnexpectedToken {
-                    expected: end_token,
-                    got: cur_token,
-                });
+                return Err(LatexError::UnclosedGroup(end_token));
             }
 
             cur_token != end_token
@@ -489,12 +486,10 @@ impl<'a> Parser<'a> {
 
     /// Parse the contents of a group which can only contain text.
     fn parse_text_group(&mut self) -> Result<&'a str, LatexError<'a>> {
-        let result = self.l.read_text_content().ok_or({
-            LatexError::UnexpectedToken {
-                expected: Token::RBrace,
-                got: Token::EOF,
-            }
-        });
+        let result = self
+            .l
+            .read_text_content()
+            .ok_or(LatexError::UnclosedGroup(Token::RBrace));
         self.next_token(); // Discard the opening token (which is still stored as `peek`).
         result
     }

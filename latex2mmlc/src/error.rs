@@ -5,6 +5,7 @@ use crate::token::Token;
 #[derive(Debug)]
 pub enum LatexError<'a> {
     UnexpectedToken { expected: Token<'a>, got: Token<'a> },
+    UnclosedGroup(Token<'a>),
     UnexpectedClose(Token<'a>),
     UnexpectedEOF,
     MissingParenthesis { location: Token<'a>, got: Token<'a> },
@@ -27,6 +28,9 @@ impl<'a> LatexError<'a> {
                     + "\", but found token \""
                     + got.as_ref()
                     + "\"."
+            }
+            LatexError::UnclosedGroup(expected) => {
+                "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
             }
             LatexError::UnexpectedClose(got) => {
                 "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."

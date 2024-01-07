@@ -15,7 +15,9 @@ pub enum Token<'a> {
     #[strum(serialize = "&")]
     Ampersand,
     NewLine,
+    #[strum(serialize = "\\left")]
     Left,
+    #[strum(serialize = "\\right")]
     Right,
     Middle,
     Paren(Op),

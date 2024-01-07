@@ -212,6 +212,10 @@ mod tests {
             ("invalid_sub_sup", r"x^_"),
             ("unicode_command", r"\éx"),
             ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
+            ("unclosed_brace", r"{"),
+            ("unclosed_left", r"\left( x"),
+            ("unclosed_env", r"\begin{matrix} x"),
+            ("unclosed_text", r"\text{hello"),
         ];
 
         for (name, problem) in problems.into_iter() {
