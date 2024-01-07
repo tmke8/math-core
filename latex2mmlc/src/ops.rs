@@ -1,15 +1,17 @@
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Op(pub char);
 
-impl Op {
+impl From<Op> for char {
     #[inline]
-    pub fn into_char(self) -> char {
-        self.0
+    fn from(op: Op) -> Self {
+        op.0
     }
+}
 
+impl From<&Op> for char {
     #[inline]
-    pub fn str_ref<'a>(&self, buf: &'a mut [u8]) -> &'a mut str {
-        self.0.encode_utf8(buf)
+    fn from(op: &Op) -> Self {
+        op.0
     }
 }
 

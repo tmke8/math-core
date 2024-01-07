@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sum\\limits_{i=1}^N"
+---
+<math>
+    <munderover>
+        <mo movablelimits="false">∑</mo>
+        <mrow>
+            <mi>i</mi>
+            <mo>=</mo>
+            <mn>1</mn>
+        </mrow>
+        <mi>N</mi>
+    </munderover>
+</math>

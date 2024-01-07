@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\int_{0+1}^\\infty"
+---
+<math>
+    <msubsup>
+        <mo>∫</mo>
+        <mrow>
+            <mn>0</mn>
+            <mo>+</mo>
+            <mn>1</mn>
+        </mrow>
+        <mi mathvariant="normal">∞</mi>
+    </msubsup>
+</math>
