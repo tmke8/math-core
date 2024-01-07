@@ -11,8 +11,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 latex2mmlc = { path = "../latex2mmlc" }
+lol_alloc = "0.4.0"
 wasm-bindgen = "0.2.89"
-wee_alloc = "0.4.5"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.39"
