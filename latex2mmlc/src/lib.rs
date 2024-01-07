@@ -176,6 +176,9 @@ mod tests {
             ("mathstrut", r"\mathstrut"),
             ("greater_than", r"x > y"),
             ("text_transform_sup", r"\mathbb{N} \cup \mathbb{N}^+"),
+            ("overbrace", r"\overbrace{a+b+c}^{d}"),
+            ("underbrace", r"\underbrace{a+b+c}_{d}"),
+            ("prod", r"\prod_i \prod^n \prod^n_i \prod_i^n"),
         ];
 
         for (name, problem) in problems.into_iter() {

@@ -30,11 +30,11 @@ pub enum Node<'a> {
     OverOp(Op, Accent, Box<Node<'a>>),
     UnderOp(Op, Accent, Box<Node<'a>>),
     Overset {
-        over: Box<Node<'a>>,
+        symbol: Box<Node<'a>>,
         target: Box<Node<'a>>,
     },
     Underset {
-        under: Box<Node<'a>>,
+        symbol: Box<Node<'a>>,
         target: Box<Node<'a>>,
     },
     UnderOver {
@@ -62,7 +62,7 @@ pub enum Node<'a> {
         size: &'static str,
         paren: Op,
     },
-    Text(String),
+    Text(&'a str),
     Table(Vec<Node<'a>>, Align),
     ColumnSeparator,
     RowSeparator,
@@ -195,16 +195,16 @@ impl<'a> Node<'a> {
                 push!(s, op.str_ref(&mut b), "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
-            Node::Overset { over, target } => {
+            Node::Overset { symbol, target } => {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
-                over.emit(s, child_indent);
+                symbol.emit(s, child_indent);
                 pushln!(s, base_indent, "</mover>");
             }
-            Node::Underset { under, target } => {
+            Node::Underset { symbol, target } => {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
-                under.emit(s, child_indent);
+                symbol.emit(s, child_indent);
                 pushln!(s, base_indent, "</munder>");
             }
             Node::UnderOver {
@@ -345,7 +345,12 @@ impl<'a> Node<'a> {
                 pushln!(s, child_indent, "</mtr>");
                 pushln!(s, base_indent, "</mtable>");
             }
-            Node::Text(text) => push!(s, "<mtext>", text, "</mtext>"),
+            Node::Text(text) => {
+                push!(s, "<mtext>");
+                // Replace spaces with non-breaking spaces.
+                s.extend(text.chars().map(|c| if c == ' ' { '\u{A0}' } else { c }));
+                push!(s, "</mtext>");
+            }
             Node::ColumnSeparator | Node::RowSeparator => (),
         }
     }

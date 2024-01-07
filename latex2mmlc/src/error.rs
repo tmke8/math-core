@@ -8,9 +8,9 @@ pub enum LatexError<'a> {
     UnexpectedClose(Token<'a>),
     UnexpectedEOF,
     MissingParenthesis { location: Token<'a>, got: Token<'a> },
-    UnknownEnvironment(String),
+    UnknownEnvironment(&'a str),
     UnknownCommand(&'a str),
-    MismatchedEnvironment { expected: String, got: String },
+    MismatchedEnvironment { expected: &'a str, got: &'a str },
     InvalidCharacter { expected: &'static str, got: char },
 }
 

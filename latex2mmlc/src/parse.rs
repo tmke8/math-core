@@ -4,7 +4,7 @@ use crate::{
     ast::Node,
     attribute::{Accent, Align, LineThickness, MathVariant, PhantomWidth, Stretchy, TextTransform},
     error::LatexError,
-    lexer::{Lexer, WhiteSpace},
+    lexer::Lexer,
     ops,
     token::Token,
 };
@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
             Token::OpAmpersand => Node::OpAmpersand,
             Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
             Token::Space(space) => Node::Space(space),
-            Token::NonBreakingSpace => Node::Text("\u{A0}".to_string()),
+            Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
                 let next_token = self.next_token();
                 if next_token == Token::Paren(ops::LEFT_SQUARE_BRACKET) {
@@ -128,104 +128,86 @@ impl<'a> Parser<'a> {
                     )),
                 }
             }
-            Token::Over(op) => {
+            ref tok @ (Token::Over(op) | Token::Under(op)) => {
                 let target = self.parse_token()?;
-                Node::OverOp(op, Accent::True, Box::new(target))
-            }
-            Token::Under(op) => {
-                let target = self.parse_token()?;
-                Node::UnderOp(op, Accent::True, Box::new(target))
-            }
-            Token::Overset => {
-                let over = self.parse_token()?;
-                let target = self.parse_token()?;
-                Node::Overset {
-                    over: Box::new(over),
-                    target: Box::new(target),
+                let boxed = Box::new(target);
+                if matches!(tok, Token::Over(_)) {
+                    Node::OverOp(op, Accent::True, boxed)
+                } else {
+                    Node::UnderOp(op, Accent::True, boxed)
                 }
             }
-            Token::Underset => {
-                let under = self.parse_token()?;
+            tok @ (Token::Overset | Token::Underset) => {
+                let symbol = self.parse_token()?;
                 let target = self.parse_token()?;
-                Node::Underset {
-                    under: Box::new(under),
-                    target: Box::new(target),
+                let symbol = Box::new(symbol);
+                let target = Box::new(target);
+                if matches!(tok, Token::Overset) {
+                    Node::Overset { symbol, target }
+                } else {
+                    Node::Underset { symbol, target }
                 }
             }
-            Token::Overbrace(x) => {
+            ref tok @ (Token::Overbrace(x) | Token::Underbrace(x)) => {
+                let is_over = matches!(tok, Token::Overbrace(_));
                 let target = self.parse_single_token()?;
-                if self.peek_token_is(Token::Circumflex) {
-                    self.next_token(); // Discard the circumflex token.
-                    let expl = self.parse_single_token()?;
-                    let over = Node::Overset {
-                        over: Box::new(expl),
-                        target: Box::new(Node::Operator(x, None)),
-                    };
-                    Node::Overset {
-                        over: Box::new(over),
-                        target: Box::new(target),
+                if (is_over && self.peek_token_is(Token::Circumflex))
+                    || (!is_over && self.peek_token_is(Token::Underscore))
+                {
+                    self.next_token(); // Discard the circumflex or underscore token.
+                    let expl = Box::new(self.parse_single_token()?);
+                    let op = Box::new(Node::Operator(x, None));
+                    let target = Box::new(target);
+                    if is_over {
+                        let symbol = Box::new(Node::Overset {
+                            symbol: expl,
+                            target: op,
+                        });
+                        Node::Overset { symbol, target }
+                    } else {
+                        let symbol = Box::new(Node::Underset {
+                            symbol: expl,
+                            target: op,
+                        });
+                        Node::Underset { symbol, target }
                     }
                 } else {
-                    Node::Overset {
-                        over: Box::new(Node::Operator(x, None)),
-                        target: Box::new(target),
-                    }
-                }
-            }
-            Token::Underbrace(x) => {
-                let target = self.parse_single_token()?;
-                if self.peek_token_is(Token::Underscore) {
-                    self.next_token(); // Discard the underscore token.
-                    let expl = self.parse_single_token()?;
-                    let under = Node::Underset {
-                        under: Box::new(expl),
-                        target: Box::new(Node::Operator(x, None)),
-                    };
-                    Node::Underset {
-                        under: Box::new(under),
-                        target: Box::new(target),
-                    }
-                } else {
-                    Node::Underset {
-                        under: Box::new(Node::Operator(x, None)),
-                        target: Box::new(target),
+                    let symbol = Box::new(Node::Operator(x, None));
+                    let target = Box::new(target);
+                    if is_over {
+                        Node::Overset { symbol, target }
+                    } else {
+                        Node::Underset { symbol, target }
                     }
                 }
             }
             Token::BigOp(op) => match self.peek_token {
-                Token::Underscore => {
-                    self.next_token(); // Discard the underscore token.
-                    let under = self.parse_single_token()?;
-                    if self.peek_token_is(Token::Circumflex) {
-                        self.next_token(); // Discard the circumflex token.
-                        let over = self.parse_single_token()?;
+                ref tok @ (Token::Underscore | Token::Circumflex) => {
+                    let is_underscore = matches!(tok, Token::Underscore);
+                    self.next_token(); // Discard the underscore or circumflex token.
+                    let symbol = self.parse_single_token()?;
+                    if (is_underscore && self.peek_token_is(Token::Circumflex))
+                        || (!is_underscore && self.peek_token_is(Token::Underscore))
+                    {
+                        self.next_token(); // Discard the circumflex or underscore token.
+                        let second_symbol = self.parse_single_token()?;
+                        let (under, over) = if is_underscore {
+                            (symbol, second_symbol)
+                        } else {
+                            (second_symbol, symbol)
+                        };
                         Node::UnderOver {
                             target: Box::new(Node::Operator(op, None)),
                             under: Box::new(under),
                             over: Box::new(over),
                         }
                     } else {
-                        Node::Underset {
-                            target: Box::new(Node::Operator(op, None)),
-                            under: Box::new(under),
-                        }
-                    }
-                }
-                Token::Circumflex => {
-                    self.next_token(); // Discard the circumflex token.
-                    let over = self.parse_single_token()?;
-                    if self.peek_token_is(Token::Underscore) {
-                        self.next_token(); // Discard the underscore token.
-                        let under = self.parse_single_token()?;
-                        Node::UnderOver {
-                            target: Box::new(Node::Operator(op, None)),
-                            under: Box::new(under),
-                            over: Box::new(over),
-                        }
-                    } else {
-                        Node::Overset {
-                            over: Box::new(Node::Operator(op, None)),
-                            target: Box::new(over),
+                        let target = Box::new(Node::Operator(op, None));
+                        let symbol = Box::new(symbol);
+                        if is_underscore {
+                            Node::Underset { target, symbol }
+                        } else {
+                            Node::Overset { target, symbol }
                         }
                     }
                 }
@@ -238,7 +220,7 @@ impl<'a> Parser<'a> {
                     let under = self.parse_single_token()?;
                     Node::Underset {
                         target: Box::new(lim),
-                        under: Box::new(under),
+                        symbol: Box::new(under),
                     }
                 } else {
                     lim
@@ -303,7 +285,7 @@ impl<'a> Parser<'a> {
             },
             Token::Colon => match &self.peek_token {
                 Token::Operator(op @ (ops::EQUAL | ops::EQUIV)) => {
-                    let op = op.clone();
+                    let op = *op;
                     self.next_token(); // Discard the operator token.
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
@@ -378,9 +360,8 @@ impl<'a> Parser<'a> {
             Token::Begin => {
                 self.check_lbrace()?;
                 // Read the environment name.
-                let environment = self.parse_text_group(WhiteSpace::Record)?;
-                // Read the contents of \begin..\end.
-                let node = match environment.as_str() {
+                let environment = self.parse_text_group()?;
+                let node = match environment {
                     "align" | "align*" | "aligned" => self.parse_table(Align::Alternating)?,
                     "cases" => Node::Fenced {
                         open: ops::LEFT_CURLY_BRACKET,
@@ -388,27 +369,26 @@ impl<'a> Parser<'a> {
                         content: Box::new(self.parse_table(Align::Left)?),
                     },
                     "matrix" => self.parse_table(Align::Center)?,
-                    "pmatrix" => Node::Fenced {
-                        open: ops::LEFT_PARENTHESIS,
-                        close: ops::RIGHT_PARENTHESIS,
-                        content: Box::new(self.parse_table(Align::Center)?),
-                    },
-                    "bmatrix" => Node::Fenced {
-                        open: ops::LEFT_SQUARE_BRACKET,
-                        close: ops::RIGHT_SQUARE_BRACKET,
-                        content: Box::new(self.parse_table(Align::Center)?),
-                    },
-                    "vmatrix" => Node::Fenced {
-                        open: ops::VERTICAL_LINE,
-                        close: ops::VERTICAL_LINE,
-                        content: Box::new(self.parse_table(Align::Center)?),
-                    },
+                    matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
+                        let content = Box::new(self.parse_table(Align::Center)?);
+                        let (open, close) = match matrix_variant {
+                            "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
+                            "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
+                            "vmatrix" => (ops::VERTICAL_LINE, ops::VERTICAL_LINE),
+                            _ => return Err(LatexError::UnknownEnvironment(matrix_variant)),
+                        };
+                        Node::Fenced {
+                            open,
+                            close,
+                            content,
+                        }
+                    }
                     _ => {
                         return Err(LatexError::UnknownEnvironment(environment));
                     }
                 };
                 self.check_lbrace()?;
-                let end_name = self.parse_text_group(WhiteSpace::Record)?;
+                let end_name = self.parse_text_group()?;
                 if end_name != environment {
                     return Err(LatexError::MismatchedEnvironment {
                         expected: environment,
@@ -421,13 +401,17 @@ impl<'a> Parser<'a> {
             Token::OperatorName => {
                 self.check_lbrace()?;
                 // Read the function name.
-                let function = self.parse_text_group(WhiteSpace::Skip)?;
-                Node::MultiLetterIdent(function, None)
+                let name = self.parse_text_group()?;
+                // Filter out whitespace characters.
+                Node::MultiLetterIdent(
+                    name.chars().filter(|c| !c.is_ascii_whitespace()).collect(),
+                    None,
+                )
             }
             Token::Text => {
                 self.check_lbrace()?;
                 // Read the text.
-                let text = self.parse_text_group(WhiteSpace::Convert)?;
+                let text = self.parse_text_group()?;
                 Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
@@ -509,8 +493,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse the contents of a group which can only contain text.
-    fn parse_text_group(&mut self, whitespace: WhiteSpace) -> Result<String, LatexError<'a>> {
-        let result = self.l.read_text_content(whitespace).ok_or({
+    fn parse_text_group(&mut self) -> Result<&'a str, LatexError<'a>> {
+        let result = self.l.read_text_content().ok_or({
             LatexError::UnexpectedToken {
                 expected: Token::RBrace,
                 got: Token::EOF,
@@ -522,6 +506,7 @@ impl<'a> Parser<'a> {
 
     #[inline]
     fn parse_table(&mut self, align: Align) -> Result<Node<'a>, LatexError<'a>> {
+        // Read the contents of \begin..\end.
         Ok(Node::Table(self.parse_group(Token::End)?, align))
     }
 

@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\overbrace{a+b+c}^{d}"
+---
+<math>
+    <mover>
+        <mrow>
+            <mi>a</mi>
+            <mo>+</mo>
+            <mi>b</mi>
+            <mo>+</mo>
+            <mi>c</mi>
+        </mrow>
+        <mover>
+            <mo>⏞</mo>
+            <mi>d</mi>
+        </mover>
+    </mover>
+</math>

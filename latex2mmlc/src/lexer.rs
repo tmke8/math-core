@@ -38,7 +38,7 @@ impl<'a> Lexer<'a> {
 
     /// Skip blank characters.
     fn skip_whitespace(&mut self) {
-        while matches!(self.cur, ' ' | '\t' | '\n' | '\r') {
+        while self.cur.is_ascii_whitespace() {
             self.read_char();
         }
     }
@@ -86,27 +86,17 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read text until the next `}`.
-    pub(crate) fn read_text_content(&mut self, whitespace: WhiteSpace) -> Option<String> {
-        let mut text = String::new();
-        if matches!(whitespace, WhiteSpace::Skip) {
-            self.skip_whitespace();
-        }
+    pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
+        let start = self.offset;
         while self.cur != '}' {
             if self.cur == '\u{0}' {
                 return None;
             }
-            if matches!(whitespace, WhiteSpace::Convert) && self.cur == ' ' {
-                text.push('\u{A0}')
-            } else {
-                text.push(self.cur);
-            }
             self.read_char();
-            if matches!(whitespace, WhiteSpace::Skip) {
-                self.skip_whitespace();
-            }
         }
+        let end = self.offset;
         self.read_char(); // Discard the closing brace.
-        Some(text)
+        unsafe { Some(self.input_string.get_unchecked(start..end)) }
     }
 
     /// Generate the next token.
@@ -163,12 +153,6 @@ impl<'a> Lexer<'a> {
         self.read_char();
         token
     }
-}
-
-pub(crate) enum WhiteSpace {
-    Skip,
-    Record,
-    Convert,
 }
 
 #[cfg(test)]
