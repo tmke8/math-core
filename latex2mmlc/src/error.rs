@@ -4,14 +4,27 @@ use crate::token::Token;
 
 #[derive(Debug)]
 pub enum LatexError<'a> {
-    UnexpectedToken { expected: Token<'a>, got: Token<'a> },
+    UnexpectedToken {
+        expected: Token<'a>,
+        got: Token<'a>,
+    },
+    UnclosedGroup(Token<'a>),
     UnexpectedClose(Token<'a>),
     UnexpectedEOF,
-    MissingParenthesis { location: Token<'a>, got: Token<'a> },
+    MissingParenthesis {
+        location: Token<'a>,
+        got: Token<'a>,
+    },
     UnknownEnvironment(&'a str),
     UnknownCommand(&'a str),
-    MismatchedEnvironment { expected: &'a str, got: &'a str },
-    InvalidCharacter { expected: &'static str, got: char },
+    MismatchedEnvironment {
+        expected: &'a str,
+        got: &'a str,
+    },
+    CannotBeUsedHere {
+        got: Token<'a>,
+        correct_place: &'static str,
+    },
 }
 
 impl<'a> LatexError<'a> {
@@ -27,6 +40,9 @@ impl<'a> LatexError<'a> {
                     + "\", but found token \""
                     + got.as_ref()
                     + "\"."
+            }
+            LatexError::UnclosedGroup(expected) => {
+                "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
             }
             LatexError::UnexpectedClose(got) => {
                 "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
@@ -46,15 +62,10 @@ impl<'a> LatexError<'a> {
             LatexError::MismatchedEnvironment { expected, got } => {
                 "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\""
             }
-            LatexError::InvalidCharacter { expected, got } => {
-                // 4-byte buffer is enough for any UTF-8 character.
-                let mut b = [0; 4];
-                "Expected ".to_string()
-                    + expected
-                    + ", but got \""
-                    + got.encode_utf8(&mut b)
-                    + "\"."
-            }
+            LatexError::CannotBeUsedHere {
+                got,
+                correct_place: needs,
+            } => "Got \"".to_string() + got.as_ref() + "\", which may only appear " + needs + ".",
         }
     }
 }

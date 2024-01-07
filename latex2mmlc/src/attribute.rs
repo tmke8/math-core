@@ -14,68 +14,39 @@ impl AsRef<str> for MathVariant {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, AsRefStr)]
 pub enum Accent {
+    #[strum(serialize = "true")]
     True,
+    #[strum(serialize = "false")]
     False,
 }
 
-impl AsRef<str> for Accent {
-    fn as_ref(&self) -> &str {
-        match self {
-            Accent::True => "true",
-            Accent::False => "false",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, AsRefStr)]
 pub enum LineThickness {
-    Thin,
+    #[strum(serialize = "")]
     Medium,
-    Thick,
+    #[strum(serialize = r#" linethickness="0""#)]
     Zero,
 }
-impl AsRef<str> for LineThickness {
-    fn as_ref(&self) -> &str {
-        match self {
-            LineThickness::Thin => r#" linethickness="thin""#,
-            LineThickness::Medium => r#""#,
-            LineThickness::Thick => r#" linethickness="medium""#,
-            LineThickness::Zero => r#" linethickness="0""#,
-        }
-    }
-}
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Stretchy {
-    True = 1,
-    False = 2,
-}
-
-impl AsRef<str> for Stretchy {
-    fn as_ref(&self) -> &str {
-        match self {
-            Stretchy::True => r#" stretchy="true""#,
-            Stretchy::False => r#" stretchy="false""#,
-        }
-    }
+#[derive(Debug, PartialEq, AsRefStr)]
+pub enum OpAttr {
+    #[strum(serialize = r#" stretchy="true""#)]
+    StretchyTrue = 1,
+    #[strum(serialize = r#" stretchy="false""#)]
+    StretchyFalse,
+    #[strum(serialize = r#" movablelimits="false""#)]
+    NoMovableLimits,
 }
 
 /// display style
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, AsRefStr)]
 pub enum DisplayStyle {
+    #[strum(serialize = r#" displaystyle="true""#)]
     True = 1,
+    #[strum(serialize = r#" displaystyle="false""#)]
     False = 2,
-}
-
-impl AsRef<str> for DisplayStyle {
-    fn as_ref(&self) -> &str {
-        match self {
-            DisplayStyle::True => r#" displaystyle="true""#,
-            DisplayStyle::False => r#" displaystyle="false""#,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -93,7 +64,7 @@ pub enum PhantomWidth {
     Default,
 }
 
-/// mi mathvariant attribute
+/// <mi> mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TextTransform {
     Bold,

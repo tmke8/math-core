@@ -2,7 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: x^^
 ---
-InvalidCharacter {
-    expected: "identifier",
-    got: '^',
+CannotBeUsedHere {
+    got: Circumflex,
+    correct_place: "after an identifier or operator",
 }

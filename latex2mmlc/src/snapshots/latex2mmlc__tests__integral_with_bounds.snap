@@ -1,13 +1,13 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\int\\limits_0^1 dx"
+expression: "\\int_0^1 dx"
 ---
 <math>
-    <munderover>
+    <msubsup>
         <mo>∫</mo>
         <mn>0</mn>
         <mn>1</mn>
-    </munderover>
+    </msubsup>
     <mi>d</mi>
     <mi>x</mi>
 </math>

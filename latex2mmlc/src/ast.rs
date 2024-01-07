@@ -1,5 +1,5 @@
 use crate::attribute::{
-    Accent, Align, DisplayStyle, LineThickness, MathVariant, PhantomWidth, Stretchy,
+    Accent, Align, DisplayStyle, LineThickness, MathVariant, OpAttr, PhantomWidth,
 };
 use crate::ops::Op;
 
@@ -8,13 +8,13 @@ use crate::ops::Op;
 pub enum Node<'a> {
     Number(&'a str),
     SingleLetterIdent(char, Option<MathVariant>),
-    Operator(Op, Option<Stretchy>),
+    Operator(Op, Option<OpAttr>),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
     OperatorWithSpacing {
         op: Op,
-        stretchy: Option<Stretchy>,
+        attrs: Option<OpAttr>,
         left: Option<&'static str>,
         right: Option<&'static str>,
     },
@@ -72,19 +72,26 @@ pub enum Node<'a> {
 const INDENT: &str = "    ";
 
 macro_rules! push {
-    ($buf:expr, $($s:expr),+ $(,)?) => {{
-        /* use std::ops::AddAssign;
-        let mut len = 0;
-        $(len.add_assign(AsRef::<str>::as_ref(&$s).len());)+
-        $buf.reserve(len); */
-        $($buf.push_str($s.as_ref());)+
+    ($buf:expr, @ $c:expr $(,)?) => {{
+        $buf.push($c.into());
+    }};
+    ($buf:expr, $s:expr $(,)?) => {{
+        $buf.push_str($s.as_ref());
+    }};
+    ($buf:expr, @ $c:expr, $($tail:tt)+) => {{
+        $buf.push($c.into());
+        push!($buf, $($tail)+)
+    }};
+    ($buf:expr, $s:expr, $($tail:tt)+) => {{
+        $buf.push_str($s.as_ref());
+        push!($buf, $($tail)+)
     }};
 }
 
 macro_rules! pushln {
-    ($buf:expr, $indent:expr, $($s:expr),+ $(,)?) => {
+    ($buf:expr, $indent:expr, $($tail:tt)+) => {
         new_line_and_indent($buf, $indent);
-        push!($buf, $($s),+)
+        push!($buf, $($tail)+)
     };
 }
 
@@ -108,10 +115,6 @@ impl<'a> Node<'a> {
             new_line_and_indent(s, base_indent);
         }
 
-        // Buffer for `char::encode_utf8()`.
-        // Not all branches use this, but it's just 4 bytes.
-        let mut b = [0; 4];
-
         match self {
             Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
             Node::SingleLetterIdent(letter, var) => {
@@ -119,21 +122,21 @@ impl<'a> Node<'a> {
                     Some(var) => push!(s, "<mi", var, ">"),
                     None => push!(s, "<mi>"),
                 };
-                push!(s, letter.encode_utf8(&mut b), "</mi>");
+                push!(s, @*letter, "</mi>");
             }
-            Node::Operator(op, stretchy) => {
-                match stretchy {
-                    Some(stretchy) => push!(s, "<mo", stretchy, ">"),
+            Node::Operator(op, attributes) => {
+                match attributes {
+                    Some(attributes) => push!(s, "<mo", attributes, ">"),
                     None => push!(s, "<mo>"),
                 }
-                push!(s, op.str_ref(&mut b), "</mo>");
+                push!(s, @op, "</mo>");
             }
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
             Node::OpAmpersand => push!(s, "<mo>&amp;</mo>"),
             Node::OperatorWithSpacing {
                 op,
-                stretchy,
+                attrs,
                 left,
                 right,
             } => {
@@ -149,10 +152,10 @@ impl<'a> Node<'a> {
                     }
                     (None, None) => s.push_str("<mo"),
                 }
-                if let Some(stretchy) = stretchy {
+                if let Some(stretchy) = attrs {
                     push!(s, stretchy);
                 }
-                push!(s, ">", op.str_ref(&mut b), "</mo>");
+                push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters, var) => {
                 match var {
@@ -162,72 +165,71 @@ impl<'a> Node<'a> {
                 push!(s, letters, "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
-            Node::Subscript(base, sub) => {
-                push!(s, "<msub>");
-                base.emit(s, child_indent);
-                sub.emit(s, child_indent);
-                pushln!(s, base_indent, "</msub>");
+            // The following nodes have exactly two children.
+            node @ (Node::Subscript(first, second)
+            | Node::Superscript(first, second)
+            | Node::Overset {
+                symbol: second,
+                target: first,
             }
-            Node::Superscript(base, sup) => {
-                push!(s, "<msup>");
-                base.emit(s, child_indent);
-                sup.emit(s, child_indent);
-                pushln!(s, base_indent, "</msup>");
+            | Node::Underset {
+                symbol: second,
+                target: first,
             }
-            Node::SubSup { target, sub, sup } => {
-                push!(s, "<msubsup>");
-                target.emit(s, child_indent);
-                sub.emit(s, child_indent);
-                sup.emit(s, child_indent);
-                pushln!(s, base_indent, "</msubsup>");
+            | Node::Root(second, first)) => {
+                let (open, close) = match node {
+                    Node::Subscript(_, _) => ("<msub>", "</msub>"),
+                    Node::Superscript(_, _) => ("<msup>", "</msup>"),
+                    Node::Overset { .. } => ("<mover>", "</mover>"),
+                    Node::Underset { .. } => ("<munder>", "</munder>"),
+                    Node::Root(_, _) => ("<mroot>", "</mroot>"),
+                    // Compiler is able to infer that this is unreachable.
+                    _ => unreachable!(),
+                };
+                push!(s, open);
+                first.emit(s, child_indent);
+                second.emit(s, child_indent);
+                pushln!(s, base_indent, close);
+            }
+            // The following nodes have exactly three children.
+            node @ (Node::SubSup {
+                target: first,
+                sub: second,
+                sup: third,
+            }
+            | Node::UnderOver {
+                target: first,
+                under: second,
+                over: third,
+            }) => {
+                let (open, close) = match node {
+                    Node::SubSup { .. } => ("<msubsup>", "</msubsup>"),
+                    Node::UnderOver { .. } => ("<munderover>", "</munderover>"),
+                    // Compiler is able to infer that this is unreachable.
+                    _ => unreachable!(),
+                };
+                push!(s, open);
+                first.emit(s, child_indent);
+                second.emit(s, child_indent);
+                third.emit(s, child_indent);
+                pushln!(s, base_indent, close);
             }
             Node::OverOp(op, acc, target) => {
-                let op = op.str_ref(&mut b);
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", op, "</mo>");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
                 target.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">");
-                push!(s, op.str_ref(&mut b), "</mo>");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</munder>");
-            }
-            Node::Overset { symbol, target } => {
-                push!(s, "<mover>");
-                target.emit(s, child_indent);
-                symbol.emit(s, child_indent);
-                pushln!(s, base_indent, "</mover>");
-            }
-            Node::Underset { symbol, target } => {
-                push!(s, "<munder>");
-                target.emit(s, child_indent);
-                symbol.emit(s, child_indent);
-                pushln!(s, base_indent, "</munder>");
-            }
-            Node::UnderOver {
-                target,
-                under,
-                over,
-            } => {
-                push!(s, "<munderover>");
-                target.emit(s, child_indent);
-                under.emit(s, child_indent);
-                over.emit(s, child_indent);
-                pushln!(s, base_indent, "</munderover>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
                 content.emit(s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
-            }
-            Node::Root(degree, content) => {
-                push!(s, "<mroot>");
-                content.emit(s, child_indent);
-                degree.emit(s, child_indent);
-                pushln!(s, base_indent, "</mroot>");
             }
             Node::Frac(num, denom, lt, style) => {
                 if let Some(style) = style {
@@ -263,25 +265,25 @@ impl<'a> Node<'a> {
             } => {
                 push!(s, "<mrow>");
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
-                push!(s, open.str_ref(&mut b), "</mo>");
+                push!(s, @open, "</mo>");
                 content.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
-                push!(s, close.str_ref(&mut b), "</mo>");
+                push!(s, @close, "</mo>");
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
-                push!(s, paren.str_ref(&mut b), "</mo>");
+                push!(s, @paren, "</mo>");
             }
             Node::Slashed(node) => match &**node {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => {
-                        push!(s, "<mi", var, ">", x.encode_utf8(&mut b), "&#x0338;</mi>")
+                        push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
                     }
-                    None => push!(s, "<mi>", x.encode_utf8(&mut b), "&#x0338;</mi>"),
+                    None => push!(s, "<mi>", @*x, "&#x0338;</mi>"),
                 },
                 Node::Operator(x, _) => {
-                    push!(s, "<mo>{}&#x0338;</mo>", x.str_ref(&mut b))
+                    push!(s, "<mo>", @x, "&#x0338;</mo>");
                 }
                 n => n.emit(s, base_indent),
             },

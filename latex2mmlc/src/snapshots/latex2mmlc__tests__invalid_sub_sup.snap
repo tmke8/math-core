@@ -2,7 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: x^_
 ---
-InvalidCharacter {
-    expected: "identifier",
-    got: '_',
+CannotBeUsedHere {
+    got: Underscore,
+    correct_place: "after an identifier or operator",
 }

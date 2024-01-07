@@ -15,7 +15,9 @@ pub enum Token<'a> {
     #[strum(serialize = "&")]
     Ampersand,
     NewLine,
+    #[strum(serialize = "\\left")]
     Left,
+    #[strum(serialize = "\\right")]
     Right,
     Middle,
     Paren(Op),
@@ -24,7 +26,9 @@ pub enum Token<'a> {
     #[strum(serialize = "}")]
     RBrace,
     Frac(Option<DisplayStyle>),
+    #[strum(serialize = "_")]
     Underscore,
+    #[strum(serialize = "^")]
     Circumflex,
     Binom(Option<DisplayStyle>),
     Overset,
@@ -34,6 +38,8 @@ pub enum Token<'a> {
     #[strum(serialize = "\\sqrt")]
     Sqrt,
     Integral(Op),
+    #[strum(serialize = "\\limits")]
+    Limits,
     Lim(&'static str),
     Space(&'static str),
     NonBreakingSpace,
@@ -140,6 +146,7 @@ impl<'a> Token<'a> {
             "iint" => Token::Integral(Op('∬')),
             "iiint" => Token::Integral(Op('∭')),
             "oint" => Token::Integral(Op('∮')),
+            "limits" => Token::Limits,
             "dot" => Token::Over(Op('\u{02d9}')),
             "ddot" => Token::Over(Op('¨')),
             "bar" => Token::Over(Op('¯')),
