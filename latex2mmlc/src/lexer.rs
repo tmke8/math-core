@@ -73,12 +73,17 @@ impl<'a> Lexer<'a> {
             let candidate = self.cur;
             let end = self.offset;
             self.read_char();
-            if !candidate.is_ascii_digit() && !self.cur.is_ascii_digit() {
-                // If neither the candiate character nor the next character is a digit,
-                // we stop.
-                // But we need to return the `candidate` character.
+            if matches!(candidate, '.' | ',') && !self.cur.is_ascii_digit() {
+                // If the candidate is punctuation and the next character is not a digit,
+                // we don't want to include the punctuation.
+                // But we do need to return the punctuation as an operator.
                 let number = unsafe { self.input_string.get_unchecked(start..end) };
-                return (number, Op(candidate));
+                let op = match candidate {
+                    '.' => ops::FULL_STOP,
+                    ',' => ops::COMMA,
+                    _ => unreachable!(),
+                };
+                return (number, op);
             }
         }
         let number = unsafe { self.input_string.get_unchecked(start..self.offset) };
@@ -110,11 +115,11 @@ impl<'a> Lexer<'a> {
         self.skip_whitespace();
 
         let token = match self.cur {
-            '=' => Token::Operator(ops::EQUAL),
+            '=' => Token::Operator(ops::EQUALS_SIGN),
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
-            '.' => Token::Operator(ops::DOT),
-            '\'' => Token::Operator(ops::APOS),
+            '.' => Token::Operator(ops::FULL_STOP),
+            '\'' => Token::Operator(ops::APOSTROPHE),
             '(' => Token::Paren(ops::LEFT_PARENTHESIS),
             ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
             '{' => Token::LBrace,
@@ -122,8 +127,8 @@ impl<'a> Lexer<'a> {
             '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET),
             ']' => Token::Paren(ops::RIGHT_SQUARE_BRACKET),
             '|' => Token::Paren(ops::VERTICAL_LINE),
-            '+' => Token::Operator(ops::PLUS),
-            '-' => Token::Operator(ops::MINUS),
+            '+' => Token::Operator(ops::PLUS_SIGN),
+            '-' => Token::Operator(ops::MINUS_SIGN),
             '*' => Token::Operator(ops::ASTERISK),
             '/' => Token::Operator(ops::SOLIDUS),
             '!' => Token::Operator(ops::EXCLAMATION_MARK),
@@ -165,12 +170,12 @@ mod tests {
         let problems = vec![
             (r"3", vec![Token::Number("3", ops::NULL)]),
             (r"3.14", vec![Token::Number("3.14", ops::NULL)]),
-            (r"3.14.", vec![Token::Number("3.14", ops::DOT)]),
+            (r"3.14.", vec![Token::Number("3.14", ops::FULL_STOP)]),
             (
                 r"3..14",
                 vec![
-                    Token::Number("3", ops::DOT),
-                    Token::Operator(ops::DOT),
+                    Token::Number("3", ops::FULL_STOP),
+                    Token::Operator(ops::FULL_STOP),
                     Token::Number("14", ops::NULL),
                 ],
             ),
@@ -180,7 +185,7 @@ mod tests {
                 r"x = 3.14",
                 vec![
                     Token::Letter('x'),
-                    Token::Operator(ops::EQUAL),
+                    Token::Operator(ops::EQUALS_SIGN),
                     Token::Number("3.14", ops::NULL),
                 ],
             ),
@@ -189,7 +194,7 @@ mod tests {
                 r"x+y",
                 vec![
                     Token::Letter('x'),
-                    Token::Operator(ops::PLUS),
+                    Token::Operator(ops::PLUS_SIGN),
                     Token::Letter('y'),
                 ],
             ),

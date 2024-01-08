@@ -256,7 +256,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Colon => match &self.peek_token {
-                Token::Operator(op @ (ops::EQUAL | ops::EQUIV)) => {
+                Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
                     Node::PseudoRow(vec![
@@ -286,7 +286,7 @@ impl<'a> Parser<'a> {
             Token::Left => {
                 let open = match self.next_token() {
                     Token::Paren(open) => open,
-                    Token::Operator(ops::DOT) => ops::NULL,
+                    Token::Operator(ops::FULL_STOP) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
@@ -297,7 +297,7 @@ impl<'a> Parser<'a> {
                 let content = self.parse_group(Token::Right)?;
                 let close = match self.next_token() {
                     Token::Paren(close) => close,
-                    Token::Operator(ops::DOT) => ops::NULL,
+                    Token::Operator(ops::FULL_STOP) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
@@ -411,7 +411,7 @@ impl<'a> Parser<'a> {
             tok @ Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
                     got: tok,
-                     correct_place: "after \\int, \\sum, ...",
+                    correct_place: "after \\int, \\sum, ...",
                 })
             }
             Token::EOF | Token::Null => return Err(LatexError::UnexpectedEOF),
@@ -421,7 +421,7 @@ impl<'a> Parser<'a> {
         };
 
         match self.peek_token {
-            Token::Operator(ops::APOS) => {
+            Token::Operator(ops::APOSTROPHE) => {
                 self.next_token(); // Discard the apostrophe token.
                 Ok(Node::Superscript(
                     Box::new(node),
