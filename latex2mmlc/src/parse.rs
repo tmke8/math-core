@@ -349,7 +349,8 @@ impl<'a> Parser<'a> {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
                             "vmatrix" => (ops::VERTICAL_LINE, ops::VERTICAL_LINE),
-                            _ => return Err(LatexError::UnknownEnvironment(matrix_variant)),
+                            // SAFETY: `matrix_variant` is one of the three strings above.
+                            _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         Node::Fenced {
                             open,
