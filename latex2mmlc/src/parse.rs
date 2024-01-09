@@ -3,7 +3,7 @@ use std::mem;
 use crate::{
     ast::Node,
     attribute::{
-        Accent, Align, LineThickness, MathVariant, OpAttr, PhantomWidth, Style, TextTransform,
+        Accent, Align, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style, TextTransform,
     },
     error::LatexError,
     lexer::Lexer,
@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string(), None),
+            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string()),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
@@ -105,8 +105,7 @@ impl<'a> Parser<'a> {
                 let numerator = Box::new(self.parse_token()?);
                 let denominator = Box::new(self.parse_token()?);
                 if matches!(tok, Token::Binom(_)) {
-                    let inner =
-                        Node::Frac(numerator, denominator, LineThickness::Zero, displaystyle);
+                    let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
@@ -114,7 +113,7 @@ impl<'a> Parser<'a> {
                         style: None,
                     }
                 } else {
-                    Node::Frac(numerator, denominator, LineThickness::Medium, displaystyle)
+                    Node::Frac(numerator, denominator, None, displaystyle)
                 }
             }
             Token::Genfrac => {
@@ -129,9 +128,13 @@ impl<'a> Parser<'a> {
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 self.check_lbrace()?;
-                let line_thickness = match self.parse_text_group()? {
-                    "" => LineThickness::Medium,
-                    "0pt" => LineThickness::Zero,
+                // The default line thickness in LaTeX is 0.4pt.
+                // TODO: Support other line thicknesses.
+                // We could maybe store them as multiples of 0.4pt,
+                // so that we can render them as percentages.
+                let line_thickness = match self.parse_text_group()?.trim() {
+                    "" => None,
+                    "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 let style = match self.parse_token()? {
@@ -228,7 +231,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim.to_string(), None);
+                let lim = Node::MultiLetterIdent(lim.to_string());
                 if matches!(self.peek_token, Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
@@ -296,13 +299,13 @@ impl<'a> Parser<'a> {
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
                             attrs: None,
-                            left: Some("0.2222"),
-                            right: Some("0"),
+                            left: Some(MathSpacing::FourMu),
+                            right: Some(MathSpacing::Zero),
                         },
                         Node::OperatorWithSpacing {
                             op,
                             attrs: None,
-                            left: Some("0"),
+                            left: Some(MathSpacing::Zero),
                             right: None,
                         },
                     ])
@@ -310,8 +313,8 @@ impl<'a> Parser<'a> {
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
                     attrs: None,
-                    left: Some("0.2222"),
-                    right: Some("0.2222"),
+                    left: Some(MathSpacing::FourMu),
+                    right: Some(MathSpacing::FourMu),
                 },
             },
             Token::GroupBegin => {
@@ -419,10 +422,7 @@ impl<'a> Parser<'a> {
                 // Read the function name.
                 let name = self.parse_text_group()?;
                 // Filter out whitespace characters.
-                Node::MultiLetterIdent(
-                    name.chars().filter(|c| !c.is_ascii_whitespace()).collect(),
-                    None,
-                )
+                Node::MultiLetterIdent(name.chars().filter(|c| !c.is_ascii_whitespace()).collect())
             }
             Token::Text => {
                 self.check_lbrace()?;
@@ -436,8 +436,8 @@ impl<'a> Parser<'a> {
                 Box::new(Node::OperatorWithSpacing {
                     op: ops::LEFT_PARENTHESIS,
                     attrs: Some(OpAttr::StretchyFalse),
-                    left: Some("0"),
-                    right: Some("0"),
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
                 }),
                 PhantomWidth::Zero,
             ),
@@ -574,7 +574,6 @@ fn squeeze(nodes: Vec<Node>) -> Node {
 fn set_variant(node: Node, var: MathVariant) -> Node {
     match node {
         Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
-        Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
         Node::Row(vec, style) => Node::Row(
             vec.into_iter()
                 .map(|node| set_variant(node, var.clone()))
@@ -588,8 +587,8 @@ fn set_variant(node: Node, var: MathVariant) -> Node {
 fn transform_text(node: Node, var: TextTransform) -> Node {
     match node {
         Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
-        Node::MultiLetterIdent(letters, _) => {
-            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
+        Node::MultiLetterIdent(letters) => {
+            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect())
         }
         Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into()), None),
         Node::Row(vec, style) => Node::Row(
@@ -614,13 +613,13 @@ fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
             }
         } else {
             if let Some(letters) = collected.take() {
-                new_nodes.push(Node::MultiLetterIdent(letters, None));
+                new_nodes.push(Node::MultiLetterIdent(letters));
             }
             new_nodes.push(node);
         }
     }
     if let Some(letters) = collected {
-        new_nodes.push(Node::MultiLetterIdent(letters, None));
+        new_nodes.push(Node::MultiLetterIdent(letters));
     }
     if new_nodes.len() == 1 {
         // SAFETY: `new_nodes` is not empty.
