@@ -1,5 +1,5 @@
 use crate::attribute::{
-    Accent, Align, DisplayStyle, LineThickness, MathVariant, OpAttr, PhantomWidth,
+    Accent, Align, DisplayStyle, LineThickness, MathVariant, OpAttr, PhantomWidth, Style,
 };
 use crate::ops::Op;
 
@@ -50,13 +50,14 @@ pub enum Node<'a> {
         LineThickness,
         Option<DisplayStyle>,
     ),
-    Row(Vec<Node<'a>>),
+    Row(Vec<Node<'a>>, Option<Style>),
     PseudoRow(Vec<Node<'a>>),
     Phantom(Box<Node<'a>>, PhantomWidth),
     Fenced {
         open: Op,
         close: Op,
         content: Box<Node<'a>>,
+        style: Option<Style>,
     },
     SizedParen {
         size: &'static str,
@@ -241,8 +242,11 @@ impl<'a> Node<'a> {
                 denom.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
-            Node::Row(vec) => {
-                push!(s, "<mrow>");
+            Node::Row(vec, style) => {
+                match style {
+                    Some(style) => push!(s, "<mrow", style, ">"),
+                    None => push!(s, "<mrow>"),
+                }
                 for node in vec.iter() {
                     node.emit(s, child_indent);
                 }
@@ -262,8 +266,12 @@ impl<'a> Node<'a> {
                 open,
                 close,
                 content,
+                style,
             } => {
-                push!(s, "<mrow>");
+                match style {
+                    Some(style) => push!(s, "<mrow", style, ">"),
+                    None => push!(s, "<mrow>"),
+                }
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
                 push!(s, @open, "</mo>");
                 content.emit(s, child_indent);

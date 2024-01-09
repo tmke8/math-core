@@ -41,7 +41,7 @@ pub enum OpAttr {
 }
 
 /// display style
-#[derive(Debug, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum DisplayStyle {
     #[strum(serialize = r#" displaystyle="true""#)]
     True = 1,
@@ -49,14 +49,26 @@ pub enum DisplayStyle {
     False = 2,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, AsRefStr)]
+pub enum Style {
+    #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
+    DisplayStyle = 1,
+    #[strum(serialize = r#" displaystyle="false" scriptlevel="0""#)]
+    TextStyle,
+    #[strum(serialize = r#" displaystyle="false" scriptlevel="1""#)]
+    ScriptStyle,
+    #[strum(serialize = r#" displaystyle="false" scriptlevel="2""#)]
+    ScriptScriptStyle,
+}
+
+#[derive(Debug)]
 pub enum Align {
     Center,
     Left,
     Alternating,
 }
 
-#[derive(Debug, Clone, PartialEq, AsRefStr)]
+#[derive(Debug, AsRefStr)]
 pub enum PhantomWidth {
     #[strum(serialize = " style=\"width:0\"")]
     Zero,
