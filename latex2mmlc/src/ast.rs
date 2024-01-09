@@ -228,11 +228,11 @@ impl<'a> Node<'a> {
             }
             Node::Frac(num, denom, lt, style) => {
                 push!(s, "<mfrac");
-                match (lt, style) {
-                    (Some(lt), Some(style)) => push!(s, " linethickness=\"", @*lt, "pt\"", style),
-                    (Some(lt), None) => push!(s, " linethickness=\"", @*lt, "pt\""),
-                    (None, Some(style)) => push!(s, style),
-                    (None, None) => (),
+                if let Some(lt) = lt {
+                    push!(s, " linethickness=\"", @*lt, "pt\"");
+                }
+                if let Some(style) = style {
+                    push!(s, style);
                 }
                 push!(s, ">");
                 num.emit(s, child_indent);
