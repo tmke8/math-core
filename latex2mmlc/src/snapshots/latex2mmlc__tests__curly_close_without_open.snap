@@ -3,5 +3,5 @@ source: latex2mmlc/src/lib.rs
 expression: "}"
 ---
 UnexpectedClose(
-    RBrace,
+    GroupEnd,
 )
