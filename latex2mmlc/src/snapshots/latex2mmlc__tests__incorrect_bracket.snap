@@ -3,7 +3,7 @@ source: latex2mmlc/src/lib.rs
 expression: "\\operatorname[lim}"
 ---
 UnexpectedToken {
-    expected: LBrace,
+    expected: GroupBegin,
     got: Paren(
         Op(
             '[',

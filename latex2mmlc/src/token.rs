@@ -5,27 +5,28 @@ use crate::ops::{self, Op};
 
 #[derive(Debug, PartialEq, AsRefStr)]
 pub enum Token<'a> {
-    Null,
     #[strum(serialize = "end of document")]
     EOF,
-    #[strum(serialize = "\\begin{...}")]
+    #[strum(serialize = r"\begin{...}")]
     Begin,
-    #[strum(serialize = "\\end{...}")]
+    #[strum(serialize = r"\end{...}")]
     End,
     #[strum(serialize = "&")]
     Ampersand,
+    #[strum(serialize = r"\\")]
     NewLine,
-    #[strum(serialize = "\\left")]
+    #[strum(serialize = r"\left")]
     Left,
-    #[strum(serialize = "\\right")]
+    #[strum(serialize = r"\right")]
     Right,
     Middle,
     Paren(Op),
     #[strum(serialize = "{")]
-    LBrace,
+    GroupBegin,
     #[strum(serialize = "}")]
-    RBrace,
+    GroupEnd,
     Frac(Option<DisplayStyle>),
+    #[strum(serialize = r"\genfrac")]
     Genfrac,
     #[strum(serialize = "_")]
     Underscore,
@@ -36,13 +37,14 @@ pub enum Token<'a> {
     Underset,
     Overbrace(Op),
     Underbrace(Op),
-    #[strum(serialize = "\\sqrt")]
+    #[strum(serialize = r"\sqrt")]
     Sqrt,
     Integral(Op),
-    #[strum(serialize = "\\limits")]
+    #[strum(serialize = r"\limits")]
     Limits,
     Lim(&'static str),
     Space(&'static str),
+    #[strum(serialize = "~")]
     NonBreakingSpace,
     Transform(TextTransform),
     NormalVariant,
@@ -54,7 +56,7 @@ pub enum Token<'a> {
     OpGreaterThan,
     #[strum(serialize = "<")]
     OpLessThan,
-    #[strum(serialize = "\\&")]
+    #[strum(serialize = r"\&")]
     OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
@@ -63,9 +65,12 @@ pub enum Token<'a> {
     NormalLetter(char),
     Number(&'a str, Op),
     Function(&'static str),
+    #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,
+    #[strum(serialize = r"\text")]
     Text,
+    #[strum(serialize = r"\mathstrut")]
     Mathstrut,
     Style(Style),
     UnknownCommand(&'a str),

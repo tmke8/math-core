@@ -3,6 +3,7 @@ name = "latex2mmlc"
 version = "0.1.0"
 authors = ["Hiromu Sugiura <h.sugiura0705@outlook.com>", "Thomas Kehrenberg <tmke8@posteo.net>"]
 edition = { workspace = true }
+rust-version = { workspace = true }
 
 description   = "Convert LaTeX equations to MathML Core"
 repository    = "https://github.com/tmke8/latex2mmlc"

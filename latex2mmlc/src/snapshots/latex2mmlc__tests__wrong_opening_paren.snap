@@ -3,7 +3,7 @@ source: latex2mmlc/src/lib.rs
 expression: "\\begin[matrix} x \\end{matrix}"
 ---
 UnexpectedToken {
-    expected: LBrace,
+    expected: GroupBegin,
     got: Paren(
         Op(
             '[',
