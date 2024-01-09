@@ -20,9 +20,9 @@ impl<'a> Parser<'a> {
     pub(crate) fn new(l: Lexer<'a>) -> Self {
         let mut p = Parser {
             l,
-            peek_token: Token::Null,
+            peek_token: Token::EOF,
         };
-        // Discard the null token we just stored in `peek_token`.
+        // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
         p.next_token();
         p
@@ -120,12 +120,12 @@ impl<'a> Parser<'a> {
             Token::Genfrac => {
                 let open = match self.parse_token()? {
                     Node::Operator(op, _) => op,
-                    Node::Row(elements, _) if elements.len() == 0 => ops::NULL,
+                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 let close = match self.parse_token()? {
                     Node::Operator(op, _) => op,
-                    Node::Row(elements, _) if elements.len() == 0 => ops::NULL,
+                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 self.check_lbrace()?;
@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
                         Ok(3) => Some(Style::ScriptScriptStyle),
                         Ok(_) | Err(_) => return Err(LatexError::UnexpectedEOF),
                     },
-                    Node::Row(elements, _) if elements.len() == 0 => None,
+                    Node::Row(elements, _) if elements.is_empty() => None,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 let numerator = Box::new(self.parse_token()?);
@@ -314,8 +314,8 @@ impl<'a> Parser<'a> {
                     right: Some("0.2222"),
                 },
             },
-            Token::LBrace => {
-                let content = self.parse_group(Token::RBrace)?;
+            Token::GroupBegin => {
+                let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
                 squeeze(content)
             }
@@ -441,7 +441,7 @@ impl<'a> Parser<'a> {
                 }),
                 PhantomWidth::Zero,
             ),
-            Token::Style(style) => Node::Row(self.parse_group(Token::RBrace)?, Some(style)),
+            Token::Style(style) => Node::Row(self.parse_group(Token::GroupEnd)?, Some(style)),
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
@@ -454,11 +454,11 @@ impl<'a> Parser<'a> {
             tok @ Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
                     got: tok,
-                    correct_place: "after \\int, \\sum, ...",
+                    correct_place: r"after \int, \sum, ...",
                 })
             }
-            Token::EOF | Token::Null => return Err(LatexError::UnexpectedEOF),
-            tok @ (Token::End | Token::Right | Token::RBrace) => {
+            Token::EOF => return Err(LatexError::UnexpectedEOF),
+            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
                 return Err(LatexError::UnexpectedClose(tok))
             }
         };
@@ -507,7 +507,7 @@ impl<'a> Parser<'a> {
         let result = self
             .l
             .read_text_content()
-            .ok_or(LatexError::UnclosedGroup(Token::RBrace));
+            .ok_or(LatexError::UnclosedGroup(Token::GroupEnd));
         self.next_token(); // Discard the opening token (which is still stored as `peek`).
         result
     }
@@ -521,9 +521,9 @@ impl<'a> Parser<'a> {
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
-        if !matches!(self.peek_token, Token::LBrace) {
+        if !matches!(self.peek_token, Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
-                expected: Token::LBrace,
+                expected: Token::GroupBegin,
                 got: self.next_token(),
             });
         }
