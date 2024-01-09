@@ -1,6 +1,6 @@
 use strum_macros::AsRefStr;
 
-use crate::attribute::{DisplayStyle, TextTransform};
+use crate::attribute::{DisplayStyle, Style, TextTransform};
 use crate::ops::{self, Op};
 
 #[derive(Debug, PartialEq, AsRefStr)]
@@ -26,6 +26,7 @@ pub enum Token<'a> {
     #[strum(serialize = "}")]
     RBrace,
     Frac(Option<DisplayStyle>),
+    Genfrac,
     #[strum(serialize = "_")]
     Underscore,
     #[strum(serialize = "^")]
@@ -43,7 +44,7 @@ pub enum Token<'a> {
     Lim(&'static str),
     Space(&'static str),
     NonBreakingSpace,
-    Style(TextTransform),
+    Transform(TextTransform),
     NormalVariant,
     Big(&'static str),
     Over(Op),
@@ -66,6 +67,7 @@ pub enum Token<'a> {
     Slashed,
     Text,
     Mathstrut,
+    Style(Style),
     UnknownCommand(&'a str),
 }
 
@@ -73,7 +75,7 @@ impl<'a> Token<'a> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
-            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Style(_)
+            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(_)
         )
     }
 
@@ -193,8 +195,8 @@ impl<'a> Token<'a> {
             "bigwedge" => Token::BigOp(ops::N_ARY_LOGICAL_AND),
             "binom" => Token::Binom(None),
             "bitotimes" => Token::BigOp(ops::N_ARY_CIRCLED_TIMES_OPERATOR),
-            "bm" => Token::Style(TextTransform::BoldItalic),
-            "boldsymbol" => Token::Style(TextTransform::BoldItalic),
+            "bm" => Token::Transform(TextTransform::BoldItalic),
+            "boldsymbol" => Token::Transform(TextTransform::BoldItalic),
             "bot" => Token::Operator(ops::UP_TACK),
             "boxbox" => Token::Operator(ops::SQUARED_SQUARE),
             "boxbslash" => Token::Operator(ops::SQUARED_FALLING_DIAGONAL_SLASH),
@@ -250,6 +252,7 @@ impl<'a> Token<'a> {
             "diamondsuit" => Token::NormalLetter('♢'),
             "digamma" => Token::Letter('ϝ'),
             "dim" => Token::Function("dim"),
+            "displaystyle" => Token::Style(Style::DisplayStyle),
             "div" => Token::Operator(ops::DIVISION_SIGN),
             "divideontimes" => Token::Operator(ops::DIVISION_TIMES),
             "dj" => Token::NormalLetter('đ'),
@@ -283,6 +286,7 @@ impl<'a> Token<'a> {
             "frown" => Token::Operator(ops::FROWN),
             "gamma" => Token::Letter('γ'),
             "ge" => Token::Operator(ops::GREATER_THAN_OR_EQUAL_TO),
+            "genfrac" => Token::Genfrac,
             "geq" => Token::Operator(ops::GREATER_THAN_OR_EQUAL_TO),
             "geqq" => Token::Operator(ops::GREATER_THAN_OVER_EQUAL_TO),
             "geqslant" => Token::Operator(ops::GREATER_THAN_OR_SLANTED_EQUAL_TO),
@@ -371,14 +375,14 @@ impl<'a> Token<'a> {
             "maltese" => Token::Letter('✠'),
             "mapsto" => Token::Operator(ops::RIGHTWARDS_ARROW_FROM_BAR),
             "mars" => Token::Letter('♂'),
-            "mathbb" => Token::Style(TextTransform::DoubleStruck),
-            "mathbf" => Token::Style(TextTransform::Bold),
-            "mathcal" => Token::Style(TextTransform::Script),
-            "mathfrak" => Token::Style(TextTransform::Fraktur),
-            "mathit" => Token::Style(TextTransform::Italic),
+            "mathbb" => Token::Transform(TextTransform::DoubleStruck),
+            "mathbf" => Token::Transform(TextTransform::Bold),
+            "mathcal" => Token::Transform(TextTransform::Script),
+            "mathfrak" => Token::Transform(TextTransform::Fraktur),
+            "mathit" => Token::Transform(TextTransform::Italic),
             "mathrm" => Token::NormalVariant,
-            "mathscr" => Token::Style(TextTransform::Script),
-            "mathsf" => Token::Style(TextTransform::SansSerif),
+            "mathscr" => Token::Transform(TextTransform::Script),
+            "mathsf" => Token::Transform(TextTransform::SansSerif),
             "mathstrut" => Token::Mathstrut,
             "max" => Token::Lim("max"),
             "mercury" => Token::Letter('☿'),
@@ -467,6 +471,8 @@ impl<'a> Token<'a> {
             "rtimes" => Token::Operator(ops::RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT),
             "rupee" => Token::NormalLetter('₹'),
             "saturn" => Token::NormalLetter('♄'),
+            "scriptstyle" => Token::Style(Style::ScriptStyle),
+            "scriptscriptstyle" => Token::Style(Style::ScriptScriptStyle),
             "searrow" => Token::Operator(ops::SOUTH_EAST_ARROW),
             "sec" => Token::Function("sec"),
             "setminus" => Token::Operator(ops::SET_MINUS),
@@ -503,15 +509,16 @@ impl<'a> Token<'a> {
             "supseteq" => Token::Operator(ops::SUPERSET_OF_OR_EQUAL_TO),
             "supsetneq" => Token::Operator(ops::SUPERSET_OF_WITH_NOT_EQUAL_TO),
             "swarrow" => Token::Operator(ops::SOUTH_WEST_ARROW),
-            "symbf" => Token::Style(TextTransform::BoldItalic),
+            "symbf" => Token::Transform(TextTransform::BoldItalic),
             "tan" => Token::Function("tan"),
             "tanh" => Token::Function("tanh"),
             "tau" => Token::Letter('τ'),
             "tbinom" => Token::Binom(Some(DisplayStyle::False)),
             "text" => Token::Text,
-            "textbf" => Token::Style(TextTransform::Bold),
-            "textit" => Token::Style(TextTransform::Italic),
-            "texttt" => Token::Style(TextTransform::Monospace),
+            "textbf" => Token::Transform(TextTransform::Bold),
+            "textit" => Token::Transform(TextTransform::Italic),
+            "textstyle" => Token::Style(Style::TextStyle),
+            "texttt" => Token::Transform(TextTransform::Monospace),
             "textyen" => Token::NormalLetter('¥'),
             "tfrac" => Token::Frac(Some(DisplayStyle::False)),
             "th" => Token::NormalLetter('þ'),

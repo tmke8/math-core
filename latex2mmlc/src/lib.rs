@@ -188,6 +188,11 @@ mod tests {
             ("overbrace", r"\overbrace{a+b+c}^{d}"),
             ("underbrace", r"\underbrace{a+b+c}_{d}"),
             ("prod", r"\prod_i \prod^n \prod^n_i \prod_i^n"),
+            (
+                "scriptstyle",
+                r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
+            ),
+            ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
         ];
 
         for (name, problem) in problems.into_iter() {

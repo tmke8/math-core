@@ -2,7 +2,9 @@ use std::mem;
 
 use crate::{
     ast::Node,
-    attribute::{Accent, Align, LineThickness, MathVariant, OpAttr, PhantomWidth, TextTransform},
+    attribute::{
+        Accent, Align, LineThickness, MathVariant, OpAttr, PhantomWidth, Style, TextTransform,
+    },
     error::LatexError,
     lexer::Lexer,
     ops,
@@ -91,6 +93,7 @@ impl<'a> Parser<'a> {
                 let next_token = self.next_token();
                 if matches!(next_token, Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
+                    self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
                     Node::Root(Box::new(squeeze(degree)), Box::new(content))
                 } else {
@@ -98,29 +101,59 @@ impl<'a> Parser<'a> {
                     Node::Sqrt(Box::new(content))
                 }
             }
-            Token::Frac(displaystyle) => {
-                let numerator = self.parse_token()?;
-                let denominator = self.parse_token()?;
-                Node::Frac(
-                    Box::new(numerator),
-                    Box::new(denominator),
-                    LineThickness::Medium,
-                    displaystyle,
-                )
+            ref tok @ (Token::Frac(displaystyle) | Token::Binom(displaystyle)) => {
+                let numerator = Box::new(self.parse_token()?);
+                let denominator = Box::new(self.parse_token()?);
+                if matches!(tok, Token::Binom(_)) {
+                    let inner =
+                        Node::Frac(numerator, denominator, LineThickness::Zero, displaystyle);
+                    Node::Fenced {
+                        open: ops::LEFT_PARENTHESIS,
+                        close: ops::RIGHT_PARENTHESIS,
+                        content: Box::new(inner),
+                        style: None,
+                    }
+                } else {
+                    Node::Frac(numerator, denominator, LineThickness::Medium, displaystyle)
+                }
             }
-            Token::Binom(displaystyle) => {
-                let numerator = self.parse_token()?;
-                let denominator = self.parse_token()?;
-
+            Token::Genfrac => {
+                let open = match self.parse_token()? {
+                    Node::Operator(op, _) => op,
+                    Node::Row(elements, _) if elements.len() == 0 => ops::NULL,
+                    _ => return Err(LatexError::UnexpectedEOF),
+                };
+                let close = match self.parse_token()? {
+                    Node::Operator(op, _) => op,
+                    Node::Row(elements, _) if elements.len() == 0 => ops::NULL,
+                    _ => return Err(LatexError::UnexpectedEOF),
+                };
+                self.check_lbrace()?;
+                let line_thickness = match self.parse_text_group()? {
+                    "" => LineThickness::Medium,
+                    "0pt" => LineThickness::Zero,
+                    _ => return Err(LatexError::UnexpectedEOF),
+                };
+                let style = match self.parse_token()? {
+                    Node::Number(num) => match num.parse::<u8>() {
+                        Ok(0) => Some(Style::DisplayStyle),
+                        Ok(1) => Some(Style::TextStyle),
+                        Ok(2) => Some(Style::ScriptStyle),
+                        Ok(3) => Some(Style::ScriptScriptStyle),
+                        Ok(_) | Err(_) => return Err(LatexError::UnexpectedEOF),
+                    },
+                    Node::Row(elements, _) if elements.len() == 0 => None,
+                    _ => return Err(LatexError::UnexpectedEOF),
+                };
+                let numerator = Box::new(self.parse_token()?);
+                let denominator = Box::new(self.parse_token()?);
+                let inner = Node::Frac(numerator, denominator, line_thickness, None);
+                let content = Box::new(inner);
                 Node::Fenced {
-                    open: ops::LEFT_PARENTHESIS,
-                    close: ops::RIGHT_PARENTHESIS,
-                    content: Box::new(Node::Frac(
-                        Box::new(numerator),
-                        Box::new(denominator),
-                        LineThickness::Zero,
-                        displaystyle,
-                    )),
+                    open,
+                    close,
+                    content,
+                    style,
                 }
             }
             ref tok @ (Token::Over(op) | Token::Under(op)) => {
@@ -215,17 +248,17 @@ impl<'a> Parser<'a> {
             }
             Token::NormalVariant => {
                 let node = self.parse_token()?;
-                let node = if let Node::Row(nodes) = node {
-                    merge_single_letters(nodes)
+                let node = if let Node::Row(nodes, style) = node {
+                    merge_single_letters(nodes, style)
                 } else {
                     node
                 };
                 set_variant(node, MathVariant::Normal)
             }
-            Token::Style(var) => {
+            Token::Transform(var) => {
                 let node = self.parse_single_token()?;
-                let node = if let Node::Row(nodes) = node {
-                    merge_single_letters(nodes)
+                let node = if let Node::Row(nodes, style) = node {
+                    merge_single_letters(nodes, style)
                 } else {
                     node
                 };
@@ -281,7 +314,11 @@ impl<'a> Parser<'a> {
                     right: Some("0.2222"),
                 },
             },
-            Token::LBrace => squeeze(self.parse_group(Token::RBrace)?),
+            Token::LBrace => {
+                let content = self.parse_group(Token::RBrace)?;
+                self.next_token(); // Discard the closing token.
+                squeeze(content)
+            }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::Left => {
                 let open = match self.next_token() {
@@ -295,6 +332,7 @@ impl<'a> Parser<'a> {
                     }
                 };
                 let content = self.parse_group(Token::Right)?;
+                self.next_token(); // Discard the closing token.
                 let close = match self.next_token() {
                     Token::Paren(close) => close,
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
@@ -309,6 +347,7 @@ impl<'a> Parser<'a> {
                     open,
                     close,
                     content: Box::new(squeeze(content)),
+                    style: None,
                 }
             }
             Token::Middle => match self.next_token() {
@@ -341,6 +380,7 @@ impl<'a> Parser<'a> {
                         open: ops::LEFT_CURLY_BRACKET,
                         close: ops::NULL,
                         content: Box::new(self.parse_table(Align::Left)?),
+                        style: None,
                     },
                     "matrix" => self.parse_table(Align::Center)?,
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
@@ -356,6 +396,7 @@ impl<'a> Parser<'a> {
                             open,
                             close,
                             content,
+                            style: None,
                         }
                     }
                     _ => {
@@ -400,6 +441,7 @@ impl<'a> Parser<'a> {
                 }),
                 PhantomWidth::Zero,
             ),
+            Token::Style(style) => Node::Row(self.parse_group(Token::RBrace)?, Some(style)),
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
@@ -447,19 +489,15 @@ impl<'a> Parser<'a> {
 
     /// Parse the contents of a group which can contain any expression.
     fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node<'a>>, LatexError<'a>> {
-        let mut cur_token = self.next_token();
         let mut nodes = Vec::new();
 
-        while {
-            if matches!(cur_token, Token::EOF) {
-                // When the input is completed without closed parentheses.
+        while self.peek_token != end_token {
+            let token = self.next_token();
+            if matches!(token, Token::EOF) {
+                // When the input ends without the closing token.
                 return Err(LatexError::UnclosedGroup(end_token));
             }
-
-            cur_token != end_token
-        } {
-            nodes.push(self.parse_node(cur_token)?);
-            cur_token = self.next_token();
+            nodes.push(self.parse_node(token)?);
         }
         Ok(nodes)
     }
@@ -477,7 +515,9 @@ impl<'a> Parser<'a> {
     #[inline]
     fn parse_table(&mut self, align: Align) -> Result<Node<'a>, LatexError<'a>> {
         // Read the contents of \begin..\end.
-        Ok(Node::Table(self.parse_group(Token::End)?, align))
+        let content = self.parse_group(Token::End)?;
+        self.next_token(); // Discard the closing token.
+        Ok(Node::Table(content, align))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
@@ -527,7 +567,7 @@ fn squeeze(nodes: Vec<Node>) -> Node {
         // SAFETY: `nodes` is not empty.
         unsafe { nodes.into_iter().next().unwrap_unchecked() }
     } else {
-        Node::Row(nodes)
+        Node::Row(nodes, None)
     }
 }
 
@@ -535,10 +575,11 @@ fn set_variant(node: Node, var: MathVariant) -> Node {
     match node {
         Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
         Node::MultiLetterIdent(x, _) => Node::MultiLetterIdent(x, Some(var)),
-        Node::Row(vec) => Node::Row(
+        Node::Row(vec, style) => Node::Row(
             vec.into_iter()
                 .map(|node| set_variant(node, var.clone()))
                 .collect(),
+            style,
         ),
         node => node,
     }
@@ -551,16 +592,17 @@ fn transform_text(node: Node, var: TextTransform) -> Node {
             Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect(), None)
         }
         Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into()), None),
-        Node::Row(vec) => Node::Row(
+        Node::Row(vec, style) => Node::Row(
             vec.into_iter()
                 .map(|node| transform_text(node, var))
                 .collect(),
+            style,
         ),
         node => node,
     }
 }
 
-fn merge_single_letters(nodes: Vec<Node>) -> Node {
+fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
     let mut new_nodes = Vec::new();
     let mut collected: Option<String> = None;
     for node in nodes {
@@ -584,6 +626,6 @@ fn merge_single_letters(nodes: Vec<Node>) -> Node {
         // SAFETY: `new_nodes` is not empty.
         unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
     } else {
-        Node::Row(new_nodes)
+        Node::Row(new_nodes, style)
     }
 }
