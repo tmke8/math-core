@@ -1,5 +1,5 @@
 use crate::attribute::{
-    Accent, Align, DisplayStyle, LineThickness, MathVariant, OpAttr, PhantomWidth, Style,
+    Accent, Align, DisplayStyle, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style,
 };
 use crate::ops::Op;
 
@@ -15,10 +15,10 @@ pub enum Node<'a> {
     OperatorWithSpacing {
         op: Op,
         attrs: Option<OpAttr>,
-        left: Option<&'static str>,
-        right: Option<&'static str>,
+        left: Option<MathSpacing>,
+        right: Option<MathSpacing>,
     },
-    MultiLetterIdent(String, Option<MathVariant>),
+    MultiLetterIdent(String),
     Space(&'static str),
     Subscript(Box<Node<'a>>, Box<Node<'a>>),
     Superscript(Box<Node<'a>>, Box<Node<'a>>),
@@ -47,7 +47,7 @@ pub enum Node<'a> {
     Frac(
         Box<Node<'a>>,
         Box<Node<'a>>,
-        LineThickness,
+        Option<char>,
         Option<DisplayStyle>,
     ),
     Row(Vec<Node<'a>>, Option<Style>),
@@ -143,13 +143,13 @@ impl<'a> Node<'a> {
             } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
-                        push!(s, "<mo lspace=\"", left, "em\" rspace=\"", right, "em\"",)
+                        push!(s, "<mo lspace=\"", left, "\" rspace=\"", right, "\"",)
                     }
                     (Some(left), None) => {
-                        push!(s, "<mo lspace=\"", left, "em\"")
+                        push!(s, "<mo lspace=\"", left, "\"")
                     }
                     (None, Some(right)) => {
-                        push!(s, "<mo rspace=\"", right, "em\"")
+                        push!(s, "<mo rspace=\"", right, "\"")
                     }
                     (None, None) => s.push_str("<mo"),
                 }
@@ -158,13 +158,7 @@ impl<'a> Node<'a> {
                 }
                 push!(s, ">", @op, "</mo>");
             }
-            Node::MultiLetterIdent(letters, var) => {
-                match var {
-                    Some(var) => push!(s, "<mi", var, ">"),
-                    None => s.push_str("<mi>"),
-                }
-                push!(s, letters, "</mi>");
-            }
+            Node::MultiLetterIdent(letters) => push!(s, "<mi>", letters, "</mi>"),
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
             node @ (Node::Subscript(first, second)
@@ -233,11 +227,14 @@ impl<'a> Node<'a> {
                 pushln!(s, base_indent, "</msqrt>");
             }
             Node::Frac(num, denom, lt, style) => {
-                if let Some(style) = style {
-                    push!(s, "<mfrac", lt, style, ">");
-                } else {
-                    push!(s, "<mfrac", lt, ">");
+                push!(s, "<mfrac");
+                match (lt, style) {
+                    (Some(lt), Some(style)) => push!(s, " linethickness=\"", @*lt, "pt\"", style),
+                    (Some(lt), None) => push!(s, " linethickness=\"", @*lt, "pt\""),
+                    (None, Some(style)) => push!(s, style),
+                    (None, None) => (),
                 }
+                push!(s, ">");
                 num.emit(s, child_indent);
                 denom.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");

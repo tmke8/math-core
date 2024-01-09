@@ -23,14 +23,6 @@ pub enum Accent {
 }
 
 #[derive(Debug, PartialEq, AsRefStr)]
-pub enum LineThickness {
-    #[strum(serialize = "")]
-    Medium,
-    #[strum(serialize = r#" linethickness="0""#)]
-    Zero,
-}
-
-#[derive(Debug, PartialEq, AsRefStr)]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="true""#)]
     StretchyTrue = 1,
@@ -74,6 +66,14 @@ pub enum PhantomWidth {
     Zero,
     #[strum(serialize = "")]
     Default,
+}
+
+#[derive(Debug, AsRefStr)]
+pub enum MathSpacing {
+    #[strum(serialize = "0em")]
+    Zero = 1,
+    #[strum(serialize = "0.2222em")]
+    FourMu, // 4/18 of an em/\quad
 }
 
 /// <mi> mathvariant attribute
