@@ -49,6 +49,7 @@
 
 pub mod ast;
 pub mod attribute;
+pub(crate) mod commands;
 mod error;
 pub(crate) mod lexer;
 pub(crate) mod ops;
@@ -193,6 +194,8 @@ mod tests {
                 r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
             ),
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
+            ("not_subset", r"\not\subset"),
+            ("not_less_than", r"\not\lt"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -231,6 +234,7 @@ mod tests {
             ("unclosed_env", r"\begin{matrix} x"),
             ("unclosed_text", r"\text{hello"),
             ("unexpected_limits", r"\text{hello}\limits_0^1"),
+            ("unsupported_not", r"\not\text{hello}"),
         ];
 
         for (name, problem) in problems.into_iter() {

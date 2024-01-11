@@ -41,7 +41,7 @@ pub enum DisplayStyle {
     False = 2,
 }
 
-#[derive(Debug, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, PartialEq, AsRefStr)]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
     DisplayStyle = 1,

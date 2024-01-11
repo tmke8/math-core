@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
             },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op, None),
+            Token::Operator(op) | Token::NegatedOperator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -248,6 +248,24 @@ impl<'a> Parser<'a> {
                 let node = self.parse_token()?;
                 self.next_token(); // Optimistically skip the next token.
                 Node::Slashed(Box::new(node))
+            }
+            tok @ Token::Not => {
+                match self.peek_token {
+                    Token::NegatedOperator(op) => {
+                        self.next_token(); // Discard the negated operator token.
+                        Node::Operator(op, None)
+                    }
+                    Token::Letter(char) | Token::NormalLetter(char) => {
+                        self.next_token(); // Discard the letter token.
+                        Node::MultiLetterIdent(char.to_string() + "\u{338}")
+                    }
+                    _ => {
+                        return Err(LatexError::CannotBeUsedHere {
+                            got: tok,
+                            correct_place: "before supported operators",
+                        })
+                    }
+                }
             }
             Token::NormalVariant => {
                 let node = self.parse_token()?;
