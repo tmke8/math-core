@@ -45,29 +45,26 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Read one command to a token.
+    /// Read one command.
     #[inline]
     fn read_command(&mut self) -> &'a str {
-        // Always read at least one character.
         self.read_char();
         let start = self.offset;
 
-        if !self.cur.is_ascii_alphabetic() {
+        // Read in all ASCII characters.
+        while self.cur.is_ascii_alphabetic() {
             self.read_char();
-            // SAFETY: we got `start` and `offset` from `CharIndices`, so they are valid bounds.
-            return unsafe { self.input_string.get_unchecked(start..self.offset) };
         }
 
-        // Read in all ASCII characters.
-        self.read_char();
-        while self.cur.is_ascii_alphabetic() {
+        if start == self.offset {
+            // Always read at least one character.
             self.read_char();
         }
         // SAFETY: we got `start` and `offset` from `CharIndices`, so they are valid bounds.
         unsafe { self.input_string.get_unchecked(start..self.offset) }
     }
 
-    /// Read one number into a token.
+    /// Read one number.
     fn read_number(&mut self) -> (&'a str, Op) {
         let start = self.offset;
         while self.cur.is_ascii_digit() || matches!(self.cur, '.' | ',') {
@@ -83,7 +80,7 @@ impl<'a> Lexer<'a> {
                 let op = match candidate {
                     '.' => ops::FULL_STOP,
                     ',' => ops::COMMA,
-                    _ => unreachable!(),
+                    _ => unsafe { std::hint::unreachable_unchecked() },
                 };
                 return (number, op);
             }
