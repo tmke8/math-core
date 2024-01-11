@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\not\\subset"
+---
+<math>
+    <mo>⊄</mo>
+</math>
