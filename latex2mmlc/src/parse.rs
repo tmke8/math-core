@@ -253,7 +253,7 @@ impl<'a> Parser<'a> {
             tok @ Token::Not => {
                 match self.peek_token {
                     Token::Operator(op) => {
-                        self.next_token(); // Discard the negated operator token.
+                        self.next_token(); // Discard the operator token.
                         if let Some(negated) = get_negated_op(op) {
                             Node::Operator(negated, None)
                         } else {
