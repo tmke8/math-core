@@ -5,6 +5,7 @@ use crate::{
     attribute::{
         Accent, Align, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style, TextTransform,
     },
+    commands::get_negated_op,
     error::LatexError,
     lexer::Lexer,
     ops,
@@ -82,7 +83,7 @@ impl<'a> Parser<'a> {
             },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) | Token::NegatedOperator(op) => Node::Operator(op, None),
+            Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -251,9 +252,21 @@ impl<'a> Parser<'a> {
             }
             tok @ Token::Not => {
                 match self.peek_token {
-                    Token::NegatedOperator(op) => {
-                        self.next_token(); // Discard the negated operator token.
-                        Node::Operator(op, None)
+                    Token::Operator(op) => {
+                        self.next_token(); // Discard the operator token.
+                        if let Some(negated) = get_negated_op(op) {
+                            Node::Operator(negated, None)
+                        } else {
+                            Node::Operator(op, None)
+                        }
+                    }
+                    Token::OpLessThan => {
+                        self.next_token(); // Discard the less-than token.
+                        Node::Operator(ops::NOT_LESS_THAN, None)
+                    }
+                    Token::OpGreaterThan => {
+                        self.next_token(); // Discard the greater-than token.
+                        Node::Operator(ops::NOT_GREATER_THAN, None)
                     }
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.

@@ -52,7 +52,6 @@ pub enum Token<'a> {
     Over(Op),
     Under(Op),
     Operator(Op),
-    NegatedOperator(Op),
     #[strum(serialize = ">")]
     OpGreaterThan,
     #[strum(serialize = "<")]

@@ -4,7 +4,7 @@
 //! - Output: `Vec<Token>`
 //!
 
-use crate::commands::{get_command, get_negated_op};
+use crate::commands::get_command;
 use crate::{ops, ops::Op, token::Token};
 
 /// Lexer
@@ -15,7 +15,6 @@ pub(crate) struct Lexer<'a> {
     offset: usize,
     input_string: &'a str,
     input_length: usize,
-    active_not: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -27,7 +26,6 @@ impl<'a> Lexer<'a> {
             offset: 0,
             input_string: input,
             input_length: input.len(),
-            active_not: false,
         };
         lexer.read_char();
         lexer
@@ -141,18 +139,7 @@ impl<'a> Lexer<'a> {
             ':' => Token::Colon,
             ' ' => Token::Letter('\u{A0}'),
             '\\' => {
-                let command_name = self.read_command();
-                if self.active_not {
-                    self.active_not = false;
-                    if let Some(op) = get_negated_op(command_name) {
-                        return Token::NegatedOperator(op);
-                    }
-                }
-                let command = get_command(command_name);
-                if matches!(command, Token::Not) {
-                    self.active_not = true;
-                }
-                return command;
+                return get_command(self.read_command());
             }
             c => {
                 if c.is_ascii_digit() {
@@ -165,7 +152,6 @@ impl<'a> Lexer<'a> {
                 }
             }
         };
-        self.active_not = false;
         self.read_char();
         token
     }

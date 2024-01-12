@@ -329,9 +329,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nequiv" => Token::Operator(ops::NOT_IDENTICAL_TO),
     "nexists" => Token::Operator(ops::THERE_DOES_NOT_EXIST),
     "ng" => Token::NormalLetter('ŋ'),
+    "ngtr" => Token::Operator(ops::NOT_GREATER_THAN),
     "ni" => Token::Operator(ops::CONTAINS_AS_MEMBER),
     "nleftarrow" => Token::Operator(ops::LEFTWARDS_ARROW_WITH_STROKE),
     "nleftrightarrow" => Token::Operator(ops::LEFT_RIGHT_ARROW_WITH_STROKE),
+    "nless" => Token::Operator(ops::NOT_LESS_THAN),
     "nmid" => Token::Operator(ops::DOES_NOT_DIVIDE),
     "not" => Token::Not,
     "notin" => Token::Operator(ops::NOT_AN_ELEMENT_OF),
@@ -501,24 +503,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "}" => Token::Paren(ops::RIGHT_CURLY_BRACKET),
 };
 
-static NEGATED_COMMANDS: phf::Map<&'static str, Op> = phf::phf_map! {
-    "approx" => ops::NOT_ALMOST_EQUAL_TO,
-    "cong" => ops::NOT_ASYMPTOTICALLY_EQUAL_TO,
-    "gt" => ops::NOT_GREATER_THAN,
-    "ge" => ops::NEITHER_GREATER_THAN_NOR_EQUAL_TO,
-    "geq" => ops::NEITHER_GREATER_THAN_NOR_EQUAL_TO,
-    "in" => ops::NOT_AN_ELEMENT_OF,
-    "le" => ops::NEITHER_LESS_THAN_NOR_EQUAL_TO,
-    "leq" => ops::NEITHER_LESS_THAN_NOR_EQUAL_TO,
-    "lt" => ops::NOT_LESS_THAN,
-    "prec" => ops::DOES_NOT_PRECEDE,
-    "subset" => ops::NOT_A_SUBSET_OF,
-    "subseteq" => ops::NEITHER_A_SUBSET_OF_NOR_EQUAL_TO,
-    "succ" => ops::DOES_NOT_SUCCEED,
-    "supset" => ops::NOT_A_SUPERSET_OF,
-    "supseteq" => ops::NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO,
-};
-
 pub fn get_command(command: &str) -> Token<'_> {
     match COMMANDS.get(command) {
         Some(token) => token.clone(),
@@ -526,6 +510,19 @@ pub fn get_command(command: &str) -> Token<'_> {
     }
 }
 
-pub fn get_negated_op(command: &str) -> Option<Op> {
-    NEGATED_COMMANDS.get(command).cloned()
+pub fn get_negated_op(op: Op) -> Option<Op> {
+    match op {
+        ops::ALMOST_EQUAL_TO => Some(ops::NOT_ALMOST_EQUAL_TO),
+        ops::APPROXIMATELY_EQUAL_TO => Some(ops::NOT_ASYMPTOTICALLY_EQUAL_TO),
+        ops::ELEMENT_OF => Some(ops::NOT_AN_ELEMENT_OF),
+        ops::GREATER_THAN_OVER_EQUAL_TO => Some(ops::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
+        ops::LESS_THAN_OR_EQUAL_TO => Some(ops::NEITHER_LESS_THAN_NOR_EQUAL_TO),
+        ops::PRECEDES => Some(ops::DOES_NOT_PRECEDE),
+        ops::SUBSET_OF => Some(ops::NOT_A_SUBSET_OF),
+        ops::SUBSET_OF_OR_EQUAL_TO => Some(ops::NEITHER_A_SUBSET_OF_NOR_EQUAL_TO),
+        ops::SUCCEEDS => Some(ops::DOES_NOT_SUCCEED),
+        ops::SUPERSET_OF => Some(ops::NOT_A_SUPERSET_OF),
+        ops::SUPERSET_OF_OR_EQUAL_TO => Some(ops::NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO),
+        _ => None,
+    }
 }
