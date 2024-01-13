@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string()),
+            Token::Function(fun) => Node::MultiLetterIdent(fun.to_vec()),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
@@ -232,7 +232,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim.to_string());
+                let lim = Node::MultiLetterIdent(lim.to_vec());
                 if matches!(self.peek_token, Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
                     }
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.
-                        Node::MultiLetterIdent(char.to_string() + "\u{338}")
+                        Node::MultiLetterIdent(vec![char, '\u{338}'])
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
@@ -628,8 +628,9 @@ fn transform_text(node: &mut Node, tf: TextTransform) {
             *x = tf.transform(*x);
         }
         Node::MultiLetterIdent(letters) => {
-            // TODO: Figure out how to re-use the String allocation.
-            let _ = mem::replace(letters, letters.chars().map(|c| tf.transform(c)).collect());
+            for char in letters {
+                *char = tf.transform(*char);
+            }
         }
         Node::Operator(op, _) => {
             let op = *op;
@@ -646,13 +647,13 @@ fn transform_text(node: &mut Node, tf: TextTransform) {
 
 fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
     let mut new_nodes = Vec::new();
-    let mut collected: Option<String> = None;
+    let mut collected: Option<Vec<char>> = None;
     for node in nodes {
         if let Node::SingleLetterIdent(c, _) = node {
             if let Some(ref mut letters) = collected {
                 letters.push(c); // we add another single letter
             } else {
-                collected = Some(c.to_string()); // we start collecting
+                collected = Some(vec![c]); // we start collecting
             }
         } else {
             if let Some(letters) = collected.take() {
