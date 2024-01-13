@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string()),
+            Token::Function(fun) => Node::MultiLetterIdent(fun.to_vec()),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
@@ -232,7 +232,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim.to_string());
+                let lim = Node::MultiLetterIdent(lim.to_vec());
                 if matches!(self.peek_token, Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
                     }
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.
-                        Node::MultiLetterIdent(char.to_string() + "\u{338}")
+                        Node::MultiLetterIdent(vec![char, '\u{338}'])
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
@@ -282,21 +282,23 @@ impl<'a> Parser<'a> {
             }
             Token::NormalVariant => {
                 let node = self.parse_token()?;
-                let node = if let Node::Row(nodes, style) = node {
+                let mut node = if let Node::Row(nodes, style) = node {
                     merge_single_letters(nodes, style)
                 } else {
                     node
                 };
-                set_variant(node, MathVariant::Normal)
+                set_variant(&mut node, MathVariant::Normal);
+                node
             }
-            Token::Transform(var) => {
+            Token::Transform(tf) => {
                 let node = self.parse_single_token()?;
-                let node = if let Node::Row(nodes, style) = node {
+                let mut node = if let Node::Row(nodes, style) = node {
                     merge_single_letters(nodes, style)
                 } else {
                     node
                 };
-                transform_text(node, var)
+                transform_text(&mut node, tf);
+                node
             }
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
@@ -602,45 +604,56 @@ fn squeeze(nodes: Vec<Node>) -> Node {
     }
 }
 
-fn set_variant(node: Node, var: MathVariant) -> Node {
+/// Set the math variant of all single-letter identifiers in `node` to `var`.
+/// The change is applied in-place.
+fn set_variant(node: &mut Node, var: MathVariant) {
     match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
-        Node::Row(vec, style) => Node::Row(
-            vec.into_iter()
-                .map(|node| set_variant(node, var.clone()))
-                .collect(),
-            style,
-        ),
-        node => node,
-    }
+        Node::SingleLetterIdent(_, maybe_var) => {
+            *maybe_var = Some(var);
+        }
+        Node::Row(vec, _) => {
+            for node in vec.iter_mut() {
+                set_variant(node, var.clone());
+            }
+        }
+        _ => {}
+    };
 }
 
-fn transform_text(node: Node, var: TextTransform) -> Node {
+/// Transform the text of all identifiers and operators using `tf`.
+/// The change is applied in-place.
+fn transform_text(node: &mut Node, tf: TextTransform) {
     match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
-        Node::MultiLetterIdent(letters) => {
-            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect())
+        Node::SingleLetterIdent(x, _) => {
+            *x = tf.transform(*x);
         }
-        Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into()), None),
-        Node::Row(vec, style) => Node::Row(
-            vec.into_iter()
-                .map(|node| transform_text(node, var))
-                .collect(),
-            style,
-        ),
-        node => node,
+        Node::MultiLetterIdent(letters) => {
+            for char in letters {
+                *char = tf.transform(*char);
+            }
+        }
+        Node::Operator(op, _) => {
+            let op = *op;
+            let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+        }
+        Node::Row(vec, _) => {
+            for node in vec.iter_mut() {
+                transform_text(node, tf.clone());
+            }
+        }
+        _ => {}
     }
 }
 
 fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
     let mut new_nodes = Vec::new();
-    let mut collected: Option<String> = None;
+    let mut collected: Option<Vec<char>> = None;
     for node in nodes {
         if let Node::SingleLetterIdent(c, _) = node {
             if let Some(ref mut letters) = collected {
                 letters.push(c); // we add another single letter
             } else {
-                collected = Some(c.to_string()); // we start collecting
+                collected = Some(vec![c]); // we start collecting
             }
         } else {
             if let Some(letters) = collected.take() {

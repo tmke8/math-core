@@ -18,7 +18,7 @@ pub enum Node<'a> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    MultiLetterIdent(String),
+    MultiLetterIdent(Vec<char>),
     Space(&'static str),
     Subscript(Box<Node<'a>>, Box<Node<'a>>),
     Superscript(Box<Node<'a>>, Box<Node<'a>>),
@@ -158,7 +158,11 @@ impl<'a> Node<'a> {
                 }
                 push!(s, ">", @op, "</mo>");
             }
-            Node::MultiLetterIdent(letters) => push!(s, "<mi>", letters, "</mi>"),
+            Node::MultiLetterIdent(letters) => {
+                push!(s, "<mi>");
+                s.extend(letters.iter());
+                push!(s, "</mi>");
+            }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
             node @ (Node::Subscript(first, second)

@@ -77,7 +77,7 @@ pub enum MathSpacing {
 }
 
 /// <mi> mathvariant attribute
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TextTransform {
     Bold,
     BoldFraktur,
