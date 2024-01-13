@@ -282,21 +282,23 @@ impl<'a> Parser<'a> {
             }
             Token::NormalVariant => {
                 let node = self.parse_token()?;
-                let node = if let Node::Row(nodes, style) = node {
+                let mut node = if let Node::Row(nodes, style) = node {
                     merge_single_letters(nodes, style)
                 } else {
                     node
                 };
-                set_variant(node, MathVariant::Normal)
+                set_variant(&mut node, MathVariant::Normal);
+                node
             }
-            Token::Transform(var) => {
+            Token::Transform(tf) => {
                 let node = self.parse_single_token()?;
-                let node = if let Node::Row(nodes, style) = node {
+                let mut node = if let Node::Row(nodes, style) = node {
                     merge_single_letters(nodes, style)
                 } else {
                     node
                 };
-                transform_text(node, var)
+                transform_text(&mut node, tf);
+                node
             }
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
@@ -602,33 +604,43 @@ fn squeeze(nodes: Vec<Node>) -> Node {
     }
 }
 
-fn set_variant(node: Node, var: MathVariant) -> Node {
+/// Set the math variant of all single-letter identifiers in `node` to `var`.
+/// The change is applied in-place.
+fn set_variant(node: &mut Node, var: MathVariant) {
     match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(x, Some(var)),
-        Node::Row(vec, style) => Node::Row(
-            vec.into_iter()
-                .map(|node| set_variant(node, var.clone()))
-                .collect(),
-            style,
-        ),
-        node => node,
-    }
+        Node::SingleLetterIdent(_, maybe_var) => {
+            *maybe_var = Some(var);
+        }
+        Node::Row(vec, _) => {
+            for node in vec.iter_mut() {
+                set_variant(node, var.clone());
+            }
+        }
+        _ => {}
+    };
 }
 
-fn transform_text(node: Node, var: TextTransform) -> Node {
+/// Transform the text of all identifiers and operators using `tf`.
+/// The change is applied in-place.
+fn transform_text(node: &mut Node, tf: TextTransform) {
     match node {
-        Node::SingleLetterIdent(x, _) => Node::SingleLetterIdent(var.transform(x), None),
-        Node::MultiLetterIdent(letters) => {
-            Node::MultiLetterIdent(letters.chars().map(|c| var.transform(c)).collect())
+        Node::SingleLetterIdent(x, _) => {
+            *x = tf.transform(*x);
         }
-        Node::Operator(op, _) => Node::SingleLetterIdent(var.transform(op.into()), None),
-        Node::Row(vec, style) => Node::Row(
-            vec.into_iter()
-                .map(|node| transform_text(node, var))
-                .collect(),
-            style,
-        ),
-        node => node,
+        Node::MultiLetterIdent(letters) => {
+            // TODO: Figure out how to re-use the String allocation.
+            let _ = mem::replace(letters, letters.chars().map(|c| tf.transform(c)).collect());
+        }
+        Node::Operator(op, _) => {
+            let op = *op;
+            let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+        }
+        Node::Row(vec, _) => {
+            for node in vec.iter_mut() {
+                transform_text(node, tf.clone());
+            }
+        }
+        _ => {}
     }
 }
 
