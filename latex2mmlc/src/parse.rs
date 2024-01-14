@@ -53,26 +53,15 @@ impl<'a> Parser<'a> {
     fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
         let left = self.parse_single_node(cur_token)?;
 
-        match self.peek_token {
-            ref tok @ (Token::Underscore | Token::Circumflex) => {
-                let is_underscore = matches!(tok, Token::Underscore);
-                self.next_token(); // Discard the underscore or circumflex token.
-                let next_token = self.next_token();
-                if matches!(next_token, Token::Underscore | Token::Circumflex) {
-                    return Err(LatexError::CannotBeUsedHere {
-                        got: next_token,
-                        correct_place: "after an identifier or operator",
-                    });
-                }
-                let right = Box::new(self.parse_node(next_token)?);
-                let left = Box::new(left);
-                if is_underscore {
-                    Ok(Node::Subscript(left, right))
-                } else {
-                    Ok(Node::Superscript(left, right))
-                }
-            }
-            _ => Ok(left),
+        match self.get_bounds()? {
+            Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup {
+                target: Box::new(left),
+                sub,
+                sup,
+            }),
+            Bounds(Some(symbol), None) => Ok(Node::Subscript(Box::new(left), symbol)),
+            Bounds(None, Some(symbol)) => Ok(Node::Superscript(Box::new(left), symbol)),
+            Bounds(None, None) => Ok(left),
         }
     }
 
@@ -568,14 +557,28 @@ impl<'a> Parser<'a> {
         let next_underscore = matches!(self.peek_token, Token::Underscore);
         if next_underscore || matches!(self.peek_token, Token::Circumflex) {
             self.next_token(); // Discard the underscore or circumflex token.
-            let first_bound = Some(Box::new(self.parse_single_token()?));
+            let next_token = self.next_token();
+            if matches!(next_token, Token::Underscore | Token::Circumflex) {
+                return Err(LatexError::CannotBeUsedHere {
+                    got: next_token,
+                    correct_place: "after an identifier or operator",
+                });
+            }
+            let first_bound = Some(Box::new(self.parse_single_node(next_token)?));
 
             // Check whether both an upper and a lower bound were specified.
             if (next_underscore && matches!(self.peek_token, Token::Circumflex))
                 || (!next_underscore && matches!(self.peek_token, Token::Underscore))
             {
                 self.next_token(); // Discard the circumflex or underscore token.
-                let second_bound = Some(Box::new(self.parse_single_token()?));
+                let next_token = self.next_token();
+                if matches!(next_token, Token::Underscore | Token::Circumflex) {
+                    return Err(LatexError::CannotBeUsedHere {
+                        got: next_token,
+                        correct_place: "after an identifier or operator",
+                    });
+                }
+                let second_bound = Some(Box::new(self.parse_single_node(next_token)?));
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if next_underscore {
