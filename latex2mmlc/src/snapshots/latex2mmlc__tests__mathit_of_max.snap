@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathit{ab \\max \\alpha\\beta}"
+---
+<math>
+    <mrow>
+        <mi>𝑎𝑏</mi>
+        <mi>max</mi>
+        <mi>𝛼𝛽</mi>
+    </mrow>
+</math>

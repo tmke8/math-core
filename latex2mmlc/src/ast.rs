@@ -18,7 +18,7 @@ pub enum Node<'a> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    MultiLetterIdent(Vec<char>),
+    MultiLetterIdent(String),
     Space(&'static str),
     Subscript(Box<Node<'a>>, Box<Node<'a>>),
     Superscript(Box<Node<'a>>, Box<Node<'a>>),
@@ -159,9 +159,7 @@ impl<'a> Node<'a> {
                 push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
-                push!(s, "<mi>");
-                s.extend(letters.iter());
-                push!(s, "</mi>");
+                push!(s, "<mi>", letters, "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
@@ -358,8 +356,13 @@ impl<'a> Node<'a> {
             }
             Node::Text(text) => {
                 push!(s, "<mtext>");
-                // Replace spaces with non-breaking spaces.
-                s.extend(text.chars().map(|c| if c == ' ' { '\u{A0}' } else { c }));
+                for c in text.chars() {
+                    if c == '\\' {
+                        continue;
+                    }
+                    // Replace spaces with non-breaking spaces.
+                    s.push(if c == ' ' { '\u{A0}' } else { c });
+                }
                 push!(s, "</mtext>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),

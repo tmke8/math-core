@@ -42,7 +42,7 @@ pub enum Token<'a> {
     Integral(Op),
     #[strum(serialize = r"\limits")]
     Limits,
-    Lim(&'static [char]),
+    Lim(&'static str),
     Space(&'static str),
     #[strum(serialize = "~")]
     NonBreakingSpace,
@@ -64,7 +64,7 @@ pub enum Token<'a> {
     Letter(char),
     NormalLetter(char),
     Number(&'a str, Op),
-    Function(&'static [char]),
+    Function(&'static str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,

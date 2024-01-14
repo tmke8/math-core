@@ -200,10 +200,15 @@ mod tests {
             ("mathrm_no_brackets", r"\mathrm x"),
             ("mathit_no_brackets", r"\mathit x"),
             ("mathbb_no_brackets", r"\mathbb N"),
+            ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
+            ("text_with_escape_brace", r"\text{a\}b}"),
+            // ("text_with_weird_o", r"\text{x\o y}"),
+            ("complicated_operatorname", r"\operatorname {{\pi} o \o a}"),
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, true).unwrap();
+            let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+                .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }
     }
@@ -239,6 +244,7 @@ mod tests {
             ("unclosed_text", r"\text{hello"),
             ("unexpected_limits", r"\text{hello}\limits_0^1"),
             ("unsupported_not", r"\not\text{hello}"),
+            ("operatorname_with_other_operator", r"\operatorname{\max}"),
         ];
 
         for (name, problem) in problems.into_iter() {
