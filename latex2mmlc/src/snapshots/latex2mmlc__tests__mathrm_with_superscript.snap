@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathrm{x}^2"
+---
+<math>
+    <msup>
+        <mi mathvariant="normal">x</mi>
+        <mn>2</mn>
+    </msup>
+</math>

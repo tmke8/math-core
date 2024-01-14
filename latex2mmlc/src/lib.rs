@@ -196,6 +196,10 @@ mod tests {
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),
             ("not_less_than", r"\not\lt"),
+            ("mathrm_with_superscript", r"\mathrm{x}^2"),
+            ("mathrm_no_brackets", r"\mathrm x"),
+            ("mathit_no_brackets", r"\mathit x"),
+            ("mathbb_no_brackets", r"\mathbb N"),
         ];
 
         for (name, problem) in problems.into_iter() {

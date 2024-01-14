@@ -281,7 +281,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::NormalVariant => {
-                let node = self.parse_token()?;
+                let node = self.parse_single_token()?;
                 let mut node = if let Node::Row(nodes, style) = node {
                     merge_single_letters(nodes, style)
                 } else {

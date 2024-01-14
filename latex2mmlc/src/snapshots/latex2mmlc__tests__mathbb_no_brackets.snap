@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathbb N"
+---
+<math>
+    <mi>ℕ</mi>
+</math>
