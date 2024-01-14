@@ -2,6 +2,6 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin{matrix] 1 \\end{matrix}"
 ---
-UnknownEnvironment(
-    "matrix] 1 \\end{matrix",
+UnclosedGroup(
+    GroupEnd,
 )

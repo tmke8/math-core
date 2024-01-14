@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\operatorname {{\\pi} o \\o a}"
+---
+<math>
+    <mi>πoøa</mi>
+</math>

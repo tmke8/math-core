@@ -1,6 +1,6 @@
 use strum_macros::AsRefStr;
 
-use crate::attribute::{DisplayStyle, Style, TextTransform};
+use crate::attribute::{FracAttr, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
@@ -25,14 +25,14 @@ pub enum Token<'a> {
     GroupBegin,
     #[strum(serialize = "}")]
     GroupEnd,
-    Frac(Option<DisplayStyle>),
+    Frac(Option<FracAttr>),
     #[strum(serialize = r"\genfrac")]
     Genfrac,
     #[strum(serialize = "_")]
     Underscore,
     #[strum(serialize = "^")]
     Circumflex,
-    Binom(Option<DisplayStyle>),
+    Binom(Option<FracAttr>),
     Overset,
     Underset,
     Overbrace(Op),
@@ -42,7 +42,7 @@ pub enum Token<'a> {
     Integral(Op),
     #[strum(serialize = r"\limits")]
     Limits,
-    Lim(&'static [char]),
+    Lim(&'static str),
     Space(&'static str),
     #[strum(serialize = "~")]
     NonBreakingSpace,
@@ -64,7 +64,7 @@ pub enum Token<'a> {
     Letter(char),
     NormalLetter(char),
     Number(&'a str, Op),
-    Function(&'static [char]),
+    Function(&'static str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,

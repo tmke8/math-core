@@ -91,6 +91,14 @@ impl<'a> Lexer<'a> {
     pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
         let start = self.offset;
         while self.cur != '}' {
+            // Check for escaped characters.
+            if self.cur == '\\' {
+                self.read_char();
+                // We only allow \{ and \} as escaped characters.
+                if !matches!(self.cur, '{' | '}') {
+                    return None;
+                }
+            }
             if self.cur == '\u{0}' {
                 return None;
             }

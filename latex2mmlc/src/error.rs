@@ -25,6 +25,7 @@ pub enum LatexError<'a> {
         got: Token<'a>,
         correct_place: &'static str,
     },
+    ExpectedText(&'static str),
 }
 
 impl<'a> LatexError<'a> {
@@ -66,6 +67,7 @@ impl<'a> LatexError<'a> {
                 got,
                 correct_place: needs,
             } => "Got \"".to_string() + got.as_ref() + "\", which may only appear " + needs + ".",
+            LatexError::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
         }
     }
 }

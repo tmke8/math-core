@@ -128,6 +128,7 @@ mod tests {
             ("integer", r"0"),
             ("rational_number", r"3.14"),
             ("long_number", r"3,453,435.3453"),
+            ("long_sub_super", r"x_{92}^{31415}"),
             ("single_variable", r"x"),
             ("greek_letter", r"\alpha"),
             ("greek_letters", r"\phi/\varphi"),
@@ -141,6 +142,8 @@ mod tests {
             ("fraction_without_space", r"\frac12"),
             ("slightly_more_complex_fraction", r"\frac{12}{5}"),
             ("superscript", r"x^2"),
+            ("sub_superscript", r"x^2_3"),
+            ("super_subscript", r"x_3^2"),
             ("double_subscript", r"g_{\mu\nu}"),
             ("simple_accent", r"\dot{x}"),
             ("operator_name", r"\operatorname{sn} x"),
@@ -196,10 +199,24 @@ mod tests {
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),
             ("not_less_than", r"\not\lt"),
+            ("mathrm_with_superscript", r"\mathrm{x}^2"),
+            ("mathrm_no_brackets", r"\mathrm x"),
+            ("mathit_no_brackets", r"\mathit x"),
+            ("mathbb_no_brackets", r"\mathbb N"),
+            ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
+            ("text_with_escape_brace", r"\text{a\}b}"),
+            // ("text_with_weird_o", r"\text{x\o y}"),
+            ("complicated_operatorname", r"\operatorname {{\pi} o \o a}"),
+            (
+                "continued_fraction",
+                r"a_0 + \cfrac{1}{a_1 + \cfrac{1}{a_2 + \cfrac{1}{a_3 + \cfrac{1}{a_4}}}}",
+            ),
+            ("standalone_underscore", "_2F_3"),
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, true).unwrap();
+            let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+                .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }
     }
@@ -227,6 +244,8 @@ mod tests {
             ("incomplete_sup", r"x^"),
             ("invalid_sup", r"x^^"),
             ("invalid_sub_sup", r"x^_"),
+            ("double_sub", r"x__3"),
+            ("int_double_sub", r"\int__3 x dx"),
             ("unicode_command", r"\éx"),
             ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
             ("unclosed_brace", r"{"),
@@ -235,6 +254,7 @@ mod tests {
             ("unclosed_text", r"\text{hello"),
             ("unexpected_limits", r"\text{hello}\limits_0^1"),
             ("unsupported_not", r"\not\text{hello}"),
+            ("operatorname_with_other_operator", r"\operatorname{\max}"),
         ];
 
         for (name, problem) in problems.into_iter() {
