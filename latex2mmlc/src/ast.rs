@@ -1,6 +1,4 @@
-use crate::attribute::{
-    Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style,
-};
+use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
@@ -14,7 +12,6 @@ pub enum Node<'a> {
     OpAmpersand,
     OperatorWithSpacing {
         op: Op,
-        attrs: Option<OpAttr>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
@@ -44,15 +41,10 @@ pub enum Node<'a> {
     },
     Sqrt(Box<Node<'a>>),
     Root(Box<Node<'a>>, Box<Node<'a>>),
-    Frac(
-        Box<Node<'a>>,
-        Box<Node<'a>>,
-        Option<char>,
-        Option<FracAttr>,
-    ),
+    Frac(Box<Node<'a>>, Box<Node<'a>>, Option<char>, Option<FracAttr>),
     Row(Vec<Node<'a>>, Option<Style>),
     PseudoRow(Vec<Node<'a>>),
-    Phantom(Box<Node<'a>>, PhantomWidth),
+    Mathstrut,
     Fenced {
         open: Op,
         close: Op,
@@ -68,6 +60,10 @@ pub enum Node<'a> {
     ColumnSeparator,
     RowSeparator,
     Slashed(Box<Node<'a>>),
+    Multiscript {
+        base: Box<Node<'a>>,
+        sub: Box<Node<'a>>,
+    },
 }
 
 const INDENT: &str = "    ";
@@ -135,12 +131,7 @@ impl<'a> Node<'a> {
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
             Node::OpAmpersand => push!(s, "<mo>&amp;</mo>"),
-            Node::OperatorWithSpacing {
-                op,
-                attrs,
-                left,
-                right,
-            } => {
+            Node::OperatorWithSpacing { op, left, right } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
                         push!(s, "<mo lspace=\"", left, "\" rspace=\"", right, "\"",)
@@ -152,9 +143,6 @@ impl<'a> Node<'a> {
                         push!(s, "<mo rspace=\"", right, "\"")
                     }
                     (None, None) => s.push_str("<mo"),
-                }
-                if let Some(stretchy) = attrs {
-                    push!(s, stretchy);
                 }
                 push!(s, ">", @op, "</mo>");
             }
@@ -211,6 +199,14 @@ impl<'a> Node<'a> {
                 third.emit(s, child_indent);
                 pushln!(s, base_indent, close);
             }
+            Node::Multiscript { base, sub } => {
+                push!(s, "<mmultiscripts>");
+                base.emit(s, child_indent);
+                pushln!(s, child_indent, "<mprescripts/>");
+                sub.emit(s, child_indent);
+                pushln!(s, child_indent, "<mrow></mrow>");
+                pushln!(s, base_indent, "</mmultiscripts>");
+            }
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
@@ -256,10 +252,11 @@ impl<'a> Node<'a> {
                     node.emit(s, base_indent);
                 }
             }
-            Node::Phantom(node, width) => {
-                push!(s, "<mphantom", width, ">");
-                node.emit(s, child_indent);
-                pushln!(s, base_indent, "</mphantom>");
+            Node::Mathstrut => {
+                push!(
+                    s,
+                    r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
+                );
             }
             Node::Fenced {
                 open,

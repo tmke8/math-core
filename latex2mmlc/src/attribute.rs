@@ -39,7 +39,7 @@ pub enum FracAttr {
     DisplayStyleTrue = 1,
     #[strum(serialize = r#" displaystyle="false""#)]
     DisplayStyleFalse,
-    #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
+    #[strum(serialize = r#" displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em""#)]
     CFracStyle,
 }
 
@@ -60,14 +60,6 @@ pub enum Align {
     Center,
     Left,
     Alternating,
-}
-
-#[derive(Debug, AsRefStr)]
-pub enum PhantomWidth {
-    #[strum(serialize = " style=\"width:0\"")]
-    Zero,
-    #[strum(serialize = "")]
-    Default,
 }
 
 #[derive(Debug, AsRefStr)]

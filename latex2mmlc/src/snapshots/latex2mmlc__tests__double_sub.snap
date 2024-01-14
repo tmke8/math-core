@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: x__3
+---
+CannotBeUsedHere {
+    got: Underscore,
+    correct_place: "after an identifier or operator",
+}

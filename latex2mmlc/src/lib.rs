@@ -204,6 +204,11 @@ mod tests {
             ("text_with_escape_brace", r"\text{a\}b}"),
             // ("text_with_weird_o", r"\text{x\o y}"),
             ("complicated_operatorname", r"\operatorname {{\pi} o \o a}"),
+            (
+                "continued_fraction",
+                r"a_0 + \cfrac{1}{a_1 + \cfrac{1}{a_2 + \cfrac{1}{a_3 + \cfrac{1}{a_4}}}}",
+            ),
+            ("standalone_underscore", "_2F_3"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -236,6 +241,7 @@ mod tests {
             ("incomplete_sup", r"x^"),
             ("invalid_sup", r"x^^"),
             ("invalid_sub_sup", r"x^_"),
+            ("double_sub", r"x__3"),
             ("unicode_command", r"\éx"),
             ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
             ("unclosed_brace", r"{"),

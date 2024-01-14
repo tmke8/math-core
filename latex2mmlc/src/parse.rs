@@ -2,9 +2,7 @@ use std::mem;
 
 use crate::{
     ast::Node,
-    attribute::{
-        Accent, Align, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style, TextTransform,
-    },
+    attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
     error::LatexError,
     lexer::Lexer,
@@ -56,15 +54,23 @@ impl<'a> Parser<'a> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.peek_token {
-            Token::Underscore => {
-                self.next_token(); // Discard the underscore token.
-                let right = self.parse_token()?;
-                Ok(Node::Subscript(Box::new(left), Box::new(right)))
-            }
-            Token::Circumflex => {
-                self.next_token(); // Discard the circumflex token.
-                let right = self.parse_token()?;
-                Ok(Node::Superscript(Box::new(left), Box::new(right)))
+            ref tok @ (Token::Underscore | Token::Circumflex) => {
+                let is_underscore = matches!(tok, Token::Underscore);
+                self.next_token(); // Discard the underscore or circumflex token.
+                let next_token = self.next_token();
+                if matches!(next_token, Token::Underscore | Token::Circumflex) {
+                    return Err(LatexError::CannotBeUsedHere {
+                        got: next_token,
+                        correct_place: "after an identifier or operator",
+                    });
+                }
+                let right = Box::new(self.parse_node(next_token)?);
+                let left = Box::new(left);
+                if is_underscore {
+                    Ok(Node::Subscript(left, right))
+                } else {
+                    Ok(Node::Superscript(left, right))
+                }
             }
             _ => Ok(left),
         }
@@ -331,13 +337,11 @@ impl<'a> Parser<'a> {
                     Node::PseudoRow(vec![
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
-                            attrs: None,
                             left: Some(MathSpacing::FourMu),
                             right: Some(MathSpacing::Zero),
                         },
                         Node::OperatorWithSpacing {
                             op,
-                            attrs: None,
                             left: Some(MathSpacing::Zero),
                             right: None,
                         },
@@ -345,7 +349,6 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
-                    attrs: None,
                     left: Some(MathSpacing::FourMu),
                     right: Some(MathSpacing::FourMu),
                 },
@@ -463,24 +466,22 @@ impl<'a> Parser<'a> {
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
-            Token::Mathstrut => Node::Phantom(
-                Box::new(Node::OperatorWithSpacing {
-                    op: ops::LEFT_PARENTHESIS,
-                    attrs: Some(OpAttr::StretchyFalse),
-                    left: Some(MathSpacing::Zero),
-                    right: Some(MathSpacing::Zero),
-                }),
-                PhantomWidth::Zero,
-            ),
+            Token::Mathstrut => Node::Mathstrut,
             Token::Style(style) => Node::Row(self.parse_group(Token::GroupEnd)?, Some(style)),
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
-            tok @ (Token::Underscore | Token::Circumflex) => {
+            // tok @ (Token::Underscore | Token::Circumflex) => {
+            tok @ Token::Circumflex => {
                 return Err(LatexError::CannotBeUsedHere {
                     got: tok,
                     correct_place: "after an identifier or operator",
                 });
+            }
+            Token::Underscore => {
+                let sub = Box::new(self.parse_single_token()?);
+                let base = Box::new(self.parse_single_token()?);
+                Node::Multiscript { base, sub }
             }
             tok @ Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
