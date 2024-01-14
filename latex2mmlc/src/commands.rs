@@ -1,4 +1,4 @@
-use crate::attribute::{DisplayStyle, Style, TextTransform};
+use crate::attribute::{FracAttr, Style, TextTransform};
 use crate::ops::{self, Op};
 use crate::token::Token;
 
@@ -135,6 +135,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cdot" => Token::Operator(ops::MIDDLE_DOT),
     "cdots" => Token::Operator(ops::MIDLINE_HORIZONTAL_ELLIPSIS),
     "centerdot" => Token::Operator(ops::BULLET_OPERATOR),
+    "cfrac" => Token::Frac(Some(FracAttr::CFracStyle)),
     "check" => Token::Over(ops::CARON),
     "checkmark" => Token::NormalLetter('✓'),
     "chi" => Token::Letter('χ'),
@@ -165,13 +166,13 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dagger" => Token::NormalLetter('†'),
     "daleth" => Token::NormalLetter('ℸ'),
     "dashv" => Token::Operator(ops::LEFT_TACK),
-    "dbinom" => Token::Binom(Some(DisplayStyle::True)),
+    "dbinom" => Token::Binom(Some(FracAttr::DisplayStyleTrue)),
     "ddag" => Token::NormalLetter('‡'),
     "ddot" => Token::Over(ops::DIAERESIS),
     "ddots" => Token::Operator(ops::DOWN_RIGHT_DIAGONAL_ELLIPSIS),
     "delta" => Token::Letter('δ'),
     "det" => Token::Function("det"),
-    "dfrac" => Token::Frac(Some(DisplayStyle::True)),
+    "dfrac" => Token::Frac(Some(FracAttr::DisplayStyleTrue)),
     "dh" => Token::NormalLetter('ð'),
     "diamondsuit" => Token::NormalLetter('♢'),
     "digamma" => Token::Letter('ϝ'),
@@ -442,14 +443,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "tan" => Token::Function("tan"),
     "tanh" => Token::Function("tanh"),
     "tau" => Token::Letter('τ'),
-    "tbinom" => Token::Binom(Some(DisplayStyle::False)),
+    "tbinom" => Token::Binom(Some(FracAttr::DisplayStyleFalse)),
     "text" => Token::Text,
     "textbf" => Token::Transform(TextTransform::Bold),
     "textit" => Token::Transform(TextTransform::Italic),
     "textstyle" => Token::Style(Style::TextStyle),
     "texttt" => Token::Transform(TextTransform::Monospace),
     "textyen" => Token::NormalLetter('¥'),
-    "tfrac" => Token::Frac(Some(DisplayStyle::False)),
+    "tfrac" => Token::Frac(Some(FracAttr::DisplayStyleFalse)),
     "th" => Token::NormalLetter('þ'),
     "therefore" => Token::NormalLetter('∴'),
     "theta" => Token::Letter('θ'),

@@ -34,11 +34,13 @@ pub enum OpAttr {
 
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-pub enum DisplayStyle {
+pub enum FracAttr {
     #[strum(serialize = r#" displaystyle="true""#)]
-    True = 1,
+    DisplayStyleTrue = 1,
     #[strum(serialize = r#" displaystyle="false""#)]
-    False = 2,
+    DisplayStyleFalse,
+    #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
+    CFracStyle,
 }
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]

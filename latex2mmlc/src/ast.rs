@@ -1,5 +1,5 @@
 use crate::attribute::{
-    Accent, Align, DisplayStyle, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style,
+    Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, PhantomWidth, Style,
 };
 use crate::ops::Op;
 
@@ -48,7 +48,7 @@ pub enum Node<'a> {
         Box<Node<'a>>,
         Box<Node<'a>>,
         Option<char>,
-        Option<DisplayStyle>,
+        Option<FracAttr>,
     ),
     Row(Vec<Node<'a>>, Option<Style>),
     PseudoRow(Vec<Node<'a>>),
