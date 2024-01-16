@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     }
 
     // Read the node immediately after without worrying about whether
-    // the infix operator `_`, `^`, '\' '' will continue
+    // the infix operator `_`, `^`, `'` will continue
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
@@ -461,7 +461,7 @@ impl<'a> Parser<'a> {
                 return Err(LatexError::UnknownCommand(name));
             }
             // tok @ (Token::Underscore | Token::Circumflex) => {
-            tok @ Token::Circumflex => {
+            tok @ (Token::Circumflex | Token::Prime) => {
                 return Err(LatexError::CannotBeUsedHere {
                     got: tok,
                     correct_place: "after an identifier or operator",
@@ -483,17 +483,7 @@ impl<'a> Parser<'a> {
                 return Err(LatexError::UnexpectedClose(tok))
             }
         };
-
-        match self.peek_token {
-            Token::Operator(ops::APOSTROPHE) => {
-                self.next_token(); // Discard the apostrophe token.
-                Ok(Node::Superscript(
-                    Box::new(node),
-                    Box::new(Node::Operator(ops::PRIME, None)),
-                ))
-            }
-            _ => Ok(node),
-        }
+        Ok(node)
     }
 
     #[inline]
@@ -554,17 +544,27 @@ impl<'a> Parser<'a> {
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds<'a>, LatexError<'a>> {
+        let mut prime_counter: usize = 0;
+
+        while matches!(self.peek_token, Token::Prime) {
+            self.next_token(); // Discard the prime token.
+            prime_counter += 1;
+        }
+
         let next_underscore = matches!(self.peek_token, Token::Underscore);
-        if next_underscore || matches!(self.peek_token, Token::Circumflex) {
+        let (sub, mut sup) = if next_underscore || matches!(self.peek_token, Token::Circumflex) {
             self.next_token(); // Discard the underscore or circumflex token.
             let next_token = self.next_token();
-            if matches!(next_token, Token::Underscore | Token::Circumflex) {
+            if matches!(
+                next_token,
+                Token::Underscore | Token::Circumflex | Token::Prime
+            ) {
                 return Err(LatexError::CannotBeUsedHere {
                     got: next_token,
                     correct_place: "after an identifier or operator",
                 });
             }
-            let first_bound = Some(Box::new(self.parse_single_node(next_token)?));
+            let first_bound = Some(self.parse_single_node(next_token)?);
 
             // Check whether both an upper and a lower bound were specified.
             if (next_underscore && matches!(self.peek_token, Token::Circumflex))
@@ -572,28 +572,43 @@ impl<'a> Parser<'a> {
             {
                 self.next_token(); // Discard the circumflex or underscore token.
                 let next_token = self.next_token();
-                if matches!(next_token, Token::Underscore | Token::Circumflex) {
+                if matches!(
+                    next_token,
+                    Token::Underscore | Token::Circumflex | Token::Prime
+                ) {
                     return Err(LatexError::CannotBeUsedHere {
                         got: next_token,
                         correct_place: "after an identifier or operator",
                     });
                 }
-                let second_bound = Some(Box::new(self.parse_single_node(next_token)?));
+                let second_bound = Some(self.parse_single_node(next_token)?);
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if next_underscore {
-                    Ok(Bounds(first_bound, second_bound))
+                    (first_bound, second_bound)
                 } else {
-                    Ok(Bounds(second_bound, first_bound))
+                    (second_bound, first_bound)
                 }
             } else if next_underscore {
-                Ok(Bounds(first_bound, None))
+                (first_bound, None)
             } else {
-                Ok(Bounds(None, first_bound))
+                (None, first_bound)
             }
         } else {
-            Ok(Bounds(None, None))
+            (None, None)
+        };
+
+        if prime_counter > 0 {
+            let mut superscripts: Vec<Node> = (0..prime_counter)
+                .map(|_| Node::Operator(ops::PRIME, None))
+                .collect();
+            if let Some(sup) = sup {
+                superscripts.push(sup);
+            }
+            sup = Some(squeeze(superscripts));
         }
+
+        Ok(Bounds(sub.map(Box::new), sup.map(Box::new)))
     }
 }
 

@@ -52,6 +52,8 @@ pub enum Token<'a> {
     Over(Op),
     Under(Op),
     Operator(Op),
+    #[strum(serialize = "'")]
+    Prime,
     #[strum(serialize = ">")]
     OpGreaterThan,
     #[strum(serialize = "<")]

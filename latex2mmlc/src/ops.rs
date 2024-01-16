@@ -21,7 +21,7 @@ impl From<&Op> for char {
 //
 pub(crate) const NULL: Op = Op('\u{0}');
 pub(crate) const EXCLAMATION_MARK: Op = Op('!');
-pub(crate) const APOSTROPHE: Op = Op('\'');
+// pub(crate) const APOSTROPHE: Op = Op('\'');
 pub(crate) const LEFT_PARENTHESIS: Op = Op('(');
 pub(crate) const RIGHT_PARENTHESIS: Op = Op(')');
 pub(crate) const ASTERISK: Op = Op('*');

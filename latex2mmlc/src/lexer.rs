@@ -90,7 +90,16 @@ impl<'a> Lexer<'a> {
     /// Read text until the next `}`.
     pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
         let start = self.offset;
-        while self.cur != '}' {
+        let mut brace_count = 1;
+        loop {
+            if self.cur == '{' {
+                brace_count += 1;
+            } else if self.cur == '}' {
+                brace_count -= 1;
+            }
+            if brace_count <= 0 {
+                break;
+            }
             // Check for escaped characters.
             if self.cur == '\\' {
                 self.read_char();
@@ -124,7 +133,7 @@ impl<'a> Lexer<'a> {
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
             '.' => Token::Operator(ops::FULL_STOP),
-            '\'' => Token::Operator(ops::APOSTROPHE),
+            '\'' => Token::Prime,
             '(' => Token::Paren(ops::LEFT_PARENTHESIS),
             ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
             '{' => Token::GroupBegin,
