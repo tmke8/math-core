@@ -264,6 +264,8 @@ mod tests {
             ("operatorname_with_other_operator", r"\operatorname{\max}"),
             ("text_with_unclosed_group", r"\text{x{}"),
             ("super_then_prime", "f^2'"),
+            ("sup_sup", "x^2^3 y"),
+            ("sub_sub", "x_2_3 y"),
         ];
 
         for (name, problem) in problems.into_iter() {
