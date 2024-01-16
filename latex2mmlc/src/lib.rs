@@ -219,6 +219,9 @@ mod tests {
             ("double_prime_and_super", r"f''^2"),
             ("double_prime_and_super_sub", r"f''^2_3"),
             ("double_prime_and_sub_super", r"f''_3^2"),
+            ("sum_prime", r"\sum'"),
+            ("int_prime", r"\int'"),
+            ("int_limit_prime", r"\int\limits'"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -264,6 +267,8 @@ mod tests {
             ("operatorname_with_other_operator", r"\operatorname{\max}"),
             ("text_with_unclosed_group", r"\text{x{}"),
             ("super_then_prime", "f^2'"),
+            ("sup_sup", "x^2^3 y"),
+            ("sub_sub", "x_2_3 y"),
         ];
 
         for (name, problem) in problems.into_iter() {
