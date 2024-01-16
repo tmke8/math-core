@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sum'"
+---
+<math>
+    <mover>
+        <mo>∑</mo>
+        <mo>′</mo>
+    </mover>
+</math>
