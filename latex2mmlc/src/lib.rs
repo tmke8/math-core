@@ -171,7 +171,6 @@ mod tests {
             ("product", r"\prod_n n"),
             ("underscore", r"x\ y"),
             ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),
-            ("prime", r"f'"),
             ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
             (
                 "align",
@@ -206,12 +205,20 @@ mod tests {
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
             ("text_with_escape_brace", r"\text{a\}b}"),
             // ("text_with_weird_o", r"\text{x\o y}"),
+            ("text_with_group", r"\text{x{y}z{}p{}}"),
             ("complicated_operatorname", r"\operatorname {{\pi} o \o a}"),
             (
                 "continued_fraction",
                 r"a_0 + \cfrac{1}{a_1 + \cfrac{1}{a_2 + \cfrac{1}{a_3 + \cfrac{1}{a_4}}}}",
             ),
             ("standalone_underscore", "_2F_3"),
+            ("prime", r"f'"),
+            ("double_prime", r"f''"),
+            ("triple_prime", r"f'''"),
+            ("prime_and_super", r"f'^2"),
+            ("double_prime_and_super", r"f''^2"),
+            ("double_prime_and_super_sub", r"f''^2_3"),
+            ("double_prime_and_sub_super", r"f''_3^2"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -255,6 +262,8 @@ mod tests {
             ("unexpected_limits", r"\text{hello}\limits_0^1"),
             ("unsupported_not", r"\not\text{hello}"),
             ("operatorname_with_other_operator", r"\operatorname{\max}"),
+            ("text_with_unclosed_group", r"\text{x{}"),
+            ("super_then_prime", "f^2'"),
         ];
 
         for (name, problem) in problems.into_iter() {

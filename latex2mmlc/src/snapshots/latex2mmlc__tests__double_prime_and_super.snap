@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "f''^2"
+---
+<math>
+    <msup>
+        <mi>f</mi>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mn>2</mn>
+        </mrow>
+    </msup>
+</math>

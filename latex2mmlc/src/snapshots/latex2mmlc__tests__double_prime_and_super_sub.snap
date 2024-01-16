@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "f''^2_3"
+---
+<math>
+    <msubsup>
+        <mi>f</mi>
+        <mn>3</mn>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mn>2</mn>
+        </mrow>
+    </msubsup>
+</math>
