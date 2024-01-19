@@ -33,13 +33,25 @@ impl<'a> Lexer<'a> {
         self.input.next().unwrap_or((self.input_length, '\u{0}'))
     }
 
-    fn cur(&mut self) -> Option<&(usize, char)> {
-        self.input.peek()
+    fn peek(&mut self) -> char {
+        match self.input.peek() {
+            Some((_, c)) => *c,
+            None => '\u{0}',
+        }
+    }
+
+    #[inline]
+    fn end_of_previous_char(&mut self) -> usize {
+        if let Some((index, _)) = self.input.peek() {
+            *index
+        } else {
+            self.input_length
+        }
     }
 
     /// Skip blank characters.
     fn skip_whitespace(&mut self) {
-        while self.cur().is_some_and(|p| p.1.is_ascii_whitespace()) {
+        while self.peek().is_ascii_whitespace() {
             self.read_char();
         }
     }
@@ -53,17 +65,13 @@ impl<'a> Lexer<'a> {
         // If the first char is ASCII, we read until the next non-ASCII character.
         if cur.is_ascii_alphabetic() {
             // Read in all ASCII characters.
-            while self.cur().is_some_and(|p| p.1.is_ascii_alphabetic()) {
+            while self.peek().is_ascii_alphabetic() {
                 self.read_char();
             }
         }
 
         // To get the end of the command, we take the index of the next character.
-        let end = if let Some((index, _)) = self.cur() {
-            *index
-        } else {
-            self.input_length
-        };
+        let end = self.end_of_previous_char();
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
         unsafe { self.input_string.get_unchecked(start..end) }
     }
@@ -73,13 +81,13 @@ impl<'a> Lexer<'a> {
         // We know that the first character is a digit.
         let (start, _) = self.read_char();
 
-        while self
-            .cur()
-            .is_some_and(|p| p.1.is_ascii_digit() || matches!(p.1, '.' | ','))
-        {
+        while {
+            let cur = self.peek();
+            cur.is_ascii_digit() || matches!(cur, '.' | ',')
+        } {
             let (index_before, candidate) = self.read_char();
             // Before we accept the current character, we need to check the next one.
-            if matches!(candidate, '.' | ',') && !self.cur().is_some_and(|p| p.1.is_ascii_digit()) {
+            if matches!(candidate, '.' | ',') && !self.peek().is_ascii_digit() {
                 // If the candidate is punctuation and the next character is not a digit,
                 // we don't want to include the punctuation.
                 // But we do need to return the punctuation as an operator.
@@ -92,11 +100,7 @@ impl<'a> Lexer<'a> {
                 return (number, op);
             }
         }
-        let end = if let Some((index, _)) = self.cur() {
-            *index
-        } else {
-            self.input_length
-        };
+        let end = self.end_of_previous_char();
         let number = unsafe { self.input_string.get_unchecked(start..end) };
         (number, ops::NULL)
     }
@@ -134,26 +138,15 @@ impl<'a> Lexer<'a> {
 
     /// Generate the next token.
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
-        let Some((_, cur)) = self.cur() else {
-            return Token::EOF;
-        };
-        if wants_digit && cur.is_ascii_digit() {
+        if wants_digit && self.peek().is_ascii_digit() {
             let (start, _) = self.read_char();
-            let end = if let Some((index, _)) = self.cur() {
-                *index
-            } else {
-                self.input_length
-            };
+            let end = self.end_of_previous_char();
             let num = unsafe { self.input_string.get_unchecked(start..end) };
             return Token::Number(num, ops::NULL);
         }
         self.skip_whitespace();
 
-        let Some((_, cur)) = self.cur() else {
-            return Token::EOF;
-        };
-
-        let token: Token = match cur {
+        let token: Token = match self.peek() {
             '=' => Token::Operator(ops::EQUALS_SIGN),
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
@@ -189,9 +182,9 @@ impl<'a> Lexer<'a> {
                     let (num, op) = self.read_number();
                     return Token::Number(num, op);
                 } else if c.is_ascii_alphabetic() {
-                    return Token::Letter(self.read_char().1);
+                    Token::Letter(c)
                 } else {
-                    return Token::NormalLetter(self.read_char().1);
+                    Token::NormalLetter(c)
                 }
             }
         };
