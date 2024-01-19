@@ -97,10 +97,10 @@ impl<'a> Parser<'a> {
                     Node::Sqrt(Box::new(content))
                 }
             }
-            ref tok @ (Token::Frac(displaystyle) | Token::Binom(displaystyle)) => {
+            Token::Frac(displaystyle) | Token::Binom(displaystyle) => {
                 let numerator = Box::new(self.parse_token()?);
                 let denominator = Box::new(self.parse_token()?);
-                if matches!(tok, Token::Binom(_)) {
+                if matches!(cur_token, Token::Binom(_)) {
                     let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
@@ -164,12 +164,12 @@ impl<'a> Parser<'a> {
                     Node::UnderOp(op, Accent::True, boxed)
                 }
             }
-            tok @ (Token::Overset | Token::Underset) => {
+            Token::Overset | Token::Underset => {
                 let symbol = self.parse_token()?;
                 let target = self.parse_token()?;
                 let symbol = Box::new(symbol);
                 let target = Box::new(target);
-                if matches!(tok, Token::Overset) {
+                if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
                     Node::Underset { symbol, target }
@@ -245,7 +245,7 @@ impl<'a> Parser<'a> {
                 self.next_token(); // Optimistically skip the next token.
                 Node::Slashed(Box::new(node))
             }
-            tok @ Token::Not => {
+            Token::Not => {
                 match self.peek_token {
                     Token::Operator(op) => {
                         self.next_token(); // Discard the operator token.
@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
-                            got: tok,
+                            got: cur_token,
                             correct_place: "before supported operators",
                         })
                     }
@@ -460,10 +460,10 @@ impl<'a> Parser<'a> {
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
-            // tok @ (Token::Underscore | Token::Circumflex) => {
-            tok @ (Token::Circumflex | Token::Prime) => {
+            // Token::Underscore | Token::Circumflex => {
+            Token::Circumflex | Token::Prime => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: tok,
+                    got: cur_token,
                     correct_place: "after an identifier or operator",
                 });
             }
@@ -472,15 +472,15 @@ impl<'a> Parser<'a> {
                 let base = Box::new(self.parse_single_token()?);
                 Node::Multiscript { base, sub }
             }
-            tok @ Token::Limits => {
+            Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: tok,
+                    got: cur_token,
                     correct_place: r"after \int, \sum, ...",
                 })
             }
             Token::EOF => return Err(LatexError::UnexpectedEOF),
-            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
-                return Err(LatexError::UnexpectedClose(tok))
+            Token::End | Token::Right | Token::GroupEnd => {
+                return Err(LatexError::UnexpectedClose(cur_token))
             }
         };
         Ok(node)
@@ -663,7 +663,7 @@ fn transform_letters(node: &mut Node, tf: TextTransform) {
 }
 
 fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
-    let mut new_nodes = Vec::new();
+    let mut new_nodes = Vec::with_capacity(nodes.len());
     let mut collected: Option<String> = None;
     for node in nodes {
         if let Node::SingleLetterIdent(c, _) = node {
