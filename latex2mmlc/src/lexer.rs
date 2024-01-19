@@ -4,7 +4,7 @@
 //! - Output: `Vec<Token>`
 //!
 
-use std::iter::Peekable;
+use std::mem;
 use std::str::CharIndices;
 
 use crate::commands::get_command;
@@ -13,7 +13,8 @@ use crate::{ops, ops::Op, token::Token};
 /// Lexer
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
-    input: Peekable<CharIndices<'a>>,
+    input: CharIndices<'a>,
+    peek: (usize, char),
     input_string: &'a str,
     input_length: usize,
 }
@@ -21,37 +22,27 @@ pub(crate) struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(input: &'a str) -> Self {
-        Lexer {
-            input: input.char_indices().peekable(),
+        let mut l = Lexer {
+            input: input.char_indices(),
+            peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
-        }
+        };
+        l.read_char();
+        l
     }
 
     /// One character progresses.
     fn read_char(&mut self) -> (usize, char) {
-        self.input.next().unwrap_or((self.input_length, '\u{0}'))
-    }
-
-    fn peek(&mut self) -> char {
-        match self.input.peek() {
-            Some((_, c)) => *c,
-            None => '\u{0}',
-        }
-    }
-
-    #[inline]
-    fn end_of_previous_char(&mut self) -> usize {
-        if let Some((index, _)) = self.input.peek() {
-            *index
-        } else {
-            self.input_length
-        }
+        mem::replace(
+            &mut self.peek,
+            self.input.next().unwrap_or((self.input_length, '\u{0}')),
+        )
     }
 
     /// Skip blank characters.
     fn skip_whitespace(&mut self) {
-        while self.peek().is_ascii_whitespace() {
+        while self.peek.1.is_ascii_whitespace() {
             self.read_char();
         }
     }
@@ -59,19 +50,20 @@ impl<'a> Lexer<'a> {
     /// Read one command.
     #[inline]
     fn read_command(&mut self) -> &'a str {
-        // Always read at least one character.
-        let (start, cur) = self.read_char();
+        let start = self.peek.0;
 
-        // If the first char is ASCII, we read until the next non-ASCII character.
-        if cur.is_ascii_alphabetic() {
-            // Read in all ASCII characters.
-            while self.peek().is_ascii_alphabetic() {
-                self.read_char();
-            }
+        // Read in all ASCII characters.
+        while self.peek.1.is_ascii_alphabetic() {
+            self.read_char();
+        }
+
+        if start == self.peek.0 {
+            // Always read at least one character.
+            self.read_char();
         }
 
         // To get the end of the command, we take the index of the next character.
-        let end = self.end_of_previous_char();
+        let end = self.peek.0;
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
         unsafe { self.input_string.get_unchecked(start..end) }
     }
@@ -82,12 +74,12 @@ impl<'a> Lexer<'a> {
         let (start, _) = self.read_char();
 
         while {
-            let cur = self.peek();
+            let cur = self.peek.1;
             cur.is_ascii_digit() || matches!(cur, '.' | ',')
         } {
             let (index_before, candidate) = self.read_char();
             // Before we accept the current character, we need to check the next one.
-            if matches!(candidate, '.' | ',') && !self.peek().is_ascii_digit() {
+            if matches!(candidate, '.' | ',') && !self.peek.1.is_ascii_digit() {
                 // If the candidate is punctuation and the next character is not a digit,
                 // we don't want to include the punctuation.
                 // But we do need to return the punctuation as an operator.
@@ -100,17 +92,20 @@ impl<'a> Lexer<'a> {
                 return (number, op);
             }
         }
-        let end = self.end_of_previous_char();
+        let end = self.peek.0;
         let number = unsafe { self.input_string.get_unchecked(start..end) };
         (number, ops::NULL)
     }
 
     /// Read text until the next `}`.
     pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
-        let (mut offset, mut cur) = self.read_char();
-        let start = offset;
         let mut brace_count = 1;
+        let start = self.peek.0;
+
+        let mut end;
         loop {
+            let cur;
+            (end, cur) = self.read_char();
             if cur == '{' {
                 brace_count += 1;
             } else if cur == '}' {
@@ -130,23 +125,21 @@ impl<'a> Lexer<'a> {
             if cur == '\u{0}' {
                 return None;
             }
-            (offset, cur) = self.read_char();
         }
-        let end = offset;
         unsafe { Some(self.input_string.get_unchecked(start..end)) }
     }
 
     /// Generate the next token.
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
-        if wants_digit && self.peek().is_ascii_digit() {
+        if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
-            let end = self.end_of_previous_char();
+            let end = self.peek.0;
             let num = unsafe { self.input_string.get_unchecked(start..end) };
             return Token::Number(num, ops::NULL);
         }
         self.skip_whitespace();
 
-        let token: Token = match self.peek() {
+        let token: Token = match self.peek.1 {
             '=' => Token::Operator(ops::EQUALS_SIGN),
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
