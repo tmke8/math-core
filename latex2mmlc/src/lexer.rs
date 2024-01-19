@@ -98,6 +98,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read text until the next `}`.
+    #[inline]
     pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
         let mut brace_count = 1;
         let start = self.peek.0;
