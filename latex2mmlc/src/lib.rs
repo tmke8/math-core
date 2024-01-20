@@ -140,6 +140,7 @@ mod tests {
             ("cube_root", r"\sqrt[3]{x}"),
             ("simple_fraction", r"\frac{1}{2}"),
             ("fraction_without_space", r"\frac12"),
+            ("fraction_with_space", r"\frac 12"),
             ("slightly_more_complex_fraction", r"\frac{12}{5}"),
             ("superscript", r"x^2"),
             ("sub_superscript", r"x^2_3"),
