@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sqrt 12"
+---
+<math>
+    <msqrt>
+        <mn>1</mn>
+    </msqrt>
+    <mn>2</mn>
+</math>

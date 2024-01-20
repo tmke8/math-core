@@ -22,14 +22,14 @@ pub(crate) struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(input: &'a str) -> Self {
-        let mut l = Lexer {
+        let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
         };
-        l.read_char();
-        l
+        lexer.read_char(); // Initialize `peek`.
+        lexer
     }
 
     /// One character progresses.
@@ -69,10 +69,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Read one number.
-    fn read_number(&mut self) -> (&'a str, Op) {
-        // We know that the first character is a digit.
-        let (start, _) = self.read_char();
-
+    #[inline]
+    fn read_number(&mut self, start: usize) -> (&'a str, Op) {
         while {
             let cur = self.peek.1;
             cur.is_ascii_digit() || matches!(cur, '.' | ',')
@@ -132,58 +130,55 @@ impl<'a> Lexer<'a> {
 
     /// Generate the next token.
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
+        self.skip_whitespace();
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
             let num = unsafe { self.input_string.get_unchecked(start..end) };
             return Token::Number(num, ops::NULL);
         }
-        self.skip_whitespace();
 
-        let token: Token = match self.peek.1 {
-            '=' => Token::Operator(ops::EQUALS_SIGN),
-            ';' => Token::Operator(ops::SEMICOLON),
-            ',' => Token::Operator(ops::COMMA),
-            '.' => Token::Operator(ops::FULL_STOP),
-            '\'' => Token::Prime,
-            '(' => Token::Paren(ops::LEFT_PARENTHESIS),
-            ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
-            '{' => Token::GroupBegin,
-            '}' => Token::GroupEnd,
-            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET),
-            ']' => Token::Paren(ops::RIGHT_SQUARE_BRACKET),
-            '|' => Token::Paren(ops::VERTICAL_LINE),
-            '+' => Token::Operator(ops::PLUS_SIGN),
-            '-' => Token::Operator(ops::MINUS_SIGN),
-            '*' => Token::Operator(ops::ASTERISK),
-            '/' => Token::Operator(ops::SOLIDUS),
-            '!' => Token::Operator(ops::EXCLAMATION_MARK),
-            '<' => Token::OpLessThan,
-            '>' => Token::OpGreaterThan,
-            '_' => Token::Underscore,
-            '^' => Token::Circumflex,
-            '&' => Token::Ampersand,
-            '~' => Token::NonBreakingSpace,
-            '\u{0}' => Token::EOF,
-            ':' => Token::Colon,
-            ' ' => Token::Letter('\u{A0}'),
-            '\\' => {
-                self.read_char(); // Discard the backslash.
-                return get_command(self.read_command());
+        match self.read_char() {
+            (_, '=') => Token::Operator(ops::EQUALS_SIGN),
+            (_, ';') => Token::Operator(ops::SEMICOLON),
+            (_, ',') => Token::Operator(ops::COMMA),
+            (_, '.') => Token::Operator(ops::FULL_STOP),
+            (_, '\'') => Token::Prime,
+            (_, '(') => Token::Paren(ops::LEFT_PARENTHESIS),
+            (_, ')') => Token::Paren(ops::RIGHT_PARENTHESIS),
+            (_, '{') => Token::GroupBegin,
+            (_, '}') => Token::GroupEnd,
+            (_, '[') => Token::Paren(ops::LEFT_SQUARE_BRACKET),
+            (_, ']') => Token::Paren(ops::RIGHT_SQUARE_BRACKET),
+            (_, '|') => Token::Paren(ops::VERTICAL_LINE),
+            (_, '+') => Token::Operator(ops::PLUS_SIGN),
+            (_, '-') => Token::Operator(ops::MINUS_SIGN),
+            (_, '*') => Token::Operator(ops::ASTERISK),
+            (_, '/') => Token::Operator(ops::SOLIDUS),
+            (_, '!') => Token::Operator(ops::EXCLAMATION_MARK),
+            (_, '<') => Token::OpLessThan,
+            (_, '>') => Token::OpGreaterThan,
+            (_, '_') => Token::Underscore,
+            (_, '^') => Token::Circumflex,
+            (_, '&') => Token::Ampersand,
+            (_, '~') => Token::NonBreakingSpace,
+            (_, '\u{0}') => Token::EOF,
+            (_, ':') => Token::Colon,
+            (_, ' ') => Token::Letter('\u{A0}'),
+            (_, '\\') => {
+                get_command(self.read_command())
             }
-            c => {
+            (start, c) => {
                 if c.is_ascii_digit() {
-                    let (num, op) = self.read_number();
-                    return Token::Number(num, op);
+                    let (num, op) = self.read_number(start);
+                    Token::Number(num, op)
                 } else if c.is_ascii_alphabetic() {
                     Token::Letter(c)
                 } else {
                     Token::NormalLetter(c)
                 }
             }
-        };
-        self.read_char(); // Discard the character we just peeked at.
-        token
+        }
     }
 }
 
