@@ -136,6 +136,7 @@ mod tests {
             ("sine_function", r"\sin x"),
             ("square_root", r"\sqrt 2"),
             ("square_root_without_space", r"\sqrt12"),
+            ("square_root_with_space", r"\sqrt 12"),
             ("complex_square_root", r"\sqrt{x+2}"),
             ("cube_root", r"\sqrt[3]{x}"),
             ("simple_fraction", r"\frac{1}{2}"),
