@@ -14,7 +14,7 @@ categories    = ["science"]
 
 [dependencies]
 phf = { version = "0.11.2", features = ["macros"] }
-strum_macros = "0.25.3"
+strum_macros = "0.26.1"
 
 [dev-dependencies]
 insta = { version = "1.34.0", features = ["default"] }
