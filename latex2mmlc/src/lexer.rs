@@ -101,17 +101,15 @@ impl<'a> Lexer<'a> {
         let mut brace_count = 1;
         let start = self.peek.0;
 
-        let mut end;
         loop {
-            let cur;
-            (end, cur) = self.read_char();
+            let (end, cur) = self.read_char();
             if cur == '{' {
                 brace_count += 1;
             } else if cur == '}' {
                 brace_count -= 1;
             }
             if brace_count <= 0 {
-                break;
+                return unsafe { Some(self.input_string.get_unchecked(start..end)) };
             }
             // Check for escaped characters.
             if cur == '\\' {
@@ -125,7 +123,6 @@ impl<'a> Lexer<'a> {
                 return None;
             }
         }
-        unsafe { Some(self.input_string.get_unchecked(start..end)) }
     }
 
     /// Generate the next token.

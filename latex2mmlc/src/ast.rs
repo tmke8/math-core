@@ -353,16 +353,16 @@ impl<'a> Node<'a> {
             }
             Node::Text(text) => {
                 push!(s, "<mtext>");
-                let mut escape = false;
+                let mut escape_brace = false;
                 for c in text.chars() {
                     if c == '\\' {
-                        escape = true;
+                        escape_brace = true;
                         continue;
                     }
-                    if !escape && matches!(c, '{' | '}') {
+                    if !escape_brace && matches!(c, '{' | '}') {
                         continue;
                     }
-                    escape = false;
+                    escape_brace = false;
 
                     // Replace spaces with non-breaking spaces.
                     s.push(if c == ' ' { '\u{A0}' } else { c });
