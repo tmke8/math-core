@@ -14,7 +14,7 @@ fn convert_latex<'a>(
     latex: &str,
     block: bool,
     pretty: bool,
-) -> PyResult<&'a PyString> {
+) -> PyResult<Bound<'a, PyString>> {
     let result = latex_to_mathml(
         latex,
         if block {
@@ -25,13 +25,13 @@ fn convert_latex<'a>(
         pretty,
     )
     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
-    Ok(PyString::new(py, &result))
+    Ok(PyString::new_bound(py, &result))
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _latex2mmlc_rust(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add("LatexError", py.get_type::<LatexError>())?;
+fn _latex2mmlc_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("LatexError", m.py().get_type_bound::<LatexError>())?;
     m.add_function(wrap_pyfunction!(convert_latex, m)?)?;
     Ok(())
 }

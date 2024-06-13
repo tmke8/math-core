@@ -611,7 +611,7 @@ impl<'a> Parser<'a> {
                 correct_place: "after an identifier or operator",
             });
         }
-        Ok(self.parse_single_node(next_token)?)
+        self.parse_single_node(next_token)
     }
 }
 
