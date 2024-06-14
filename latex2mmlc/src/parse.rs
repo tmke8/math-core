@@ -48,7 +48,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
 
         while !matches!(cur_token, Token::EOF) {
             let node = self.parse_node(cur_token)?;
-            nodes.push(self.arena, node);
+            nodes.push_ref(self.arena, node);
             cur_token = self.next_token();
         }
 
@@ -58,17 +58,17 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     fn parse_node(
         &mut self,
         cur_token: Token<'source>,
-    ) -> Result<Node<'source>, LatexError<'source>> {
+    ) -> Result<NodeReference, LatexError<'source>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup {
-                target: self.new_node_ref(left),
+            Bounds(Some(sub), Some(sup)) => Ok(self.new_node_ref(Node::SubSup {
+                target: left,
                 sub,
                 sup,
-            }),
-            Bounds(Some(symbol), None) => Ok(Node::Subscript(self.new_node_ref(left), symbol)),
-            Bounds(None, Some(symbol)) => Ok(Node::Superscript(self.new_node_ref(left), symbol)),
+            })),
+            Bounds(Some(symbol), None) => Ok(self.new_node_ref(Node::Subscript(left, symbol))),
+            Bounds(None, Some(symbol)) => Ok(self.new_node_ref(Node::Superscript(left, symbol))),
             Bounds(None, None) => Ok(left),
         }
     }
@@ -85,7 +85,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     fn parse_single_node(
         &mut self,
         cur_token: Token<'source>,
-    ) -> Result<Node<'source>, LatexError<'source>> {
+    ) -> Result<NodeReference, LatexError<'source>> {
         let node = match cur_token {
             Token::Number(number, op) => match op {
                 ops::NULL => Node::Number(number),
@@ -113,17 +113,15 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree), self.new_node_ref(content))
+                    Node::Root(self.squeeze(degree), content)
                 } else {
                     let content = self.parse_node(next_token)?;
-                    Node::Sqrt(self.new_node_ref(content))
+                    Node::Sqrt(content)
                 }
             }
             Token::Frac(displaystyle) | Token::Binom(displaystyle) => {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
-                let numerator = self.new_node_ref(numerator);
-                let denominator = self.new_node_ref(denominator);
                 if matches!(cur_token, Token::Binom(_)) {
                     let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
                     Node::Fenced {
@@ -170,12 +168,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 };
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
-                let inner = Node::Frac(
-                    self.new_node_ref(numerator),
-                    self.new_node_ref(denominator),
-                    line_thickness,
-                    None,
-                );
+                let inner = Node::Frac(numerator, denominator, line_thickness, None);
                 let content = self.new_node_ref(inner);
                 Node::Fenced {
                     open,
@@ -186,18 +179,15 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             ref tok @ (Token::Over(op) | Token::Under(op)) => {
                 let target = self.parse_token()?;
-                let boxed = self.new_node_ref(target);
                 if matches!(tok, Token::Over(_)) {
-                    Node::OverOp(op, Accent::True, boxed)
+                    Node::OverOp(op, Accent::True, target)
                 } else {
-                    Node::UnderOp(op, Accent::True, boxed)
+                    Node::UnderOp(op, Accent::True, target)
                 }
             }
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_token()?;
                 let target = self.parse_token()?;
-                let symbol = self.new_node_ref(symbol);
-                let target = self.new_node_ref(target);
                 if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
@@ -212,9 +202,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let expl = self.new_node_ref(expl);
                     let op = self.new_node_ref(Node::Operator(x, None));
-                    let target = self.new_node_ref(target);
                     if is_over {
                         let symbol = self.new_node_ref(Node::Overset {
                             symbol: expl,
@@ -230,7 +218,6 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     }
                 } else {
                     let symbol = self.new_node_ref(Node::Operator(x, None));
-                    let target = self.new_node_ref(target);
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -263,7 +250,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     let under = self.parse_single_token()?;
                     Node::Underset {
                         target: self.new_node_ref(lim),
-                        symbol: self.new_node_ref(under),
+                        symbol: under,
                     }
                 } else {
                     lim
@@ -273,7 +260,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 self.next_token(); // Optimistically skip the next token.
                 let node = self.parse_token()?;
                 self.next_token(); // Optimistically skip the next token.
-                Node::Slashed(self.new_node_ref(node))
+                Node::Slashed(node)
             }
             Token::Not => {
                 match self.peek_token {
@@ -307,36 +294,19 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 }
             }
             Token::NormalVariant => {
-                let node = self.parse_single_token()?;
+                let node_ref = self.parse_single_token()?;
+                let node = self.arena.get(node_ref);
                 let node = if let Node::Row(nodes, style) = node {
-                    self.merge_single_letters(nodes, style)
+                    &self.merge_single_letters(*nodes, *style)
                 } else {
                     node
                 };
                 self.set_normal_variant(&node);
-                node
+                return Ok(self.new_node_ref(node));
             }
             Token::Transform(tf) => {
-                let mut node = self.parse_single_token()?;
-                if let Node::Row(nodes, _) = &node {
-                    if let Some(mut head) = nodes.get_head() {
-                        loop {
-                            // This is incredibly inefficient.
-                            // We resolve the `NodeReference` to `Node` but then we
-                            // only pass `NodeReference` to the transformation function,
-                            // which then resolves it again.
-                            let item = self.arena.get_raw(head);
-                            let next = item.next;
-                            self.rec_transform_letters(head, tf.clone());
-                            match next {
-                                Some(next) => head = next,
-                                None => break,
-                            }
-                        }
-                    }
-                } else {
-                    transform_letters(&mut node, tf);
-                }
+                let node_ref = self.parse_single_token()?;
+                self.rec_transform_letters(node_ref, tf);
                 if let Node::Row(nodes, style) = node {
                     self.merge_single_letters(nodes, style)
                 } else {
@@ -501,8 +471,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 node
             }
             Token::OperatorName => {
-                let node = self.parse_single_token()?;
+                let node_ref = self.parse_single_token()?;
                 let start = self.buffer.len();
+                let node = self.arena.get(node_ref);
                 extract_letters(self.arena, self.buffer, &node)?;
                 let end = self.buffer.len();
                 Node::MultiLetterIdent(StrReference::new(start, end))
@@ -530,10 +501,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Underscore => {
                 let sub = self.parse_single_token()?;
                 let base = self.parse_single_token()?;
-                Node::Multiscript {
-                    base: self.new_node_ref(base),
-                    sub: self.new_node_ref(sub),
-                }
+                Node::Multiscript { base, sub }
             }
             Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
@@ -546,17 +514,17 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 return Err(LatexError::UnexpectedClose(cur_token))
             }
         };
-        Ok(node)
+        Ok(self.new_node_ref(node))
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node<'source>, LatexError<'source>> {
+    fn parse_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node<'source>, LatexError<'source>> {
+    fn parse_single_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
@@ -572,7 +540,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 return Err(LatexError::UnclosedGroup(end_token));
             }
             let node = self.parse_node(token)?;
-            nodes.push(self.arena, node);
+            nodes.push_ref(self.arena, node);
         }
         Ok(nodes)
     }
@@ -619,8 +587,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         let first_underscore = matches!(self.peek_token, Token::Underscore);
 
         let (sub, mut sup) = if first_underscore || matches!(self.peek_token, Token::Circumflex) {
-            let first_bound = self.get_bound()?;
-            let first_bound = Some(self.new_node_ref(first_bound));
+            let first_bound = Some(self.get_bound()?);
 
             // Check whether both an upper and a lower bound were specified.
             let second_underscore = matches!(self.peek_token, Token::Underscore);
@@ -634,8 +601,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
 
             if (first_underscore && second_circumflex) || (!first_underscore && second_underscore) {
-                let second_bound = self.get_bound()?;
-                let second_bound = Some(self.new_node_ref(second_bound));
+                let second_bound = Some(self.get_bound()?);
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if first_underscore {
@@ -666,7 +632,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         Ok(Bounds(sub, sup))
     }
 
-    fn get_bound(&mut self) -> Result<Node<'source>, LatexError<'source>> {
+    fn get_bound(&mut self) -> Result<NodeReference, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next_token = self.next_token();
         if matches!(
