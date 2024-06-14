@@ -47,6 +47,7 @@
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
 
+pub(crate) mod arena;
 pub mod ast;
 pub mod attribute;
 pub(crate) mod commands;
