@@ -56,6 +56,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
+use arena::{Arena, Buffer};
 pub use error::LatexError;
 
 /// display
@@ -65,9 +66,13 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
+fn get_nodes<'source, 'arena>(
+    latex: &'source str,
+    arena: &'arena mut Arena<'source>,
+    buffer: &'arena mut Buffer,
+) -> Result<ast::Node<'source>, error::LatexError<'source>> {
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l);
+    let mut p = parse::Parser::new(l, arena, buffer);
     let nodes = p.parse()?;
     Ok(nodes)
 }
@@ -93,14 +98,16 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    let nodes = get_nodes(latex)?;
+    let mut arena = arena::Arena::new();
+    let mut buffer = arena::Buffer::new();
+    let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, &arena, &buffer, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
@@ -112,13 +119,15 @@ pub fn latex_to_mathml(
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{error, latex_to_mathml};
+    use crate::{arena, error, latex_to_mathml};
 
     use super::get_nodes;
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let nodes = get_nodes(latex)?;
-        Ok(nodes.render())
+        let mut arena = arena::Arena::new();
+        let mut buffer = arena::Buffer::new();
+        let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
+        Ok(nodes.render(&arena, &buffer))
     }
 
     #[test]
@@ -225,6 +234,7 @@ mod tests {
             ("sum_prime", r"\sum'"),
             ("int_prime", r"\int'"),
             ("int_limit_prime", r"\int\limits'"),
+            ("nested_transform", r"\mathit{a{bc}d}"),
         ];
 
         for (name, problem) in problems.into_iter() {
