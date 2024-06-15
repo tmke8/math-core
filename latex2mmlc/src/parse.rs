@@ -133,15 +133,17 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 }
             }
             Token::Genfrac => {
-                let node_ref = self.parse_token()?;
-                let node = self.arena.get(node_ref);
+                // TODO: This should not just blindly try to parse a node.
+                // Rather, we should explicitly attempt to parse a group (aka Row),
+                // and if that doesn't work, we try to parse it as an Operator,
+                // and if that still doesn't work, we return an error.
+                let node = self.parse_token()?.as_node(self.arena);
                 let open = match node {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let node_ref = self.parse_token()?;
-                let node = self.arena.get(node_ref);
+                let node = self.parse_token()?.as_node(self.arena);
                 let close = match node {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
@@ -157,8 +159,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let node_ref = self.parse_token()?;
-                let node = self.arena.get(node_ref);
+                let node = self.parse_token()?.as_node(self.arena);
                 let style = match node {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
@@ -232,10 +233,11 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.new_node_ref(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    Node::Operator(op, Some(OpAttr::NoMovableLimits))
                 } else {
-                    self.new_node_ref(Node::Operator(op, None))
+                    Node::Operator(op, None)
                 };
+                let target = self.new_node_ref(target);
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -299,9 +301,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             Token::NormalVariant => {
                 let node_ref = self.parse_single_token()?;
-                let node = self.arena.get(node_ref);
+                let node = node_ref.as_node(self.arena);
                 let node_ref = if let Node::Row(nodes, style) = node {
-                    self.merge_single_letters(*nodes, style.clone())
+                    self.merge_single_letters(nodes.clone(), style.clone())
                 } else {
                     node_ref
                 };
@@ -311,12 +313,11 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
                 self.transform_letters(node_ref, tf);
-                let node = self.arena.get(node_ref);
+                let node = node_ref.as_node(self.arena);
                 if let Node::Row(nodes, style) = node {
-                    return Ok(self.merge_single_letters(*nodes, style.clone()));
-                } else {
-                    return Ok(node_ref);
+                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
+                return Ok(node_ref);
             }
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
@@ -478,9 +479,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 node
             }
             Token::OperatorName => {
-                let node_ref = self.parse_single_token()?;
+                // TODO: Don't parse a node just to immediately destructure it.
+                let node = self.parse_single_token()?.as_node(self.arena);
                 let start = self.buffer.len();
-                let node = self.arena.get(node_ref);
                 extract_letters(self.arena, self.buffer, node)?;
                 let end = self.buffer.len();
                 Node::MultiLetterIdent(StrReference::new(start, end))
@@ -664,7 +665,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     /// Set the math variant of all single-letter identifiers in `node` to `var`.
     /// The change is applied in-place.
     fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        let node = self.arena.get_mut(node_ref);
+        let node = self.arena.lookup_mut(node_ref);
         match node {
             Node::SingleLetterIdent(_, maybe_var) => {
                 *maybe_var = Some(MathVariant::Normal);
@@ -682,7 +683,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
     fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = self.arena.get_mut(node_ref);
+        let node = self.arena.lookup_mut(node_ref);
         match node {
             Node::Row(list, _) => {
                 let mut iter = list.iter_manually();

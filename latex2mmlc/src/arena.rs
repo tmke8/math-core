@@ -5,8 +5,10 @@ use crate::ast::Node;
 pub struct NodeReference(usize);
 
 impl NodeReference {
-    pub fn as_ref<'arena, 'source>(&self, arena: &'arena Arena<'source>) -> &'arena Node<'source> {
-        arena.get(*self)
+    /// Convert a reference to a node by looking it up in the arena.
+    #[inline]
+    pub fn as_node<'arena, 'source>(&self, arena: &'arena Arena<'source>) -> &'arena Node<'source> {
+        arena.lookup(*self)
     }
 }
 
@@ -18,6 +20,7 @@ impl StrReference {
         StrReference(start, end)
     }
 
+    #[inline]
     pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
         buffer.get_str(*self)
     }
@@ -39,7 +42,7 @@ impl<'source> Arena<'source> {
         Arena { nodes: Vec::new() }
     }
 
-    pub fn push<'arena>(&'arena mut self, node: Node<'source>) -> NodeReference {
+    pub fn push(&mut self, node: Node<'source>) -> NodeReference {
         let index = self.nodes.len();
         let item = NodeListElement { node, next: None };
         self.nodes.push(item);
@@ -51,7 +54,7 @@ impl<'source> Arena<'source> {
         NodeReference(index)
     }
 
-    pub fn get<'arena>(&'arena self, reference: NodeReference) -> &'arena Node<'source> {
+    fn lookup(&self, reference: NodeReference) -> &Node<'source> {
         &self.get_raw(reference).node
     }
 
@@ -68,7 +71,7 @@ impl<'source> Arena<'source> {
         unsafe { self.nodes.get_unchecked_mut(reference.0) }
     }
 
-    pub fn get_mut<'arena>(
+    pub fn lookup_mut<'arena>(
         &'arena mut self,
         reference: NodeReference,
     ) -> &'arena mut Node<'source> {
@@ -84,6 +87,7 @@ impl Buffer {
     pub fn new() -> Self {
         Buffer(String::new())
     }
+
     pub fn extend<I: IntoIterator<Item = char>>(&mut self, iter: I) -> StrReference {
         let start = self.0.len();
         self.0.extend(iter);
@@ -102,7 +106,7 @@ impl Buffer {
         self.0.push(ch);
     }
 
-    pub fn get_str(&self, reference: StrReference) -> &str {
+    fn get_str(&self, reference: StrReference) -> &str {
         // &self.0[Range::<usize>::from(reference)]
         unsafe { self.0.get_unchecked(reference.0..reference.1) }
     }
@@ -113,13 +117,13 @@ impl Buffer {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct InhabitedNodeList {
     head: NodeReference,
     tail: NodeReference,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct NodeList(Option<InhabitedNodeList>);
 
@@ -156,7 +160,7 @@ impl NodeList {
     }
 
     pub fn is_singleton(&self) -> Option<NodeReference> {
-        match self.0 {
+        match &self.0 {
             None => None,
             Some(list) => {
                 if list.head == list.tail {
@@ -189,8 +193,8 @@ impl NodeList {
         }
     }
 
-    pub fn get_head(&self) -> Option<NodeReference> {
-        self.0.map(|list| list.head)
+    fn get_head(&self) -> Option<NodeReference> {
+        self.0.as_ref().map(|list| list.head)
     }
 }
 
@@ -243,7 +247,10 @@ mod tests {
         let mut arena = Arena::new();
         let node = Node::Space("Hello, world!");
         let reference = arena.push(node);
-        assert!(matches!(arena.get(reference), Node::Space("Hello, world!")));
+        assert!(matches!(
+            arena.lookup(reference),
+            Node::Space("Hello, world!")
+        ));
     }
 
     #[test]

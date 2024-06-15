@@ -148,7 +148,7 @@ impl<'a> Node<'a> {
                 push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
-                let letters = b.get_str(*letters);
+                let letters = letters.as_str(b);
                 push!(s, "<mi>", letters, "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
@@ -174,8 +174,8 @@ impl<'a> Node<'a> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.as_ref(a).emit(s, a, b, child_indent);
-                second.as_ref(a).emit(s, a, b, child_indent);
+                first.as_node(a).emit(s, a, b, child_indent);
+                second.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, base_indent, close);
             }
             // The following nodes have exactly three children.
@@ -196,34 +196,34 @@ impl<'a> Node<'a> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.as_ref(a).emit(s, a, b, child_indent);
-                second.as_ref(a).emit(s, a, b, child_indent);
-                third.as_ref(a).emit(s, a, b, child_indent);
+                first.as_node(a).emit(s, a, b, child_indent);
+                second.as_node(a).emit(s, a, b, child_indent);
+                third.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, base_indent, close);
             }
             Node::Multiscript { base, sub } => {
                 push!(s, "<mmultiscripts>");
-                base.as_ref(a).emit(s, a, b, child_indent);
+                base.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mprescripts/>");
-                sub.as_ref(a).emit(s, a, b, child_indent);
+                sub.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mrow></mrow>");
                 pushln!(s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
-                target.as_ref(a).emit(s, a, b, child_indent);
+                target.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
-                target.as_ref(a).emit(s, a, b, child_indent);
+                target.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
-                content.as_ref(a).emit(s, a, b, child_indent);
+                content.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
             Node::Frac(num, denom, lt, style) => {
@@ -235,8 +235,8 @@ impl<'a> Node<'a> {
                     push!(s, style);
                 }
                 push!(s, ">");
-                num.as_ref(a).emit(s, a, b, child_indent);
-                denom.as_ref(a).emit(s, a, b, child_indent);
+                num.as_node(a).emit(s, a, b, child_indent);
+                denom.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row(vec, style) => {
@@ -272,7 +272,7 @@ impl<'a> Node<'a> {
                 }
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
                 push!(s, @open, "</mo>");
-                content.as_ref(a).emit(s, a, b, child_indent);
+                content.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
                 push!(s, @close, "</mo>");
                 pushln!(s, base_indent, "</mrow>");
@@ -281,7 +281,7 @@ impl<'a> Node<'a> {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
                 push!(s, @paren, "</mo>");
             }
-            Node::Slashed(node) => match node.as_ref(a) {
+            Node::Slashed(node) => match node.as_node(a) {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => {
                         push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
