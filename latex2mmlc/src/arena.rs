@@ -118,10 +118,10 @@ impl Buffer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct NodeList(Option<InhabitedNodeList>);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct InhabitedNodeList {
     head: NodeReference,
     tail: NodeReference,
@@ -189,6 +189,16 @@ impl NodeList {
         }
     }
 
+    // pub fn iter_refs<'arena, 'source>(
+    //     &self,
+    //     arena: &'arena Arena<'source>,
+    // ) -> NodeListRefIterator<'arena, 'source> {
+    //     NodeListRefIterator {
+    //         arena,
+    //         current: self.get_head(),
+    //     }
+    // }
+
     pub fn get_head(&self) -> Option<NodeReference> {
         self.0.map(|list| list.head)
     }
@@ -226,6 +236,25 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
         }
     }
 }
+
+// pub struct NodeListRefIterator<'arena, 'source> {
+//     arena: &'arena Arena<'source>,
+//     current: Option<NodeReference>,
+// }
+
+// impl<'arena, 'source> Iterator for NodeListRefIterator<'arena, 'source> {
+//     type Item = NodeReference;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self.current {
+//             None => None,
+//             Some(reference) => {
+//                 let node = self.arena.get_raw(reference);
+//                 self.current = node.next;
+//                 Some(reference)
+//             }
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

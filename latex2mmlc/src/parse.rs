@@ -1,4 +1,4 @@
-use std::{cell::Cell, mem};
+use std::mem;
 
 use crate::{
     arena::{Arena, Buffer, NodeList, NodeReference, StrReference},
@@ -96,10 +96,8 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     Node::PseudoRow(list)
                 }
             },
-            Token::Letter(x) => Node::SingleLetterIdent(x, Cell::new(None)),
-            Token::NormalLetter(x) => {
-                Node::SingleLetterIdent(x, Cell::new(Some(MathVariant::Normal)))
-            }
+            Token::Letter(x) => Node::SingleLetterIdent(x, None),
+            Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
@@ -135,13 +133,17 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 }
             }
             Token::Genfrac => {
-                let open = match self.parse_token()? {
-                    Node::Operator(op, _) => op,
+                let node_ref = self.parse_token()?;
+                let node = self.arena.get(node_ref);
+                let open = match node {
+                    Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let close = match self.parse_token()? {
-                    Node::Operator(op, _) => op,
+                let node_ref = self.parse_token()?;
+                let node = self.arena.get(node_ref);
+                let close = match node {
+                    Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
@@ -155,7 +157,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let style = match self.parse_token()? {
+                let node_ref = self.parse_token()?;
+                let node = self.arena.get(node_ref);
+                let style = match node {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
                         Ok(1) => Some(Style::TextStyle),
@@ -296,21 +300,22 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::NormalVariant => {
                 let node_ref = self.parse_single_token()?;
                 let node = self.arena.get(node_ref);
-                let node = if let Node::Row(nodes, style) = node {
-                    &self.merge_single_letters(*nodes, *style)
+                let node_ref = if let Node::Row(nodes, style) = node {
+                    self.merge_single_letters(*nodes, style.clone())
                 } else {
-                    node
+                    node_ref
                 };
-                self.set_normal_variant(&node);
-                return Ok(self.new_node_ref(node));
+                self.set_normal_variant(node_ref);
+                return Ok(node_ref);
             }
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
-                self.rec_transform_letters(node_ref, tf);
+                self.transform_letters(node_ref, tf);
+                let node = self.arena.get(node_ref);
                 if let Node::Row(nodes, style) = node {
-                    self.merge_single_letters(nodes, style)
+                    return Ok(self.merge_single_letters(*nodes, style.clone()));
                 } else {
-                    node
+                    return Ok(node_ref);
                 }
             }
             Token::Integral(int) => {
@@ -369,7 +374,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                                   // TODO: this should squeeze
+                if let Some(node_ref) = content.is_singleton() {
+                    return Ok(node_ref);
+                }
                 Node::Row(content, None)
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
@@ -656,27 +663,16 @@ impl<'source, 'arena> Parser<'source, 'arena> {
 
     /// Set the math variant of all single-letter identifiers in `node` to `var`.
     /// The change is applied in-place.
-    fn set_normal_variant(&self, node: &Node) {
-        match node {
-            Node::SingleLetterIdent(_, maybe_var) => {
-                maybe_var.set(Some(MathVariant::Normal));
-            }
-            Node::Row(list, _) => {
-                for node in list.iter(self.arena) {
-                    self.set_normal_variant(node);
-                }
-            }
-            _ => {}
-        };
-    }
-
-    fn rec_transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
+    fn set_normal_variant(&mut self, node_ref: NodeReference) {
         let node = self.arena.get_mut(node_ref);
         match node {
+            Node::SingleLetterIdent(_, maybe_var) => {
+                *maybe_var = Some(MathVariant::Normal);
+            }
             Node::Row(list, _) => {
                 if let Some(mut head) = list.get_head() {
                     loop {
-                        self.rec_transform_letters(head, tf.clone());
+                        self.set_normal_variant(head);
                         // It's stupid that we have to look up the reference in the arena again.
                         // In theory, the previous function has already done that.
                         // But I couldn't find a way to make the borrow checker accept this.
@@ -690,12 +686,45 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     }
                 }
             }
-            _ => transform_letters(node, tf),
+            _ => {}
+        };
+    }
+
+    /// Transform the text of all single-letter identifiers and operators using `tf`.
+    /// The change is applied in-place.
+    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
+        let node = self.arena.get_mut(node_ref);
+        match node {
+            Node::Row(list, _) => {
+                if let Some(mut head) = list.get_head() {
+                    loop {
+                        self.transform_letters(head, tf.clone());
+                        // It's stupid that we have to look up the reference in the arena again.
+                        // In theory, the previous function has already done that.
+                        // But I couldn't find a way to make the borrow checker accept this.
+                        let node = self.arena.get_raw(head);
+                        match node.next {
+                            Some(tail) => {
+                                head = tail;
+                            }
+                            None => break,
+                        }
+                    }
+                }
+            }
+            Node::SingleLetterIdent(x, _) => {
+                *x = tf.transform(*x);
+            }
+            Node::Operator(op, _) => {
+                let op = *op;
+                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+            }
+            _ => {}
         }
     }
 
-    fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> Node<'source> {
-        if let Some(mut head) = nodes.get_head() {
+    fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
+        let nodes = if let Some(mut head) = nodes.get_head() {
             let mut new_nodes = NodeList::new();
             let mut start: Option<usize> = None;
             loop {
@@ -727,33 +756,19 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 let slice = StrReference::new(start, self.buffer.0.len());
                 new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
             }
-            // TODO: should be squeezed
-            Node::Row(new_nodes, style)
+            if let Some(node_ref) = new_nodes.is_singleton() {
+                return node_ref;
+            }
+            new_nodes
         } else {
-            Node::Row(nodes, style)
-        }
+            nodes
+        };
+        let node = Node::Row(nodes, style);
+        self.new_node_ref(node)
     }
 }
 
 struct Bounds(Option<NodeReference>, Option<NodeReference>);
-
-/// Transform the text of all single-letter identifiers and operators using `tf`.
-/// The change is applied in-place.
-fn transform_letters(node: &mut Node, tf: TextTransform) {
-    match node {
-        Node::SingleLetterIdent(x, _) => {
-            *x = tf.transform(*x);
-        }
-        Node::Operator(op, _) => {
-            let op = *op;
-            let _ = mem::replace(
-                node,
-                Node::SingleLetterIdent(tf.transform(op.into()), Cell::new(None)),
-            );
-        }
-        _ => {}
-    }
-}
 
 fn extract_letters<'source>(
     arena: &Arena<'source>,

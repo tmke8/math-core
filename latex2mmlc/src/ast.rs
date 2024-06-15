@@ -1,5 +1,3 @@
-use std::cell::Cell;
-
 use crate::arena::{Arena, Buffer, NodeList, NodeReference, StrReference};
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
@@ -8,7 +6,7 @@ use crate::ops::Op;
 #[derive(Debug)]
 pub enum Node<'source> {
     Number(&'source str),
-    SingleLetterIdent(char, Cell<Option<MathVariant>>),
+    SingleLetterIdent(char, Option<MathVariant>),
     Operator(Op, Option<OpAttr>),
     OpGreaterThan,
     OpLessThan,
@@ -118,7 +116,7 @@ impl<'a> Node<'a> {
         match self {
             Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
             Node::SingleLetterIdent(letter, var) => {
-                match var.get() {
+                match var {
                     Some(var) => push!(s, "<mi", var, ">"),
                     None => push!(s, "<mi>"),
                 };
@@ -284,7 +282,7 @@ impl<'a> Node<'a> {
                 push!(s, @paren, "</mo>");
             }
             Node::Slashed(node) => match node.as_ref(a) {
-                Node::SingleLetterIdent(x, var) => match var.get() {
+                Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => {
                         push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
                     }
@@ -384,8 +382,6 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
-
     use super::super::attribute::MathVariant;
     use super::Node;
     use crate::arena::{Arena, Buffer};
@@ -396,10 +392,10 @@ mod tests {
         let buffer = Buffer::new();
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', Cell::new(None)), "<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', Cell::new(None)), "<mi>α</mi>"),
+            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
+            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
-                Node::SingleLetterIdent('あ', Cell::new(Some(MathVariant::Normal))),
+                Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
                 "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];
