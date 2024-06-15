@@ -1,8 +1,7 @@
-use std::ops::Range;
-
 use crate::ast::Node;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(transparent)]
 pub struct NodeReference(usize);
 
 impl NodeReference {
@@ -24,23 +23,10 @@ impl StrReference {
     }
 }
 
-impl From<StrReference> for Range<usize> {
-    #[inline]
-    fn from(reference: StrReference) -> Self {
-        reference.0..reference.1
-    }
-}
-
 #[derive(Debug)]
 pub struct NodeListElement<'source> {
     pub node: Node<'source>,
     pub next: Option<NodeReference>,
-}
-
-impl<'source> NodeListElement<'source> {
-    pub fn get_mut_node<'arena>(&'arena mut self) -> &'arena mut Node<'source> {
-        &mut self.node
-    }
 }
 
 #[derive(Debug)]
@@ -55,7 +41,13 @@ impl<'source> Arena<'source> {
 
     pub fn push<'arena>(&'arena mut self, node: Node<'source>) -> NodeReference {
         let index = self.nodes.len();
-        self.nodes.push(NodeListElement { node, next: None });
+        let item = NodeListElement { node, next: None };
+        self.nodes.push(item);
+        // if matches!(self.nodes.try_reserve(1), Err(_)) {}
+        // unsafe {
+        //     self.nodes.as_mut_ptr().add(self.nodes.len()).write(item);
+        //     self.nodes.set_len(self.nodes.len() + 1);
+        // }
         NodeReference(index)
     }
 
@@ -63,15 +55,12 @@ impl<'source> Arena<'source> {
         &self.get_raw(reference).node
     }
 
-    pub fn get_raw<'arena>(
-        &'arena self,
-        reference: NodeReference,
-    ) -> &'arena NodeListElement<'source> {
+    fn get_raw<'arena>(&'arena self, reference: NodeReference) -> &'arena NodeListElement<'source> {
         // safety: we only give out valid NodeReferences and don't expose delete functionality
-        unsafe { self.nodes.get_unchecked(reference.0) }
+        unsafe { self.nodes.get(reference.0).unwrap_unchecked() }
     }
 
-    pub fn get_raw_mut<'arena>(
+    fn get_raw_mut<'arena>(
         &'arena mut self,
         reference: NodeReference,
     ) -> &'arena mut NodeListElement<'source> {
@@ -88,7 +77,8 @@ impl<'source> Arena<'source> {
 }
 
 #[derive(Debug)]
-pub struct Buffer(pub String);
+#[repr(transparent)]
+pub struct Buffer(String);
 
 impl Buffer {
     pub fn new() -> Self {
@@ -108,6 +98,10 @@ impl Buffer {
         StrReference(start, end)
     }
 
+    pub fn push(&mut self, ch: char) {
+        self.0.push(ch);
+    }
+
     pub fn get_str(&self, reference: StrReference) -> &str {
         // &self.0[Range::<usize>::from(reference)]
         unsafe { self.0.get_unchecked(reference.0..reference.1) }
@@ -120,13 +114,14 @@ impl Buffer {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NodeList(Option<InhabitedNodeList>);
-
-#[derive(Debug, Clone, Copy)]
 struct InhabitedNodeList {
     head: NodeReference,
     tail: NodeReference,
 }
+
+#[derive(Debug, Clone, Copy)]
+#[repr(transparent)]
+pub struct NodeList(Option<InhabitedNodeList>);
 
 impl NodeList {
     pub fn new() -> Self {
@@ -156,13 +151,6 @@ impl NodeList {
         }
     }
 
-    // pub fn push_view<'arena, 'source>(
-    //     &'arena self,
-    //     arena: &'arena mut Arena<'source>,
-    // ) -> NodeListPushView<'arena, 'source> {
-    //     NodeListPushView { arena, list: self }
-    // }
-
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }
@@ -190,33 +178,21 @@ impl NodeList {
         }
     }
 
-    // pub fn iter_refs<'arena, 'source>(
-    //     &self,
-    //     arena: &'arena Arena<'source>,
-    // ) -> NodeListRefIterator<'arena, 'source> {
-    //     NodeListRefIterator {
-    //         arena,
-    //         current: self.get_head(),
-    //     }
-    // }
+    /// Iterate over the list manually.
+    ///
+    /// This iterator cannot be used with a for loop, because the .next() method
+    /// requires a reference to the arena. This is useful when you want to use
+    /// a mutable reference to the arena within the loop body.
+    pub fn iter_manually(&self) -> NodeListManualIterator {
+        NodeListManualIterator {
+            current: self.get_head(),
+        }
+    }
 
     pub fn get_head(&self) -> Option<NodeReference> {
         self.0.map(|list| list.head)
     }
 }
-
-// struct NodeListPushView<'arena, 'source> {
-//     arena: &'arena mut Arena<'source>,
-//     list: &'arena NodeList,
-// }
-
-// impl<'arena, 'source> NodeListPushView<'arena, 'source> {
-//     pub fn push(&mut self, node: Node<'source>) {
-//         // Add node to the arena and get a reference to it.
-//         let new_tail = self.arena.push(node);
-//         self.list.push_ref(self.arena, new_tail)
-//     }
-// }
 
 pub struct NodeListIterator<'arena, 'source> {
     arena: &'arena Arena<'source>,
@@ -238,24 +214,25 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     }
 }
 
-// pub struct NodeListRefIterator<'arena, 'source> {
-//     arena: &'arena Arena<'source>,
-//     current: Option<NodeReference>,
-// }
+pub struct NodeListManualIterator {
+    current: Option<NodeReference>,
+}
 
-// impl<'arena, 'source> Iterator for NodeListRefIterator<'arena, 'source> {
-//     type Item = NodeReference;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.current {
-//             None => None,
-//             Some(reference) => {
-//                 let node = self.arena.get_raw(reference);
-//                 self.current = node.next;
-//                 Some(reference)
-//             }
-//         }
-//     }
-// }
+impl NodeListManualIterator {
+    pub fn next<'arena, 'source>(
+        &mut self,
+        arena: &'arena Arena<'source>,
+    ) -> Option<(NodeReference, &'arena Node<'source>)> {
+        match self.current {
+            None => None,
+            Some(reference) => {
+                let node = arena.get_raw(reference);
+                self.current = node.next;
+                Some((reference, &node.node))
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

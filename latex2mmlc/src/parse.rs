@@ -481,7 +481,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 let node_ref = self.parse_single_token()?;
                 let start = self.buffer.len();
                 let node = self.arena.get(node_ref);
-                extract_letters(self.arena, self.buffer, &node)?;
+                extract_letters(self.arena, self.buffer, node)?;
                 let end = self.buffer.len();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
@@ -670,20 +670,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 *maybe_var = Some(MathVariant::Normal);
             }
             Node::Row(list, _) => {
-                if let Some(mut head) = list.get_head() {
-                    loop {
-                        self.set_normal_variant(head);
-                        // It's stupid that we have to look up the reference in the arena again.
-                        // In theory, the previous function has already done that.
-                        // But I couldn't find a way to make the borrow checker accept this.
-                        let node = self.arena.get_raw(head);
-                        match node.next {
-                            Some(tail) => {
-                                head = tail;
-                            }
-                            None => break,
-                        }
-                    }
+                let mut iter = list.iter_manually();
+                while let Some((node_ref, _)) = iter.next(self.arena) {
+                    self.set_normal_variant(node_ref);
                 }
             }
             _ => {}
@@ -696,20 +685,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         let node = self.arena.get_mut(node_ref);
         match node {
             Node::Row(list, _) => {
-                if let Some(mut head) = list.get_head() {
-                    loop {
-                        self.transform_letters(head, tf.clone());
-                        // It's stupid that we have to look up the reference in the arena again.
-                        // In theory, the previous function has already done that.
-                        // But I couldn't find a way to make the borrow checker accept this.
-                        let node = self.arena.get_raw(head);
-                        match node.next {
-                            Some(tail) => {
-                                head = tail;
-                            }
-                            None => break,
-                        }
-                    }
+                let mut iter = list.iter_manually();
+                while let Some((node_ref, _)) = iter.next(self.arena) {
+                    self.transform_letters(node_ref, tf.clone());
                 }
             }
             Node::SingleLetterIdent(x, _) => {
@@ -724,46 +702,33 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     }
 
     fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
-        let nodes = if let Some(mut head) = nodes.get_head() {
-            let mut new_nodes = NodeList::new();
-            let mut start: Option<usize> = None;
-            loop {
-                let item = self.arena.get_raw(head);
-                let node = &item.node;
-                let next = item.next;
-                if let Node::SingleLetterIdent(c, _) = node {
-                    if start.is_none() {
-                        // We start collecting.
-                        start = Some(self.buffer.0.len());
-                    }
-                    self.buffer.0.push(*c);
-                } else {
-                    // Commit the collected letters.
-                    if let Some(start) = start.take() {
-                        let slice = StrReference::new(start, self.buffer.0.len());
-                        new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
-                    }
-                    new_nodes.push_ref(self.arena, head);
+        let mut new_nodes = NodeList::new();
+        let mut start: Option<usize> = None;
+        let mut iter = nodes.iter_manually();
+        while let Some((head, node)) = iter.next(self.arena) {
+            if let Node::SingleLetterIdent(c, _) = node {
+                if start.is_none() {
+                    // We start collecting.
+                    start = Some(self.buffer.len());
                 }
-                match next {
-                    Some(tail) => {
-                        head = tail;
-                    }
-                    None => break,
+                self.buffer.push(*c);
+            } else {
+                // Commit the collected letters.
+                if let Some(start) = start.take() {
+                    let slice = StrReference::new(start, self.buffer.len());
+                    new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
                 }
+                new_nodes.push_ref(self.arena, head);
             }
-            if let Some(start) = start {
-                let slice = StrReference::new(start, self.buffer.0.len());
-                new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
-            }
-            if let Some(node_ref) = new_nodes.is_singleton() {
-                return node_ref;
-            }
-            new_nodes
-        } else {
-            nodes
-        };
-        let node = Node::Row(nodes, style);
+        }
+        if let Some(start) = start {
+            let slice = StrReference::new(start, self.buffer.len());
+            new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
+        }
+        if let Some(node_ref) = new_nodes.is_singleton() {
+            return node_ref;
+        }
+        let node = Node::Row(new_nodes, style);
         self.new_node_ref(node)
     }
 }
@@ -777,7 +742,7 @@ fn extract_letters<'source>(
 ) -> Result<(), LatexError<'source>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.0.push(*c);
+            buffer.push(*c);
         }
         Node::Row(nodes, _) => {
             for node in nodes.iter(arena) {
@@ -785,10 +750,10 @@ fn extract_letters<'source>(
             }
         }
         Node::Number(n) => {
-            buffer.0.push_str(n);
+            buffer.push_str(n);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.0.push(op.into());
+            buffer.push(op.into());
         }
         _ => return Err(LatexError::ExpectedText("\\operatorname")),
     }
