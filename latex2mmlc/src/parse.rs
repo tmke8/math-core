@@ -1,4 +1,4 @@
-use std::mem;
+use std::{cell::Cell, mem};
 
 use crate::{
     arena::{Arena, Buffer, NodeList, NodeReference, StrReference},
@@ -92,13 +92,15 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 op => {
                     let mut list = NodeList::new();
                     list.push(self.arena, Node::Number(number));
-                    list.push(self.arena, Node::Operator(op, None));
+                    list.push(self.arena, Node::Operator(Cell::new(op), None));
                     Node::PseudoRow(list)
                 }
             },
-            Token::Letter(x) => Node::SingleLetterIdent(x, None),
-            Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op, None),
+            Token::Letter(x) => Node::SingleLetterIdent(Cell::new(x), Cell::new(None)),
+            Token::NormalLetter(x) => {
+                Node::SingleLetterIdent(Cell::new(x), Cell::new(Some(MathVariant::Normal)))
+            }
+            Token::Operator(op) => Node::Operator(Cell::new(op), None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -136,14 +138,14 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 let node_ref = self.parse_token()?;
                 let node = self.arena.get(node_ref);
                 let open = match node {
-                    Node::Operator(op, _) => *op,
+                    Node::Operator(op, _) => op.get(),
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 let node_ref = self.parse_token()?;
                 let node = self.arena.get(node_ref);
                 let close = match node {
-                    Node::Operator(op, _) => *op,
+                    Node::Operator(op, _) => op.get(),
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
@@ -206,7 +208,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = self.new_node_ref(Node::Operator(x, None));
+                    let op = self.new_node_ref(Node::Operator(Cell::new(x), None));
                     if is_over {
                         let symbol = self.new_node_ref(Node::Overset {
                             symbol: expl,
@@ -221,7 +223,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = self.new_node_ref(Node::Operator(x, None));
+                    let symbol = self.new_node_ref(Node::Operator(Cell::new(x), None));
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -232,9 +234,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.new_node_ref(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    self.new_node_ref(Node::Operator(Cell::new(op), Some(OpAttr::NoMovableLimits)))
                 } else {
-                    self.new_node_ref(Node::Operator(op, None))
+                    self.new_node_ref(Node::Operator(Cell::new(op), None))
                 };
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
@@ -244,7 +246,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     },
                     Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                     Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                    Bounds(None, None) => Node::Operator(op, None),
+                    Bounds(None, None) => Node::Operator(Cell::new(op), None),
                 }
             }
             Token::Lim(lim) => {
@@ -271,18 +273,18 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     Token::Operator(op) => {
                         self.next_token(); // Discard the operator token.
                         if let Some(negated) = get_negated_op(op) {
-                            Node::Operator(negated, None)
+                            Node::Operator(Cell::new(negated), None)
                         } else {
-                            Node::Operator(op, None)
+                            Node::Operator(Cell::new(op), None)
                         }
                     }
                     Token::OpLessThan => {
                         self.next_token(); // Discard the less-than token.
-                        Node::Operator(ops::NOT_LESS_THAN, None)
+                        Node::Operator(Cell::new(ops::NOT_LESS_THAN), None)
                     }
                     Token::OpGreaterThan => {
                         self.next_token(); // Discard the greater-than token.
-                        Node::Operator(ops::NOT_GREATER_THAN, None)
+                        Node::Operator(Cell::new(ops::NOT_GREATER_THAN), None)
                     }
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.
@@ -321,7 +323,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.new_node_ref(Node::Operator(Cell::new(int), None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -330,15 +332,15 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                         },
                         Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                         Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                        Bounds(None, None) => Node::Operator(int, None),
+                        Bounds(None, None) => Node::Operator(Cell::new(int), None),
                     }
                 } else {
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.new_node_ref(Node::Operator(Cell::new(int), None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript(target, symbol),
                         Bounds(None, Some(symbol)) => Node::Superscript(target, symbol),
-                        Bounds(None, None) => Node::Operator(int, None),
+                        Bounds(None, None) => Node::Operator(Cell::new(int), None),
                     }
                 }
             }
@@ -350,7 +352,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     list.push(
                         self.arena,
                         Node::OperatorWithSpacing {
-                            op: ops::COLON,
+                            op: Cell::new(ops::COLON),
                             left: Some(MathSpacing::FourMu),
                             right: Some(MathSpacing::Zero),
                         },
@@ -358,7 +360,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     list.push(
                         self.arena,
                         Node::OperatorWithSpacing {
-                            op,
+                            op: Cell::new(op),
                             left: Some(MathSpacing::Zero),
                             right: None,
                         },
@@ -366,7 +368,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     Node::PseudoRow(list)
                 }
                 _ => Node::OperatorWithSpacing {
-                    op: ops::COLON,
+                    op: Cell::new(ops::COLON),
                     left: Some(MathSpacing::FourMu),
                     right: Some(MathSpacing::FourMu),
                 },
@@ -379,7 +381,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 }
                 Node::Row(content, None)
             }
-            Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
+            Token::Paren(paren) => Node::Operator(Cell::new(paren), Some(OpAttr::StretchyFalse)),
             Token::Left => {
                 let open = match self.next_token() {
                     Token::Paren(open) => open,
@@ -412,7 +414,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             Token::Middle => match self.next_token() {
                 Token::Operator(op) | Token::Paren(op) => {
-                    Node::Operator(op, Some(OpAttr::StretchyTrue))
+                    Node::Operator(Cell::new(op), Some(OpAttr::StretchyTrue))
                 }
                 tok => {
                     return Err(LatexError::UnexpectedToken {
@@ -628,7 +630,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         if prime_counter > 0 {
             let mut superscripts = NodeList::new();
             for _ in 0..prime_counter {
-                superscripts.push(self.arena, Node::Operator(ops::PRIME, None));
+                superscripts.push(self.arena, Node::Operator(Cell::new(ops::PRIME), None));
             }
             if let Some(sup) = sup {
                 superscripts.push_ref(self.arena, sup);
@@ -667,7 +669,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         let node = self.arena.get_mut(node_ref);
         match node {
             Node::SingleLetterIdent(_, maybe_var) => {
-                *maybe_var = Some(MathVariant::Normal);
+                maybe_var.set(Some(MathVariant::Normal));
             }
             Node::Row(list, _) => {
                 if let Some(mut head) = list.get_head() {
@@ -713,11 +715,16 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 }
             }
             Node::SingleLetterIdent(x, _) => {
-                *x = tf.transform(*x);
+                x.set(tf.transform(x.get()));
             }
-            Node::Operator(op, _) => {
-                let op = *op;
-                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+            Node::Operator(ref op, _) => {
+                let _ = mem::replace(
+                    node,
+                    Node::SingleLetterIdent(
+                        Cell::new(tf.transform(op.get().into())),
+                        Cell::new(None),
+                    ),
+                );
             }
             _ => {}
         }
@@ -736,7 +743,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                         // We start collecting.
                         start = Some(self.buffer.0.len());
                     }
-                    self.buffer.0.push(*c);
+                    self.buffer.0.push(c.get());
                 } else {
                     // Commit the collected letters.
                     if let Some(start) = start.take() {
@@ -777,7 +784,7 @@ fn extract_letters<'source>(
 ) -> Result<(), LatexError<'source>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.0.push(*c);
+            buffer.0.push(c.get());
         }
         Node::Row(nodes, _) => {
             for node in nodes.iter(arena) {
@@ -788,7 +795,7 @@ fn extract_letters<'source>(
             buffer.0.push_str(n);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.0.push(op.into());
+            buffer.0.push(op.get().into());
         }
         _ => return Err(LatexError::ExpectedText("\\operatorname")),
     }

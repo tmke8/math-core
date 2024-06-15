@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use crate::arena::{Arena, Buffer, NodeList, NodeReference, StrReference};
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
@@ -6,13 +8,13 @@ use crate::ops::Op;
 #[derive(Debug)]
 pub enum Node<'source> {
     Number(&'source str),
-    SingleLetterIdent(char, Option<MathVariant>),
-    Operator(Op, Option<OpAttr>),
+    SingleLetterIdent(Cell<char>, Cell<Option<MathVariant>>),
+    Operator(Cell<Op>, Option<OpAttr>),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
     OperatorWithSpacing {
-        op: Op,
+        op: Cell<Op>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
@@ -116,18 +118,18 @@ impl<'a> Node<'a> {
         match self {
             Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
             Node::SingleLetterIdent(letter, var) => {
-                match var {
+                match var.get() {
                     Some(var) => push!(s, "<mi", var, ">"),
                     None => push!(s, "<mi>"),
                 };
-                push!(s, @*letter, "</mi>");
+                push!(s, @letter.get(), "</mi>");
             }
             Node::Operator(op, attributes) => {
                 match attributes {
                     Some(attributes) => push!(s, "<mo", attributes, ">"),
                     None => push!(s, "<mo>"),
                 }
-                push!(s, @op, "</mo>");
+                push!(s, @op.get(), "</mo>");
             }
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
@@ -145,7 +147,7 @@ impl<'a> Node<'a> {
                     }
                     (None, None) => s.push_str("<mo"),
                 }
-                push!(s, ">", @op, "</mo>");
+                push!(s, ">", @op.get(), "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
                 let letters = b.get_str(*letters);
@@ -282,14 +284,14 @@ impl<'a> Node<'a> {
                 push!(s, @paren, "</mo>");
             }
             Node::Slashed(node) => match node.as_ref(a) {
-                Node::SingleLetterIdent(x, var) => match var {
+                Node::SingleLetterIdent(x, var) => match var.get() {
                     Some(var) => {
-                        push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
+                        push!(s, "<mi", var, ">", @x.get(), "&#x0338;</mi>")
                     }
-                    None => push!(s, "<mi>", @*x, "&#x0338;</mi>"),
+                    None => push!(s, "<mi>", @x.get(), "&#x0338;</mi>"),
                 },
                 Node::Operator(x, _) => {
-                    push!(s, "<mo>", @x, "&#x0338;</mo>");
+                    push!(s, "<mo>", @x.get(), "&#x0338;</mo>");
                 }
                 n => n.emit(s, a, b, base_indent),
             },
@@ -382,6 +384,8 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use super::super::attribute::MathVariant;
     use super::Node;
     use crate::arena::{Arena, Buffer};
@@ -392,10 +396,16 @@ mod tests {
         let buffer = Buffer::new();
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
-                Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
+                Node::SingleLetterIdent(Cell::new('x'), Cell::new(None)),
+                "<mi>x</mi>",
+            ),
+            (
+                Node::SingleLetterIdent(Cell::new('α'), Cell::new(None)),
+                "<mi>α</mi>",
+            ),
+            (
+                Node::SingleLetterIdent(Cell::new('あ'), Cell::new(Some(MathVariant::Normal))),
                 "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];
