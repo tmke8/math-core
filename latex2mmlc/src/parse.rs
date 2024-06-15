@@ -302,18 +302,18 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::NormalVariant => {
                 let node_ref = self.parse_single_token()?;
                 let node = self.arena.get(node_ref);
+                self.set_normal_variant(node);
                 let node_ref = if let Node::Row(nodes, style) = node {
                     self.merge_single_letters(*nodes, style.clone())
                 } else {
                     node_ref
                 };
-                self.set_normal_variant(node_ref);
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref, tf);
                 let node = self.arena.get(node_ref);
+                self.transform_letters(node, tf);
                 if let Node::Row(nodes, style) = node {
                     return Ok(self.merge_single_letters(*nodes, style.clone()));
                 } else {
@@ -665,27 +665,14 @@ impl<'source, 'arena> Parser<'source, 'arena> {
 
     /// Set the math variant of all single-letter identifiers in `node` to `var`.
     /// The change is applied in-place.
-    fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        let node = self.arena.get_mut(node_ref);
+    fn set_normal_variant(&self, node: &Node<'source>) {
         match node {
             Node::SingleLetterIdent(_, maybe_var) => {
                 maybe_var.set(Some(MathVariant::Normal));
             }
             Node::Row(list, _) => {
-                if let Some(mut head) = list.get_head() {
-                    loop {
-                        self.set_normal_variant(head);
-                        // It's stupid that we have to look up the reference in the arena again.
-                        // In theory, the previous function has already done that.
-                        // But I couldn't find a way to make the borrow checker accept this.
-                        let node = self.arena.get_raw(head);
-                        match node.next {
-                            Some(tail) => {
-                                head = tail;
-                            }
-                            None => break,
-                        }
-                    }
+                for node in list.iter(self.arena) {
+                    self.set_normal_variant(node);
                 }
             }
             _ => {}
@@ -694,38 +681,25 @@ impl<'source, 'arena> Parser<'source, 'arena> {
 
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
-    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = self.arena.get_mut(node_ref);
+    fn transform_letters(&self, node: &Node<'source>, tf: TextTransform) {
         match node {
             Node::Row(list, _) => {
-                if let Some(mut head) = list.get_head() {
-                    loop {
-                        self.transform_letters(head, tf.clone());
-                        // It's stupid that we have to look up the reference in the arena again.
-                        // In theory, the previous function has already done that.
-                        // But I couldn't find a way to make the borrow checker accept this.
-                        let node = self.arena.get_raw(head);
-                        match node.next {
-                            Some(tail) => {
-                                head = tail;
-                            }
-                            None => break,
-                        }
-                    }
+                for node in list.iter(self.arena) {
+                    self.transform_letters(node, tf.clone());
                 }
             }
             Node::SingleLetterIdent(x, _) => {
                 x.set(tf.transform(x.get()));
             }
-            Node::Operator(ref op, _) => {
-                let _ = mem::replace(
-                    node,
-                    Node::SingleLetterIdent(
-                        Cell::new(tf.transform(op.get().into())),
-                        Cell::new(None),
-                    ),
-                );
-            }
+            // Node::Operator(ref op, _) => {
+            //     let _ = mem::replace(
+            //         node,
+            //         Node::SingleLetterIdent(
+            //             Cell::new(tf.transform(op.get().into())),
+            //             Cell::new(None),
+            //         ),
+            //     );
+            // }
             _ => {}
         }
     }

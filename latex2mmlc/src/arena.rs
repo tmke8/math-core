@@ -3,6 +3,7 @@ use std::ops::Range;
 use crate::ast::Node;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(transparent)]
 pub struct NodeReference(usize);
 
 impl NodeReference {
@@ -109,7 +110,8 @@ impl Buffer {
     }
 
     pub fn get_str(&self, reference: StrReference) -> &str {
-        &self.0[Range::<usize>::from(reference)]
+        // &self.0[Range::<usize>::from(reference)]
+        unsafe { self.0.get_unchecked(Range::<usize>::from(reference)) }
     }
 
     #[inline]
