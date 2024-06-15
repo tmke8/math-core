@@ -109,7 +109,8 @@ impl Buffer {
     }
 
     pub fn get_str(&self, reference: StrReference) -> &str {
-        &self.0[Range::<usize>::from(reference)]
+        // &self.0[Range::<usize>::from(reference)]
+        unsafe { self.0.get_unchecked(reference.0..reference.1) }
     }
 
     #[inline]

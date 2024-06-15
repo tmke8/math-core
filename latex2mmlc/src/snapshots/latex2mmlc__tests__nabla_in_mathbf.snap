@@ -1,0 +1,9 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathbf{\\nabla} + \\nabla"
+---
+<math>
+    <mi>𝛁</mi>
+    <mo>+</mo>
+    <mo>∇</mo>
+</math>

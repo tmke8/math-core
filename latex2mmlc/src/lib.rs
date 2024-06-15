@@ -235,6 +235,7 @@ mod tests {
             ("int_prime", r"\int'"),
             ("int_limit_prime", r"\int\limits'"),
             ("nested_transform", r"\mathit{a{bc}d}"),
+            ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
         ];
 
         for (name, problem) in problems.into_iter() {
