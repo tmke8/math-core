@@ -111,7 +111,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree), content)
+                    Node::Root(self.squeeze(degree, None), content)
                 } else {
                     let content = self.parse_node(next_token)?;
                     Node::Sqrt(content)
@@ -372,7 +372,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.squeeze(content));
+                return Ok(self.squeeze(content, None));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::Left => {
@@ -401,7 +401,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 Node::Fenced {
                     open,
                     close,
-                    content: self.squeeze(content),
+                    content: self.squeeze(content, None),
                     style: None,
                 }
             }
@@ -628,7 +628,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             if let Some(sup) = sup {
                 superscripts.push_ref(self.arena, sup);
             }
-            sup = Some(self.squeeze(superscripts));
+            sup = Some(self.squeeze(superscripts, None));
         }
 
         Ok(Bounds(sub, sup))
@@ -649,10 +649,10 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         self.parse_single_node(next_token)
     }
 
-    fn squeeze(&mut self, nodes: NodeList) -> NodeReference {
+    fn squeeze(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
         match nodes.is_singleton() {
             Some(value) => value,
-            None => self.new_node_ref(Node::Row(nodes, None)),
+            None => self.new_node_ref(Node::Row(nodes, style)),
         }
     }
 
@@ -720,11 +720,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             let slice = StrReference::new(start, self.buffer.len());
             new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
         }
-        if let Some(node_ref) = new_nodes.is_singleton() {
-            return node_ref;
-        }
-        let node = Node::Row(new_nodes, style);
-        self.new_node_ref(node)
+        self.squeeze(new_nodes, style)
     }
 }
 
