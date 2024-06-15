@@ -148,8 +148,7 @@ impl<'a> Node<'a> {
                 push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
-                let letters = letters.as_str(b);
-                push!(s, "<mi>", letters, "</mi>");
+                push!(s, "<mi>", letters.as_str(b), "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.

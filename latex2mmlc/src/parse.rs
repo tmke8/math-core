@@ -137,14 +137,12 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
-                let node = self.parse_token()?.as_node(self.arena);
-                let open = match node {
+                let open = match self.parse_token()?.as_node(self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let node = self.parse_token()?.as_node(self.arena);
-                let close = match node {
+                let close = match self.parse_token()?.as_node(self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
@@ -159,8 +157,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let node = self.parse_token()?.as_node(self.arena);
-                let style = match node {
+                let style = match self.parse_token()?.as_node(self.arena) {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
                         Ok(1) => Some(Style::TextStyle),
@@ -375,10 +372,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                if let Some(node_ref) = content.is_singleton() {
-                    return Ok(node_ref);
-                }
-                Node::Row(content, None)
+                return Ok(self.squeeze(content));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::Left => {
@@ -685,18 +679,18 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
         let node = self.arena.lookup_mut(node_ref);
         match node {
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(self.arena) {
-                    self.transform_letters(node_ref, tf.clone());
-                }
-            }
             Node::SingleLetterIdent(x, _) => {
                 *x = tf.transform(*x);
             }
             Node::Operator(op, _) => {
                 let op = *op;
                 let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+            }
+            Node::Row(list, _) => {
+                let mut iter = list.iter_manually();
+                while let Some((node_ref, _)) = iter.next(self.arena) {
+                    self.transform_letters(node_ref, tf.clone());
+                }
             }
             _ => {}
         }
