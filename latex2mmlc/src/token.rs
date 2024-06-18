@@ -1,3 +1,5 @@
+use std::mem::discriminant;
+
 use strum_macros::AsRefStr;
 
 use crate::attribute::{FracAttr, Style, TextTransform};
@@ -22,6 +24,8 @@ pub enum Token<'source> {
     Right,
     Middle,
     Paren(Op),
+    /// The closing square bracket has its own token because we often
+    /// need to search for it.
     #[strum(serialize = "]")]
     SquareBracketClose,
     #[strum(serialize = "{")]
@@ -96,11 +100,6 @@ impl Token<'_> {
     /// Returns `true` if `self` and `other` are of the same kind.
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind(&self, other: &Token) -> bool {
-        // SAFETY: Because `Self` is marked `repr(u32)`, its layout is a `repr(C)` `union`
-        // between `repr(C)` structs, each of which has the `u32` discriminant as its first
-        // field, so we can read the discriminant without offsetting the pointer.
-        let self_discr = unsafe { *<*const _>::from(self).cast::<u32>() };
-        let other_discr = unsafe { *<*const _>::from(other).cast::<u32>() };
-        self_discr == other_discr
+        discriminant(self) == discriminant(other)
     }
 }
