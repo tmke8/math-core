@@ -66,15 +66,20 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes<'source, 'arena>(
+fn get_nodes<'source>(
     latex: &'source str,
-    arena: &'arena mut Arena<'source>,
-    buffer: &'arena mut Buffer,
-) -> Result<ast::Node<'source>, error::LatexError<'source>> {
+) -> Result<(ast::Node<'source>, Buffer, Arena<'source>), error::LatexError<'source>> {
+    // The length of the input is an upper bound for the required length for
+    // the string buffer.
+    let buffer = Buffer::new(latex.len());
+    // TODO: Estimate a reasonable initial capacity for the arena.
+    let arena = Arena::new();
+
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, arena, buffer);
+    let mut p = parse::Parser::new(l, buffer, arena);
     let nodes = p.parse()?;
-    Ok(nodes)
+    let (buffer, arena) = p.into_inner();
+    Ok((nodes, buffer, arena))
 }
 
 /// Convert LaTeX text to MathML.
@@ -98,12 +103,7 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    // The length of the input is an upper bound for the required length for
-    // the string buffer.
-    let mut buffer = arena::Buffer::new(latex.len());
-    // TODO: Estimate a reasonable initial capacity for the arena.
-    let mut arena = arena::Arena::new();
-    let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
+    let (nodes, buffer, arena) = get_nodes(latex)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
@@ -122,14 +122,12 @@ pub fn latex_to_mathml(
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{arena, error, latex_to_mathml};
+    use crate::{error, latex_to_mathml};
 
     use super::get_nodes;
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let mut arena = arena::Arena::new();
-        let mut buffer = arena::Buffer::new(0);
-        let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
+        let (nodes, buffer, arena) = get_nodes(latex)?;
         Ok(nodes.render(&arena, &buffer))
     }
 

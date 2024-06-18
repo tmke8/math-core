@@ -12,28 +12,28 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub(crate) struct Parser<'source, 'arena> {
+pub(crate) struct Parser<'source> {
     l: Lexer<'source>,
     peek_token: Token<'source>,
-    arena: &'arena mut Arena<'source>,
-    buffer: &'arena mut Buffer,
+    buffer: Buffer,
+    arena: Arena<'source>,
 }
-impl<'source, 'arena> Parser<'source, 'arena> {
-    pub(crate) fn new(
-        l: Lexer<'source>,
-        arena: &'arena mut Arena<'source>,
-        buffer: &'arena mut Buffer,
-    ) -> Self {
+impl<'source> Parser<'source> {
+    pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: Arena<'source>) -> Self {
         let mut p = Parser {
             l,
             peek_token: Token::EOF,
-            arena,
             buffer,
+            arena,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
         p.next_token();
         p
+    }
+
+    pub(crate) fn into_inner(self) -> (Buffer, Arena<'source>) {
+        (self.buffer, self.arena)
     }
 
     fn next_token(&mut self) -> Token<'source> {
@@ -48,7 +48,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
 
         while !matches!(cur_token, Token::EOF) {
             let node = self.parse_node(cur_token)?;
-            list_builder.push_ref(self.arena, node);
+            list_builder.push_ref(&mut self.arena, node);
             cur_token = self.next_token();
         }
 
@@ -91,8 +91,8 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 ops::NULL => Node::Number(number),
                 op => {
                     let mut builder = NodeListBuilder::new();
-                    builder.push(self.arena, Node::Number(number));
-                    builder.push(self.arena, Node::Operator(op, None));
+                    builder.push(&mut self.arena, Node::Number(number));
+                    builder.push(&mut self.arena, Node::Operator(op, None));
                     Node::PseudoRow(builder.finish())
                 }
             },
@@ -137,12 +137,12 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
-                let open = match self.parse_token()?.as_node(self.arena) {
+                let open = match self.parse_token()?.as_node(&mut self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let close = match self.parse_token()?.as_node(self.arena) {
+                let close = match self.parse_token()?.as_node(&mut self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
@@ -157,7 +157,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let style = match self.parse_token()?.as_node(self.arena) {
+                let style = match self.parse_token()?.as_node(&mut self.arena) {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
                         Ok(1) => Some(Style::TextStyle),
@@ -298,7 +298,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             Token::NormalVariant => {
                 let node_ref = self.parse_single_token()?;
-                let node = node_ref.as_node(self.arena);
+                let node = node_ref.as_node(&self.arena);
                 let node_ref = if let Node::Row(nodes, style) = node {
                     self.merge_single_letters(nodes.clone(), style.clone())
                 } else {
@@ -310,7 +310,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
                 self.transform_letters(node_ref, tf);
-                let node = node_ref.as_node(self.arena);
+                let node = node_ref.as_node(&self.arena);
                 if let Node::Row(nodes, style) = node {
                     return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
@@ -346,7 +346,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                     self.next_token(); // Discard the operator token.
                     let mut builder = NodeListBuilder::new();
                     builder.push(
-                        self.arena,
+                        &mut self.arena,
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
                             left: Some(MathSpacing::FourMu),
@@ -354,7 +354,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                         },
                     );
                     builder.push(
-                        self.arena,
+                        &mut self.arena,
                         Node::OperatorWithSpacing {
                             op,
                             left: Some(MathSpacing::Zero),
@@ -474,9 +474,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
-                let node = self.parse_single_token()?.as_node(self.arena);
+                let node = self.parse_single_token()?.as_node(&self.arena);
                 let start = self.buffer.end();
-                extract_letters(self.arena, self.buffer, node)?;
+                extract_letters(&self.arena, &mut self.buffer, node)?;
                 let end = self.buffer.end();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
@@ -547,7 +547,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 return Err(LatexError::UnclosedGroup(end_token));
             }
             let node = self.parse_node(token)?;
-            nodes.push_ref(self.arena, node);
+            nodes.push_ref(&mut self.arena, node);
         }
         Ok(nodes)
     }
@@ -628,10 +628,10 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         if prime_counter > 0 {
             let mut superscripts = NodeListBuilder::new();
             for _ in 0..prime_counter {
-                superscripts.push(self.arena, Node::Operator(ops::PRIME, None));
+                superscripts.push(&mut self.arena, Node::Operator(ops::PRIME, None));
             }
             if let Some(sup) = sup {
-                superscripts.push_ref(self.arena, sup);
+                superscripts.push_ref(&mut self.arena, sup);
             }
             sup = Some(self.squeeze(superscripts, None));
         }
@@ -664,13 +664,13 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     /// Set the math variant of all single-letter identifiers in `node` to `var`.
     /// The change is applied in-place.
     fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        match node_ref.as_node_mut(self.arena) {
+        match node_ref.as_node_mut(&mut self.arena) {
             Node::SingleLetterIdent(_, maybe_var) => {
                 *maybe_var = Some(MathVariant::Normal);
             }
             Node::Row(list, _) => {
                 let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(self.arena) {
+                while let Some((node_ref, _)) = iter.next(&self.arena) {
                     self.set_normal_variant(node_ref);
                 }
             }
@@ -681,7 +681,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
     fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = node_ref.as_node_mut(self.arena);
+        let node = node_ref.as_node_mut(&mut self.arena);
         match node {
             Node::SingleLetterIdent(x, _) => {
                 *x = tf.transform(*x);
@@ -692,7 +692,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             }
             Node::Row(list, _) => {
                 let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(self.arena) {
+                while let Some((node_ref, _)) = iter.next(&self.arena) {
                     self.transform_letters(node_ref, tf.clone());
                 }
             }
@@ -704,7 +704,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         let mut list_builder = NodeListBuilder::new();
         let mut start: Option<StrBound> = None;
         let mut iter = nodes.iter_manually();
-        while let Some((head, node)) = iter.next(self.arena) {
+        while let Some((head, node)) = iter.next(&self.arena) {
             if let Node::SingleLetterIdent(c, _) = node {
                 if start.is_none() {
                     // We start collecting.
@@ -715,14 +715,14 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 // Commit the collected letters.
                 if let Some(start) = start.take() {
                     let slice = StrReference::new(start, self.buffer.end());
-                    list_builder.push(self.arena, Node::MultiLetterIdent(slice));
+                    list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
                 }
-                list_builder.push_ref(self.arena, head);
+                list_builder.push_ref(&mut self.arena, head);
             }
         }
         if let Some(start) = start {
             let slice = StrReference::new(start, self.buffer.end());
-            list_builder.push(self.arena, Node::MultiLetterIdent(slice));
+            list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
         }
         self.squeeze(list_builder, style)
     }
