@@ -4,7 +4,7 @@ use crate::attribute::{FracAttr, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
-pub enum Token<'a> {
+pub enum Token<'source> {
     #[strum(serialize = "end of document")]
     EOF,
     #[strum(serialize = r"\begin{...}")]
@@ -65,7 +65,7 @@ pub enum Token<'a> {
     BigOp(Op),
     Letter(char),
     NormalLetter(char),
-    Number(&'a str, Op),
+    Number(&'source str, Op),
     Function(&'static str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
@@ -77,10 +77,10 @@ pub enum Token<'a> {
     #[strum(serialize = r"\mathstrut")]
     Mathstrut,
     Style(Style),
-    UnknownCommand(&'a str),
+    UnknownCommand(&'source str),
 }
 
-impl<'a> Token<'a> {
+impl Token<'_> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,

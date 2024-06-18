@@ -93,8 +93,8 @@ macro_rules! pushln {
     };
 }
 
-impl<'a> Node<'a> {
-    pub fn render<'arena>(&self, arena: &'arena Arena<'a>, buffer: &'arena Buffer) -> String {
+impl<'source> Node<'source> {
+    pub fn render<'arena>(&self, arena: &'arena Arena<'source>, buffer: &'arena Buffer) -> String {
         let mut buf = String::new();
         self.emit(&mut buf, arena, buffer, 0);
         buf

@@ -3,32 +3,32 @@ use std::fmt;
 use crate::token::Token;
 
 #[derive(Debug)]
-pub enum LatexError<'a> {
+pub enum LatexError<'source> {
     UnexpectedToken {
-        expected: Token<'a>,
-        got: Token<'a>,
+        expected: Token<'source>,
+        got: Token<'source>,
     },
-    UnclosedGroup(Token<'a>),
-    UnexpectedClose(Token<'a>),
+    UnclosedGroup(Token<'source>),
+    UnexpectedClose(Token<'source>),
     UnexpectedEOF,
     MissingParenthesis {
-        location: Token<'a>,
-        got: Token<'a>,
+        location: Token<'source>,
+        got: Token<'source>,
     },
-    UnknownEnvironment(&'a str),
-    UnknownCommand(&'a str),
+    UnknownEnvironment(&'source str),
+    UnknownCommand(&'source str),
     MismatchedEnvironment {
-        expected: &'a str,
-        got: &'a str,
+        expected: &'source str,
+        got: &'source str,
     },
     CannotBeUsedHere {
-        got: Token<'a>,
+        got: Token<'source>,
         correct_place: &'static str,
     },
     ExpectedText(&'static str),
 }
 
-impl<'a> LatexError<'a> {
+impl LatexError<'_> {
     /// Returns the error message as a string.
     ///
     /// This serves the same purpose as the `Display` implementation,
