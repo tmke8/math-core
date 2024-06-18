@@ -47,6 +47,7 @@
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
 
+pub mod arena;
 pub mod ast;
 pub mod attribute;
 pub(crate) mod commands;
@@ -55,6 +56,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
+use arena::{Arena, Buffer};
 pub use error::LatexError;
 
 /// display
@@ -64,11 +66,18 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes(latex: &str) -> Result<ast::Node, error::LatexError> {
+fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error::LatexError<'_>> {
+    // The length of the input is an upper bound for the required length for
+    // the string buffer.
+    let buffer = Buffer::new(latex.len());
+    // TODO: Estimate a reasonable initial capacity for the arena.
+    let arena = Arena::new();
+
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l);
+    let mut p = parse::Parser::new(l, buffer, arena);
     let nodes = p.parse()?;
-    Ok(nodes)
+    let (buffer, arena) = p.into_inner();
+    Ok((nodes, buffer, arena))
 }
 
 /// Convert LaTeX text to MathML.
@@ -92,14 +101,14 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    let nodes = get_nodes(latex)?;
+    let (nodes, buffer, arena) = get_nodes(latex)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, &arena, &buffer, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
@@ -116,8 +125,8 @@ mod tests {
     use super::get_nodes;
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let nodes = get_nodes(latex)?;
-        Ok(nodes.render())
+        let (nodes, buffer, arena) = get_nodes(latex)?;
+        Ok(nodes.render(&arena, &buffer))
     }
 
     #[test]
@@ -224,6 +233,8 @@ mod tests {
             ("sum_prime", r"\sum'"),
             ("int_prime", r"\int'"),
             ("int_limit_prime", r"\int\limits'"),
+            ("nested_transform", r"\mathit{a{bc}d}"),
+            ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
         ];
 
         for (name, problem) in problems.into_iter() {

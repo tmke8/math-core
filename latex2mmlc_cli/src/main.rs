@@ -103,9 +103,9 @@ fn convert_and_exit(args: &Args, latex: &str) {
 }
 
 #[derive(Debug)]
-enum ConversionError<'a> {
+enum ConversionError<'source> {
     InvalidNumberOfDollarSigns,
-    LatexError(LatexError<'a>, &'a str),
+    LatexError(LatexError<'source>, &'source str),
 }
 
 impl fmt::Display for ConversionError<'_> {

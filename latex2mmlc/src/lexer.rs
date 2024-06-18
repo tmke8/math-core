@@ -12,16 +12,16 @@ use crate::{ops, ops::Op, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
-pub(crate) struct Lexer<'a> {
-    input: CharIndices<'a>,
+pub(crate) struct Lexer<'source> {
+    input: CharIndices<'source>,
     peek: (usize, char),
-    input_string: &'a str,
+    input_string: &'source str,
     input_length: usize,
 }
 
-impl<'a> Lexer<'a> {
+impl<'source> Lexer<'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'source str) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
@@ -49,7 +49,7 @@ impl<'a> Lexer<'a> {
 
     /// Read one command.
     #[inline]
-    fn read_command(&mut self) -> &'a str {
+    fn read_command(&mut self) -> &'source str {
         let start = self.peek.0;
 
         // Read in all ASCII characters.
@@ -70,7 +70,7 @@ impl<'a> Lexer<'a> {
 
     /// Read one number.
     #[inline]
-    fn read_number(&mut self, start: usize) -> (&'a str, Op) {
+    fn read_number(&mut self, start: usize) -> (&'source str, Op) {
         while {
             let cur = self.peek.1;
             cur.is_ascii_digit() || matches!(cur, '.' | ',')
@@ -97,7 +97,7 @@ impl<'a> Lexer<'a> {
 
     /// Read text until the next `}`.
     #[inline]
-    pub(crate) fn read_text_content(&mut self) -> Option<&'a str> {
+    pub(crate) fn read_text_content(&mut self) -> Option<&'source str> {
         let mut brace_count = 1;
         let start = self.peek.0;
 
@@ -126,7 +126,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'a> {
+    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'source> {
         self.skip_whitespace();
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
@@ -162,9 +162,7 @@ impl<'a> Lexer<'a> {
             (_, '\u{0}') => Token::EOF,
             (_, ':') => Token::Colon,
             (_, ' ') => Token::Letter('\u{A0}'),
-            (_, '\\') => {
-                get_command(self.read_command())
-            }
+            (_, '\\') => get_command(self.read_command()),
             (start, c) => {
                 if c.is_ascii_digit() {
                     let (num, op) = self.read_number(start);

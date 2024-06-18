@@ -1,6 +1,7 @@
 use std::mem;
 
 use crate::{
+    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeReference, StrBound, StrReference},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -11,15 +12,19 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub(crate) struct Parser<'a> {
-    l: Lexer<'a>,
-    peek_token: Token<'a>,
+pub(crate) struct Parser<'source> {
+    l: Lexer<'source>,
+    peek_token: Token<'source>,
+    buffer: Buffer,
+    arena: Arena<'source>,
 }
-impl<'a> Parser<'a> {
-    pub(crate) fn new(l: Lexer<'a>) -> Self {
+impl<'source> Parser<'source> {
+    pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: Arena<'source>) -> Self {
         let mut p = Parser {
             l,
             peek_token: Token::EOF,
+            buffer,
+            arena,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -27,42 +32,49 @@ impl<'a> Parser<'a> {
         p
     }
 
-    fn next_token(&mut self) -> Token<'a> {
+    pub(crate) fn into_inner(self) -> (Buffer, Arena<'source>) {
+        (self.buffer, self.arena)
+    }
+
+    fn next_token(&mut self) -> Token<'source> {
         let peek_token = self.l.next_token(self.peek_token.acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek_token, peek_token)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node<'a>, LatexError<'a>> {
-        let mut nodes = Vec::new();
+    pub(crate) fn parse(&mut self) -> Result<Node<'source>, LatexError<'source>> {
+        let mut list_builder = NodeListBuilder::new();
         let mut cur_token = self.next_token();
 
         while !matches!(cur_token, Token::EOF) {
-            nodes.push(self.parse_node(cur_token)?);
+            let node = self.parse_node(cur_token)?;
+            list_builder.push_ref(&mut self.arena, node);
             cur_token = self.next_token();
         }
 
-        if nodes.len() == 1 {
-            // SAFETY: `nodes` is not empty.
-            unsafe { Ok(nodes.into_iter().next().unwrap_unchecked()) }
-        } else {
-            Ok(Node::PseudoRow(nodes))
-        }
+        Ok(Node::PseudoRow(list_builder.finish()))
     }
 
-    fn parse_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
+    fn parse_node(
+        &mut self,
+        cur_token: Token<'source>,
+    ) -> Result<NodeReference, LatexError<'source>> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup {
-                target: Box::new(left),
+            Bounds(Some(sub), Some(sup)) => Ok(self.new_node_ref(Node::SubSup {
+                target: left,
                 sub,
                 sup,
-            }),
-            Bounds(Some(symbol), None) => Ok(Node::Subscript(Box::new(left), symbol)),
-            Bounds(None, Some(symbol)) => Ok(Node::Superscript(Box::new(left), symbol)),
+            })),
+            Bounds(Some(symbol), None) => Ok(self.new_node_ref(Node::Subscript(left, symbol))),
+            Bounds(None, Some(symbol)) => Ok(self.new_node_ref(Node::Superscript(left, symbol))),
             Bounds(None, None) => Ok(left),
         }
+    }
+
+    fn new_node_ref(&mut self, node: Node<'source>) -> NodeReference {
+        self.arena.push(node)
     }
 
     // Read the node immediately after without worrying about whether
@@ -70,11 +82,19 @@ impl<'a> Parser<'a> {
     //
     // Note: Use `parse_node()` when reading nodes correctly in
     // consideration of infix operators.
-    fn parse_single_node(&mut self, cur_token: Token<'a>) -> Result<Node<'a>, LatexError<'a>> {
+    fn parse_single_node(
+        &mut self,
+        cur_token: Token<'source>,
+    ) -> Result<NodeReference, LatexError<'source>> {
         let node = match cur_token {
             Token::Number(number, op) => match op {
                 ops::NULL => Node::Number(number),
-                op => Node::PseudoRow(vec![Node::Number(number), Node::Operator(op, None)]),
+                op => {
+                    let mut builder = NodeListBuilder::new();
+                    builder.push(&mut self.arena, Node::Number(number));
+                    builder.push(&mut self.arena, Node::Operator(op, None));
+                    Node::PseudoRow(builder.finish())
+                }
             },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
@@ -82,7 +102,7 @@ impl<'a> Parser<'a> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(fun.to_string()),
+            Token::Function(fun) => Node::MultiLetterIdent(self.buffer.push_str(fun)),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
@@ -91,21 +111,21 @@ impl<'a> Parser<'a> {
                     let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(Box::new(squeeze(degree)), Box::new(content))
+                    Node::Root(self.squeeze(degree, None), content)
                 } else {
                     let content = self.parse_node(next_token)?;
-                    Node::Sqrt(Box::new(content))
+                    Node::Sqrt(content)
                 }
             }
             Token::Frac(displaystyle) | Token::Binom(displaystyle) => {
-                let numerator = Box::new(self.parse_token()?);
-                let denominator = Box::new(self.parse_token()?);
+                let numerator = self.parse_token()?;
+                let denominator = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: Box::new(inner),
+                        content: self.new_node_ref(inner),
                         style: None,
                     }
                 } else {
@@ -113,13 +133,17 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Genfrac => {
-                let open = match self.parse_token()? {
-                    Node::Operator(op, _) => op,
+                // TODO: This should not just blindly try to parse a node.
+                // Rather, we should explicitly attempt to parse a group (aka Row),
+                // and if that doesn't work, we try to parse it as an Operator,
+                // and if that still doesn't work, we return an error.
+                let open = match self.parse_token()?.as_node(&self.arena) {
+                    Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let close = match self.parse_token()? {
-                    Node::Operator(op, _) => op,
+                let close = match self.parse_token()?.as_node(&self.arena) {
+                    Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
@@ -133,7 +157,7 @@ impl<'a> Parser<'a> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let style = match self.parse_token()? {
+                let style = match self.parse_token()?.as_node(&self.arena) {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
                         Ok(1) => Some(Style::TextStyle),
@@ -144,10 +168,10 @@ impl<'a> Parser<'a> {
                     Node::Row(elements, _) if elements.is_empty() => None,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let numerator = Box::new(self.parse_token()?);
-                let denominator = Box::new(self.parse_token()?);
+                let numerator = self.parse_token()?;
+                let denominator = self.parse_token()?;
                 let inner = Node::Frac(numerator, denominator, line_thickness, None);
-                let content = Box::new(inner);
+                let content = self.new_node_ref(inner);
                 Node::Fenced {
                     open,
                     close,
@@ -157,18 +181,15 @@ impl<'a> Parser<'a> {
             }
             ref tok @ (Token::Over(op) | Token::Under(op)) => {
                 let target = self.parse_token()?;
-                let boxed = Box::new(target);
                 if matches!(tok, Token::Over(_)) {
-                    Node::OverOp(op, Accent::True, boxed)
+                    Node::OverOp(op, Accent::True, target)
                 } else {
-                    Node::UnderOp(op, Accent::True, boxed)
+                    Node::UnderOp(op, Accent::True, target)
                 }
             }
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_token()?;
                 let target = self.parse_token()?;
-                let symbol = Box::new(symbol);
-                let target = Box::new(target);
                 if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
@@ -182,25 +203,23 @@ impl<'a> Parser<'a> {
                     || (!is_over && matches!(self.peek_token, Token::Underscore))
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
-                    let expl = Box::new(self.parse_single_token()?);
-                    let op = Box::new(Node::Operator(x, None));
-                    let target = Box::new(target);
+                    let expl = self.parse_single_token()?;
+                    let op = self.new_node_ref(Node::Operator(x, None));
                     if is_over {
-                        let symbol = Box::new(Node::Overset {
+                        let symbol = self.new_node_ref(Node::Overset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Overset { symbol, target }
                     } else {
-                        let symbol = Box::new(Node::Underset {
+                        let symbol = self.new_node_ref(Node::Underset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = Box::new(Node::Operator(x, None));
-                    let target = Box::new(target);
+                    let symbol = self.new_node_ref(Node::Operator(x, None));
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -211,10 +230,11 @@ impl<'a> Parser<'a> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    Box::new(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    Node::Operator(op, Some(OpAttr::NoMovableLimits))
                 } else {
-                    Box::new(Node::Operator(op, None))
+                    Node::Operator(op, None)
                 };
+                let target = self.new_node_ref(target);
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -227,13 +247,13 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim.to_string());
+                let lim = Node::MultiLetterIdent(self.buffer.push_str(lim));
                 if matches!(self.peek_token, Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: Box::new(lim),
-                        symbol: Box::new(under),
+                        target: self.new_node_ref(lim),
+                        symbol: under,
                     }
                 } else {
                     lim
@@ -243,7 +263,7 @@ impl<'a> Parser<'a> {
                 self.next_token(); // Optimistically skip the next token.
                 let node = self.parse_token()?;
                 self.next_token(); // Optimistically skip the next token.
-                Node::Slashed(Box::new(node))
+                Node::Slashed(node)
             }
             Token::Not => {
                 match self.peek_token {
@@ -266,7 +286,7 @@ impl<'a> Parser<'a> {
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.
                         let negated_letter = [char, '\u{338}'];
-                        Node::MultiLetterIdent(negated_letter.iter().collect())
+                        Node::MultiLetterIdent(self.buffer.extend(negated_letter))
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
@@ -277,28 +297,27 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::NormalVariant => {
-                let node = self.parse_single_token()?;
-                let mut node = if let Node::Row(nodes, style) = node {
-                    merge_single_letters(nodes, style)
+                let node_ref = self.parse_single_token()?;
+                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
+                    self.merge_single_letters(nodes.clone(), style.clone())
                 } else {
-                    node
+                    node_ref
                 };
-                set_normal_variant(&mut node);
-                node
+                self.set_normal_variant(node_ref);
+                return Ok(node_ref);
             }
             Token::Transform(tf) => {
-                let mut node = self.parse_single_token()?;
-                transform_letters(&mut node, tf);
-                if let Node::Row(nodes, style) = node {
-                    merge_single_letters(nodes, style)
-                } else {
-                    node
+                let node_ref = self.parse_single_token()?;
+                self.transform_letters(node_ref, tf);
+                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
+                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
+                return Ok(node_ref);
             }
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = Box::new(Node::Operator(int, None));
+                    let target = self.new_node_ref(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -310,7 +329,7 @@ impl<'a> Parser<'a> {
                         Bounds(None, None) => Node::Operator(int, None),
                     }
                 } else {
-                    let target = Box::new(Node::Operator(int, None));
+                    let target = self.new_node_ref(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript(target, symbol),
@@ -323,18 +342,24 @@ impl<'a> Parser<'a> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    Node::PseudoRow(vec![
+                    let mut builder = NodeListBuilder::new();
+                    builder.push(
+                        &mut self.arena,
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
                             left: Some(MathSpacing::FourMu),
                             right: Some(MathSpacing::Zero),
                         },
+                    );
+                    builder.push(
+                        &mut self.arena,
                         Node::OperatorWithSpacing {
                             op,
                             left: Some(MathSpacing::Zero),
                             right: None,
                         },
-                    ])
+                    );
+                    Node::PseudoRow(builder.finish())
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
@@ -345,7 +370,7 @@ impl<'a> Parser<'a> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                squeeze(content)
+                return Ok(self.squeeze(content, None));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::Left => {
@@ -374,7 +399,7 @@ impl<'a> Parser<'a> {
                 Node::Fenced {
                     open,
                     close,
-                    content: Box::new(squeeze(content)),
+                    content: self.squeeze(content, None),
                     style: None,
                 }
             }
@@ -404,15 +429,18 @@ impl<'a> Parser<'a> {
                 let environment = self.parse_text_group()?;
                 let node = match environment {
                     "align" | "align*" | "aligned" => self.parse_table(Align::Alternating)?,
-                    "cases" => Node::Fenced {
-                        open: ops::LEFT_CURLY_BRACKET,
-                        close: ops::NULL,
-                        content: Box::new(self.parse_table(Align::Left)?),
-                        style: None,
-                    },
+                    "cases" => {
+                        let content = self.parse_table(Align::Left)?;
+                        Node::Fenced {
+                            open: ops::LEFT_CURLY_BRACKET,
+                            close: ops::NULL,
+                            content: self.new_node_ref(content),
+                            style: None,
+                        }
+                    }
                     "matrix" => self.parse_table(Align::Center)?,
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = Box::new(self.parse_table(Align::Center)?);
+                        let content = self.parse_table(Align::Center)?;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -423,7 +451,7 @@ impl<'a> Parser<'a> {
                         Node::Fenced {
                             open,
                             close,
-                            content,
+                            content: self.new_node_ref(content),
                             style: None,
                         }
                     }
@@ -443,9 +471,12 @@ impl<'a> Parser<'a> {
                 node
             }
             Token::OperatorName => {
-                let mut name = String::new();
-                extract_letters(&mut name, self.parse_single_token()?)?;
-                Node::MultiLetterIdent(name)
+                // TODO: Don't parse a node just to immediately destructure it.
+                let node = self.parse_single_token()?.as_node(&self.arena);
+                let start = self.buffer.end();
+                extract_letters(&self.arena, &mut self.buffer, node)?;
+                let end = self.buffer.end();
+                Node::MultiLetterIdent(StrReference::new(start, end))
             }
             Token::Text => {
                 self.check_lbrace()?;
@@ -456,7 +487,9 @@ impl<'a> Parser<'a> {
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
             Token::Mathstrut => Node::Mathstrut,
-            Token::Style(style) => Node::Row(self.parse_group(Token::GroupEnd)?, Some(style)),
+            Token::Style(style) => {
+                Node::Row(self.parse_group(Token::GroupEnd)?.finish(), Some(style))
+            }
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
@@ -468,8 +501,8 @@ impl<'a> Parser<'a> {
                 });
             }
             Token::Underscore => {
-                let sub = Box::new(self.parse_single_token()?);
-                let base = Box::new(self.parse_single_token()?);
+                let sub = self.parse_single_token()?;
+                let base = self.parse_single_token()?;
                 Node::Multiscript { base, sub }
             }
             Token::Limits => {
@@ -483,24 +516,27 @@ impl<'a> Parser<'a> {
                 return Err(LatexError::UnexpectedClose(cur_token))
             }
         };
-        Ok(node)
+        Ok(self.new_node_ref(node))
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
+    fn parse_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
         self.parse_node(token)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<Node<'a>, LatexError<'a>> {
+    fn parse_single_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
         self.parse_single_node(token)
     }
 
     /// Parse the contents of a group which can contain any expression.
-    fn parse_group(&mut self, end_token: Token<'a>) -> Result<Vec<Node<'a>>, LatexError<'a>> {
-        let mut nodes = Vec::new();
+    fn parse_group(
+        &mut self,
+        end_token: Token<'source>,
+    ) -> Result<NodeListBuilder, LatexError<'source>> {
+        let mut nodes = NodeListBuilder::new();
 
         while self.peek_token != end_token {
             let token = self.next_token();
@@ -508,13 +544,14 @@ impl<'a> Parser<'a> {
                 // When the input ends without the closing token.
                 return Err(LatexError::UnclosedGroup(end_token));
             }
-            nodes.push(self.parse_node(token)?);
+            let node = self.parse_node(token)?;
+            nodes.push_ref(&mut self.arena, node);
         }
         Ok(nodes)
     }
 
     /// Parse the contents of a group which can only contain text.
-    fn parse_text_group(&mut self) -> Result<&'a str, LatexError<'a>> {
+    fn parse_text_group(&mut self) -> Result<&'source str, LatexError<'source>> {
         let result = self
             .l
             .read_text_content()
@@ -524,14 +561,14 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn parse_table(&mut self, align: Align) -> Result<Node<'a>, LatexError<'a>> {
+    fn parse_table(&mut self, align: Align) -> Result<Node<'source>, LatexError<'source>> {
         // Read the contents of \begin..\end.
         let content = self.parse_group(Token::End)?;
         self.next_token(); // Discard the closing token.
-        Ok(Node::Table(content, align))
+        Ok(Node::Table(content.finish(), align))
     }
 
-    fn check_lbrace(&mut self) -> Result<(), LatexError<'a>> {
+    fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
         if !matches!(self.peek_token, Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
                 expected: Token::GroupBegin,
@@ -543,7 +580,7 @@ impl<'a> Parser<'a> {
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'a>, LatexError<'a>> {
+    fn get_bounds(&mut self) -> Result<Bounds, LatexError<'source>> {
         let mut prime_counter: usize = 0;
 
         while matches!(self.peek_token, Token::Prime) {
@@ -587,19 +624,20 @@ impl<'a> Parser<'a> {
         };
 
         if prime_counter > 0 {
-            let mut superscripts: Vec<Node> = (0..prime_counter)
-                .map(|_| Node::Operator(ops::PRIME, None))
-                .collect();
-            if let Some(sup) = sup {
-                superscripts.push(sup);
+            let mut superscripts = NodeListBuilder::new();
+            for _ in 0..prime_counter {
+                superscripts.push(&mut self.arena, Node::Operator(ops::PRIME, None));
             }
-            sup = Some(squeeze(superscripts));
+            if let Some(sup) = sup {
+                superscripts.push_ref(&mut self.arena, sup);
+            }
+            sup = Some(self.squeeze(superscripts, None));
         }
 
-        Ok(Bounds(sub.map(Box::new), sup.map(Box::new)))
+        Ok(Bounds(sub, sup))
     }
 
-    fn get_bound(&mut self) -> Result<Node<'a>, LatexError<'a>> {
+    fn get_bound(&mut self) -> Result<NodeReference, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next_token = self.next_token();
         if matches!(
@@ -613,98 +651,105 @@ impl<'a> Parser<'a> {
         }
         self.parse_single_node(next_token)
     }
-}
 
-struct Bounds<'a>(Option<Box<Node<'a>>>, Option<Box<Node<'a>>>);
-
-fn squeeze(nodes: Vec<Node>) -> Node {
-    if nodes.len() == 1 {
-        // SAFETY: `nodes` is not empty.
-        unsafe { nodes.into_iter().next().unwrap_unchecked() }
-    } else {
-        Node::Row(nodes, None)
+    fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
+        match list_builder.is_singleton() {
+            Some(value) => value,
+            None => self.new_node_ref(Node::Row(list_builder.finish(), style)),
+        }
     }
-}
 
-/// Set the math variant of all single-letter identifiers in `node` to `var`.
-/// The change is applied in-place.
-fn set_normal_variant(node: &mut Node) {
-    match node {
-        Node::SingleLetterIdent(_, maybe_var) => {
-            *maybe_var = Some(MathVariant::Normal);
-        }
-        Node::Row(vec, _) => {
-            for node in vec.iter_mut() {
-                set_normal_variant(node);
+    /// Set the math variant of all single-letter identifiers in `node` to `var`.
+    /// The change is applied in-place.
+    fn set_normal_variant(&mut self, node_ref: NodeReference) {
+        match node_ref.as_node_mut(&mut self.arena) {
+            Node::SingleLetterIdent(_, maybe_var) => {
+                *maybe_var = Some(MathVariant::Normal);
             }
-        }
-        _ => {}
-    };
-}
-
-/// Transform the text of all single-letter identifiers and operators using `tf`.
-/// The change is applied in-place.
-fn transform_letters(node: &mut Node, tf: TextTransform) {
-    match node {
-        Node::SingleLetterIdent(x, _) => {
-            *x = tf.transform(*x);
-        }
-        Node::Operator(op, _) => {
-            let op = *op;
-            let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
-        }
-        Node::Row(vec, _) => {
-            for node in vec.iter_mut() {
-                transform_letters(node, tf.clone());
+            Node::Row(list, _) => {
+                let mut iter = list.iter_manually();
+                while let Some((node_ref, _)) = iter.next(&self.arena) {
+                    self.set_normal_variant(node_ref);
+                }
             }
-        }
-        _ => {}
+            _ => {}
+        };
     }
-}
 
-fn merge_single_letters(nodes: Vec<Node>, style: Option<Style>) -> Node {
-    let mut new_nodes = Vec::with_capacity(nodes.len());
-    let mut collected: Option<String> = None;
-    for node in nodes {
-        if let Node::SingleLetterIdent(c, _) = node {
-            if let Some(ref mut letters) = collected {
-                letters.push(c); // we add another single letter
+    /// Transform the text of all single-letter identifiers and operators using `tf`.
+    /// The change is applied in-place.
+    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
+        let node = node_ref.as_node_mut(&mut self.arena);
+        match node {
+            Node::SingleLetterIdent(x, _) => {
+                *x = tf.transform(*x);
+            }
+            Node::Operator(op, _) => {
+                let op = *op;
+                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+            }
+            Node::Row(list, _) => {
+                let mut iter = list.iter_manually();
+                while let Some((node_ref, _)) = iter.next(&self.arena) {
+                    self.transform_letters(node_ref, tf.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
+        let mut list_builder = NodeListBuilder::new();
+        let mut start: Option<StrBound> = None;
+        let mut iter = nodes.iter_manually();
+        while let Some((head, node)) = iter.next(&self.arena) {
+            if let Node::SingleLetterIdent(c, _) = node {
+                if start.is_none() {
+                    // We start collecting.
+                    start = Some(self.buffer.end());
+                }
+                self.buffer.push(*c);
             } else {
-                collected = Some(c.to_string()); // we start collecting
+                // Commit the collected letters.
+                if let Some(start) = start.take() {
+                    let slice = StrReference::new(start, self.buffer.end());
+                    list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
+                }
+                list_builder.push_ref(&mut self.arena, head);
             }
-        } else {
-            if let Some(letters) = collected.take() {
-                new_nodes.push(Node::MultiLetterIdent(letters));
-            }
-            new_nodes.push(node);
         }
-    }
-    if let Some(letters) = collected {
-        new_nodes.push(Node::MultiLetterIdent(letters));
-    }
-    if new_nodes.len() == 1 {
-        // SAFETY: `new_nodes` is not empty.
-        unsafe { new_nodes.into_iter().next().unwrap_unchecked() }
-    } else {
-        Node::Row(new_nodes, style)
+        if let Some(start) = start {
+            let slice = StrReference::new(start, self.buffer.end());
+            list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
+        }
+        self.squeeze(list_builder, style)
     }
 }
 
-fn extract_letters<'a>(s: &mut String, node: Node<'a>) -> Result<(), LatexError<'a>> {
+struct Bounds(Option<NodeReference>, Option<NodeReference>);
+
+/// Extract the text of all single-letter identifiers and operators in `node`.
+/// This function cannot be a method, because we need to borrow arena immutably
+/// but buffer mutably. This is not possible with a mutable self reference.
+fn extract_letters<'source>(
+    arena: &Arena<'source>,
+    buffer: &mut Buffer,
+    node: &Node<'source>,
+) -> Result<(), LatexError<'source>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            s.push(c);
+            buffer.push(*c);
         }
         Node::Row(nodes, _) => {
-            for node in nodes {
-                extract_letters(s, node)?;
+            for node in nodes.iter(arena) {
+                extract_letters(arena, buffer, node)?;
             }
         }
         Node::Number(n) => {
-            s.push_str(n);
+            buffer.push_str(n);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            s.push(op.into());
+            buffer.push(op.into());
         }
         _ => return Err(LatexError::ExpectedText("\\operatorname")),
     }

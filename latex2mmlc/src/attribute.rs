@@ -1,7 +1,7 @@
 use strum_macros::AsRefStr;
 
 /// mi mathvariant attribute
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MathVariant {
     Normal = 1,
 }
