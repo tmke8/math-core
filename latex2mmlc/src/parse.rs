@@ -137,12 +137,12 @@ impl<'source> Parser<'source> {
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
-                let open = match self.parse_token()?.as_node(&mut self.arena) {
+                let open = match self.parse_token()?.as_node(&self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let close = match self.parse_token()?.as_node(&mut self.arena) {
+                let close = match self.parse_token()?.as_node(&self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
                     _ => return Err(LatexError::UnexpectedEOF),
@@ -157,7 +157,7 @@ impl<'source> Parser<'source> {
                     "0pt" => Some('0'),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
-                let style = match self.parse_token()?.as_node(&mut self.arena) {
+                let style = match self.parse_token()?.as_node(&self.arena) {
                     Node::Number(num) => match num.parse::<u8>() {
                         Ok(0) => Some(Style::DisplayStyle),
                         Ok(1) => Some(Style::TextStyle),
@@ -298,8 +298,7 @@ impl<'source> Parser<'source> {
             }
             Token::NormalVariant => {
                 let node_ref = self.parse_single_token()?;
-                let node = node_ref.as_node(&self.arena);
-                let node_ref = if let Node::Row(nodes, style) = node {
+                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
                     self.merge_single_letters(nodes.clone(), style.clone())
                 } else {
                     node_ref
@@ -310,8 +309,7 @@ impl<'source> Parser<'source> {
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
                 self.transform_letters(node_ref, tf);
-                let node = node_ref.as_node(&self.arena);
-                if let Node::Row(nodes, style) = node {
+                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
                     return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
                 return Ok(node_ref);
@@ -730,6 +728,9 @@ impl<'source> Parser<'source> {
 
 struct Bounds(Option<NodeReference>, Option<NodeReference>);
 
+/// Extract the text of all single-letter identifiers and operators in `node`.
+/// This function cannot be a method, because we need to borrow arena immutably
+/// but buffer mutably. This is not possible with a mutable self reference.
 fn extract_letters<'source>(
     arena: &Arena<'source>,
     buffer: &mut Buffer,

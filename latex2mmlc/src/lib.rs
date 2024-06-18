@@ -66,9 +66,7 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes<'source>(
-    latex: &'source str,
-) -> Result<(ast::Node<'source>, Buffer, Arena<'source>), error::LatexError<'source>> {
+fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error::LatexError<'_>> {
     // The length of the input is an upper bound for the required length for
     // the string buffer.
     let buffer = Buffer::new(latex.len());
