@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    arena::{Arena, Buffer, NodeList, NodeReference, StrReference},
+    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeReference, StrBound, StrReference},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -43,16 +43,16 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     }
 
     pub(crate) fn parse(&mut self) -> Result<Node<'source>, LatexError<'source>> {
-        let mut nodes = NodeList::new();
+        let mut list_builder = NodeListBuilder::new();
         let mut cur_token = self.next_token();
 
         while !matches!(cur_token, Token::EOF) {
             let node = self.parse_node(cur_token)?;
-            nodes.push_ref(self.arena, node);
+            list_builder.push_ref(self.arena, node);
             cur_token = self.next_token();
         }
 
-        Ok(Node::PseudoRow(nodes))
+        Ok(Node::PseudoRow(list_builder.finish()))
     }
 
     fn parse_node(
@@ -90,10 +90,10 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Number(number, op) => match op {
                 ops::NULL => Node::Number(number),
                 op => {
-                    let mut list = NodeList::new();
-                    list.push(self.arena, Node::Number(number));
-                    list.push(self.arena, Node::Operator(op, None));
-                    Node::PseudoRow(list)
+                    let mut builder = NodeListBuilder::new();
+                    builder.push(self.arena, Node::Number(number));
+                    builder.push(self.arena, Node::Operator(op, None));
+                    Node::PseudoRow(builder.finish())
                 }
             },
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
@@ -344,8 +344,8 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    let mut list = NodeList::new();
-                    list.push(
+                    let mut builder = NodeListBuilder::new();
+                    builder.push(
                         self.arena,
                         Node::OperatorWithSpacing {
                             op: ops::COLON,
@@ -353,7 +353,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                             right: Some(MathSpacing::Zero),
                         },
                     );
-                    list.push(
+                    builder.push(
                         self.arena,
                         Node::OperatorWithSpacing {
                             op,
@@ -361,7 +361,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
                             right: None,
                         },
                     );
-                    Node::PseudoRow(list)
+                    Node::PseudoRow(builder.finish())
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
@@ -475,9 +475,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?.as_node(self.arena);
-                let start = self.buffer.len();
+                let start = self.buffer.end();
                 extract_letters(self.arena, self.buffer, node)?;
-                let end = self.buffer.len();
+                let end = self.buffer.end();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
             Token::Text => {
@@ -489,7 +489,9 @@ impl<'source, 'arena> Parser<'source, 'arena> {
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
             Token::Mathstrut => Node::Mathstrut,
-            Token::Style(style) => Node::Row(self.parse_group(Token::GroupEnd)?, Some(style)),
+            Token::Style(style) => {
+                Node::Row(self.parse_group(Token::GroupEnd)?.finish(), Some(style))
+            }
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
             }
@@ -532,8 +534,11 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     }
 
     /// Parse the contents of a group which can contain any expression.
-    fn parse_group(&mut self, end_token: Token<'source>) -> Result<NodeList, LatexError<'source>> {
-        let mut nodes = NodeList::new();
+    fn parse_group(
+        &mut self,
+        end_token: Token<'source>,
+    ) -> Result<NodeListBuilder, LatexError<'source>> {
+        let mut nodes = NodeListBuilder::new();
 
         while self.peek_token != end_token {
             let token = self.next_token();
@@ -562,7 +567,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         // Read the contents of \begin..\end.
         let content = self.parse_group(Token::End)?;
         self.next_token(); // Discard the closing token.
-        Ok(Node::Table(content, align))
+        Ok(Node::Table(content.finish(), align))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
@@ -621,7 +626,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         };
 
         if prime_counter > 0 {
-            let mut superscripts = NodeList::new();
+            let mut superscripts = NodeListBuilder::new();
             for _ in 0..prime_counter {
                 superscripts.push(self.arena, Node::Operator(ops::PRIME, None));
             }
@@ -649,18 +654,17 @@ impl<'source, 'arena> Parser<'source, 'arena> {
         self.parse_single_node(next_token)
     }
 
-    fn squeeze(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
-        match nodes.is_singleton() {
+    fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
+        match list_builder.is_singleton() {
             Some(value) => value,
-            None => self.new_node_ref(Node::Row(nodes, style)),
+            None => self.new_node_ref(Node::Row(list_builder.finish(), style)),
         }
     }
 
     /// Set the math variant of all single-letter identifiers in `node` to `var`.
     /// The change is applied in-place.
     fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        let node = self.arena.lookup_mut(node_ref);
-        match node {
+        match node_ref.as_node_mut(self.arena) {
             Node::SingleLetterIdent(_, maybe_var) => {
                 *maybe_var = Some(MathVariant::Normal);
             }
@@ -677,7 +681,7 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
     fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = self.arena.lookup_mut(node_ref);
+        let node = node_ref.as_node_mut(self.arena);
         match node {
             Node::SingleLetterIdent(x, _) => {
                 *x = tf.transform(*x);
@@ -697,30 +701,30 @@ impl<'source, 'arena> Parser<'source, 'arena> {
     }
 
     fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
-        let mut new_nodes = NodeList::new();
-        let mut start: Option<usize> = None;
+        let mut list_builder = NodeListBuilder::new();
+        let mut start: Option<StrBound> = None;
         let mut iter = nodes.iter_manually();
         while let Some((head, node)) = iter.next(self.arena) {
             if let Node::SingleLetterIdent(c, _) = node {
                 if start.is_none() {
                     // We start collecting.
-                    start = Some(self.buffer.len());
+                    start = Some(self.buffer.end());
                 }
                 self.buffer.push(*c);
             } else {
                 // Commit the collected letters.
                 if let Some(start) = start.take() {
-                    let slice = StrReference::new(start, self.buffer.len());
-                    new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
+                    let slice = StrReference::new(start, self.buffer.end());
+                    list_builder.push(self.arena, Node::MultiLetterIdent(slice));
                 }
-                new_nodes.push_ref(self.arena, head);
+                list_builder.push_ref(self.arena, head);
             }
         }
         if let Some(start) = start {
-            let slice = StrReference::new(start, self.buffer.len());
-            new_nodes.push(self.arena, Node::MultiLetterIdent(slice));
+            let slice = StrReference::new(start, self.buffer.end());
+            list_builder.push(self.arena, Node::MultiLetterIdent(slice));
         }
-        self.squeeze(new_nodes, style)
+        self.squeeze(list_builder, style)
     }
 }
 

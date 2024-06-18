@@ -47,7 +47,7 @@
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
 
-pub(crate) mod arena;
+pub mod arena;
 pub mod ast;
 pub mod attribute;
 pub(crate) mod commands;
@@ -98,8 +98,11 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
+    // The length of the input is an upper bound for the required length for
+    // the string buffer.
+    let mut buffer = arena::Buffer::new(latex.len());
+    // TODO: Estimate a reasonable initial capacity for the arena.
     let mut arena = arena::Arena::new();
-    let mut buffer = arena::Buffer::new();
     let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
 
     let mut output = match display {
@@ -125,7 +128,7 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
         let mut arena = arena::Arena::new();
-        let mut buffer = arena::Buffer::new();
+        let mut buffer = arena::Buffer::new(0);
         let nodes = get_nodes(latex, &mut arena, &mut buffer)?;
         Ok(nodes.render(&arena, &buffer))
     }

@@ -387,8 +387,8 @@ mod tests {
 
     #[test]
     fn node_display() {
+        let buffer = Buffer::new(0);
         let arena = Arena::new();
-        let buffer = Buffer::new();
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
             (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
