@@ -182,6 +182,7 @@ mod tests {
             ("product", r"\prod_n n"),
             ("underscore", r"x\ y"),
             ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),
+            ("stretchy_bracket", r"\left[ x  ( x + 2 ) \right]"),
             ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
             (
                 "align",
@@ -255,6 +256,7 @@ mod tests {
                 r"\begin{xmatrix} 1 \end{xmatrix}",
             ),
             ("incorrect_bracket", r"\operatorname[lim}"),
+            ("unclosed_bracket", r"\sqrt[lim"),
             ("mismatched_begin_end", r"\begin{matrix} 1 \end{bmatrix}"),
             (
                 "spaces_in_env_name",

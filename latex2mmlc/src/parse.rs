@@ -87,15 +87,18 @@ impl<'source> Parser<'source> {
         cur_token: Token<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
         let node = match cur_token {
-            Token::Number(number, op) => match op {
-                ops::NULL => Node::Number(number),
-                op => {
-                    let mut builder = NodeListBuilder::new();
-                    builder.push(&mut self.arena, Node::Number(number));
-                    builder.push(&mut self.arena, Node::Operator(op, None));
-                    Node::PseudoRow(builder.finish())
-                }
-            },
+            Token::Number(number) => Node::Number(number),
+            ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
+                let op = match tok {
+                    Token::NumberWithDot(_) => ops::FULL_STOP,
+                    Token::NumberWithComma(_) => ops::COMMA,
+                    _ => unreachable!(),
+                };
+                let mut builder = NodeListBuilder::new();
+                builder.push(&mut self.arena, Node::Number(number));
+                builder.push(&mut self.arena, Node::Operator(op, None));
+                Node::PseudoRow(builder.finish())
+            }
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
@@ -108,7 +111,7 @@ impl<'source> Parser<'source> {
             Token::Sqrt => {
                 let next_token = self.next_token();
                 if matches!(next_token, Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
-                    let degree = self.parse_group(Token::Paren(ops::RIGHT_SQUARE_BRACKET))?;
+                    let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
                     Node::Root(self.squeeze(degree, None), content)
@@ -373,9 +376,13 @@ impl<'source> Parser<'source> {
                 return Ok(self.squeeze(content, None));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
+            Token::SquareBracketClose => {
+                Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
+            }
             Token::Left => {
                 let open = match self.next_token() {
                     Token::Paren(open) => open,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
@@ -388,6 +395,7 @@ impl<'source> Parser<'source> {
                 self.next_token(); // Discard the closing token.
                 let close = match self.next_token() {
                     Token::Paren(close) => close,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     token => {
                         return Err(LatexError::MissingParenthesis {
@@ -407,6 +415,9 @@ impl<'source> Parser<'source> {
                 Token::Operator(op) | Token::Paren(op) => {
                     Node::Operator(op, Some(OpAttr::StretchyTrue))
                 }
+                Token::SquareBracketClose => {
+                    Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
+                }
                 tok => {
                     return Err(LatexError::UnexpectedToken {
                         expected: Token::Operator(ops::NULL),
@@ -416,6 +427,10 @@ impl<'source> Parser<'source> {
             },
             Token::Big(size) => match self.next_token() {
                 Token::Paren(paren) => Node::SizedParen { size, paren },
+                Token::SquareBracketClose => Node::SizedParen {
+                    size,
+                    paren: ops::RIGHT_SQUARE_BRACKET,
+                },
                 tok => {
                     return Err(LatexError::UnexpectedToken {
                         expected: Token::Paren(ops::NULL),
@@ -538,7 +553,7 @@ impl<'source> Parser<'source> {
     ) -> Result<NodeListBuilder, LatexError<'source>> {
         let mut nodes = NodeListBuilder::new();
 
-        while self.peek_token != end_token {
+        while !self.peek_token.is_same_kind(&end_token) {
             let token = self.next_token();
             if matches!(token, Token::EOF) {
                 // When the input ends without the closing token.

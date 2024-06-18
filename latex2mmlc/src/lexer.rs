@@ -8,7 +8,7 @@ use std::mem;
 use std::str::CharIndices;
 
 use crate::commands::get_command;
-use crate::{ops, ops::Op, token::Token};
+use crate::{ops, token::Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -70,7 +70,7 @@ impl<'source> Lexer<'source> {
 
     /// Read one number.
     #[inline]
-    fn read_number(&mut self, start: usize) -> (&'source str, Op) {
+    fn read_number(&mut self, start: usize) -> Token<'source> {
         while {
             let cur = self.peek.1;
             cur.is_ascii_digit() || matches!(cur, '.' | ',')
@@ -82,17 +82,16 @@ impl<'source> Lexer<'source> {
                 // we don't want to include the punctuation.
                 // But we do need to return the punctuation as an operator.
                 let number = unsafe { self.input_string.get_unchecked(start..index_before) };
-                let op = match candidate {
-                    '.' => ops::FULL_STOP,
-                    ',' => ops::COMMA,
+                return match candidate {
+                    '.' => Token::NumberWithDot(number),
+                    ',' => Token::NumberWithComma(number),
                     _ => unsafe { std::hint::unreachable_unchecked() },
                 };
-                return (number, op);
             }
         }
         let end = self.peek.0;
         let number = unsafe { self.input_string.get_unchecked(start..end) };
-        (number, ops::NULL)
+        Token::Number(number)
     }
 
     /// Read text until the next `}`.
@@ -132,7 +131,7 @@ impl<'source> Lexer<'source> {
             let (start, _) = self.read_char();
             let end = self.peek.0;
             let num = unsafe { self.input_string.get_unchecked(start..end) };
-            return Token::Number(num, ops::NULL);
+            return Token::Number(num);
         }
 
         match self.read_char() {
@@ -146,7 +145,7 @@ impl<'source> Lexer<'source> {
             (_, '{') => Token::GroupBegin,
             (_, '}') => Token::GroupEnd,
             (_, '[') => Token::Paren(ops::LEFT_SQUARE_BRACKET),
-            (_, ']') => Token::Paren(ops::RIGHT_SQUARE_BRACKET),
+            (_, ']') => Token::SquareBracketClose,
             (_, '|') => Token::Paren(ops::VERTICAL_LINE),
             (_, '+') => Token::Operator(ops::PLUS_SIGN),
             (_, '-') => Token::Operator(ops::MINUS_SIGN),
@@ -165,8 +164,7 @@ impl<'source> Lexer<'source> {
             (_, '\\') => get_command(self.read_command()),
             (start, c) => {
                 if c.is_ascii_digit() {
-                    let (num, op) = self.read_number(start);
-                    Token::Number(num, op)
+                    self.read_number(start)
                 } else if c.is_ascii_alphabetic() {
                     Token::Letter(c)
                 } else {
@@ -185,15 +183,15 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = vec![
-            (r"3", vec![Token::Number("3", ops::NULL)]),
-            (r"3.14", vec![Token::Number("3.14", ops::NULL)]),
-            (r"3.14.", vec![Token::Number("3.14", ops::FULL_STOP)]),
+            (r"3", vec![Token::Number("3")]),
+            (r"3.14", vec![Token::Number("3.14")]),
+            (r"3.14.", vec![Token::NumberWithDot("3.14")]),
             (
                 r"3..14",
                 vec![
-                    Token::Number("3", ops::FULL_STOP),
+                    Token::NumberWithDot("3"),
                     Token::Operator(ops::FULL_STOP),
-                    Token::Number("14", ops::NULL),
+                    Token::Number("14"),
                 ],
             ),
             (r"x", vec![Token::Letter('x')]),
@@ -203,7 +201,7 @@ mod tests {
                 vec![
                     Token::Letter('x'),
                     Token::Operator(ops::EQUALS_SIGN),
-                    Token::Number("3.14", ops::NULL),
+                    Token::Number("3.14"),
                 ],
             ),
             (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
@@ -215,10 +213,7 @@ mod tests {
                     Token::Letter('y'),
                 ],
             ),
-            (
-                r"\ 1",
-                vec![Token::Space("1"), Token::Number("1", ops::NULL)],
-            ),
+            (r"\ 1", vec![Token::Space("1"), Token::Number("1")]),
         ];
 
         for (problem, answer) in problems.iter() {
