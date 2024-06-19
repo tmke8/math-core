@@ -1,7 +1,10 @@
 use std::mem;
 
 use crate::{
-    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeReference, StrBound, StrReference},
+    arena::{
+        Arena, Buffer, NodeList, NodeListBuilder, NodeReference, SingletonOrList, StrBound,
+        StrReference,
+    },
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -306,12 +309,12 @@ impl<'source> Parser<'source> {
                 } else {
                     node_ref
                 };
-                self.set_normal_variant(node_ref);
+                self.set_normal_variant(node_ref.clone());
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
                 let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref, tf);
+                self.transform_letters(node_ref.clone(), tf);
                 if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
                     return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
@@ -668,9 +671,9 @@ impl<'source> Parser<'source> {
     }
 
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
-        match list_builder.is_singleton() {
-            Some(value) => value,
-            None => self.new_node_ref(Node::Row(list_builder.finish(), style)),
+        match list_builder.as_singleton_or_finish() {
+            SingletonOrList::Singleton(value) => value,
+            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
         }
     }
 
