@@ -211,6 +211,10 @@ impl NodeListBuilder {
 pub struct NodeList(Option<NodeReference>);
 
 impl NodeList {
+    pub fn singleton(node_ref: NodeReference) -> NodeList {
+        NodeList(Some(node_ref))
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }

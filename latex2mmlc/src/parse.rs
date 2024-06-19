@@ -117,7 +117,7 @@ impl<'source> Parser<'source> {
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree, None), content)
+                    Node::Root(self.squeeze(degree), content)
                 } else {
                     let content = self.parse_node(next_token)?;
                     Node::Sqrt(content)
@@ -303,21 +303,15 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::NormalVariant => {
-                let node_ref = self.parse_single_token()?;
-                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    self.merge_single_letters(nodes.clone(), style.clone())
-                } else {
-                    node_ref
-                };
+                let nodes = self.parse_single_token_or_group()?;
+                let node_ref = self.merge_single_letters(nodes);
                 self.set_normal_variant(node_ref.clone());
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
-                let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref.clone(), tf);
-                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
-                }
+                let nodes = self.parse_single_token_or_group()?;
+                self.transform_letters(nodes.clone(), tf);
+                let node_ref = self.merge_single_letters(nodes);
                 return Ok(node_ref);
             }
             Token::Integral(int) => {
@@ -376,7 +370,7 @@ impl<'source> Parser<'source> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.squeeze(content, None));
+                return Ok(self.squeeze(content));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::SquareBracketClose => {
@@ -410,7 +404,7 @@ impl<'source> Parser<'source> {
                 Node::Fenced {
                     open,
                     close,
-                    content: self.squeeze(content, None),
+                    content: self.squeeze(content),
                     style: None,
                 }
             }
@@ -586,6 +580,17 @@ impl<'source> Parser<'source> {
         Ok(Node::Table(content.finish(), align))
     }
 
+    fn parse_single_token_or_group(&mut self) -> Result<NodeList, LatexError<'source>> {
+        let token = self.next_token();
+        if matches!(token, Token::GroupBegin) {
+            let content = self.parse_group(Token::GroupEnd)?;
+            self.next_token(); // Discard the closing token.
+            Ok(content.finish())
+        } else {
+            Ok(NodeList::singleton(self.parse_single_node(token)?))
+        }
+    }
+
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
         if !matches!(self.peek_token, Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
@@ -649,7 +654,7 @@ impl<'source> Parser<'source> {
             if let Some(sup) = sup {
                 superscripts.push_ref(&mut self.arena, sup);
             }
-            sup = Some(self.squeeze(superscripts, None));
+            sup = Some(self.squeeze(superscripts));
         }
 
         Ok(Bounds(sub, sup))
@@ -670,10 +675,10 @@ impl<'source> Parser<'source> {
         self.parse_single_node(next_token)
     }
 
-    fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
+    fn squeeze(&mut self, list_builder: NodeListBuilder) -> NodeReference {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
+            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, None)),
         }
     }
 
@@ -696,27 +701,29 @@ impl<'source> Parser<'source> {
 
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
-    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = node_ref.as_node_mut(&mut self.arena);
-        match node {
-            Node::SingleLetterIdent(x, _) => {
-                *x = tf.transform(*x);
-            }
-            Node::Operator(op, _) => {
-                let op = *op;
-                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.transform_letters(node_ref, tf.clone());
+    fn transform_letters(&mut self, nodes: NodeList, tf: TextTransform) {
+        let mut iter = nodes.iter_manually();
+        while let Some((node_ref, _)) = iter.next(&self.arena) {
+            let node = node_ref.as_node_mut(&mut self.arena);
+            match node {
+                Node::SingleLetterIdent(x, _) => {
+                    *x = tf.transform(*x);
                 }
+                Node::Operator(op, _) => {
+                    let op = *op;
+                    let _ =
+                        mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+                }
+                Node::Row(list, _) => {
+                    let nodes = list.clone();
+                    self.transform_letters(nodes, tf.clone());
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
-    fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
+    fn merge_single_letters(&mut self, nodes: NodeList) -> NodeReference {
         let mut list_builder = NodeListBuilder::new();
         let mut start: Option<StrBound> = None;
         let mut iter = nodes.iter_manually();
@@ -740,7 +747,7 @@ impl<'source> Parser<'source> {
             let slice = StrReference::new(start, self.buffer.end());
             list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
         }
-        self.squeeze(list_builder, style)
+        self.squeeze(list_builder)
     }
 }
 
