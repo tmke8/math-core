@@ -1,7 +1,7 @@
 use crate::ast::Node;
 use core::num::NonZero;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct NodeReference(NonZero<usize>);
 
@@ -9,7 +9,7 @@ impl NodeReference {
     /// Convert a reference to a node by looking it up in the arena.
     #[inline]
     pub fn as_node<'arena, 'source>(&self, arena: &'arena Arena<'source>) -> &'arena Node<'source> {
-        arena.lookup(*self)
+        &arena.get(self).node
     }
 
     #[inline]
@@ -17,7 +17,7 @@ impl NodeReference {
         &self,
         arena: &'arena mut Arena<'source>,
     ) -> &'arena mut Node<'source> {
-        arena.lookup_mut(*self)
+        &mut arena.get_mut(self).node
     }
 }
 
@@ -60,30 +60,19 @@ impl<'source> Arena<'source> {
         NodeReference(unsafe { NonZero::<usize>::new_unchecked(index) })
     }
 
-    fn lookup(&self, reference: NodeReference) -> &Node<'source> {
-        &self.get_raw(reference).node
-    }
-
-    fn get_raw<'arena>(&'arena self, reference: NodeReference) -> &'arena NodeListElement<'source> {
+    fn get<'arena>(&'arena self, reference: &NodeReference) -> &'arena NodeListElement<'source> {
         debug_assert!(reference.0.get() < self.nodes.len());
         // safety: we only give out valid NodeReferences and don't expose delete functionality
         unsafe { self.nodes.get(reference.0.get()).unwrap_unchecked() }
     }
 
-    fn get_raw_mut<'arena>(
+    fn get_mut<'arena>(
         &'arena mut self,
-        reference: NodeReference,
+        reference: &NodeReference,
     ) -> &'arena mut NodeListElement<'source> {
         debug_assert!(reference.0.get() < self.nodes.len());
         // safety: we only give out valid NodeReferences and don't expose delete functionality
         unsafe { self.nodes.get_unchecked_mut(reference.0.get()) }
-    }
-
-    fn lookup_mut<'arena>(
-        &'arena mut self,
-        reference: NodeReference,
-    ) -> &'arena mut Node<'source> {
-        &mut self.get_raw_mut(reference).node
     }
 }
 
@@ -149,14 +138,19 @@ impl Buffer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct NodeListBuilder(Option<InhabitedNodeList>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct InhabitedNodeList {
     head: NodeReference,
     tail: NodeReference,
+}
+
+pub enum SingletonOrList {
+    List(NodeList),
+    Singleton(NodeReference),
 }
 
 impl NodeListBuilder {
@@ -175,18 +169,22 @@ impl NodeListBuilder {
     /// This method is a bit dangerous, because if the referenced node was already
     /// part of some other list, then that list will be broken.
     pub fn push_ref(&mut self, arena: &mut Arena<'_>, node_ref: NodeReference) {
+        // Duplicate the reference to the node.
+        // This is a bit dangerous because it could lead to two references to one node,
+        // but we will relinquish the second reference on the `.finish()` call.
+        let new_tail = NodeReference(node_ref.0);
         match &mut self.0 {
             None => {
                 self.0 = Some(InhabitedNodeList {
                     head: node_ref,
-                    tail: node_ref,
+                    tail: new_tail,
                 });
             }
             Some(InhabitedNodeList { head: _, tail }) => {
                 // Update the tail to point to the new node.
-                arena.get_raw_mut(*tail).next = Some(node_ref);
+                arena.get_mut(tail).next = Some(node_ref);
                 // Update the tail of the list.
-                *tail = node_ref;
+                *tail = new_tail;
             }
         }
     }
@@ -194,16 +192,10 @@ impl NodeListBuilder {
     /// If the list contains exactly one element, return it.
     /// This is a very efficient operation, because we don't need to look up
     /// anything in the arena.
-    pub fn is_singleton(&self) -> Option<NodeReference> {
-        match &self.0 {
-            None => None,
-            Some(list) => {
-                if list.head == list.tail {
-                    Some(list.head)
-                } else {
-                    None
-                }
-            }
+    pub fn as_singleton_or_finish(self) -> SingletonOrList {
+        match self.0 {
+            Some(list) if list.head == list.tail => SingletonOrList::Singleton(list.head),
+            _ => SingletonOrList::List(self.finish()),
         }
     }
 
@@ -229,7 +221,7 @@ impl NodeList {
     ) -> NodeListIterator<'arena, 'source> {
         NodeListIterator {
             arena,
-            current: self.0,
+            current: self.0.clone(),
         }
     }
 
@@ -239,7 +231,9 @@ impl NodeList {
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
     pub fn iter_manually(&self) -> NodeListManualIterator {
-        NodeListManualIterator { current: self.0 }
+        NodeListManualIterator {
+            current: self.0.clone(),
+        }
     }
 }
 
@@ -252,12 +246,12 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     type Item = &'arena Node<'source>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current {
+        match &self.current {
             None => None,
             Some(reference) => {
-                let node = self.arena.get_raw(reference);
-                self.current = node.next;
-                Some(&node.node)
+                let element = self.arena.get(reference);
+                self.current.clone_from(&element.next);
+                Some(&element.node)
             }
         }
     }
@@ -272,12 +266,12 @@ impl NodeListManualIterator {
         &mut self,
         arena: &'arena Arena<'source>,
     ) -> Option<(NodeReference, &'arena Node<'source>)> {
-        match self.current {
+        match self.current.clone() {
             None => None,
             Some(reference) => {
-                let node = arena.get_raw(reference);
-                self.current = node.next;
-                Some((reference, &node.node))
+                let element = arena.get(&reference);
+                self.current.clone_from(&element.next);
+                Some((reference.clone(), &element.node))
             }
         }
     }
@@ -294,7 +288,7 @@ mod tests {
         let reference = arena.push(node);
         assert_eq!(reference.0.get(), 1);
         assert!(matches!(
-            arena.lookup(reference),
+            reference.as_node(&arena),
             Node::Space("Hello, world!")
         ));
     }
@@ -320,11 +314,14 @@ mod tests {
         let mut arena = Arena::new();
         let mut builder = NodeListBuilder::new();
         builder.push(&mut arena, Node::Space("Hello, world!"));
-        assert!(builder.is_singleton().is_some());
-        let list = builder.finish();
-        let mut iter = list.iter(&arena);
-        assert!(matches!(iter.next().unwrap(), Node::Space("Hello, world!")));
-        assert!(iter.next().is_none());
+        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish() {
+            assert!(matches!(
+                element.as_node(&arena),
+                Node::Space("Hello, world!")
+            ));
+        } else {
+            panic!("List should be a singleton");
+        }
     }
 
     #[test]
