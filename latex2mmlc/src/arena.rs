@@ -232,6 +232,10 @@ impl NodeList {
         self.0.is_none()
     }
 
+    pub fn singleton(node_ref: NodeReference) -> NodeList {
+        NodeList(Some(node_ref))
+    }
+
     pub fn iter<'arena, 'source>(
         &self,
         arena: &'arena Arena<'source>,

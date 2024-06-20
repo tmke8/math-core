@@ -227,7 +227,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "gg" => Token::Operator(ops::MUCH_GREATER_THAN),
     "gimel" => Token::NormalLetter('ℷ'),
     "grave" => Token::Over(ops::GRAVE_ACCENT),
-    "gt" => Token::OpGreaterThan,
+    "gt" => Token::Operator(ops::GREATER_THAN_SIGN),
     "gtrapprox" => Token::Operator(ops::GREATER_THAN_OR_APPROXIMATE),
     "gtrsim" => Token::Operator(ops::GREATER_THAN_OR_EQUIVALENT_TO),
     "hat" => Token::Over(ops::CIRCUMFLEX_ACCENT),
@@ -301,7 +301,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "looparrowright" => Token::Operator(ops::RIGHTWARDS_ARROW_WITH_LOOP),
     "lor" => Token::Operator(ops::LOGICAL_OR),
     "lozenge" => Token::Letter('◊'),
-    "lt" => Token::OpLessThan,
+    "lt" => Token::Operator(ops::LESS_THAN_SIGN),
     "ltimes" => Token::Operator(ops::LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT),
     "lvert" => Token::Paren(ops::VERTICAL_LINE),
     "maltese" => Token::Letter('✠'),
@@ -539,6 +539,8 @@ pub fn get_negated_op(op: Op) -> Option<Op> {
         ops::SUCCEEDS => Some(ops::DOES_NOT_SUCCEED),
         ops::SUPERSET_OF => Some(ops::NOT_A_SUPERSET_OF),
         ops::SUPERSET_OF_OR_EQUAL_TO => Some(ops::NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO),
+        ops::LESS_THAN_SIGN => Some(ops::NOT_LESS_THAN),
+        ops::GREATER_THAN_SIGN => Some(ops::NOT_GREATER_THAN),
         _ => None,
     }
 }

@@ -210,6 +210,7 @@ mod tests {
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),
             ("not_less_than", r"\not\lt"),
+            ("not_less_than_symbol", r"\not< x"),
             ("mathrm_with_superscript", r"\mathrm{x}^2"),
             ("mathrm_with_sin", r"\mathrm{x\sin}"),
             ("mathrm_with_sin2", r"\mathrm{\sin x}"),

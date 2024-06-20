@@ -61,10 +61,6 @@ pub enum Token<'source> {
     Operator(Op),
     #[strum(serialize = "'")]
     Prime,
-    #[strum(serialize = ">")]
-    OpGreaterThan,
-    #[strum(serialize = "<")]
-    OpLessThan,
     #[strum(serialize = r"\&")]
     OpAmpersand,
     #[strum(serialize = ":")]

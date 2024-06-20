@@ -104,9 +104,11 @@ impl<'source> Parser<'source> {
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op, None),
-            Token::OpGreaterThan => Node::OpGreaterThan,
-            Token::OpLessThan => Node::OpLessThan,
+            Token::Operator(op) => match op {
+                ops::GREATER_THAN_SIGN => Node::OpGreaterThan,
+                ops::LESS_THAN_SIGN => Node::OpLessThan,
+                _ => Node::Operator(op, None),
+            },
             Token::OpAmpersand => Node::OpAmpersand,
             Token::Function(fun) => Node::MultiLetterIdent(self.buffer.push_str(fun)),
             Token::Space(space) => Node::Space(space),
@@ -139,20 +141,34 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::Genfrac => {
-                // TODO: This should not just blindly try to parse a node.
-                // Rather, we should explicitly attempt to parse a group (aka Row),
-                // and if that doesn't work, we try to parse it as an Operator,
-                // and if that still doesn't work, we return an error.
-                let open = match self.parse_token()?.as_node(&self.arena) {
-                    Node::Operator(op, _) => *op,
-                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
-                    _ => return Err(LatexError::UnexpectedEOF),
-                };
-                let close = match self.parse_token()?.as_node(&self.arena) {
-                    Node::Operator(op, _) => *op,
-                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
-                    _ => return Err(LatexError::UnexpectedEOF),
-                };
+                let mut openclose = [ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS];
+                for op in openclose.iter_mut() {
+                    *op = match self.peek_token {
+                        Token::Paren(op) => {
+                            self.next_token(); // Discard the Paren token.
+                            op
+                        }
+                        Token::SquareBracketClose => {
+                            self.next_token(); // Discard the SquareBracketClose token.
+                            ops::RIGHT_SQUARE_BRACKET
+                        }
+                        _ => match self.parse_single_token_or_group()? {
+                            SingletonOrList::List(nodes) if nodes.is_empty() => ops::NULL,
+                            _ => return Err(LatexError::UnexpectedEOF),
+                        },
+                    };
+                }
+                let (open, close) = (openclose[0], openclose[1]);
+                // let open = match self.parse_token()?.as_node(&self.arena) {
+                //     Node::Operator(op, _) => *op,
+                //     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
+                //     _ => return Err(LatexError::UnexpectedEOF),
+                // };
+                // let close = match self.parse_token()?.as_node(&self.arena) {
+                //     Node::Operator(op, _) => *op,
+                //     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
+                //     _ => return Err(LatexError::UnexpectedEOF),
+                // };
                 self.check_lbrace()?;
                 // The default line thickness in LaTeX is 0.4pt.
                 // TODO: Support other line thicknesses.
@@ -281,14 +297,6 @@ impl<'source> Parser<'source> {
                             Node::Operator(op, None)
                         }
                     }
-                    Token::OpLessThan => {
-                        self.next_token(); // Discard the less-than token.
-                        Node::Operator(ops::NOT_LESS_THAN, None)
-                    }
-                    Token::OpGreaterThan => {
-                        self.next_token(); // Discard the greater-than token.
-                        Node::Operator(ops::NOT_GREATER_THAN, None)
-                    }
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.next_token(); // Discard the letter token.
                         let negated_letter = [char, '\u{338}'];
@@ -303,21 +311,22 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::NormalVariant => {
-                let node_ref = self.parse_single_token()?;
-                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    self.merge_single_letters(nodes.clone(), style.clone())
-                } else {
-                    node_ref
+                let nodes = self.parse_single_token_or_group()?;
+                let node_ref = match nodes {
+                    SingletonOrList::List(nodes) => self.merge_single_letters(nodes),
+                    SingletonOrList::Singleton(node) => node,
                 };
                 self.set_normal_variant(node_ref.clone());
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
-                let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref.clone(), tf);
-                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
-                }
+                let nodes = self.parse_single_token_or_group()?;
+                let nodes = match nodes {
+                    SingletonOrList::List(nodes) => nodes,
+                    SingletonOrList::Singleton(node) => NodeList::singleton(node),
+                };
+                self.transform_letters(nodes.clone(), tf);
+                let node_ref = self.merge_single_letters(nodes);
                 return Ok(node_ref);
             }
             Token::Integral(int) => {
@@ -586,6 +595,17 @@ impl<'source> Parser<'source> {
         Ok(Node::Table(content.finish(), align))
     }
 
+    fn parse_single_token_or_group(&mut self) -> Result<SingletonOrList, LatexError<'source>> {
+        let token = self.next_token();
+        if matches!(token, Token::GroupBegin) {
+            let content = self.parse_group(Token::GroupEnd)?;
+            self.next_token(); // Discard the closing token.
+            Ok(SingletonOrList::List(content.finish()))
+        } else {
+            Ok(SingletonOrList::Singleton(self.parse_single_node(token)?))
+        }
+    }
+
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
         if !matches!(self.peek_token, Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
@@ -694,27 +714,29 @@ impl<'source> Parser<'source> {
 
     /// Transform the text of all single-letter identifiers and operators using `tf`.
     /// The change is applied in-place.
-    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = node_ref.as_node_mut(&mut self.arena);
-        match node {
-            Node::SingleLetterIdent(x, _) => {
-                *x = tf.transform(*x);
-            }
-            Node::Operator(op, _) => {
-                let op = *op;
-                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.transform_letters(node_ref, tf.clone());
+    fn transform_letters(&mut self, nodes: NodeList, tf: TextTransform) {
+        let mut iter = nodes.iter_manually();
+        while let Some((node_ref, _)) = iter.next(&self.arena) {
+            let node = node_ref.as_node_mut(&mut self.arena);
+            match node {
+                Node::SingleLetterIdent(x, _) => {
+                    *x = tf.transform(*x);
                 }
+                Node::Operator(op, _) => {
+                    let op = *op;
+                    let _ =
+                        mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
+                }
+                Node::Row(nodes, _) => {
+                    let nodes = nodes.clone();
+                    self.transform_letters(nodes, tf.clone());
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
-    fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
+    fn merge_single_letters(&mut self, nodes: NodeList) -> NodeReference {
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         let mut iter = nodes.iter_manually();
@@ -750,7 +772,7 @@ impl<'source> Parser<'source> {
         }
         // TODO: The type systems should encode somehow that it's necessary to call `.set_end()` here.
         list_builder.set_end(&mut self.arena);
-        self.squeeze(list_builder, style)
+        self.squeeze(list_builder, None)
     }
 }
 
