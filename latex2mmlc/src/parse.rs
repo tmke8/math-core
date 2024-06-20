@@ -599,18 +599,17 @@ impl<'source> Parser<'source> {
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds, LatexError<'source>> {
-        let mut prime_counter: usize = 0;
-
+        let mut primes = NodeListBuilder::new();
         while matches!(self.peek_token, Token::Prime) {
             self.next_token(); // Discard the prime token.
-            prime_counter += 1;
+            primes.push(&mut self.arena, Node::Operator(ops::PRIME, None));
         }
 
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.peek_token, Token::Underscore);
 
-        let (sub, mut sup) = if first_underscore || matches!(self.peek_token, Token::Circumflex) {
-            let first_bound = Some(self.get_bound()?);
+        let (sub, sup) = if first_underscore || matches!(self.peek_token, Token::Circumflex) {
+            let first_bound = Some(self.get_sub_or_sub()?);
 
             // Check whether both an upper and a lower bound were specified.
             let second_underscore = matches!(self.peek_token, Token::Underscore);
@@ -624,7 +623,7 @@ impl<'source> Parser<'source> {
             }
 
             if (first_underscore && second_circumflex) || (!first_underscore && second_underscore) {
-                let second_bound = Some(self.get_bound()?);
+                let second_bound = Some(self.get_sub_or_sub()?);
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if first_underscore {
@@ -641,21 +640,20 @@ impl<'source> Parser<'source> {
             (None, None)
         };
 
-        if prime_counter > 0 {
-            let mut superscripts = NodeListBuilder::new();
-            for _ in 0..prime_counter {
-                superscripts.push(&mut self.arena, Node::Operator(ops::PRIME, None));
-            }
+        let sup = if !primes.is_empty() {
             if let Some(sup) = sup {
-                superscripts.push_ref(&mut self.arena, sup);
+                primes.push_ref(&mut self.arena, sup);
             }
-            sup = Some(self.squeeze(superscripts, None));
-        }
+            Some(self.squeeze(primes, None))
+        } else {
+            sup
+        };
 
         Ok(Bounds(sub, sup))
     }
 
-    fn get_bound(&mut self) -> Result<NodeReference, LatexError<'source>> {
+    /// Parse the node after a `_` or `^` token.
+    fn get_sub_or_sub(&mut self) -> Result<NodeReference, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next_token = self.next_token();
         if matches!(
@@ -718,33 +716,61 @@ impl<'source> Parser<'source> {
 
     fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
         let mut list_builder = NodeListBuilder::new();
-        let mut start: Option<StrBound> = None;
+        let mut collector: Option<LetterCollector> = None;
         let mut iter = nodes.iter_manually();
-        while let Some((head, node)) = iter.next(&self.arena) {
+        while let Some((node_ref, node)) = iter.next(&self.arena) {
             if let Node::SingleLetterIdent(c, _) = node {
-                if start.is_none() {
+                if let Some(LetterCollector {
+                    only_one_char: ref mut first_char,
+                    ..
+                }) = collector
+                {
+                    *first_char = false;
+                } else {
                     // We start collecting.
-                    start = Some(self.buffer.end());
+                    collector = Some(LetterCollector {
+                        start: self.buffer.end(),
+                        node_ref,
+                        only_one_char: true,
+                    });
                 }
                 self.buffer.push(*c);
             } else {
                 // Commit the collected letters.
-                if let Some(start) = start.take() {
-                    let slice = StrReference::new(start, self.buffer.end());
-                    list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
+                if let Some(collector) = collector.take() {
+                    let node_ref = collector.finish(&mut self.arena, self.buffer.end());
+                    list_builder.push_ref(&mut self.arena, node_ref);
                 }
-                list_builder.push_ref(&mut self.arena, head);
+                list_builder.push_ref(&mut self.arena, node_ref);
             }
         }
-        if let Some(start) = start {
-            let slice = StrReference::new(start, self.buffer.end());
-            list_builder.push(&mut self.arena, Node::MultiLetterIdent(slice));
+        if let Some(collector) = collector {
+            let node_ref = collector.finish(&mut self.arena, self.buffer.end());
+            list_builder.push_ref(&mut self.arena, node_ref);
         }
+        // TODO: The type systems should encode somehow that it's necessary to call `.set_end()` here.
+        list_builder.set_end(&mut self.arena);
         self.squeeze(list_builder, style)
     }
 }
 
 struct Bounds(Option<NodeReference>, Option<NodeReference>);
+
+struct LetterCollector {
+    start: StrBound,
+    node_ref: NodeReference,
+    only_one_char: bool,
+}
+
+impl LetterCollector {
+    fn finish(self, arena: &mut Arena, end: StrBound) -> NodeReference {
+        let node = self.node_ref.as_node_mut(arena);
+        if !self.only_one_char {
+            *node = Node::MultiLetterIdent(StrReference::new(self.start, end));
+        }
+        self.node_ref
+    }
+}
 
 /// Extract the text of all single-letter identifiers and operators in `node`.
 /// This function cannot be a method, because we need to borrow arena immutably
