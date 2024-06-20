@@ -721,11 +721,11 @@ impl<'source> Parser<'source> {
         while let Some((node_ref, node)) = iter.next(&self.arena) {
             if let Node::SingleLetterIdent(c, _) = node {
                 if let Some(LetterCollector {
-                    only_one_char: ref mut first_char,
+                    ref mut only_one_char,
                     ..
                 }) = collector
                 {
-                    *first_char = false;
+                    *only_one_char = false;
                 } else {
                     // We start collecting.
                     collector = Some(LetterCollector {
