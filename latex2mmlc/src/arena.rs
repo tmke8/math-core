@@ -158,6 +158,11 @@ impl NodeListBuilder {
         NodeListBuilder(None)
     }
 
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
+    }
+
     /// Push a node to the list.
     pub fn push<'source>(&mut self, arena: &mut Arena<'source>, node: Node<'source>) {
         // Add node to the arena and get a reference to it.
@@ -180,12 +185,24 @@ impl NodeListBuilder {
                     tail: new_tail,
                 });
             }
-            Some(InhabitedNodeList { head: _, tail }) => {
+            Some(InhabitedNodeList { tail, .. }) => {
+                // We want to avoid cycles in the list, so we assert that the new node
+                // has a higher index than the current tail.
+                debug_assert!(tail.0 < node_ref.0, "list index should always increase");
                 // Update the tail to point to the new node.
                 arena.get_mut(tail).next = Some(node_ref);
                 // Update the tail of the list.
                 *tail = new_tail;
             }
+        }
+    }
+
+    /// Explicitly set the `next` field of the current tail to `None`.
+    /// This can be necessary if we have been pushing nodes to the list
+    /// that were previously part of another list.
+    pub fn set_end(&self, arena: &mut Arena) {
+        if let Some(InhabitedNodeList { tail, .. }) = &self.0 {
+            arena.get_mut(tail).next = None;
         }
     }
 
