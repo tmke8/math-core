@@ -119,7 +119,7 @@ impl<'source> Parser<'source> {
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree, None), content)
+                    Node::Root(self.squeeze(degree), content)
                 } else {
                     let content = self.parse_node(next_token)?;
                     Node::Sqrt(content)
@@ -385,7 +385,7 @@ impl<'source> Parser<'source> {
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.squeeze(content, None));
+                return Ok(self.squeeze(content));
             }
             Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             Token::SquareBracketClose => {
@@ -419,7 +419,7 @@ impl<'source> Parser<'source> {
                 Node::Fenced {
                     open,
                     close,
-                    content: self.squeeze(content, None),
+                    content: self.squeeze(content),
                     style: None,
                 }
             }
@@ -664,7 +664,7 @@ impl<'source> Parser<'source> {
             if let Some(sup) = sup {
                 primes.push_ref(&mut self.arena, sup);
             }
-            Some(self.squeeze(primes, None))
+            Some(self.squeeze(primes))
         } else {
             sup
         };
@@ -688,10 +688,10 @@ impl<'source> Parser<'source> {
         self.parse_single_node(next_token)
     }
 
-    fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
+    fn squeeze(&mut self, list_builder: NodeListBuilder) -> NodeReference {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
+            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, None)),
         }
     }
 
@@ -772,7 +772,7 @@ impl<'source> Parser<'source> {
         }
         // TODO: The type systems should encode somehow that it's necessary to call `.set_end()` here.
         list_builder.set_end(&mut self.arena);
-        self.squeeze(list_builder, None)
+        self.squeeze(list_builder)
     }
 }
 
