@@ -51,11 +51,11 @@ impl<'source> Parser<'source> {
 
         while !matches!(cur_token, Token::EOF) {
             let node = self.parse_node(cur_token)?;
-            list_builder.push_ref(&mut self.arena, node);
+            list_builder.push(&mut self.arena, node);
             cur_token = self.next_token();
         }
 
-        Ok(Node::PseudoRow(list_builder.finish()))
+        Ok(Node::PseudoRow(list_builder.finish(&mut self.arena)))
     }
 
     fn parse_node(
@@ -97,10 +97,9 @@ impl<'source> Parser<'source> {
                     Token::NumberWithComma(_) => ops::COMMA,
                     _ => unreachable!(),
                 };
-                let mut builder = NodeListBuilder::new();
-                builder.push(&mut self.arena, Node::Number(number));
-                builder.push(&mut self.arena, Node::Operator(op, None));
-                Node::PseudoRow(builder.finish())
+                let first = self.new_node_ref(Node::Number(number));
+                let second = self.new_node_ref(Node::Operator(op, None));
+                Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
@@ -348,24 +347,17 @@ impl<'source> Parser<'source> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    let mut builder = NodeListBuilder::new();
-                    builder.push(
-                        &mut self.arena,
-                        Node::OperatorWithSpacing {
-                            op: ops::COLON,
-                            left: Some(MathSpacing::FourMu),
-                            right: Some(MathSpacing::Zero),
-                        },
-                    );
-                    builder.push(
-                        &mut self.arena,
-                        Node::OperatorWithSpacing {
-                            op,
-                            left: Some(MathSpacing::Zero),
-                            right: None,
-                        },
-                    );
-                    Node::PseudoRow(builder.finish())
+                    let first = self.new_node_ref(Node::OperatorWithSpacing {
+                        op: ops::COLON,
+                        left: Some(MathSpacing::FourMu),
+                        right: Some(MathSpacing::Zero),
+                    });
+                    let second = self.new_node_ref(Node::OperatorWithSpacing {
+                        op,
+                        left: Some(MathSpacing::Zero),
+                        right: None,
+                    });
+                    Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
@@ -506,7 +498,8 @@ impl<'source> Parser<'source> {
             Token::NewLine => Node::RowSeparator,
             Token::Mathstrut => Node::Mathstrut,
             Token::Style(style) => {
-                Node::Row(self.parse_group(Token::GroupEnd)?.finish(), Some(style))
+                let content = self.parse_group(Token::GroupEnd)?;
+                Node::Row(content.finish(&mut self.arena), Some(style))
             }
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
@@ -563,7 +556,7 @@ impl<'source> Parser<'source> {
                 return Err(LatexError::UnclosedGroup(end_token));
             }
             let node = self.parse_node(token)?;
-            nodes.push_ref(&mut self.arena, node);
+            nodes.push(&mut self.arena, node);
         }
         Ok(nodes)
     }
@@ -583,7 +576,7 @@ impl<'source> Parser<'source> {
         // Read the contents of \begin..\end.
         let content = self.parse_group(Token::End)?;
         self.next_token(); // Discard the closing token.
-        Ok(Node::Table(content.finish(), align))
+        Ok(Node::Table(content.finish(&mut self.arena), align))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
@@ -602,7 +595,8 @@ impl<'source> Parser<'source> {
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek_token, Token::Prime) {
             self.next_token(); // Discard the prime token.
-            primes.push(&mut self.arena, Node::Operator(ops::PRIME, None));
+            let node_ref = self.new_node_ref(Node::Operator(ops::PRIME, None));
+            primes.push(&mut self.arena, node_ref);
         }
 
         // Check whether the first bound is specified and is a lower bound.
@@ -642,7 +636,7 @@ impl<'source> Parser<'source> {
 
         let sup = if !primes.is_empty() {
             if let Some(sup) = sup {
-                primes.push_ref(&mut self.arena, sup);
+                primes.push(&mut self.arena, sup);
             }
             Some(self.squeeze(primes, None))
         } else {
@@ -669,7 +663,7 @@ impl<'source> Parser<'source> {
     }
 
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
-        match list_builder.as_singleton_or_finish() {
+        match list_builder.as_singleton_or_finish(&mut self.arena) {
             SingletonOrList::Singleton(value) => value,
             SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
         }
@@ -739,17 +733,15 @@ impl<'source> Parser<'source> {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
                     let node_ref = collector.finish(&mut self.arena, self.buffer.end());
-                    list_builder.push_ref(&mut self.arena, node_ref);
+                    list_builder.push(&mut self.arena, node_ref);
                 }
-                list_builder.push_ref(&mut self.arena, node_ref);
+                list_builder.push(&mut self.arena, node_ref);
             }
         }
         if let Some(collector) = collector {
             let node_ref = collector.finish(&mut self.arena, self.buffer.end());
-            list_builder.push_ref(&mut self.arena, node_ref);
+            list_builder.push(&mut self.arena, node_ref);
         }
-        // TODO: The type systems should encode somehow that it's necessary to call `.set_end()` here.
-        list_builder.set_end(&mut self.arena);
         self.squeeze(list_builder, style)
     }
 }
