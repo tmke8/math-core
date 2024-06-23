@@ -163,17 +163,10 @@ impl NodeListBuilder {
         self.0.is_none()
     }
 
-    /// Push a node to the list.
-    pub fn push<'source>(&mut self, arena: &mut Arena<'source>, node: Node<'source>) {
-        // Add node to the arena and get a reference to it.
-        let new_tail = arena.push(node);
-        self.push_ref(arena, new_tail)
-    }
-
     /// Push a node reference to the list.
     /// This method is a bit dangerous, because if the referenced node was already
     /// part of some other list, then that list will be broken.
-    pub fn push_ref(&mut self, arena: &mut Arena<'_>, node_ref: NodeReference) {
+    pub fn push(&mut self, arena: &mut Arena<'_>, node_ref: NodeReference) {
         // Duplicate the reference to the node.
         // This is a bit dangerous because it could lead to two references to one node,
         // but we will relinquish the second reference on the `.finish()` call.
@@ -197,28 +190,25 @@ impl NodeListBuilder {
         }
     }
 
-    /// Explicitly set the `next` field of the current tail to `None`.
-    /// This can be necessary if we have been pushing nodes to the list
-    /// that were previously part of another list.
-    pub fn set_end(&self, arena: &mut Arena) {
-        if let Some(InhabitedNodeList { tail, .. }) = &self.0 {
-            arena.get_mut(tail).next = None;
-        }
-    }
-
     /// If the list contains exactly one element, return it.
     /// This is a very efficient operation, because we don't need to look up
     /// anything in the arena.
-    pub fn as_singleton_or_finish(self) -> SingletonOrList {
+    pub fn as_singleton_or_finish(self, arena: &mut Arena) -> SingletonOrList {
         match self.0 {
             Some(list) if list.head == list.tail => SingletonOrList::Singleton(list.head),
-            _ => SingletonOrList::List(self.finish()),
+            _ => SingletonOrList::List(self.finish(arena)),
         }
     }
 
     /// Finish building the list and return it.
     /// This method consumes the builder.
-    pub fn finish(self) -> NodeList {
+    pub fn finish(self, arena: &mut Arena) -> NodeList {
+        if let Some(InhabitedNodeList { tail, .. }) = &self.0 {
+            // Explicitly set the `next` field of the current tail to `None`.                                                                                                                                                     ║
+            // This can be necessary if we have been pushing nodes to the list                                                                                                                                                    ║
+            // that were previously part of another list.
+            arena.get_mut(tail).next = None;
+        }
         NodeList(self.0.map(|list| list.head))
     }
 }
@@ -230,6 +220,15 @@ pub struct NodeList(Option<NodeReference>);
 impl NodeList {
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
+    }
+
+    pub fn from_two_nodes(
+        arena: &mut Arena<'_>,
+        first: NodeReference,
+        second: NodeReference,
+    ) -> Self {
+        arena.get_mut(&first).next = Some(second);
+        NodeList(Some(first))
     }
 
     pub fn iter<'arena, 'source>(
@@ -316,9 +315,11 @@ mod tests {
     fn list() {
         let mut arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        builder.push(&mut arena, Node::Space("Hello, world!"));
-        builder.push(&mut arena, Node::Space("Goodbye, world!"));
-        let list = builder.finish();
+        let node_ref = arena.push(Node::Space("Hello, world!"));
+        builder.push(&mut arena, node_ref);
+        let node_ref = arena.push(Node::Space("Goodbye, world!"));
+        builder.push(&mut arena, node_ref);
+        let list = builder.finish(&mut arena);
         let mut iter = list.iter(&arena);
         assert!(matches!(iter.next().unwrap(), Node::Space("Hello, world!")));
         assert!(matches!(
@@ -332,8 +333,9 @@ mod tests {
     fn list_singleton() {
         let mut arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        builder.push(&mut arena, Node::Space("Hello, world!"));
-        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish() {
+        let node_ref = arena.push(Node::Space("Hello, world!"));
+        builder.push(&mut arena, node_ref);
+        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish(&mut arena) {
             assert!(matches!(
                 element.as_node(&arena),
                 Node::Space("Hello, world!")
@@ -345,9 +347,9 @@ mod tests {
 
     #[test]
     fn list_empty() {
-        let arena = Arena::new();
+        let mut arena = Arena::new();
         let builder = NodeListBuilder::new();
-        let list = builder.finish();
+        let list = builder.finish(&mut arena);
         assert!(list.is_empty());
         let mut iter = list.iter(&arena);
         assert!(iter.next().is_none(), "Empty list should return None");
@@ -357,9 +359,11 @@ mod tests {
     fn list_manual_iter() {
         let mut arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        builder.push(&mut arena, Node::Space("Hello, world!"));
-        builder.push(&mut arena, Node::Space("Goodbye, world!"));
-        let list = builder.finish();
+        let node_ref = arena.push(Node::Space("Hello, world!"));
+        builder.push(&mut arena, node_ref);
+        let node_ref = arena.push(Node::Space("Goodbye, world!"));
+        builder.push(&mut arena, node_ref);
+        let list = builder.finish(&mut arena);
         let mut iter = list.iter_manually();
         let (reference, node) = iter.next(&arena).unwrap();
         assert!(matches!(node, Node::Space("Hello, world!")));
