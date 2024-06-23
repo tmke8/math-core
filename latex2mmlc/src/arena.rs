@@ -238,7 +238,7 @@ impl NodeList {
     ) -> NodeListIterator<'arena, 'source> {
         NodeListIterator {
             arena,
-            current: self.0.clone(),
+            current: self.0.as_ref().map(|reference| arena.get(reference)),
         }
     }
 
@@ -256,18 +256,20 @@ impl NodeList {
 
 pub struct NodeListIterator<'arena, 'source> {
     arena: &'arena Arena<'source>,
-    current: Option<NodeReference>,
+    current: Option<&'arena NodeListElement<'source>>,
 }
 
 impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     type Item = &'arena Node<'source>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match &self.current {
+        match self.current {
             None => None,
-            Some(reference) => {
-                let element = self.arena.get(reference);
-                self.current.clone_from(&element.next);
+            Some(element) => {
+                self.current = element
+                    .next
+                    .as_ref()
+                    .map(|reference| self.arena.get(reference));
                 Some(&element.node)
             }
         }
