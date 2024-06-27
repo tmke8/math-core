@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathrm{ab\\mathit{cd}ef}"
+---
+<math>
+    <mrow>
+        <mi>ab</mi>
+        <mi>𝑐𝑑</mi>
+        <mi>ef</mi>
+    </mrow>
+</math>

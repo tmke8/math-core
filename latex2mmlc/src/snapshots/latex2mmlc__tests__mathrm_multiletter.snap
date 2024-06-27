@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathrm{abc}"
+---
+<math>
+    <mi>abc</mi>
+</math>

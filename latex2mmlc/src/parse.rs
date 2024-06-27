@@ -20,6 +20,8 @@ pub(crate) struct Parser<'source> {
     peek_token: Token<'source>,
     buffer: Buffer,
     arena: Arena<'source>,
+    tf: Option<TextTransform>,
+    var: Option<MathVariant>,
 }
 impl<'source> Parser<'source> {
     pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: Arena<'source>) -> Self {
@@ -28,6 +30,8 @@ impl<'source> Parser<'source> {
             peek_token: Token::EOF,
             buffer,
             arena,
+            tf: None,
+            var: None,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -65,18 +69,18 @@ impl<'source> Parser<'source> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(self.new_node_ref(Node::SubSup {
+            Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup {
                 target: left,
                 sub,
                 sup,
             })),
-            Bounds(Some(symbol), None) => Ok(self.new_node_ref(Node::Subscript(left, symbol))),
-            Bounds(None, Some(symbol)) => Ok(self.new_node_ref(Node::Superscript(left, symbol))),
+            Bounds(Some(symbol), None) => Ok(self.commit_node(Node::Subscript(left, symbol))),
+            Bounds(None, Some(symbol)) => Ok(self.commit_node(Node::Superscript(left, symbol))),
             Bounds(None, None) => Ok(left),
         }
     }
 
-    fn new_node_ref(&mut self, node: Node<'source>) -> NodeReference {
+    fn commit_node(&mut self, node: Node<'source>) -> NodeReference {
         self.arena.push(node)
     }
 
@@ -97,13 +101,18 @@ impl<'source> Parser<'source> {
                     Token::NumberWithComma(_) => ops::COMMA,
                     _ => unreachable!(),
                 };
-                let first = self.new_node_ref(Node::Number(number));
-                let second = self.new_node_ref(Node::Operator(op, None));
+                let first = self.commit_node(Node::Number(number));
+                let second = self.commit_node(Node::Operator(op, None));
                 Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
-            Token::Letter(x) => Node::SingleLetterIdent(x, None),
+            Token::Letter(x) => {
+                Node::SingleLetterIdent(self.tf.as_ref().map_or(x, |tf| tf.transform(x)), self.var)
+            }
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op, None),
+            Token::Operator(op) => match self.tf.as_ref() {
+                None => Node::Operator(op, None),
+                Some(tf) => Node::SingleLetterIdent(tf.transform(op.into()), None),
+            },
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -130,7 +139,7 @@ impl<'source> Parser<'source> {
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: self.new_node_ref(inner),
+                        content: self.commit_node(inner),
                         style: None,
                     }
                 } else {
@@ -176,7 +185,7 @@ impl<'source> Parser<'source> {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 let inner = Node::Frac(numerator, denominator, line_thickness, None);
-                let content = self.new_node_ref(inner);
+                let content = self.commit_node(inner);
                 Node::Fenced {
                     open,
                     close,
@@ -209,22 +218,22 @@ impl<'source> Parser<'source> {
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = self.new_node_ref(Node::Operator(x, None));
+                    let op = self.commit_node(Node::Operator(x, None));
                     if is_over {
-                        let symbol = self.new_node_ref(Node::Overset {
+                        let symbol = self.commit_node(Node::Overset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Overset { symbol, target }
                     } else {
-                        let symbol = self.new_node_ref(Node::Underset {
+                        let symbol = self.commit_node(Node::Underset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = self.new_node_ref(Node::Operator(x, None));
+                    let symbol = self.commit_node(Node::Operator(x, None));
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -239,7 +248,7 @@ impl<'source> Parser<'source> {
                 } else {
                     Node::Operator(op, None)
                 };
-                let target = self.new_node_ref(target);
+                let target = self.commit_node(target);
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -257,7 +266,7 @@ impl<'source> Parser<'source> {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: self.new_node_ref(lim),
+                        target: self.commit_node(lim),
                         symbol: under,
                     }
                 } else {
@@ -302,18 +311,20 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::NormalVariant => {
+                let old_var = mem::replace(&mut self.var, Some(MathVariant::Normal));
+                let old_tf = mem::replace(&mut self.tf, None);
                 let node_ref = self.parse_single_token()?;
-                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    self.merge_single_letters(nodes.clone(), style.clone())
-                } else {
-                    node_ref
-                };
-                self.set_normal_variant(node_ref.clone());
+                self.var = old_var;
+                self.tf = old_tf;
+                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
+                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
+                }
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
+                let old_tf = mem::replace(&mut self.tf, Some(tf));
                 let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref.clone(), tf);
+                self.tf = old_tf;
                 if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
                     return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
@@ -322,7 +333,7 @@ impl<'source> Parser<'source> {
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -334,7 +345,7 @@ impl<'source> Parser<'source> {
                         Bounds(None, None) => Node::Operator(int, None),
                     }
                 } else {
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript(target, symbol),
@@ -347,12 +358,12 @@ impl<'source> Parser<'source> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    let first = self.new_node_ref(Node::OperatorWithSpacing {
+                    let first = self.commit_node(Node::OperatorWithSpacing {
                         op: ops::COLON,
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     });
-                    let second = self.new_node_ref(Node::OperatorWithSpacing {
+                    let second = self.commit_node(Node::OperatorWithSpacing {
                         op,
                         left: Some(MathSpacing::Zero),
                         right: None,
@@ -444,7 +455,7 @@ impl<'source> Parser<'source> {
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
-                            content: self.new_node_ref(content),
+                            content: self.commit_node(content),
                             style: None,
                         }
                     }
@@ -461,7 +472,7 @@ impl<'source> Parser<'source> {
                         Node::Fenced {
                             open,
                             close,
-                            content: self.new_node_ref(content),
+                            content: self.commit_node(content),
                             style: None,
                         }
                     }
@@ -527,7 +538,7 @@ impl<'source> Parser<'source> {
                 return Err(LatexError::UnexpectedClose(cur_token))
             }
         };
-        Ok(self.new_node_ref(node))
+        Ok(self.commit_node(node))
     }
 
     #[inline]
@@ -595,7 +606,7 @@ impl<'source> Parser<'source> {
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek_token, Token::Prime) {
             self.next_token(); // Discard the prime token.
-            let node_ref = self.new_node_ref(Node::Operator(ops::PRIME, None));
+            let node_ref = self.commit_node(Node::Operator(ops::PRIME, None));
             primes.push(&mut self.arena, node_ref);
         }
 
@@ -665,46 +676,7 @@ impl<'source> Parser<'source> {
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
         match list_builder.as_singleton_or_finish(&mut self.arena) {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
-        }
-    }
-
-    /// Set the math variant of all single-letter identifiers in `node` to `var`.
-    /// The change is applied in-place.
-    fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        match node_ref.as_node_mut(&mut self.arena) {
-            Node::SingleLetterIdent(_, maybe_var) => {
-                *maybe_var = Some(MathVariant::Normal);
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.set_normal_variant(node_ref);
-                }
-            }
-            _ => {}
-        };
-    }
-
-    /// Transform the text of all single-letter identifiers and operators using `tf`.
-    /// The change is applied in-place.
-    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = node_ref.as_node_mut(&mut self.arena);
-        match node {
-            Node::SingleLetterIdent(x, _) => {
-                *x = tf.transform(*x);
-            }
-            Node::Operator(op, _) => {
-                let op = *op;
-                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.transform_letters(node_ref, tf.clone());
-                }
-            }
-            _ => {}
+            SingletonOrList::List(list) => self.commit_node(Node::Row(list, style)),
         }
     }
 

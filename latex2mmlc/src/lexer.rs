@@ -74,20 +74,21 @@ impl<'source> Lexer<'source> {
     fn read_number(&mut self, start: usize) -> Token<'source> {
         while {
             let cur = self.peek.1;
-            cur.is_ascii_digit() || matches!(cur, '.' | ',')
+            cur.is_ascii_digit() || Punctuation::from_char(cur).is_some()
         } {
             let (index_before, candidate) = self.read_char();
             // Before we accept the current character, we need to check the next one.
-            if matches!(candidate, '.' | ',') && !self.peek.1.is_ascii_digit() {
-                // If the candidate is punctuation and the next character is not a digit,
-                // we don't want to include the punctuation.
-                // But we do need to return the punctuation as an operator.
-                let number = self.input_string.get_unwrap(start..index_before);
-                return match candidate {
-                    '.' => Token::NumberWithDot(number),
-                    ',' => Token::NumberWithComma(number),
-                    _ => unsafe { std::hint::unreachable_unchecked() },
-                };
+            if !self.peek.1.is_ascii_digit() {
+                if let Some(punctuation) = Punctuation::from_char(candidate) {
+                    // If the candidate is punctuation and the next character is not a digit,
+                    // we don't want to include the punctuation.
+                    // But we do need to return the punctuation as an operator.
+                    let number = self.input_string.get_unwrap(start..index_before);
+                    return match punctuation {
+                        Punctuation::Dot => Token::NumberWithDot(number),
+                        Punctuation::Comma => Token::NumberWithComma(number),
+                    };
+                }
             }
         }
         let end = self.peek.0;
@@ -172,6 +173,21 @@ impl<'source> Lexer<'source> {
                     Token::NormalLetter(c)
                 }
             }
+        }
+    }
+}
+
+enum Punctuation {
+    Dot,
+    Comma,
+}
+
+impl Punctuation {
+    fn from_char(c: char) -> Option<Self> {
+        match c {
+            '.' => Some(Self::Dot),
+            ',' => Some(Self::Comma),
+            _ => None,
         }
     }
 }
