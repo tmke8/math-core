@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn full_tests() {
-        let problems = vec![
+        let problems = [
             ("empty", r""),
             ("text", r"\text{hi}xx"),
             ("integer", r"0"),
@@ -217,6 +217,7 @@ mod tests {
             ("mathit_no_brackets", r"\mathit x"),
             ("mathbb_no_brackets", r"\mathbb N"),
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
+            ("nested_transform", r"\mathit{\mathbf{a}b}"),
             ("text_with_escape_brace", r"\text{a\}b}"),
             // ("text_with_weird_o", r"\text{x\o y}"),
             ("text_with_group", r"\text{x{y}z{}p{}}"),
@@ -236,7 +237,7 @@ mod tests {
             ("sum_prime", r"\sum'"),
             ("int_prime", r"\int'"),
             ("int_limit_prime", r"\int\limits'"),
-            ("nested_transform", r"\mathit{a{bc}d}"),
+            ("transform_group", r"\mathit{a{bc}d}"),
             ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
         ];
 
@@ -249,7 +250,7 @@ mod tests {
 
     #[test]
     fn error_test() {
-        let problems = vec![
+        let problems = [
             ("end_without_open", r"\end{matrix}"),
             ("curly_close_without_open", r"}"),
             ("unsupported_command", r"\asdf"),

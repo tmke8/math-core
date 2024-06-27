@@ -1,14 +1,7 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\mathit{a{bc}d}"
+expression: "\\mathit{\\mathbf{a}b}"
 ---
 <math>
-    <mrow>
-        <mi>𝑎</mi>
-        <mrow>
-            <mi>𝑏</mi>
-            <mi>𝑐</mi>
-        </mrow>
-        <mi>𝑑</mi>
-    </mrow>
+    <mi>𝐚𝑏</mi>
 </math>

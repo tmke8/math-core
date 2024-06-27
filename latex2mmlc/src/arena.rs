@@ -1,4 +1,5 @@
 use crate::ast::Node;
+use crate::error::{ExpectOptim, GetUnwrap};
 use core::num::NonZero;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,23 +57,24 @@ impl<'source> Arena<'source> {
         //     self.nodes.as_mut_ptr().add(self.nodes.len()).write(item);
         //     self.nodes.set_len(self.nodes.len() + 1);
         // }
-        debug_assert!(index != 0, "NodeReference index should never be zero");
-        NodeReference(unsafe { NonZero::<usize>::new_unchecked(index) })
+        NodeReference(NonZero::<usize>::new(index).expect_optim("index should be non-zero"))
     }
 
     fn get<'arena>(&'arena self, reference: &NodeReference) -> &'arena NodeListElement<'source> {
-        debug_assert!(reference.0.get() < self.nodes.len());
         // safety: we only give out valid NodeReferences and don't expose delete functionality
-        unsafe { self.nodes.get(reference.0.get()).unwrap_unchecked() }
+        self.nodes
+            .get(reference.0.get())
+            .expect_optim("NodeReference should be a valid index")
     }
 
     fn get_mut<'arena>(
         &'arena mut self,
         reference: &NodeReference,
     ) -> &'arena mut NodeListElement<'source> {
-        debug_assert!(reference.0.get() < self.nodes.len());
         // safety: we only give out valid NodeReferences and don't expose delete functionality
-        unsafe { self.nodes.get_unchecked_mut(reference.0.get()) }
+        self.nodes
+            .get_mut(reference.0.get())
+            .expect_optim("NodeReference should be a valid index")
     }
 }
 
@@ -127,9 +129,7 @@ impl Buffer {
     }
 
     fn get_str(&self, reference: StrReference) -> &str {
-        debug_assert!(reference.1 .0 <= self.buffer.len());
-        // &self.buffer[Range::<usize>::from(reference)]
-        unsafe { self.buffer.get_unchecked(reference.0 .0..reference.1 .0) }
+        self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
     }
 
     #[inline]

@@ -8,6 +8,7 @@ use std::mem;
 use std::str::CharIndices;
 
 use crate::commands::get_command;
+use crate::error::GetUnwrap;
 use crate::{ops, token::Token};
 
 /// Lexer
@@ -65,7 +66,7 @@ impl<'source> Lexer<'source> {
         // To get the end of the command, we take the index of the next character.
         let end = self.peek.0;
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-        unsafe { self.input_string.get_unchecked(start..end) }
+        self.input_string.get_unwrap(start..end)
     }
 
     /// Read one number.
@@ -81,7 +82,7 @@ impl<'source> Lexer<'source> {
                 // If the candidate is punctuation and the next character is not a digit,
                 // we don't want to include the punctuation.
                 // But we do need to return the punctuation as an operator.
-                let number = unsafe { self.input_string.get_unchecked(start..index_before) };
+                let number = self.input_string.get_unwrap(start..index_before);
                 return match candidate {
                     '.' => Token::NumberWithDot(number),
                     ',' => Token::NumberWithComma(number),
@@ -90,7 +91,7 @@ impl<'source> Lexer<'source> {
             }
         }
         let end = self.peek.0;
-        let number = unsafe { self.input_string.get_unchecked(start..end) };
+        let number = self.input_string.get_unwrap(start..end);
         Token::Number(number)
     }
 
@@ -108,7 +109,7 @@ impl<'source> Lexer<'source> {
                 brace_count -= 1;
             }
             if brace_count <= 0 {
-                return unsafe { Some(self.input_string.get_unchecked(start..end)) };
+                return Some(self.input_string.get_unwrap(start..end));
             }
             // Check for escaped characters.
             if cur == '\\' {
@@ -130,7 +131,7 @@ impl<'source> Lexer<'source> {
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
-            let num = unsafe { self.input_string.get_unchecked(start..end) };
+            let num = self.input_string.get_unwrap(start..end);
             return Token::Number(num);
         }
 
