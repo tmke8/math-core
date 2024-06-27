@@ -65,18 +65,18 @@ impl<'source> Parser<'source> {
         let left = self.parse_single_node(cur_token)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(self.new_node_ref(Node::SubSup {
+            Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup {
                 target: left,
                 sub,
                 sup,
             })),
-            Bounds(Some(symbol), None) => Ok(self.new_node_ref(Node::Subscript(left, symbol))),
-            Bounds(None, Some(symbol)) => Ok(self.new_node_ref(Node::Superscript(left, symbol))),
+            Bounds(Some(symbol), None) => Ok(self.commit_node(Node::Subscript(left, symbol))),
+            Bounds(None, Some(symbol)) => Ok(self.commit_node(Node::Superscript(left, symbol))),
             Bounds(None, None) => Ok(left),
         }
     }
 
-    fn new_node_ref(&mut self, node: Node<'source>) -> NodeReference {
+    fn commit_node(&mut self, node: Node<'source>) -> NodeReference {
         self.arena.push(node)
     }
 
@@ -97,8 +97,8 @@ impl<'source> Parser<'source> {
                     Token::NumberWithComma(_) => ops::COMMA,
                     _ => unreachable!(),
                 };
-                let first = self.new_node_ref(Node::Number(number));
-                let second = self.new_node_ref(Node::Operator(op, None));
+                let first = self.commit_node(Node::Number(number));
+                let second = self.commit_node(Node::Operator(op, None));
                 Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, None),
@@ -130,7 +130,7 @@ impl<'source> Parser<'source> {
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: self.new_node_ref(inner),
+                        content: self.commit_node(inner),
                         style: None,
                     }
                 } else {
@@ -176,7 +176,7 @@ impl<'source> Parser<'source> {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 let inner = Node::Frac(numerator, denominator, line_thickness, None);
-                let content = self.new_node_ref(inner);
+                let content = self.commit_node(inner);
                 Node::Fenced {
                     open,
                     close,
@@ -209,22 +209,22 @@ impl<'source> Parser<'source> {
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = self.new_node_ref(Node::Operator(x, None));
+                    let op = self.commit_node(Node::Operator(x, None));
                     if is_over {
-                        let symbol = self.new_node_ref(Node::Overset {
+                        let symbol = self.commit_node(Node::Overset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Overset { symbol, target }
                     } else {
-                        let symbol = self.new_node_ref(Node::Underset {
+                        let symbol = self.commit_node(Node::Underset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = self.new_node_ref(Node::Operator(x, None));
+                    let symbol = self.commit_node(Node::Operator(x, None));
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -239,7 +239,7 @@ impl<'source> Parser<'source> {
                 } else {
                     Node::Operator(op, None)
                 };
-                let target = self.new_node_ref(target);
+                let target = self.commit_node(target);
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -257,7 +257,7 @@ impl<'source> Parser<'source> {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: self.new_node_ref(lim),
+                        target: self.commit_node(lim),
                         symbol: under,
                     }
                 } else {
@@ -322,7 +322,7 @@ impl<'source> Parser<'source> {
             Token::Integral(int) => {
                 if matches!(self.peek_token, Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -334,7 +334,7 @@ impl<'source> Parser<'source> {
                         Bounds(None, None) => Node::Operator(int, None),
                     }
                 } else {
-                    let target = self.new_node_ref(Node::Operator(int, None));
+                    let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript(target, symbol),
@@ -347,12 +347,12 @@ impl<'source> Parser<'source> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    let first = self.new_node_ref(Node::OperatorWithSpacing {
+                    let first = self.commit_node(Node::OperatorWithSpacing {
                         op: ops::COLON,
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     });
-                    let second = self.new_node_ref(Node::OperatorWithSpacing {
+                    let second = self.commit_node(Node::OperatorWithSpacing {
                         op,
                         left: Some(MathSpacing::Zero),
                         right: None,
@@ -444,7 +444,7 @@ impl<'source> Parser<'source> {
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
-                            content: self.new_node_ref(content),
+                            content: self.commit_node(content),
                             style: None,
                         }
                     }
@@ -461,7 +461,7 @@ impl<'source> Parser<'source> {
                         Node::Fenced {
                             open,
                             close,
-                            content: self.new_node_ref(content),
+                            content: self.commit_node(content),
                             style: None,
                         }
                     }
@@ -527,7 +527,7 @@ impl<'source> Parser<'source> {
                 return Err(LatexError::UnexpectedClose(cur_token))
             }
         };
-        Ok(self.new_node_ref(node))
+        Ok(self.commit_node(node))
     }
 
     #[inline]
@@ -595,7 +595,7 @@ impl<'source> Parser<'source> {
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek_token, Token::Prime) {
             self.next_token(); // Discard the prime token.
-            let node_ref = self.new_node_ref(Node::Operator(ops::PRIME, None));
+            let node_ref = self.commit_node(Node::Operator(ops::PRIME, None));
             primes.push(&mut self.arena, node_ref);
         }
 
@@ -665,7 +665,7 @@ impl<'source> Parser<'source> {
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
         match list_builder.as_singleton_or_finish(&mut self.arena) {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.new_node_ref(Node::Row(list, style)),
+            SingletonOrList::List(list) => self.commit_node(Node::Row(list, style)),
         }
     }
 
