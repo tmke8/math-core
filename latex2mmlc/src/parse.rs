@@ -20,6 +20,8 @@ pub(crate) struct Parser<'source> {
     peek_token: Token<'source>,
     buffer: Buffer,
     arena: Arena<'source>,
+    tf: Option<TextTransform>,
+    var: Option<MathVariant>,
 }
 impl<'source> Parser<'source> {
     pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: Arena<'source>) -> Self {
@@ -28,6 +30,8 @@ impl<'source> Parser<'source> {
             peek_token: Token::EOF,
             buffer,
             arena,
+            tf: None,
+            var: None,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -101,9 +105,14 @@ impl<'source> Parser<'source> {
                 let second = self.commit_node(Node::Operator(op, None));
                 Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
-            Token::Letter(x) => Node::SingleLetterIdent(x, None),
+            Token::Letter(x) => {
+                Node::SingleLetterIdent(self.tf.as_ref().map_or(x, |tf| tf.transform(x)), self.var)
+            }
             Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            Token::Operator(op) => Node::Operator(op, None),
+            Token::Operator(op) => match self.tf.as_ref() {
+                None => Node::Operator(op, None),
+                Some(tf) => Node::SingleLetterIdent(tf.transform(op.into()), None),
+            },
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -302,18 +311,20 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::NormalVariant => {
+                let old_var = mem::replace(&mut self.var, Some(MathVariant::Normal));
+                let old_tf = mem::replace(&mut self.tf, None);
                 let node_ref = self.parse_single_token()?;
-                let node_ref = if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    self.merge_single_letters(nodes.clone(), style.clone())
-                } else {
-                    node_ref
-                };
-                self.set_normal_variant(node_ref.clone());
+                self.var = old_var;
+                self.tf = old_tf;
+                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
+                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
+                }
                 return Ok(node_ref);
             }
             Token::Transform(tf) => {
+                let old_tf = mem::replace(&mut self.tf, Some(tf));
                 let node_ref = self.parse_single_token()?;
-                self.transform_letters(node_ref.clone(), tf);
+                self.tf = old_tf;
                 if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
                     return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
                 }
@@ -666,45 +677,6 @@ impl<'source> Parser<'source> {
         match list_builder.as_singleton_or_finish(&mut self.arena) {
             SingletonOrList::Singleton(value) => value,
             SingletonOrList::List(list) => self.commit_node(Node::Row(list, style)),
-        }
-    }
-
-    /// Set the math variant of all single-letter identifiers in `node` to `var`.
-    /// The change is applied in-place.
-    fn set_normal_variant(&mut self, node_ref: NodeReference) {
-        match node_ref.as_node_mut(&mut self.arena) {
-            Node::SingleLetterIdent(_, maybe_var) => {
-                *maybe_var = Some(MathVariant::Normal);
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.set_normal_variant(node_ref);
-                }
-            }
-            _ => {}
-        };
-    }
-
-    /// Transform the text of all single-letter identifiers and operators using `tf`.
-    /// The change is applied in-place.
-    fn transform_letters(&mut self, node_ref: NodeReference, tf: TextTransform) {
-        let node = node_ref.as_node_mut(&mut self.arena);
-        match node {
-            Node::SingleLetterIdent(x, _) => {
-                *x = tf.transform(*x);
-            }
-            Node::Operator(op, _) => {
-                let op = *op;
-                let _ = mem::replace(node, Node::SingleLetterIdent(tf.transform(op.into()), None));
-            }
-            Node::Row(list, _) => {
-                let mut iter = list.iter_manually();
-                while let Some((node_ref, _)) = iter.next(&self.arena) {
-                    self.transform_letters(node_ref, tf.clone());
-                }
-            }
-            _ => {}
         }
     }
 
