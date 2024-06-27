@@ -164,8 +164,8 @@ impl NodeListBuilder {
     }
 
     /// Push a node reference to the list.
-    /// This method is a bit dangerous, because if the referenced node was already
-    /// part of some other list, then that list will be broken.
+    /// If the referenced node was already part of some other list,
+    /// then that list will be broken.
     pub fn push(&mut self, arena: &mut Arena<'_>, node_ref: NodeReference) {
         // Duplicate the reference to the node.
         // This is a bit dangerous because it could lead to two references to one node,
@@ -284,7 +284,7 @@ impl NodeListManualIterator {
         &mut self,
         arena: &'arena Arena<'source>,
     ) -> Option<(NodeReference, &'arena Node<'source>)> {
-        match self.current.clone() {
+        match self.current.take() {
             None => None,
             Some(reference) => {
                 let element = arena.get(&reference);
