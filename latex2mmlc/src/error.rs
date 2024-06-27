@@ -103,7 +103,7 @@ impl<T> ExpectOptim for Option<T> {
 }
 
 pub trait GetUnwrap {
-    /// `str::get` with `Option::expect`.
+    /// `str::get` with `Option::unwrap`.
     fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str;
 }
 

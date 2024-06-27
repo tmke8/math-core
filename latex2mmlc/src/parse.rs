@@ -59,7 +59,7 @@ impl<'source> Parser<'source> {
             cur_token = self.next_token();
         }
 
-        Ok(Node::PseudoRow(list_builder.finish(&mut self.arena)))
+        Ok(Node::PseudoRow(list_builder.finish()))
     }
 
     fn parse_node(
@@ -312,12 +312,14 @@ impl<'source> Parser<'source> {
             }
             Token::NormalVariant => {
                 let old_var = mem::replace(&mut self.var, Some(MathVariant::Normal));
-                let old_tf = mem::replace(&mut self.tf, None);
+                let old_tf = self.tf.take();
                 let node_ref = self.parse_single_token()?;
                 self.var = old_var;
                 self.tf = old_tf;
-                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
+                if let Node::Row(nodes, style) = node_ref.as_node_mut(&mut self.arena) {
+                    let nodes = mem::replace(nodes, NodeList::empty());
+                    let style = style.clone();
+                    return Ok(self.merge_single_letters(nodes, style));
                 }
                 return Ok(node_ref);
             }
@@ -325,8 +327,10 @@ impl<'source> Parser<'source> {
                 let old_tf = mem::replace(&mut self.tf, Some(tf));
                 let node_ref = self.parse_single_token()?;
                 self.tf = old_tf;
-                if let Node::Row(nodes, style) = node_ref.as_node(&self.arena) {
-                    return Ok(self.merge_single_letters(nodes.clone(), style.clone()));
+                if let Node::Row(nodes, style) = node_ref.as_node_mut(&mut self.arena) {
+                    let nodes = mem::replace(nodes, NodeList::empty());
+                    let style = style.clone();
+                    return Ok(self.merge_single_letters(nodes, style));
                 }
                 return Ok(node_ref);
             }
@@ -510,7 +514,7 @@ impl<'source> Parser<'source> {
             Token::Mathstrut => Node::Mathstrut,
             Token::Style(style) => {
                 let content = self.parse_group(Token::GroupEnd)?;
-                Node::Row(content.finish(&mut self.arena), Some(style))
+                Node::Row(content.finish(), Some(style))
             }
             Token::UnknownCommand(name) => {
                 return Err(LatexError::UnknownCommand(name));
@@ -587,7 +591,7 @@ impl<'source> Parser<'source> {
         // Read the contents of \begin..\end.
         let content = self.parse_group(Token::End)?;
         self.next_token(); // Discard the closing token.
-        Ok(Node::Table(content.finish(&mut self.arena), align))
+        Ok(Node::Table(content.finish(), align))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
@@ -674,7 +678,7 @@ impl<'source> Parser<'source> {
     }
 
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
-        match list_builder.as_singleton_or_finish(&mut self.arena) {
+        match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
             SingletonOrList::List(list) => self.commit_node(Node::Row(list, style)),
         }
@@ -683,8 +687,8 @@ impl<'source> Parser<'source> {
     fn merge_single_letters(&mut self, nodes: NodeList, style: Option<Style>) -> NodeReference {
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
-        let mut iter = nodes.iter_manually();
-        while let Some((node_ref, node)) = iter.next(&self.arena) {
+        let mut iter = nodes.into_man_iter();
+        while let Some((node_ref, node)) = iter.next(&mut self.arena) {
             if let Node::SingleLetterIdent(c, _) = node {
                 if let Some(LetterCollector {
                     ref mut only_one_char,

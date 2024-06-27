@@ -2,12 +2,19 @@ use crate::ast::Node;
 use crate::error::{ExpectOptim, GetUnwrap};
 use core::num::NonZero;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A reference to a node in the arena.
+/// This is a wrapper around an index into the arena's nodes vector.
+/// The index is guaranteed to be non-zero, so that we can use NonZero<usize>
+/// as the type for the index.
+/// For any node, there should be only one NodeReference pointing to it;
+/// otherwise, the arena's invariants are violated.
+#[derive(Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct NodeReference(NonZero<usize>);
 
 impl NodeReference {
     /// Convert a reference to a node by looking it up in the arena.
+    /// This is a pretty cheap operation, as it's just a vector lookup.
     #[inline]
     pub fn as_node<'arena, 'source>(&self, arena: &'arena Arena<'source>) -> &'arena Node<'source> {
         &arena.get(self).node
@@ -79,11 +86,11 @@ impl<'source> Arena<'source> {
 }
 
 /// This helper type is there to make string slices at least a little bit safe.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct StrBound(usize);
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StrReference(StrBound, StrBound);
 
 impl StrReference {
@@ -94,7 +101,7 @@ impl StrReference {
 
     #[inline]
     pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
-        buffer.get_str(*self)
+        buffer.get_str(self)
     }
 }
 
@@ -128,7 +135,7 @@ impl Buffer {
         self.buffer.push(ch);
     }
 
-    fn get_str(&self, reference: StrReference) -> &str {
+    fn get_str(&self, reference: &StrReference) -> &str {
         self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
     }
 
@@ -193,31 +200,30 @@ impl NodeListBuilder {
     /// If the list contains exactly one element, return it.
     /// This is a very efficient operation, because we don't need to look up
     /// anything in the arena.
-    pub fn as_singleton_or_finish(self, arena: &mut Arena) -> SingletonOrList {
+    pub fn as_singleton_or_finish(self) -> SingletonOrList {
         match self.0 {
             Some(list) if list.head == list.tail => SingletonOrList::Singleton(list.head),
-            _ => SingletonOrList::List(self.finish(arena)),
+            _ => SingletonOrList::List(self.finish()),
         }
     }
 
     /// Finish building the list and return it.
     /// This method consumes the builder.
-    pub fn finish(self, arena: &mut Arena) -> NodeList {
-        if let Some(InhabitedNodeList { tail, .. }) = &self.0 {
-            // Explicitly set the `next` field of the current tail to `None`.                                                                                                                                                     ║
-            // This can be necessary if we have been pushing nodes to the list                                                                                                                                                    ║
-            // that were previously part of another list.
-            arena.get_mut(tail).next = None;
-        }
+    pub fn finish(self) -> NodeList {
         NodeList(self.0.map(|list| list.head))
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct NodeList(Option<NodeReference>);
 
 impl NodeList {
+    #[inline]
+    pub fn empty() -> Self {
+        NodeList(None)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }
@@ -246,10 +252,8 @@ impl NodeList {
     /// This iterator cannot be used with a for loop, because the .next() method
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
-    pub fn iter_manually(&self) -> NodeListManualIterator {
-        NodeListManualIterator {
-            current: self.0.clone(),
-        }
+    pub fn into_man_iter(self) -> NodeListManualIterator {
+        NodeListManualIterator { current: self.0 }
     }
 }
 
@@ -282,14 +286,17 @@ pub struct NodeListManualIterator {
 impl NodeListManualIterator {
     pub fn next<'arena, 'source>(
         &mut self,
-        arena: &'arena Arena<'source>,
+        arena: &'arena mut Arena<'source>,
     ) -> Option<(NodeReference, &'arena Node<'source>)> {
         match self.current.take() {
             None => None,
             Some(reference) => {
-                let element = arena.get(&reference);
-                self.current.clone_from(&element.next);
-                Some((reference.clone(), &element.node))
+                let element = arena.get_mut(&reference);
+                // Ownership of the next reference is transferred to the iterator.
+                // This ensures that returned elements can be added to new lists,
+                // without having a "next" reference that points to an element in the old list.
+                self.current = element.next.take();
+                Some((reference, &element.node))
             }
         }
     }
@@ -319,7 +326,7 @@ mod tests {
         builder.push(&mut arena, node_ref);
         let node_ref = arena.push(Node::Space("Goodbye, world!"));
         builder.push(&mut arena, node_ref);
-        let list = builder.finish(&mut arena);
+        let list = builder.finish();
         let mut iter = list.iter(&arena);
         assert!(matches!(iter.next().unwrap(), Node::Space("Hello, world!")));
         assert!(matches!(
@@ -335,7 +342,7 @@ mod tests {
         let mut builder = NodeListBuilder::new();
         let node_ref = arena.push(Node::Space("Hello, world!"));
         builder.push(&mut arena, node_ref);
-        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish(&mut arena) {
+        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish() {
             assert!(matches!(
                 element.as_node(&arena),
                 Node::Space("Hello, world!")
@@ -347,9 +354,9 @@ mod tests {
 
     #[test]
     fn list_empty() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
         let builder = NodeListBuilder::new();
-        let list = builder.finish(&mut arena);
+        let list = builder.finish();
         assert!(list.is_empty());
         let mut iter = list.iter(&arena);
         assert!(iter.next().is_none(), "Empty list should return None");
@@ -363,12 +370,12 @@ mod tests {
         builder.push(&mut arena, node_ref);
         let node_ref = arena.push(Node::Space("Goodbye, world!"));
         builder.push(&mut arena, node_ref);
-        let list = builder.finish(&mut arena);
-        let mut iter = list.iter_manually();
-        let (reference, node) = iter.next(&arena).unwrap();
+        let list = builder.finish();
+        let mut iter = list.into_man_iter();
+        let (reference, node) = iter.next(&mut arena).unwrap();
         assert!(matches!(node, Node::Space("Hello, world!")));
         assert_eq!(reference.0.get(), 1);
-        let (reference, node) = iter.next(&arena).unwrap();
+        let (reference, node) = iter.next(&mut arena).unwrap();
         assert!(matches!(node, Node::Space("Goodbye, world!")));
         assert_eq!(reference.0.get(), 2);
     }
@@ -377,14 +384,14 @@ mod tests {
     fn buffer_extend() {
         let mut buffer = Buffer::new(0);
         let str_ref = buffer.extend("Hello, world!".chars());
-        assert_eq!(buffer.get_str(str_ref), "Hello, world!");
+        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
     }
 
     #[test]
     fn buffer_push_str() {
         let mut buffer = Buffer::new(0);
         let str_ref = buffer.push_str("Hello, world!");
-        assert_eq!(buffer.get_str(str_ref), "Hello, world!");
+        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
     }
 
     #[test]
@@ -398,6 +405,6 @@ mod tests {
         let end = buffer.end();
         assert_eq!(end.0, 5);
         let str_ref = StrReference::new(start, end);
-        assert_eq!(buffer.get_str(str_ref), "Hi↩");
+        assert_eq!(buffer.get_str(&str_ref), "Hi↩");
     }
 }
