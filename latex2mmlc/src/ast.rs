@@ -56,7 +56,7 @@ pub enum Node<'source> {
         size: &'static str,
         paren: Op,
     },
-    Text(&'source str),
+    Text(StrReference),
     Table(NodeList, Align),
     ColumnSeparator,
     RowSeparator,
@@ -348,22 +348,23 @@ impl<'source> Node<'source> {
                 pushln!(s, base_indent, "</mtable>");
             }
             Node::Text(text) => {
-                push!(s, "<mtext>");
-                let mut escape_brace = false;
-                for c in text.chars() {
-                    if c == '\\' {
-                        escape_brace = true;
-                        continue;
-                    }
-                    if !escape_brace && matches!(c, '{' | '}') {
-                        continue;
-                    }
-                    escape_brace = false;
+                // push!(s, "<mtext>");
+                // let mut escape_brace = false;
+                // for c in text.chars() {
+                //     if c == '\\' {
+                //         escape_brace = true;
+                //         continue;
+                //     }
+                //     if !escape_brace && matches!(c, '{' | '}') {
+                //         continue;
+                //     }
+                //     escape_brace = false;
 
-                    // Replace spaces with non-breaking spaces.
-                    s.push(if c == ' ' { '\u{A0}' } else { c });
-                }
-                push!(s, "</mtext>");
+                //     // Replace spaces with non-breaking spaces.
+                //     s.push(if c == ' ' { '\u{A0}' } else { c });
+                // }
+                // push!(s, "</mtext>");
+                push!(s, "<mtext>", text.as_str(b), "</mtext>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
         }

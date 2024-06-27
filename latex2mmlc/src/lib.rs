@@ -134,6 +134,9 @@ mod tests {
         let problems = [
             ("empty", r""),
             ("text", r"\text{hi}xx"),
+            ("text_multi_space", r"\text{x   y}"),
+            ("text_no_braces", r"\text x"),
+            ("text_then_space", r"\text{x}~y"),
             ("integer", r"0"),
             ("rational_number", r"3.14"),
             ("long_number", r"3,453,435.3453"),

@@ -18,6 +18,7 @@ pub(crate) struct Lexer<'source> {
     peek: (usize, char),
     input_string: &'source str,
     input_length: usize,
+    pub record_whitespace: bool,
 }
 
 impl<'source> Lexer<'source> {
@@ -28,6 +29,7 @@ impl<'source> Lexer<'source> {
             peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
+            record_whitespace: false,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -41,11 +43,14 @@ impl<'source> Lexer<'source> {
         )
     }
 
-    /// Skip blank characters.
-    fn skip_whitespace(&mut self) {
+    /// Skip whitespace characters.
+    fn skip_whitespace(&mut self) -> bool {
+        let mut skipped = false;
         while self.peek.1.is_ascii_whitespace() {
             self.read_char();
+            skipped = true;
         }
+        return skipped;
     }
 
     /// Read one command.
@@ -128,7 +133,9 @@ impl<'source> Lexer<'source> {
 
     /// Generate the next token.
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'source> {
-        self.skip_whitespace();
+        if self.skip_whitespace() && self.record_whitespace {
+            return Token::NonBreakingSpace;
+        }
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
