@@ -124,6 +124,25 @@ impl Buffer {
         StrReference(start, end)
     }
 
+    /// Copy the contents of the given reference to the end of the buffer.
+    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
+        let start = self.end();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            assert!(self.buffer.is_char_boundary(reference.0 .0));
+            assert!(self.buffer.is_char_boundary(reference.1 .0));
+        }
+        // SAFETY: the bounds have been checked above
+        unsafe {
+            // TODO: Rewrite it such that this cannot panic.
+            self.buffer
+                .as_mut_vec()
+                .extend_from_within(reference.0 .0..reference.1 .0);
+        }
+        let end = self.end();
+        StrReference(start, end)
+    }
+
     pub fn push_str(&mut self, string: &str) -> StrReference {
         let start = self.end();
         self.buffer.push_str(string);

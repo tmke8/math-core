@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\text{ \\text{a}}"
+---
+<math>
+    <mtext> a</mtext>
+</math>

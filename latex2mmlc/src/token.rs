@@ -53,6 +53,7 @@ pub enum Token<'source> {
     Space(&'static str),
     #[strum(serialize = "~")]
     NonBreakingSpace,
+    Whitespace,
     Transform(TextTransform),
     NormalVariant,
     Big(&'static str),
