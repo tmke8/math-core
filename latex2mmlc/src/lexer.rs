@@ -170,7 +170,14 @@ impl<'source> Lexer<'source> {
             (_, '\u{0}') => Token::EOF,
             (_, ':') => Token::Colon,
             (_, ' ') => Token::Letter('\u{A0}'),
-            (_, '\\') => get_command(self.read_command()),
+            (_, '\\') => {
+                let cmd = get_command(self.read_command());
+                if self.text_mode {
+                    // After a command, all whitespace is skipped, even in text mode.
+                    self.skip_whitespace();
+                }
+                cmd
+            }
             (start, c) => {
                 if c.is_ascii_digit() {
                     self.read_number(start)
