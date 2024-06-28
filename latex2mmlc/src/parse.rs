@@ -118,7 +118,9 @@ impl<'source> Parser<'source> {
             Token::OpAmpersand => Node::OpAmpersand,
             Token::Function(fun) => Node::MultiLetterIdent(self.buffer.push_str(fun)),
             Token::Space(space) => Node::Space(space),
-            Token::NonBreakingSpace => Node::Text(self.buffer.push_str("\u{A0}")),
+            Token::NonBreakingSpace | Token::Whitespace => {
+                Node::Text(self.buffer.push_str("\u{A0}"))
+            }
             Token::Sqrt => {
                 let next_token = self.next_token();
                 if matches!(next_token, Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
@@ -504,14 +506,14 @@ impl<'source> Parser<'source> {
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
             Token::Text => {
-                self.l.record_whitespace = true;
+                self.l.text_mode = true;
                 let node = self.parse_single_token()?.as_node(&self.arena);
                 let start = self.buffer.end();
                 extract_letters(&self.arena, &mut self.buffer, node)?;
                 let end = self.buffer.end();
-                self.l.record_whitespace = false;
+                self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
-                if matches!(self.peek_token, Token::NonBreakingSpace) {
+                if matches!(self.peek_token, Token::Whitespace) {
                     self.next_token();
                 }
                 Node::Text(StrReference::new(start, end))
