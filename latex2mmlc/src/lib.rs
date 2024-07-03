@@ -249,6 +249,8 @@ mod tests {
             ("sum_prime", r"\sum'"),
             ("int_prime", r"\int'"),
             ("int_limit_prime", r"\int\limits'"),
+            ("prime_command", r"f^\prime"),
+            ("prime_command_braces", r"f^{\prime}"),
             ("transform_group", r"\mathit{a{bc}d}"),
             ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
         ];
