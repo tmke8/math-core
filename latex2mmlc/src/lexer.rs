@@ -9,6 +9,7 @@ use std::str::CharIndices;
 
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
+use crate::ops::Utf8Char;
 use crate::{ops, token::Token};
 
 /// Lexer
@@ -169,7 +170,7 @@ impl<'source> Lexer<'source> {
             (_, '~') => Token::NonBreakingSpace,
             (_, '\u{0}') => Token::EOF,
             (_, ':') => Token::Colon,
-            (_, ' ') => Token::Letter('\u{A0}'),
+            (_, ' ') => Token::Letter(Utf8Char::new('\u{A0}')),
             (_, '\\') => {
                 let cmd = get_command(self.read_command());
                 if self.text_mode {

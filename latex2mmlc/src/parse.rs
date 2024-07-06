@@ -10,7 +10,7 @@ use crate::{
     commands::get_negated_op,
     error::LatexError,
     lexer::Lexer,
-    ops,
+    ops::{self, Utf8Char},
     token::Token,
 };
 
@@ -137,7 +137,12 @@ impl<'source> Parser<'source> {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
+                    let inner = Node::Frac(
+                        numerator,
+                        denominator,
+                        Some(Utf8Char::new('0')),
+                        displaystyle,
+                    );
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
@@ -170,7 +175,7 @@ impl<'source> Parser<'source> {
                 // so that we can render them as percentages.
                 let line_thickness = match self.parse_text_group()?.trim() {
                     "" => None,
-                    "0pt" => Some('0'),
+                    "0pt" => Some(Utf8Char::new('0')),
                     _ => return Err(LatexError::UnexpectedEOF),
                 };
                 let style = match self.parse_token()?.as_node(&self.arena) {
@@ -713,7 +718,7 @@ impl<'source> Parser<'source> {
                         only_one_char: true,
                     });
                 }
-                self.buffer.push(*c);
+                self.buffer.push_str(c.as_str());
             } else {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
@@ -759,7 +764,7 @@ fn extract_letters<'source>(
 ) -> Result<(), LatexError<'source>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.push(*c);
+            buffer.push_str(c.as_str());
         }
         Node::Row(nodes, _) => {
             for node in nodes.iter(arena) {
@@ -770,7 +775,7 @@ fn extract_letters<'source>(
             buffer.push_str(n);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push(op.into());
+            buffer.push_str(op.as_str());
         }
         Node::Text(str_ref) => {
             let string = str_ref.as_str(buffer).to_string();

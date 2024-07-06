@@ -1,12 +1,14 @@
+use std::str;
+
 use crate::arena::{Arena, Buffer, NodeList, NodeReference, StrReference};
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
-use crate::ops::Op;
+use crate::ops::{Op, Utf8Char};
 
 /// AST node
 #[derive(Debug)]
 pub enum Node<'source> {
     Number(&'source str),
-    SingleLetterIdent(char, Option<MathVariant>),
+    SingleLetterIdent(Utf8Char, Option<MathVariant>),
     Operator(Op, Option<OpAttr>),
     OpGreaterThan,
     OpLessThan,
@@ -42,7 +44,12 @@ pub enum Node<'source> {
     },
     Sqrt(NodeReference),
     Root(NodeReference, NodeReference),
-    Frac(NodeReference, NodeReference, Option<char>, Option<FracAttr>),
+    Frac(
+        NodeReference,
+        NodeReference,
+        Option<Utf8Char>,
+        Option<FracAttr>,
+    ),
     Row(NodeList, Option<Style>),
     PseudoRow(NodeList),
     Mathstrut,
@@ -120,14 +127,14 @@ impl<'source> Node<'source> {
                     Some(var) => push!(s, "<mi", var, ">"),
                     None => push!(s, "<mi>"),
                 };
-                push!(s, @*letter, "</mi>");
+                push!(s, letter.as_str(), "</mi>");
             }
             Node::Operator(op, attributes) => {
                 match attributes {
                     Some(attributes) => push!(s, "<mo", attributes, ">"),
                     None => push!(s, "<mo>"),
                 }
-                push!(s, @op, "</mo>");
+                push!(s, op.as_str(), "</mo>");
             }
             Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
             Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
@@ -145,7 +152,7 @@ impl<'source> Node<'source> {
                     }
                     (None, None) => s.push_str("<mo"),
                 }
-                push!(s, ">", @op, "</mo>");
+                push!(s, ">", op.as_str(), "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
                 push!(s, "<mi>", letters.as_str(b), "</mi>");
@@ -211,13 +218,29 @@ impl<'source> Node<'source> {
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
                 target.as_node(a).emit(s, a, b, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
+                pushln!(
+                    s,
+                    child_indent,
+                    "<mo accent=\"",
+                    acc,
+                    "\">",
+                    op.as_str(),
+                    "</mo>"
+                );
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
                 target.as_node(a).emit(s, a, b, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
+                pushln!(
+                    s,
+                    child_indent,
+                    "<mo accent=\"",
+                    acc,
+                    "\">",
+                    op.as_str(),
+                    "</mo>"
+                );
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
@@ -228,7 +251,7 @@ impl<'source> Node<'source> {
             Node::Frac(num, denom, lt, style) => {
                 push!(s, "<mfrac");
                 if let Some(lt) = lt {
-                    push!(s, " linethickness=\"", @*lt, "pt\"");
+                    push!(s, " linethickness=\"", lt.as_str(), "pt\"");
                 }
                 if let Some(style) = style {
                     push!(s, style);
@@ -270,25 +293,25 @@ impl<'source> Node<'source> {
                     None => push!(s, "<mrow>"),
                 }
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
-                push!(s, @open, "</mo>");
+                push!(s, open.as_str(), "</mo>");
                 content.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
-                push!(s, @close, "</mo>");
+                push!(s, close.as_str(), "</mo>");
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
-                push!(s, @paren, "</mo>");
+                push!(s, paren.as_str(), "</mo>");
             }
             Node::Slashed(node) => match node.as_node(a) {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => {
-                        push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
+                        push!(s, "<mi", var, ">", x.as_str(), "&#x0338;</mi>")
                     }
-                    None => push!(s, "<mi>", @*x, "&#x0338;</mi>"),
+                    None => push!(s, "<mi>", x.as_str(), "&#x0338;</mi>"),
                 },
                 Node::Operator(x, _) => {
-                    push!(s, "<mo>", @x, "&#x0338;</mo>");
+                    push!(s, "<mo>", x.as_str(), "&#x0338;</mo>");
                 }
                 n => n.emit(s, a, b, base_indent),
             },
@@ -368,7 +391,10 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 mod tests {
     use super::super::attribute::MathVariant;
     use super::Node;
-    use crate::arena::{Arena, Buffer};
+    use crate::{
+        arena::{Arena, Buffer},
+        ops::Utf8Char,
+    };
 
     #[test]
     fn node_display() {
@@ -376,10 +402,16 @@ mod tests {
         let arena = Arena::new();
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
             (
-                Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
+                Node::SingleLetterIdent(Utf8Char::new('x'), None),
+                "<mi>x</mi>",
+            ),
+            (
+                Node::SingleLetterIdent(Utf8Char::new('α'), None),
+                "<mi>α</mi>",
+            ),
+            (
+                Node::SingleLetterIdent(Utf8Char::new('あ'), Some(MathVariant::Normal)),
                 "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];

@@ -3,7 +3,7 @@ use std::mem::discriminant;
 use strum_macros::AsRefStr;
 
 use crate::attribute::{FracAttr, Style, TextTransform};
-use crate::ops::Op;
+use crate::ops::{Op, Utf8Char};
 
 #[derive(Debug, Clone, PartialEq, AsRefStr)]
 #[repr(u32)]
@@ -71,8 +71,8 @@ pub enum Token<'source> {
     #[strum(serialize = ":")]
     Colon,
     BigOp(Op),
-    Letter(char),
-    NormalLetter(char),
+    Letter(Utf8Char),
+    NormalLetter(Utf8Char),
     Number(&'source str),
     NumberWithDot(&'source str),
     NumberWithComma(&'source str),
