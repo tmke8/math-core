@@ -327,3 +327,49 @@ impl TextTransform {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn as_array(c: char) -> [u8; 4] {
+        let mut buf = [0; 4];
+        let len = c.len_utf8();
+        c.encode_utf8(&mut buf[(4 - len)..]);
+        buf
+    }
+
+    fn add_mut(a: [u8; 4], b: &[u8; 4]) -> [u8; 4] {
+        let mut a = a.map(|x| x);
+        for i in 0..4 {
+            a[i] = a[i].wrapping_add(b[i]);
+        }
+        a
+    }
+
+    #[test]
+    fn check_utf8() {
+        let tf = TextTransform::Italic;
+        for c in ['A', 'B', 'C'].into_iter() {
+            println!("{:?}", as_array(c));
+            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 144, 115]));
+        }
+        for c in ['Α', 'Β', 'Γ'].into_iter() {
+            println!("{:?}", as_array(c));
+            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 205, 17]));
+        }
+    }
+
+    #[test]
+    fn test_double_struck() {
+        let tf = TextTransform::DoubleStruck;
+        for c in ['A', 'B'].into_iter() {
+            println!("{:?}", as_array(c));
+            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 148, 119]));
+        }
+        for c in ['P', 'Q'].into_iter() {
+            println!("{:?}", as_array(c));
+            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[0, 226, 132, 73]));
+        }
+    }
+}
