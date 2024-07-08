@@ -347,16 +347,31 @@ mod tests {
         a
     }
 
+    fn as_str(a: &[u8; 4]) -> &str {
+        // Skip leading zeros.
+        // The following is one instruction: "movbel  (%rdi), %eax"
+        let value = u32::from_be_bytes(*a);
+        // SSE4 and WASM have a lzcnt instruction.
+        let offset = (value.leading_zeros() / 8) as usize;
+        std::str::from_utf8(&a[offset..]).unwrap()
+    }
+
     #[test]
     fn check_utf8() {
         let tf = TextTransform::Italic;
         for c in ['A', 'B', 'C'].into_iter() {
             println!("{:?}", as_array(c));
-            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 144, 115]));
+            assert_eq!(
+                as_array(tf.transform(c)),
+                add_mut(as_array(c), &[240, 157, 144, 115])
+            );
         }
         for c in ['Α', 'Β', 'Γ'].into_iter() {
             println!("{:?}", as_array(c));
-            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 205, 17]));
+            assert_eq!(
+                as_array(tf.transform(c)),
+                add_mut(as_array(c), &[240, 157, 205, 17])
+            );
         }
     }
 
@@ -365,11 +380,43 @@ mod tests {
         let tf = TextTransform::DoubleStruck;
         for c in ['A', 'B'].into_iter() {
             println!("{:?}", as_array(c));
-            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[240, 157, 148, 119]));
+            assert_eq!(
+                as_array(tf.transform(c)),
+                add_mut(as_array(c), &[240, 157, 148, 119])
+            );
         }
         for c in ['P', 'Q'].into_iter() {
             println!("{:?}", as_array(c));
-            assert_eq!(as_array(tf.transform(c)), add_mut(as_array(c), &[0, 226, 132, 73]));
+            assert_eq!(
+                as_array(tf.transform(c)),
+                add_mut(as_array(c), &[0, 226, 132, 73])
+            );
         }
+    }
+
+    #[test]
+    fn test_range() {
+        let c = as_array('F');
+        let b = u32::from_be_bytes(c);
+        assert_eq!(b, 70);
+        assert!(65 <= b);
+        assert!(b <= 90);
+        let c = as_array('Γ');
+        let b = u32::from_be_bytes(c);
+        assert_eq!(b, 52883);
+        assert!(52881 <= b);
+        assert!(b <= 52905);
+    }
+
+    #[test]
+    fn test_as_str() {
+        let c = as_array('F');
+        assert_eq!(as_str(&c), "F");
+        let c = as_array('Γ');
+        assert_eq!(as_str(&c), "Γ");
+        let c = as_array('\u{0}');
+        assert_eq!(as_str(&c), "");
+        let c = as_array('𝜛');
+        assert_eq!(as_str(&c), "𝜛");
     }
 }
