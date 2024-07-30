@@ -1,6 +1,6 @@
 use strum_macros::AsRefStr;
 
-/// mi mathvariant attribute
+/// <mi> mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MathVariant {
     Normal = 1,
@@ -92,238 +92,226 @@ pub enum TextTransform {
     // Tailed,
 }
 
-macro_rules! transform {
-    ($char:expr, [ $( ($range:expr, $offset:expr) ),* $(,)? ], [ $( ($index:expr, $target:expr) ),* $(,)? ] ) => {
-        'transform_block: {
-            $(
-                if $range.contains(&$char) {
-                    break 'transform_block std::char::from_u32($char as u32 + $offset).unwrap();
-                }
-            )*
-            $(
-                if $char == $index {
-                    break 'transform_block $target;
-                }
-            )*
-            $char
-        }
-    };
+fn add_offset(c: char, offset: u32) -> char {
+    let new_char = c as u32 + offset;
+    debug_assert!(
+        char::from_u32(new_char).is_some(),
+        "Invalid char: {}",
+        new_char
+    );
+    unsafe { char::from_u32_unchecked(new_char) }
 }
 
 impl TextTransform {
     #[allow(clippy::manual_is_ascii_check)]
     pub fn transform(&self, c: char) -> char {
         match self {
-            TextTransform::BoldScript => {
-                transform!(c, [('A'..='Z', 0x1D48F), ('a'..='z', 0x1D489)], [])
-            }
-            TextTransform::BoldItalic => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D427),
-                        ('a'..='z', 0x1D421),
-                        ('Α'..='Ρ', 0x1D38B),
-                        ('Σ'..='Ω', 0x1D38B),
-                        ('α'..='ω', 0x1D385),
-                    ],
-                    [
-                        ('ϴ', '𝜭'),
-                        ('∇', '𝜵'),
-                        ('∂', '𝝏'),
-                        ('ϵ', '𝝐'),
-                        ('ϑ', '𝝑'),
-                        ('ϰ', '𝝒'),
-                        ('ϕ', '𝝓'),
-                        ('ϱ', '𝝔'),
-                        ('ϖ', '𝝕'),
-                    ]
-                )
-            }
-            TextTransform::Bold => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D3BF),
-                        ('a'..='z', 0x1D3B9),
-                        ('Α'..='Ρ', 0x1D317),
-                        ('Σ'..='Ω', 0x1D317),
-                        ('α'..='ω', 0x1D311),
-                        ('Ϝ'..='ϝ', 0x1D3EE),
-                        ('0'..='9', 0x1D79E),
-                    ],
-                    [
-                        ('ϴ', '𝚹'),
-                        ('∇', '𝛁'),
-                        ('∂', '𝛛'),
-                        ('ϵ', '𝛜'),
-                        ('ϑ', '𝛝'),
-                        ('ϰ', '𝛞'),
-                        ('ϕ', '𝛟'),
-                        ('ϱ', '𝛠'),
-                        ('ϖ', '𝛡'),
-                    ]
-                )
-            }
-            TextTransform::Fraktur => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='B', 0x1D4C3),
-                        ('D'..='G', 0x1D4C3),
-                        ('H'..='I', 0x20C4),
-                        ('J'..='Q', 0x1D4C3),
-                        ('S'..='Y', 0x1D4C3),
-                        ('a'..='z', 0x1D4BD),
-                    ],
-                    [('C', 'ℭ'), ('R', 'ℜ'), ('Z', 'ℨ')]
-                )
-            }
-            TextTransform::Script => {
-                transform!(
-                    c,
-                    [
-                        ('C'..='D', 0x1D45B),
-                        ('E'..='F', 0x20EB),
-                        ('H'..='I', 0x20C3),
-                        ('J'..='K', 0x1D45B),
-                        ('N'..='Q', 0x1D45B),
-                        ('S'..='Z', 0x1D45B),
-                        ('a'..='d', 0x1D455),
-                        ('h'..='n', 0x1D455),
-                        ('p'..='z', 0x1D455),
-                    ],
-                    [
-                        ('A', '𝒜'),
-                        ('B', 'ℬ'),
-                        ('G', '𝒢'),
-                        ('L', 'ℒ'),
-                        ('M', 'ℳ'),
-                        ('R', 'ℛ'),
-                        ('e', 'ℯ'),
-                        ('f', '𝒻'),
-                        ('g', 'ℊ'),
-                        ('o', 'ℴ'),
-                    ]
-                )
-            }
-            TextTransform::Monospace => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D62F),
-                        ('a'..='z', 0x1D629),
-                        ('0'..='9', 0x1D7C6),
-                    ],
-                    []
-                )
-            }
-            TextTransform::SansSerif => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D55F),
-                        ('a'..='z', 0x1D559),
-                        ('0'..='9', 0x1D7B2),
-                    ],
-                    []
-                )
-            }
-            TextTransform::BoldFraktur => {
-                transform!(c, [('A'..='Z', 0x1D52B), ('a'..='z', 0x1D525)], [])
-            }
-            TextTransform::SansSerifBoldItalic => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D5FB),
-                        ('a'..='z', 0x1D5F5),
-                        ('Α'..='Ρ', 0x1D3FF),
-                        ('Σ'..='Ω', 0x1D3FF),
-                        ('α'..='ω', 0x1D3F9),
-                    ],
-                    [
-                        ('ϴ', '𝞡'),
-                        ('∇', '𝞩'),
-                        ('∂', '𝟃'),
-                        ('ϵ', '𝟄'),
-                        ('ϑ', '𝟅'),
-                        ('ϰ', '𝟆'),
-                        ('ϕ', '𝟇'),
-                        ('ϱ', '𝟈'),
-                        ('ϖ', '𝟉'),
-                    ]
-                )
-            }
-            TextTransform::SansSerifItalic => {
-                transform!(c, [('A'..='Z', 0x1D5C7), ('a'..='z', 0x1D5C1)], [])
-            }
-            TextTransform::BoldSansSerif => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D593),
-                        ('a'..='z', 0x1D58D),
-                        ('Α'..='Ρ', 0x1D3C5),
-                        ('Σ'..='Ω', 0x1D3C5),
-                        ('α'..='ω', 0x1D3BF),
-                        ('0'..='9', 0x1D7BC),
-                    ],
-                    [
-                        ('ϴ', '𝝧'),
-                        ('∇', '𝝯'),
-                        ('∂', '𝞉'),
-                        ('ϵ', '𝞊'),
-                        ('ϑ', '𝞋'),
-                        ('ϰ', '𝞌'),
-                        ('ϕ', '𝞍'),
-                        ('ϱ', '𝞎'),
-                        ('ϖ', '𝞏'),
-                    ]
-                )
-            }
-            TextTransform::DoubleStruck => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='B', 0x1D4F7),
-                        ('D'..='G', 0x1D4F7),
-                        ('I'..='M', 0x1D4F7),
-                        ('P'..='Q', 0x20C9),
-                        ('S'..='Y', 0x1D4F7),
-                        ('a'..='z', 0x1D4F1),
-                        ('0'..='9', 0x1D7A8),
-                    ],
-                    [('C', 'ℂ'), ('H', 'ℍ'), ('N', 'ℕ'), ('R', 'ℝ'), ('Z', 'ℤ')]
-                )
-            }
-            TextTransform::Italic => {
-                transform!(
-                    c,
-                    [
-                        ('A'..='Z', 0x1D3F3),
-                        ('a'..='g', 0x1D3ED),
-                        ('i'..='z', 0x1D3ED),
-                        ('Α'..='Ρ', 0x1D351),
-                        ('Σ'..='Ω', 0x1D351),
-                        ('α'..='ω', 0x1D34B),
-                    ],
-                    [
-                        ('h', 'ℎ'),
-                        ('ı', '𝚤'),
-                        ('ȷ', '𝚥'),
-                        ('ϴ', '𝛳'),
-                        ('∇', '𝛻'),
-                        ('∂', '𝜕'),
-                        ('ϵ', '𝜖'),
-                        ('ϑ', '𝜗'),
-                        ('ϰ', '𝜘'),
-                        ('ϕ', '𝜙'),
-                        ('ϱ', '𝜚'),
-                        ('ϖ', '𝜛'),
-                    ]
-                )
-            }
+            TextTransform::BoldScript => match c {
+                'A'..='Z' => add_offset(c, 0x1D48F),
+                'a'..='z' => add_offset(c, 0x1D489),
+                _ => c,
+            },
+            TextTransform::BoldItalic => match c {
+                'A'..='Z' => add_offset(c, 0x1D427),
+                'a'..='z' => add_offset(c, 0x1D421),
+                'Α'..='Ω' => add_offset(c, 0x1D38B),
+                'α'..='ω' => add_offset(c, 0x1D385),
+                'ϴ' => '𝜭',
+                '∇' => '𝜵',
+                '∂' => '𝝏',
+                'ϵ' => '𝝐',
+                'ϑ' => '𝝑',
+                'ϰ' => '𝝒',
+                'ϕ' => '𝝓',
+                'ϱ' => '𝝔',
+                'ϖ' => '𝝕',
+                _ => c,
+            },
+            TextTransform::Bold => match c {
+                'A'..='Z' => add_offset(c, 0x1D3BF),
+                'a'..='z' => add_offset(c, 0x1D3B9),
+                'Α'..='Ω' => add_offset(c, 0x1D317),
+                'α'..='ω' => add_offset(c, 0x1D311),
+                'Ϝ'..='ϝ' => add_offset(c, 0x1D3EE),
+                '0'..='9' => add_offset(c, 0x1D79E),
+                'ϴ' => '𝚹',
+                '∇' => '𝛁',
+                '∂' => '𝛛',
+                'ϵ' => '𝛜',
+                'ϑ' => '𝛝',
+                'ϰ' => '𝛞',
+                'ϕ' => '𝛟',
+                'ϱ' => '𝛠',
+                'ϖ' => '𝛡',
+                _ => c,
+            },
+            TextTransform::Fraktur => match c {
+                'A'..='B' => add_offset(c, 0x1D4C3),
+                'D'..='G' => add_offset(c, 0x1D4C3),
+                'H'..='I' => add_offset(c, 0x20C4),
+                'J'..='Q' => add_offset(c, 0x1D4C3),
+                'S'..='Y' => add_offset(c, 0x1D4C3),
+                'a'..='z' => add_offset(c, 0x1D4BD),
+                'C' => 'ℭ',
+                'R' => 'ℜ',
+                'Z' => 'ℨ',
+                _ => c,
+            },
+            TextTransform::Script => match c {
+                'C'..='D' => add_offset(c, 0x1D45B),
+                'E'..='F' => add_offset(c, 0x20EB),
+                'H'..='I' => add_offset(c, 0x20C3),
+                'J'..='K' => add_offset(c, 0x1D45B),
+                'N'..='Q' => add_offset(c, 0x1D45B),
+                'S'..='Z' => add_offset(c, 0x1D45B),
+                'a'..='d' => add_offset(c, 0x1D455),
+                'h'..='n' => add_offset(c, 0x1D455),
+                'p'..='z' => add_offset(c, 0x1D455),
+                'A' => '𝒜',
+                'B' => 'ℬ',
+                'G' => '𝒢',
+                'L' => 'ℒ',
+                'M' => 'ℳ',
+                'R' => 'ℛ',
+                'e' => 'ℯ',
+                'f' => '𝒻',
+                'g' => 'ℊ',
+                'o' => 'ℴ',
+                _ => c,
+            },
+            TextTransform::Monospace => match c {
+                'A'..='Z' => add_offset(c, 0x1D62F),
+                'a'..='z' => add_offset(c, 0x1D629),
+                '0'..='9' => add_offset(c, 0x1D7C6),
+                _ => c,
+            },
+            TextTransform::SansSerif => match c {
+                'A'..='Z' => add_offset(c, 0x1D55F),
+                'a'..='z' => add_offset(c, 0x1D559),
+                '0'..='9' => add_offset(c, 0x1D7B2),
+                _ => c,
+            },
+            TextTransform::BoldFraktur => match c {
+                'A'..='Z' => add_offset(c, 0x1D52B),
+                'a'..='z' => add_offset(c, 0x1D525),
+                _ => c,
+            },
+            TextTransform::SansSerifBoldItalic => match c {
+                'A'..='Z' => add_offset(c, 0x1D5FB),
+                'a'..='z' => add_offset(c, 0x1D5F5),
+                'Α'..='Ω' => add_offset(c, 0x1D3FF),
+                'α'..='ω' => add_offset(c, 0x1D3F9),
+                'ϴ' => '𝞡',
+                '∇' => '𝞩',
+                '∂' => '𝟃',
+                'ϵ' => '𝟄',
+                'ϑ' => '𝟅',
+                'ϰ' => '𝟆',
+                'ϕ' => '𝟇',
+                'ϱ' => '𝟈',
+                'ϖ' => '𝟉',
+                _ => c,
+            },
+            TextTransform::SansSerifItalic => match c {
+                'A'..='Z' => add_offset(c, 0x1D5C7),
+                'a'..='z' => add_offset(c, 0x1D5C1),
+                _ => c,
+            },
+            TextTransform::BoldSansSerif => match c {
+                'A'..='Z' => add_offset(c, 0x1D593),
+                'a'..='z' => add_offset(c, 0x1D58D),
+                'Α'..='Ω' => add_offset(c, 0x1D3C5),
+                'α'..='ω' => add_offset(c, 0x1D3BF),
+                '0'..='9' => add_offset(c, 0x1D7BC),
+                'ϴ' => '𝝧',
+                '∇' => '𝝯',
+                '∂' => '𝞉',
+                'ϵ' => '𝞊',
+                'ϑ' => '𝞋',
+                'ϰ' => '𝞌',
+                'ϕ' => '𝞍',
+                'ϱ' => '𝞎',
+                'ϖ' => '𝞏',
+                _ => c,
+            },
+            TextTransform::DoubleStruck => match c {
+                'A'..='B' => add_offset(c, 0x1D4F7),
+                'D'..='G' => add_offset(c, 0x1D4F7),
+                'I'..='M' => add_offset(c, 0x1D4F7),
+                'P'..='Q' => add_offset(c, 0x20C9),
+                'S'..='Y' => add_offset(c, 0x1D4F7),
+                'a'..='z' => add_offset(c, 0x1D4F1),
+                '0'..='9' => add_offset(c, 0x1D7A8),
+                'C' => 'ℂ',
+                'H' => 'ℍ',
+                'N' => 'ℕ',
+                'R' => 'ℝ',
+                'Z' => 'ℤ',
+                _ => c,
+            },
+            TextTransform::Italic => match c {
+                'A'..='Z' => add_offset(c, 0x1D3F3),
+                'a'..='g' => add_offset(c, 0x1D3ED),
+                'i'..='z' => add_offset(c, 0x1D3ED),
+                'Α'..='Ω' => add_offset(c, 0x1D351),
+                'α'..='ω' => add_offset(c, 0x1D34B),
+                'h' => 'ℎ',
+                'ı' => '𝚤',
+                'ȷ' => '𝚥',
+                'ϴ' => '𝛳',
+                '∇' => '𝛻',
+                '∂' => '𝜕',
+                'ϵ' => '𝜖',
+                'ϑ' => '𝜗',
+                'ϰ' => '𝜘',
+                'ϕ' => '𝜙',
+                'ϱ' => '𝜚',
+                'ϖ' => '𝜛',
+                _ => c,
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TextTransform;
+
+    #[test]
+    fn transform_test() {
+        let problems = [
+            ('G', TextTransform::BoldScript, '𝓖'),
+            ('H', TextTransform::Italic, '𝐻'),
+            ('X', TextTransform::Fraktur, '𝔛'),
+            ('S', TextTransform::Script, '𝒮'),
+            ('f', TextTransform::Bold, '𝐟'),
+            ('g', TextTransform::Bold, '𝐠'),
+            ('o', TextTransform::DoubleStruck, '𝕠'),
+            ('D', TextTransform::Monospace, '𝙳'),
+            ('x', TextTransform::Monospace, '𝚡'),
+            ('2', TextTransform::Monospace, '𝟸'),
+            ('U', TextTransform::SansSerif, '𝖴'),
+            ('v', TextTransform::SansSerif, '𝗏'),
+            ('4', TextTransform::SansSerif, '𝟦'),
+            ('A', TextTransform::SansSerifBoldItalic, '𝘼'),
+            ('a', TextTransform::SansSerifBoldItalic, '𝙖'),
+            ('Α', TextTransform::SansSerifBoldItalic, '𝞐'),
+            ('α', TextTransform::SansSerifBoldItalic, '𝞪'),
+            ('A', TextTransform::SansSerifItalic, '𝘈'),
+            ('a', TextTransform::SansSerifItalic, '𝘢'),
+            ('J', TextTransform::BoldSansSerif, '𝗝'),
+            ('r', TextTransform::BoldSansSerif, '𝗿'),
+            ('Ξ', TextTransform::BoldSansSerif, '𝝣'),
+            ('τ', TextTransform::BoldSansSerif, '𝞃'),
+        ];
+        for (source, transform, target) in problems.into_iter() {
+            assert_eq!(
+                target,
+                transform.transform(source),
+                "executed: {:?}({})",
+                transform,
+                source
+            );
         }
     }
 }
