@@ -111,11 +111,6 @@ impl TextTransform {
                 'a'..='z' => add_offset(c, 0x1D489),
                 _ => c,
             },
-            TextTransform::BoldFraktur => match c {
-                'A'..='Z' => add_offset(c, 0x1D52B),
-                'a'..='z' => add_offset(c, 0x1D525),
-                _ => c,
-            },
             TextTransform::BoldItalic => match c {
                 'A'..='Z' => add_offset(c, 0x1D427),
                 'a'..='z' => add_offset(c, 0x1D421),
@@ -194,6 +189,11 @@ impl TextTransform {
                 'A'..='Z' => add_offset(c, 0x1D55F),
                 'a'..='z' => add_offset(c, 0x1D559),
                 '0'..='9' => add_offset(c, 0x1D7B2),
+                _ => c,
+            },
+            TextTransform::BoldFraktur => match c {
+                'A'..='Z' => add_offset(c, 0x1D52B),
+                'a'..='z' => add_offset(c, 0x1D525),
                 _ => c,
             },
             TextTransform::SansSerifBoldItalic => match c {
@@ -283,6 +283,26 @@ mod tests {
             ('G', TextTransform::BoldScript, '𝓖'),
             ('H', TextTransform::Italic, '𝐻'),
             ('X', TextTransform::Fraktur, '𝔛'),
+            ('S', TextTransform::Script, '𝒮'),
+            ('f', TextTransform::Bold, '𝐟'),
+            ('g', TextTransform::Bold, '𝐠'),
+            ('o', TextTransform::DoubleStruck, '𝕠'),
+            ('D', TextTransform::Monospace, '𝙳'),
+            ('x', TextTransform::Monospace, '𝚡'),
+            ('2', TextTransform::Monospace, '𝟸'),
+            ('U', TextTransform::SansSerif, '𝖴'),
+            ('v', TextTransform::SansSerif, '𝗏'),
+            ('4', TextTransform::SansSerif, '𝟦'),
+            ('A', TextTransform::SansSerifBoldItalic, '𝘼'),
+            ('a', TextTransform::SansSerifBoldItalic, '𝙖'),
+            ('Α', TextTransform::SansSerifBoldItalic, '𝞐'),
+            ('α', TextTransform::SansSerifBoldItalic, '𝞪'),
+            ('A', TextTransform::SansSerifItalic, '𝘈'),
+            ('a', TextTransform::SansSerifItalic, '𝘢'),
+            ('J', TextTransform::BoldSansSerif, '𝗝'),
+            ('r', TextTransform::BoldSansSerif, '𝗿'),
+            ('Ξ', TextTransform::BoldSansSerif, '𝝣'),
+            ('τ', TextTransform::BoldSansSerif, '𝞃'),
         ];
         for (source, transform, target) in problems.into_iter() {
             assert_eq!(
