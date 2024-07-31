@@ -7,5 +7,5 @@ CannotBeUsedHere {
         2,
         Circumflex,
     ),
-    correct_place: "after an identifier or operator",
+    correct_place: AfterOpOrIdent,
 }

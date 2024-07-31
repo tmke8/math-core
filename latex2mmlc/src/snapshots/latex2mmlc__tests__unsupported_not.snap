@@ -7,5 +7,5 @@ CannotBeUsedHere {
         0,
         Not,
     ),
-    correct_place: "before supported operators",
+    correct_place: BeforeSomeOps,
 }

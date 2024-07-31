@@ -7,5 +7,5 @@ CannotBeUsedHere {
         12,
         Limits,
     ),
-    correct_place: "after \\int, \\sum, ...",
+    correct_place: AfterBigOp,
 }

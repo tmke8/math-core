@@ -1,5 +1,7 @@
 use std::fmt;
 
+use strum_macros::AsRefStr;
+
 // use no_panic::no_panic;
 
 use crate::token::{TokLoc, Token};
@@ -26,9 +28,20 @@ pub enum LatexError<'source> {
     },
     CannotBeUsedHere {
         got: TokLoc<'source>,
-        correct_place: &'static str,
+        correct_place: Place,
     },
     ExpectedText(&'static str),
+}
+
+#[derive(Debug, AsRefStr)]
+#[repr(u32)] // A different value here somehow increases code size on WASM enormously.
+pub enum Place {
+    #[strum(serialize = r"after \int, \sum, ...")]
+    AfterBigOp,
+    #[strum(serialize = r"before supported operators")]
+    BeforeSomeOps,
+    #[strum(serialize = r"after an identifier or operator")]
+    AfterOpOrIdent,
 }
 
 impl LatexError<'_> {
@@ -80,16 +93,13 @@ impl LatexError<'_> {
                     + itoa(*loc as u64)
                     + "."
             }
-            LatexError::CannotBeUsedHere {
-                got,
-                correct_place: needs,
-            } => {
+            LatexError::CannotBeUsedHere { got, correct_place } => {
                 "Got \"".to_string()
                     + got.token().as_ref()
                     + "\" at location "
                     + itoa(got.location() as u64)
                     + ", which may only appear "
-                    + needs
+                    + correct_place.as_ref()
                     + "."
             }
             LatexError::ExpectedText(place) => "Expected text in ".to_string() + place + ".",

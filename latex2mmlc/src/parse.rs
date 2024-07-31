@@ -8,7 +8,7 @@ use crate::{
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
-    error::LatexError,
+    error::{LatexError, Place},
     lexer::Lexer,
     ops,
     token::{TokLoc, Token},
@@ -302,8 +302,8 @@ impl<'source> Parser<'source> {
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
-                            correct_place: "before supported operators",
                             got: cur_tokloc,
+                            correct_place: Place::BeforeSomeOps,
                         })
                     }
                 }
@@ -541,8 +541,8 @@ impl<'source> Parser<'source> {
             // Token::Underscore | Token::Circumflex => {
             Token::Circumflex | Token::Prime => {
                 return Err(LatexError::CannotBeUsedHere {
-                    correct_place: "after an identifier or operator",
                     got: cur_tokloc,
+                    correct_place: Place::AfterOpOrIdent,
                 });
             }
             Token::Underscore => {
@@ -552,8 +552,8 @@ impl<'source> Parser<'source> {
             }
             Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
-                    correct_place: r"after \int, \sum, ...",
                     got: cur_tokloc,
+                    correct_place: Place::AfterBigOp,
                 })
             }
             Token::EOF => return Err(LatexError::UnexpectedEOF),
@@ -638,7 +638,7 @@ impl<'source> Parser<'source> {
             if (!first_underscore && second_circumflex) || (first_underscore && second_underscore) {
                 return Err(LatexError::CannotBeUsedHere {
                     got: self.next_token(),
-                    correct_place: "after an identifier or operator",
+                    correct_place: Place::AfterOpOrIdent,
                 });
             }
 
@@ -682,7 +682,7 @@ impl<'source> Parser<'source> {
         ) {
             return Err(LatexError::CannotBeUsedHere {
                 got: next,
-                correct_place: "after an identifier or operator",
+                correct_place: Place::AfterOpOrIdent,
             });
         }
         self.parse_single_node(next)

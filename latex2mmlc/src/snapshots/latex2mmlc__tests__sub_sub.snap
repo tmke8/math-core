@@ -7,5 +7,5 @@ CannotBeUsedHere {
         3,
         Underscore,
     ),
-    correct_place: "after an identifier or operator",
+    correct_place: AfterOpOrIdent,
 }
