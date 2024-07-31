@@ -316,7 +316,7 @@ impl<'source> Parser<'source> {
                 self.tf = old_tf;
                 if let Node::Row(nodes, style) = node_ref.as_node_mut(&mut self.arena) {
                     let nodes = mem::replace(nodes, NodeList::empty());
-                    let style = style.clone();
+                    let style = *style;
                     return Ok(self.merge_single_letters(nodes, style));
                 }
                 return Ok(node_ref);
@@ -327,7 +327,7 @@ impl<'source> Parser<'source> {
                 self.tf = old_tf;
                 if let Node::Row(nodes, style) = node_ref.as_node_mut(&mut self.arena) {
                     let nodes = mem::replace(nodes, NodeList::empty());
-                    let style = style.clone();
+                    let style = *style;
                     return Ok(self.merge_single_letters(nodes, style));
                 }
                 return Ok(node_ref);

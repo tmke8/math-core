@@ -43,7 +43,7 @@ pub enum FracAttr {
     CFracStyle,
 }
 
-#[derive(Debug, Clone, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
     DisplayStyle = 1,
@@ -71,7 +71,7 @@ pub enum MathSpacing {
 }
 
 /// <mi> mathvariant attribute
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TextTransform {
     Bold,
     BoldFraktur,

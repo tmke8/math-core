@@ -5,7 +5,7 @@ use strum_macros::AsRefStr;
 use crate::attribute::{FracAttr, Style, TextTransform};
 use crate::ops::Op;
 
-#[derive(Debug, Clone, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]

@@ -3,5 +3,8 @@ source: latex2mmlc/src/lib.rs
 expression: "\\operatorname[lim}"
 ---
 UnexpectedClose(
-    GroupEnd,
+    TokLoc(
+        17,
+        GroupEnd,
+    ),
 )

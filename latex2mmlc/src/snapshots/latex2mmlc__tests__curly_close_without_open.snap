@@ -3,5 +3,8 @@ source: latex2mmlc/src/lib.rs
 expression: "}"
 ---
 UnexpectedClose(
-    GroupEnd,
+    TokLoc(
+        0,
+        GroupEnd,
+    ),
 )
