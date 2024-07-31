@@ -5,10 +5,11 @@
 //!
 
 use std::mem;
+use std::num::NonZero;
 use std::str::CharIndices;
 
 use crate::commands::get_command;
-use crate::error::GetUnwrap;
+use crate::error::{ExpectOptim, GetUnwrap};
 use crate::token::TokLoc;
 use crate::{ops, token::Token};
 
@@ -45,11 +46,14 @@ impl<'source> Lexer<'source> {
     }
 
     /// Skip whitespace characters.
-    fn skip_whitespace(&mut self) -> Option<usize> {
+    fn skip_whitespace(&mut self) -> Option<NonZero<usize>> {
         let mut skipped = None;
         while self.peek.1.is_ascii_whitespace() {
             let (loc, _) = self.read_char();
-            skipped = Some(loc);
+            // This is technically wrong because there can be whitespace at position 0,
+            // but we are only recording whitespace in text mode, which is started by
+            // the `\text` command, so at position 0 we will never we in text mode.
+            skipped = NonZero::<usize>::new(loc);
         }
         skipped
     }
@@ -136,7 +140,7 @@ impl<'source> Lexer<'source> {
     pub(crate) fn next_token(&mut self, wants_digit: bool) -> TokLoc<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return TokLoc(loc, Token::Whitespace);
+                return TokLoc(loc.get(), Token::Whitespace);
             }
         }
         if wants_digit && self.peek.1.is_ascii_digit() {
