@@ -51,7 +51,7 @@ impl<'source> Lexer<'source> {
             let (loc, _) = self.read_char();
             skipped = Some(loc);
         }
-        return skipped;
+        skipped
     }
 
     /// Read one command.
@@ -148,32 +148,32 @@ impl<'source> Lexer<'source> {
 
         let (loc, ch) = self.read_char();
         let tok = match ch {
-            ('=') => Token::Operator(ops::EQUALS_SIGN),
-            (';') => (Token::Operator(ops::SEMICOLON)),
-            (',') => (Token::Operator(ops::COMMA)),
-            ('.') => (Token::Operator(ops::FULL_STOP)),
-            ('\'') => (Token::Prime),
-            ('(') => (Token::Paren(ops::LEFT_PARENTHESIS)),
-            (')') => (Token::Paren(ops::RIGHT_PARENTHESIS)),
-            ('{') => (Token::GroupBegin),
-            ('}') => (Token::GroupEnd),
-            ('[') => (Token::Paren(ops::LEFT_SQUARE_BRACKET)),
-            (']') => (Token::SquareBracketClose),
-            ('|') => (Token::Paren(ops::VERTICAL_LINE)),
-            ('+') => (Token::Operator(ops::PLUS_SIGN)),
-            ('-') => (Token::Operator(ops::MINUS_SIGN)),
-            ('*') => (Token::Operator(ops::ASTERISK)),
-            ('/') => (Token::Operator(ops::SOLIDUS)),
-            ('!') => (Token::Operator(ops::EXCLAMATION_MARK)),
-            ('<') => (Token::OpLessThan),
-            ('>') => (Token::OpGreaterThan),
-            ('_') => (Token::Underscore),
-            ('^') => (Token::Circumflex),
-            ('&') => (Token::Ampersand),
-            ('~') => (Token::NonBreakingSpace),
-            ('\u{0}') => (Token::EOF),
-            (':') => (Token::Colon),
-            ' ' => (Token::Letter('\u{A0}')),
+            '=' => Token::Operator(ops::EQUALS_SIGN),
+            ';' => Token::Operator(ops::SEMICOLON),
+            ',' => Token::Operator(ops::COMMA),
+            '.' => Token::Operator(ops::FULL_STOP),
+            '\'' => Token::Prime,
+            '(' => Token::Paren(ops::LEFT_PARENTHESIS),
+            ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
+            '{' => Token::GroupBegin,
+            '}' => Token::GroupEnd,
+            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET),
+            ']' => Token::SquareBracketClose,
+            '|' => Token::Paren(ops::VERTICAL_LINE),
+            '+' => Token::Operator(ops::PLUS_SIGN),
+            '-' => Token::Operator(ops::MINUS_SIGN),
+            '*' => Token::Operator(ops::ASTERISK),
+            '/' => Token::Operator(ops::SOLIDUS),
+            '!' => Token::Operator(ops::EXCLAMATION_MARK),
+            '<' => Token::OpLessThan,
+            '>' => Token::OpGreaterThan,
+            '_' => Token::Underscore,
+            '^' => Token::Circumflex,
+            '&' => Token::Ampersand,
+            '~' => Token::NonBreakingSpace,
+            '\u{0}' => Token::EOF,
+            ':' => Token::Colon,
+            ' ' => Token::Letter('\u{A0}'),
             '\\' => {
                 let cmd = get_command(self.read_command());
                 if self.text_mode {

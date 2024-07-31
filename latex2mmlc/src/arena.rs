@@ -40,6 +40,12 @@ pub struct Arena<'source> {
     nodes: Vec<NodeListElement<'source>>,
 }
 
+impl<'source> Default for Arena<'source> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'source> Arena<'source> {
     pub fn new() -> Self {
         // We fill the arena with one dummy element, so that all indices
@@ -177,6 +183,12 @@ struct InhabitedNodeList {
 pub enum SingletonOrList {
     List(NodeList),
     Singleton(NodeReference),
+}
+
+impl Default for NodeListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NodeListBuilder {

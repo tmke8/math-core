@@ -1,6 +1,5 @@
 use std::fmt;
 
-use no_panic::no_panic;
 
 use crate::token::{TokLoc, Token};
 

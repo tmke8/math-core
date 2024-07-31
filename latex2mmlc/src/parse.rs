@@ -406,8 +406,8 @@ impl<'source> Parser<'source> {
                 let next = self.next_token();
                 let close = match next.token() {
                     Token::Paren(close) => *close,
-                    (Token::SquareBracketClose) => ops::RIGHT_SQUARE_BRACKET,
-                    (Token::Operator(ops::FULL_STOP)) => ops::NULL,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Operator(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
@@ -425,10 +425,10 @@ impl<'source> Parser<'source> {
             Token::Middle => {
                 let next = self.next_token();
                 match next.token() {
-                    (Token::Operator(op) | Token::Paren(op)) => {
+                    Token::Operator(op) | Token::Paren(op) => {
                         Node::Operator(*op, Some(OpAttr::StretchyTrue))
                     }
-                    (Token::SquareBracketClose) => {
+                    Token::SquareBracketClose => {
                         Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
                     }
                     _ => {
@@ -442,15 +442,15 @@ impl<'source> Parser<'source> {
             Token::Big(size) => {
                 let next = self.next_token();
                 match next.token() {
-                    (Token::Paren(paren)) => Node::SizedParen {
+                    Token::Paren(paren) => Node::SizedParen {
                         size,
                         paren: *paren,
                     },
-                    (Token::SquareBracketClose) => Node::SizedParen {
+                    Token::SquareBracketClose => Node::SizedParen {
                         size,
                         paren: ops::RIGHT_SQUARE_BRACKET,
                     },
-                    got => {
+                    _ => {
                         return Err(LatexError::UnexpectedToken {
                             expected: Token::Paren(ops::NULL),
                             got: next,
