@@ -7,14 +7,14 @@ use crate::token::{TokLoc, Token};
 #[derive(Debug)]
 pub enum LatexError<'source> {
     UnexpectedToken {
-        expected: Token<'source>,
+        expected: &'static Token<'static>,
         got: TokLoc<'source>,
     },
     UnclosedGroup(Token<'source>),
     UnexpectedClose(TokLoc<'source>),
     UnexpectedEOF,
     MissingParenthesis {
-        location: Token<'source>,
+        location: &'static Token<'static>,
         got: TokLoc<'source>,
     },
     UnknownEnvironment(&'source str),
@@ -22,6 +22,7 @@ pub enum LatexError<'source> {
     MismatchedEnvironment {
         expected: &'source str,
         got: &'source str,
+        loc: usize,
     },
     CannotBeUsedHere {
         got: TokLoc<'source>,
@@ -70,8 +71,14 @@ impl LatexError<'_> {
                 "Unknown environment \"".to_string() + environment + "\"."
             }
             LatexError::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
-            LatexError::MismatchedEnvironment { expected, got } => {
-                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\""
+            LatexError::MismatchedEnvironment { expected, got, loc } => {
+                "Expected \"\\end{".to_string()
+                    + expected
+                    + "}\", but got \"\\end{"
+                    + got
+                    + "}\" at location "
+                    + itoa(*loc as u64)
+                    + "."
             }
             LatexError::CannotBeUsedHere {
                 got,

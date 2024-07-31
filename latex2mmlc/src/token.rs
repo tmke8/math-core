@@ -41,7 +41,9 @@ pub enum Token<'source> {
     #[strum(serialize = "^")]
     Circumflex,
     Binom(Option<FracAttr>),
+    #[strum(serialize = r"\overset")]
     Overset,
+    #[strum(serialize = r"\underset")]
     Underset,
     Overbrace(Op),
     Underbrace(Op),

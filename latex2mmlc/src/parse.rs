@@ -93,9 +93,9 @@ impl<'source> Parser<'source> {
     // consideration of infix operators.
     fn parse_single_node(
         &mut self,
-        cur_token: TokLoc<'source>,
+        cur_tokloc: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
-        let TokLoc(loc, cur_token) = cur_token;
+        let cur_token = *cur_tokloc.token();
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
@@ -302,8 +302,8 @@ impl<'source> Parser<'source> {
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
-                            got: TokLoc(loc, cur_token),
                             correct_place: "before supported operators",
+                            got: cur_tokloc,
                         })
                     }
                 }
@@ -395,7 +395,7 @@ impl<'source> Parser<'source> {
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError::MissingParenthesis {
-                            location: Token::Left,
+                            location: &Token::Left,
                             got: next,
                         })
                     }
@@ -409,7 +409,7 @@ impl<'source> Parser<'source> {
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError::MissingParenthesis {
-                            location: Token::Right,
+                            location: &Token::Right,
                             got: next,
                         })
                     }
@@ -432,7 +432,7 @@ impl<'source> Parser<'source> {
                     }
                     _ => {
                         return Err(LatexError::UnexpectedToken {
-                            expected: Token::Operator(ops::NULL),
+                            expected: &Token::Operator(ops::NULL),
                             got: next,
                         })
                     }
@@ -451,7 +451,7 @@ impl<'source> Parser<'source> {
                     },
                     _ => {
                         return Err(LatexError::UnexpectedToken {
-                            expected: Token::Paren(ops::NULL),
+                            expected: &Token::Paren(ops::NULL),
                             got: next,
                         });
                     }
@@ -460,11 +460,13 @@ impl<'source> Parser<'source> {
             Token::Begin => {
                 self.check_lbrace()?;
                 // Read the environment name.
-                let environment = self.parse_text_group()?;
-                let node = match environment {
-                    "align" | "align*" | "aligned" => self.parse_table(Align::Alternating)?,
+                let env_name = self.parse_text_group()?;
+                let env_content = self.parse_group(Token::End)?.finish();
+                let end_token = self.next_token();
+                let node = match env_name {
+                    "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
                     "cases" => {
-                        let content = self.parse_table(Align::Left)?;
+                        let content = Node::Table(env_content, Align::Left);
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
@@ -472,9 +474,9 @@ impl<'source> Parser<'source> {
                             style: None,
                         }
                     }
-                    "matrix" => self.parse_table(Align::Center)?,
+                    "matrix" => Node::Table(env_content, Align::Center),
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = self.parse_table(Align::Center)?;
+                        let content = Node::Table(env_content, Align::Center);
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -490,15 +492,16 @@ impl<'source> Parser<'source> {
                         }
                     }
                     _ => {
-                        return Err(LatexError::UnknownEnvironment(environment));
+                        return Err(LatexError::UnknownEnvironment(env_name));
                     }
                 };
                 self.check_lbrace()?;
                 let end_name = self.parse_text_group()?;
-                if end_name != environment {
+                if end_name != env_name {
                     return Err(LatexError::MismatchedEnvironment {
-                        expected: environment,
+                        expected: env_name,
                         got: end_name,
+                        loc: end_token.location(),
                     });
                 }
 
@@ -538,8 +541,8 @@ impl<'source> Parser<'source> {
             // Token::Underscore | Token::Circumflex => {
             Token::Circumflex | Token::Prime => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: TokLoc(loc, cur_token),
                     correct_place: "after an identifier or operator",
+                    got: cur_tokloc,
                 });
             }
             Token::Underscore => {
@@ -549,13 +552,13 @@ impl<'source> Parser<'source> {
             }
             Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: TokLoc(loc, cur_token),
                     correct_place: r"after \int, \sum, ...",
+                    got: cur_tokloc,
                 })
             }
             Token::EOF => return Err(LatexError::UnexpectedEOF),
             Token::End | Token::Right | Token::GroupEnd => {
-                return Err(LatexError::UnexpectedClose(TokLoc(loc, cur_token)))
+                return Err(LatexError::UnexpectedClose(cur_tokloc))
             }
         };
         Ok(self.commit_node(node))
@@ -602,18 +605,10 @@ impl<'source> Parser<'source> {
         result
     }
 
-    #[inline]
-    fn parse_table(&mut self, align: Align) -> Result<Node<'source>, LatexError<'source>> {
-        // Read the contents of \begin..\end.
-        let content = self.parse_group(Token::End)?;
-        self.next_token(); // Discard the closing token.
-        Ok(Node::Table(content.finish(), align))
-    }
-
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
         if !matches!(self.peek.token(), Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
-                expected: Token::GroupBegin,
+                expected: &Token::GroupBegin,
                 got: self.next_token(),
             });
         }

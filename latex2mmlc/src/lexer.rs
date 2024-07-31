@@ -9,7 +9,7 @@ use std::num::NonZero;
 use std::str::CharIndices;
 
 use crate::commands::get_command;
-use crate::error::{ExpectOptim, GetUnwrap};
+use crate::error::GetUnwrap;
 use crate::token::TokLoc;
 use crate::{ops, token::Token};
 

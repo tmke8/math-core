@@ -5,4 +5,5 @@ expression: "\\begin{matrix} 1 \\end{bmatrix}"
 MismatchedEnvironment {
     expected: "matrix",
     got: "bmatrix",
+    loc: 17,
 }
