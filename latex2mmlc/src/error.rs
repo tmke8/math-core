@@ -165,6 +165,7 @@ fn itoa(val: u64) -> &'static str {
     }
 
     let slice = unsafe { &ITOA_BUF[i..] };
+    // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
     unsafe { std::str::from_utf8_unchecked(slice) }
 }
 
