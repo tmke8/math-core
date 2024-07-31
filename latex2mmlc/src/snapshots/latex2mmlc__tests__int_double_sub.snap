@@ -2,10 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\int__3 x dx"
 ---
-CannotBeUsedHere {
-    got: TokLoc(
-        5,
-        Underscore,
-    ),
-    correct_place: AfterOpOrIdent,
-}
+LatexError(
+    5,
+    CannotBeUsedHere {
+        got: Underscore,
+        correct_place: AfterOpOrIdent,
+    },
+)

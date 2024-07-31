@@ -2,10 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\text{hello}\\limits_0^1"
 ---
-CannotBeUsedHere {
-    got: TokLoc(
-        12,
-        Limits,
-    ),
-    correct_place: AfterBigOp,
-}
+LatexError(
+    12,
+    CannotBeUsedHere {
+        got: Limits,
+        correct_place: AfterBigOp,
+    },
+)

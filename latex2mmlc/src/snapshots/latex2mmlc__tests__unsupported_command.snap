@@ -2,6 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\asdf"
 ---
-UnknownCommand(
-    "asdf",
+LatexError(
+    0,
+    UnknownCommand(
+        "asdf",
+    ),
 )

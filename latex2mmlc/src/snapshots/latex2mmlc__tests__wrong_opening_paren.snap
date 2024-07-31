@@ -2,14 +2,14 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin[matrix} x \\end{matrix}"
 ---
-UnexpectedToken {
-    expected: GroupBegin,
-    got: TokLoc(
-        6,
-        Paren(
+LatexError(
+    6,
+    UnexpectedToken {
+        expected: GroupBegin,
+        got: Paren(
             Op(
                 '[',
             ),
         ),
-    ),
-}
+    },
+)

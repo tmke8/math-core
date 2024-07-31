@@ -2,9 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\end{matrix}"
 ---
-UnexpectedClose(
-    TokLoc(
-        0,
+LatexError(
+    0,
+    UnexpectedClose(
         End,
     ),
 )

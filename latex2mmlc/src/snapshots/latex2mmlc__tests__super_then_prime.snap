@@ -2,10 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: "f^2'"
 ---
-CannotBeUsedHere {
-    got: TokLoc(
-        3,
-        Prime,
-    ),
-    correct_place: AfterOpOrIdent,
-}
+LatexError(
+    3,
+    CannotBeUsedHere {
+        got: Prime,
+        correct_place: AfterOpOrIdent,
+    },
+)

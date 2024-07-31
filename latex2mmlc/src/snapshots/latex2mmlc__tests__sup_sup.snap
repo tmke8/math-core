@@ -2,10 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: x^2^3 y
 ---
-CannotBeUsedHere {
-    got: TokLoc(
-        3,
-        Circumflex,
-    ),
-    correct_place: AfterOpOrIdent,
-}
+LatexError(
+    3,
+    CannotBeUsedHere {
+        got: Circumflex,
+        correct_place: AfterOpOrIdent,
+    },
+)

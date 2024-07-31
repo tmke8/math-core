@@ -4,30 +4,32 @@ use strum_macros::AsRefStr;
 
 // use no_panic::no_panic;
 
-use crate::token::{TokLoc, Token};
+use crate::token::Token;
 
 #[derive(Debug)]
-pub enum LatexError<'source> {
+pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
+
+#[derive(Debug)]
+pub enum LatexErrKind<'source> {
     UnexpectedToken {
         expected: &'static Token<'static>,
-        got: TokLoc<'source>,
+        got: Token<'source>,
     },
     UnclosedGroup(Token<'source>),
-    UnexpectedClose(TokLoc<'source>),
+    UnexpectedClose(Token<'source>),
     UnexpectedEOF,
     MissingParenthesis {
         location: &'static Token<'static>,
-        got: TokLoc<'source>,
+        got: Token<'source>,
     },
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
     MismatchedEnvironment {
         expected: &'source str,
         got: &'source str,
-        loc: usize,
     },
     CannotBeUsedHere {
-        got: TokLoc<'source>,
+        got: Token<'source>,
         correct_place: Place,
     },
     ExpectedText(&'static str),
@@ -44,72 +46,56 @@ pub enum Place {
     AfterOpOrIdent,
 }
 
-impl LatexError<'_> {
+impl LatexErrKind<'_> {
     /// Returns the error message as a string.
     ///
     /// This serves the same purpose as the `Display` implementation,
     /// but produces more compact WASM code.
     pub fn string(&self) -> String {
         match self {
-            LatexError::UnexpectedToken { expected, got } => {
+            LatexErrKind::UnexpectedToken { expected, got } => {
                 "Expected token \"".to_string()
                     + expected.as_ref()
                     + "\", but found token \""
-                    + got.token().as_ref()
-                    + "\" at location "
-                    + itoa(got.location() as u64)
-                    + "."
+                    + got.as_ref()
+                    + "\"."
             }
-            LatexError::UnclosedGroup(expected) => {
+            LatexErrKind::UnclosedGroup(expected) => {
                 "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
             }
-            LatexError::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string()
-                    + got.token().as_ref()
-                    + "\" at location "
-                    + itoa(got.location() as u64)
-                    + "."
+            LatexErrKind::UnexpectedClose(got) => {
+                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
             }
-            LatexError::UnexpectedEOF => "Unexpected end of file.".to_string(),
-            LatexError::MissingParenthesis { location, got } => {
+            LatexErrKind::UnexpectedEOF => "Unexpected end of file.".to_string(),
+            LatexErrKind::MissingParenthesis { location, got } => {
                 "There must be a parenthesis after \"".to_string()
                     + location.as_ref()
                     + "\", but not found. Instead, \""
-                    + got.token().as_ref()
-                    + "\" was found at location "
-                    + itoa(got.location() as u64)
-                    + "."
+                    + got.as_ref()
+                    + "\" was found."
             }
-            LatexError::UnknownEnvironment(environment) => {
+            LatexErrKind::UnknownEnvironment(environment) => {
                 "Unknown environment \"".to_string() + environment + "\"."
             }
-            LatexError::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
-            LatexError::MismatchedEnvironment { expected, got, loc } => {
-                "Expected \"\\end{".to_string()
-                    + expected
-                    + "}\", but got \"\\end{"
-                    + got
-                    + "}\" at location "
-                    + itoa(*loc as u64)
-                    + "."
+            LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
+            LatexErrKind::MismatchedEnvironment { expected, got } => {
+                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\"."
             }
-            LatexError::CannotBeUsedHere { got, correct_place } => {
+            LatexErrKind::CannotBeUsedHere { got, correct_place } => {
                 "Got \"".to_string()
-                    + got.token().as_ref()
-                    + "\" at location "
-                    + itoa(got.location() as u64)
-                    + ", which may only appear "
+                    + got.as_ref()
+                    + "\", which may only appear "
                     + correct_place.as_ref()
                     + "."
             }
-            LatexError::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
+            LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
         }
     }
 }
 
 impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.string())
+        write!(f, "{}: {}", self.0, self.1.string())
     }
 }
 
@@ -157,45 +143,41 @@ impl GetUnwrap for str {
     }
 }
 
+// static mut ITOA_BUF: [u8; 20] = [0; 20];
+
+// // #[no_panic]
 // fn itoa(val: u64) -> &'static str {
-//     ""
+//     if val == 0 {
+//         return "0";
+//     }
+//     let mut val = val;
+//     let base = 10;
+//     let digits = b"0123456789";
+//     let mut i = 20;
+
+//     while val != 0 && i > 0 {
+//         i -= 1;
+//         // let digit = unsafe { digits.get_unchecked((val % base) as usize) };
+//         let digit = digits[(val % base) as usize];
+//         unsafe { ITOA_BUF[i] = digit };
+//         val /= base;
+//     }
+
+//     let slice = unsafe { &ITOA_BUF[i..] };
+//     // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
+//     unsafe { std::str::from_utf8_unchecked(slice) }
 // }
 
-static mut ITOA_BUF: [u8; 20] = [0; 20];
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-// #[no_panic]
-fn itoa(val: u64) -> &'static str {
-    if val == 0 {
-        return "0";
-    }
-    let mut val = val;
-    let base = 10;
-    let digits = b"0123456789";
-    let mut i = 20;
-
-    while val != 0 && i > 0 {
-        i -= 1;
-        // let digit = unsafe { digits.get_unchecked((val % base) as usize) };
-        let digit = digits[(val % base) as usize];
-        unsafe { ITOA_BUF[i] = digit };
-        val /= base;
-    }
-
-    let slice = unsafe { &ITOA_BUF[i..] };
-    // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
-    unsafe { std::str::from_utf8_unchecked(slice) }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn itoa_test() {
-        assert_eq!(itoa(0), "0");
-        assert_eq!(itoa(1), "1");
-        assert_eq!(itoa(10), "10");
-        assert_eq!(itoa(1234567890), "1234567890");
-        assert_eq!(itoa(u64::MAX), "18446744073709551615");
-    }
-}
+//     #[test]
+//     fn itoa_test() {
+//         assert_eq!(itoa(0), "0");
+//         assert_eq!(itoa(1), "1");
+//         assert_eq!(itoa(10), "10");
+//         assert_eq!(itoa(1234567890), "1234567890");
+//         assert_eq!(itoa(u64::MAX), "18446744073709551615");
+//     }
+// }

@@ -2,9 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "}"
 ---
-UnexpectedClose(
-    TokLoc(
-        0,
+LatexError(
+    0,
+    UnexpectedClose(
         GroupEnd,
     ),
 )

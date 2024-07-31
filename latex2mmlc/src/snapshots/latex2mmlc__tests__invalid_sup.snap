@@ -2,10 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: x^^
 ---
-CannotBeUsedHere {
-    got: TokLoc(
-        2,
-        Circumflex,
-    ),
-    correct_place: AfterOpOrIdent,
-}
+LatexError(
+    2,
+    CannotBeUsedHere {
+        got: Circumflex,
+        correct_place: AfterOpOrIdent,
+    },
+)

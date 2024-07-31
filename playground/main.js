@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
             outputCode.textContent = output;
         } catch (error) {
             outputField.innerHTML = "";
-            outputCode.textContent = `Error: ${error}`;
+            outputCode.textContent = `Error at location ${error.location}: ${error.error_message}`;
         }
     }
 

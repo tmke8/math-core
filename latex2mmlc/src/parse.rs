@@ -8,7 +8,7 @@ use crate::{
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
-    error::{LatexError, Place},
+    error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     ops,
     token::{TokLoc, Token},
@@ -53,11 +53,11 @@ impl<'source> Parser<'source> {
         let mut list_builder = NodeListBuilder::new();
 
         loop {
-            let cur = self.next_token();
-            if matches!(cur.token(), Token::EOF) {
+            let cur_tokloc = self.next_token();
+            if matches!(cur_tokloc.token(), Token::EOF) {
                 break;
             }
-            let node = self.parse_node(cur)?;
+            let node = self.parse_node(cur_tokloc)?;
             list_builder.push(&mut self.arena, node);
         }
 
@@ -66,9 +66,9 @@ impl<'source> Parser<'source> {
 
     fn parse_node(
         &mut self,
-        cur_token: TokLoc<'source>,
+        cur_tokloc: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
-        let left = self.parse_single_node(cur_token)?;
+        let left = self.parse_single_node(cur_tokloc)?;
 
         match self.get_bounds()? {
             Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup {
@@ -95,7 +95,7 @@ impl<'source> Parser<'source> {
         &mut self,
         cur_tokloc: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
-        let cur_token = *cur_tokloc.token();
+        let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
@@ -159,12 +159,12 @@ impl<'source> Parser<'source> {
                 let open = match self.parse_token()?.as_node(&self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
-                    _ => return Err(LatexError::UnexpectedEOF),
+                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()?.as_node(&self.arena) {
                     Node::Operator(op, _) => *op,
                     Node::Row(elements, _) if elements.is_empty() => ops::NULL,
-                    _ => return Err(LatexError::UnexpectedEOF),
+                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
                 // The default line thickness in LaTeX is 0.4pt.
@@ -174,7 +174,7 @@ impl<'source> Parser<'source> {
                 let line_thickness = match self.parse_text_group()?.trim() {
                     "" => None,
                     "0pt" => Some('0'),
-                    _ => return Err(LatexError::UnexpectedEOF),
+                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let style = match self.parse_token()?.as_node(&self.arena) {
                     Node::Number(num) => match num.parse::<u8>() {
@@ -182,10 +182,10 @@ impl<'source> Parser<'source> {
                         Ok(1) => Some(Style::TextStyle),
                         Ok(2) => Some(Style::ScriptStyle),
                         Ok(3) => Some(Style::ScriptScriptStyle),
-                        Ok(_) | Err(_) => return Err(LatexError::UnexpectedEOF),
+                        Ok(_) | Err(_) => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                     },
                     Node::Row(elements, _) if elements.is_empty() => None,
-                    _ => return Err(LatexError::UnexpectedEOF),
+                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
@@ -301,10 +301,13 @@ impl<'source> Parser<'source> {
                         Node::MultiLetterIdent(self.buffer.extend(negated_letter))
                     }
                     _ => {
-                        return Err(LatexError::CannotBeUsedHere {
-                            got: cur_tokloc,
-                            correct_place: Place::BeforeSomeOps,
-                        })
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::CannotBeUsedHere {
+                                got: cur_token,
+                                correct_place: Place::BeforeSomeOps,
+                            },
+                        ))
                     }
                 }
             }
@@ -388,30 +391,36 @@ impl<'source> Parser<'source> {
                 Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
             }
             Token::Left => {
-                let next = self.next_token();
-                let open = match next.token() {
-                    Token::Paren(open) => *open,
+                let TokLoc(loc, next_token) = self.next_token();
+                let open = match next_token {
+                    Token::Paren(open) => open,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     _ => {
-                        return Err(LatexError::MissingParenthesis {
-                            location: &Token::Left,
-                            got: next,
-                        })
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::MissingParenthesis {
+                                location: &Token::Left,
+                                got: next_token,
+                            },
+                        ))
                     }
                 };
                 let content = self.parse_group(Token::Right)?;
                 self.next_token(); // Discard the closing token.
-                let next = self.next_token();
-                let close = match next.token() {
-                    Token::Paren(close) => *close,
+                let TokLoc(loc, next_token) = self.next_token();
+                let close = match next_token {
+                    Token::Paren(close) => close,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Operator(ops::FULL_STOP) => ops::NULL,
                     _ => {
-                        return Err(LatexError::MissingParenthesis {
-                            location: &Token::Right,
-                            got: next,
-                        })
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::MissingParenthesis {
+                                location: &Token::Right,
+                                got: next_token,
+                            },
+                        ))
                     }
                 };
                 Node::Fenced {
@@ -422,38 +431,41 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::Middle => {
-                let next = self.next_token();
-                match next.token() {
+                let TokLoc(loc, next_token) = self.next_token();
+                match next_token {
                     Token::Operator(op) | Token::Paren(op) => {
-                        Node::Operator(*op, Some(OpAttr::StretchyTrue))
+                        Node::Operator(op, Some(OpAttr::StretchyTrue))
                     }
                     Token::SquareBracketClose => {
                         Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
                     }
                     _ => {
-                        return Err(LatexError::UnexpectedToken {
-                            expected: &Token::Operator(ops::NULL),
-                            got: next,
-                        })
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::UnexpectedToken {
+                                expected: &Token::Operator(ops::NULL),
+                                got: next_token,
+                            },
+                        ))
                     }
                 }
             }
             Token::Big(size) => {
-                let next = self.next_token();
-                match next.token() {
-                    Token::Paren(paren) => Node::SizedParen {
-                        size,
-                        paren: *paren,
-                    },
+                let TokLoc(loc, next_token) = self.next_token();
+                match next_token {
+                    Token::Paren(paren) => Node::SizedParen { size, paren },
                     Token::SquareBracketClose => Node::SizedParen {
                         size,
                         paren: ops::RIGHT_SQUARE_BRACKET,
                     },
                     _ => {
-                        return Err(LatexError::UnexpectedToken {
-                            expected: &Token::Paren(ops::NULL),
-                            got: next,
-                        });
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::UnexpectedToken {
+                                expected: &Token::Paren(ops::NULL),
+                                got: next_token,
+                            },
+                        ));
                     }
                 }
             }
@@ -462,7 +474,7 @@ impl<'source> Parser<'source> {
                 // Read the environment name.
                 let env_name = self.parse_text_group()?;
                 let env_content = self.parse_group(Token::End)?.finish();
-                let end_token = self.next_token();
+                let end_token_loc = self.next_token().location();
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
                     "cases" => {
@@ -492,17 +504,19 @@ impl<'source> Parser<'source> {
                         }
                     }
                     _ => {
-                        return Err(LatexError::UnknownEnvironment(env_name));
+                        return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
                     }
                 };
                 self.check_lbrace()?;
                 let end_name = self.parse_text_group()?;
                 if end_name != env_name {
-                    return Err(LatexError::MismatchedEnvironment {
-                        expected: env_name,
-                        got: end_name,
-                        loc: end_token.location(),
-                    });
+                    return Err(LatexError(
+                        end_token_loc,
+                        LatexErrKind::MismatchedEnvironment {
+                            expected: env_name,
+                            got: end_name,
+                        },
+                    ));
                 }
 
                 node
@@ -536,14 +550,17 @@ impl<'source> Parser<'source> {
                 Node::Row(content.finish(), Some(style))
             }
             Token::UnknownCommand(name) => {
-                return Err(LatexError::UnknownCommand(name));
+                return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
             }
             // Token::Underscore | Token::Circumflex => {
             Token::Circumflex | Token::Prime => {
-                return Err(LatexError::CannotBeUsedHere {
-                    got: cur_tokloc,
-                    correct_place: Place::AfterOpOrIdent,
-                });
+                return Err(LatexError(
+                    loc,
+                    LatexErrKind::CannotBeUsedHere {
+                        got: cur_token,
+                        correct_place: Place::AfterOpOrIdent,
+                    },
+                ));
             }
             Token::Underscore => {
                 let sub = self.parse_single_token()?;
@@ -551,14 +568,17 @@ impl<'source> Parser<'source> {
                 Node::Multiscript { base, sub }
             }
             Token::Limits => {
-                return Err(LatexError::CannotBeUsedHere {
-                    got: cur_tokloc,
-                    correct_place: Place::AfterBigOp,
-                })
+                return Err(LatexError(
+                    loc,
+                    LatexErrKind::CannotBeUsedHere {
+                        got: cur_token,
+                        correct_place: Place::AfterBigOp,
+                    },
+                ))
             }
-            Token::EOF => return Err(LatexError::UnexpectedEOF),
+            Token::EOF => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
             Token::End | Token::Right | Token::GroupEnd => {
-                return Err(LatexError::UnexpectedClose(cur_tokloc))
+                return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
         };
         Ok(self.commit_node(node))
@@ -587,7 +607,10 @@ impl<'source> Parser<'source> {
             let next = self.next_token();
             if matches!(next.token(), Token::EOF) {
                 // When the input ends without the closing token.
-                return Err(LatexError::UnclosedGroup(end_token));
+                return Err(LatexError(
+                    next.location(),
+                    LatexErrKind::UnclosedGroup(end_token),
+                ));
             }
             let node = self.parse_node(next)?;
             nodes.push(&mut self.arena, node);
@@ -597,20 +620,25 @@ impl<'source> Parser<'source> {
 
     /// Parse the contents of a group which can only contain text.
     fn parse_text_group(&mut self) -> Result<&'source str, LatexError<'source>> {
-        let result = self
-            .l
-            .read_text_content()
-            .ok_or(LatexError::UnclosedGroup(Token::GroupEnd));
-        self.next_token(); // Discard the opening token (which is still stored as `peek`).
-        result
+        let result = self.l.read_text_content();
+        // Discard the opening token (which is still stored as `peek`).
+        let opening_loc = self.next_token().location();
+        result.ok_or(LatexError(
+            opening_loc,
+            LatexErrKind::UnclosedGroup(Token::GroupEnd),
+        ))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
         if !matches!(self.peek.token(), Token::GroupBegin) {
-            return Err(LatexError::UnexpectedToken {
-                expected: &Token::GroupBegin,
-                got: self.next_token(),
-            });
+            let TokLoc(loc, token) = self.next_token();
+            return Err(LatexError(
+                loc,
+                LatexErrKind::UnexpectedToken {
+                    expected: &Token::GroupBegin,
+                    got: token,
+                },
+            ));
         }
         Ok(())
     }
@@ -636,10 +664,14 @@ impl<'source> Parser<'source> {
             let second_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
             if (!first_underscore && second_circumflex) || (first_underscore && second_underscore) {
-                return Err(LatexError::CannotBeUsedHere {
-                    got: self.next_token(),
-                    correct_place: Place::AfterOpOrIdent,
-                });
+                let TokLoc(loc, token) = self.next_token();
+                return Err(LatexError(
+                    loc,
+                    LatexErrKind::CannotBeUsedHere {
+                        got: token,
+                        correct_place: Place::AfterOpOrIdent,
+                    },
+                ));
             }
 
             if (first_underscore && second_circumflex) || (!first_underscore && second_underscore) {
@@ -680,10 +712,13 @@ impl<'source> Parser<'source> {
             next.token(),
             Token::Underscore | Token::Circumflex | Token::Prime
         ) {
-            return Err(LatexError::CannotBeUsedHere {
-                got: next,
-                correct_place: Place::AfterOpOrIdent,
-            });
+            return Err(LatexError(
+                next.location(),
+                LatexErrKind::CannotBeUsedHere {
+                    got: next.into_token(),
+                    correct_place: Place::AfterOpOrIdent,
+                },
+            ));
         }
         self.parse_single_node(next)
     }
@@ -778,7 +813,7 @@ fn extract_letters<'source>(
             let string = str_ref.as_str(buffer).to_string();
             buffer.push_str(string.as_str());
         }
-        _ => return Err(LatexError::ExpectedText("\\operatorname")),
+        _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }
     Ok(())
 }
