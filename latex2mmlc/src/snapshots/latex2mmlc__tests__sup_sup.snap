@@ -3,6 +3,9 @@ source: latex2mmlc/src/lib.rs
 expression: x^2^3 y
 ---
 CannotBeUsedHere {
-    got: Circumflex,
+    got: (
+        Circumflex,
+        3,
+    ),
     correct_place: "after an identifier or operator",
 }

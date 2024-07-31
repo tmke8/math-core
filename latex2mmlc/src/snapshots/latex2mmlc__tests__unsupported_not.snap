@@ -3,6 +3,9 @@ source: latex2mmlc/src/lib.rs
 expression: "\\not\\text{hello}"
 ---
 CannotBeUsedHere {
-    got: Not,
+    got: (
+        Not,
+        0,
+    ),
     correct_place: "before supported operators",
 }

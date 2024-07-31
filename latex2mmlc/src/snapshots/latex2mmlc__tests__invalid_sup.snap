@@ -3,6 +3,9 @@ source: latex2mmlc/src/lib.rs
 expression: x^^
 ---
 CannotBeUsedHere {
-    got: Circumflex,
+    got: (
+        Circumflex,
+        2,
+    ),
     correct_place: "after an identifier or operator",
 }

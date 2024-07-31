@@ -3,6 +3,9 @@ source: latex2mmlc/src/lib.rs
 expression: "\\int__3 x dx"
 ---
 CannotBeUsedHere {
-    got: Underscore,
+    got: (
+        Underscore,
+        5,
+    ),
     correct_place: "after an identifier or operator",
 }

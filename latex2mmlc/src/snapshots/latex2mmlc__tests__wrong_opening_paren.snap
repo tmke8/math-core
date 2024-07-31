@@ -4,9 +4,12 @@ expression: "\\begin[matrix} x \\end{matrix}"
 ---
 UnexpectedToken {
     expected: GroupBegin,
-    got: Paren(
-        Op(
-            '[',
+    got: (
+        Paren(
+            Op(
+                '[',
+            ),
         ),
+        6,
     ),
 }

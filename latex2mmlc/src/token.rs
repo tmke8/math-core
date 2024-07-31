@@ -23,6 +23,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\right")]
     Right,
     Middle,
+    #[strum(serialize = "parenthesis")]
     Paren(Op),
     /// The closing square bracket has its own token because we often
     /// need to search for it.

@@ -6,14 +6,14 @@ use crate::token::Token;
 pub enum LatexError<'source> {
     UnexpectedToken {
         expected: Token<'source>,
-        got: Token<'source>,
+        got: (Token<'source>, usize),
     },
     UnclosedGroup(Token<'source>),
     UnexpectedClose(Token<'source>),
     UnexpectedEOF,
     MissingParenthesis {
         location: Token<'source>,
-        got: Token<'source>,
+        got: (Token<'source>, usize),
     },
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
@@ -22,7 +22,7 @@ pub enum LatexError<'source> {
         got: &'source str,
     },
     CannotBeUsedHere {
-        got: Token<'source>,
+        got: (Token<'source>, usize),
         correct_place: &'static str,
     },
     ExpectedText(&'static str),
@@ -39,8 +39,10 @@ impl LatexError<'_> {
                 "Expected token \"".to_string()
                     + expected.as_ref()
                     + "\", but found token \""
-                    + got.as_ref()
-                    + "\"."
+                    + got.0.as_ref()
+                    + "\" at location "
+                    + itoa(got.1 as u64)
+                    + "."
             }
             LatexError::UnclosedGroup(expected) => {
                 "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
@@ -53,8 +55,10 @@ impl LatexError<'_> {
                 "There must be a parenthesis after \"".to_string()
                     + location.as_ref()
                     + "\", but not found. Instead, \""
-                    + got.as_ref()
-                    + "\" was found."
+                    + got.0.as_ref()
+                    + "\" was found at location "
+                    + itoa(got.1 as u64)
+                    + "."
             }
             LatexError::UnknownEnvironment(environment) => {
                 "Unknown environment \"".to_string() + environment + "\"."
@@ -66,7 +70,15 @@ impl LatexError<'_> {
             LatexError::CannotBeUsedHere {
                 got,
                 correct_place: needs,
-            } => "Got \"".to_string() + got.as_ref() + "\", which may only appear " + needs + ".",
+            } => {
+                "Got \"".to_string()
+                    + got.0.as_ref()
+                    + "\" at location "
+                    + itoa(got.1 as u64)
+                    + ", which may only appear "
+                    + needs
+                    + "."
+            }
             LatexError::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
         }
     }
@@ -119,5 +131,45 @@ impl GetUnwrap for str {
     #[inline]
     fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str {
         self.get(range).expect("valid range")
+    }
+}
+
+fn itoa(val: u64) -> &'static str {
+    ""
+}
+
+static mut ITOA_BUF: [u8; 20] = [0; 20];
+
+fn itoa2(val: u64) -> &'static str {
+    if val == 0 {
+        return "0";
+    }
+    let mut val = val;
+    let base = 10;
+    let digits = b"0123456789";
+    let mut i = 20;
+
+    while val != 0 && i > 0 {
+        i -= 1;
+        let digit = unsafe { digits.get_unchecked((val % base) as usize) };
+        unsafe { ITOA_BUF[i] = *digit };
+        val /= base;
+    }
+
+    let slice = unsafe { &ITOA_BUF[i..] };
+    unsafe { std::str::from_utf8_unchecked(slice) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn itoa_test() {
+        assert_eq!(itoa(0), "0");
+        assert_eq!(itoa(1), "1");
+        assert_eq!(itoa(10), "10");
+        assert_eq!(itoa(1234567890), "1234567890");
+        assert_eq!(itoa(u64::MAX), "18446744073709551615");
     }
 }
