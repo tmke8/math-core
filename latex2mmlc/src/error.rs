@@ -1,5 +1,6 @@
 use std::fmt;
 
+// use no_panic::no_panic;
 
 use crate::token::{TokLoc, Token};
 
@@ -10,7 +11,7 @@ pub enum LatexError<'source> {
         got: TokLoc<'source>,
     },
     UnclosedGroup(Token<'source>),
-    UnexpectedClose(Token<'source>),
+    UnexpectedClose(TokLoc<'source>),
     UnexpectedEOF,
     MissingParenthesis {
         location: Token<'source>,
@@ -49,7 +50,11 @@ impl LatexError<'_> {
                 "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
             }
             LatexError::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
+                "Unexpected closing token: \"".to_string()
+                    + got.token().as_ref()
+                    + "\" at location "
+                    + itoa(got.location() as u64)
+                    + "."
             }
             LatexError::UnexpectedEOF => "Unexpected end of file.".to_string(),
             LatexError::MissingParenthesis { location, got } => {
@@ -153,8 +158,9 @@ fn itoa(val: u64) -> &'static str {
 
     while val != 0 && i > 0 {
         i -= 1;
-        let digit = unsafe { digits.get_unchecked((val % base) as usize) };
-        unsafe { ITOA_BUF[i] = *digit };
+        // let digit = unsafe { digits.get_unchecked((val % base) as usize) };
+        let digit = digits[(val % base) as usize];
+        unsafe { ITOA_BUF[i] = digit };
         val /= base;
     }
 

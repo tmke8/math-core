@@ -93,13 +93,14 @@ pub enum TextTransform {
 }
 
 fn add_offset(c: char, offset: u32) -> char {
-    let new_char = c as u32 + offset;
+    let new_char = char::from_u32(c as u32 + offset);
     debug_assert!(
-        char::from_u32(new_char).is_some(),
-        "Invalid char: {}",
-        new_char
+        new_char.is_some(),
+        "Invalid char: {}, offset: {}",
+        c,
+        offset
     );
-    unsafe { char::from_u32_unchecked(new_char) }
+    unsafe { new_char.unwrap_unchecked() }
 }
 
 impl TextTransform {

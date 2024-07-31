@@ -3,9 +3,9 @@ source: latex2mmlc/src/lib.rs
 expression: "f^2'"
 ---
 CannotBeUsedHere {
-    got: (
-        Prime,
+    got: TokLoc(
         3,
+        Prime,
     ),
     correct_place: "after an identifier or operator",
 }

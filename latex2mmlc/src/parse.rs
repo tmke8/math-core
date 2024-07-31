@@ -286,8 +286,7 @@ impl<'source> Parser<'source> {
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                let TokLoc(loc, token) = self.next_token();
-                match token {
+                match self.next_token().into_token() {
                     Token::Operator(op) => {
                         if let Some(negated) = get_negated_op(op) {
                             Node::Operator(negated, None)
@@ -303,7 +302,7 @@ impl<'source> Parser<'source> {
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
-                            got: TokLoc(loc, token),
+                            got: TokLoc(loc, cur_token),
                             correct_place: "before supported operators",
                         })
                     }
@@ -548,15 +547,15 @@ impl<'source> Parser<'source> {
                 let base = self.parse_single_token()?;
                 Node::Multiscript { base, sub }
             }
-            tok @ Token::Limits => {
+            Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: TokLoc(loc, tok),
+                    got: TokLoc(loc, cur_token),
                     correct_place: r"after \int, \sum, ...",
                 })
             }
             Token::EOF => return Err(LatexError::UnexpectedEOF),
-            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
-                return Err(LatexError::UnexpectedClose(tok))
+            Token::End | Token::Right | Token::GroupEnd => {
+                return Err(LatexError::UnexpectedClose(TokLoc(loc, cur_token)))
             }
         };
         Ok(self.commit_node(node))

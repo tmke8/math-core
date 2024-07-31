@@ -4,12 +4,12 @@ expression: "\\begin[matrix} x \\end{matrix}"
 ---
 UnexpectedToken {
     expected: GroupBegin,
-    got: (
+    got: TokLoc(
+        6,
         Paren(
             Op(
                 '[',
             ),
         ),
-        6,
     ),
 }
