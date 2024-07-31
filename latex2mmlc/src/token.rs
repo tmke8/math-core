@@ -105,3 +105,28 @@ impl Token<'_> {
         discriminant(self) == discriminant(other)
     }
 }
+
+#[derive(Debug)]
+pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+
+impl<'source> TokLoc<'source> {
+    #[inline]
+    pub fn token(&self) -> &Token<'source> {
+        &self.1
+    }
+
+    #[inline]
+    pub fn into_token(self) -> Token<'source> {
+        self.1
+    }
+
+    // #[inline]
+    // pub fn token_mut(&mut self) -> &mut Token<'source> {
+    //     &mut self.1
+    // }
+
+    #[inline]
+    pub fn location(&self) -> usize {
+        self.0
+    }
+}

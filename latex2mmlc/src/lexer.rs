@@ -9,6 +9,7 @@ use std::str::CharIndices;
 
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
+use crate::token::TokLoc;
 use crate::{ops, token::Token};
 
 /// Lexer
@@ -132,64 +133,66 @@ impl<'source> Lexer<'source> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self, wants_digit: bool) -> (Token<'source>, usize) {
+    pub(crate) fn next_token(&mut self, wants_digit: bool) -> TokLoc<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return (Token::Whitespace, loc);
+                return TokLoc(loc, Token::Whitespace);
             }
         }
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
             let num = self.input_string.get_unwrap(start..end);
-            return (Token::Number(num), start);
+            return TokLoc(start, Token::Number(num));
         }
 
-        match self.read_char() {
-            (loc, '=') => (Token::Operator(ops::EQUALS_SIGN), loc),
-            (loc, ';') => (Token::Operator(ops::SEMICOLON), loc),
-            (loc, ',') => (Token::Operator(ops::COMMA), loc),
-            (loc, '.') => (Token::Operator(ops::FULL_STOP), loc),
-            (loc, '\'') => (Token::Prime, loc),
-            (loc, '(') => (Token::Paren(ops::LEFT_PARENTHESIS), loc),
-            (loc, ')') => (Token::Paren(ops::RIGHT_PARENTHESIS), loc),
-            (loc, '{') => (Token::GroupBegin, loc),
-            (loc, '}') => (Token::GroupEnd, loc),
-            (loc, '[') => (Token::Paren(ops::LEFT_SQUARE_BRACKET), loc),
-            (loc, ']') => (Token::SquareBracketClose, loc),
-            (loc, '|') => (Token::Paren(ops::VERTICAL_LINE), loc),
-            (loc, '+') => (Token::Operator(ops::PLUS_SIGN), loc),
-            (loc, '-') => (Token::Operator(ops::MINUS_SIGN), loc),
-            (loc, '*') => (Token::Operator(ops::ASTERISK), loc),
-            (loc, '/') => (Token::Operator(ops::SOLIDUS), loc),
-            (loc, '!') => (Token::Operator(ops::EXCLAMATION_MARK), loc),
-            (loc, '<') => (Token::OpLessThan, loc),
-            (loc, '>') => (Token::OpGreaterThan, loc),
-            (loc, '_') => (Token::Underscore, loc),
-            (loc, '^') => (Token::Circumflex, loc),
-            (loc, '&') => (Token::Ampersand, loc),
-            (loc, '~') => (Token::NonBreakingSpace, loc),
-            (loc, '\u{0}') => (Token::EOF, loc),
-            (loc, ':') => (Token::Colon, loc),
-            (loc, ' ') => (Token::Letter('\u{A0}'), loc),
-            (loc, '\\') => {
+        let (loc, ch) = self.read_char();
+        let tok = match ch {
+            ('=') => Token::Operator(ops::EQUALS_SIGN),
+            (';') => (Token::Operator(ops::SEMICOLON)),
+            (',') => (Token::Operator(ops::COMMA)),
+            ('.') => (Token::Operator(ops::FULL_STOP)),
+            ('\'') => (Token::Prime),
+            ('(') => (Token::Paren(ops::LEFT_PARENTHESIS)),
+            (')') => (Token::Paren(ops::RIGHT_PARENTHESIS)),
+            ('{') => (Token::GroupBegin),
+            ('}') => (Token::GroupEnd),
+            ('[') => (Token::Paren(ops::LEFT_SQUARE_BRACKET)),
+            (']') => (Token::SquareBracketClose),
+            ('|') => (Token::Paren(ops::VERTICAL_LINE)),
+            ('+') => (Token::Operator(ops::PLUS_SIGN)),
+            ('-') => (Token::Operator(ops::MINUS_SIGN)),
+            ('*') => (Token::Operator(ops::ASTERISK)),
+            ('/') => (Token::Operator(ops::SOLIDUS)),
+            ('!') => (Token::Operator(ops::EXCLAMATION_MARK)),
+            ('<') => (Token::OpLessThan),
+            ('>') => (Token::OpGreaterThan),
+            ('_') => (Token::Underscore),
+            ('^') => (Token::Circumflex),
+            ('&') => (Token::Ampersand),
+            ('~') => (Token::NonBreakingSpace),
+            ('\u{0}') => (Token::EOF),
+            (':') => (Token::Colon),
+            ' ' => (Token::Letter('\u{A0}')),
+            '\\' => {
                 let cmd = get_command(self.read_command());
                 if self.text_mode {
                     // After a command, all whitespace is skipped, even in text mode.
                     self.skip_whitespace();
                 }
-                (cmd, loc)
+                cmd
             }
-            (loc, c) => {
+            c => {
                 if c.is_ascii_digit() {
-                    (self.read_number(loc), loc)
+                    self.read_number(loc)
                 } else if c.is_ascii_alphabetic() {
-                    (Token::Letter(c), loc)
+                    Token::Letter(c)
                 } else {
-                    (Token::NormalLetter(c), loc)
+                    Token::NormalLetter(c)
                 }
             }
-        }
+        };
+        TokLoc(loc, tok)
     }
 }
 
@@ -252,7 +255,7 @@ mod tests {
         for (problem, answer) in problems.iter() {
             let mut lexer = Lexer::new(problem);
             for answer in answer.iter() {
-                assert_eq!(&lexer.next_token(false).0, answer);
+                assert_eq!(&lexer.next_token(false).into_token(), answer);
             }
         }
     }

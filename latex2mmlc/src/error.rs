@@ -1,19 +1,21 @@
 use std::fmt;
 
-use crate::token::Token;
+use no_panic::no_panic;
+
+use crate::token::{TokLoc, Token};
 
 #[derive(Debug)]
 pub enum LatexError<'source> {
     UnexpectedToken {
         expected: Token<'source>,
-        got: (Token<'source>, usize),
+        got: TokLoc<'source>,
     },
     UnclosedGroup(Token<'source>),
     UnexpectedClose(Token<'source>),
     UnexpectedEOF,
     MissingParenthesis {
         location: Token<'source>,
-        got: (Token<'source>, usize),
+        got: TokLoc<'source>,
     },
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
@@ -22,7 +24,7 @@ pub enum LatexError<'source> {
         got: &'source str,
     },
     CannotBeUsedHere {
-        got: (Token<'source>, usize),
+        got: TokLoc<'source>,
         correct_place: &'static str,
     },
     ExpectedText(&'static str),
@@ -39,9 +41,9 @@ impl LatexError<'_> {
                 "Expected token \"".to_string()
                     + expected.as_ref()
                     + "\", but found token \""
-                    + got.0.as_ref()
+                    + got.token().as_ref()
                     + "\" at location "
-                    + itoa(got.1 as u64)
+                    + itoa(got.location() as u64)
                     + "."
             }
             LatexError::UnclosedGroup(expected) => {
@@ -55,9 +57,9 @@ impl LatexError<'_> {
                 "There must be a parenthesis after \"".to_string()
                     + location.as_ref()
                     + "\", but not found. Instead, \""
-                    + got.0.as_ref()
+                    + got.token().as_ref()
                     + "\" was found at location "
-                    + itoa(got.1 as u64)
+                    + itoa(got.location() as u64)
                     + "."
             }
             LatexError::UnknownEnvironment(environment) => {
@@ -72,9 +74,9 @@ impl LatexError<'_> {
                 correct_place: needs,
             } => {
                 "Got \"".to_string()
-                    + got.0.as_ref()
+                    + got.token().as_ref()
                     + "\" at location "
-                    + itoa(got.1 as u64)
+                    + itoa(got.location() as u64)
                     + ", which may only appear "
                     + needs
                     + "."
@@ -134,13 +136,14 @@ impl GetUnwrap for str {
     }
 }
 
-fn itoa(val: u64) -> &'static str {
-    ""
-}
+// fn itoa(val: u64) -> &'static str {
+//     ""
+// }
 
 static mut ITOA_BUF: [u8; 20] = [0; 20];
 
-fn itoa2(val: u64) -> &'static str {
+// #[no_panic]
+fn itoa(val: u64) -> &'static str {
     if val == 0 {
         return "0";
     }

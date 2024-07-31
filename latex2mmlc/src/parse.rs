@@ -11,13 +11,13 @@ use crate::{
     error::LatexError,
     lexer::Lexer,
     ops,
-    token::Token,
+    token::{TokLoc, Token},
 };
 
 #[derive(Debug)]
 pub(crate) struct Parser<'source> {
     l: Lexer<'source>,
-    peek_token: (Token<'source>, usize),
+    peek: TokLoc<'source>,
     buffer: Buffer,
     arena: Arena<'source>,
     tf: Option<TextTransform>,
@@ -27,7 +27,7 @@ impl<'source> Parser<'source> {
     pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: Arena<'source>) -> Self {
         let mut p = Parser {
             l,
-            peek_token: (Token::EOF, 0),
+            peek: TokLoc(0, Token::EOF),
             buffer,
             arena,
             tf: None,
@@ -43,21 +43,21 @@ impl<'source> Parser<'source> {
         (self.buffer, self.arena)
     }
 
-    fn next_token(&mut self) -> (Token<'source>, usize) {
-        let peek_token = self.l.next_token(self.peek_token.0.acts_on_a_digit());
+    fn next_token(&mut self) -> TokLoc<'source> {
+        let peek_token = self.l.next_token(self.peek.token().acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
-        mem::replace(&mut self.peek_token, peek_token)
+        mem::replace(&mut self.peek, peek_token)
     }
 
     pub(crate) fn parse(&mut self) -> Result<Node<'source>, LatexError<'source>> {
         let mut list_builder = NodeListBuilder::new();
 
         loop {
-            let (cur_token, loc) = self.next_token();
-            if matches!(cur_token, Token::EOF) {
+            let cur = self.next_token();
+            if matches!(cur.token(), Token::EOF) {
                 break;
             }
-            let node = self.parse_node(cur_token, loc)?;
+            let node = self.parse_node(cur)?;
             list_builder.push(&mut self.arena, node);
         }
 
@@ -66,10 +66,9 @@ impl<'source> Parser<'source> {
 
     fn parse_node(
         &mut self,
-        cur_token: Token<'source>,
-        loc: usize,
+        cur_token: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
-        let left = self.parse_single_node(cur_token, loc)?;
+        let left = self.parse_single_node(cur_token)?;
 
         match self.get_bounds()? {
             Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup {
@@ -94,9 +93,9 @@ impl<'source> Parser<'source> {
     // consideration of infix operators.
     fn parse_single_node(
         &mut self,
-        cur_token: Token<'source>,
-        loc: usize,
+        cur_token: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
+        let TokLoc(loc, cur_token) = cur_token;
         let node = match cur_token {
             Token::Number(number) => Node::Number(number),
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
@@ -126,14 +125,14 @@ impl<'source> Parser<'source> {
                 Node::Text(self.buffer.push_str("\u{A0}"))
             }
             Token::Sqrt => {
-                let (next_token, loc) = self.next_token();
-                if matches!(next_token, Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
+                let next = self.next_token();
+                if matches!(next.token(), Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
                     Node::Root(self.squeeze(degree, None), content)
                 } else {
-                    let content = self.parse_node(next_token, loc)?;
+                    let content = self.parse_node(next)?;
                     Node::Sqrt(content)
                 }
             }
@@ -219,8 +218,8 @@ impl<'source> Parser<'source> {
             ref tok @ (Token::Overbrace(x) | Token::Underbrace(x)) => {
                 let is_over = matches!(tok, Token::Overbrace(_));
                 let target = self.parse_single_token()?;
-                if (is_over && matches!(self.peek_token.0, Token::Circumflex))
-                    || (!is_over && matches!(self.peek_token.0, Token::Underscore))
+                if (is_over && matches!(self.peek.token(), Token::Circumflex))
+                    || (!is_over && matches!(self.peek.token(), Token::Underscore))
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
@@ -248,7 +247,7 @@ impl<'source> Parser<'source> {
                 }
             }
             Token::BigOp(op) => {
-                let target = if matches!(self.peek_token.0, Token::Limits) {
+                let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     Node::Operator(op, Some(OpAttr::NoMovableLimits))
                 } else {
@@ -268,7 +267,7 @@ impl<'source> Parser<'source> {
             }
             Token::Lim(lim) => {
                 let lim = Node::MultiLetterIdent(self.buffer.push_str(lim));
-                if matches!(self.peek_token.0, Token::Underscore) {
+                if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
@@ -286,31 +285,25 @@ impl<'source> Parser<'source> {
                 Node::Slashed(node)
             }
             Token::Not => {
-                match self.peek_token.0 {
+                // `\not` has to be followed by something:
+                let TokLoc(loc, token) = self.next_token();
+                match token {
                     Token::Operator(op) => {
-                        self.next_token(); // Discard the operator token.
                         if let Some(negated) = get_negated_op(op) {
                             Node::Operator(negated, None)
                         } else {
                             Node::Operator(op, None)
                         }
                     }
-                    Token::OpLessThan => {
-                        self.next_token(); // Discard the less-than token.
-                        Node::Operator(ops::NOT_LESS_THAN, None)
-                    }
-                    Token::OpGreaterThan => {
-                        self.next_token(); // Discard the greater-than token.
-                        Node::Operator(ops::NOT_GREATER_THAN, None)
-                    }
+                    Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
+                    Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
-                        self.next_token(); // Discard the letter token.
                         let negated_letter = [char, '\u{338}'];
                         Node::MultiLetterIdent(self.buffer.extend(negated_letter))
                     }
                     _ => {
                         return Err(LatexError::CannotBeUsedHere {
-                            got: (cur_token, loc),
+                            got: TokLoc(loc, token),
                             correct_place: "before supported operators",
                         })
                     }
@@ -341,7 +334,7 @@ impl<'source> Parser<'source> {
                 return Ok(node_ref);
             }
             Token::Integral(int) => {
-                if matches!(self.peek_token.0, Token::Limits) {
+                if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
@@ -364,7 +357,7 @@ impl<'source> Parser<'source> {
                     }
                 }
             }
-            Token::Colon => match &self.peek_token.0 {
+            Token::Colon => match &self.peek.token() {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
@@ -396,27 +389,29 @@ impl<'source> Parser<'source> {
                 Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
             }
             Token::Left => {
-                let open = match self.next_token() {
-                    (Token::Paren(open), _) => open,
-                    (Token::SquareBracketClose, _) => ops::RIGHT_SQUARE_BRACKET,
-                    (Token::Operator(ops::FULL_STOP), _) => ops::NULL,
-                    token => {
+                let next = self.next_token();
+                let open = match next.token() {
+                    Token::Paren(open) => *open,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Operator(ops::FULL_STOP) => ops::NULL,
+                    _ => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Left,
-                            got: token,
+                            got: next,
                         })
                     }
                 };
                 let content = self.parse_group(Token::Right)?;
                 self.next_token(); // Discard the closing token.
-                let close = match self.next_token() {
-                    (Token::Paren(close), _) => close,
-                    (Token::SquareBracketClose, _) => ops::RIGHT_SQUARE_BRACKET,
-                    (Token::Operator(ops::FULL_STOP), _) => ops::NULL,
-                    token => {
+                let next = self.next_token();
+                let close = match next.token() {
+                    Token::Paren(close) => *close,
+                    (Token::SquareBracketClose) => ops::RIGHT_SQUARE_BRACKET,
+                    (Token::Operator(ops::FULL_STOP)) => ops::NULL,
+                    _ => {
                         return Err(LatexError::MissingParenthesis {
                             location: Token::Right,
-                            got: token,
+                            got: next,
                         })
                     }
                 };
@@ -427,33 +422,42 @@ impl<'source> Parser<'source> {
                     style: None,
                 }
             }
-            Token::Middle => match self.next_token() {
-                (Token::Operator(op) | Token::Paren(op), _) => {
-                    Node::Operator(op, Some(OpAttr::StretchyTrue))
+            Token::Middle => {
+                let next = self.next_token();
+                match next.token() {
+                    (Token::Operator(op) | Token::Paren(op)) => {
+                        Node::Operator(*op, Some(OpAttr::StretchyTrue))
+                    }
+                    (Token::SquareBracketClose) => {
+                        Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
+                    }
+                    _ => {
+                        return Err(LatexError::UnexpectedToken {
+                            expected: Token::Operator(ops::NULL),
+                            got: next,
+                        })
+                    }
                 }
-                (Token::SquareBracketClose, _) => {
-                    Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
+            }
+            Token::Big(size) => {
+                let next = self.next_token();
+                match next.token() {
+                    (Token::Paren(paren)) => Node::SizedParen {
+                        size,
+                        paren: *paren,
+                    },
+                    (Token::SquareBracketClose) => Node::SizedParen {
+                        size,
+                        paren: ops::RIGHT_SQUARE_BRACKET,
+                    },
+                    got => {
+                        return Err(LatexError::UnexpectedToken {
+                            expected: Token::Paren(ops::NULL),
+                            got: next,
+                        });
+                    }
                 }
-                got => {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::Operator(ops::NULL),
-                        got,
-                    })
-                }
-            },
-            Token::Big(size) => match self.next_token() {
-                (Token::Paren(paren), _) => Node::SizedParen { size, paren },
-                (Token::SquareBracketClose, _) => Node::SizedParen {
-                    size,
-                    paren: ops::RIGHT_SQUARE_BRACKET,
-                },
-                got => {
-                    return Err(LatexError::UnexpectedToken {
-                        expected: Token::Paren(ops::NULL),
-                        got,
-                    });
-                }
-            },
+            }
             Token::Begin => {
                 self.check_lbrace()?;
                 // Read the environment name.
@@ -517,7 +521,7 @@ impl<'source> Parser<'source> {
                 let end = self.buffer.end();
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
-                if matches!(self.peek_token.0, Token::Whitespace) {
+                if matches!(self.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
                 Node::Text(StrReference::new(start, end))
@@ -535,7 +539,7 @@ impl<'source> Parser<'source> {
             // Token::Underscore | Token::Circumflex => {
             Token::Circumflex | Token::Prime => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: (cur_token, loc),
+                    got: TokLoc(loc, cur_token),
                     correct_place: "after an identifier or operator",
                 });
             }
@@ -544,15 +548,15 @@ impl<'source> Parser<'source> {
                 let base = self.parse_single_token()?;
                 Node::Multiscript { base, sub }
             }
-            Token::Limits => {
+            tok @ Token::Limits => {
                 return Err(LatexError::CannotBeUsedHere {
-                    got: (cur_token, loc),
+                    got: TokLoc(loc, tok),
                     correct_place: r"after \int, \sum, ...",
                 })
             }
             Token::EOF => return Err(LatexError::UnexpectedEOF),
-            Token::End | Token::Right | Token::GroupEnd => {
-                return Err(LatexError::UnexpectedClose(cur_token))
+            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
+                return Err(LatexError::UnexpectedClose(tok))
             }
         };
         Ok(self.commit_node(node))
@@ -561,13 +565,13 @@ impl<'source> Parser<'source> {
     #[inline]
     fn parse_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_node(token.0, token.1)
+        self.parse_node(token)
     }
 
     #[inline]
     fn parse_single_token(&mut self) -> Result<NodeReference, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_single_node(token.0, token.1)
+        self.parse_single_node(token)
     }
 
     /// Parse the contents of a group which can contain any expression.
@@ -577,13 +581,13 @@ impl<'source> Parser<'source> {
     ) -> Result<NodeListBuilder, LatexError<'source>> {
         let mut nodes = NodeListBuilder::new();
 
-        while !self.peek_token.0.is_same_kind(&end_token) {
-            let token = self.next_token();
-            if matches!(token.0, Token::EOF) {
+        while !self.peek.token().is_same_kind(&end_token) {
+            let next = self.next_token();
+            if matches!(next.token(), Token::EOF) {
                 // When the input ends without the closing token.
                 return Err(LatexError::UnclosedGroup(end_token));
             }
-            let node = self.parse_node(token.0, token.1)?;
+            let node = self.parse_node(next)?;
             nodes.push(&mut self.arena, node);
         }
         Ok(nodes)
@@ -608,7 +612,7 @@ impl<'source> Parser<'source> {
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
-        if !matches!(self.peek_token.0, Token::GroupBegin) {
+        if !matches!(self.peek.token(), Token::GroupBegin) {
             return Err(LatexError::UnexpectedToken {
                 expected: Token::GroupBegin,
                 got: self.next_token(),
@@ -621,21 +625,21 @@ impl<'source> Parser<'source> {
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds, LatexError<'source>> {
         let mut primes = NodeListBuilder::new();
-        while matches!(self.peek_token.0, Token::Prime) {
+        while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
             let node_ref = self.commit_node(Node::Operator(ops::PRIME, None));
             primes.push(&mut self.arena, node_ref);
         }
 
         // Check whether the first bound is specified and is a lower bound.
-        let first_underscore = matches!(self.peek_token.0, Token::Underscore);
+        let first_underscore = matches!(self.peek.token(), Token::Underscore);
 
-        let (sub, sup) = if first_underscore || matches!(self.peek_token.0, Token::Circumflex) {
+        let (sub, sup) = if first_underscore || matches!(self.peek.token(), Token::Circumflex) {
             let first_bound = Some(self.get_sub_or_sub()?);
 
             // Check whether both an upper and a lower bound were specified.
-            let second_underscore = matches!(self.peek_token.0, Token::Underscore);
-            let second_circumflex = matches!(self.peek_token.0, Token::Circumflex);
+            let second_underscore = matches!(self.peek.token(), Token::Underscore);
+            let second_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
             if (!first_underscore && second_circumflex) || (first_underscore && second_underscore) {
                 return Err(LatexError::CannotBeUsedHere {
@@ -677,17 +681,17 @@ impl<'source> Parser<'source> {
     /// Parse the node after a `_` or `^` token.
     fn get_sub_or_sub(&mut self) -> Result<NodeReference, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
-        let next_token = self.next_token();
+        let next = self.next_token();
         if matches!(
-            next_token.0,
+            next.token(),
             Token::Underscore | Token::Circumflex | Token::Prime
         ) {
             return Err(LatexError::CannotBeUsedHere {
-                got: next_token,
+                got: next,
                 correct_place: "after an identifier or operator",
             });
         }
-        self.parse_single_node(next_token.0, next_token.1)
+        self.parse_single_node(next)
     }
 
     fn squeeze(&mut self, list_builder: NodeListBuilder, style: Option<Style>) -> NodeReference {
