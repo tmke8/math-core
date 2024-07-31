@@ -2,6 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "}"
 ---
-UnexpectedClose(
-    GroupEnd,
+LatexError(
+    0,
+    UnexpectedClose(
+        GroupEnd,
+    ),
 )

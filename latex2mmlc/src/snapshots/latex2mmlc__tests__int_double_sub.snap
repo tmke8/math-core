@@ -2,7 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\int__3 x dx"
 ---
-CannotBeUsedHere {
-    got: Underscore,
-    correct_place: "after an identifier or operator",
-}
+LatexError(
+    5,
+    CannotBeUsedHere {
+        got: Underscore,
+        correct_place: AfterOpOrIdent,
+    },
+)

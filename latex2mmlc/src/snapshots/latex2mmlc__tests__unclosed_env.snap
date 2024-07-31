@@ -2,6 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin{matrix} x"
 ---
-UnclosedGroup(
-    End,
+LatexError(
+    16,
+    UnclosedGroup(
+        End,
+    ),
 )

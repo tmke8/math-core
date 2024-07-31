@@ -525,7 +525,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 
 pub fn get_command(command: &str) -> Token<'_> {
     match COMMANDS.get(command) {
-        Some(token) => token.clone(),
+        Some(token) => *token,
         None => Token::UnknownCommand(command),
     }
 }

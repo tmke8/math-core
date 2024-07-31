@@ -2,7 +2,10 @@
 source: latex2mmlc/src/lib.rs
 expression: x^_
 ---
-CannotBeUsedHere {
-    got: Underscore,
-    correct_place: "after an identifier or operator",
-}
+LatexError(
+    2,
+    CannotBeUsedHere {
+        got: Underscore,
+        correct_place: AfterOpOrIdent,
+    },
+)

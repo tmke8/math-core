@@ -2,6 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\operatorname{\\max}"
 ---
-ExpectedText(
-    "\\operatorname",
+LatexError(
+    0,
+    ExpectedText(
+        "\\operatorname",
+    ),
 )

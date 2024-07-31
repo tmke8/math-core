@@ -1,7 +1,10 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\é"
+expression: "\\éx"
 ---
-UnknownCommand(
-    "é",
+LatexError(
+    0,
+    UnknownCommand(
+        "é",
+    ),
 )

@@ -133,6 +133,8 @@ mod tests {
     fn full_tests() {
         let problems = [
             ("empty", r""),
+            ("only_whitespace", r"  "),
+            ("starts_with_whitespace", r"  x  "),
             ("text", r"\text{hi}xx"),
             ("text_multi_space", r"\text{x   y}"),
             ("text_no_braces", r"\text x"),

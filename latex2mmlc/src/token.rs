@@ -5,7 +5,7 @@ use strum_macros::AsRefStr;
 use crate::attribute::{FracAttr, Style, TextTransform};
 use crate::ops::Op;
 
-#[derive(Debug, Clone, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]
@@ -23,6 +23,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\right")]
     Right,
     Middle,
+    #[strum(serialize = "parenthesis")]
     Paren(Op),
     /// The closing square bracket has its own token because we often
     /// need to search for it.
@@ -40,7 +41,9 @@ pub enum Token<'source> {
     #[strum(serialize = "^")]
     Circumflex,
     Binom(Option<FracAttr>),
+    #[strum(serialize = r"\overset")]
     Overset,
+    #[strum(serialize = r"\underset")]
     Underset,
     Overbrace(Op),
     Underbrace(Op),
@@ -102,5 +105,30 @@ impl Token<'_> {
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
+    }
+}
+
+#[derive(Debug)]
+pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+
+impl<'source> TokLoc<'source> {
+    #[inline]
+    pub fn token(&self) -> &Token<'source> {
+        &self.1
+    }
+
+    #[inline]
+    pub fn into_token(self) -> Token<'source> {
+        self.1
+    }
+
+    // #[inline]
+    // pub fn token_mut(&mut self) -> &mut Token<'source> {
+    //     &mut self.1
+    // }
+
+    #[inline]
+    pub fn location(&self) -> usize {
+        self.0
     }
 }

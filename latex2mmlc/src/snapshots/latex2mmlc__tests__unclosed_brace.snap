@@ -2,6 +2,9 @@
 source: latex2mmlc/src/lib.rs
 expression: "{"
 ---
-UnclosedGroup(
-    GroupEnd,
+LatexError(
+    1,
+    UnclosedGroup(
+        GroupEnd,
+    ),
 )
