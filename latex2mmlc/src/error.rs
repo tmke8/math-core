@@ -143,41 +143,40 @@ impl GetUnwrap for str {
     }
 }
 
-// static mut ITOA_BUF: [u8; 20] = [0; 20];
+/* fn itoa(val: u64, buf: &mut [u8; 20]) -> &str {
+    let start = if val == 0 {
+        buf[19] = b'0';
+        19
+    } else {
+        let mut val = val;
+        let mut i = 20;
 
-// // #[no_panic]
-// fn itoa(val: u64) -> &'static str {
-//     if val == 0 {
-//         return "0";
-//     }
-//     let mut val = val;
-//     let base = 10;
-//     let digits = b"0123456789";
-//     let mut i = 20;
+        // The `i > 0` check is technically redundant but it allows the compiler to
+        // prove that `buf` is always validly indexed.
+        while val != 0 && i > 0 {
+            i -= 1;
+            buf[i] = (val % 10) as u8 + b'0';
+            val /= 10;
+        }
+        i
+    };
 
-//     while val != 0 && i > 0 {
-//         i -= 1;
-//         // let digit = unsafe { digits.get_unchecked((val % base) as usize) };
-//         let digit = digits[(val % base) as usize];
-//         unsafe { ITOA_BUF[i] = digit };
-//         val /= base;
-//     }
+    // This is safe because we know the buffer contains valid ASCII.
+    // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
+    unsafe { std::str::from_utf8_unchecked(&buf[start..]) }
+}
 
-//     let slice = unsafe { &ITOA_BUF[i..] };
-//     // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
-//     unsafe { std::str::from_utf8_unchecked(slice) }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn itoa_test() {
-//         assert_eq!(itoa(0), "0");
-//         assert_eq!(itoa(1), "1");
-//         assert_eq!(itoa(10), "10");
-//         assert_eq!(itoa(1234567890), "1234567890");
-//         assert_eq!(itoa(u64::MAX), "18446744073709551615");
-//     }
-// }
+    #[test]
+    fn itoa_test() {
+        let mut buf = [0u8; 20];
+        assert_eq!(itoa(0, &mut buf), "0");
+        assert_eq!(itoa(1, &mut buf), "1");
+        assert_eq!(itoa(10, &mut buf), "10");
+        assert_eq!(itoa(1234567890, &mut buf), "1234567890");
+        assert_eq!(itoa(u64::MAX, &mut buf), "18446744073709551615");
+    }
+} */
