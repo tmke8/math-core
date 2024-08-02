@@ -129,9 +129,15 @@ impl<'source> Node<'source> {
                 }
                 push!(s, @op, "</mo>");
             }
-            Node::OpGreaterThan => push!(s, "<mo>&gt;</mo>"),
-            Node::OpLessThan => push!(s, "<mo>&lt;</mo>"),
-            Node::OpAmpersand => push!(s, "<mo>&amp;</mo>"),
+            node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
+                let op = match node {
+                    Node::OpGreaterThan => "&gt;",
+                    Node::OpLessThan => "&lt;",
+                    Node::OpAmpersand => "&amp;",
+                    _ => unreachable!(),
+                };
+                push!(s, "<mo>", op, "</mo>");
+            }
             Node::OperatorWithSpacing { op, left, right } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
