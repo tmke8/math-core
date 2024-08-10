@@ -123,6 +123,7 @@ impl Buffer {
         }
     }
 
+    #[inline]
     pub fn extend<I: IntoIterator<Item = char>>(&mut self, iter: I) -> StrReference {
         let start = self.end();
         self.buffer.extend(iter);
@@ -131,19 +132,28 @@ impl Buffer {
     }
 
     /// Copy the contents of the given reference to the end of the buffer.
+    ///
+    /// If the given reference is invalid, this function will panic.
+    /// However, on WASM, this function will instead do nothing.
     pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
         let start = self.end();
         #[cfg(not(target_arch = "wasm32"))]
         {
             assert!(self.buffer.is_char_boundary(reference.0 .0));
             assert!(self.buffer.is_char_boundary(reference.1 .0));
+            assert!(reference.0 .0 <= reference.1 .0);
+            assert!(reference.1 .0 <= self.buffer.len());
         }
         // SAFETY: the bounds have been checked above
         unsafe {
-            // TODO: Rewrite it such that this cannot panic.
-            self.buffer
-                .as_mut_vec()
-                .extend_from_within(reference.0 .0..reference.1 .0);
+            let begin = reference.0 .0;
+            let end = reference.1 .0;
+            let as_vec = self.buffer.as_mut_vec();
+            // The following conditions should always hold true, but we check them
+            // so that the compiler knows that this cannot panic.
+            if begin <= end && begin < as_vec.len() && end <= as_vec.len() {
+                as_vec.extend_from_within(begin..end);
+            }
         }
         let end = self.end();
         StrReference(start, end)
