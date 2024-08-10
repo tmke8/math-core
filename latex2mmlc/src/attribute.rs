@@ -70,10 +70,10 @@ pub enum MathSpacing {
     FourMu, // 4/18 of an em/\quad
 }
 
-/// <mi> mathvariant attribute
+// Transform of unicode characters.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TextTransform {
-    Bold,
+    Bold = 1,
     BoldFraktur,
     BoldItalic,
     BoldSansSerif,

@@ -97,7 +97,12 @@ impl<'source> Parser<'source> {
     ) -> Result<NodeReference, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
-            Token::Number(number) => Node::Number(number),
+            Token::Number(number) => match self.tf {
+                Some(tf) => Node::MultiLetterIdent(
+                    self.buffer.extend(number.chars().map(|c| tf.transform(c))),
+                ),
+                None => Node::Number(number),
+            },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let op = match tok {
                     Token::NumberWithDot(_) => ops::FULL_STOP,
@@ -525,15 +530,15 @@ impl<'source> Parser<'source> {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?.as_node(&self.arena);
                 let start = self.buffer.end();
-                extract_letters(&self.arena, &mut self.buffer, node)?;
+                extract_letters(&self.arena, &mut self.buffer, node, None)?;
                 let end = self.buffer.end();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
-            Token::Text => {
+            Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?.as_node(&self.arena);
                 let start = self.buffer.end();
-                extract_letters(&self.arena, &mut self.buffer, node)?;
+                extract_letters(&self.arena, &mut self.buffer, node, transform)?;
                 let end = self.buffer.end();
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
@@ -793,25 +798,28 @@ fn extract_letters<'source>(
     arena: &Arena<'source>,
     buffer: &mut Buffer,
     node: &Node<'source>,
+    transform: Option<TextTransform>,
 ) -> Result<(), LatexError<'source>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.push(*c);
+            buffer.push(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
         Node::Row(nodes, _) => {
             for node in nodes.iter(arena) {
-                extract_letters(arena, buffer, node)?;
+                extract_letters(arena, buffer, node, transform)?;
             }
         }
         Node::Number(n) => {
-            buffer.push_str(n);
+            match transform {
+                Some(tf) => buffer.extend(n.chars().map(|c| tf.transform(c))),
+                None => buffer.push_str(n),
+            };
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push(op.into());
         }
         Node::Text(str_ref) => {
-            let string = str_ref.as_str(buffer).to_string();
-            buffer.push_str(string.as_str());
+            buffer.extend_from_within(str_ref);
         }
         _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }

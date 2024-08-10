@@ -85,8 +85,8 @@ pub enum Token<'source> {
     Slashed,
     #[strum(serialize = r"\not")]
     Not,
-    #[strum(serialize = r"\text")]
-    Text,
+    #[strum(serialize = r"\text*")]
+    Text(Option<TextTransform>),
     #[strum(serialize = r"\mathstrut")]
     Mathstrut,
     Style(Style),
