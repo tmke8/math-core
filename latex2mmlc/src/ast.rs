@@ -276,10 +276,16 @@ impl<'source> Node<'source> {
                     None => push!(s, "<mrow>"),
                 }
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
-                push!(s, @open, "</mo>");
+                if char::from(open) != '\0' {
+                    push!(s, @open);
+                }
+                push!(s, "</mo>");
                 content.as_node(a).emit(s, a, b, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
-                push!(s, @close, "</mo>");
+                if char::from(close) != '\0' {
+                    push!(s, @close);
+                }
+                push!(s, "</mo>");
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
