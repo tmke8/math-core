@@ -1,8 +1,9 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\mathbf{1234.}"
+expression: 4.x
 ---
 <math>
-    <mi>𝟏𝟐𝟑𝟒</mi>
+    <mn>4</mn>
     <mi>.</mi>
+    <mi>x</mi>
 </math>

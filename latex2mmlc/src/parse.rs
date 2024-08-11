@@ -102,17 +102,16 @@ impl<'source> Parser<'source> {
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
-                let op = match tok {
-                    Token::NumberWithDot(_) => ops::FULL_STOP,
-                    Token::NumberWithComma(_) => ops::COMMA,
-                    _ => unreachable!(),
-                };
-                let first = match self.tf {
+                let num = match self.tf {
                     Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
                     None => Node::Number(number),
                 };
-                let first = self.commit_node(first);
-                let second = self.commit_node(Node::Operator(op, None));
+                let first = self.commit_node(num);
+                let second = self.commit_node(match tok {
+                    Token::NumberWithDot(_) => Node::SingleLetterIdent('.', None),
+                    Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
+                    _ => unreachable!(),
+                });
                 Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
             Token::Letter(x) => {
@@ -402,7 +401,7 @@ impl<'source> Parser<'source> {
                 let open = match next_token {
                     Token::Paren(open) => open,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Operator(ops::FULL_STOP) => ops::NULL,
+                    Token::Letter('.') => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -419,7 +418,7 @@ impl<'source> Parser<'source> {
                 let close = match next_token {
                     Token::Paren(close) => close,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Operator(ops::FULL_STOP) => ops::NULL,
+                    Token::Letter('.') => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
