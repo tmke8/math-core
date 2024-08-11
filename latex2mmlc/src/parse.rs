@@ -98,9 +98,7 @@ impl<'source> Parser<'source> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => Node::MultiLetterIdent(
-                    self.buffer.extend(number.chars().map(|c| tf.transform(c))),
-                ),
+                Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
@@ -109,7 +107,11 @@ impl<'source> Parser<'source> {
                     Token::NumberWithComma(_) => ops::COMMA,
                     _ => unreachable!(),
                 };
-                let first = self.commit_node(Node::Number(number));
+                let first = match self.tf {
+                    Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
+                    None => Node::Number(number),
+                };
+                let first = self.commit_node(first);
                 let second = self.commit_node(Node::Operator(op, None));
                 Node::PseudoRow(NodeList::from_two_nodes(&mut self.arena, first, second))
             }
@@ -804,14 +806,14 @@ fn extract_letters<'source>(
         Node::SingleLetterIdent(c, _) => {
             buffer.push(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
-        Node::Row(nodes, _) => {
+        Node::Row(nodes, _) | Node::PseudoRow(nodes) => {
             for node in nodes.iter(arena) {
                 extract_letters(arena, buffer, node, transform)?;
             }
         }
         Node::Number(n) => {
             match transform {
-                Some(tf) => buffer.extend(n.chars().map(|c| tf.transform(c))),
+                Some(tf) => buffer.transform_and_push(n, tf),
                 None => buffer.push_str(n),
             };
         }

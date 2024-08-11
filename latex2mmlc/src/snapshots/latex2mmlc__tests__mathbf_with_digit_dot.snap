@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathbf{1234.}"
+---
+<math>
+    <mi>𝟏𝟐𝟑𝟒</mi>
+    <mo>.</mo>
+</math>
