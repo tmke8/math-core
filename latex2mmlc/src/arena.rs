@@ -1,4 +1,5 @@
 use crate::ast::Node;
+use crate::attribute::TextTransform;
 use crate::error::{ExpectOptim, GetUnwrap};
 use core::num::NonZero;
 
@@ -157,6 +158,10 @@ impl Buffer {
         }
         let end = self.end();
         StrReference(start, end)
+    }
+
+    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
+        self.extend(input.chars().map(|c| tf.transform(c)))
     }
 
     pub fn push_str(&mut self, string: &str) -> StrReference {
