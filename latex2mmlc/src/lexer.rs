@@ -155,7 +155,8 @@ impl<'source> Lexer<'source> {
             '=' => Token::Operator(ops::EQUALS_SIGN),
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
-            '.' => Token::Operator(ops::FULL_STOP),
+            '.' => Token::Letter('.'), // The MathML Core spec says this should be an operator, but
+            // that leads to the wrong rendering.
             '\'' => Token::Prime,
             '(' => Token::Paren(ops::LEFT_PARENTHESIS),
             ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
@@ -230,7 +231,7 @@ mod tests {
                 r"3..14",
                 vec![
                     Token::NumberWithDot("3"),
-                    Token::Operator(ops::FULL_STOP),
+                    Token::Letter('.'),
                     Token::Number("14"),
                 ],
             ),
