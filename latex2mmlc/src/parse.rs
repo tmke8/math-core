@@ -68,29 +68,34 @@ impl<'source> Parser<'source> {
         &mut self,
         cur_tokloc: TokLoc<'source>,
     ) -> Result<NodeReference, LatexError<'source>> {
-        let left = self.parse_single_node(cur_tokloc)?;
+        let target = self.parse_single_node(cur_tokloc)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup {
-                target: left,
-                sub,
-                sup,
-            })),
-            Bounds(Some(symbol), None) => Ok(self.commit_node(Node::Subscript(left, symbol))),
-            Bounds(None, Some(symbol)) => Ok(self.commit_node(Node::Superscript(left, symbol))),
-            Bounds(None, None) => Ok(left),
+            Bounds(Some(sub), Some(sup)) => Ok(self.commit_node(Node::SubSup { target, sub, sup })),
+            Bounds(Some(symbol), None) => Ok(self.commit_node(Node::Subscript { target, symbol })),
+            Bounds(None, Some(symbol)) => {
+                Ok(self.commit_node(Node::Superscript { target, symbol }))
+            }
+            Bounds(None, None) => Ok(target),
         }
     }
 
+    /// Put the node onto the heap in the arena and return a reference to it.
+    ///
+    /// The advantage over using `Box` is that we can store the nodes in a contiguous
+    /// memory block, and release all of them at once when the arena is dropped.
+    ///
+    /// Ideally, the node is constructed directly on the heap, so try to avoid
+    /// constructing it on the stack and then moving it to the heap.
     fn commit_node(&mut self, node: Node<'source>) -> NodeReference {
         self.arena.push(node)
     }
 
-    // Read the node immediately after without worrying about whether
-    // the infix operator `_`, `^`, `'` will continue
-    //
-    // Note: Use `parse_node()` when reading nodes correctly in
-    // consideration of infix operators.
+    /// Read the node immediately after without worrying about whether
+    /// the infix operator `_`, `^`, `'` will continue
+    ///
+    /// Use this function only if you are sure that this is what you need.
+    /// Otherwise, use `parse_node` instead.
     fn parse_single_node(
         &mut self,
         cur_tokloc: TokLoc<'source>,
@@ -146,11 +151,15 @@ impl<'source> Parser<'source> {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let inner = Node::Frac(numerator, denominator, Some('0'), displaystyle);
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: self.commit_node(inner),
+                        content: self.commit_node(Node::Frac(
+                            numerator,
+                            denominator,
+                            Some('0'),
+                            displaystyle,
+                        )),
                         style: None,
                     }
                 } else {
@@ -195,8 +204,8 @@ impl<'source> Parser<'source> {
                 };
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
-                let inner = Node::Frac(numerator, denominator, line_thickness, None);
-                let content = self.commit_node(inner);
+                let content =
+                    self.commit_node(Node::Frac(numerator, denominator, line_thickness, None));
                 Node::Fenced {
                     open,
                     close,
@@ -255,11 +264,10 @@ impl<'source> Parser<'source> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    Node::Operator(op, Some(OpAttr::NoMovableLimits))
+                    self.commit_node(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
                 } else {
-                    Node::Operator(op, None)
+                    self.commit_node(Node::Operator(op, None))
                 };
-                let target = self.commit_node(target);
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -268,26 +276,30 @@ impl<'source> Parser<'source> {
                     },
                     Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                     Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                    Bounds(None, None) => Node::Operator(op, None),
+                    Bounds(None, None) => {
+                        return Ok(target);
+                    }
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(self.buffer.push_str(lim));
+                let lim_name = self.buffer.push_str(lim);
+                let lim = self.commit_node(Node::MultiLetterIdent(lim_name));
                 if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: self.commit_node(lim),
+                        target: lim,
                         symbol: under,
                     }
                 } else {
-                    lim
+                    return Ok(lim);
                 }
             }
             Token::Slashed => {
-                self.next_token(); // Optimistically skip the next token.
+                // TODO: Actually check the braces.
+                self.next_token(); // Optimistically assume that the next token is `{`
                 let node = self.parse_token()?;
-                self.next_token(); // Optimistically skip the next token.
+                self.next_token(); // Optimistically assume that the next token is `}`
                 Node::Slashed(node)
             }
             Token::Not => {
@@ -353,15 +365,19 @@ impl<'source> Parser<'source> {
                         },
                         Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                         Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                        Bounds(None, None) => Node::Operator(int, None),
+                        Bounds(None, None) => {
+                            return Ok(target);
+                        }
                     }
                 } else {
                     let target = self.commit_node(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                        Bounds(Some(symbol), None) => Node::Subscript(target, symbol),
-                        Bounds(None, Some(symbol)) => Node::Superscript(target, symbol),
-                        Bounds(None, None) => Node::Operator(int, None),
+                        Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
+                        Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+                        Bounds(None, None) => {
+                            return Ok(target);
+                        }
                     }
                 }
             }
@@ -484,17 +500,17 @@ impl<'source> Parser<'source> {
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
                     "cases" => {
-                        let content = Node::Table(env_content, Align::Left);
+                        let content = self.commit_node(Node::Table(env_content, Align::Left));
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
-                            content: self.commit_node(content),
+                            content,
                             style: None,
                         }
                     }
                     "matrix" => Node::Table(env_content, Align::Center),
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = Node::Table(env_content, Align::Center);
+                        let content = self.commit_node(Node::Table(env_content, Align::Center));
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -505,7 +521,7 @@ impl<'source> Parser<'source> {
                         Node::Fenced {
                             open,
                             close,
-                            content: self.commit_node(content),
+                            content,
                             style: None,
                         }
                     }

@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sum\\limits n"
+---
+<math>
+    <mo movablelimits="false">∑</mo>
+    <mi>n</mi>
+</math>
