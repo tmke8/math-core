@@ -203,6 +203,7 @@ mod tests {
             ("black_board_font", r"\mathbb{R}"),
             ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
             ("sum_with_limit", r"\sum\limits_{i=1}^N"),
+            ("sum_pointless_limits", r"\sum\limits n"),
             ("product", r"\prod_n n"),
             ("underscore", r"x\ y"),
             ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),

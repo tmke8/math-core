@@ -18,8 +18,14 @@ pub enum Node<'source> {
     },
     MultiLetterIdent(StrReference),
     Space(&'static str),
-    Subscript(NodeReference, NodeReference),
-    Superscript(NodeReference, NodeReference),
+    Subscript {
+        target: NodeReference,
+        symbol: NodeReference,
+    },
+    Superscript {
+        target: NodeReference,
+        symbol: NodeReference,
+    },
     SubSup {
         target: NodeReference,
         sub: NodeReference,
@@ -158,8 +164,14 @@ impl<'source> Node<'source> {
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
-            node @ (Node::Subscript(first, second)
-            | Node::Superscript(first, second)
+            node @ (Node::Subscript {
+                symbol: second,
+                target: first,
+            }
+            | Node::Superscript {
+                symbol: second,
+                target: first,
+            }
             | Node::Overset {
                 symbol: second,
                 target: first,
@@ -170,8 +182,8 @@ impl<'source> Node<'source> {
             }
             | Node::Root(second, first)) => {
                 let (open, close) = match node {
-                    Node::Subscript(_, _) => ("<msub>", "</msub>"),
-                    Node::Superscript(_, _) => ("<msup>", "</msup>"),
+                    Node::Subscript { .. } => ("<msub>", "</msub>"),
+                    Node::Superscript { .. } => ("<msup>", "</msup>"),
                     Node::Overset { .. } => ("<mover>", "</mover>"),
                     Node::Underset { .. } => ("<munder>", "</munder>"),
                     Node::Root(_, _) => ("<mroot>", "</mroot>"),
