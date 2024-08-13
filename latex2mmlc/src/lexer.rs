@@ -8,6 +8,7 @@ use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
 
+use crate::attribute::ParenAttr;
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
 use crate::token::TokLoc;
@@ -155,20 +156,17 @@ impl<'source> Lexer<'source> {
             '=' => Token::Operator(ops::EQUALS_SIGN),
             ';' => Token::Operator(ops::SEMICOLON),
             ',' => Token::Operator(ops::COMMA),
-            '.' => Token::Letter('.'), // The MathML Core spec says this should be an operator, but
-            // that leads to the wrong rendering.
             '\'' => Token::Prime,
-            '(' => Token::Paren(ops::LEFT_PARENTHESIS),
-            ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
+            '(' => Token::Paren(ops::LEFT_PARENTHESIS, None),
+            ')' => Token::Paren(ops::RIGHT_PARENTHESIS, None),
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
-            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET),
+            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET, None),
             ']' => Token::SquareBracketClose,
-            '|' => Token::Paren(ops::VERTICAL_LINE),
+            '|' => Token::Paren(ops::VERTICAL_LINE, Some(ParenAttr::Ordinary)),
             '+' => Token::Operator(ops::PLUS_SIGN),
             '-' => Token::Operator(ops::MINUS_SIGN),
             '*' => Token::Operator(ops::ASTERISK),
-            '/' => Token::Operator(ops::SOLIDUS),
             '!' => Token::Operator(ops::EXCLAMATION_MARK),
             '<' => Token::OpLessThan,
             '>' => Token::OpGreaterThan,
@@ -190,7 +188,11 @@ impl<'source> Lexer<'source> {
             c => {
                 if c.is_ascii_digit() {
                     self.read_number(loc)
-                } else if c.is_ascii_alphabetic() {
+                } else if c.is_ascii_graphic() {
+                    // Some symbols like '.' and '/' are considered operators by the MathML Core spec,
+                    // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).
+                    // One might think that they could be rendered as `<mo>` with custom spacing,
+                    // but then they still interact with other operators in ways that are not correct.
                     Token::Letter(c)
                 } else {
                     Token::NormalLetter(c)

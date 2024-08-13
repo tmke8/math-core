@@ -32,6 +32,13 @@ pub enum OpAttr {
     NoMovableLimits,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ParenAttr {
+    /// The parenthesis behaves like a normal identifier
+    /// (which is different from an operator with reduced spacing!)
+    Ordinary = 1,
+}
+
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum FracAttr {
@@ -62,7 +69,7 @@ pub enum Align {
     Alternating,
 }
 
-#[derive(Debug, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum MathSpacing {
     #[strum(serialize = "0em")]
     Zero = 1,
