@@ -6,8 +6,9 @@ use crate::{
         StrReference,
     },
     ast::Node,
-    attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
+    attribute::{Accent, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
     commands::get_negated_op,
+    env::parse_env,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     ops,
@@ -494,38 +495,7 @@ impl<'source> Parser<'source> {
                 let env_name = self.parse_text_group()?;
                 let env_content = self.parse_group(Token::End)?.finish();
                 let end_token_loc = self.next_token().location();
-                let node = match env_name {
-                    "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
-                    "cases" => {
-                        let content = self.commit(Node::Table(env_content, Align::Left));
-                        Node::Fenced {
-                            open: ops::LEFT_CURLY_BRACKET,
-                            close: ops::NULL,
-                            content,
-                            style: None,
-                        }
-                    }
-                    "matrix" => Node::Table(env_content, Align::Center),
-                    matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = self.commit(Node::Table(env_content, Align::Center));
-                        let (open, close) = match matrix_variant {
-                            "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
-                            "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
-                            "vmatrix" => (ops::VERTICAL_LINE, ops::VERTICAL_LINE),
-                            // SAFETY: `matrix_variant` is one of the three strings above.
-                            _ => unsafe { std::hint::unreachable_unchecked() },
-                        };
-                        Node::Fenced {
-                            open,
-                            close,
-                            content,
-                            style: None,
-                        }
-                    }
-                    _ => {
-                        return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
-                    }
-                };
+		let node = parse_env(&mut self.arena, env_name, env_content, loc)?;
                 self.check_lbrace()?;
                 let end_name = self.parse_text_group()?;
                 if end_name != env_name {
@@ -537,8 +507,7 @@ impl<'source> Parser<'source> {
                         },
                     ));
                 }
-
-                node
+		node
             }
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.

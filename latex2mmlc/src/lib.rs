@@ -52,6 +52,7 @@ pub mod ast;
 pub mod attribute;
 pub(crate) mod commands;
 mod error;
+mod env;
 pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
