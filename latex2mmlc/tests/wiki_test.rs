@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use similar::{ChangeTag, TextDiff};
+// use similar::{ChangeTag, TextDiff};
 
 use latex2mmlc::{latex_to_mathml, Display};
 
@@ -235,18 +235,18 @@ fn wiki_test() {
         match mathml {
             Ok(mathml) => {
                 if mathml != correct {
-                    println!("latex: {}", latex);
-                    let mathml = prettify(&mathml);
-                    let correct = prettify(correct);
-                    let diff = TextDiff::from_lines(&mathml, &correct);
-                    for change in diff.iter_all_changes() {
-                        let sign = match change.tag() {
-                            ChangeTag::Delete => "-",
-                            ChangeTag::Insert => "+",
-                            ChangeTag::Equal => " ",
-                        };
-                        print!("{}{}", sign, change);
-                    }
+                    // println!("latex: {}", latex);
+                    // let mathml = prettify(&mathml);
+                    // let correct = prettify(correct);
+                    // let diff = TextDiff::from_lines(&mathml, &correct);
+                    // for change in diff.iter_all_changes() {
+                    //     let sign = match change.tag() {
+                    //         ChangeTag::Delete => "-",
+                    //         ChangeTag::Insert => "+",
+                    //         ChangeTag::Equal => " ",
+                    //     };
+                    //     print!("{}{}", sign, change);
+                    // }
                     n_diff += 1;
                 } else {
                     n_match += 1;
