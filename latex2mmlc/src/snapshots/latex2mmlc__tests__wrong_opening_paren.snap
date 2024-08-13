@@ -10,6 +10,7 @@ LatexError(
             Op(
                 '[',
             ),
+            None,
         ),
     },
 )

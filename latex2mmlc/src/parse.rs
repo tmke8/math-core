@@ -6,7 +6,7 @@ use crate::{
         StrReference,
     },
     ast::Node,
-    attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, Style, TextTransform},
+    attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
@@ -135,7 +135,7 @@ impl<'source> Parser<'source> {
             }
             Token::Sqrt => {
                 let next = self.next_token();
-                if matches!(next.token(), Token::Paren(ops::LEFT_SQUARE_BRACKET)) {
+                if matches!(next.token(), Token::Paren(ops::LEFT_SQUARE_BRACKET, None)) {
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
@@ -405,14 +405,17 @@ impl<'source> Parser<'source> {
                 self.next_token(); // Discard the closing token.
                 return Ok(self.squeeze(content, None));
             }
-            Token::Paren(paren) => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
+            Token::Paren(paren, spacing) => match spacing {
+                Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), None),
+                None => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
+            },
             Token::SquareBracketClose => {
                 Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
             }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open = match next_token {
-                    Token::Paren(open) => open,
+                    Token::Paren(open, _) => open,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter('.') => ops::NULL,
                     _ => {
@@ -429,7 +432,7 @@ impl<'source> Parser<'source> {
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close = match next_token {
-                    Token::Paren(close) => close,
+                    Token::Paren(close, _) => close,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter('.') => ops::NULL,
                     _ => {
@@ -452,7 +455,7 @@ impl<'source> Parser<'source> {
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
                 match next_token {
-                    Token::Operator(op) | Token::Paren(op) => {
+                    Token::Operator(op) | Token::Paren(op, _) => {
                         Node::Operator(op, Some(OpAttr::StretchyTrue))
                     }
                     Token::SquareBracketClose => {
@@ -472,7 +475,7 @@ impl<'source> Parser<'source> {
             Token::Big(size) => {
                 let TokLoc(loc, next_token) = self.next_token();
                 match next_token {
-                    Token::Paren(paren) => Node::SizedParen { size, paren },
+                    Token::Paren(paren, _) => Node::SizedParen { size, paren },
                     Token::SquareBracketClose => Node::SizedParen {
                         size,
                         paren: ops::RIGHT_SQUARE_BRACKET,
@@ -481,7 +484,7 @@ impl<'source> Parser<'source> {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Paren(ops::NULL),
+                                expected: &Token::Paren(ops::NULL, None),
                                 got: next_token,
                             },
                         ));

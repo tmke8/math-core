@@ -1,0 +1,9 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\%\\$\\#"
+---
+<math>
+    <mi>%</mi>
+    <mi>$</mi>
+    <mi>#</mi>
+</math>

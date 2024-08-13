@@ -269,6 +269,9 @@ mod tests {
             ("prime_command_braces", r"f^{\prime}"),
             ("transform_group", r"\mathit{a{bc}d}"),
             ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
+            ("vertical_line", r"P(x|y)"),
+            ("mid", r"P(x\mid y)"),
+            ("special_symbols", r"\%\$\#"),
         ];
 
         for (name, problem) in problems.into_iter() {
