@@ -1,0 +1,21 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\doteq, \\doteqdot, \\overset{\\underset{\\mathrm{def}}{}}{=}, :="
+---
+<math>
+    <mo>≐</mo>
+    <mo>,</mo>
+    <mo>≑</mo>
+    <mo>,</mo>
+    <mover>
+        <mo>=</mo>
+        <munder>
+            <mrow>
+            </mrow>
+            <mi>def</mi>
+        </munder>
+    </mover>
+    <mo>,</mo>
+    <mo lspace="0.2222em" rspace="0em">:</mo>
+    <mo lspace="0em">=</mo>
+</math>

@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\curvearrowright \\circlearrowright \\Rsh \\downdownarrows \\leftleftarrows \\leftrightarrows \\leftarrowtail \\looparrowleft"
+---
+<math>
+    <mo>↷</mo>
+    <mo>↻</mo>
+    <mo>↱</mo>
+    <mo>⇊</mo>
+    <mo>⇇</mo>
+    <mo>⇆</mo>
+    <mo>↢</mo>
+    <mo>↫</mo>
+</math>

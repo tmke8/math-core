@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\oplus, \\ominus, \\otimes, \\oslash, \\odot"
+---
+<math>
+    <mo>⊕</mo>
+    <mo>,</mo>
+    <mo>⊖</mo>
+    <mo>,</mo>
+    <mo>⊗</mo>
+    <mo>,</mo>
+    <mo>⊘</mo>
+    <mo>,</mo>
+    <mo>⊙</mo>
+</math>

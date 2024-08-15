@@ -1,0 +1,16 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\left . \\frac{A}{B} \\right \\} \\to X"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix"></mo>
+        <mfrac>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mfrac>
+        <mo stretchy="true" form="postfix">}</mo>
+    </mrow>
+    <mo>→</mo>
+    <mi>X</mi>
+</math>

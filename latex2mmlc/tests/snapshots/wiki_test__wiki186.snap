@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\text{x y z}"
+---
+<math>
+    <mtext>x y z</mtext>
+</math>

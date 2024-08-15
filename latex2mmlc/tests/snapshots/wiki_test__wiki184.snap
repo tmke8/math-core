@@ -1,0 +1,9 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "{\\scriptstyle\\text{abcdefghijklm}}"
+---
+<math>
+    <mrow displaystyle="false" scriptlevel="1">
+        <mtext>abcdefghijklm</mtext>
+    </mrow>
+</math>

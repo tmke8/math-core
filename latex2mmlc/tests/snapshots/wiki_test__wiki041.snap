@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\cup, \\Cup, \\sqcup, \\bigcup, \\bigsqcup, \\uplus, \\biguplus"
+---
+<math>
+    <mo>∪</mo>
+    <mo>,</mo>
+    <mo>⋓</mo>
+    <mo>,</mo>
+    <mo>⊔</mo>
+    <mo>,</mo>
+    <mo>⋃</mo>
+    <mo>,</mo>
+    <mo>⨆</mo>
+    <mo>,</mo>
+    <mo>⊎</mo>
+    <mo>,</mo>
+    <mo>⨄</mo>
+</math>

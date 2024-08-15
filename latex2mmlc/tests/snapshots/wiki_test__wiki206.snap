@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: α π
+---
+<math>
+    <mi mathvariant="normal">α</mi>
+    <mi mathvariant="normal">π</mi>
+</math>

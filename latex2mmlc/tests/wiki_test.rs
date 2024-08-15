@@ -1,3 +1,4 @@
+use insta::assert_snapshot;
 use lazy_static::lazy_static;
 use regex::Regex;
 // use similar::{ChangeTag, TextDiff};
@@ -229,7 +230,7 @@ fn wiki_test() {
     let mut n_match = 0usize;
     let mut n_diff = 0usize;
     let mut n_fail = 0usize;
-    for (latex, correct) in problems.into_iter() {
+    for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
         let mathml = latex_to_mathml(&with_row, Display::Inline, false);
         match mathml {
@@ -255,12 +256,13 @@ fn wiki_test() {
             Err(_e) => {
                 // println!("latex: {}", latex);
                 // println!("error: {}", e);
+                println!("fail: {}", i);
                 n_fail += 1;
             }
         }
     }
-    assert_eq!(n_match, 7);
-    assert_eq!(n_diff, 129);
+    assert_eq!(n_match, 8);
+    assert_eq!(n_diff, 128);
     assert_eq!(n_fail, 82);
 }
 
@@ -297,4 +299,376 @@ pub fn prettify(input: &str) -> String {
     }
 
     stage2.join("\n")
+}
+
+#[test]
+fn test_nonfailing_wiki_tests() {
+    let problems = [
+        (0, r"\alpha"),
+        (1, r"f(x) = x^2"),
+        (2, r"\{1,e,\pi\}"),
+        (3, r"|z + 1| \leq 2"),
+        (4, r"\# \$ \% \wedge \& \_ \{ \} \sim \backslash"),
+        (5, r"\dot{a}, \ddot{a}, \acute{a}, \grave{a}"),
+        (6, r"\dot{a}, \ddot{a}, \acute{a}, \grave{a}"),
+        (7, r"\check{a}, \breve{a}, \tilde{a}, \bar{a}"),
+        (8, r"\hat{a}, \widehat{a}, \vec{a}"),
+        (9, r"\exp_a b = a^b, \exp b = e^b, 10^m"),
+        // (10, r"\ln c, \lg d = \log e, \log_{10} f"),
+        (11, r"\sin a, \cos b, \tan c, \cot d, \sec e, \csc f"),
+        (12, r"\arcsin h, \arccos i, \arctan j"),
+        (13, r"\sinh k, \cosh l, \tanh m, \coth n"),
+        (
+            14,
+            r"\operatorname{sh}k, \operatorname{ch}l, \operatorname{th}m, \operatorname{coth}n",
+        ),
+        // (15, r"\sgn r, \left\vert s \right\vert"),
+        (16, r"\min(x,y), \max(x,y)"),
+        (17, r"\min x, \max y, \inf s, \sup t"),
+        (18, r"\lim u, \liminf v, \limsup w"),
+        // (19, r"\dim p, \deg q, \det m, \ker\phi"),
+        // (20, r"\Pr j, \hom l, \lVert z \rVert, \arg z"),
+        (21, r"dt, \mathrm{d}t, \partial t, \nabla\psi"),
+        (
+            22,
+            r"dy/dx, \mathrm{d}y/\mathrm{d}x, \frac{dy}{dx}, \frac{\mathrm{d}y}{\mathrm{d}x}, \frac{\partial^2} {\partial x_1\partial x_2}y",
+        ),
+        // (23, r"\prime, \backprime, f^\prime, f', f'', f^{(3)}, \dot y, \ddot y"),
+        // (24, r"\infty, \aleph, \complement,\backepsilon, \eth, \Finv, \hbar"),
+        // (25, r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA"),
+        // (26, r"s_k \equiv 0 \pmod{m}"),
+        // (27, r"a \bmod b"),
+        // (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
+        // (29, r"\mid, \nmid, \shortmid, \nshortmid"),
+        // (30, r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}"),
+        (31, r"+, -, \pm, \mp, \dotplus"),
+        (32, r"\times, \div, \divideontimes, /, \backslash"),
+        (33, r"\cdot, * \ast, \star, \circ, \bullet"),
+        (34, r"\boxplus, \boxminus, \boxtimes, \boxdot"),
+        (35, r"\oplus, \ominus, \otimes, \oslash, \odot"),
+        (36, r"\circleddash, \circledcirc, \circledast"),
+        // (37, r"\bigoplus, \bigotimes, \bigodot"),
+        // (38, r"\{ \}, \O \empty \emptyset, \varnothing"),
+        (39, r"\in, \notin \not\in, \ni, \not\ni"),
+        (40, r"\cap, \Cap, \sqcap, \bigcap"),
+        (
+            41,
+            r"\cup, \Cup, \sqcup, \bigcup, \bigsqcup, \uplus, \biguplus",
+        ),
+        (42, r"\setminus, \smallsetminus, \times"),
+        // (43, r"\subset, \Subset, \sqsubset"),
+        // (44, r"\supset, \Supset, \sqsupset"),
+        // (45, r"\subseteq, \nsubseteq, \subsetneq, \varsubsetneq, \sqsubseteq"),
+        // (46, r"\supseteq, \nsupseteq, \supsetneq, \varsupsetneq, \sqsupseteq"),
+        // (47, r"\subseteqq, \nsubseteqq, \subsetneqq, \varsubsetneqq"),
+        // (48, r"\supseteqq, \nsupseteqq, \supsetneqq, \varsupsetneqq"),
+        (49, r"=, \ne, \neq, \equiv, \not\equiv"),
+        (
+            50,
+            r"\doteq, \doteqdot, \overset{\underset{\mathrm{def}}{}}{=}, :=",
+        ),
+        // (51, r"\sim, \nsim, \backsim, \thicksim, \simeq, \backsimeq, \eqsim, \cong, \ncong"),
+        // (52, r"\approx, \thickapprox, \approxeq, \asymp, \propto, \varpropto"),
+        (53, r"<, \nless, \ll, \not\ll, \lll, \not\lll, \lessdot"),
+        // (54, r"\le, \leq, \lneq, \leqq, \nleq, \nleqq, \lneqq, \lvertneqq"),
+        // (55, r"\ge, \geq, \gneq, \geqq, \ngeq, \ngeqq, \gneqq, \gvertneqq"),
+        // (56, r"\lessgtr, \lesseqgtr, \lesseqqgtr, \gtrless, \gtreqless, \gtreqqless"),
+        // (57, r"\leqslant, \nleqslant, \eqslantless"),
+        // (58, r"\geqslant, \ngeqslant, \eqslantgtr"),
+        // (59, r"\lesssim, \lnsim, \lessapprox, \lnapprox"),
+        // (60, r"\gtrsim, \gnsim, \gtrapprox, \gnapprox"),
+        // (61, r"\prec, \nprec, \preceq, \npreceq, \precneqq"),
+        // (62, r"\succ, \nsucc, \succeq, \nsucceq, \succneqq"),
+        // (63, r"\preccurlyeq, \curlyeqprec"),
+        // (64, r"\succcurlyeq, \curlyeqsucc"),
+        // (65, r"\precsim, \precnsim, \precapprox, \precnapprox"),
+        // (66, r"\succsim, \succnsim, \succapprox, \succnapprox"),
+        // (67, r"\parallel, \nparallel, \shortparallel, \nshortparallel"),
+        // (68, r"\perp, \angle, \sphericalangle, \measuredangle, 45^\circ"),
+        // (69, r"\Box, \square, \blacksquare, \diamond, \Diamond, \lozenge, \blacklozenge,\bigstar"),
+        // (70, r"\bigcirc, \triangle, \bigtriangleup, \bigtriangledown"),
+        (71, r"\vartriangle, \triangledown"),
+        // (72, r"\blacktriangle, \blacktriangledown, \blacktriangleleft, \blacktriangleright"),
+        (73, r"\forall, \exists, \nexists"),
+        (74, r"\therefore, \because, \And"),
+        (75, r"\lor \vee, \curlyvee, \bigvee"),
+        (76, r"\land \wedge, \curlywedge, \bigwedge"),
+        // (77, r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top"),
+        (78, r"\vdash \dashv, \vDash, \Vdash, \models"),
+        // (79, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
+        // (80, r"\ulcorner \urcorner \llcorner \lrcorner"),
+        (81, r"\Rrightarrow, \Lleftarrow"),
+        (82, r"\Rightarrow, \nRightarrow, \Longrightarrow, \implies"),
+        (83, r"\Leftarrow, \nLeftarrow, \Longleftarrow"),
+        (
+            84,
+            r"\Leftrightarrow, \nLeftrightarrow, \Longleftrightarrow, \iff",
+        ),
+        (85, r"\Uparrow, \Downarrow, \Updownarrow"),
+        (86, r"\rightarrow \to, \nrightarrow, \longrightarrow"),
+        (87, r"\leftarrow \gets, \nleftarrow, \longleftarrow"),
+        (
+            88,
+            r"\leftrightarrow, \nleftrightarrow, \longleftrightarrow",
+        ),
+        (89, r"\uparrow, \downarrow, \updownarrow"),
+        (90, r"\nearrow, \swarrow, \nwarrow, \searrow"),
+        (91, r"\mapsto, \longmapsto"),
+        (
+            92,
+            r"\rightharpoonup \rightharpoondown \leftharpoonup \leftharpoondown \upharpoonleft \upharpoonright \downharpoonleft \downharpoonright \rightleftharpoons \leftrightharpoons",
+        ),
+        (
+            93,
+            r"\curvearrowleft \circlearrowleft \Lsh \upuparrows \rightrightarrows \rightleftarrows \rightarrowtail \looparrowright",
+        ),
+        (
+            94,
+            r"\curvearrowright \circlearrowright \Rsh \downdownarrows \leftleftarrows \leftrightarrows \leftarrowtail \looparrowleft",
+        ),
+        // (95, r"\hookrightarrow \hookleftarrow \multimap \leftrightsquigarrow \rightsquigarrow \twoheadrightarrow \twoheadleftarrow"),
+        // (96, r"\amalg \P \S \% \dagger\ddagger\ldots\cdots"),
+        (97, r"\smile \frown \wr \triangleleft \triangleright"),
+        (
+            98,
+            r"\diamondsuit, \heartsuit, \clubsuit, \spadesuit, \Game, \flat, \natural, \sharp",
+        ),
+        // (99, r"\diagup \diagdown \centerdot \ltimes \rtimes \leftthreetimes \rightthreetimes"),
+        // (100, r"\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq"),
+        // (101, r"\intercal \barwedge \veebar \doublebarwedge \between \pitchfork"),
+        // (102, r"\vartriangleleft \ntriangleleft \vartriangleright \ntriangleright"),
+        // (103, r"\trianglelefteq \ntrianglelefteq \trianglerighteq \ntrianglerighteq"),
+        (104, r"a^2, a^{x+3}"),
+        (105, r"a_2"),
+        (106, r"10^{30} a^{2+2} \\ a_{i,j} b_{f'}"),
+        (107, r"x_2^3 \\ {x_2}^3"),
+        (108, r"10^{10^{8}}"),
+        // (
+        //     109,
+        //     r"\overset{\alpha}{\omega} \\ \underset{\alpha}{\omega} \\ \overset{\alpha}{\underset{\gamma}{\omega}}\\ \stackrel{\alpha}{\omega}",
+        // ),
+        (110, r"x', y'', f', f'' \\ x^\prime, y^{\prime\prime}"),
+        (111, r"\dot{x}, \ddot{x}"),
+        (
+            112,
+            r"\hat a \ \bar b \ \vec c \\ \overrightarrow{a b} \ \overleftarrow{c d}\\ \widehat{d e f} \\ \overline{g h i} \ \underline{j k l}",
+        ),
+        (113, r"\overset{\frown} {AB}"),
+        // (114, r"A \xleftarrow{n+\mu-1} B \xrightarrow[T]{n\pm i-1} C"),
+        (115, r"\overbrace{ 1+2+\cdots+100 }^{5050}"),
+        (116, r"\underbrace{ a+b+\cdots+z }_{26}"),
+        (117, r"\frac{2}{4}=0.5"),
+        (
+            118,
+            r"\dfrac{2}{4} = 0.5 \qquad \dfrac{2}{c + \dfrac{2}{d + \dfrac{2}{4}}} = a",
+        ),
+        // (119, r"\cfrac{x}{1 + \cfrac{\cancel{y}} {\cancel{y}}} = \cfrac{x}{2}"),
+        (120, r"\binom{n}{k}"),
+        (121, r"\dbinom{n}{k}"),
+        (122, r"\begin{matrix} x & y \\ z & v \end{matrix}"),
+        (123, r"\begin{vmatrix} x & y \\ z & v \end{vmatrix}"),
+        // (124, r"\begin{Vmatrix} x & y \\ z & v \end{Vmatrix}"),
+        (
+            125,
+            r"\begin{bmatrix} 0 & \cdots & 0 \\ \vdots & \ddots & \vdots \\ 0 & \cdots & 0 \end{bmatrix}",
+        ),
+        // (126, r"\begin{Bmatrix} x & y \\ z & v \end{Bmatrix}"),
+        (127, r"\begin{pmatrix} x & y \\ z & v \end{pmatrix}"),
+        // (128, r"\bigl( \begin{smallmatrix} a&b\\ c&d \end{smallmatrix} \bigr)"),
+        (
+            129,
+            r"f(n) = \begin{cases} n/2, & \text{if }n\text{ is even} \\ 3n+1, & \text{if }n\text{ is odd} \end{cases}",
+        ),
+        (
+            130,
+            r"\begin{cases} 3x + 5y + z \\ 7x - 2y + 4z \\ -6x + 3y + 2z \end{cases}",
+        ),
+        (131, r"f(x) \,\!"),
+        // (132, r"\begin{array}{|c|c|c|} a & b & S \\ \hline 0 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 0 & 1 \\ 1 & 1 & 0 \\ \end{array}"),
+        (133, r"( \frac{1}{2} )^n"),
+        (134, r"\left ( \frac{1}{2} \right )^n"),
+        (135, r"\left ( \frac{a}{b} \right )"),
+        // (136, r"\left [ \frac{a}{b} \right ] \quad \left \lbrack \frac{a}{b} \right \rbrack"),
+        // (137, r"\left \{ \frac{a}{b} \right \} \quad \left \lbrace \frac{a}{b} \right \rbrace"),
+        (138, r"\left \langle \frac{a}{b} \right \rangle"),
+        // (139, r"\left | \frac{a}{b} \right \vert \quad \left \Vert \frac{c}{d} \right \|"),
+        (
+            140,
+            r"\left \lfloor \frac{a}{b} \right \rfloor \quad \left \lceil \frac{c}{d} \right \rceil",
+        ),
+        // (141, r"\left / \frac{a}{b} \right \backslash"),
+        // (142, r"\left\uparrow\frac{a}{b}\right\downarrow\; \left\Uparrow\frac{a}{b}\right\Downarrow\; \left \updownarrow \frac{a}{b} \right \Updownarrow"),
+        (143, r"\left [ 0,1 \right ) \left \langle \psi \right |"),
+        (144, r"\left . \frac{A}{B} \right \} \to X"),
+        (
+            145,
+            r"( \bigl( \Bigl( \biggl( \Biggl( \dots \Biggr] \biggr] \Bigr] \bigr] ]",
+        ),
+        (
+            146,
+            r"\{ \bigl\{ \Bigl\{ \biggl\{ \Biggl\{ \dots \Biggr\rangle \biggr\rangle \Bigr\rangle \bigr\rangle \rangle",
+        ),
+        (
+            147,
+            r"\| \big\| \Big\| \bigg\| \Bigg\| \dots \Bigg| \bigg| \Big| \big| |",
+        ),
+        (
+            148,
+            r"\lfloor \bigl\lfloor \Bigl\lfloor \biggl\lfloor \Biggl\lfloor \dots \Biggr\rceil \biggr\rceil \Bigr\rceil \bigr\rceil \rceil",
+        ),
+        // (149, r"\uparrow \big\uparrow \Big\uparrow \bigg\uparrow \Bigg\uparrow \dots \Bigg\Downarrow \bigg\Downarrow \Big\Downarrow \big\Downarrow \Downarrow"),
+        // (150, r"\updownarrow\big\updownarrow\Big\updownarrow \bigg\updownarrow \Bigg\updownarrow \dots \Bigg\Updownarrow \bigg\Updownarrow \Big \Updownarrow \big\Updownarrow \Updownarrow"),
+        // (151, r"/ \big/ \Big/ \bigg/ \Bigg/ \dots \Bigg\backslash \bigg\backslash \Big \backslash \big\backslash \backslash"),
+        (
+            152,
+            r"\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta",
+        ),
+        (153, r"\Iota \Kappa \Lambda \Mu \Nu \Xi \Omicron \Pi"),
+        (154, r"\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega"),
+        (
+            155,
+            r"\alpha \beta \gamma \delta \epsilon \zeta \eta \theta",
+        ),
+        (156, r"\iota \kappa \lambda \mu \nu \xi \omicron \pi"),
+        (157, r"\rho \sigma \tau \upsilon \phi \chi \psi \omega"),
+        // (158, r"\varGamma \varDelta \varTheta \varLambda \varXi \varPi \varSigma \varPhi \varUpsilon \varOmega"),
+        // (159, r"\varepsilon \digamma \varkappa \varpi \varrho \varsigma \vartheta \varphi"),
+        (160, r"\aleph \beth \gimel \daleth"),
+        (
+            161,
+            r"\mathbb{ABCDEFGHI} \\ \mathbb{JKLMNOPQR} \\ \mathbb{STUVWXYZ}",
+        ),
+        (
+            162,
+            r"\mathbf{ABCDEFGHI} \\ \mathbf{JKLMNOPQR} \\ \mathbf{STUVWXYZ} \\ \mathbf{abcdefghijklm} \\ \mathbf{nopqrstuvwxyz} \\ \mathbf{0123456789}",
+        ),
+        (
+            163,
+            r"\boldsymbol{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}",
+        ),
+        (
+            164,
+            r"\boldsymbol{\Iota \Kappa \Lambda \Mu \Nu \Xi \Omicron \Pi}",
+        ),
+        (
+            165,
+            r"\boldsymbol{\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega}",
+        ),
+        (
+            166,
+            r"\boldsymbol{\alpha \beta \gamma \delta \epsilon \zeta \eta \theta}",
+        ),
+        (
+            167,
+            r"\boldsymbol{\iota \kappa \lambda \mu \nu \xi \omicron \pi}",
+        ),
+        (
+            168,
+            r"\boldsymbol{\rho \sigma \tau \upsilon \phi \chi \psi \omega}",
+        ),
+        // (169, r"\boldsymbol{\varepsilon\digamma\varkappa \varpi}"),
+        (170, r"\boldsymbol{\varrho\varsigma\vartheta\varphi}"),
+        (171, r"\mathit{0123456789}"),
+        (
+            172,
+            r"\mathit{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}",
+        ),
+        (
+            173,
+            r"\mathit{\Iota \Kappa \Lambda \Mu \Nu \Xi \Omicron \Pi}",
+        ),
+        (
+            174,
+            r"\mathit{\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega}",
+        ),
+        // (175, r"\boldsymbol{\varGamma \varDelta \varTheta \varLambda}"),
+        // (176, r"\boldsymbol{\varXi \varPi \varSigma \varUpsilon \varOmega}"),
+        (
+            177,
+            r"\mathrm{ABCDEFGHI} \\ \mathrm{JKLMNOPQR} \\ \mathrm{STUVWXYZ} \\ \mathrm{abcdefghijklm} \\ \mathrm{nopqrstuvwxyz} \\ \mathrm{0123456789}",
+        ),
+        (
+            178,
+            r"\mathsf{ABCDEFGHI} \\ \mathsf{JKLMNOPQR} \\ \mathsf{STUVWXYZ} \\ \mathsf{abcdefghijklm} \\ \mathsf{nopqrstuvwxyz} \\ \mathsf{0123456789}",
+        ),
+        (
+            179,
+            r"\mathsf{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}",
+        ),
+        (
+            180,
+            r"\mathsf{\Iota \Kappa \Lambda \Mu \Nu \Xi \Omicron \Pi}",
+        ),
+        (
+            181,
+            r"\mathsf{\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega}",
+        ),
+        (
+            182,
+            r"\mathcal{ABCDEFGHI} \\ \mathcal{JKLMNOPQR} \\ \mathcal{STUVWXYZ} \\ \mathcal{abcdefghi} \\ \mathcal{jklmnopqr} \\ \mathcal{stuvwxyz}",
+        ),
+        (
+            183,
+            r"\mathfrak{ABCDEFGHI} \\ \mathfrak{JKLMNOPQR} \\ \mathfrak{STUVWXYZ} \\ \mathfrak{abcdefghi} \\ \mathfrak{jklmnopqr} \\ \mathfrak{stuvwxyz}",
+        ),
+        (184, r"{\scriptstyle\text{abcdefghijklm}}"),
+        (185, r"x y z"),
+        (186, r"\text{x y z}"),
+        (187, r"\text{if} n \text{is even}"),
+        (188, r"\text{if }n\text{ is even}"),
+        (189, r"\text{if}~n\ \text{is even}"),
+        // (190, r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}"),
+        // (191, r"x_{1,2}=\frac{{\color{Blue}-b}\pm \sqrt{\color{Red}b^2-4ac}}{\color{Green}2a }"),
+        // (192, r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}"),
+        // (193, r"\color{Blue}x^2\color{Black}+\color{Orange} 2x\color{Black}-\color{LimeGreen}1"),
+        // (194, r"\color{Blue}{x^2}+\color{Orange}{2x}- \color{LimeGreen}{1}"),
+        // (195, r"\definecolor{myorange}{rgb}{1,0.65,0.4} \color{myorange}e^{i \pi}\color{Black} + 1= 0"),
+        (
+            196,
+            r"a \qquad b \\ a \quad b \\ a\ b \\ a \text{ } b \\ a\;b \\ a\,b \\ ab \\ a b \\ \mathit{ab} \\ a\!b",
+        ),
+        (197, r"| \uparrow \rangle"),
+        (198, r"\left| \uparrow \right\rangle"),
+        (199, r"| {\uparrow} \rangle"),
+        // (200, r"| \mathord\uparrow \rangle"),
+        // (201, r"\wideparen{AB}"),
+        // (202, r"\dddot{x}"),
+        // (203, r"\sout{q}"),
+        // (204, r"\mathrlap{\,/}{=}"),
+        // (205, r"\text{\textsf{textual description}}"),
+        (206, r"α π"),
+        (207, r"ax^2 + bx + c = 0"),
+        (208, r"x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}"),
+        (209, r"\left( \frac{\left(3-x\right) \times 2}{3-x} \right)"),
+        (210, r"\det(\mathsf{A}-\lambda\mathsf{I}) = 0"),
+        (211, r"u'' + p(x)u' + q(x)u=f(x),\quad x>a"),
+        (
+            212,
+            r"|\bar{z}| = |z|, |(\bar{z})^n| = |z|^n, \arg(z^n) = n \arg(z)",
+        ),
+        (
+            213,
+            r"\phi_n(\kappa) = 0.033C_n^2\kappa^{-11/3}, \quad\frac{1}{L_0}\ll\kappa\ll\frac{1}{l_0}",
+        ),
+        (
+            214,
+            r"f(x) = \begin{cases} 1 & -1 \le x < 0 \\ \frac{1}{2} & x = 0 \\ 1 - x^2 & \text{otherwise} \end{cases}",
+        ),
+        (
+            215,
+            r"{}_pF_q(a_1,\dots,a_p;c_1,\dots,c_q;z) = \sum_{n=0}^\infty \frac{(a_1)_n\cdots(a_p)_n} {(c_1)_n\cdots(c_q)_n}\frac{z^n}{n!}",
+        ),
+        (216, r"S=dD\sin\alpha"),
+        (
+            217,
+            r"V = \frac{1}{6} \pi h \left [ 3 \left ( r_1^2 + r_2^2 \right ) + h^2 \right ]",
+        ),
+    ];
+
+    for (num, problem) in problems.into_iter() {
+        let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+            .expect(format!("failed to convert `{}`", problem).as_str());
+        let name = format!("wiki{:03}", num);
+        assert_snapshot!(name.as_str(), &mathml, problem);
+    }
 }

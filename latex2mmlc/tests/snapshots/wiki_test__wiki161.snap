@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\mathbb{ABCDEFGHI} \\\\ \\mathbb{JKLMNOPQR} \\\\ \\mathbb{STUVWXYZ}"
+---
+<math>
+    <mi>𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀</mi>
+    
+    <mi>𝕁𝕂𝕃𝕄ℕOℙℚℝ</mi>
+    
+    <mi>𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ</mi>
+</math>

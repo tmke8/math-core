@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\therefore, \\because, \\And"
+---
+<math>
+    <mo>∴</mo>
+    <mo>,</mo>
+    <mo>∵</mo>
+    <mo>,</mo>
+    <mo>&amp;</mo>
+</math>

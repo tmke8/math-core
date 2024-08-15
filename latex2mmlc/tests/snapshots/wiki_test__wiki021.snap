@@ -1,0 +1,17 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
+---
+<math>
+    <mi>d</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mi mathvariant="normal">d</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mi>∂</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mo>∇</mo>
+    <mi>ψ</mi>
+</math>

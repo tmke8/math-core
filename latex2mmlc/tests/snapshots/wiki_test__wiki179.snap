@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\mathsf{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
+---
+<math>
+    <mi>ΑΒΓΔΕΖΗΘ</mi>
+</math>

@@ -1,0 +1,23 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\sin a, \\cos b, \\tan c, \\cot d, \\sec e, \\csc f"
+---
+<math>
+    <mi>sin</mi>
+    <mi>a</mi>
+    <mo>,</mo>
+    <mi>cos</mi>
+    <mi>b</mi>
+    <mo>,</mo>
+    <mi>tan</mi>
+    <mi>c</mi>
+    <mo>,</mo>
+    <mi>cot</mi>
+    <mi>d</mi>
+    <mo>,</mo>
+    <mi>sec</mi>
+    <mi>e</mi>
+    <mo>,</mo>
+    <mi>csc</mi>
+    <mi>f</mi>
+</math>

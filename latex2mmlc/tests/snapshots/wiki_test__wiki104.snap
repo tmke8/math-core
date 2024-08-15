@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "a^2, a^{x+3}"
+---
+<math>
+    <msup>
+        <mi>a</mi>
+        <mn>2</mn>
+        <mo>,</mo>
+    </msup>
+    <msup>
+        <mi>a</mi>
+        <mrow>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mn>3</mn>
+        </mrow>
+    </msup>
+</math>

@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\lim u, \\liminf v, \\limsup w"
+---
+<math>
+    <mi>lim</mi>
+    <mi>u</mi>
+    <mo>,</mo>
+    <mi>lim inf</mi>
+    <mi>v</mi>
+    <mo>,</mo>
+    <mi>lim sup</mi>
+    <mi>w</mi>
+</math>

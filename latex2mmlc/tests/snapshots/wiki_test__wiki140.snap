@@ -1,0 +1,23 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\left \\lfloor \\frac{a}{b} \\right \\rfloor \\quad \\left \\lceil \\frac{c}{d} \\right \\rceil"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">⌊</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo stretchy="true" form="postfix">⌋</mo>
+    </mrow>
+    <mspace width="1em"/>
+    <mrow>
+        <mo stretchy="true" form="prefix">⌈</mo>
+        <mfrac>
+            <mi>c</mi>
+            <mi>d</mi>
+        </mfrac>
+        <mo stretchy="true" form="postfix">⌉</mo>
+    </mrow>
+</math>

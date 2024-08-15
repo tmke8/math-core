@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\text{if}~n\\ \\text{is even}"
+---
+<math>
+    <mtext>if</mtext>
+    <mtext> </mtext>
+    <mi>n</mi>
+    <mspace width="1em"/>
+    <mtext>is even</mtext>
+</math>

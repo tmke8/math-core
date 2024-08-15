@@ -1,0 +1,45 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \\\\ 0 & \\cdots & 0 \\end{bmatrix}"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">[</mo>
+        <mtable>
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mo>⋯</mo>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mo>⋮</mo>
+                </mtd>
+                <mtd>
+                    <mo>⋱</mo>
+                </mtd>
+                <mtd>
+                    <mo>⋮</mo>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mo>⋯</mo>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo stretchy="true" form="postfix">]</mo>
+    </mrow>
+</math>

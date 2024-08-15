@@ -1,0 +1,12 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\land \\wedge, \\curlywedge, \\bigwedge"
+---
+<math>
+    <mo>∧</mo>
+    <mo>∧</mo>
+    <mo>,</mo>
+    <mo>⋏</mo>
+    <mo>,</mo>
+    <mo>⋀</mo>
+</math>

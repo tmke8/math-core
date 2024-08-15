@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\smile \\frown \\wr \\triangleleft \\triangleright"
+---
+<math>
+    <mo>⌣</mo>
+    <mo>⌢</mo>
+    <mo>≀</mo>
+    <mo>◁</mo>
+    <mo>▷</mo>
+</math>
