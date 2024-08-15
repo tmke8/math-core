@@ -1,0 +1,17 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\left ( \\frac{1}{2} \\right )^n"
+---
+<math>
+    <msup>
+        <mrow>
+            <mo stretchy="true" form="prefix">(</mo>
+            <mfrac>
+                <mn>1</mn>
+                <mn>2</mn>
+            </mfrac>
+            <mo stretchy="true" form="postfix">)</mo>
+        </mrow>
+        <mi>n</mi>
+    </msup>
+</math>

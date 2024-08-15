@@ -1,0 +1,20 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
+---
+<math>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true">^</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true">^</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true">→</mo>
+    </mover>
+</math>

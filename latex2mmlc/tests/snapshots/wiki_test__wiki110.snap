@@ -1,0 +1,44 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "x', y'', f', f'' \\\\ x^\\prime, y^{\\prime\\prime}"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>y</mi>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+        </mrow>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+        </mrow>
+    </msup>
+    
+    <msup>
+        <mi>x</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>y</mi>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+        </mrow>
+    </msup>
+</math>

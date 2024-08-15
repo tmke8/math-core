@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "|z + 1| \\leq 2"
+---
+<math>
+    <mi>|</mi>
+    <mi>z</mi>
+    <mo>+</mo>
+    <mn>1</mn>
+    <mi>|</mi>
+    <mo>≤</mo>
+    <mn>2</mn>
+</math>

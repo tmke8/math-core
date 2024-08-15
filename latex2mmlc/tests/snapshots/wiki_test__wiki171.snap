@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\mathit{0123456789}"
+---
+<math>
+    <mi>0123456789</mi>
+</math>

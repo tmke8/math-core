@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\vdash \\dashv, \\vDash, \\Vdash, \\models"
+---
+<math>
+    <mo>⊢</mo>
+    <mo>⊣</mo>
+    <mo>,</mo>
+    <mo>⊨</mo>
+    <mo>,</mo>
+    <mo>⊩</mo>
+    <mo>,</mo>
+    <mo>⊨</mo>
+</math>

@@ -1,0 +1,28 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\begin{vmatrix} x & y \\\\ z & v \\end{vmatrix}"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">|</mo>
+        <mtable>
+            <mtr>
+                <mtd>
+                    <mi>x</mi>
+                </mtd>
+                <mtd>
+                    <mi>y</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>z</mi>
+                </mtd>
+                <mtd>
+                    <mi>v</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo stretchy="true" form="postfix">|</mo>
+    </mrow>
+</math>

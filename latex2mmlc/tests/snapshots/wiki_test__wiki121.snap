@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\dbinom{n}{k}"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">(</mo>
+        <mfrac linethickness="0pt" displaystyle="true">
+            <mi>n</mi>
+            <mi>k</mi>
+        </mfrac>
+        <mo stretchy="true" form="postfix">)</mo>
+    </mrow>
+</math>

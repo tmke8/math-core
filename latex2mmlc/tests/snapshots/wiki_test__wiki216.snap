@@ -1,0 +1,12 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "S=dD\\sin\\alpha"
+---
+<math>
+    <mi>S</mi>
+    <mo>=</mo>
+    <mi>d</mi>
+    <mi>D</mi>
+    <mi>sin</mi>
+    <mi>α</mi>
+</math>

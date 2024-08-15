@@ -1,0 +1,16 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\cdot, * \\ast, \\star, \\circ, \\bullet"
+---
+<math>
+    <mo>·</mo>
+    <mo>,</mo>
+    <mo>*</mo>
+    <mo>∗</mo>
+    <mo>,</mo>
+    <mo>⋆</mo>
+    <mo>,</mo>
+    <mo>∘</mo>
+    <mo>,</mo>
+    <mo>∙</mo>
+</math>

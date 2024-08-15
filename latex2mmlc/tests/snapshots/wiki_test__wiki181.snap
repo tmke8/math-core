@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\mathsf{\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega}"
+---
+<math>
+    <mi>ΡΣΤΥΦΧΨΩ</mi>
+</math>

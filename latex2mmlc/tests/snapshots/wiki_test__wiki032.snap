@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\times, \\div, \\divideontimes, /, \\backslash"
+---
+<math>
+    <mo>×</mo>
+    <mo>,</mo>
+    <mo>÷</mo>
+    <mo>,</mo>
+    <mo>⋇</mo>
+    <mo>,</mo>
+    <mi>/</mi>
+    <mo>,</mo>
+    <mo>\</mo>
+</math>

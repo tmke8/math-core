@@ -120,7 +120,10 @@ impl<'source> Parser<'source> {
             Token::Letter(x) => {
                 Node::SingleLetterIdent(self.tf.as_ref().map_or(x, |tf| tf.transform(x)), self.var)
             }
-            Token::NormalLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
+            Token::NormalLetter(x) => Node::SingleLetterIdent(
+                self.tf.as_ref().map_or(x, |tf| tf.transform(x)),
+                Some(MathVariant::Normal),
+            ),
             Token::Operator(op) => match self.tf.as_ref() {
                 None => Node::Operator(op, None),
                 Some(tf) => Node::SingleLetterIdent(tf.transform(op.into()), None),
