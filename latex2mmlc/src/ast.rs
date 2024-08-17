@@ -114,7 +114,10 @@ impl<'source> Node<'source> {
             0
         };
 
-        if !matches!(self, Node::PseudoRow(_)) {
+        if !matches!(
+            self,
+            Node::PseudoRow(_) | Node::ColumnSeparator | Node::RowSeparator
+        ) {
             // Get the base indent out of the way.
             new_line_and_indent(s, base_indent);
         }
