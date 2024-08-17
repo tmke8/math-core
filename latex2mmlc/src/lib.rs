@@ -46,6 +46,7 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
+use parse::Alloc;
 
 pub mod arena;
 pub mod ast;
@@ -56,7 +57,6 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
-use arena::{Arena, Buffer};
 pub use error::LatexError;
 
 /// display
@@ -66,18 +66,17 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error::LatexError<'_>> {
-    // The length of the input is an upper bound for the required length for
-    // the string buffer.
-    let buffer = Buffer::new(latex.len());
-    // TODO: Estimate a reasonable initial capacity for the arena.
-    let arena = Arena::new();
-
+fn get_nodes<'arena, 'source>(
+    latex: &'source str,
+    alloc: &'arena Alloc<'arena, 'source>,
+) -> Result<ast::Node<'arena, 'source>, error::LatexError<'source>>
+where
+    'source: 'arena,
+{
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, buffer, arena);
-    let nodes = p.parse()?;
-    let (buffer, arena) = p.into_inner();
-    Ok((nodes, buffer, arena))
+    let mut p = parse::Parser::new(l);
+    let nodes = p.parse(alloc)?;
+    Ok(nodes)
 }
 
 /// Convert LaTeX text to MathML.
@@ -96,19 +95,20 @@ fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(
-    latex: &str,
+pub fn latex_to_mathml<'source>(
+    latex: &'_ str,
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    let (nodes, buffer, arena) = get_nodes(latex)?;
+    let alloc = Alloc::new(latex);
+    let nodes = get_nodes(latex, &alloc)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, &arena, &buffer, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
@@ -120,13 +120,15 @@ pub fn latex_to_mathml(
 mod tests {
     use insta::assert_snapshot;
 
+    use crate::parse::Alloc;
     use crate::{error, latex_to_mathml};
 
     use super::get_nodes;
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let (nodes, buffer, arena) = get_nodes(latex)?;
-        Ok(nodes.render(&arena, &buffer))
+        let alloc = Alloc::new(latex);
+        let nodes = get_nodes(latex, &alloc)?;
+        Ok(nodes.render())
     }
 
     #[test]
