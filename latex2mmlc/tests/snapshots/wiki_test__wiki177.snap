@@ -4,14 +4,9 @@ expression: "\\mathrm{ABCDEFGHI} \\\\ \\mathrm{JKLMNOPQR} \\\\ \\mathrm{STUVWXYZ
 ---
 <math>
     <mi>ABCDEFGHI</mi>
-    
     <mi>JKLMNOPQR</mi>
-    
     <mi>STUVWXYZ</mi>
-    
     <mi>abcdefghijklm</mi>
-    
     <mi>nopqrstuvwxyz</mi>
-    
     <mn>0123456789</mn>
 </math>

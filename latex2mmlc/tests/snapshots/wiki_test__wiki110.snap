@@ -28,7 +28,6 @@ expression: "x', y'', f', f'' \\\\ x^\\prime, y^{\\prime\\prime}"
             <mo>′</mo>
         </mrow>
     </msup>
-    
     <msup>
         <mi>x</mi>
         <mo>′</mo>

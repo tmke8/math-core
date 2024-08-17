@@ -17,7 +17,6 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         <mi>c</mi>
         <mo accent="true">→</mo>
     </mover>
-    
     <mover>
         <mrow>
             <mi>a</mi>
@@ -33,7 +32,6 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         </mrow>
         <mo accent="true">←</mo>
     </mover>
-    
     <mover>
         <mrow>
             <mi>d</mi>
@@ -42,7 +40,6 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         </mrow>
         <mo accent="true">^</mo>
     </mover>
-    
     <mover>
         <mrow>
             <mi>g</mi>

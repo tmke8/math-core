@@ -4,14 +4,9 @@ expression: "\\mathcal{ABCDEFGHI} \\\\ \\mathcal{JKLMNOPQR} \\\\ \\mathcal{STUVW
 ---
 <math>
     <mi>𝒜ℬ𝒞𝒟ℰℱ𝒢ℋℌ</mi>
-    
     <mi>𝒥𝒦ℒℳ𝒩𝒪𝒫𝒬ℛ</mi>
-    
     <mi>𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵</mi>
-    
     <mi>𝒶𝒷𝒸𝒹ℯ𝒻ℊ𝒽𝒾</mi>
-    
     <mi>𝒿𝓀𝓁𝓂𝓃ℴ𝓅𝓆𝓇</mi>
-    
     <mi>𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏</mi>
 </math>
