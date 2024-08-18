@@ -74,8 +74,8 @@ where
     'source: 'arena,
 {
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l);
-    let nodes = p.parse(alloc)?;
+    let mut p = parse::Parser::new(l, alloc);
+    let nodes = p.parse()?;
     Ok(nodes)
 }
 
