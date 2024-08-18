@@ -86,15 +86,9 @@ impl<'arena, 'source> Parser<'arena, 'source> {
         let target = self.parse_single_node(cur_tokloc)?;
 
         match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => {
-                Ok(self.alloc.arena.push(Node::SubSup { target, sub, sup }))
-            }
-            Bounds(Some(symbol), None) => {
-                Ok(self.alloc.arena.push(Node::Subscript { target, symbol }))
-            }
-            Bounds(None, Some(symbol)) => {
-                Ok(self.alloc.arena.push(Node::Superscript { target, symbol }))
-            }
+            Bounds(Some(sub), Some(sup)) => Ok(self.commit(Node::SubSup { target, sub, sup })),
+            Bounds(Some(symbol), None) => Ok(self.commit(Node::Subscript { target, symbol })),
+            Bounds(None, Some(symbol)) => Ok(self.commit(Node::Superscript { target, symbol })),
             Bounds(None, None) => Ok(target),
         }
     }
@@ -106,15 +100,9 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     ///
     /// Ideally, the node is constructed directly on the heap, so try to avoid
     /// constructing it on the stack and then moving it to the heap.
-    /*
-    fn commit<'arena>(
-        &mut self,
-        alloc: &'arena Alloc<'arena, 'source>,
-        node: Node<'arena, 'source>,
-    ) -> &'arena NodeListElement<'arena, 'source>
-    {
-        alloc.push(node)
-    } */
+    fn commit(&self, node: Node<'arena, 'source>) -> &'arena mut NodeListElement<'arena, 'source> {
+        self.alloc.arena.push(node)
+    }
 
     /// Read the node immediately after without worrying about whether
     /// the infix operator `_`, `^`, `'` will continue
@@ -140,8 +128,8 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     }
                     None => Node::Number(number),
                 };
-                let first = self.alloc.arena.push(num);
-                let second = self.alloc.arena.push(match tok {
+                let first = self.commit(num);
+                let second = self.commit(match tok {
                     Token::NumberWithDot(_) => Node::SingleLetterIdent('.', None),
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
                     _ => unreachable!(),
@@ -186,7 +174,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: self.alloc.arena.push(Node::Frac(
+                        content: self.commit(Node::Frac(
                             numerator,
                             denominator,
                             Some('0'),
@@ -272,22 +260,22 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = self.alloc.arena.push(Node::Operator(x, None));
+                    let op = self.commit(Node::Operator(x, None));
                     if is_over {
-                        let symbol = self.alloc.arena.push(Node::Overset {
+                        let symbol = self.commit(Node::Overset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Overset { symbol, target }
                     } else {
-                        let symbol = self.alloc.arena.push(Node::Underset {
+                        let symbol = self.commit(Node::Underset {
                             symbol: expl,
                             target: op,
                         });
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = self.alloc.arena.push(Node::Operator(x, None));
+                    let symbol = self.commit(Node::Operator(x, None));
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -302,7 +290,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                         .arena
                         .push(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
                 } else {
-                    self.alloc.arena.push(Node::Operator(op, None))
+                    self.commit(Node::Operator(op, None))
                 };
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
@@ -319,7 +307,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             }
             Token::Lim(lim) => {
                 let lim_name = self.alloc.buffer.alloc_str(lim);
-                let lim = self.alloc.arena.push(Node::MultiLetterIdent(lim_name));
+                let lim = self.commit(Node::MultiLetterIdent(lim_name));
                 if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
@@ -392,7 +380,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.alloc.arena.push(Node::Operator(int, None));
+                    let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -406,7 +394,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                         }
                     }
                 } else {
-                    let target = self.alloc.arena.push(Node::Operator(int, None));
+                    let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
@@ -421,12 +409,12 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
-                    let first = self.alloc.arena.push(Node::OperatorWithSpacing {
+                    let first = self.commit(Node::OperatorWithSpacing {
                         op: ops::COLON,
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     });
-                    let second = self.alloc.arena.push(Node::OperatorWithSpacing {
+                    let second = self.commit(Node::OperatorWithSpacing {
                         op,
                         left: Some(MathSpacing::Zero),
                         right: None,
@@ -539,7 +527,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
                     "cases" => {
-                        let content = self.alloc.arena.push(Node::Table(env_content, Align::Left));
+                        let content = self.commit(Node::Table(env_content, Align::Left));
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
@@ -645,7 +633,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
         };
-        Ok(self.alloc.arena.push(node))
+        Ok(self.commit(node))
     }
 
     #[inline]
@@ -713,7 +701,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
-            let node_ref = self.alloc.arena.push(Node::Operator(ops::PRIME, None));
+            let node_ref = self.commit(Node::Operator(ops::PRIME, None));
             primes.push(node_ref);
         }
 
@@ -794,7 +782,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     ) -> NodeRef<'arena, 'source> {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.alloc.arena.push(Node::Row(list, style)),
+            SingletonOrList::List(list) => self.commit(Node::Row(list, style)),
         }
     }
 
