@@ -4,8 +4,8 @@ use typed_arena::Arena;
 
 use crate::{
     arena::{
-        NodeArenaExt, NodeList, NodeListBuilder, NodeListElement, SingletonOrList, StrArenaExt,
-        StrReference,
+        NodeArenaExt, NodeList, NodeListBuilder, NodeListElement, NodeRef, SingletonOrList,
+        StrArenaExt, StrReference,
     },
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
@@ -84,7 +84,7 @@ impl<'source> Parser<'source> {
         &mut self,
         alloc: &'arena Alloc<'arena, 'source>,
         cur_tokloc: TokLoc<'source>,
-    ) -> Result<&'arena NodeListElement<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
         let target = self.parse_single_node(alloc, cur_tokloc)?;
 
         match self.get_bounds(alloc)? {
@@ -123,7 +123,7 @@ impl<'source> Parser<'source> {
         &mut self,
         alloc: &'arena Alloc<'arena, 'source>,
         cur_tokloc: TokLoc<'source>,
-    ) -> Result<&'arena NodeListElement<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
@@ -366,12 +366,10 @@ impl<'source> Parser<'source> {
                 let node_ref = self.parse_single_token(alloc)?;
                 self.var = old_var;
                 self.tf = old_tf;
-                // TODO: need mutable reference here
-                if let Node::Row(nodes, style) = &node_ref.node {
-                    // let nodes = mem::replace(nodes, NodeList::empty());
+                if let Node::Row(nodes, style) = &mut node_ref.node {
+                    let nodes = mem::replace(nodes, NodeList::empty());
                     let style = *style;
-                    // return Ok(self.merge_single_letters(alloc, nodes, style));
-                    return Ok(self.merge_single_letters(alloc, NodeList::empty(), style));
+                    return Ok(self.merge_single_letters(alloc, nodes, style));
                 }
                 return Ok(node_ref);
             }
@@ -379,12 +377,10 @@ impl<'source> Parser<'source> {
                 let old_tf = mem::replace(&mut self.tf, Some(tf));
                 let node_ref = self.parse_single_token(alloc)?;
                 self.tf = old_tf;
-                // TODO: need mutable reference here
-                if let Node::Row(nodes, style) = &node_ref.node {
-                    // let nodes = mem::replace(nodes, NodeList::empty());
+                if let Node::Row(nodes, style) = &mut node_ref.node {
+                    let nodes = mem::replace(nodes, NodeList::empty());
                     let style = *style;
-                    // return Ok(self.merge_single_letters(alloc, nodes, style));
-                    return Ok(self.merge_single_letters(alloc, NodeList::empty(), style));
+                    return Ok(self.merge_single_letters(alloc, nodes, style));
                 }
                 return Ok(node_ref);
             }
@@ -583,7 +579,7 @@ impl<'source> Parser<'source> {
             }
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
-                let node = &self.parse_single_token(alloc)?.node;
+                let node = &mut self.parse_single_token(alloc)?.node;
                 let start = alloc.buffer.end();
                 extract_letters(&alloc.buffer, node, None)?;
                 let end = alloc.buffer.end();
@@ -591,7 +587,7 @@ impl<'source> Parser<'source> {
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
-                let node = &self.parse_single_token(alloc)?.node;
+                let node = &mut self.parse_single_token(alloc)?.node;
                 let start = alloc.buffer.end();
                 extract_letters(&alloc.buffer, node, transform)?;
                 let end = alloc.buffer.end();
@@ -648,7 +644,7 @@ impl<'source> Parser<'source> {
     fn parse_token<'arena>(
         &mut self,
         alloc: &'arena Alloc<'arena, 'source>,
-    ) -> Result<&'arena NodeListElement<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
         let token = self.next_token();
         self.parse_node(alloc, token)
     }
@@ -657,7 +653,7 @@ impl<'source> Parser<'source> {
     fn parse_single_token<'arena>(
         &mut self,
         alloc: &'arena Alloc<'arena, 'source>,
-    ) -> Result<&'arena NodeListElement<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
         let token = self.next_token();
         self.parse_single_node(alloc, token)
     }
@@ -778,7 +774,7 @@ impl<'source> Parser<'source> {
     fn get_sub_or_sub<'arena>(
         &mut self,
         alloc: &'arena Alloc<'arena, 'source>,
-    ) -> Result<&'arena NodeListElement<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next = self.next_token();
         if matches!(
@@ -801,7 +797,7 @@ impl<'source> Parser<'source> {
         alloc: &'arena Alloc<'arena, 'source>,
         list_builder: NodeListBuilder<'arena, 'source>,
         style: Option<Style>,
-    ) -> &'arena NodeListElement<'arena, 'source> {
+    ) -> NodeRef<'arena, 'source> {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
             SingletonOrList::List(list) => alloc.arena.push(Node::Row(list, style)),
@@ -813,12 +809,13 @@ impl<'source> Parser<'source> {
         alloc: &'arena Alloc<'arena, 'source>,
         nodes: NodeList<'arena, 'source>,
         style: Option<Style>,
-    ) -> &'arena NodeListElement<'arena, 'source> {
+    ) -> NodeRef<'arena, 'source> {
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
-        let mut iter = nodes.into_man_iter();
+        let mut iter = nodes.into_iter();
         while let Some(node_ref) = iter.next() {
             if let Node::SingleLetterIdent(c, _) = &node_ref.node {
+                let c = *c;
                 if let Some(LetterCollector {
                     ref mut only_one_char,
                     ..
@@ -833,7 +830,7 @@ impl<'source> Parser<'source> {
                         only_one_char: true,
                     });
                 }
-                alloc.buffer.push_char(*c);
+                alloc.buffer.push_char(c);
             } else {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
@@ -852,23 +849,22 @@ impl<'source> Parser<'source> {
 }
 
 struct Bounds<'arena, 'source>(
-    Option<&'arena NodeListElement<'arena, 'source>>,
-    Option<&'arena NodeListElement<'arena, 'source>>,
+    Option<NodeRef<'arena, 'source>>,
+    Option<NodeRef<'arena, 'source>>,
 );
 
 struct LetterCollector<'arena, 'source> {
     start: (usize,),
-    node_ref: &'arena NodeListElement<'arena, 'source>,
+    node_ref: NodeRef<'arena, 'source>,
     only_one_char: bool,
 }
 
 impl<'arena, 'source> LetterCollector<'arena, 'source> {
-    fn finish(self, end: (usize,)) -> &'arena NodeListElement<'arena, 'source> {
-        // TODO: need mutable reference here
-        let node = &self.node_ref.node;
-        // if !self.only_one_char {
-        //     *node = Node::MultiLetterIdent(StrReference::new(self.start, end));
-        // }
+    fn finish(self, end: (usize,)) -> NodeRef<'arena, 'source> {
+        let node = &mut self.node_ref.node;
+        if !self.only_one_char {
+            *node = Node::MultiLetterIdent(StrReference::new(self.start, end));
+        }
         self.node_ref
     }
 }
@@ -897,7 +893,7 @@ fn extract_letters<'arena, 'source>(
             };
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push_char(op.into());
+            buffer.push_char((*op).into());
         }
         Node::Text(str_ref) => {
             buffer.alloc_str(str_ref);
