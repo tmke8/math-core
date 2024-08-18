@@ -79,15 +79,13 @@ where
             let byte = self.buffer[self.buffer_pos];
             self.buffer_pos += 1;
             Some(byte)
+        } else if let Some(ch) = self.chars.next() {
+            let s = ch.encode_utf8(&mut self.buffer);
+            self.buffer_len = s.len();
+            self.buffer_pos = 1;
+            Some(self.buffer[0])
         } else {
-            if let Some(ch) = self.chars.next() {
-                let s = ch.encode_utf8(&mut self.buffer);
-                self.buffer_len = s.len();
-                self.buffer_pos = 1;
-                Some(self.buffer[0])
-            } else {
-                None
-            }
+            None
         }
     }
 }
@@ -212,22 +210,27 @@ impl<'arena, 'source> NodeList<'arena, 'source> {
         first: NodeRef<'arena, 'source>,
         second: NodeRef<'arena, 'source>,
     ) -> Self {
-        first.next = Some(second.into());
+        first.next = Some(second);
         NodeList(Some(first))
     }
 
     pub fn iter(&'arena self) -> NodeListIterator<'arena, 'source> {
         NodeListIterator {
-            current: self.0.as_ref().map(|reference| &**reference),
+            current: self.0.as_deref(),
         }
     }
+}
+
+impl<'arena, 'source> IntoIterator for NodeList<'arena, 'source> {
+    type Item = NodeRef<'arena, 'source>;
+    type IntoIter = NodeListManualIterator<'arena, 'source>;
 
     /// Iterate over the list manually.
     ///
     /// This iterator cannot be used with a for loop, because the .next() method
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
-    pub fn into_iter(self) -> NodeListManualIterator<'arena, 'source> {
+    fn into_iter(self) -> NodeListManualIterator<'arena, 'source> {
         NodeListManualIterator { current: self.0 }
     }
 }
@@ -243,7 +246,7 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
         match self.current {
             None => None,
             Some(element) => {
-                self.current = element.next.as_ref().map(|next| &**next);
+                self.current = element.next.as_deref();
                 Some(&element.node)
             }
         }

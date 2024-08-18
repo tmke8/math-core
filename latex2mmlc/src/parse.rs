@@ -39,20 +39,20 @@ impl<'arena> Alloc<'arena, '_> {
 pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
-    tf: Option<TextTransform>,
-    var: Option<MathVariant>,
     buffer: &'arena Arena<u8>,
     arena: &'arena Arena<NodeListElement<'arena, 'source>>,
+    tf: Option<TextTransform>,
+    var: Option<MathVariant>,
 }
 impl<'arena, 'source> Parser<'arena, 'source> {
     pub(crate) fn new(l: Lexer<'source>, alloc: &'arena Alloc<'arena, 'source>) -> Self {
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),
-            tf: None,
-            var: None,
             buffer: &alloc.buffer,
             arena: &alloc.arena,
+            tf: None,
+            var: None,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -222,9 +222,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 };
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
-                let content =
-                    self.arena
-                        .push(Node::Frac(numerator, denominator, line_thickness, None));
+                let content = self.commit(Node::Frac(numerator, denominator, line_thickness, None));
                 Node::Fenced {
                     open,
                     close,
@@ -283,8 +281,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.arena
-                        .push(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    self.commit(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
                 } else {
                     self.commit(Node::Operator(op, None))
                 };
@@ -568,17 +565,17 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             }
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
-                let node = &mut self.parse_single_token()?.node;
+                let node = &self.parse_single_token()?.node;
                 let start = self.buffer.end();
-                extract_letters(&self.buffer, node, None)?;
+                extract_letters(self.buffer, node, None)?;
                 let end = self.buffer.end();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
-                let node = &mut self.parse_single_token()?.node;
+                let node = &self.parse_single_token()?.node;
                 let start = self.buffer.end();
-                extract_letters(&self.buffer, node, transform)?;
+                extract_letters(self.buffer, node, transform)?;
                 let end = self.buffer.end();
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
@@ -786,8 +783,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     ) -> NodeRef<'arena, 'source> {
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
-        let mut iter = nodes.into_iter();
-        while let Some(node_ref) = iter.next() {
+        for node_ref in nodes.into_iter() {
             if let Node::SingleLetterIdent(c, _) = &node_ref.node {
                 let c = *c;
                 if let Some(LetterCollector {

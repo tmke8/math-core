@@ -95,7 +95,7 @@ where
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml<'source>(
+pub fn latex_to_mathml(
     latex: &'_ str,
     display: Display,
     pretty: bool,
