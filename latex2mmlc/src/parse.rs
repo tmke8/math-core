@@ -41,7 +41,8 @@ pub(crate) struct Parser<'arena, 'source> {
     peek: TokLoc<'source>,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
-    alloc: &'arena Alloc<'arena, 'source>,
+    buffer: &'arena Arena<u8>,
+    arena: &'arena Arena<NodeListElement<'arena, 'source>>,
 }
 impl<'arena, 'source> Parser<'arena, 'source> {
     pub(crate) fn new(l: Lexer<'source>, alloc: &'arena Alloc<'arena, 'source>) -> Self {
@@ -50,7 +51,8 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             peek: TokLoc(0, Token::EOF),
             tf: None,
             var: None,
-            alloc,
+            buffer: &alloc.buffer,
+            arena: &alloc.arena,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -101,7 +103,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     /// Ideally, the node is constructed directly on the heap, so try to avoid
     /// constructing it on the stack and then moving it to the heap.
     fn commit(&self, node: Node<'arena, 'source>) -> &'arena mut NodeListElement<'arena, 'source> {
-        self.alloc.arena.push(node)
+        self.arena.push(node)
     }
 
     /// Read the node immediately after without worrying about whether
@@ -116,16 +118,12 @@ impl<'arena, 'source> Parser<'arena, 'source> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => {
-                    Node::MultiLetterIdent(self.alloc.buffer.transform_and_push(number, tf))
-                }
+                Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let num = match self.tf {
-                    Some(tf) => {
-                        Node::MultiLetterIdent(self.alloc.buffer.transform_and_push(number, tf))
-                    }
+                    Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
                     None => Node::Number(number),
                 };
                 let first = self.commit(num);
@@ -150,10 +148,10 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(self.alloc.buffer.alloc_str(fun)),
+            Token::Function(fun) => Node::MultiLetterIdent(self.buffer.alloc_str(fun)),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace | Token::Whitespace => {
-                Node::Text(self.alloc.buffer.alloc_str("\u{A0}"))
+                Node::Text(self.buffer.alloc_str("\u{A0}"))
             }
             Token::Sqrt => {
                 let next = self.next_token();
@@ -225,8 +223,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 let numerator = self.parse_token()?;
                 let denominator = self.parse_token()?;
                 let content =
-                    self.alloc
-                        .arena
+                    self.arena
                         .push(Node::Frac(numerator, denominator, line_thickness, None));
                 Node::Fenced {
                     open,
@@ -286,8 +283,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.alloc
-                        .arena
+                    self.arena
                         .push(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
                 } else {
                     self.commit(Node::Operator(op, None))
@@ -306,7 +302,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 }
             }
             Token::Lim(lim) => {
-                let lim_name = self.alloc.buffer.alloc_str(lim);
+                let lim_name = self.buffer.alloc_str(lim);
                 let lim = self.commit(Node::MultiLetterIdent(lim_name));
                 if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
@@ -340,7 +336,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         let negated_letter = [char, '\u{338}'];
-                        Node::MultiLetterIdent(self.alloc.buffer.extend(negated_letter.into_iter()))
+                        Node::MultiLetterIdent(self.buffer.extend(negated_letter.into_iter()))
                     }
                     _ => {
                         return Err(LatexError(
@@ -537,10 +533,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     }
                     "matrix" => Node::Table(env_content, Align::Center),
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = self
-                            .alloc
-                            .arena
-                            .push(Node::Table(env_content, Align::Center));
+                        let content = self.arena.push(Node::Table(env_content, Align::Center));
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -576,17 +569,17 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = &mut self.parse_single_token()?.node;
-                let start = self.alloc.buffer.end();
-                extract_letters(&self.alloc.buffer, node, None)?;
-                let end = self.alloc.buffer.end();
+                let start = self.buffer.end();
+                extract_letters(&self.buffer, node, None)?;
+                let end = self.buffer.end();
                 Node::MultiLetterIdent(StrReference::new(start, end))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = &mut self.parse_single_token()?.node;
-                let start = self.alloc.buffer.end();
-                extract_letters(&self.alloc.buffer, node, transform)?;
-                let end = self.alloc.buffer.end();
+                let start = self.buffer.end();
+                extract_letters(&self.buffer, node, transform)?;
+                let end = self.buffer.end();
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
@@ -806,23 +799,23 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 } else {
                     // We start collecting.
                     collector = Some(LetterCollector {
-                        start: self.alloc.buffer.end(),
+                        start: self.buffer.end(),
                         node_ref,
                         only_one_char: true,
                     });
                 }
-                self.alloc.buffer.push_char(c);
+                self.buffer.push_char(c);
             } else {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
-                    let node_ref = collector.finish(self.alloc.buffer.end());
+                    let node_ref = collector.finish(self.buffer.end());
                     list_builder.push(node_ref);
                 }
                 list_builder.push(node_ref);
             }
         }
         if let Some(collector) = collector {
-            let node_ref = collector.finish(self.alloc.buffer.end());
+            let node_ref = collector.finish(self.buffer.end());
             list_builder.push(node_ref);
         }
         self.squeeze(list_builder, style)

@@ -115,7 +115,6 @@ pub struct NodeListBuilder<'arena, 'source>(Option<InhabitedNodeList<'arena, 'so
 struct InhabitedNodeList<'arena, 'source> {
     head: NodeRef<'arena, 'source>,
     // tail: NodeRef<'arena, 'source>,
-    // tail: NodeRef<'arena, 'source>,
     // head: NonNull<NodeListElement<'arena, 'source>>,
     tail: NonNull<NodeListElement<'arena, 'source>>,
 }
