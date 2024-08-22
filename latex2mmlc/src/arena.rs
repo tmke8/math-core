@@ -2,7 +2,9 @@ use std::ptr::NonNull;
 
 use typed_arena::Arena;
 
-use crate::{ast::Node, attribute::TextTransform};
+use crate::ast::Node;
+use crate::attribute::TextTransform;
+use crate::error::GetUnwrap;
 
 pub type NodeRef<'arena, 'source> = &'arena mut NodeListElement<'arena, 'source>;
 
@@ -16,93 +18,103 @@ impl<'arena, 'source> NodeArenaExt<'arena, 'source> for Arena<NodeListElement<'a
     }
 }
 
-pub trait StrArenaExt {
-    fn push_char(&self, c: char) -> &str;
-    fn extend<I>(&self, iterator: I) -> &str
-    where
-        I: Iterator<Item = char>;
-    fn transform_and_push<'arena>(&'arena self, input: &str, tf: TextTransform) -> &'arena str {
-        self.extend(input.chars().map(|c| tf.transform(c)))
-    }
-    fn end(&self) -> (usize,) {
-        (0,)
-    }
-}
+/// This helper type is there to make string slices at least a little bit safe.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct StrBound(usize);
 
-impl StrArenaExt for Arena<u8> {
-    fn push_char(&self, c: char) -> &str {
-        let mut buf = [0u8; 4];
-        let s = c.encode_utf8(&mut buf);
-        self.alloc_str(s)
-    }
-    fn extend<I>(&self, iterator: I) -> &str
-    where
-        I: Iterator<Item = char>,
-    {
-        let u8_ref = self.alloc_extend(Utf8Iterator::new(iterator));
-        unsafe { std::str::from_utf8_unchecked(u8_ref) }
-    }
-}
-
-struct Utf8Iterator<I>
-where
-    I: Iterator<Item = char>,
-{
-    chars: I,
-    buffer: [u8; 4],
-    buffer_pos: usize,
-    buffer_len: usize,
-}
-
-impl<I> Utf8Iterator<I>
-where
-    I: Iterator<Item = char>,
-{
-    fn new(chars: I) -> Self {
-        Utf8Iterator {
-            chars,
-            buffer: [0; 4],
-            buffer_pos: 0,
-            buffer_len: 0,
-        }
-    }
-}
-
-impl<I> Iterator for Utf8Iterator<I>
-where
-    I: Iterator<Item = char>,
-{
-    type Item = u8;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.buffer_pos < self.buffer_len && self.buffer_pos < 4 {
-            let byte = self.buffer[self.buffer_pos];
-            self.buffer_pos += 1;
-            Some(byte)
-        } else if let Some(ch) = self.chars.next() {
-            let s = ch.encode_utf8(&mut self.buffer);
-            self.buffer_len = s.len();
-            self.buffer_pos = 1;
-            Some(self.buffer[0])
-        } else {
-            None
-        }
-    }
-}
-
-pub struct StrReference;
+#[derive(Debug)]
+pub struct StrReference(StrBound, StrBound);
 
 impl StrReference {
-    pub fn new(start: (usize,), end: (usize,)) -> &'static str {
-        ""
+    pub fn new(start: StrBound, end: StrBound) -> Self {
+        debug_assert!(start.0 <= end.0);
+        StrReference(start, end)
+    }
+
+    #[inline]
+    pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
+        buffer.get_str(self)
+    }
+}
+
+#[derive(Debug)]
+pub struct Buffer {
+    buffer: String,
+}
+
+impl Buffer {
+    pub fn new(size_hint: usize) -> Self {
+        Buffer {
+            buffer: String::with_capacity(size_hint),
+        }
+    }
+
+    #[inline]
+    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) -> StrReference {
+        let start = self.end();
+        self.buffer.extend(iter);
+        let end = self.end();
+        StrReference(start, end)
+    }
+
+    /// Copy the contents of the given reference to the end of the buffer.
+    ///
+    /// If the given reference is invalid, this function will panic.
+    /// However, on WASM, this function will instead do nothing.
+    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
+        let start = self.end();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            assert!(self.buffer.is_char_boundary(reference.0 .0));
+            assert!(self.buffer.is_char_boundary(reference.1 .0));
+            assert!(reference.0 .0 <= reference.1 .0);
+            assert!(reference.1 .0 <= self.buffer.len());
+        }
+        // SAFETY: the bounds have been checked above
+        unsafe {
+            let begin = reference.0 .0;
+            let end = reference.1 .0;
+            let as_vec = self.buffer.as_mut_vec();
+            // The following conditions should always hold true, but we check them
+            // so that the compiler knows that this cannot panic.
+            if begin <= end && begin < as_vec.len() && end <= as_vec.len() {
+                as_vec.extend_from_within(begin..end);
+            }
+        }
+        let end = self.end();
+        StrReference(start, end)
+    }
+
+    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
+        self.extend(input.chars().map(|c| tf.transform(c)))
+    }
+
+    pub fn push_str(&mut self, string: &str) -> StrReference {
+        let start = self.end();
+        self.buffer.push_str(string);
+        let end = self.end();
+        StrReference(start, end)
+    }
+
+    pub fn push_char(&mut self, ch: char) {
+        self.buffer.push(ch);
+    }
+
+    fn get_str(&self, reference: &StrReference) -> &str {
+        self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
+    }
+
+    #[inline]
+    pub fn end(&self) -> StrBound {
+        StrBound(self.buffer.len())
     }
 }
 
 #[derive(Debug)]
 pub struct NodeListElement<'arena, 'source> {
     pub node: Node<'arena, 'source>,
-    // next: Option<NonNull<NodeListElement<'arena, 'source>>>,
-    next: Option<NodeRef<'arena, 'source>>,
+    next: Option<NonNull<NodeListElement<'arena, 'source>>>,
 }
 
 #[derive(Debug)]
@@ -111,9 +123,7 @@ pub struct NodeListBuilder<'arena, 'source>(Option<InhabitedNodeList<'arena, 'so
 
 #[derive(Debug)]
 struct InhabitedNodeList<'arena, 'source> {
-    head: NodeRef<'arena, 'source>,
-    // tail: NodeRef<'arena, 'source>,
-    // head: NonNull<NodeListElement<'arena, 'source>>,
+    head: NonNull<NodeListElement<'arena, 'source>>,
     tail: NonNull<NodeListElement<'arena, 'source>>,
 }
 
@@ -145,23 +155,18 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
         // Duplicate the reference to the node.
         // This is a bit dangerous because it could lead to two references to one node,
         // but we will relinquish the second reference on the `.finish()` call.
-        // let new_tail = NonNull::from(node_ref);
-        let new_tail: *mut _ = &mut *node_ref;
-        let new_tail = unsafe { NonNull::new_unchecked(new_tail) };
+        let new_tail = NonNull::from(node_ref);
         match &mut self.0 {
             None => {
                 self.0 = Some(InhabitedNodeList {
-                    head: node_ref,
+                    head: new_tail,
                     tail: new_tail,
                 });
             }
             Some(InhabitedNodeList { tail, .. }) => {
-                // We want to avoid cycles in the list, so we assert that the new node
-                // has a higher index than the current tail.
-                debug_assert!(*tail < new_tail, "list index should always increase");
                 // Update the tail to point to the new node.
                 unsafe {
-                    tail.as_mut().next = Some(node_ref);
+                    tail.as_mut().next = Some(new_tail);
                 };
                 // Update the tail of the list.
                 *tail = new_tail;
@@ -174,11 +179,12 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// anything in the arena.
     pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena, 'source> {
         match self.0 {
-            Some(list) => {
-                if NonNull::new(list.head as *mut _) == Some(list.tail) {
-                    SingletonOrList::Singleton(list.head)
+            Some(mut list) => {
+                let node_ref = unsafe { list.head.as_mut() };
+                if list.head == list.tail {
+                    SingletonOrList::Singleton(node_ref)
                 } else {
-                    SingletonOrList::List(NodeList(Some(list.head)))
+                    SingletonOrList::List(NodeList(Some(node_ref)))
                 }
             }
             _ => SingletonOrList::List(self.finish()),
@@ -188,7 +194,7 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// Finish building the list and return it.
     /// This method consumes the builder.
     pub fn finish(self) -> NodeList<'arena, 'source> {
-        NodeList(self.0.map(|list| list.head))
+        NodeList(self.0.map(|mut list| unsafe { list.head.as_mut() }))
     }
 }
 
@@ -210,7 +216,7 @@ impl<'arena, 'source> NodeList<'arena, 'source> {
         first: NodeRef<'arena, 'source>,
         second: NodeRef<'arena, 'source>,
     ) -> Self {
-        first.next = Some(second);
+        first.next = Some(NonNull::from(second));
         NodeList(Some(first))
     }
 
@@ -246,7 +252,7 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
         match self.current {
             None => None,
             Some(element) => {
-                self.current = element.next.as_deref();
+                self.current = element.next.map(|next| unsafe { next.as_ref() });
                 Some(&element.node)
             }
         }
@@ -266,7 +272,7 @@ impl<'arena, 'source> Iterator for NodeListManualIterator<'arena, 'source> {
                 // Ownership of the next reference is transferred to the iterator.
                 // This ensures that returned elements can be added to new lists,
                 // without having a "next" reference that points to an element in the old list.
-                self.current = reference.next.take();
+                self.current = reference.next.take().map(|mut r| unsafe { r.as_mut() });
                 Some(reference)
             }
         }
@@ -343,21 +349,21 @@ mod tests {
 
     #[test]
     fn buffer_extend() {
-        let buffer = Arena::<u8>::new();
+        let mut buffer = Buffer::new(0);
         let str_ref = buffer.extend("Hello, world!".chars());
-        assert_eq!(str_ref, "Hello, world!");
+        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
     }
 
     #[test]
     fn buffer_push_str() {
-        let buffer = Arena::<u8>::new();
-        let str_ref = buffer.alloc_str("Hello, world!");
-        assert_eq!(str_ref, "Hello, world!");
+        let mut buffer = Buffer::new(0);
+        let str_ref = buffer.push_str("Hello, world!");
+        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
     }
 
     #[test]
     fn buffer_manual_reference() {
-        let buffer = Arena::<u8>::new();
+        let mut buffer = Buffer::new(0);
         let start = buffer.end();
         assert_eq!(start.0, 0);
         buffer.push_char('H');
@@ -366,17 +372,7 @@ mod tests {
         let end = buffer.end();
         assert_eq!(end.0, 5);
         let str_ref = StrReference::new(start, end);
-        // assert_eq!(buffer.get_str(&str_ref), "Hi↩");
-    }
-
-    #[test]
-    fn utf8_iter() {
-        let chars = "aß".chars();
-        let mut iter = Utf8Iterator::new(chars);
-        assert_eq!(iter.next(), Some(b'a'));
-        assert_eq!(iter.next(), Some(0xC3));
-        assert_eq!(iter.next(), Some(0x9F));
-        assert_eq!(iter.next(), None);
+        assert_eq!(buffer.get_str(&str_ref), "Hi↩");
     }
 
     struct CycleParticipant<'a> {

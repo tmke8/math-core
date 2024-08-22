@@ -1,4 +1,4 @@
-use crate::arena::{NodeList, NodeListElement};
+use crate::arena::{Buffer, NodeList, StrReference};
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
@@ -16,44 +16,41 @@ pub enum Node<'arena, 'source> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    MultiLetterIdent(&'arena str),
+    MultiLetterIdent(StrReference),
     Space(&'static str),
     Subscript {
-        target: &'arena NodeListElement<'arena, 'source>,
-        symbol: &'arena NodeListElement<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
+        symbol: &'arena Node<'arena, 'source>,
     },
     Superscript {
-        target: &'arena NodeListElement<'arena, 'source>,
-        symbol: &'arena NodeListElement<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
+        symbol: &'arena Node<'arena, 'source>,
     },
     SubSup {
-        target: &'arena NodeListElement<'arena, 'source>,
-        sub: &'arena NodeListElement<'arena, 'source>,
-        sup: &'arena NodeListElement<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
+        sub: &'arena Node<'arena, 'source>,
+        sup: &'arena Node<'arena, 'source>,
     },
-    OverOp(Op, Accent, &'arena NodeListElement<'arena, 'source>),
-    UnderOp(Op, Accent, &'arena NodeListElement<'arena, 'source>),
+    OverOp(Op, Accent, &'arena Node<'arena, 'source>),
+    UnderOp(Op, Accent, &'arena Node<'arena, 'source>),
     Overset {
-        symbol: &'arena NodeListElement<'arena, 'source>,
-        target: &'arena NodeListElement<'arena, 'source>,
+        symbol: &'arena Node<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
     },
     Underset {
-        symbol: &'arena NodeListElement<'arena, 'source>,
-        target: &'arena NodeListElement<'arena, 'source>,
+        symbol: &'arena Node<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
     },
     UnderOver {
-        target: &'arena NodeListElement<'arena, 'source>,
-        under: &'arena NodeListElement<'arena, 'source>,
-        over: &'arena NodeListElement<'arena, 'source>,
+        target: &'arena Node<'arena, 'source>,
+        under: &'arena Node<'arena, 'source>,
+        over: &'arena Node<'arena, 'source>,
     },
-    Sqrt(&'arena NodeListElement<'arena, 'source>),
-    Root(
-        &'arena NodeListElement<'arena, 'source>,
-        &'arena NodeListElement<'arena, 'source>,
-    ),
+    Sqrt(&'arena Node<'arena, 'source>),
+    Root(&'arena Node<'arena, 'source>, &'arena Node<'arena, 'source>),
     Frac(
-        &'arena NodeListElement<'arena, 'source>,
-        &'arena NodeListElement<'arena, 'source>,
+        &'arena Node<'arena, 'source>,
+        &'arena Node<'arena, 'source>,
         Option<char>,
         Option<FracAttr>,
     ),
@@ -63,21 +60,21 @@ pub enum Node<'arena, 'source> {
     Fenced {
         open: Op,
         close: Op,
-        content: &'arena NodeListElement<'arena, 'source>,
+        content: &'arena Node<'arena, 'source>,
         style: Option<Style>,
     },
     SizedParen {
         size: &'static str,
         paren: Op,
     },
-    Text(&'arena str),
+    Text(StrReference),
     Table(NodeList<'arena, 'source>, Align),
     ColumnSeparator,
     RowSeparator,
-    Slashed(&'arena NodeListElement<'arena, 'source>),
+    Slashed(&'arena Node<'arena, 'source>),
     Multiscript {
-        base: &'arena NodeListElement<'arena, 'source>,
-        sub: &'arena NodeListElement<'arena, 'source>,
+        base: &'arena Node<'arena, 'source>,
+        sub: &'arena Node<'arena, 'source>,
     },
 }
 
@@ -108,13 +105,13 @@ macro_rules! pushln {
 }
 
 impl<'arena, 'source> Node<'arena, 'source> {
-    pub fn render(&'arena self) -> String {
+    pub fn render(&'arena self, buffer: &'arena Buffer) -> String {
         let mut buf = String::new();
-        self.emit(&mut buf, 0);
+        self.emit(&mut buf, buffer, 0);
         buf
     }
 
-    pub fn emit(&'arena self, s: &mut String, base_indent: usize) {
+    pub fn emit(&'arena self, s: &mut String, b: &Buffer, base_indent: usize) {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -171,7 +168,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
-                push!(s, "<mi>", letters, "</mi>");
+                push!(s, "<mi>", letters.as_str(b), "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
@@ -202,8 +199,8 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.node.emit(s, child_indent);
-                second.node.emit(s, child_indent);
+                first.emit(s, b, child_indent);
+                second.emit(s, b, child_indent);
                 pushln!(s, base_indent, close);
             }
             // The following nodes have exactly three children.
@@ -224,34 +221,34 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.node.emit(s, child_indent);
-                second.node.emit(s, child_indent);
-                third.node.emit(s, child_indent);
+                first.emit(s, b, child_indent);
+                second.emit(s, b, child_indent);
+                third.emit(s, b, child_indent);
                 pushln!(s, base_indent, close);
             }
             Node::Multiscript { base, sub } => {
                 push!(s, "<mmultiscripts>");
-                base.node.emit(s, child_indent);
+                base.emit(s, b, child_indent);
                 pushln!(s, child_indent, "<mprescripts/>");
-                sub.node.emit(s, child_indent);
+                sub.emit(s, b, child_indent);
                 pushln!(s, child_indent, "<mrow></mrow>");
                 pushln!(s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
-                target.node.emit(s, child_indent);
+                target.emit(s, b, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
-                target.node.emit(s, child_indent);
+                target.emit(s, b, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
-                content.node.emit(s, child_indent);
+                content.emit(s, b, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
             Node::Frac(num, denom, lt, style) => {
@@ -263,8 +260,8 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     push!(s, style);
                 }
                 push!(s, ">");
-                num.node.emit(s, child_indent);
-                denom.node.emit(s, child_indent);
+                num.emit(s, b, child_indent);
+                denom.emit(s, b, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row(vec, style) => {
@@ -273,13 +270,13 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     None => push!(s, "<mrow>"),
                 }
                 for node in vec.iter() {
-                    node.emit(s, child_indent);
+                    node.emit(s, b, child_indent);
                 }
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
-                    node.emit(s, base_indent);
+                    node.emit(s, b, base_indent);
                 }
             }
             Node::Mathstrut => {
@@ -303,7 +300,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     push!(s, @open);
                 }
                 push!(s, "</mo>");
-                content.node.emit(s, child_indent);
+                content.emit(s, b, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
                 if char::from(close) != '\0' {
                     push!(s, @close);
@@ -315,7 +312,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
                 push!(s, @paren, "</mo>");
             }
-            Node::Slashed(node) => match &node.node {
+            Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, var) => match var {
                     Some(var) => {
                         push!(s, "<mi", var, ">", @*x, "&#x0338;</mi>")
@@ -325,7 +322,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 Node::Operator(x, _) => {
                     push!(s, "<mo>", @x, "&#x0338;</mo>");
                 }
-                n => n.emit(s, base_indent),
+                n => n.emit(s, b, base_indent),
             },
             Node::Table(content, align) => {
                 let child_indent2 = if base_indent > 0 {
@@ -374,7 +371,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                             col = 1;
                         }
                         node => {
-                            node.emit(s, child_indent3);
+                            node.emit(s, b, child_indent3);
                         }
                     }
                 }
@@ -383,7 +380,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 pushln!(s, base_indent, "</mtable>");
             }
             Node::Text(text) => {
-                push!(s, "<mtext>", text, "</mtext>");
+                push!(s, "<mtext>", text.as_str(b), "</mtext>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
         }
@@ -403,9 +400,11 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 mod tests {
     use super::super::attribute::MathVariant;
     use super::Node;
+    use crate::arena::Buffer;
 
     #[test]
     fn node_display() {
+        let buffer = Buffer::new(0);
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
             (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
@@ -416,7 +415,7 @@ mod tests {
             ),
         ];
         for (problem, answer) in problems.iter() {
-            assert_eq!(&problem.render(), answer);
+            assert_eq!(&problem.render(&buffer), answer);
         }
     }
 }
