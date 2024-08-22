@@ -193,12 +193,12 @@ impl<'source> Parser<'source> {
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let style = match self.parse_token()?.as_node(&self.arena) {
-                    Node::Number(num) => match num.parse::<u8>() {
-                        Ok(0) => Some(Style::DisplayStyle),
-                        Ok(1) => Some(Style::TextStyle),
-                        Ok(2) => Some(Style::ScriptStyle),
-                        Ok(3) => Some(Style::ScriptScriptStyle),
-                        Ok(_) | Err(_) => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    Node::Number(num) => match num.as_bytes() {
+                        b"0" => Some(Style::DisplayStyle),
+                        b"1" => Some(Style::TextStyle),
+                        b"2" => Some(Style::ScriptStyle),
+                        b"3" => Some(Style::ScriptScriptStyle),
+                        _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                     },
                     Node::Row(elements, _) if elements.is_empty() => None,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
