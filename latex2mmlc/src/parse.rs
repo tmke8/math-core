@@ -347,24 +347,12 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     }
                 }
             }
-            Token::NormalVariant => {
-                let old_var = mem::replace(&mut self.var, Some(MathVariant::Normal));
-                let old_tf = self.tf.take();
+            Token::Transform(tf, var) => {
+                let old_var = mem::replace(&mut self.var, var);
+                let old_tf = mem::replace(&mut self.tf, tf);
                 let token = self.next_token();
                 let node_ref = self.parse_single_node(token)?;
                 self.var = old_var;
-                self.tf = old_tf;
-                if let Node::Row(nodes, style) = &mut node_ref.node {
-                    let nodes = mem::replace(nodes, NodeList::empty());
-                    let style = *style;
-                    return Ok(self.merge_single_letters(nodes, style));
-                }
-                return Ok(node_ref);
-            }
-            Token::Transform(tf) => {
-                let old_tf = mem::replace(&mut self.tf, Some(tf));
-                let token = self.next_token();
-                let node_ref = self.parse_single_node(token)?;
                 self.tf = old_tf;
                 if let Node::Row(nodes, style) = &mut node_ref.node {
                     let nodes = mem::replace(nodes, NodeList::empty());
