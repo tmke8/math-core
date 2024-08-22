@@ -1,10 +1,8 @@
 use std::mem;
 
-use typed_arena::Arena;
-
 use crate::{
     arena::{
-        Buffer, NodeArenaExt, NodeList, NodeListBuilder, NodeListElement, NodeRef, SingletonOrList,
+        Buffer, NodeArena, NodeArenaExt, NodeList, NodeListBuilder, NodeRef, SingletonOrList,
         StrBound, StrReference,
     },
     ast::Node,
@@ -20,14 +18,14 @@ pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
     pub buffer: Buffer,
-    arena: &'arena Arena<NodeListElement<'arena, 'source>>,
+    arena: &'arena NodeArena<'arena, 'source>,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
 }
 impl<'arena, 'source> Parser<'arena, 'source> {
     pub(crate) fn new(
         l: Lexer<'source>,
-        arena: &'arena Arena<NodeListElement<'arena, 'source>>,
+        arena: &'arena NodeArena<'arena, 'source>,
         buffer: Buffer,
     ) -> Self {
         let mut p = Parser {
@@ -96,7 +94,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     ///
     /// Ideally, the node is constructed directly on the heap, so try to avoid
     /// constructing it on the stack and then moving it to the heap.
-    fn commit(&self, node: Node<'arena, 'source>) -> &'arena mut NodeListElement<'arena, 'source> {
+    fn commit(&self, node: Node<'arena, 'source>) -> NodeRef<'arena, 'source> {
         self.arena.push(node)
     }
 

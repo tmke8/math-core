@@ -6,13 +6,20 @@ use crate::ast::Node;
 use crate::attribute::TextTransform;
 use crate::error::GetUnwrap;
 
+#[derive(Debug)]
+pub struct NodeListElement<'arena, 'source> {
+    pub node: Node<'arena, 'source>,
+    next: Option<NonNull<NodeListElement<'arena, 'source>>>,
+}
+
 pub type NodeRef<'arena, 'source> = &'arena mut NodeListElement<'arena, 'source>;
+pub type NodeArena<'arena, 'source> = Arena<NodeListElement<'arena, 'source>>;
 
 pub trait NodeArenaExt<'arena, 'source> {
     fn push(&self, node: Node<'arena, 'source>) -> &mut NodeListElement<'arena, 'source>;
 }
 
-impl<'arena, 'source> NodeArenaExt<'arena, 'source> for Arena<NodeListElement<'arena, 'source>> {
+impl<'arena, 'source> NodeArenaExt<'arena, 'source> for NodeArena<'arena, 'source> {
     fn push(&self, node: Node<'arena, 'source>) -> &mut NodeListElement<'arena, 'source> {
         self.alloc(NodeListElement { node, next: None })
     }
@@ -112,12 +119,6 @@ impl Buffer {
 }
 
 #[derive(Debug)]
-pub struct NodeListElement<'arena, 'source> {
-    pub node: Node<'arena, 'source>,
-    next: Option<NonNull<NodeListElement<'arena, 'source>>>,
-}
-
-#[derive(Debug)]
 #[repr(transparent)]
 pub struct NodeListBuilder<'arena, 'source>(Option<InhabitedNodeList<'arena, 'source>>);
 
@@ -152,9 +153,8 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// If the referenced node was already part of some other list,
     /// then that list will be broken.
     pub fn push(&mut self, node_ref: NodeRef<'arena, 'source>) {
-        // Duplicate the reference to the node.
-        // This is a bit dangerous because it could lead to two references to one node,
-        // but we will relinquish the second reference on the `.finish()` call.
+        // We need to work with raw pointers here, because we want *two* mutable references
+        // to the last element of the list.
         let new_tail = NonNull::from(node_ref);
         match &mut self.0 {
             None => {
@@ -179,15 +179,10 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// anything in the arena.
     pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena, 'source> {
         match self.0 {
-            Some(mut list) => {
-                let node_ref = unsafe { list.head.as_mut() };
-                if list.head == list.tail {
-                    SingletonOrList::Singleton(node_ref)
-                } else {
-                    SingletonOrList::List(NodeList(Some(node_ref)))
-                }
+            Some(mut list) if list.head == list.tail => {
+                SingletonOrList::Singleton(unsafe { list.head.as_mut() })
             }
-            None => SingletonOrList::List(NodeList(None)),
+            _ => SingletonOrList::List(self.finish()),
         }
     }
 
