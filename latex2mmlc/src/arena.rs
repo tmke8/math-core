@@ -187,7 +187,7 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
                     SingletonOrList::List(NodeList(Some(node_ref)))
                 }
             }
-            _ => SingletonOrList::List(self.finish()),
+            None => SingletonOrList::List(NodeList(None)),
         }
     }
 
