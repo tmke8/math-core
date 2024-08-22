@@ -46,7 +46,7 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::{Buffer, NodeListElement};
+use arena::{Buffer, NodeArena};
 
 pub mod arena;
 pub mod ast;
@@ -69,7 +69,7 @@ pub enum Display {
 
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
-    arena: &'arena Arena<NodeListElement<'arena, 'source>>,
+    arena: &'arena NodeArena<'arena, 'source>,
 ) -> Result<(ast::Node<'arena, 'source>, Buffer), error::LatexError<'source>>
 where
     'source: 'arena,
