@@ -785,7 +785,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     }
 
     fn squeeze(
-        &mut self,
+        &self,
         list_builder: NodeListBuilder<'arena, 'source>,
         style: Option<Style>,
     ) -> NodeRef<'arena, 'source> {
