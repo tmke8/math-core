@@ -78,7 +78,7 @@ where
     let buffer = Buffer::new(latex.len());
 
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, arena, buffer);
+    let mut p = parse::Parser::new(l, buffer, arena);
     let nodes = p.parse()?;
     Ok((nodes, p.buffer))
 }

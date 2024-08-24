@@ -22,7 +22,7 @@ pub(crate) struct Parser<'arena, 'source> {
     var: Option<MathVariant>,
 }
 impl<'arena, 'source> Parser<'arena, 'source> {
-    pub(crate) fn new(l: Lexer<'source>, arena: &'arena Arena<'source>, buffer: Buffer) -> Self {
+    pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: &'arena Arena<'source>) -> Self {
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),
@@ -865,7 +865,7 @@ fn extract_letters<'arena, 'source>(
             };
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push_char((*op).into());
+            buffer.push_char(op.into());
         }
         Node::Text(str_ref) => {
             buffer.extend_from_within(str_ref);
