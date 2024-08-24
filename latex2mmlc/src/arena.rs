@@ -59,17 +59,12 @@ impl Default for Arena<'_> {
 /// This helper type is there to make string slices at least a little bit safe.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct StrBound(usize);
+struct StrBound(usize);
 
 #[derive(Debug)]
 pub struct StrReference(StrBound, StrBound);
 
 impl StrReference {
-    pub fn new(start: StrBound, end: StrBound) -> Self {
-        debug_assert!(start.0 <= end.0);
-        StrReference(start, end)
-    }
-
     #[inline]
     pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
         buffer.get_str(self)
@@ -100,7 +95,7 @@ impl Buffer {
     ///
     /// If the given reference is invalid, this function will panic.
     /// However, on WASM, this function will instead do nothing.
-    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
+    fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
         let start = self.end();
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -135,17 +130,54 @@ impl Buffer {
         StrReference(start, end)
     }
 
-    pub fn push_char(&mut self, ch: char) {
-        self.buffer.push(ch);
-    }
-
     fn get_str(&self, reference: &StrReference) -> &str {
         self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
     }
 
     #[inline]
-    pub fn end(&self) -> StrBound {
+    fn end(&self) -> StrBound {
         StrBound(self.buffer.len())
+    }
+
+    pub fn get_builder(&mut self) -> StringBuilder {
+        StringBuilder::new(self)
+    }
+}
+
+/// A helper type to safely build a string in the buffer from multiple pieces.
+///
+/// This takes an exclusive reference to the buffer and keeps track of the start
+/// of the string being built. This guarantees that upon finishing, the string
+/// has valid bounds and nothing else was written to the buffer in the meantime.
+pub struct StringBuilder<'buffer> {
+    buffer: &'buffer mut Buffer,
+    start: StrBound,
+}
+
+impl<'buffer> StringBuilder<'buffer> {
+    pub fn new(buffer: &'buffer mut Buffer) -> Self {
+        let start = buffer.end();
+        StringBuilder { buffer, start }
+    }
+
+    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
+        self.buffer.extend_from_within(reference)
+    }
+
+    pub fn push_str(&mut self, string: &str) -> StrReference {
+        self.buffer.push_str(string)
+    }
+
+    pub fn push_char(&mut self, ch: char) {
+        self.buffer.buffer.push(ch);
+    }
+
+    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
+        self.buffer.transform_and_push(input, tf)
+    }
+
+    pub fn finish(self) -> StrReference {
+        StrReference(self.start, self.buffer.end())
     }
 }
 
@@ -390,14 +422,13 @@ mod tests {
     #[test]
     fn buffer_manual_reference() {
         let mut buffer = Buffer::new(0);
-        let start = buffer.end();
-        assert_eq!(start.0, 0);
-        buffer.push_char('H');
-        buffer.push_char('i');
-        buffer.push_char('↩'); // This is a multi-byte character.
-        let end = buffer.end();
-        assert_eq!(end.0, 5);
-        let str_ref = StrReference::new(start, end);
+        let mut builder = buffer.get_builder();
+        assert_eq!(builder.start.0, 0);
+        builder.push_char('H');
+        builder.push_char('i');
+        builder.push_char('↩'); // This is a multi-byte character.
+        let str_ref = builder.finish();
+        assert_eq!(str_ref.1 .0, 5);
         assert_eq!(buffer.get_str(&str_ref), "Hi↩");
     }
 
