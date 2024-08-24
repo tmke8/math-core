@@ -1,9 +1,7 @@
 use std::mem;
 
 use crate::{
-    arena::{
-        Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StrBound, StrReference,
-    },
+    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -568,23 +566,22 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
-                let start = self.buffer.end();
-                extract_letters(&mut self.buffer, node, None)?;
-                let end = self.buffer.end();
-                Node::MultiLetterIdent(StrReference::new(start, end))
+                let mut builder = self.buffer.get_builder();
+                extract_letters(&mut builder, node, None)?;
+                Node::MultiLetterIdent(builder.finish())
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
-                let start = self.buffer.end();
-                extract_letters(&mut self.buffer, node, transform)?;
-                let end = self.buffer.end();
+                let mut builder = self.buffer.get_builder();
+                extract_letters(&mut builder, node, transform)?;
+                let text = builder.finish();
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
-                Node::Text(StrReference::new(start, end))
+                Node::Text(text)
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
@@ -790,30 +787,33 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 let c = *c;
                 if let Some(LetterCollector {
                     ref mut only_one_char,
+                    ref mut builder,
                     ..
                 }) = collector
                 {
                     *only_one_char = false;
+                    builder.push_char(c);
                 } else {
+                    let mut builder = self.buffer.get_builder();
+                    builder.push_char(c);
                     // We start collecting.
                     collector = Some(LetterCollector {
-                        start: self.buffer.end(),
+                        builder,
                         node_ref,
                         only_one_char: true,
                     });
                 }
-                self.buffer.push_char(c);
             } else {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
-                    let node_ref = collector.finish(self.buffer.end());
+                    let node_ref = collector.finish();
                     list_builder.push(node_ref);
                 }
                 list_builder.push(node_ref);
             }
         }
         if let Some(collector) = collector {
-            let node_ref = collector.finish(self.buffer.end());
+            let node_ref = collector.finish();
             list_builder.push(node_ref);
         }
         self.squeeze(list_builder, style)
@@ -825,17 +825,17 @@ struct Bounds<'arena, 'source>(
     Option<&'arena Node<'arena, 'source>>,
 );
 
-struct LetterCollector<'arena, 'source> {
-    start: StrBound,
+struct LetterCollector<'arena, 'source, 'buffer> {
+    builder: StringBuilder<'buffer>,
     node_ref: NodeRef<'arena, 'source>,
     only_one_char: bool,
 }
 
-impl<'arena, 'source> LetterCollector<'arena, 'source> {
-    fn finish(self, end: StrBound) -> NodeRef<'arena, 'source> {
+impl<'arena, 'source> LetterCollector<'arena, 'source, '_> {
+    fn finish(self) -> NodeRef<'arena, 'source> {
         let node = &mut self.node_ref.node;
         if !self.only_one_char {
-            *node = Node::MultiLetterIdent(StrReference::new(self.start, end));
+            *node = Node::MultiLetterIdent(self.builder.finish());
         }
         self.node_ref
     }
@@ -845,7 +845,7 @@ impl<'arena, 'source> LetterCollector<'arena, 'source> {
 /// This function cannot be a method, because we need to borrow arena immutably
 /// but buffer mutably. This is not possible with a mutable self reference.
 fn extract_letters<'arena, 'source>(
-    buffer: &mut Buffer,
+    buffer: &mut StringBuilder,
     node: &'arena Node<'arena, 'source>,
     transform: Option<TextTransform>,
 ) -> Result<(), LatexError<'source>> {
