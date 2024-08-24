@@ -13,10 +13,10 @@ keywords      = ["latex", "mathml"]
 categories    = ["science"]
 
 [dependencies]
+bumpalo = "3.16.0"
 no-panic = "0.1.30"
 phf = { version = "0.11.2", features = ["macros"] }
 strum_macros = "0.26.4"
-typed-arena = "2.0.2"
 
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["default"] }

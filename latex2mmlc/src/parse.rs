@@ -2,8 +2,7 @@ use std::mem;
 
 use crate::{
     arena::{
-        Buffer, NodeArena, NodeArenaExt, NodeList, NodeListBuilder, NodeRef, SingletonOrList,
-        StrBound, StrReference,
+        Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StrBound, StrReference,
     },
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
@@ -18,16 +17,12 @@ pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
     pub buffer: Buffer,
-    arena: &'arena NodeArena<'arena, 'source>,
+    arena: &'arena Arena<'source>,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
 }
 impl<'arena, 'source> Parser<'arena, 'source> {
-    pub(crate) fn new(
-        l: Lexer<'source>,
-        arena: &'arena NodeArena<'arena, 'source>,
-        buffer: Buffer,
-    ) -> Self {
+    pub(crate) fn new(l: Lexer<'source>, arena: &'arena Arena<'source>, buffer: Buffer) -> Self {
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),

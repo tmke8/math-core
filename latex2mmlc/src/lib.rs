@@ -46,7 +46,7 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::{Buffer, NodeArena};
+use arena::{Arena, Buffer};
 
 pub mod arena;
 pub mod ast;
@@ -58,7 +58,6 @@ pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
 pub use error::LatexError;
-use typed_arena::Arena;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,14 +68,15 @@ pub enum Display {
 
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
-    arena: &'arena NodeArena<'arena, 'source>,
+    arena: &'arena Arena<'source>,
 ) -> Result<(ast::Node<'arena, 'source>, Buffer), error::LatexError<'source>>
 where
-    'source: 'arena,
+    'source: 'arena, // 'source outlives 'arena
 {
     // The length of the input is an upper bound for the required length for
     // the string buffer.
     let buffer = Buffer::new(latex.len());
+
     let l = lexer::Lexer::new(latex);
     let mut p = parse::Parser::new(l, arena, buffer);
     let nodes = p.parse()?;

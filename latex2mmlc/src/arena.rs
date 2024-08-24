@@ -1,6 +1,7 @@
+use std::marker::PhantomData;
 use std::ptr::NonNull;
 
-use typed_arena::Arena;
+use bumpalo::Bump;
 
 use crate::ast::Node;
 use crate::attribute::TextTransform;
@@ -13,15 +14,45 @@ pub struct NodeListElement<'arena, 'source> {
 }
 
 pub type NodeRef<'arena, 'source> = &'arena mut NodeListElement<'arena, 'source>;
-pub type NodeArena<'arena, 'source> = Arena<NodeListElement<'arena, 'source>>;
 
-pub trait NodeArenaExt<'arena, 'source> {
-    fn push(&self, node: Node<'arena, 'source>) -> &mut NodeListElement<'arena, 'source>;
+pub struct Arena<'source> {
+    bump: Bump,
+    phantom: PhantomData<&'source ()>,
 }
 
-impl<'arena, 'source> NodeArenaExt<'arena, 'source> for NodeArena<'arena, 'source> {
-    fn push(&self, node: Node<'arena, 'source>) -> &mut NodeListElement<'arena, 'source> {
-        self.alloc(NodeListElement { node, next: None })
+impl<'source> Arena<'source> {
+    pub fn new() -> Self {
+        Arena {
+            bump: Bump::new(),
+            phantom: PhantomData,
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[inline]
+    pub fn push<'arena>(
+        &'arena self,
+        node: Node<'arena, 'source>,
+    ) -> &mut NodeListElement<'arena, 'source> {
+        // This fails if the bump allocator is out of memory.
+        self.bump
+            .try_alloc_with(|| NodeListElement { node, next: None })
+            .unwrap_or_else(|_| std::process::abort())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    #[inline]
+    pub fn push<'arena>(
+        &'arena self,
+        node: Node<'arena, 'source>,
+    ) -> &mut NodeListElement<'arena, 'source> {
+        self.bump
+            .alloc_with(|| NodeListElement { node, next: None })
+    }
+}
+
+impl Default for Arena<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -377,7 +408,7 @@ mod tests {
 
     #[test]
     fn basic_arena() {
-        let arena = Arena::new();
+        let arena = Bump::new();
 
         let a = arena.alloc(CycleParticipant { val: 1, next: None });
         let b = arena.alloc(CycleParticipant { val: 2, next: None });
