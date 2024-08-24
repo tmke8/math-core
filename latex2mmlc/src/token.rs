@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::AsRefStr;
 
-use crate::attribute::{FracAttr, ParenAttr, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, ParenAttr, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
@@ -58,8 +58,7 @@ pub enum Token<'source> {
     #[strum(serialize = "~")]
     NonBreakingSpace,
     Whitespace,
-    Transform(TextTransform),
-    NormalVariant,
+    Transform(Option<TextTransform>, Option<MathVariant>),
     Big(&'static str),
     Over(Op),
     Under(Op),
@@ -98,7 +97,7 @@ impl Token<'_> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
-            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(_)
+            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(Some(_), None)
         )
     }
 

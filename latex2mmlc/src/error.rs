@@ -101,28 +101,6 @@ impl fmt::Display for LatexError<'_> {
 
 impl std::error::Error for LatexError<'_> {}
 
-pub trait ExpectOptim {
-    type Inner;
-    /// Optimized version of `Option::expect`.
-    fn expect_optim(self, msg: &str) -> Self::Inner;
-}
-
-impl<T> ExpectOptim for Option<T> {
-    type Inner = T;
-    #[cfg(target_arch = "wasm32")]
-    #[inline]
-    fn expect_optim(self, _msg: &str) -> Self::Inner {
-        // On WASM, panics are really expensive in terms of code size,
-        // so we use an unchecked unwrap here.
-        unsafe { self.unwrap_unchecked() }
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    #[inline]
-    fn expect_optim(self, msg: &str) -> Self::Inner {
-        self.expect(msg)
-    }
-}
-
 pub trait GetUnwrap {
     /// `str::get` with `Option::unwrap`.
     fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str;

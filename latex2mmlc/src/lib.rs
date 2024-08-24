@@ -46,6 +46,7 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
+use arena::{Arena, Buffer};
 
 pub mod arena;
 pub mod ast;
@@ -56,7 +57,6 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
-use arena::{Arena, Buffer};
 pub use error::LatexError;
 
 /// display
@@ -66,18 +66,21 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error::LatexError<'_>> {
+fn get_nodes<'arena, 'source>(
+    latex: &'source str,
+    arena: &'arena Arena<'source>,
+) -> Result<(ast::Node<'arena, 'source>, Buffer), error::LatexError<'source>>
+where
+    'source: 'arena, // 'source outlives 'arena
+{
     // The length of the input is an upper bound for the required length for
     // the string buffer.
     let buffer = Buffer::new(latex.len());
-    // TODO: Estimate a reasonable initial capacity for the arena.
-    let arena = Arena::new();
 
     let l = lexer::Lexer::new(latex);
     let mut p = parse::Parser::new(l, buffer, arena);
     let nodes = p.parse()?;
-    let (buffer, arena) = p.into_inner();
-    Ok((nodes, buffer, arena))
+    Ok((nodes, p.buffer))
 }
 
 /// Convert LaTeX text to MathML.
@@ -97,18 +100,19 @@ fn get_nodes(latex: &'_ str) -> Result<(ast::Node<'_>, Buffer, Arena<'_>), error
 /// ```
 ///
 pub fn latex_to_mathml(
-    latex: &str,
+    latex: &'_ str,
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    let (nodes, buffer, arena) = get_nodes(latex)?;
+    let arena = Arena::new();
+    let (nodes, b) = get_nodes(latex, &arena)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, &arena, &buffer, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, &b, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
@@ -122,11 +126,12 @@ mod tests {
 
     use crate::{error, latex_to_mathml};
 
-    use super::get_nodes;
+    use super::{get_nodes, Arena};
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
-        let (nodes, buffer, arena) = get_nodes(latex)?;
-        Ok(nodes.render(&arena, &buffer))
+        let arena = Arena::new();
+        let (nodes, b) = get_nodes(latex, &arena)?;
+        Ok(nodes.render(&b))
     }
 
     #[test]
