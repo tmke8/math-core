@@ -4,8 +4,6 @@ use std::ptr::NonNull;
 use bumpalo::Bump;
 
 use crate::ast::Node;
-use crate::attribute::TextTransform;
-use crate::error::GetUnwrap;
 
 #[derive(Debug)]
 pub struct NodeListElement<'arena, 'source> {
@@ -53,131 +51,6 @@ impl<'source> Arena<'source> {
 impl Default for Arena<'_> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// This helper type is there to make string slices at least a little bit safe.
-#[derive(Debug)]
-#[repr(transparent)]
-struct StrBound(usize);
-
-#[derive(Debug)]
-pub struct StrReference(StrBound, StrBound);
-
-impl StrReference {
-    #[inline]
-    pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
-        buffer.get_str(self)
-    }
-}
-
-#[derive(Debug)]
-pub struct Buffer {
-    buffer: String,
-}
-
-impl Buffer {
-    pub fn new(size_hint: usize) -> Self {
-        Buffer {
-            buffer: String::with_capacity(size_hint),
-        }
-    }
-
-    #[inline]
-    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) -> StrReference {
-        let start = self.end();
-        self.buffer.extend(iter);
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    /// Copy the contents of the given reference to the end of the buffer.
-    ///
-    /// If the given reference is invalid, this function will panic.
-    /// However, on WASM, this function will instead do nothing.
-    fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
-        let start = self.end();
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            assert!(self.buffer.is_char_boundary(reference.0 .0));
-            assert!(self.buffer.is_char_boundary(reference.1 .0));
-            assert!(reference.0 .0 <= reference.1 .0);
-            assert!(reference.1 .0 <= self.buffer.len());
-        }
-        // SAFETY: the bounds have been checked above
-        unsafe {
-            let begin = reference.0 .0;
-            let end = reference.1 .0;
-            let as_vec = self.buffer.as_mut_vec();
-            // The following conditions should always hold true, but we check them
-            // so that the compiler knows that this cannot panic.
-            if begin <= end && begin < as_vec.len() && end <= as_vec.len() {
-                as_vec.extend_from_within(begin..end);
-            }
-        }
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
-        self.extend(input.chars().map(|c| tf.transform(c)))
-    }
-
-    pub fn push_str(&mut self, string: &str) -> StrReference {
-        let start = self.end();
-        self.buffer.push_str(string);
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    fn get_str(&self, reference: &StrReference) -> &str {
-        self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
-    }
-
-    #[inline]
-    fn end(&self) -> StrBound {
-        StrBound(self.buffer.len())
-    }
-
-    pub fn get_builder(&mut self) -> StringBuilder {
-        StringBuilder::new(self)
-    }
-}
-
-/// A helper type to safely build a string in the buffer from multiple pieces.
-///
-/// This takes an exclusive reference to the buffer and keeps track of the start
-/// of the string being built. This guarantees that upon finishing, the string
-/// has valid bounds and nothing else was written to the buffer in the meantime.
-pub struct StringBuilder<'buffer> {
-    buffer: &'buffer mut Buffer,
-    start: StrBound,
-}
-
-impl<'buffer> StringBuilder<'buffer> {
-    pub fn new(buffer: &'buffer mut Buffer) -> Self {
-        let start = buffer.end();
-        StringBuilder { buffer, start }
-    }
-
-    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
-        self.buffer.extend_from_within(reference)
-    }
-
-    pub fn push_str(&mut self, string: &str) -> StrReference {
-        self.buffer.push_str(string)
-    }
-
-    pub fn push_char(&mut self, ch: char) {
-        self.buffer.buffer.push(ch);
-    }
-
-    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
-        self.buffer.transform_and_push(input, tf)
-    }
-
-    pub fn finish(self) -> StrReference {
-        StrReference(self.start, self.buffer.end())
     }
 }
 
@@ -287,15 +160,15 @@ impl<'arena, 'source> NodeList<'arena, 'source> {
 
 impl<'arena, 'source> IntoIterator for NodeList<'arena, 'source> {
     type Item = NodeRef<'arena, 'source>;
-    type IntoIter = NodeListManualIterator<'arena, 'source>;
+    type IntoIter = NodeListIntoIter<'arena, 'source>;
 
     /// Iterate over the list manually.
     ///
     /// This iterator cannot be used with a for loop, because the .next() method
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
-    fn into_iter(self) -> NodeListManualIterator<'arena, 'source> {
-        NodeListManualIterator { current: self.0 }
+    fn into_iter(self) -> NodeListIntoIter<'arena, 'source> {
+        NodeListIntoIter { current: self.0 }
     }
 }
 
@@ -317,11 +190,11 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     }
 }
 
-pub struct NodeListManualIterator<'arena, 'source> {
+pub struct NodeListIntoIter<'arena, 'source> {
     current: Option<NodeRef<'arena, 'source>>,
 }
 
-impl<'arena, 'source> Iterator for NodeListManualIterator<'arena, 'source> {
+impl<'arena, 'source> Iterator for NodeListIntoIter<'arena, 'source> {
     type Item = NodeRef<'arena, 'source>;
     fn next(&mut self) -> Option<NodeRef<'arena, 'source>> {
         match self.current.take() {
@@ -390,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn list_manual_iter() {
+    fn list_into_iter() {
         let arena = Arena::new();
         let mut builder = NodeListBuilder::new();
         let node_ref = arena.push(Node::Space("Hello, world!"));
@@ -403,33 +276,6 @@ mod tests {
         assert!(matches!(reference.node, Node::Space("Hello, world!")));
         let reference = iter.next().unwrap();
         assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
-    }
-
-    #[test]
-    fn buffer_extend() {
-        let mut buffer = Buffer::new(0);
-        let str_ref = buffer.extend("Hello, world!".chars());
-        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
-    }
-
-    #[test]
-    fn buffer_push_str() {
-        let mut buffer = Buffer::new(0);
-        let str_ref = buffer.push_str("Hello, world!");
-        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
-    }
-
-    #[test]
-    fn buffer_manual_reference() {
-        let mut buffer = Buffer::new(0);
-        let mut builder = buffer.get_builder();
-        assert_eq!(builder.start.0, 0);
-        builder.push_char('H');
-        builder.push_char('i');
-        builder.push_char('↩'); // This is a multi-byte character.
-        let str_ref = builder.finish();
-        assert_eq!(str_ref.1 .0, 5);
-        assert_eq!(buffer.get_str(&str_ref), "Hi↩");
     }
 
     struct CycleParticipant<'a> {

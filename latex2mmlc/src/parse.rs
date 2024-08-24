@@ -1,13 +1,14 @@
 use std::mem;
 
 use crate::{
-    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
+    arena::{Arena, NodeList, NodeListBuilder, NodeRef, SingletonOrList},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     ops,
+    str_arena::{Buffer, StringBuilder},
     token::{TokLoc, Token},
 };
 

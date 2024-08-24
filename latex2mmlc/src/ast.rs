@@ -1,6 +1,7 @@
-use crate::arena::{Buffer, NodeList, StrReference};
+use crate::arena::NodeList;
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
+use crate::str_arena::{Buffer, StrReference};
 
 /// AST node
 #[derive(Debug)]
@@ -400,7 +401,7 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 mod tests {
     use super::super::attribute::MathVariant;
     use super::Node;
-    use crate::arena::Buffer;
+    use crate::str_arena::Buffer;
 
     #[test]
     fn node_display() {

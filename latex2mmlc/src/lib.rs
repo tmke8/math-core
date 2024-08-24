@@ -46,7 +46,8 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::{Arena, Buffer};
+use arena::Arena;
+use str_arena::Buffer;
 
 pub mod arena;
 pub mod ast;
@@ -56,6 +57,7 @@ mod error;
 pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
+pub mod str_arena;
 pub mod token;
 pub use error::LatexError;
 
