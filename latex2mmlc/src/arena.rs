@@ -67,7 +67,7 @@ pub struct StrReference(StrBound, StrBound);
 impl StrReference {
     #[inline]
     pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
-        buffer.get_str(self)
+        buffer.buffer.get_unwrap(self.0 .0..self.1 .0)
     }
 }
 
@@ -128,10 +128,6 @@ impl Buffer {
         self.buffer.push_str(string);
         let end = self.end();
         StrReference(start, end)
-    }
-
-    fn get_str(&self, reference: &StrReference) -> &str {
-        self.buffer.get_unwrap(reference.0 .0..reference.1 .0)
     }
 
     #[inline]
@@ -287,15 +283,15 @@ impl<'arena, 'source> NodeList<'arena, 'source> {
 
 impl<'arena, 'source> IntoIterator for NodeList<'arena, 'source> {
     type Item = NodeRef<'arena, 'source>;
-    type IntoIter = NodeListManualIterator<'arena, 'source>;
+    type IntoIter = NodeListIntoIter<'arena, 'source>;
 
     /// Iterate over the list manually.
     ///
     /// This iterator cannot be used with a for loop, because the .next() method
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
-    fn into_iter(self) -> NodeListManualIterator<'arena, 'source> {
-        NodeListManualIterator { current: self.0 }
+    fn into_iter(self) -> NodeListIntoIter<'arena, 'source> {
+        NodeListIntoIter { current: self.0 }
     }
 }
 
@@ -317,11 +313,11 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     }
 }
 
-pub struct NodeListManualIterator<'arena, 'source> {
+pub struct NodeListIntoIter<'arena, 'source> {
     current: Option<NodeRef<'arena, 'source>>,
 }
 
-impl<'arena, 'source> Iterator for NodeListManualIterator<'arena, 'source> {
+impl<'arena, 'source> Iterator for NodeListIntoIter<'arena, 'source> {
     type Item = NodeRef<'arena, 'source>;
     fn next(&mut self) -> Option<NodeRef<'arena, 'source>> {
         match self.current.take() {
@@ -409,14 +405,14 @@ mod tests {
     fn buffer_extend() {
         let mut buffer = Buffer::new(0);
         let str_ref = buffer.extend("Hello, world!".chars());
-        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
+        assert_eq!(str_ref.as_str(&buffer), "Hello, world!");
     }
 
     #[test]
     fn buffer_push_str() {
         let mut buffer = Buffer::new(0);
         let str_ref = buffer.push_str("Hello, world!");
-        assert_eq!(buffer.get_str(&str_ref), "Hello, world!");
+        assert_eq!(str_ref.as_str(&buffer), "Hello, world!");
     }
 
     #[test]
@@ -429,7 +425,7 @@ mod tests {
         builder.push_char('↩'); // This is a multi-byte character.
         let str_ref = builder.finish();
         assert_eq!(str_ref.1 .0, 5);
-        assert_eq!(buffer.get_str(&str_ref), "Hi↩");
+        assert_eq!(str_ref.as_str(&buffer), "Hi↩");
     }
 
     struct CycleParticipant<'a> {
