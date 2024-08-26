@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
+    arena::{Arena, NodeList, NodeListBuilder, NodeRef, SingletonOrList},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -14,17 +14,18 @@ use crate::{
 pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
-    pub buffer: Buffer,
-    arena: &'arena Arena<'source>,
+    arena: &'arena Arena,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
 }
-impl<'arena, 'source> Parser<'arena, 'source> {
-    pub(crate) fn new(l: Lexer<'source>, buffer: Buffer, arena: &'arena Arena<'source>) -> Self {
+impl<'arena, 'source> Parser<'arena, 'source>
+where
+    'source: 'arena, // The reference to the source string will live as long as the arena.
+{
+    pub(crate) fn new(l: Lexer<'source>, arena: &'arena Arena) -> Self {
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),
-            buffer,
             arena,
             tf: None,
             var: None,
@@ -41,7 +42,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
         mem::replace(&mut self.peek, peek_token)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node<'arena, 'source>, LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> Result<Node<'arena>, LatexError<'source>> {
         let mut list_builder = NodeListBuilder::new();
 
         loop {
@@ -59,7 +60,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     fn parse_node(
         &mut self,
         cur_tokloc: TokLoc<'source>,
-    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena>, LatexError<'source>> {
         let target = self.parse_single_node(cur_tokloc)?;
 
         match self.get_bounds()? {
@@ -87,8 +88,13 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     ///
     /// Ideally, the node is constructed directly on the heap, so try to avoid
     /// constructing it on the stack and then moving it to the heap.
-    fn commit(&self, node: Node<'arena, 'source>) -> NodeRef<'arena, 'source> {
+    fn commit(&self, node: Node<'arena>) -> NodeRef<'arena> {
         self.arena.push(node)
+    }
+
+    fn transform_and_push(&self, input: &str, tf: TextTransform) -> &'arena str {
+        let s = String::from_iter(input.chars().map(|c| tf.transform(c)));
+        self.arena.push_str(&s)
     }
 
     /// Read the node immediately after without worrying about whether
@@ -99,16 +105,16 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     fn parse_single_node(
         &mut self,
         cur_tokloc: TokLoc<'source>,
-    ) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeRef<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
+                Some(tf) => Node::MultiLetterIdent(self.transform_and_push(number, tf)),
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let num = match self.tf {
-                    Some(tf) => Node::MultiLetterIdent(self.buffer.transform_and_push(number, tf)),
+                    Some(tf) => Node::MultiLetterIdent(self.transform_and_push(number, tf)),
                     None => Node::Number(number),
                 };
                 let first = self.commit(num);
@@ -133,10 +139,10 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(self.buffer.push_str(fun)),
+            Token::Function(fun) => Node::MultiLetterIdent(self.arena.push_str(fun)),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace | Token::Whitespace => {
-                Node::Text(self.buffer.push_str("\u{A0}"))
+                Node::Text(self.arena.push_str("\u{A0}"))
             }
             Token::Sqrt => {
                 let next = self.next_token();
@@ -293,7 +299,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 }
             }
             Token::Lim(lim) => {
-                let lim_name = self.buffer.push_str(lim);
+                let lim_name = self.arena.push_str(lim);
                 let lim = self.commit(Node::MultiLetterIdent(lim_name));
                 if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
@@ -326,8 +332,10 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                     Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
-                        let negated_letter = [char, '\u{338}'];
-                        Node::MultiLetterIdent(self.buffer.extend(negated_letter.into_iter()))
+                        let mut negated_letter = String::new();
+                        negated_letter.push(char);
+                        negated_letter.push('\u{338}');
+                        Node::MultiLetterIdent(self.arena.push_str(&negated_letter))
                     }
                     _ => {
                         return Err(LatexError(
@@ -566,16 +574,16 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
-                let mut builder = self.buffer.get_builder();
+                let mut builder = String::new();
                 extract_letters(&mut builder, node, None)?;
-                Node::MultiLetterIdent(builder.finish())
+                Node::MultiLetterIdent(self.arena.push_str(&builder))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
-                let mut builder = self.buffer.get_builder();
+                let mut builder = String::new();
                 extract_letters(&mut builder, node, transform)?;
-                let text = builder.finish();
+                let text = self.arena.push_str(&builder);
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
@@ -626,13 +634,13 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     }
 
     #[inline]
-    fn parse_token(&mut self) -> Result<&'arena Node<'arena, 'source>, LatexError<'source>> {
+    fn parse_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
         self.parse_node(token).map(|n| &n.node)
     }
 
     #[inline]
-    fn parse_single_token(&mut self) -> Result<&'arena Node<'arena, 'source>, LatexError<'source>> {
+    fn parse_single_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
         self.parse_single_node(token).map(|n| &n.node)
     }
@@ -641,7 +649,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     fn parse_group(
         &mut self,
         end_token: Token<'source>,
-    ) -> Result<NodeListBuilder<'arena, 'source>, LatexError<'source>> {
+    ) -> Result<NodeListBuilder<'arena>, LatexError<'source>> {
         let mut nodes = NodeListBuilder::new();
 
         while !self.peek.token().is_same_kind(&end_token) {
@@ -686,7 +694,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena, 'source>, LatexError<'source>> {
+    fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
@@ -746,7 +754,7 @@ impl<'arena, 'source> Parser<'arena, 'source> {
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sub(&mut self) -> Result<NodeRef<'arena, 'source>, LatexError<'source>> {
+    fn get_sub_or_sub(&mut self) -> Result<NodeRef<'arena>, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next = self.next_token();
         if matches!(
@@ -766,9 +774,9 @@ impl<'arena, 'source> Parser<'arena, 'source> {
 
     fn squeeze(
         &self,
-        list_builder: NodeListBuilder<'arena, 'source>,
+        list_builder: NodeListBuilder<'arena>,
         style: Option<Style>,
-    ) -> NodeRef<'arena, 'source> {
+    ) -> NodeRef<'arena> {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
             SingletonOrList::List(list) => self.commit(Node::Row(list, style)),
@@ -777,9 +785,9 @@ impl<'arena, 'source> Parser<'arena, 'source> {
 
     fn merge_single_letters(
         &mut self,
-        nodes: NodeList<'arena, 'source>,
+        nodes: NodeList<'arena>,
         style: Option<Style>,
-    ) -> NodeRef<'arena, 'source> {
+    ) -> NodeRef<'arena> {
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         for node_ref in nodes {
@@ -792,10 +800,10 @@ impl<'arena, 'source> Parser<'arena, 'source> {
                 }) = collector
                 {
                     *only_one_char = false;
-                    builder.push_char(c);
+                    builder.push(c);
                 } else {
-                    let mut builder = self.buffer.get_builder();
-                    builder.push_char(c);
+                    let mut builder = String::new();
+                    builder.push(c);
                     // We start collecting.
                     collector = Some(LetterCollector {
                         builder,
@@ -806,36 +814,33 @@ impl<'arena, 'source> Parser<'arena, 'source> {
             } else {
                 // Commit the collected letters.
                 if let Some(collector) = collector.take() {
-                    let node_ref = collector.finish();
+                    let node_ref = collector.finish(self.arena);
                     list_builder.push(node_ref);
                 }
                 list_builder.push(node_ref);
             }
         }
         if let Some(collector) = collector {
-            let node_ref = collector.finish();
+            let node_ref = collector.finish(self.arena);
             list_builder.push(node_ref);
         }
         self.squeeze(list_builder, style)
     }
 }
 
-struct Bounds<'arena, 'source>(
-    Option<&'arena Node<'arena, 'source>>,
-    Option<&'arena Node<'arena, 'source>>,
-);
+struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-struct LetterCollector<'arena, 'source, 'buffer> {
-    builder: StringBuilder<'buffer>,
-    node_ref: NodeRef<'arena, 'source>,
+struct LetterCollector<'arena> {
+    builder: String,
+    node_ref: NodeRef<'arena>,
     only_one_char: bool,
 }
 
-impl<'arena, 'source> LetterCollector<'arena, 'source, '_> {
-    fn finish(self) -> NodeRef<'arena, 'source> {
+impl<'arena> LetterCollector<'arena> {
+    fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
         let node = &mut self.node_ref.node;
         if !self.only_one_char {
-            *node = Node::MultiLetterIdent(self.builder.finish());
+            *node = Node::MultiLetterIdent(arena.push_str(&self.builder));
         }
         self.node_ref
     }
@@ -844,14 +849,14 @@ impl<'arena, 'source> LetterCollector<'arena, 'source, '_> {
 /// Extract the text of all single-letter identifiers and operators in `node`.
 /// This function cannot be a method, because we need to borrow arena immutably
 /// but buffer mutably. This is not possible with a mutable self reference.
-fn extract_letters<'arena, 'source>(
-    buffer: &mut StringBuilder,
-    node: &'arena Node<'arena, 'source>,
+fn extract_letters<'arena>(
+    buffer: &mut String,
+    node: &'arena Node<'arena>,
     transform: Option<TextTransform>,
-) -> Result<(), LatexError<'source>> {
+) -> Result<(), LatexError<'static>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.push_char(transform.as_ref().map_or(*c, |t| t.transform(*c)));
+            buffer.push(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
         Node::Row(nodes, _) | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {
@@ -860,15 +865,15 @@ fn extract_letters<'arena, 'source>(
         }
         Node::Number(n) => {
             match transform {
-                Some(tf) => buffer.transform_and_push(n, tf),
+                Some(tf) => buffer.extend(n.chars().map(|c| tf.transform(c))),
                 None => buffer.push_str(n),
             };
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push_char(op.into());
+            buffer.push(op.into());
         }
         Node::Text(str_ref) => {
-            buffer.extend_from_within(str_ref);
+            buffer.push_str(str_ref);
         }
         _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }
