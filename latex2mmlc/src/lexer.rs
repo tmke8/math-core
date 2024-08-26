@@ -20,7 +20,7 @@ pub(crate) struct Lexer<'source> {
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
-    input_length: usize,
+    pub input_length: usize,
     pub text_mode: bool,
 }
 

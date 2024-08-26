@@ -14,6 +14,7 @@ use crate::{
 pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
+    buffer: String,
     arena: &'arena Arena,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
@@ -23,9 +24,11 @@ where
     'source: 'arena, // The reference to the source string will live as long as the arena.
 {
     pub(crate) fn new(l: Lexer<'source>, arena: &'arena Arena) -> Self {
+        let input_length = l.input_length;
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),
+            buffer: String::with_capacity(input_length),
             arena,
             tf: None,
             var: None,
@@ -92,11 +95,6 @@ where
         self.arena.push(node)
     }
 
-    fn transform_and_push(&self, input: &str, tf: TextTransform) -> &'arena str {
-        let s = String::from_iter(input.chars().map(|c| tf.transform(c)));
-        self.arena.push_str(&s)
-    }
-
     /// Read the node immediately after without worrying about whether
     /// the infix operator `_`, `^`, `'` will continue
     ///
@@ -109,12 +107,20 @@ where
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => Node::MultiLetterIdent(self.transform_and_push(number, tf)),
+                Some(tf) => Node::MultiLetterIdent(self.arena.push_str(transform_and_push(
+                    &mut self.buffer,
+                    number,
+                    tf,
+                ))),
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let num = match self.tf {
-                    Some(tf) => Node::MultiLetterIdent(self.transform_and_push(number, tf)),
+                    Some(tf) => Node::MultiLetterIdent(self.arena.push_str(transform_and_push(
+                        &mut self.buffer,
+                        number,
+                        tf,
+                    ))),
                     None => Node::Number(number),
                 };
                 let first = self.commit(num);
@@ -332,10 +338,10 @@ where
                     Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
-                        let mut negated_letter = String::new();
-                        negated_letter.push(char);
-                        negated_letter.push('\u{338}');
-                        Node::MultiLetterIdent(self.arena.push_str(&negated_letter))
+                        self.buffer.clear();
+                        self.buffer.push(char);
+                        self.buffer.push('\u{338}');
+                        Node::MultiLetterIdent(self.arena.push_str(&self.buffer))
                     }
                     _ => {
                         return Err(LatexError(
@@ -574,16 +580,16 @@ where
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
-                let mut builder = String::new();
-                extract_letters(&mut builder, node, None)?;
-                Node::MultiLetterIdent(self.arena.push_str(&builder))
+                self.buffer.clear();
+                extract_letters(&mut self.buffer, node, None)?;
+                Node::MultiLetterIdent(self.arena.push_str(&self.buffer))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
-                let mut builder = String::new();
-                extract_letters(&mut builder, node, transform)?;
-                let text = self.arena.push_str(&builder);
+                self.buffer.clear();
+                extract_letters(&mut self.buffer, node, transform)?;
+                let text = self.arena.push_str(&self.buffer);
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
@@ -802,11 +808,11 @@ where
                     *only_one_char = false;
                     builder.push(c);
                 } else {
-                    let mut builder = String::new();
-                    builder.push(c);
+                    self.buffer.clear();
+                    self.buffer.push(c);
                     // We start collecting.
                     collector = Some(LetterCollector {
-                        builder,
+                        builder: &mut self.buffer,
                         node_ref,
                         only_one_char: true,
                     });
@@ -830,13 +836,13 @@ where
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-struct LetterCollector<'arena> {
-    builder: String,
+struct LetterCollector<'arena, 'buffer> {
+    builder: &'buffer mut String,
     node_ref: NodeRef<'arena>,
     only_one_char: bool,
 }
 
-impl<'arena> LetterCollector<'arena> {
+impl<'arena> LetterCollector<'arena, '_> {
     fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
         let node = &mut self.node_ref.node;
         if !self.only_one_char {
@@ -865,7 +871,9 @@ fn extract_letters<'arena>(
         }
         Node::Number(n) => {
             match transform {
-                Some(tf) => buffer.extend(n.chars().map(|c| tf.transform(c))),
+                Some(tf) => {
+                    transform_and_push(buffer, n, tf);
+                }
                 None => buffer.push_str(n),
             };
         }
@@ -878,4 +886,14 @@ fn extract_letters<'arena>(
         _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }
     Ok(())
+}
+
+fn transform_and_push<'buffer>(
+    buffer: &'buffer mut String,
+    input: &str,
+    tf: TextTransform,
+) -> &'buffer str {
+    buffer.clear();
+    buffer.extend(input.chars().map(|c| tf.transform(c)));
+    buffer.as_str()
 }
