@@ -1,6 +1,6 @@
-use std::ptr::NonNull;
+use std::{alloc::Layout, ptr::NonNull};
 
-use bumpalo::Bump;
+use bumpalo::{AllocErr, Bump};
 
 use crate::ast::Node;
 
@@ -36,9 +36,28 @@ impl Arena {
             .alloc_with(|| NodeListElement { node, next: None })
     }
 
-    #[inline]
-    pub fn push_str<'arena>(&'arena self, s: &str) -> &'arena str {
-        self.bump.alloc_str(s)
+    #[inline(always)]
+    pub fn push_str(&self, src: &str) -> &str {
+        let buffer = self
+            .try_alloc_slice_copy(src.as_bytes())
+            .unwrap_or_else(|_| std::process::abort());
+        unsafe {
+            // This is OK, because it already came in as str, so it is guaranteed to be utf8
+            std::str::from_utf8_unchecked(buffer)
+        }
+    }
+    #[inline(always)]
+    pub fn try_alloc_slice_copy<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
+    where
+        T: Copy,
+    {
+        let layout = Layout::for_value(src);
+        let dst = self.bump.try_alloc_layout(layout)?.cast::<T>();
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(src.as_ptr(), dst.as_ptr(), src.len());
+            Ok(std::slice::from_raw_parts_mut(dst.as_ptr(), src.len()))
+        }
     }
 }
 

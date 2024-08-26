@@ -145,11 +145,9 @@ where
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(self.arena.push_str(fun)),
+            Token::Function(fun) => Node::MultiLetterIdent(fun),
             Token::Space(space) => Node::Space(space),
-            Token::NonBreakingSpace | Token::Whitespace => {
-                Node::Text(self.arena.push_str("\u{A0}"))
-            }
+            Token::NonBreakingSpace | Token::Whitespace => Node::Text("\u{A0}"),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::Paren(ops::LEFT_SQUARE_BRACKET, None)) {
@@ -305,8 +303,7 @@ where
                 }
             }
             Token::Lim(lim) => {
-                let lim_name = self.arena.push_str(lim);
-                let lim = self.commit(Node::MultiLetterIdent(lim_name));
+                let lim = self.commit(Node::MultiLetterIdent(lim));
                 if matches!(self.peek.token(), Token::Underscore) {
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
@@ -340,7 +337,7 @@ where
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         self.buffer.clear();
                         self.buffer.push(char);
-                        self.buffer.push('\u{338}');
+                        self.buffer.push_str("\u{338}");
                         Node::MultiLetterIdent(self.arena.push_str(&self.buffer))
                     }
                     _ => {
