@@ -1,4 +1,14 @@
-use latex2mmlc::{latex_to_mathml, Display};
+use latex2mmlc::{latex_to_mathml, Arena, Display, LatexError};
+
+fn latex_to_mathml_string(
+    latex: &str,
+    display: Display,
+    pretty: bool,
+) -> Result<String, LatexError> {
+    let arena = Arena::new();
+    let s = latex_to_mathml(latex, &arena, display, pretty)?;
+    Ok(s.to_string())
+}
 
 fn main() {
     let inputs = vec![
@@ -13,9 +23,9 @@ fn main() {
         r#"\sum_{n = 1}^\infty \frac{ 1 }{ n^2 } = \frac{ \pi^2 }{ 6 }"#,
         r#"F_{n+1} = F_n + F_{n-1}"#,
         r#"x \in \mathbb{R}, \ \ z \in \mathbb{C}"#,
-        r#"\overset{(n)}{X}, \underset{(n)}{X}, \ 
+        r#"\overset{(n)}{X}, \underset{(n)}{X}, \
         \overbrace{x\times\cdots x}, \overbrace{x\times\cdots\times x}^{n}, \underbrace{x\times\cdots\times x}, \underbrace{x\times\cdots\times x}_{n}"#,
-        r#"\overparen{x\times\cdots x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} , \ 
+        r#"\overparen{x\times\cdots x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} , \
         \overbracket{x\times\cdots x}, \overbracket{x\times\cdots\times x}^{n}, \underbracket{x\times\cdots\times x}, \underbracket{x\times\cdots\times x}_{n}"#,
         r#"X \overset{f}{\rightarrow} Y \underset{g}{\rightarrow} Z , \ h \overset{\text{def}}{=} g \circ f"#,
         r#"\overline{x + y} , \underline{x + y}, \widehat{x + y}, \widetilde{x + y} , \overrightarrow{A + B} , \overleftarrow{A + B}"#,
@@ -48,9 +58,9 @@ fn main() {
         r#"\mathscr{O} ( N \ln N )"#,
         r#"\mathfrak{su}(2) \times \mathfrak{u}(1)"#,
         r#"U^\dagger \, U = U U^\dagger = 1"#,
-        r#"\begin{pmatrix}\frac{1}{\sqrt{1-\beta^2}} & -\frac{\beta}{\sqrt{1-\beta^2}} \\ - \frac{\beta}{\sqrt{1-\beta^2}} & \frac{1}{\sqrt{1-\beta^2}}\end{pmatrix} , 
-        \begin{matrix} a & b \\ c & d \end{matrix} , 
-        \begin{bmatrix} a & b \\ c & d \end{bmatrix} , 
+        r#"\begin{pmatrix}\frac{1}{\sqrt{1-\beta^2}} & -\frac{\beta}{\sqrt{1-\beta^2}} \\ - \frac{\beta}{\sqrt{1-\beta^2}} & \frac{1}{\sqrt{1-\beta^2}}\end{pmatrix} ,
+        \begin{matrix} a & b \\ c & d \end{matrix} ,
+        \begin{bmatrix} a & b \\ c & d \end{bmatrix} ,
         \begin{vmatrix} a & b \\ c & d \end{vmatrix}"#,
         r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
         r#"\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}"#,
@@ -69,7 +79,7 @@ fn main() {
             format!(
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
-                latex_to_mathml(input, Display::Block, true).unwrap()
+                latex_to_mathml_string(input, Display::Block, true).unwrap()
             )
         })
         .collect::<Vec<_>>()

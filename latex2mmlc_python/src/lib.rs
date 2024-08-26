@@ -3,7 +3,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
-use latex2mmlc::{latex_to_mathml, Display};
+use latex2mmlc::{latex_to_mathml, Arena, Display};
 
 create_exception!(_latex2mmlc_rust, LatexError, PyException);
 
@@ -15,8 +15,10 @@ fn convert_latex<'a>(
     block: bool,
     pretty: bool,
 ) -> PyResult<Bound<'a, PyString>> {
+    let arena = Arena::new();
     let result = latex_to_mathml(
         latex,
+        &arena,
         if block {
             Display::Block
         } else {

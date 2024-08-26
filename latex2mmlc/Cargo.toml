@@ -13,7 +13,7 @@ keywords      = ["latex", "mathml"]
 categories    = ["science"]
 
 [dependencies]
-bumpalo = "3.16.0"
+bumpalo = { version = "3.16.0", features = ["collections"] }
 no-panic = "0.1.30"
 phf = { version = "0.11.2", features = ["macros"] }
 strum_macros = "0.26.4"

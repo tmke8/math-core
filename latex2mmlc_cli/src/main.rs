@@ -26,7 +26,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use latex2mmlc::{latex_to_mathml, Display, LatexError};
+use latex2mmlc::{latex_to_mathml_string, Display, LatexError};
 
 use clap::Parser;
 
@@ -96,7 +96,7 @@ fn convert_and_exit(args: &Args, latex: &str) {
     } else {
         Display::Inline
     };
-    match latex_to_mathml(latex, display, false) {
+    match latex_to_mathml_string(latex, display, false) {
         Ok(mathml) => println!("{}", mathml),
         Err(e) => exit_latex_error(e),
     }
@@ -171,14 +171,14 @@ fn replace(input: &str) -> Result<String, ConversionError<'_>> {
                     output += inner_slice;
                 } else {
                     // convert LaTeX to MathML
-                    let mathml = latex_to_mathml(inner_slice, Display::Inline, false)
+                    let mathml = latex_to_mathml_string(inner_slice, Display::Inline, false)
                         .map_err(|e| ConversionError::LatexError(e, inner_slice))?;
                     output += &mathml;
                 }
             }
         } else {
             // convert LaTeX to MathML
-            let mathml = latex_to_mathml(outer_slice, Display::Block, false)
+            let mathml = latex_to_mathml_string(outer_slice, Display::Block, false)
                 .map_err(|e| ConversionError::LatexError(e, outer_slice))?;
             output += &mathml;
         }

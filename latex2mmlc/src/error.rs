@@ -1,9 +1,11 @@
 use std::fmt;
 
+use bumpalo::collections::String as BumpString;
 use strum_macros::AsRefStr;
 
 // use no_panic::no_panic;
 
+use crate::arena::Arena;
 use crate::token::Token;
 
 #[derive(Debug)]
@@ -51,51 +53,67 @@ impl LatexErrKind<'_> {
     ///
     /// This serves the same purpose as the `Display` implementation,
     /// but produces more compact WASM code.
-    pub fn string(&self) -> String {
-        match self {
+    pub fn string<'arena>(&self, arena: &'arena Arena<'_>) -> &'arena str {
+        let s = match self {
             LatexErrKind::UnexpectedToken { expected, got } => {
-                "Expected token \"".to_string()
+                BumpString::from_str_in("Expected token \"", &arena.bump)
                     + expected.as_ref()
                     + "\", but found token \""
                     + got.as_ref()
                     + "\"."
             }
             LatexErrKind::UnclosedGroup(expected) => {
-                "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
+                BumpString::from_str_in("Expected token \"", &arena.bump)
+                    + expected.as_ref()
+                    + "\", but not found."
             }
             LatexErrKind::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
+                BumpString::from_str_in("Unexpected closing token: \"", &arena.bump)
+                    + got.as_ref()
+                    + "\"."
             }
-            LatexErrKind::UnexpectedEOF => "Unexpected end of file.".to_string(),
+            LatexErrKind::UnexpectedEOF => {
+                BumpString::from_str_in("Unexpected end of file.", &arena.bump)
+            }
             LatexErrKind::MissingParenthesis { location, got } => {
-                "There must be a parenthesis after \"".to_string()
+                BumpString::from_str_in("There must be a parenthesis after \"", &arena.bump)
                     + location.as_ref()
                     + "\", but not found. Instead, \""
                     + got.as_ref()
                     + "\" was found."
             }
             LatexErrKind::UnknownEnvironment(environment) => {
-                "Unknown environment \"".to_string() + environment + "\"."
+                BumpString::from_str_in("Unknown environment \"", &arena.bump) + environment + "\"."
             }
-            LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
+            LatexErrKind::UnknownCommand(cmd) => {
+                BumpString::from_str_in("Unknown command \"\\", &arena.bump) + cmd + "\"."
+            }
             LatexErrKind::MismatchedEnvironment { expected, got } => {
-                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\"."
+                BumpString::from_str_in("Expected \"\\end{", &arena.bump)
+                    + expected
+                    + "}\", but got \"\\end{"
+                    + got
+                    + "}\"."
             }
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
-                "Got \"".to_string()
+                BumpString::from_str_in("Got \"", &arena.bump)
                     + got.as_ref()
                     + "\", which may only appear "
                     + correct_place.as_ref()
                     + "."
             }
-            LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
-        }
+            LatexErrKind::ExpectedText(place) => {
+                BumpString::from_str_in("Expected text in ", &arena.bump) + place + "."
+            }
+        };
+        s.into_bump_str()
     }
 }
 
 impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.0, self.1.string())
+        let arena = Arena::new();
+        write!(f, "{}: {}", self.0, self.1.string(&arena))
     }
 }
 

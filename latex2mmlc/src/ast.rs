@@ -1,4 +1,9 @@
-use crate::arena::{Buffer, NodeList, StrReference};
+use bumpalo::collections::String as BumpString;
+
+#[cfg(test)]
+use crate::arena::Arena;
+
+use crate::arena::NodeList;
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
@@ -16,7 +21,7 @@ pub enum Node<'arena, 'source> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    MultiLetterIdent(StrReference),
+    MultiLetterIdent(&'arena str),
     Space(&'static str),
     Subscript {
         target: &'arena Node<'arena, 'source>,
@@ -67,7 +72,7 @@ pub enum Node<'arena, 'source> {
         size: &'static str,
         paren: Op,
     },
-    Text(StrReference),
+    Text(&'arena str),
     Table(NodeList<'arena, 'source>, Align),
     ColumnSeparator,
     RowSeparator,
@@ -105,13 +110,14 @@ macro_rules! pushln {
 }
 
 impl<'arena, 'source> Node<'arena, 'source> {
-    pub fn render(&'arena self, buffer: &'arena Buffer) -> String {
-        let mut buf = String::new();
-        self.emit(&mut buf, buffer, 0);
-        buf
+    #[cfg(test)]
+    pub fn render(&'arena self, arena: &'arena Arena) -> &'arena str {
+        let mut buf = arena.get_builder();
+        self.emit(&mut buf, 0);
+        buf.into_bump_str()
     }
 
-    pub fn emit(&'arena self, s: &mut String, b: &Buffer, base_indent: usize) {
+    pub fn emit(&'arena self, s: &mut BumpString, base_indent: usize) {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -168,7 +174,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 push!(s, ">", @op, "</mo>");
             }
             Node::MultiLetterIdent(letters) => {
-                push!(s, "<mi>", letters.as_str(b), "</mi>");
+                push!(s, "<mi>", letters, "</mi>");
             }
             Node::Space(space) => push!(s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
@@ -199,8 +205,8 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.emit(s, b, child_indent);
-                second.emit(s, b, child_indent);
+                first.emit(s, child_indent);
+                second.emit(s, child_indent);
                 pushln!(s, base_indent, close);
             }
             // The following nodes have exactly three children.
@@ -221,34 +227,34 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.emit(s, b, child_indent);
-                second.emit(s, b, child_indent);
-                third.emit(s, b, child_indent);
+                first.emit(s, child_indent);
+                second.emit(s, child_indent);
+                third.emit(s, child_indent);
                 pushln!(s, base_indent, close);
             }
             Node::Multiscript { base, sub } => {
                 push!(s, "<mmultiscripts>");
-                base.emit(s, b, child_indent);
+                base.emit(s, child_indent);
                 pushln!(s, child_indent, "<mprescripts/>");
-                sub.emit(s, b, child_indent);
+                sub.emit(s, child_indent);
                 pushln!(s, child_indent, "<mrow></mrow>");
                 pushln!(s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, acc, target) => {
                 push!(s, "<mover>");
-                target.emit(s, b, child_indent);
+                target.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
-                target.emit(s, b, child_indent);
+                target.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
-                content.emit(s, b, child_indent);
+                content.emit(s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
             Node::Frac(num, denom, lt, style) => {
@@ -260,8 +266,8 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     push!(s, style);
                 }
                 push!(s, ">");
-                num.emit(s, b, child_indent);
-                denom.emit(s, b, child_indent);
+                num.emit(s, child_indent);
+                denom.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row(vec, style) => {
@@ -270,13 +276,13 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     None => push!(s, "<mrow>"),
                 }
                 for node in vec.iter() {
-                    node.emit(s, b, child_indent);
+                    node.emit(s, child_indent);
                 }
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
-                    node.emit(s, b, base_indent);
+                    node.emit(s, base_indent);
                 }
             }
             Node::Mathstrut => {
@@ -300,7 +306,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                     push!(s, @open);
                 }
                 push!(s, "</mo>");
-                content.emit(s, b, child_indent);
+                content.emit(s, child_indent);
                 pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
                 if char::from(close) != '\0' {
                     push!(s, @close);
@@ -322,7 +328,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 Node::Operator(x, _) => {
                     push!(s, "<mo>", @x, "&#x0338;</mo>");
                 }
-                n => n.emit(s, b, base_indent),
+                n => n.emit(s, base_indent),
             },
             Node::Table(content, align) => {
                 let child_indent2 = if base_indent > 0 {
@@ -371,7 +377,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
                             col = 1;
                         }
                         node => {
-                            node.emit(s, b, child_indent3);
+                            node.emit(s, child_indent3);
                         }
                     }
                 }
@@ -380,14 +386,14 @@ impl<'arena, 'source> Node<'arena, 'source> {
                 pushln!(s, base_indent, "</mtable>");
             }
             Node::Text(text) => {
-                push!(s, "<mtext>", text.as_str(b), "</mtext>");
+                push!(s, "<mtext>", text, "</mtext>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
         }
     }
 }
 
-fn new_line_and_indent(s: &mut String, indent_num: usize) {
+fn new_line_and_indent(s: &mut BumpString, indent_num: usize) {
     if indent_num > 0 {
         s.push('\n');
     }
@@ -398,13 +404,13 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
+    use super::super::arena::Arena;
     use super::super::attribute::MathVariant;
     use super::Node;
-    use crate::arena::Buffer;
 
     #[test]
     fn node_display() {
-        let buffer = Buffer::new(0);
+        let arena = Arena::new();
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
             (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
@@ -415,7 +421,7 @@ mod tests {
             ),
         ];
         for (problem, answer) in problems.iter() {
-            assert_eq!(&problem.render(&buffer), answer);
+            assert_eq!(&problem.render(&arena), answer);
         }
     }
 }

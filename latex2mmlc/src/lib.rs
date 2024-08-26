@@ -35,10 +35,10 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use latex2mmlc::{latex_to_mathml, Display};
+//! use latex2mmlc::{latex_to_mathml_string, Display};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+//! let mathml = latex_to_mathml_string(latex, Display::Block, true).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -46,7 +46,6 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::{Arena, Buffer};
 
 pub mod arena;
 pub mod ast;
@@ -57,6 +56,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
+pub use arena::Arena;
 pub use error::LatexError;
 
 /// display
@@ -69,18 +69,18 @@ pub enum Display {
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena<'source>,
-) -> Result<(ast::Node<'arena, 'source>, Buffer), error::LatexError<'source>>
+) -> Result<ast::Node<'arena, 'source>, error::LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
     // The length of the input is an upper bound for the required length for
     // the string buffer.
-    let buffer = Buffer::new(latex.len());
+    // let buffer = Buffer::new(latex.len());
 
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, buffer, arena);
+    let mut p = parse::Parser::new(l, arena);
     let nodes = p.parse()?;
-    Ok((nodes, p.buffer))
+    Ok(nodes)
 }
 
 /// Convert LaTeX text to MathML.
@@ -88,50 +88,62 @@ where
 /// The second argument specifies whether it is inline-equation or block-equation.
 ///
 /// ```rust
-/// use latex2mmlc::{latex_to_mathml, Display};
+/// use latex2mmlc::{latex_to_mathml_string, Display};
 ///
 /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let mathml = latex_to_mathml(latex, Display::Inline, true).unwrap();
+/// let mathml = latex_to_mathml_string(latex, Display::Inline, true).unwrap();
 /// println!("{}", mathml);
 ///
 /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+/// let mathml = latex_to_mathml_string(latex, Display::Block, true).unwrap();
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(
-    latex: &'_ str,
+pub fn latex_to_mathml<'arena, 'source>(
+    latex: &'source str,
+    arena: &'arena Arena<'source>,
     display: Display,
     pretty: bool,
-) -> Result<String, error::LatexError<'_>> {
-    let arena = Arena::new();
-    let (nodes, b) = get_nodes(latex, &arena)?;
+) -> Result<&'arena str, error::LatexError<'source>> {
+    let nodes = get_nodes(latex, &arena)?;
+    let mut output = arena.get_builder();
 
-    let mut output = match display {
-        Display::Block => "<math display=\"block\">".to_string(),
-        Display::Inline => "<math>".to_string(),
+    match display {
+        Display::Block => output.push_str("<math display=\"block\">"),
+        Display::Inline => output.push_str("<math>"),
     };
 
-    nodes.emit(&mut output, &b, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
     output.push_str("</math>");
-    Ok(output)
+    Ok(output.into_bump_str())
+}
+
+pub fn latex_to_mathml_string(
+    latex: &str,
+    display: Display,
+    pretty: bool,
+) -> Result<String, LatexError> {
+    let arena = Arena::new();
+    let s = latex_to_mathml(latex, &arena, display, pretty)?;
+    Ok(s.to_string())
 }
 
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{error, latex_to_mathml};
+    use crate::{error, latex_to_mathml_string};
 
     use super::{get_nodes, Arena};
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
         let arena = Arena::new();
-        let (nodes, b) = get_nodes(latex, &arena)?;
-        Ok(nodes.render(&b))
+        let nodes = get_nodes(latex, &arena)?;
+        let s = nodes.render(&arena);
+        Ok(s.to_string())
     }
 
     #[test]
@@ -280,7 +292,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+            let mathml = latex_to_mathml_string(problem, crate::Display::Inline, true)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }

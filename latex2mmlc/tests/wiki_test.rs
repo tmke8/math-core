@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 // use similar::{ChangeTag, TextDiff};
 
-use latex2mmlc::{latex_to_mathml, Display};
+use latex2mmlc::{latex_to_mathml_string, Display};
 
 #[test]
 fn wiki_test() {
@@ -232,7 +232,7 @@ fn wiki_test() {
     let mut n_fail = 0usize;
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
-        let mathml = latex_to_mathml(&with_row, Display::Inline, false);
+        let mathml = latex_to_mathml_string(&with_row, Display::Inline, false);
         match mathml {
             Ok(mathml) => {
                 if mathml != correct {
@@ -666,7 +666,7 @@ fn test_nonfailing_wiki_tests() {
     ];
 
     for (num, problem) in problems.into_iter() {
-        let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+        let mathml = latex_to_mathml_string(problem, crate::Display::Inline, true)
             .expect(format!("failed to convert `{}`", problem).as_str());
         let name = format!("wiki{:03}", num);
         assert_snapshot!(name.as_str(), &mathml, problem);

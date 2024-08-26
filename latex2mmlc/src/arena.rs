@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 
+use bumpalo::collections::String as BumpString;
 use bumpalo::Bump;
 
 use crate::ast::Node;
@@ -16,7 +17,7 @@ pub struct NodeListElement<'arena, 'source> {
 pub type NodeRef<'arena, 'source> = &'arena mut NodeListElement<'arena, 'source>;
 
 pub struct Arena<'source> {
-    bump: Bump,
+    pub bump: Bump,
     phantom: PhantomData<&'source ()>,
 }
 
@@ -47,6 +48,25 @@ impl<'source> Arena<'source> {
     ) -> &mut NodeListElement<'arena, 'source> {
         self.bump
             .alloc_with(|| NodeListElement { node, next: None })
+    }
+
+    #[inline]
+    pub fn push_str<'arena>(&'arena self, s: &str) -> &'arena str {
+        self.bump.alloc_str(s)
+    }
+
+    pub fn extend<'arena, I: IntoIterator<Item = char>>(&'arena self, iter: I) -> &'arena str {
+        let s = BumpString::from_iter_in(iter, &self.bump);
+        // s.shrink_to_fit();
+        s.into_bump_str()
+    }
+
+    pub fn transform_and_push<'arena>(&'arena self, input: &str, tf: TextTransform) -> &'arena str {
+        self.extend(input.chars().map(|c| tf.transform(c)))
+    }
+
+    pub fn get_builder<'arena>(&'arena self) -> BumpString<'arena> {
+        BumpString::new_in(&self.bump)
     }
 }
 
