@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\sqrt{x+2}"
+---
+[
+  Sqrt(Row(
+    nodes: [
+      SingleLetterIdent('x', None),
+      Operator(Op('+'), None),
+      Number("2"),
+    ],
+    style: None,
+  )),
+]

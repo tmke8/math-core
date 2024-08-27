@@ -1,7 +1,11 @@
+#[cfg(test)]
+use serde::Serialize;
+
 use strum_macros::AsRefStr;
 
 /// <mi> mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum MathVariant {
     Normal = 1,
 }
@@ -15,6 +19,7 @@ impl AsRef<str> for MathVariant {
 }
 
 #[derive(Debug, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Accent {
     #[strum(serialize = "true")]
     True,
@@ -23,6 +28,7 @@ pub enum Accent {
 }
 
 #[derive(Debug, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="true""#)]
     StretchyTrue = 1,
@@ -41,6 +47,7 @@ pub enum ParenAttr {
 
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum FracAttr {
     #[strum(serialize = r#" displaystyle="true""#)]
     DisplayStyleTrue = 1,
@@ -51,6 +58,7 @@ pub enum FracAttr {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
     DisplayStyle = 1,
@@ -63,6 +71,7 @@ pub enum Style {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Align {
     Center,
     Left,
@@ -70,6 +79,7 @@ pub enum Align {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum MathSpacing {
     #[strum(serialize = "0em")]
     Zero = 1,

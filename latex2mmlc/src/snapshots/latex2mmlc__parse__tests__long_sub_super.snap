@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "x_{92}^{31415}"
+---
+[
+  SubSup(
+    target: SingleLetterIdent('x', None),
+    sub: Number("92"),
+    sup: Number("31415"),
+  ),
+]

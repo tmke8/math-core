@@ -160,20 +160,32 @@ where
                     Node::Sqrt(&content.node)
                 }
             }
-            Token::Frac(displaystyle) | Token::Binom(displaystyle) => {
-                let numerator = self.parse_token()?;
-                let denominator = self.parse_token()?;
+            Token::Frac(style) | Token::Binom(style) => {
+                let num = self.parse_token()?;
+                let denom = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
+                    let lt = Some('0');
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
                         content: &self
-                            .commit(Node::Frac(numerator, denominator, Some('0'), displaystyle))
+                            .commit(Node::Frac {
+                                num,
+                                denom,
+                                lt,
+                                style,
+                            })
                             .node,
                         style: None,
                     }
                 } else {
-                    Node::Frac(numerator, denominator, None, displaystyle)
+                    let lt = None;
+                    Node::Frac {
+                        num,
+                        denom,
+                        lt,
+                        style,
+                    }
                 }
             }
             Token::Genfrac => {
@@ -183,12 +195,12 @@ where
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_token()? {
                     Node::Operator(op, _) => *op,
-                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()? {
                     Node::Operator(op, _) => *op,
-                    Node::Row(elements, _) if elements.is_empty() => ops::NULL,
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
@@ -196,7 +208,7 @@ where
                 // TODO: Support other line thicknesses.
                 // We could maybe store them as multiples of 0.4pt,
                 // so that we can render them as percentages.
-                let line_thickness = match self.parse_text_group()?.trim() {
+                let lt = match self.parse_text_group()?.trim() {
                     "" => None,
                     "0pt" => Some('0'),
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
@@ -209,13 +221,18 @@ where
                         b"3" => Some(Style::ScriptScriptStyle),
                         _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                     },
-                    Node::Row(elements, _) if elements.is_empty() => None,
+                    Node::Row { nodes, .. } if nodes.is_empty() => None,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let numerator = self.parse_token()?;
-                let denominator = self.parse_token()?;
+                let num = self.parse_token()?;
+                let denom = self.parse_token()?;
                 let content = &self
-                    .commit(Node::Frac(numerator, denominator, line_thickness, None))
+                    .commit(Node::Frac {
+                        num,
+                        denom,
+                        lt,
+                        style: None,
+                    })
                     .node;
                 Node::Fenced {
                     open,
@@ -358,7 +375,7 @@ where
                 let node_ref = self.parse_single_node(token)?;
                 self.var = old_var;
                 self.tf = old_tf;
-                if let Node::Row(nodes, style) = &mut node_ref.node {
+                if let Node::Row { nodes, style } = &mut node_ref.node {
                     let nodes = mem::replace(nodes, NodeList::empty());
                     let style = *style;
                     return Ok(self.merge_single_letters(nodes, style));
@@ -526,12 +543,16 @@ where
                 self.check_lbrace()?;
                 // Read the environment name.
                 let env_name = self.parse_text_group()?;
-                let env_content = self.parse_group(Token::End)?.finish();
+                let content = self.parse_group(Token::End)?.finish();
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
-                    "align" | "align*" | "aligned" => Node::Table(env_content, Align::Alternating),
+                    "align" | "align*" | "aligned" => Node::Table {
+                        content,
+                        align: Align::Alternating,
+                    },
                     "cases" => {
-                        let content = &self.commit(Node::Table(env_content, Align::Left)).node;
+                        let align = Align::Left;
+                        let content = &self.commit(Node::Table { content, align }).node;
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
@@ -539,9 +560,13 @@ where
                             style: None,
                         }
                     }
-                    "matrix" => Node::Table(env_content, Align::Center),
+                    "matrix" => Node::Table {
+                        content,
+                        align: Align::Center,
+                    },
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
-                        let content = &self.commit(Node::Table(env_content, Align::Center)).node;
+                        let align = Align::Center;
+                        let content = &self.commit(Node::Table { content, align }).node;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -599,7 +624,10 @@ where
             Token::Mathstrut => Node::Mathstrut,
             Token::Style(style) => {
                 let content = self.parse_group(Token::GroupEnd)?;
-                Node::Row(content.finish(), Some(style))
+                Node::Row {
+                    nodes: content.finish(),
+                    style: Some(style),
+                }
             }
             Token::UnknownCommand(name) => {
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
@@ -782,7 +810,7 @@ where
     ) -> NodeRef<'arena> {
         match list_builder.as_singleton_or_finish() {
             SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(list) => self.commit(Node::Row(list, style)),
+            SingletonOrList::List(nodes) => self.commit(Node::Row { nodes, style }),
         }
     }
 
@@ -861,7 +889,7 @@ fn extract_letters<'arena>(
         Node::SingleLetterIdent(c, _) => {
             buffer.push_char(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
-        Node::Row(nodes, _) | Node::PseudoRow(nodes) => {
+        Node::Row { nodes, .. } | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {
                 extract_letters(buffer, node, transform)?;
             }
@@ -881,4 +909,33 @@ fn extract_letters<'arena>(
         _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_ron_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn ast_test() {
+        let problems = [
+            ("slightly_more_complex_fraction", r"\frac{12}{5}"),
+            ("complex_square_root", r"\sqrt{x+2}"),
+            ("long_sub_super", r"x_{92}^{31415}"),
+            ("integral_with_reversed_limits", r"\int\limits^1_0 dx"),
+            ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
+            ("number_with_dot", r"4.x"),
+            ("double_prime", r"f''"),
+        ];
+        for (name, problem) in problems.into_iter() {
+            let arena = Arena::new();
+            let l = Lexer::new(problem);
+            let mut p = Parser::new(l, &arena);
+            let ast = p.parse().expect("Parsing failed");
+            if let Node::PseudoRow(nodes) = ast {
+                assert_ron_snapshot!(name, &nodes, problem);
+            }
+        }
+    }
 }

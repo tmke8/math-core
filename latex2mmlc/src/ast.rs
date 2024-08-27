@@ -1,9 +1,13 @@
+#[cfg(test)]
+use serde::Serialize;
+
 use crate::arena::NodeList;
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
 #[derive(Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, Option<MathVariant>),
@@ -48,13 +52,16 @@ pub enum Node<'arena> {
     },
     Sqrt(&'arena Node<'arena>),
     Root(&'arena Node<'arena>, &'arena Node<'arena>),
-    Frac(
-        &'arena Node<'arena>,
-        &'arena Node<'arena>,
-        Option<char>,
-        Option<FracAttr>,
-    ),
-    Row(NodeList<'arena>, Option<Style>),
+    Frac {
+        num: &'arena Node<'arena>,
+        denom: &'arena Node<'arena>,
+        lt: Option<char>,
+        style: Option<FracAttr>,
+    },
+    Row {
+        nodes: NodeList<'arena>,
+        style: Option<Style>,
+    },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     Fenced {
@@ -68,7 +75,10 @@ pub enum Node<'arena> {
         paren: Op,
     },
     Text(&'arena str),
-    Table(NodeList<'arena>, Align),
+    Table {
+        content: NodeList<'arena>,
+        align: Align,
+    },
     ColumnSeparator,
     RowSeparator,
     Slashed(&'arena Node<'arena>),
@@ -251,7 +261,12 @@ impl<'arena> Node<'arena> {
                 content.emit(s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
-            Node::Frac(num, denom, lt, style) => {
+            Node::Frac {
+                num,
+                denom,
+                lt,
+                style,
+            } => {
                 push!(s, "<mfrac");
                 if let Some(lt) = lt {
                     push!(s, " linethickness=\"", @*lt, "pt\"");
@@ -264,12 +279,12 @@ impl<'arena> Node<'arena> {
                 denom.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
-            Node::Row(vec, style) => {
+            Node::Row { nodes, style } => {
                 match style {
                     Some(style) => push!(s, "<mrow", style, ">"),
                     None => push!(s, "<mrow>"),
                 }
-                for node in vec.iter() {
+                for node in nodes.iter() {
                     node.emit(s, child_indent);
                 }
                 pushln!(s, base_indent, "</mrow>");
@@ -324,7 +339,7 @@ impl<'arena> Node<'arena> {
                 }
                 n => n.emit(s, base_indent),
             },
-            Node::Table(content, align) => {
+            Node::Table { content, align } => {
                 let child_indent2 = if base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {

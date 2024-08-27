@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\int\\limits^1_0 dx"
+---
+[
+  UnderOver(
+    target: Operator(Op('∫'), None),
+    under: Number("0"),
+    over: Number("1"),
+  ),
+  SingleLetterIdent('d', None),
+  SingleLetterIdent('x', None),
+]

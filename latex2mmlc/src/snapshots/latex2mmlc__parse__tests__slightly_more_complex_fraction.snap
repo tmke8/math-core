@@ -1,0 +1,12 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\frac{12}{5}"
+---
+[
+  Frac(
+    num: Number("12"),
+    denom: Number("5"),
+    lt: None,
+    style: None,
+  ),
+]

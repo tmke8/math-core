@@ -1,4 +1,8 @@
+#[cfg(test)]
+use serde::Serialize;
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[cfg_attr(test, derive(Serialize))]
 #[repr(transparent)]
 pub struct Op(char);
 

@@ -1,6 +1,8 @@
 use std::{alloc::Layout, ptr::NonNull};
 
 use bumpalo::{AllocErr, Bump};
+#[cfg(test)]
+use serde::ser::{Serialize, SerializeSeq, Serializer};
 
 use crate::{ast::Node, attribute::TextTransform};
 
@@ -218,10 +220,24 @@ impl<'arena> NodeList<'arena> {
         NodeList(Some(first))
     }
 
-    pub fn iter(&'arena self) -> NodeListIterator<'arena> {
+    pub fn iter<'list>(&'list self) -> NodeListIterator<'arena, 'list> {
         NodeListIterator {
             current: self.0.as_deref(),
         }
+    }
+}
+
+#[cfg(test)]
+impl<'arena> Serialize for NodeList<'arena> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(None)?;
+        for e in self.iter() {
+            seq.serialize_element(e)?;
+        }
+        seq.end()
     }
 }
 
@@ -239,17 +255,23 @@ impl<'arena> IntoIterator for NodeList<'arena> {
     }
 }
 
-pub struct NodeListIterator<'arena> {
-    current: Option<&'arena NodeListElement<'arena>>,
+pub struct NodeListIterator<'arena, 'iterator> {
+    current: Option<&'iterator NodeListElement<'arena>>,
 }
 
-impl<'arena> Iterator for NodeListIterator<'arena> {
-    type Item = &'arena Node<'arena>;
+impl<'arena, 'iterator> Iterator for NodeListIterator<'arena, 'iterator> {
+    type Item = &'iterator Node<'arena>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current {
             None => None,
             Some(element) => {
+                // We create an immutable reference from the `next` pointer.
+                // The lifetime of this could be as long as the lifetime of the arena,
+                // but we limit it to the lifetime of the iterator.
+                // This should be safe, because the list owns its nodes, and we have
+                // borrowed a reference to the first node from the list, so no other
+                // references to the nodes should exist.
                 self.current = element.next.map(|next| unsafe { next.as_ref() });
                 Some(&element.node)
             }
