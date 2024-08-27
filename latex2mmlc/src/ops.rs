@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[cfg(test)]
 use serde::Serialize;
 
@@ -19,13 +17,6 @@ impl From<&Op> for char {
     #[inline]
     fn from(op: &Op) -> Self {
         op.0
-    }
-}
-
-impl fmt::Display for Op {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
     }
 }
 
