@@ -46,7 +46,7 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::{Arena, Buffer};
+use arena::Arena;
 
 pub mod arena;
 pub mod ast;
@@ -68,19 +68,19 @@ pub enum Display {
 
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
-    arena: &'arena Arena<'source>,
-) -> Result<(ast::Node<'arena, 'source>, Buffer), error::LatexError<'source>>
+    arena: &'arena Arena,
+) -> Result<ast::Node<'arena>, error::LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
     // The length of the input is an upper bound for the required length for
     // the string buffer.
-    let buffer = Buffer::new(latex.len());
+    // let buffer = Buffer::new(latex.len());
 
     let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, buffer, arena);
+    let mut p = parse::Parser::new(l, arena);
     let nodes = p.parse()?;
-    Ok((nodes, p.buffer))
+    Ok(nodes)
 }
 
 /// Convert LaTeX text to MathML.
@@ -105,14 +105,14 @@ pub fn latex_to_mathml(
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
     let arena = Arena::new();
-    let (nodes, b) = get_nodes(latex, &arena)?;
+    let nodes = get_nodes(latex, &arena)?;
 
     let mut output = match display {
         Display::Block => "<math display=\"block\">".to_string(),
         Display::Inline => "<math>".to_string(),
     };
 
-    nodes.emit(&mut output, &b, if pretty { 1 } else { 0 });
+    nodes.emit(&mut output, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
@@ -130,8 +130,8 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
         let arena = Arena::new();
-        let (nodes, b) = get_nodes(latex, &arena)?;
-        Ok(nodes.render(&b))
+        let nodes = get_nodes(latex, &arena)?;
+        Ok(nodes.render())
     }
 
     #[test]

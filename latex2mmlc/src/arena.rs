@@ -1,39 +1,29 @@
-use std::marker::PhantomData;
-use std::ptr::NonNull;
+use std::{alloc::Layout, ptr::NonNull};
 
-use bumpalo::Bump;
+use bumpalo::{AllocErr, Bump};
 
-use crate::ast::Node;
-use crate::attribute::TextTransform;
-use crate::error::GetUnwrap;
+use crate::{ast::Node, attribute::TextTransform};
 
 #[derive(Debug)]
-pub struct NodeListElement<'arena, 'source> {
-    pub node: Node<'arena, 'source>,
-    next: Option<NonNull<NodeListElement<'arena, 'source>>>,
+pub struct NodeListElement<'arena> {
+    pub node: Node<'arena>,
+    next: Option<NonNull<NodeListElement<'arena>>>,
 }
 
-pub type NodeRef<'arena, 'source> = &'arena mut NodeListElement<'arena, 'source>;
+pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
 
-pub struct Arena<'source> {
+pub struct Arena {
     bump: Bump,
-    phantom: PhantomData<&'source ()>,
 }
 
-impl<'source> Arena<'source> {
+impl Arena {
     pub fn new() -> Self {
-        Arena {
-            bump: Bump::new(),
-            phantom: PhantomData,
-        }
+        Arena { bump: Bump::new() }
     }
 
     #[cfg(target_arch = "wasm32")]
     #[inline]
-    pub fn push<'arena>(
-        &'arena self,
-        node: Node<'arena, 'source>,
-    ) -> &mut NodeListElement<'arena, 'source> {
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
         // This fails if the bump allocator is out of memory.
         self.bump
             .try_alloc_with(|| NodeListElement { node, next: None })
@@ -41,164 +31,121 @@ impl<'source> Arena<'source> {
     }
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
-    pub fn push<'arena>(
-        &'arena self,
-        node: Node<'arena, 'source>,
-    ) -> &mut NodeListElement<'arena, 'source> {
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
         self.bump
             .alloc_with(|| NodeListElement { node, next: None })
     }
+
+    #[inline(always)]
+    fn alloc_str(&self, src: &str) -> &str {
+        let buffer = self
+            .try_alloc_slice_copy(src.as_bytes())
+            .unwrap_or_else(|_| std::process::abort());
+        unsafe {
+            // This is OK, because it already came in as str, so it is guaranteed to be utf8
+            std::str::from_utf8_unchecked(buffer)
+        }
+    }
+    #[inline(always)]
+    fn try_alloc_slice_copy<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
+    where
+        T: Copy,
+    {
+        let layout = Layout::for_value(src);
+        let dst = self.bump.try_alloc_layout(layout)?.cast::<T>();
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(src.as_ptr(), dst.as_ptr(), src.len());
+            Ok(std::slice::from_raw_parts_mut(dst.as_ptr(), src.len()))
+        }
+    }
 }
 
-impl Default for Arena<'_> {
+impl Default for Arena {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// This helper type is there to make string slices at least a little bit safe.
 #[derive(Debug)]
 #[repr(transparent)]
-struct StrBound(usize);
-
-#[derive(Debug)]
-pub struct StrReference(StrBound, StrBound);
-
-impl StrReference {
-    #[inline]
-    pub fn as_str<'buffer>(&self, buffer: &'buffer Buffer) -> &'buffer str {
-        buffer.buffer.get_unwrap(self.0 .0..self.1 .0)
-    }
-}
-
-#[derive(Debug)]
-pub struct Buffer {
-    buffer: String,
-}
+pub struct Buffer(String);
 
 impl Buffer {
     pub fn new(size_hint: usize) -> Self {
-        Buffer {
-            buffer: String::with_capacity(size_hint),
-        }
+        Buffer(String::with_capacity(size_hint))
     }
 
-    #[inline]
-    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) -> StrReference {
-        let start = self.end();
-        self.buffer.extend(iter);
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    /// Copy the contents of the given reference to the end of the buffer.
-    ///
-    /// If the given reference is invalid, this function will panic.
-    /// However, on WASM, this function will instead do nothing.
-    fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
-        let start = self.end();
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            assert!(self.buffer.is_char_boundary(reference.0 .0));
-            assert!(self.buffer.is_char_boundary(reference.1 .0));
-            assert!(reference.0 .0 <= reference.1 .0);
-            assert!(reference.1 .0 <= self.buffer.len());
-        }
-        // SAFETY: the bounds have been checked above
-        unsafe {
-            let begin = reference.0 .0;
-            let end = reference.1 .0;
-            let as_vec = self.buffer.as_mut_vec();
-            // The following conditions should always hold true, but we check them
-            // so that the compiler knows that this cannot panic.
-            if begin <= end && begin < as_vec.len() && end <= as_vec.len() {
-                as_vec.extend_from_within(begin..end);
-            }
-        }
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
-        self.extend(input.chars().map(|c| tf.transform(c)))
-    }
-
-    pub fn push_str(&mut self, string: &str) -> StrReference {
-        let start = self.end();
-        self.buffer.push_str(string);
-        let end = self.end();
-        StrReference(start, end)
-    }
-
-    #[inline]
-    fn end(&self) -> StrBound {
-        StrBound(self.buffer.len())
-    }
-
-    pub fn get_builder(&mut self) -> StringBuilder {
+    pub fn get_builder(&mut self) -> StringBuilder<'_> {
         StringBuilder::new(self)
+    }
+
+    fn transform_and_append(&mut self, input: &str, tf: TextTransform) {
+        self.0.extend(input.chars().map(|c| tf.transform(c)))
     }
 }
 
 /// A helper type to safely build a string in the buffer from multiple pieces.
 ///
-/// This takes an exclusive reference to the buffer and keeps track of the start
-/// of the string being built. This guarantees that upon finishing, the string
-/// has valid bounds and nothing else was written to the buffer in the meantime.
+/// It takes an exclusive reference to the buffer and clears everything in the
+/// buffer before we start building. This guarantees that upon finishing, the
+/// buffer contains only what we wrote to it.
 pub struct StringBuilder<'buffer> {
     buffer: &'buffer mut Buffer,
-    start: StrBound,
 }
 
 impl<'buffer> StringBuilder<'buffer> {
     pub fn new(buffer: &'buffer mut Buffer) -> Self {
-        let start = buffer.end();
-        StringBuilder { buffer, start }
+        // Clear the buffer before we start building.
+        buffer.0.clear();
+        StringBuilder { buffer }
     }
 
-    pub fn extend_from_within(&mut self, reference: &StrReference) -> StrReference {
-        self.buffer.extend_from_within(reference)
+    #[inline]
+    pub fn push_str(&mut self, src: &str) {
+        self.buffer.0.push_str(src)
     }
 
-    pub fn push_str(&mut self, string: &str) -> StrReference {
-        self.buffer.push_str(string)
+    pub fn push_char(&mut self, c: char) {
+        self.buffer.0.push(c)
     }
 
-    pub fn push_char(&mut self, ch: char) {
-        self.buffer.buffer.push(ch);
+    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) {
+        self.buffer.0.extend(iter)
     }
 
-    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) -> StrReference {
-        self.buffer.transform_and_push(input, tf)
+    #[inline]
+    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) {
+        self.buffer.transform_and_append(input, tf)
     }
 
-    pub fn finish(self) -> StrReference {
-        StrReference(self.start, self.buffer.end())
+    pub fn finish(self, arena: &Arena) -> &str {
+        arena.alloc_str(&self.buffer.0)
     }
 }
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct NodeListBuilder<'arena, 'source>(Option<InhabitedNodeList<'arena, 'source>>);
+pub struct NodeListBuilder<'arena>(Option<InhabitedNodeList<'arena>>);
 
 #[derive(Debug)]
-struct InhabitedNodeList<'arena, 'source> {
-    head: NonNull<NodeListElement<'arena, 'source>>,
-    tail: NonNull<NodeListElement<'arena, 'source>>,
+struct InhabitedNodeList<'arena> {
+    head: NonNull<NodeListElement<'arena>>,
+    tail: NonNull<NodeListElement<'arena>>,
 }
 
-pub enum SingletonOrList<'arena, 'source> {
-    List(NodeList<'arena, 'source>),
-    Singleton(NodeRef<'arena, 'source>),
+pub enum SingletonOrList<'arena> {
+    List(NodeList<'arena>),
+    Singleton(NodeRef<'arena>),
 }
 
-impl Default for NodeListBuilder<'_, '_> {
+impl Default for NodeListBuilder<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
+impl<'arena> NodeListBuilder<'arena> {
     pub fn new() -> Self {
         NodeListBuilder(None)
     }
@@ -211,7 +158,7 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// Push a node reference to the list.
     /// If the referenced node was already part of some other list,
     /// then that list will be broken.
-    pub fn push(&mut self, node_ref: NodeRef<'arena, 'source>) {
+    pub fn push(&mut self, node_ref: NodeRef<'arena>) {
         // We need to work with raw pointers here, because we want *two* mutable references
         // to the last element of the list.
         let new_tail = NonNull::from(node_ref);
@@ -236,7 +183,7 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
     /// If the list contains exactly one element, return it.
     /// This is a very efficient operation, because we don't need to look up
     /// anything in the arena.
-    pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena, 'source> {
+    pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena> {
         match self.0 {
             Some(mut list) if list.head == list.tail => {
                 SingletonOrList::Singleton(unsafe { list.head.as_mut() })
@@ -247,16 +194,16 @@ impl<'arena, 'source> NodeListBuilder<'arena, 'source> {
 
     /// Finish building the list and return it.
     /// This method consumes the builder.
-    pub fn finish(self) -> NodeList<'arena, 'source> {
+    pub fn finish(self) -> NodeList<'arena> {
         NodeList(self.0.map(|mut list| unsafe { list.head.as_mut() }))
     }
 }
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct NodeList<'arena, 'source>(Option<NodeRef<'arena, 'source>>);
+pub struct NodeList<'arena>(Option<NodeRef<'arena>>);
 
-impl<'arena, 'source> NodeList<'arena, 'source> {
+impl<'arena> NodeList<'arena> {
     #[inline]
     pub fn empty() -> Self {
         NodeList(None)
@@ -266,41 +213,38 @@ impl<'arena, 'source> NodeList<'arena, 'source> {
         self.0.is_none()
     }
 
-    pub fn from_two_nodes(
-        first: NodeRef<'arena, 'source>,
-        second: NodeRef<'arena, 'source>,
-    ) -> Self {
+    pub fn from_two_nodes(first: NodeRef<'arena>, second: NodeRef<'arena>) -> Self {
         first.next = Some(NonNull::from(second));
         NodeList(Some(first))
     }
 
-    pub fn iter(&'arena self) -> NodeListIterator<'arena, 'source> {
+    pub fn iter(&'arena self) -> NodeListIterator<'arena> {
         NodeListIterator {
             current: self.0.as_deref(),
         }
     }
 }
 
-impl<'arena, 'source> IntoIterator for NodeList<'arena, 'source> {
-    type Item = NodeRef<'arena, 'source>;
-    type IntoIter = NodeListIntoIter<'arena, 'source>;
+impl<'arena> IntoIterator for NodeList<'arena> {
+    type Item = NodeRef<'arena>;
+    type IntoIter = NodeListIntoIter<'arena>;
 
     /// Iterate over the list manually.
     ///
     /// This iterator cannot be used with a for loop, because the .next() method
     /// requires a reference to the arena. This is useful when you want to use
     /// a mutable reference to the arena within the loop body.
-    fn into_iter(self) -> NodeListIntoIter<'arena, 'source> {
+    fn into_iter(self) -> NodeListIntoIter<'arena> {
         NodeListIntoIter { current: self.0 }
     }
 }
 
-pub struct NodeListIterator<'arena, 'source> {
-    current: Option<&'arena NodeListElement<'arena, 'source>>,
+pub struct NodeListIterator<'arena> {
+    current: Option<&'arena NodeListElement<'arena>>,
 }
 
-impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
-    type Item = &'arena Node<'arena, 'source>;
+impl<'arena> Iterator for NodeListIterator<'arena> {
+    type Item = &'arena Node<'arena>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current {
@@ -313,13 +257,13 @@ impl<'arena, 'source> Iterator for NodeListIterator<'arena, 'source> {
     }
 }
 
-pub struct NodeListIntoIter<'arena, 'source> {
-    current: Option<NodeRef<'arena, 'source>>,
+pub struct NodeListIntoIter<'arena> {
+    current: Option<NodeRef<'arena>>,
 }
 
-impl<'arena, 'source> Iterator for NodeListIntoIter<'arena, 'source> {
-    type Item = NodeRef<'arena, 'source>;
-    fn next(&mut self) -> Option<NodeRef<'arena, 'source>> {
+impl<'arena> Iterator for NodeListIntoIter<'arena> {
+    type Item = NodeRef<'arena>;
+    fn next(&mut self) -> Option<NodeRef<'arena>> {
         match self.current.take() {
             None => None,
             Some(reference) => {
@@ -403,29 +347,27 @@ mod tests {
 
     #[test]
     fn buffer_extend() {
+        let arena = Arena::new();
         let mut buffer = Buffer::new(0);
-        let str_ref = buffer.extend("Hello, world!".chars());
-        assert_eq!(str_ref.as_str(&buffer), "Hello, world!");
-    }
-
-    #[test]
-    fn buffer_push_str() {
-        let mut buffer = Buffer::new(0);
-        let str_ref = buffer.push_str("Hello, world!");
-        assert_eq!(str_ref.as_str(&buffer), "Hello, world!");
+        let mut builder = buffer.get_builder();
+        builder.extend("Hello, world!".chars());
+        let str_ref = builder.finish(&arena);
+        assert_eq!(str_ref, "Hello, world!");
     }
 
     #[test]
     fn buffer_manual_reference() {
+        let arena = Arena::new();
         let mut buffer = Buffer::new(0);
         let mut builder = buffer.get_builder();
-        assert_eq!(builder.start.0, 0);
+        assert_eq!(builder.buffer.0.len(), 0);
         builder.push_char('H');
         builder.push_char('i');
         builder.push_char('↩'); // This is a multi-byte character.
-        let str_ref = builder.finish();
-        assert_eq!(str_ref.1 .0, 5);
-        assert_eq!(str_ref.as_str(&buffer), "Hi↩");
+        assert_eq!(builder.buffer.0.len(), 5);
+        let str_ref = builder.finish(&arena);
+        assert_eq!(str_ref.len(), 5);
+        assert_eq!(str_ref, "Hi↩");
     }
 
     struct CycleParticipant<'a> {
