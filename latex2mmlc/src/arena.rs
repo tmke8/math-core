@@ -92,8 +92,8 @@ impl Default for Arena {
 pub struct Buffer(String);
 
 impl Buffer {
-    pub fn new(capacity: usize) -> Self {
-        Buffer(String::with_capacity(capacity))
+    pub fn new(size_hint: usize) -> Self {
+        Buffer(String::with_capacity(size_hint))
     }
 
     pub fn get_builder(&mut self) -> StringBuilder<'_> {
@@ -110,6 +110,12 @@ impl Buffer {
     }
 }
 
+
+/// A helper type to safely build a string in the buffer from multiple pieces.
+///
+/// It takes an exclusive reference to the buffer and clears everything in the
+/// buffer before we start building. This guarantees that upon finishing, the
+/// buffer contains only what we wrote to it.
 pub struct StringBuilder<'buffer> {
     buffer: &'buffer mut Buffer,
 }
@@ -359,6 +365,29 @@ mod tests {
         assert!(matches!(reference.node, Node::Space("Hello, world!")));
         let reference = iter.next().unwrap();
         assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
+    }
+
+    #[test]
+    fn buffer_extend() {
+        let arena = Arena::new();
+        let mut buffer = Buffer::new(0);
+        let str_ref = arena.from_iter(&mut buffer, "Hello, world!".chars());
+        assert_eq!(str_ref, "Hello, world!");
+    }
+
+    #[test]
+    fn buffer_manual_reference() {
+        let arena = Arena::new();
+        let mut buffer = Buffer::new(0);
+        let mut builder = buffer.get_builder();
+        assert_eq!(builder.buffer.0.len(), 0);
+        builder.push_char('H');
+        builder.push_char('i');
+        builder.push_char('↩'); // This is a multi-byte character.
+        assert_eq!(builder.buffer.0.len(), 5);
+        let str_ref = builder.finish(&arena);
+        assert_eq!(str_ref.len(), 5);
+        assert_eq!(str_ref, "Hi↩");
     }
 
     struct CycleParticipant<'a> {

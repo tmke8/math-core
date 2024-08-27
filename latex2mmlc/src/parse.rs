@@ -869,9 +869,7 @@ fn extract_letters<'arena>(
         }
         Node::Number(n) => {
             match transform {
-                Some(tf) => {
-                    buffer.transform_and_push(n, tf);
-                }
+                Some(tf) => buffer.transform_and_push(n, tf),
                 None => buffer.push_str(n),
             };
         }
