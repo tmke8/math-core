@@ -1,6 +1,5 @@
 use wasm_bindgen_test::*;
 
-use latex2mmlc::arena::NodeList;
 use latex2mmlc::ast::Node;
 use latex2mmlc::token::{TokLoc, Token};
 
@@ -9,5 +8,4 @@ fn check_sizes() {
     assert_eq!(std::mem::size_of::<Token>(), 12, "size of Token");
     assert_eq!(std::mem::size_of::<TokLoc>(), 16, "size of TokLoc");
     assert_eq!(std::mem::size_of::<Node>(), 16, "size of Node");
-    assert_eq!(std::mem::size_of::<NodeList>(), 4, "size of Node");
 }

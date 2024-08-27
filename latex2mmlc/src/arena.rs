@@ -1,16 +1,10 @@
-use std::{alloc::Layout, ptr::NonNull};
+use std::alloc::Layout;
 
 use bumpalo::{AllocErr, Bump};
 
 use crate::{ast::Node, attribute::TextTransform};
 
-#[derive(Debug)]
-pub struct NodeListElement<'arena> {
-    pub node: Node<'arena>,
-    next: Option<NonNull<NodeListElement<'arena>>>,
-}
-
-pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
+pub type NodeRef<'arena> = &'arena mut Node<'arena>;
 
 pub struct Arena {
     bump: Bump,
@@ -23,17 +17,16 @@ impl Arena {
 
     #[cfg(target_arch = "wasm32")]
     #[inline]
-    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut Node<'arena> {
         // This fails if the bump allocator is out of memory.
         self.bump
-            .try_alloc_with(|| NodeListElement { node, next: None })
+            .try_alloc_with(|| node)
             .unwrap_or_else(|_| std::process::abort())
     }
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
-    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
-        self.bump
-            .alloc_with(|| NodeListElement { node, next: None })
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut Node<'arena> {
+        self.bump.alloc_with(|| node)
     }
 
     #[inline(always)]
@@ -124,156 +117,50 @@ impl<'buffer> StringBuilder<'buffer> {
     }
 }
 
+pub enum SingletonOrList<'arena> {
+    List(&'arena mut [Node<'arena>]),
+    Singleton(Node<'arena>),
+}
+
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct NodeListBuilder<'arena>(Option<InhabitedNodeList<'arena>>);
-
-#[derive(Debug)]
-struct InhabitedNodeList<'arena> {
-    head: NonNull<NodeListElement<'arena>>,
-    tail: NonNull<NodeListElement<'arena>>,
+pub struct NodeListBuilder<'arena> {
+    nodes: Vec<Node<'arena>>,
 }
 
-pub enum SingletonOrList<'arena> {
-    List(NodeList<'arena>),
-    Singleton(NodeRef<'arena>),
-}
-
-impl Default for NodeListBuilder<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'arena> NodeListBuilder<'arena> {
+impl<'arena, 'buffer> NodeListBuilder<'arena> {
     pub fn new() -> Self {
-        NodeListBuilder(None)
+        NodeListBuilder { nodes: Vec::new() }
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.0.is_none()
+        self.nodes.is_empty()
     }
 
     /// Push a node reference to the list.
     /// If the referenced node was already part of some other list,
     /// then that list will be broken.
-    pub fn push(&mut self, node_ref: NodeRef<'arena>) {
-        // We need to work with raw pointers here, because we want *two* mutable references
-        // to the last element of the list.
-        let new_tail = NonNull::from(node_ref);
-        match &mut self.0 {
-            None => {
-                self.0 = Some(InhabitedNodeList {
-                    head: new_tail,
-                    tail: new_tail,
-                });
-            }
-            Some(InhabitedNodeList { tail, .. }) => {
-                // Update the tail to point to the new node.
-                unsafe {
-                    tail.as_mut().next = Some(new_tail);
-                };
-                // Update the tail of the list.
-                *tail = new_tail;
-            }
-        }
+    pub fn push(&mut self, node: Node<'arena>) {
+        self.nodes.push(node);
     }
 
     /// If the list contains exactly one element, return it.
     /// This is a very efficient operation, because we don't need to look up
     /// anything in the arena.
-    pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena> {
-        match self.0 {
-            Some(mut list) if list.head == list.tail => {
-                SingletonOrList::Singleton(unsafe { list.head.as_mut() })
-            }
-            _ => SingletonOrList::List(self.finish()),
+    pub fn as_singleton_or_finish(self, arena: &'arena Arena) -> SingletonOrList<'arena> {
+        let mut nodes = self.nodes;
+        if nodes.len() == 1 {
+            SingletonOrList::Singleton(nodes.pop().unwrap())
+        } else {
+            SingletonOrList::List(arena.bump.alloc_slice_copy(&nodes))
         }
     }
 
     /// Finish building the list and return it.
     /// This method consumes the builder.
-    pub fn finish(self) -> NodeList<'arena> {
-        NodeList(self.0.map(|mut list| unsafe { list.head.as_mut() }))
-    }
-}
-
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct NodeList<'arena>(Option<NodeRef<'arena>>);
-
-impl<'arena> NodeList<'arena> {
-    #[inline]
-    pub fn empty() -> Self {
-        NodeList(None)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none()
-    }
-
-    pub fn from_two_nodes(first: NodeRef<'arena>, second: NodeRef<'arena>) -> Self {
-        first.next = Some(NonNull::from(second));
-        NodeList(Some(first))
-    }
-
-    pub fn iter(&'arena self) -> NodeListIterator<'arena> {
-        NodeListIterator {
-            current: self.0.as_deref(),
-        }
-    }
-}
-
-impl<'arena> IntoIterator for NodeList<'arena> {
-    type Item = NodeRef<'arena>;
-    type IntoIter = NodeListIntoIter<'arena>;
-
-    /// Iterate over the list manually.
-    ///
-    /// This iterator cannot be used with a for loop, because the .next() method
-    /// requires a reference to the arena. This is useful when you want to use
-    /// a mutable reference to the arena within the loop body.
-    fn into_iter(self) -> NodeListIntoIter<'arena> {
-        NodeListIntoIter { current: self.0 }
-    }
-}
-
-pub struct NodeListIterator<'arena> {
-    current: Option<&'arena NodeListElement<'arena>>,
-}
-
-impl<'arena> Iterator for NodeListIterator<'arena> {
-    type Item = &'arena Node<'arena>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.current {
-            None => None,
-            Some(element) => {
-                self.current = element.next.map(|next| unsafe { next.as_ref() });
-                Some(&element.node)
-            }
-        }
-    }
-}
-
-pub struct NodeListIntoIter<'arena> {
-    current: Option<NodeRef<'arena>>,
-}
-
-impl<'arena> Iterator for NodeListIntoIter<'arena> {
-    type Item = NodeRef<'arena>;
-    fn next(&mut self) -> Option<NodeRef<'arena>> {
-        match self.current.take() {
-            None => None,
-            Some(reference) => {
-                // Ownership of the next reference is transferred to the iterator.
-                // This ensures that returned elements can be added to new lists,
-                // without having a "next" reference that points to an element in the old list.
-                self.current = reference.next.take().map(|mut r| unsafe { r.as_mut() });
-                Some(reference)
-            }
-        }
+    pub fn finish(self, arena: &'arena Arena) -> &'arena mut [Node<'arena>] {
+        arena.bump.alloc_slice_copy(&self.nodes)
     }
 }
 
@@ -286,18 +173,16 @@ mod tests {
         let arena = Arena::new();
         let node = Node::Space("Hello, world!");
         let reference = arena.push(node);
-        assert!(matches!(reference.node, Node::Space("Hello, world!")));
+        assert!(matches!(reference, Node::Space("Hello, world!")));
     }
 
     #[test]
     fn list() {
         let arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        let node_ref = arena.push(Node::Space("Hello, world!"));
-        builder.push(node_ref);
-        let node_ref = arena.push(Node::Space("Goodbye, world!"));
-        builder.push(node_ref);
-        let list = builder.finish();
+        builder.push(Node::Space("Hello, world!"));
+        builder.push(Node::Space("Goodbye, world!"));
+        let list = builder.finish(&arena);
         let mut iter = list.iter();
         assert!(matches!(iter.next().unwrap(), Node::Space("Hello, world!")));
         assert!(matches!(
@@ -311,10 +196,9 @@ mod tests {
     fn list_singleton() {
         let arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        let node_ref = arena.push(Node::Space("Hello, world!"));
-        builder.push(node_ref);
-        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish() {
-            assert!(matches!(element.node, Node::Space("Hello, world!")));
+        builder.push(Node::Space("Hello, world!"));
+        if let SingletonOrList::Singleton(element) = builder.as_singleton_or_finish(&arena) {
+            assert!(matches!(element, Node::Space("Hello, world!")));
         } else {
             panic!("List should be a singleton");
         }
@@ -322,8 +206,9 @@ mod tests {
 
     #[test]
     fn list_empty() {
+        let arena = Arena::new();
         let builder = NodeListBuilder::new();
-        let list = builder.finish();
+        let list = builder.finish(&arena);
         assert!(list.is_empty());
         let mut iter = list.iter();
         assert!(iter.next().is_none(), "Empty list should return None");
@@ -333,16 +218,14 @@ mod tests {
     fn list_manual_iter() {
         let arena = Arena::new();
         let mut builder = NodeListBuilder::new();
-        let node_ref = arena.push(Node::Space("Hello, world!"));
-        builder.push(node_ref);
-        let node_ref = arena.push(Node::Space("Goodbye, world!"));
-        builder.push(node_ref);
-        let list = builder.finish();
+        builder.push(Node::Space("Hello, world!"));
+        builder.push(Node::Space("Goodbye, world!"));
+        let list = builder.finish(&arena);
         let mut iter = list.into_iter();
         let reference = iter.next().unwrap();
-        assert!(matches!(reference.node, Node::Space("Hello, world!")));
+        assert!(matches!(reference, Node::Space("Hello, world!")));
         let reference = iter.next().unwrap();
-        assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
+        assert!(matches!(reference, Node::Space("Goodbye, world!")));
     }
 
     #[test]

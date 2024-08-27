@@ -1,9 +1,8 @@
-use crate::arena::NodeList;
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, Option<MathVariant>),
@@ -54,8 +53,8 @@ pub enum Node<'arena> {
         Option<char>,
         Option<FracAttr>,
     ),
-    Row(NodeList<'arena>, Option<Style>),
-    PseudoRow(NodeList<'arena>),
+    Row(&'arena [Node<'arena>], Option<Style>),
+    PseudoRow(&'arena [Node<'arena>]),
     Mathstrut,
     Fenced {
         open: Op,
@@ -68,7 +67,7 @@ pub enum Node<'arena> {
         paren: Op,
     },
     Text(&'arena str),
-    Table(NodeList<'arena>, Align),
+    Table(&'arena [Node<'arena>], Align),
     ColumnSeparator,
     RowSeparator,
     Slashed(&'arena Node<'arena>),

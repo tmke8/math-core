@@ -14,7 +14,7 @@ impl AsRef<str> for MathVariant {
     }
 }
 
-#[derive(Debug, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum Accent {
     #[strum(serialize = "true")]
     True,
@@ -22,7 +22,7 @@ pub enum Accent {
     False,
 }
 
-#[derive(Debug, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="true""#)]
     StretchyTrue = 1,
@@ -62,7 +62,7 @@ pub enum Style {
     ScriptScriptStyle,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Align {
     Center,
     Left,
