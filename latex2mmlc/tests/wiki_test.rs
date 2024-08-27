@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 8);
-    assert_eq!(n_diff, 128);
-    assert_eq!(n_fail, 82);
+    assert_eq!(n_diff, 132);
+    assert_eq!(n_fail, 78);
 }
 
 /// Prettify HTML input
@@ -314,7 +314,7 @@ fn test_nonfailing_wiki_tests() {
         (7, r"\check{a}, \breve{a}, \tilde{a}, \bar{a}"),
         (8, r"\hat{a}, \widehat{a}, \vec{a}"),
         (9, r"\exp_a b = a^b, \exp b = e^b, 10^m"),
-        // (10, r"\ln c, \lg d = \log e, \log_{10} f"),
+        (10, r"\ln c, \lg d = \log e, \log_{10} f"),
         (11, r"\sin a, \cos b, \tan c, \cot d, \sec e, \csc f"),
         (12, r"\arcsin h, \arccos i, \arctan j"),
         (13, r"\sinh k, \cosh l, \tanh m, \coth n"),
@@ -322,12 +322,12 @@ fn test_nonfailing_wiki_tests() {
             14,
             r"\operatorname{sh}k, \operatorname{ch}l, \operatorname{th}m, \operatorname{coth}n",
         ),
-        // (15, r"\sgn r, \left\vert s \right\vert"),
+        (15, r"\sgn r, \left\vert s \right\vert"),
         (16, r"\min(x,y), \max(x,y)"),
         (17, r"\min x, \max y, \inf s, \sup t"),
         (18, r"\lim u, \liminf v, \limsup w"),
-        // (19, r"\dim p, \deg q, \det m, \ker\phi"),
-        // (20, r"\Pr j, \hom l, \lVert z \rVert, \arg z"),
+        (19, r"\dim p, \deg q, \det m, \ker\phi"),
+        (20, r"\Pr j, \hom l, \lVert z \rVert, \arg z"),
         (21, r"dt, \mathrm{d}t, \partial t, \nabla\psi"),
         (
             22,

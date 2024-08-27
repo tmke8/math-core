@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\sgn r, \\left\\vert s \\right\\vert"
+---
+<math>
+    <mi>sgn</mi>
+    <mi>r</mi>
+    <mo>,</mo>
+    <mrow>
+        <mo stretchy="true" form="prefix">|</mo>
+        <mi>s</mi>
+        <mo stretchy="true" form="postfix">|</mo>
+    </mrow>
+</math>
