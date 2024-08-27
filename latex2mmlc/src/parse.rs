@@ -107,20 +107,20 @@ where
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => Node::MultiLetterIdent(self.arena.transform_and_push(
-                    &mut self.buffer,
-                    number,
-                    tf,
-                )),
+                Some(tf) => {
+                    let mut builder = self.buffer.get_builder();
+                    builder.transform_and_push(number, tf);
+                    Node::MultiLetterIdent(builder.finish(self.arena))
+                }
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let num = match self.tf {
-                    Some(tf) => Node::MultiLetterIdent(self.arena.transform_and_push(
-                        &mut self.buffer,
-                        number,
-                        tf,
-                    )),
+                    Some(tf) => {
+                        let mut builder = self.buffer.get_builder();
+                        builder.transform_and_push(number, tf);
+                        Node::MultiLetterIdent(builder.finish(self.arena))
+                    }
                     None => Node::Number(number),
                 };
                 let first = self.commit(num);
@@ -336,10 +336,9 @@ where
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
                         let negated_letter = [char, '\u{338}'];
-                        Node::MultiLetterIdent(
-                            self.arena
-                                .from_iter(&mut self.buffer, negated_letter.into_iter()),
-                        )
+                        let mut builder = self.buffer.get_builder();
+                        builder.extend(negated_letter.into_iter());
+                        Node::MultiLetterIdent(builder.finish(self.arena))
                     }
                     _ => {
                         return Err(LatexError(

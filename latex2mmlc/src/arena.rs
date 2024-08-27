@@ -59,27 +59,6 @@ impl Arena {
             Ok(std::slice::from_raw_parts_mut(dst.as_ptr(), src.len()))
         }
     }
-
-    pub fn transform_and_push<'arena>(
-        &'arena self,
-        buffer: &mut Buffer,
-        input: &str,
-        tf: TextTransform,
-    ) -> &'arena str {
-        buffer.clear();
-        buffer.transform_and_append(input, tf);
-        self.alloc_str(buffer.0.as_str())
-    }
-
-    pub fn from_iter<'arena, I: Iterator<Item = char>>(
-        &'arena self,
-        buffer: &mut Buffer,
-        iter: I,
-    ) -> &'arena str {
-        buffer.clear();
-        buffer.0.extend(iter);
-        self.alloc_str(buffer.0.as_str())
-    }
 }
 
 impl Default for Arena {
@@ -88,6 +67,7 @@ impl Default for Arena {
     }
 }
 
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct Buffer(String);
 
@@ -103,13 +83,7 @@ impl Buffer {
     fn transform_and_append(&mut self, input: &str, tf: TextTransform) {
         self.0.extend(input.chars().map(|c| tf.transform(c)))
     }
-
-    #[inline]
-    fn clear(&mut self) {
-        self.0.clear()
-    }
 }
-
 
 /// A helper type to safely build a string in the buffer from multiple pieces.
 ///
@@ -122,7 +96,8 @@ pub struct StringBuilder<'buffer> {
 
 impl<'buffer> StringBuilder<'buffer> {
     pub fn new(buffer: &'buffer mut Buffer) -> Self {
-        buffer.clear();
+        // Clear the buffer before we start building.
+        buffer.0.clear();
         StringBuilder { buffer }
     }
 
@@ -131,9 +106,12 @@ impl<'buffer> StringBuilder<'buffer> {
         self.buffer.0.push_str(src)
     }
 
-    #[inline]
     pub fn push_char(&mut self, c: char) {
         self.buffer.0.push(c)
+    }
+
+    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) {
+        self.buffer.0.extend(iter)
     }
 
     #[inline]
@@ -371,7 +349,9 @@ mod tests {
     fn buffer_extend() {
         let arena = Arena::new();
         let mut buffer = Buffer::new(0);
-        let str_ref = arena.from_iter(&mut buffer, "Hello, world!".chars());
+        let mut builder = buffer.get_builder();
+        builder.extend("Hello, world!".chars());
+        let str_ref = builder.finish(&arena);
         assert_eq!(str_ref, "Hello, world!");
     }
 
