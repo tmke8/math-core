@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
+---
+[
+  Fenced(
+    open: Op('('),
+    close: Op(')'),
+    content: Table(
+      content: [
+        SingleLetterIdent('x', None),
+        RowSeparator,
+        SingleLetterIdent('y', None),
+      ],
+      align: Center,
+    ),
+    style: None,
+  ),
+]

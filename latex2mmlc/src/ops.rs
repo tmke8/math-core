@@ -1,4 +1,10 @@
+use std::fmt;
+
+#[cfg(test)]
+use serde::Serialize;
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[cfg_attr(test, derive(Serialize))]
 #[repr(transparent)]
 pub struct Op(char);
 
@@ -13,6 +19,13 @@ impl From<&Op> for char {
     #[inline]
     fn from(op: &Op) -> Self {
         op.0
+    }
+}
+
+impl fmt::Display for Op {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

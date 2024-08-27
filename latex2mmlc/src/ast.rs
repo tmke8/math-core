@@ -1,9 +1,13 @@
+#[cfg(test)]
+use serde::Serialize;
+
 use crate::arena::NodeList;
 use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
 #[derive(Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, Option<MathVariant>),
@@ -48,13 +52,16 @@ pub enum Node<'arena> {
     },
     Sqrt(&'arena Node<'arena>),
     Root(&'arena Node<'arena>, &'arena Node<'arena>),
-    Frac(
-        &'arena Node<'arena>,
-        &'arena Node<'arena>,
-        Option<char>,
-        Option<FracAttr>,
-    ),
-    Row(NodeList<'arena>, Option<Style>),
+    Frac {
+        num: &'arena Node<'arena>,
+        denom: &'arena Node<'arena>,
+        lt: Option<char>,
+        style: Option<FracAttr>,
+    },
+    Row {
+        nodes: NodeList<'arena>,
+        style: Option<Style>,
+    },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     Fenced {
@@ -68,7 +75,10 @@ pub enum Node<'arena> {
         paren: Op,
     },
     Text(&'arena str),
-    Table(NodeList<'arena>, Align),
+    Table {
+        content: NodeList<'arena>,
+        align: Align,
+    },
     ColumnSeparator,
     RowSeparator,
     Slashed(&'arena Node<'arena>),
@@ -251,7 +261,12 @@ impl<'arena> Node<'arena> {
                 content.emit(s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
-            Node::Frac(num, denom, lt, style) => {
+            Node::Frac {
+                num,
+                denom,
+                lt,
+                style,
+            } => {
                 push!(s, "<mfrac");
                 if let Some(lt) = lt {
                     push!(s, " linethickness=\"", @*lt, "pt\"");
@@ -264,12 +279,12 @@ impl<'arena> Node<'arena> {
                 denom.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
-            Node::Row(vec, style) => {
+            Node::Row { nodes, style } => {
                 match style {
                     Some(style) => push!(s, "<mrow", style, ">"),
                     None => push!(s, "<mrow>"),
                 }
-                for node in vec.iter() {
+                for node in nodes.iter() {
                     node.emit(s, child_indent);
                 }
                 pushln!(s, base_indent, "</mrow>");
@@ -324,7 +339,7 @@ impl<'arena> Node<'arena> {
                 }
                 n => n.emit(s, base_indent),
             },
-            Node::Table(content, align) => {
+            Node::Table { content, align } => {
                 let child_indent2 = if base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {
@@ -386,6 +401,108 @@ impl<'arena> Node<'arena> {
         }
     }
 }
+
+// impl fmt::Display for Node<'_> {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         match self {
+//             Node::Number(num) => writeln!(f, "Number({}),", num),
+//             Node::SingleLetterIdent(x, var) => match var {
+//                 Some(var) => writeln!(f, "SingleLetterIdent({}, Some({:?})),", x, var),
+//                 None => writeln!(f, "SingleLetterIdent({}, None),", x),
+//             },
+//             Node::Operator(x, var) => match var {
+//                 Some(var) => writeln!(f, "Operator({:?}, Some({:?})),", x, var),
+//                 None => writeln!(f, "Operator({}, None),", x),
+//             },
+//             Node::OpGreaterThan => writeln!(f, "OpGreaterThan,"),
+//             Node::OpLessThan => writeln!(f, "OpLessThan,"),
+//             Node::OpAmpersand => writeln!(f, "OpAmpersand,"),
+//             Node::OperatorWithSpacing { op, left, right } => {
+//                 writeln!(
+//                     f,
+//                     "OperatorWithSpacing{{ op: {}, left: {:?}, right: {:?} }},",
+//                     op, left, right
+//                 )
+//             }
+//             Node::MultiLetterIdent(ident) => writeln!(f, "MultiLetterIdent({}),", ident),
+//             Node::Space(space) => writeln!(f, "Space({}),", space),
+//             Node::Subscript { target, symbol } => {
+//                 writeln!(
+//                     f,
+//                     "Subscript {{\n    target: {},\n    symbol: {}\n}},",
+//                     target, symbol
+//                 )
+//             }
+//             Node::Superscript { target, symbol } => {
+//                 writeln!(
+//                     f,
+//                     "Superscript {{\n    target: {},\n    symbol: {}\n}},",
+//                     target, symbol
+//                 )
+//             }
+//             Node::SubSup { target, sub, sup } => {
+//                 writeln!(
+//                     f,
+//                     "SubSup {{\n    target: {},\n    sub: {},\n    sup: {}\n}},",
+//                     target, sub, sup
+//                 )
+//             }
+//             Node::OverOp(op, accent, target) => {
+//                 writeln!(
+//                     f,
+//                     "OverOp {{\n    op: {},\n    accent: {:?},\n    target: {}\n}},",
+//                     op, accent, target
+//                 )
+//             }
+//             Node::UnderOp(op, accent, target) => {
+//                 writeln!(
+//                     f,
+//                     "UnderOp {{\n    op: {},\n    accent: {:?},\n    target: {}\n}},",
+//                     op, accent, target
+//                 )
+//             }
+//             Node::Overset { symbol, target } => {
+//                 writeln!(
+//                     f,
+//                     "Overset {{\n    symbol: {},\n    target: {}\n}},",
+//                     symbol, target
+//                 )
+//             }
+//             Node::Underset { symbol, target } => {
+//                 writeln!(
+//                     f,
+//                     "Underset {{\n    symbol: {},\n    target: {}\n}},",
+//                     symbol, target
+//                 )
+//             }
+//             Node::UnderOver {
+//                 target,
+//                 under,
+//                 over,
+//             } => {
+//                 writeln!(
+//                     f,
+//                     "UnderOver {{\n    target: {},\n    under: {},\n    over: {}\n}},",
+//                     target, under, over
+//                 )
+//             }
+//             Node::Sqrt(target) => writeln!(f, "Sqrt(\n    {}\n),", target),
+//             Node::Root(target, nth) => {
+//                 writeln!(f, "Root {{\n    target: {},\n    nth: {}\n}},", target, nth)
+//             }
+//             Node::Frac(num, denom, lt, style) => {
+//                 writeln!(
+//                     f,
+//                     "Frac {{\n    num: {},\n    denom: {},\n    lt: {:?}, style: {:?}}},",
+//                     num, denom, lt, style
+//                 )
+//             }
+//             Node::Row(nodes, style) => {
+//                 writeln!(f, "Row {{\n    nodes: {:?},\n    style: {:?}\n}},", nodes, style)
+//             }
+//         }
+//     }
+// }
 
 fn new_line_and_indent(s: &mut String, indent_num: usize) {
     if indent_num > 0 {

@@ -1,0 +1,16 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "f''"
+---
+[
+  Superscript(
+    target: SingleLetterIdent('f', None),
+    symbol: Row(
+      nodes: [
+        Operator(Op('′'), None),
+        Operator(Op('′'), None),
+      ],
+      style: None,
+    ),
+  ),
+]
