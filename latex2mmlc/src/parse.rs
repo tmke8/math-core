@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    arena::{Arena, NodeList, NodeListBuilder, NodeRef, SingletonOrList},
+    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
     commands::get_negated_op,
@@ -14,7 +14,7 @@ use crate::{
 pub(crate) struct Parser<'arena, 'source> {
     l: Lexer<'source>,
     peek: TokLoc<'source>,
-    buffer: String,
+    buffer: Buffer,
     arena: &'arena Arena,
     tf: Option<TextTransform>,
     var: Option<MathVariant>,
@@ -28,7 +28,7 @@ where
         let mut p = Parser {
             l,
             peek: TokLoc(0, Token::EOF),
-            buffer: String::with_capacity(input_length),
+            buffer: Buffer::new(input_length),
             arena,
             tf: None,
             var: None,
@@ -107,20 +107,20 @@ where
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => match self.tf {
-                Some(tf) => Node::MultiLetterIdent(self.arena.push_str(transform_and_push(
+                Some(tf) => Node::MultiLetterIdent(self.arena.transform_and_push(
                     &mut self.buffer,
                     number,
                     tf,
-                ))),
+                )),
                 None => Node::Number(number),
             },
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let num = match self.tf {
-                    Some(tf) => Node::MultiLetterIdent(self.arena.push_str(transform_and_push(
+                    Some(tf) => Node::MultiLetterIdent(self.arena.transform_and_push(
                         &mut self.buffer,
                         number,
                         tf,
-                    ))),
+                    )),
                     None => Node::Number(number),
                 };
                 let first = self.commit(num);
@@ -335,10 +335,11 @@ where
                     Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::NormalLetter(char) => {
-                        self.buffer.clear();
-                        self.buffer.push(char);
-                        self.buffer.push_str("\u{338}");
-                        Node::MultiLetterIdent(self.arena.push_str(&self.buffer))
+                        let negated_letter = [char, '\u{338}'];
+                        Node::MultiLetterIdent(
+                            self.arena
+                                .from_iter(&mut self.buffer, negated_letter.into_iter()),
+                        )
                     }
                     _ => {
                         return Err(LatexError(
@@ -577,16 +578,16 @@ where
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
-                self.buffer.clear();
-                extract_letters(&mut self.buffer, node, None)?;
-                Node::MultiLetterIdent(self.arena.push_str(&self.buffer))
+                let mut builder = self.buffer.get_builder();
+                extract_letters(&mut builder, node, None)?;
+                Node::MultiLetterIdent(builder.finish(self.arena))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
-                self.buffer.clear();
-                extract_letters(&mut self.buffer, node, transform)?;
-                let text = self.arena.push_str(&self.buffer);
+                let mut builder = self.buffer.get_builder();
+                extract_letters(&mut builder, node, transform)?;
+                let text = builder.finish(self.arena);
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
@@ -803,13 +804,13 @@ where
                 }) = collector
                 {
                     *only_one_char = false;
-                    builder.push(c);
+                    builder.push_char(c);
                 } else {
-                    self.buffer.clear();
-                    self.buffer.push(c);
+                    let mut builder = self.buffer.get_builder();
+                    builder.push_char(c);
                     // We start collecting.
                     collector = Some(LetterCollector {
-                        builder: &mut self.buffer,
+                        builder,
                         node_ref,
                         only_one_char: true,
                     });
@@ -834,7 +835,7 @@ where
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
 struct LetterCollector<'arena, 'buffer> {
-    builder: &'buffer mut String,
+    builder: StringBuilder<'buffer>,
     node_ref: NodeRef<'arena>,
     only_one_char: bool,
 }
@@ -843,7 +844,7 @@ impl<'arena> LetterCollector<'arena, '_> {
     fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
         let node = &mut self.node_ref.node;
         if !self.only_one_char {
-            *node = Node::MultiLetterIdent(arena.push_str(&self.builder));
+            *node = Node::MultiLetterIdent(self.builder.finish(arena));
         }
         self.node_ref
     }
@@ -853,13 +854,13 @@ impl<'arena> LetterCollector<'arena, '_> {
 /// This function cannot be a method, because we need to borrow arena immutably
 /// but buffer mutably. This is not possible with a mutable self reference.
 fn extract_letters<'arena>(
-    buffer: &mut String,
+    buffer: &mut StringBuilder,
     node: &'arena Node<'arena>,
     transform: Option<TextTransform>,
 ) -> Result<(), LatexError<'static>> {
     match node {
         Node::SingleLetterIdent(c, _) => {
-            buffer.push(transform.as_ref().map_or(*c, |t| t.transform(*c)));
+            buffer.push_char(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
         Node::Row(nodes, _) | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {
@@ -869,13 +870,13 @@ fn extract_letters<'arena>(
         Node::Number(n) => {
             match transform {
                 Some(tf) => {
-                    transform_and_push(buffer, n, tf);
+                    buffer.transform_and_push(n, tf);
                 }
                 None => buffer.push_str(n),
             };
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push(op.into());
+            buffer.push_char(op.into());
         }
         Node::Text(str_ref) => {
             buffer.push_str(str_ref);
@@ -883,14 +884,4 @@ fn extract_letters<'arena>(
         _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
     }
     Ok(())
-}
-
-fn transform_and_push<'buffer>(
-    buffer: &'buffer mut String,
-    input: &str,
-    tf: TextTransform,
-) -> &'buffer str {
-    buffer.clear();
-    buffer.extend(input.chars().map(|c| tf.transform(c)));
-    buffer.as_str()
 }

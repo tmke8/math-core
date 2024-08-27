@@ -2,7 +2,7 @@ use std::{alloc::Layout, ptr::NonNull};
 
 use bumpalo::{AllocErr, Bump};
 
-use crate::ast::Node;
+use crate::{ast::Node, attribute::TextTransform};
 
 #[derive(Debug)]
 pub struct NodeListElement<'arena> {
@@ -37,7 +37,7 @@ impl Arena {
     }
 
     #[inline(always)]
-    pub fn push_str(&self, src: &str) -> &str {
+    fn alloc_str(&self, src: &str) -> &str {
         let buffer = self
             .try_alloc_slice_copy(src.as_bytes())
             .unwrap_or_else(|_| std::process::abort());
@@ -47,7 +47,7 @@ impl Arena {
         }
     }
     #[inline(always)]
-    pub fn try_alloc_slice_copy<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
+    fn try_alloc_slice_copy<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
     where
         T: Copy,
     {
@@ -59,11 +59,84 @@ impl Arena {
             Ok(std::slice::from_raw_parts_mut(dst.as_ptr(), src.len()))
         }
     }
+
+    pub fn transform_and_push<'arena>(
+        &'arena self,
+        buffer: &mut Buffer,
+        input: &str,
+        tf: TextTransform,
+    ) -> &'arena str {
+        buffer.clear();
+        buffer.transform_and_append(input, tf);
+        self.alloc_str(buffer.0.as_str())
+    }
+
+    pub fn from_iter<'arena, I: Iterator<Item = char>>(
+        &'arena self,
+        buffer: &mut Buffer,
+        iter: I,
+    ) -> &'arena str {
+        buffer.clear();
+        buffer.0.extend(iter);
+        self.alloc_str(buffer.0.as_str())
+    }
 }
 
 impl Default for Arena {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[repr(transparent)]
+pub struct Buffer(String);
+
+impl Buffer {
+    pub fn new(capacity: usize) -> Self {
+        Buffer(String::with_capacity(capacity))
+    }
+
+    pub fn get_builder(&mut self) -> StringBuilder<'_> {
+        StringBuilder::new(self)
+    }
+
+    fn transform_and_append(&mut self, input: &str, tf: TextTransform) {
+        self.0.extend(input.chars().map(|c| tf.transform(c)))
+    }
+
+    #[inline]
+    fn clear(&mut self) {
+        self.0.clear()
+    }
+}
+
+pub struct StringBuilder<'buffer> {
+    buffer: &'buffer mut Buffer,
+}
+
+impl<'buffer> StringBuilder<'buffer> {
+    pub fn new(buffer: &'buffer mut Buffer) -> Self {
+        buffer.clear();
+        StringBuilder { buffer }
+    }
+
+    #[inline]
+    pub fn push_str(&mut self, src: &str) {
+        self.buffer.0.push_str(src)
+    }
+
+    #[inline]
+    pub fn push_char(&mut self, c: char) {
+        self.buffer.0.push(c)
+    }
+
+    #[inline]
+    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) {
+        self.buffer.transform_and_append(input, tf)
+    }
+
+    pub fn finish(self, arena: &Arena) -> &str {
+        arena.alloc_str(&self.buffer.0)
     }
 }
 
