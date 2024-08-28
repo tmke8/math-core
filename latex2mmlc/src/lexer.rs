@@ -211,7 +211,7 @@ enum Punctuation {
 impl Punctuation {
     fn from_char(c: char) -> Option<Self> {
         match c {
-            '.' => Some(Self::Dot),
+            ops::FULL_STOP => Some(Self::Dot),
             ',' => Some(Self::Comma),
             _ => None,
         }
