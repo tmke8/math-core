@@ -53,10 +53,13 @@ pub enum Node<'arena> {
     Sqrt(&'arena Node<'arena>),
     Root(&'arena Node<'arena>, &'arena Node<'arena>),
     Frac {
+        /// Numerator
         num: &'arena Node<'arena>,
-        denom: &'arena Node<'arena>,
+        /// Denominator
+        den: &'arena Node<'arena>,
+        /// Line thickness
         lt: Option<char>,
-        style: Option<FracAttr>,
+        attr: Option<FracAttr>,
     },
     Row {
         nodes: NodeList<'arena>,
@@ -261,22 +264,17 @@ impl<'arena> Node<'arena> {
                 content.emit(s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
-            Node::Frac {
-                num,
-                denom,
-                lt,
-                style,
-            } => {
+            Node::Frac { num, den, lt, attr } => {
                 push!(s, "<mfrac");
                 if let Some(lt) = lt {
                     push!(s, " linethickness=\"", @*lt, "pt\"");
                 }
-                if let Some(style) = style {
+                if let Some(style) = attr {
                     push!(s, style);
                 }
                 push!(s, ">");
                 num.emit(s, child_indent);
-                denom.emit(s, child_indent);
+                den.emit(s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row { nodes, style } => {
