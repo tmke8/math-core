@@ -125,7 +125,7 @@ where
                 };
                 let first = self.commit(num);
                 let second = self.commit(match tok {
-                    Token::NumberWithDot(_) => Node::SingleLetterIdent('.', None),
+                    Token::NumberWithDot(_) => Node::SingleLetterIdent(ops::FULL_STOP, None),
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
                     _ => unreachable!(),
                 });
@@ -446,7 +446,7 @@ where
                 let open_paren = match next_token {
                     Token::Paren(open, _) => open,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Letter('.') => ops::NULL,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -463,7 +463,7 @@ where
                 let close_paren = match next_token {
                     Token::Paren(close, _) => close,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Letter('.') => ops::NULL,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,

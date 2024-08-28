@@ -261,9 +261,9 @@ fn wiki_test() {
             }
         }
     }
-    assert_eq!(n_match, 8);
-    assert_eq!(n_diff, 132);
-    assert_eq!(n_fail, 78);
+    assert_eq!(n_match, 9);
+    assert_eq!(n_diff, 135);
+    assert_eq!(n_fail, 74);
 }
 
 /// Prettify HTML input
@@ -566,7 +566,7 @@ fn test_nonfailing_wiki_tests() {
             168,
             r"\boldsymbol{\rho \sigma \tau \upsilon \phi \chi \psi \omega}",
         ),
-        // (169, r"\boldsymbol{\varepsilon\digamma\varkappa \varpi}"),
+        (169, r"\boldsymbol{\varepsilon\digamma\varkappa \varpi}"),
         (170, r"\boldsymbol{\varrho\varsigma\vartheta\varphi}"),
         (171, r"\mathit{0123456789}"),
         (
@@ -581,8 +581,8 @@ fn test_nonfailing_wiki_tests() {
             174,
             r"\mathit{\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega}",
         ),
-        // (175, r"\boldsymbol{\varGamma \varDelta \varTheta \varLambda}"),
-        // (176, r"\boldsymbol{\varXi \varPi \varSigma \varUpsilon \varOmega}"),
+        (175, r"\boldsymbol{\varGamma \varDelta \varTheta \varLambda}"),
+        (176, r"\boldsymbol{\varXi \varPi \varSigma \varUpsilon \varOmega}"),
         (
             177,
             r"\mathrm{ABCDEFGHI} \\ \mathrm{JKLMNOPQR} \\ \mathrm{STUVWXYZ} \\ \mathrm{abcdefghijklm} \\ \mathrm{nopqrstuvwxyz} \\ \mathrm{0123456789}",
