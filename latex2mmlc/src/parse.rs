@@ -68,16 +68,16 @@ where
 
         match self.get_bounds()? {
             Bounds(Some(sub), Some(sup)) => Ok(self.commit(Node::SubSup {
-                target: &target.node,
+                target: target.node(),
                 sub,
                 sup,
             })),
             Bounds(Some(symbol), None) => Ok(self.commit(Node::Subscript {
-                target: &target.node,
+                target: target.node(),
                 symbol,
             })),
             Bounds(None, Some(symbol)) => Ok(self.commit(Node::Superscript {
-                target: &target.node,
+                target: target.node(),
                 symbol,
             })),
             Bounds(None, None) => Ok(target),
@@ -154,38 +154,26 @@ where
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(&self.squeeze(degree, None).node, content)
+                    Node::Root(self.squeeze(degree, None).node(), content)
                 } else {
                     let content = self.parse_node(next)?;
-                    Node::Sqrt(&content.node)
+                    Node::Sqrt(content.node())
                 }
             }
-            Token::Frac(style) | Token::Binom(style) => {
+            Token::Frac(attr) | Token::Binom(attr) => {
                 let num = self.parse_token()?;
-                let denom = self.parse_token()?;
+                let den = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some('0');
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
-                        content: &self
-                            .commit(Node::Frac {
-                                num,
-                                denom,
-                                lt,
-                                style,
-                            })
-                            .node,
+                        content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                         style: None,
                     }
                 } else {
                     let lt = None;
-                    Node::Frac {
-                        num,
-                        denom,
-                        lt,
-                        style,
-                    }
+                    Node::Frac { num, den, lt, attr }
                 }
             }
             Token::Genfrac => {
@@ -225,19 +213,12 @@ where
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let num = self.parse_token()?;
-                let denom = self.parse_token()?;
-                let content = &self
-                    .commit(Node::Frac {
-                        num,
-                        denom,
-                        lt,
-                        style: None,
-                    })
-                    .node;
+                let den = self.parse_token()?;
+                let attr = None;
                 Node::Fenced {
                     open,
                     close,
-                    content,
+                    content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                     style,
                 }
             }
@@ -266,26 +247,26 @@ where
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = &self.commit(Node::Operator(x, None)).node;
+                    let op = self.commit(Node::Operator(x, None)).node();
                     if is_over {
-                        let symbol = &self
+                        let symbol = self
                             .commit(Node::Overset {
                                 symbol: expl,
                                 target: op,
                             })
-                            .node;
+                            .node();
                         Node::Overset { symbol, target }
                     } else {
-                        let symbol = &self
+                        let symbol = self
                             .commit(Node::Underset {
                                 symbol: expl,
                                 target: op,
                             })
-                            .node;
+                            .node();
                         Node::Underset { symbol, target }
                     }
                 } else {
-                    let symbol = &self.commit(Node::Operator(x, None)).node;
+                    let symbol = self.commit(Node::Operator(x, None)).node();
                     if is_over {
                         Node::Overset { symbol, target }
                     } else {
@@ -302,16 +283,16 @@ where
                 };
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
-                        target: &target.node,
+                        target: target.node(),
                         under,
                         over,
                     },
                     Bounds(Some(symbol), None) => Node::Underset {
-                        target: &target.node,
+                        target: target.node(),
                         symbol,
                     },
                     Bounds(None, Some(symbol)) => Node::Overset {
-                        target: &target.node,
+                        target: target.node(),
                         symbol,
                     },
                     Bounds(None, None) => {
@@ -325,7 +306,7 @@ where
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token()?;
                     Node::Underset {
-                        target: &lim.node,
+                        target: lim.node(),
                         symbol: under,
                     }
                 } else {
@@ -375,7 +356,7 @@ where
                 let node_ref = self.parse_single_node(token)?;
                 self.var = old_var;
                 self.tf = old_tf;
-                if let Node::Row { nodes, style } = &mut node_ref.node {
+                if let Node::Row { nodes, style } = node_ref.mut_node() {
                     let nodes = mem::replace(nodes, NodeList::empty());
                     let style = *style;
                     return Ok(self.merge_single_letters(nodes, style));
@@ -388,16 +369,16 @@ where
                     let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
-                            target: &target.node,
+                            target: target.node(),
                             under,
                             over,
                         },
                         Bounds(Some(symbol), None) => Node::Underset {
-                            target: &target.node,
+                            target: target.node(),
                             symbol,
                         },
                         Bounds(None, Some(symbol)) => Node::Overset {
-                            target: &target.node,
+                            target: target.node(),
                             symbol,
                         },
                         Bounds(None, None) => {
@@ -408,16 +389,16 @@ where
                     let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup {
-                            target: &target.node,
+                            target: target.node(),
                             sub,
                             sup,
                         },
                         Bounds(Some(symbol), None) => Node::Subscript {
-                            target: &target.node,
+                            target: target.node(),
                             symbol,
                         },
                         Bounds(None, Some(symbol)) => Node::Superscript {
-                            target: &target.node,
+                            target: target.node(),
                             symbol,
                         },
                         Bounds(None, None) => {
@@ -462,7 +443,7 @@ where
             }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
-                let open = match next_token {
+                let open_paren = match next_token {
                     Token::Paren(open, _) => open,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter('.') => ops::NULL,
@@ -479,7 +460,7 @@ where
                 let content = self.parse_group(Token::Right)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
-                let close = match next_token {
+                let close_paren = match next_token {
                     Token::Paren(close, _) => close,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter('.') => ops::NULL,
@@ -494,9 +475,9 @@ where
                     }
                 };
                 Node::Fenced {
-                    open,
-                    close,
-                    content: &self.squeeze(content, None).node,
+                    open: open_paren,
+                    close: close_paren,
+                    content: self.squeeze(content, None).node(),
                     style: None,
                 }
             }
@@ -552,7 +533,7 @@ where
                     },
                     "cases" => {
                         let align = Align::Left;
-                        let content = &self.commit(Node::Table { content, align }).node;
+                        let content = self.commit(Node::Table { content, align }).node();
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
@@ -566,7 +547,6 @@ where
                     },
                     matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
                         let align = Align::Center;
-                        let content = &self.commit(Node::Table { content, align }).node;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
@@ -577,7 +557,7 @@ where
                         Node::Fenced {
                             open,
                             close,
-                            content,
+                            content: self.commit(Node::Table { content, align }).node(),
                             style: None,
                         }
                     }
@@ -667,13 +647,13 @@ where
     #[inline]
     fn parse_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_node(token).map(|n| &n.node)
+        self.parse_node(token).map(|n| n.node())
     }
 
     #[inline]
     fn parse_single_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_single_node(token).map(|n| &n.node)
+        self.parse_single_node(token).map(|n| n.node())
     }
 
     /// Parse the contents of a group which can contain any expression.
@@ -729,8 +709,7 @@ where
         let mut primes = NodeListBuilder::new();
         while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
-            let node_ref = self.commit(Node::Operator(ops::PRIME, None));
-            primes.push(node_ref);
+            primes.push(self.commit(Node::Operator(ops::PRIME, None)));
         }
 
         // Check whether the first bound is specified and is a lower bound.
@@ -781,7 +760,7 @@ where
             sup
         };
 
-        Ok(Bounds(sub.map(|s| &s.node), sup.map(|s| &s.node)))
+        Ok(Bounds(sub.map(|s| s.node()), sup.map(|s| s.node())))
     }
 
     /// Parse the node after a `_` or `^` token.
@@ -822,7 +801,7 @@ where
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         for node_ref in nodes {
-            if let Node::SingleLetterIdent(c, _) = &node_ref.node {
+            if let Node::SingleLetterIdent(c, _) = node_ref.node() {
                 let c = *c;
                 if let Some(LetterCollector {
                     ref mut only_one_char,
@@ -869,7 +848,7 @@ struct LetterCollector<'arena, 'buffer> {
 
 impl<'arena> LetterCollector<'arena, '_> {
     fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
-        let node = &mut self.node_ref.node;
+        let node = self.node_ref.mut_node();
         if !self.only_one_char {
             *node = Node::MultiLetterIdent(self.builder.finish(arena));
         }

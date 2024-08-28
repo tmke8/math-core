@@ -8,8 +8,16 @@ use crate::{ast::Node, attribute::TextTransform};
 
 #[derive(Debug)]
 pub struct NodeListElement<'arena> {
-    pub node: Node<'arena>,
+    node: Node<'arena>,
     next: Option<NonNull<NodeListElement<'arena>>>,
+}
+impl<'arena> NodeListElement<'arena> {
+    pub fn node(&self) -> &Node<'arena> {
+        &self.node
+    }
+    pub fn mut_node(&mut self) -> &mut Node<'arena> {
+        &mut self.node
+    }
 }
 
 pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
