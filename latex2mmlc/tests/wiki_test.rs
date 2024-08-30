@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 9);
-    assert_eq!(n_diff, 135);
-    assert_eq!(n_fail, 74);
+    assert_eq!(n_diff, 137);
+    assert_eq!(n_fail, 72);
 }
 
 /// Prettify HTML input
@@ -489,9 +489,15 @@ fn test_nonfailing_wiki_tests() {
         (134, r"\left ( \frac{1}{2} \right )^n"),
         (135, r"\left ( \frac{a}{b} \right )"),
         // (136, r"\left [ \frac{a}{b} \right ] \quad \left \lbrack \frac{a}{b} \right \rbrack"),
-        // (137, r"\left \{ \frac{a}{b} \right \} \quad \left \lbrace \frac{a}{b} \right \rbrace"),
+        (
+            137,
+            r"\left \{ \frac{a}{b} \right \} \quad \left \lbrace \frac{a}{b} \right \rbrace",
+        ),
         (138, r"\left \langle \frac{a}{b} \right \rangle"),
-        // (139, r"\left | \frac{a}{b} \right \vert \quad \left \Vert \frac{c}{d} \right \|"),
+        (
+            139,
+            r"\left | \frac{a}{b} \right \vert \quad \left \Vert \frac{c}{d} \right \|",
+        ),
         (
             140,
             r"\left \lfloor \frac{a}{b} \right \rfloor \quad \left \lceil \frac{c}{d} \right \rceil",
@@ -581,8 +587,14 @@ fn test_nonfailing_wiki_tests() {
             174,
             r"\mathit{\Rho \Sigma \Tau \Upsilon \Phi \Chi \Psi \Omega}",
         ),
-        (175, r"\boldsymbol{\varGamma \varDelta \varTheta \varLambda}"),
-        (176, r"\boldsymbol{\varXi \varPi \varSigma \varUpsilon \varOmega}"),
+        (
+            175,
+            r"\boldsymbol{\varGamma \varDelta \varTheta \varLambda}",
+        ),
+        (
+            176,
+            r"\boldsymbol{\varXi \varPi \varSigma \varUpsilon \varOmega}",
+        ),
         (
             177,
             r"\mathrm{ABCDEFGHI} \\ \mathrm{JKLMNOPQR} \\ \mathrm{STUVWXYZ} \\ \mathrm{abcdefghijklm} \\ \mathrm{nopqrstuvwxyz} \\ \mathrm{0123456789}",
