@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\left / \\frac{a}{b} \\right \\backslash"
+---
+<math>
+    <mrow>
+        <mo stretchy="true" form="prefix">/</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo stretchy="true" form="postfix">\</mo>
+    </mrow>
+</math>

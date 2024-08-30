@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 9);
-    assert_eq!(n_diff, 138);
-    assert_eq!(n_fail, 71);
+    assert_eq!(n_diff, 144);
+    assert_eq!(n_fail, 65);
 }
 
 /// Prettify HTML input
@@ -502,8 +502,11 @@ fn test_nonfailing_wiki_tests() {
             140,
             r"\left \lfloor \frac{a}{b} \right \rfloor \quad \left \lceil \frac{c}{d} \right \rceil",
         ),
-        // (141, r"\left / \frac{a}{b} \right \backslash"),
-        // (142, r"\left\uparrow\frac{a}{b}\right\downarrow\; \left\Uparrow\frac{a}{b}\right\Downarrow\; \left \updownarrow \frac{a}{b} \right \Updownarrow"),
+        (141, r"\left / \frac{a}{b} \right \backslash"),
+        (
+            142,
+            r"\left\uparrow\frac{a}{b}\right\downarrow\; \left\Uparrow\frac{a}{b}\right\Downarrow\; \left \updownarrow \frac{a}{b} \right \Updownarrow",
+        ),
         (143, r"\left [ 0,1 \right ) \left \langle \psi \right |"),
         (144, r"\left . \frac{A}{B} \right \} \to X"),
         (
@@ -522,9 +525,18 @@ fn test_nonfailing_wiki_tests() {
             148,
             r"\lfloor \bigl\lfloor \Bigl\lfloor \biggl\lfloor \Biggl\lfloor \dots \Biggr\rceil \biggr\rceil \Bigr\rceil \bigr\rceil \rceil",
         ),
-        // (149, r"\uparrow \big\uparrow \Big\uparrow \bigg\uparrow \Bigg\uparrow \dots \Bigg\Downarrow \bigg\Downarrow \Big\Downarrow \big\Downarrow \Downarrow"),
-        // (150, r"\updownarrow\big\updownarrow\Big\updownarrow \bigg\updownarrow \Bigg\updownarrow \dots \Bigg\Updownarrow \bigg\Updownarrow \Big \Updownarrow \big\Updownarrow \Updownarrow"),
-        // (151, r"/ \big/ \Big/ \bigg/ \Bigg/ \dots \Bigg\backslash \bigg\backslash \Big \backslash \big\backslash \backslash"),
+        (
+            149,
+            r"\uparrow \big\uparrow \Big\uparrow \bigg\uparrow \Bigg\uparrow \dots \Bigg\Downarrow \bigg\Downarrow \Big\Downarrow \big\Downarrow \Downarrow",
+        ),
+        (
+            150,
+            r"\updownarrow\big\updownarrow\Big\updownarrow \bigg\updownarrow \Bigg\updownarrow \dots \Bigg\Updownarrow \bigg\Updownarrow \Big \Updownarrow \big\Updownarrow \Updownarrow",
+        ),
+        (
+            151,
+            r"/ \big/ \Big/ \bigg/ \Bigg/ \dots \Bigg\backslash \bigg\backslash \Big \backslash \big\backslash \backslash",
+        ),
         (
             152,
             r"\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta",
@@ -537,8 +549,14 @@ fn test_nonfailing_wiki_tests() {
         ),
         (156, r"\iota \kappa \lambda \mu \nu \xi \omicron \pi"),
         (157, r"\rho \sigma \tau \upsilon \phi \chi \psi \omega"),
-        // (158, r"\varGamma \varDelta \varTheta \varLambda \varXi \varPi \varSigma \varPhi \varUpsilon \varOmega"),
-        // (159, r"\varepsilon \digamma \varkappa \varpi \varrho \varsigma \vartheta \varphi"),
+        (
+            158,
+            r"\varGamma \varDelta \varTheta \varLambda \varXi \varPi \varSigma \varPhi \varUpsilon \varOmega",
+        ),
+        (
+            159,
+            r"\varepsilon \digamma \varkappa \varpi \varrho \varsigma \vartheta \varphi",
+        ),
         (160, r"\aleph \beth \gimel \daleth"),
         (
             161,

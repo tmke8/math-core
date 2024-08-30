@@ -11,5 +11,5 @@ expression: "\\times, \\div, \\divideontimes, /, \\backslash"
     <mo>,</mo>
     <mi>/</mi>
     <mo>,</mo>
-    <mo>\</mo>
+    <mi>\</mi>
 </math>

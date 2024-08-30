@@ -1,4 +1,4 @@
-use crate::attribute::{FracAttr, MathVariant, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, ParenAttr, Style, TextTransform};
 use crate::ops::{self, Op};
 use crate::token::Token;
 
@@ -35,7 +35,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Delta" => Token::NormalLetter('Δ'),
     "Diamond" => Token::NormalLetter('◊'),
     "Doteq" => Token::Operator(ops::GEOMETRICALLY_EQUAL_TO),
-    "Downarrow" => Token::Operator(ops::DOWNWARDS_DOUBLE_ARROW),
+    "Downarrow" => Token::Paren(ops::DOWNWARDS_DOUBLE_ARROW, None),
     "Epsilon" => Token::NormalLetter('Ε'),
     "Eta" => Token::NormalLetter('Η'),
     "Finv" => Token::NormalLetter('Ⅎ'),
@@ -76,8 +76,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "TH" => Token::NormalLetter('Þ'),
     "Tau" => Token::NormalLetter('Τ'),
     "Theta" => Token::NormalLetter('Θ'),
-    "Uparrow" => Token::Operator(ops::UPWARDS_DOUBLE_ARROW),
-    "Updownarrow" => Token::Operator(ops::UP_DOWN_DOUBLE_ARROW),
+    "Uparrow" => Token::Paren(ops::UPWARDS_DOUBLE_ARROW, None),
+    "Updownarrow" => Token::Paren(ops::UP_DOWN_DOUBLE_ARROW, None),
     "Upsilon" => Token::NormalLetter('Υ'),
     "Vdash" => Token::Operator(ops::FORCES),
     "Vert" => Token::Paren(ops::DOUBLE_VERTICAL_LINE, None),
@@ -105,7 +105,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "asymp" => Token::Operator(ops::EQUIVALENT_TO),
     "awint" => Token::Operator(ops::ANTICLOCKWISE_INTEGRATION),
     "backsim" => Token::Operator(ops::REVERSED_TILDE),
-    "backslash" => Token::Operator(ops::REVERSE_SOLIDUS),
+    "backslash" => Token::Paren(ops::REVERSE_SOLIDUS, Some(ParenAttr::Ordinary)),
     "bar" => Token::Over(ops::MACRON),
     "barwedge" => Token::Operator(ops::NAND),
     "because" => Token::Operator(ops::BECAUSE),
@@ -529,7 +529,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "unlhd" => Token::Operator(ops::NORMAL_SUBGROUP_OF_OR_EQUAL_TO),
     "unrhd" => Token::Operator(ops::CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO),
     "uparrow" => Token::Paren(ops::UPWARDS_ARROW, None),
-    "updownarrow" => Token::Operator(ops::UP_DOWN_ARROW),
+    "updownarrow" => Token::Paren(ops::UP_DOWN_ARROW, None),
     "upharpoonleft" => Token::Operator(ops::UPWARDS_HARPOON_WITH_BARB_LEFTWARDS),
     "upharpoonright" => Token::Operator(ops::UPWARDS_HARPOON_WITH_BARB_RIGHTWARDS),
     "uplus" => Token::Operator(ops::MULTISET_UNION),
@@ -541,6 +541,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "varGamma" => Token::Letter('Γ'), // not italicized
     "varLambda" => Token::Letter('Λ'), // not italicized
     "varOmega" => Token::Letter('Ω'), // not italicized
+    "varPhi" => Token::Letter('Φ'), // not italicized
     "varPi" => Token::Letter('Π'), // not italicized
     "varSigma" => Token::Letter('Σ'), // not italicized
     "varTheta" => Token::Letter('Θ'), // not italicized

@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\varepsilon \\digamma \\varkappa \\varpi \\varrho \\varsigma \\vartheta \\varphi"
+---
+<math>
+    <mi>ε</mi>
+    <mi>ϝ</mi>
+    <mi>ϰ</mi>
+    <mi>ϖ</mi>
+    <mi>ϱ</mi>
+    <mi>ς</mi>
+    <mi>ϑ</mi>
+    <mi>φ</mi>
+</math>

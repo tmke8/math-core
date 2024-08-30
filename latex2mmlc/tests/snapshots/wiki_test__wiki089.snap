@@ -7,5 +7,5 @@ expression: "\\uparrow, \\downarrow, \\updownarrow"
     <mo>,</mo>
     <mo stretchy="false">↓</mo>
     <mo>,</mo>
-    <mo>↕</mo>
+    <mo stretchy="false">↕</mo>
 </math>
