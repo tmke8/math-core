@@ -2,10 +2,8 @@
 source: latex2mmlc/src/lib.rs
 expression: x^^
 ---
-LatexError(
-    2,
-    CannotBeUsedHere {
-        got: Circumflex,
-        correct_place: AfterOpOrIdent,
-    },
-)
+Position: 2
+CannotBeUsedHere {
+    got: Circumflex,
+    correct_place: AfterOpOrIdent,
+}

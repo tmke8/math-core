@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin{xmatrix} 1 \\end{xmatrix}"
 ---
-LatexError(
-    0,
-    UnknownEnvironment(
-        "xmatrix",
-    ),
+Position: 0
+UnknownEnvironment(
+    "xmatrix",
 )

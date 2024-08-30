@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\left( x"
 ---
-LatexError(
-    8,
-    UnclosedGroup(
-        Right,
-    ),
+Position: 8
+UnclosedGroup(
+    Right,
 )

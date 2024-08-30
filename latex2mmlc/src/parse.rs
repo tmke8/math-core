@@ -583,14 +583,21 @@ where
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
                 let mut builder = self.buffer.get_builder();
-                extract_letters(&mut builder, node, None)?;
+                if !extract_letters(&mut builder, node, None) {
+                    return Err(LatexError(
+                        loc,
+                        LatexErrKind::ExpectedText("\\operatorname"),
+                    ));
+                }
                 Node::MultiLetterIdent(builder.finish(self.arena))
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
                 let mut builder = self.buffer.get_builder();
-                extract_letters(&mut builder, node, transform)?;
+                if !extract_letters(&mut builder, node, transform) {
+                    return Err(LatexError(loc, LatexErrKind::ExpectedText("\\text")));
+                }
                 let text = builder.finish(self.arena);
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
@@ -859,18 +866,22 @@ impl<'arena> LetterCollector<'arena, '_> {
 /// Extract the text of all single-letter identifiers and operators in `node`.
 /// This function cannot be a method, because we need to borrow arena immutably
 /// but buffer mutably. This is not possible with a mutable self reference.
+///
+/// Returns false if no letters could be extracted.
 fn extract_letters<'arena>(
     buffer: &mut StringBuilder,
     node: &'arena Node<'arena>,
     transform: Option<TextTransform>,
-) -> Result<(), LatexError<'static>> {
+) -> bool {
     match node {
         Node::SingleLetterIdent(c, _) => {
             buffer.push_char(transform.as_ref().map_or(*c, |t| t.transform(*c)));
         }
         Node::Row { nodes, .. } | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {
-                extract_letters(buffer, node, transform)?;
+                if !extract_letters(buffer, node, transform) {
+                    return false;
+                }
             }
         }
         Node::Number(n) => {
@@ -885,9 +896,9 @@ fn extract_letters<'arena>(
         Node::Text(str_ref) => {
             buffer.push_str(str_ref);
         }
-        _ => return Err(LatexError(0, LatexErrKind::ExpectedText("\\operatorname"))),
+        _ => return false,
     }
-    Ok(())
+    true
 }
 
 #[cfg(test)]

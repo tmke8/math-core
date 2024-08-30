@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: x = 3.14
+---
+0: Letter('x')
+2: Operator(Op('='))
+4: Number("3.14")

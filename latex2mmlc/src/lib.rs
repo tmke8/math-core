@@ -124,7 +124,7 @@ pub fn latex_to_mathml(
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{error, latex_to_mathml};
+    use crate::{error, latex_to_mathml, LatexError};
 
     use super::{get_nodes, Arena};
 
@@ -320,7 +320,7 @@ mod tests {
             ("unclosed_text", r"\text{hello"),
             ("unexpected_limits", r"\text{hello}\limits_0^1"),
             ("unsupported_not", r"\not\text{hello}"),
-            ("operatorname_with_other_operator", r"\operatorname{\max}"),
+            ("operatorname_with_other_operator", r"x\operatorname{\max}"),
             ("text_with_unclosed_group", r"\text{x{}"),
             ("super_then_prime", "f^2'"),
             ("sup_sup", "x^2^3 y"),
@@ -328,8 +328,9 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let error = format!("{:#?}", convert_content(problem).unwrap_err());
-            assert_snapshot!(name, &error, problem);
+            let LatexError(loc, error) = convert_content(problem).unwrap_err();
+            let output = format!("Position: {}\n{:#?}", loc, error);
+            assert_snapshot!(name, &output, problem);
         }
     }
 }

@@ -2,10 +2,8 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\text{hello}\\limits_0^1"
 ---
-LatexError(
-    12,
-    CannotBeUsedHere {
-        got: Limits,
-        correct_place: AfterBigOp,
-    },
-)
+Position: 12
+CannotBeUsedHere {
+    got: Limits,
+    correct_place: AfterBigOp,
+}

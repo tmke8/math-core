@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: 3..14
+---
+0: NumberWithDot("3")
+2: Letter('.')
+3: Number("14")

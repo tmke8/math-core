@@ -2,15 +2,13 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin[matrix} x \\end{matrix}"
 ---
-LatexError(
-    6,
-    UnexpectedToken {
-        expected: GroupBegin,
-        got: Paren(
-            Op(
-                '[',
-            ),
-            None,
+Position: 6
+UnexpectedToken {
+    expected: GroupBegin,
+    got: Paren(
+        Op(
+            '[',
         ),
-    },
-)
+        None,
+    ),
+}

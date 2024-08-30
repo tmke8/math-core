@@ -220,50 +220,41 @@ impl Punctuation {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write;
+
+    use insta::assert_snapshot;
+
     use super::super::token::Token;
     use super::*;
 
     #[test]
     fn lexer_test() {
-        let problems = vec![
-            (r"3", vec![Token::Number("3")]),
-            (r"3.14", vec![Token::Number("3.14")]),
-            (r"3.14.", vec![Token::NumberWithDot("3.14")]),
-            (
-                r"3..14",
-                vec![
-                    Token::NumberWithDot("3"),
-                    Token::Letter('.'),
-                    Token::Number("14"),
-                ],
-            ),
-            (r"x", vec![Token::Letter('x')]),
-            (r"\pi", vec![Token::Letter('π')]),
-            (
-                r"x = 3.14",
-                vec![
-                    Token::Letter('x'),
-                    Token::Operator(ops::EQUALS_SIGN),
-                    Token::Number("3.14"),
-                ],
-            ),
-            (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
-            (
-                r"x+y",
-                vec![
-                    Token::Letter('x'),
-                    Token::Operator(ops::PLUS_SIGN),
-                    Token::Letter('y'),
-                ],
-            ),
-            (r"\ 1", vec![Token::Space("1"), Token::Number("1")]),
+        let problems = [
+            ("simple_number", r"3"),
+            ("number_with_dot", r"3.14"),
+            ("number_with_dot_at_end", r"3.14."),
+            ("number_with_two_inner_dots", r"3..14"),
+            ("lower_case_latin", r"x"),
+            ("lower_case_greek", r"\pi"),
+            ("assigment_with_space", r"x = 3.14"),
+            ("two_lower_case_greek", r"\alpha\beta"),
+            ("simple_expression", r"x+y"),
+            ("space_and_number", r"\ 1"),
         ];
 
-        for (problem, answer) in problems.iter() {
+        for (name, problem) in problems.into_iter() {
             let mut lexer = Lexer::new(problem);
-            for answer in answer.iter() {
-                assert_eq!(&lexer.next_token(false).into_token(), answer);
+            // Call `lexer.next_token(false)` until we get `Token::EOF`.
+            let mut tokens = String::new();
+            loop {
+                let tokloc = lexer.next_token(false);
+                if matches!(tokloc.token(), Token::EOF) {
+                    break;
+                }
+                let TokLoc(loc, tok) = tokloc;
+                write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
             }
+            assert_snapshot!(name, &tokens, problem);
         }
     }
 }
