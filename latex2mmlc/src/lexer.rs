@@ -230,22 +230,27 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = [
-            ("simple_number", r"3"),
-            ("number_with_dot", r"3.14"),
-            ("number_with_dot_at_end", r"3.14."),
-            ("number_with_two_inner_dots", r"3..14"),
-            ("lower_case_latin", r"x"),
-            ("lower_case_greek", r"\pi"),
-            ("assigment_with_space", r"x = 3.14"),
-            ("two_lower_case_greek", r"\alpha\beta"),
-            ("simple_expression", r"x+y"),
-            ("space_and_number", r"\ 1"),
+            ("simple_number", r"3", false),
+            ("number_with_dot", r"3.14", false),
+            ("number_with_dot_at_end", r"3.14.", false),
+            ("number_with_two_inner_dots", r"3..14", false),
+            ("lower_case_latin", r"x", false),
+            ("lower_case_greek", r"\pi", false),
+            ("assigment_with_space", r"x = 3.14", false),
+            ("two_lower_case_greek", r"\alpha\beta", false),
+            ("simple_expression", r"x+y", false),
+            ("space_and_number", r"\ 1", false),
+            ("space_in_text", r"  x   y z", true),
         ];
 
-        for (name, problem) in problems.into_iter() {
+        for (name, problem, text_mode) in problems.into_iter() {
             let mut lexer = Lexer::new(problem);
+            lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
+            if text_mode {
+                write!(tokens, "(text mode)\n").unwrap();
+            }
             loop {
                 let tokloc = lexer.next_token(false);
                 if matches!(tokloc.token(), Token::EOF) {
