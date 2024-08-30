@@ -11,7 +11,6 @@ use std::str::CharIndices;
 use crate::attribute::ParenAttr;
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
-use crate::token::TokLoc;
 use crate::{ops, token::Token};
 
 /// Lexer
@@ -96,15 +95,15 @@ impl<'source> Lexer<'source> {
                     // But we do need to return the punctuation as an operator.
                     let number = self.input_string.get_unwrap(start..index_before);
                     return match punctuation {
-                        Punctuation::Dot => Token::NumberWithDot(number),
-                        Punctuation::Comma => Token::NumberWithComma(number),
+                        Punctuation::Dot => Token::NumberWithDot(number, start as _),
+                        Punctuation::Comma => Token::NumberWithComma(number, start as _),
                     };
                 }
             }
         }
         let end = self.peek.0;
         let number = self.input_string.get_unwrap(start..end);
-        Token::Number(number)
+        Token::Number(number, start as _)
     }
 
     /// Read text until the next `}`.
@@ -138,45 +137,45 @@ impl<'source> Lexer<'source> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self, wants_digit: bool) -> TokLoc<'source> {
+    pub(crate) fn next_token(&mut self, wants_digit: bool) -> Token<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return TokLoc(loc.get(), Token::Whitespace);
+                return Token::Whitespace(loc.get() as _);
             }
         }
         if wants_digit && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
             let num = self.input_string.get_unwrap(start..end);
-            return TokLoc(start, Token::Number(num));
+            return Token::Number(num, start as _);
         }
 
         let (loc, ch) = self.read_char();
         let tok = match ch {
-            '=' => Token::Operator(ops::EQUALS_SIGN),
-            ';' => Token::Operator(ops::SEMICOLON),
-            ',' => Token::Operator(ops::COMMA),
-            '\'' => Token::Prime,
-            '(' => Token::Paren(ops::LEFT_PARENTHESIS, None),
-            ')' => Token::Paren(ops::RIGHT_PARENTHESIS, None),
-            '{' => Token::GroupBegin,
-            '}' => Token::GroupEnd,
-            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET, None),
-            ']' => Token::SquareBracketClose,
-            '|' => Token::Paren(ops::VERTICAL_LINE, Some(ParenAttr::Ordinary)),
-            '+' => Token::Operator(ops::PLUS_SIGN),
-            '-' => Token::Operator(ops::MINUS_SIGN),
-            '*' => Token::Operator(ops::ASTERISK),
-            '!' => Token::Operator(ops::EXCLAMATION_MARK),
-            '<' => Token::OpLessThan,
-            '>' => Token::OpGreaterThan,
-            '_' => Token::Underscore,
-            '^' => Token::Circumflex,
-            '&' => Token::Ampersand,
-            '~' => Token::NonBreakingSpace,
-            '\u{0}' => Token::EOF,
-            ':' => Token::Colon,
-            ' ' => Token::Letter('\u{A0}'),
+            '=' => Token::Operator(ops::EQUALS_SIGN, loc as _),
+            ';' => Token::Operator(ops::SEMICOLON, loc as _),
+            ',' => Token::Operator(ops::COMMA, loc as _),
+            '\'' => Token::Prime(loc as _),
+            '(' => Token::Paren(ops::LEFT_PARENTHESIS, None, loc as _),
+            ')' => Token::Paren(ops::RIGHT_PARENTHESIS, None, loc as _),
+            '{' => Token::GroupBegin(loc as _),
+            '}' => Token::GroupEnd(loc as _),
+            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET, None, loc as _),
+            ']' => Token::SquareBracketClose(loc as _),
+            '|' => Token::Paren(ops::VERTICAL_LINE, Some(ParenAttr::Ordinary), loc as _),
+            '+' => Token::Operator(ops::PLUS_SIGN, loc as _),
+            '-' => Token::Operator(ops::MINUS_SIGN, loc as _),
+            '*' => Token::Operator(ops::ASTERISK, loc as _),
+            '!' => Token::Operator(ops::EXCLAMATION_MARK, loc as _),
+            '<' => Token::OpLessThan(loc as _),
+            '>' => Token::OpGreaterThan(loc as _),
+            '_' => Token::Underscore(loc as _),
+            '^' => Token::Circumflex(loc as _),
+            '&' => Token::Ampersand(loc as _),
+            '~' => Token::NonBreakingSpace(loc as _),
+            '\u{0}' => Token::EOF(loc as _),
+            ':' => Token::Colon(loc as _),
+            ' ' => Token::Letter('\u{A0}', loc as _),
             '\\' => {
                 let cmd = get_command(self.read_command());
                 if self.text_mode {
@@ -193,13 +192,13 @@ impl<'source> Lexer<'source> {
                     // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).
                     // One might think that they could be rendered as `<mo>` with custom spacing,
                     // but then they still interact with other operators in ways that are not correct.
-                    Token::Letter(c)
+                    Token::Letter(c, loc as _)
                 } else {
-                    Token::NormalLetter(c)
+                    Token::NormalLetter(c, loc as _)
                 }
             }
         };
-        TokLoc(loc, tok)
+        tok
     }
 }
 
@@ -226,43 +225,43 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = vec![
-            (r"3", vec![Token::Number("3")]),
-            (r"3.14", vec![Token::Number("3.14")]),
-            (r"3.14.", vec![Token::NumberWithDot("3.14")]),
+            (r"3", vec![Token::Number("3", 0)]),
+            (r"3.14", vec![Token::Number("3.14", 0)]),
+            (r"3.14.", vec![Token::NumberWithDot("3.14", 0)]),
             (
                 r"3..14",
                 vec![
-                    Token::NumberWithDot("3"),
-                    Token::Letter('.'),
-                    Token::Number("14"),
+                    Token::NumberWithDot("3", 0),
+                    Token::Letter('.', 2),
+                    Token::Number("14", 3),
                 ],
             ),
-            (r"x", vec![Token::Letter('x')]),
-            (r"\pi", vec![Token::Letter('π')]),
+            (r"x", vec![Token::Letter('x', 0)]),
+            (r"\pi", vec![Token::Letter('π', 0)]),
             (
                 r"x = 3.14",
                 vec![
-                    Token::Letter('x'),
-                    Token::Operator(ops::EQUALS_SIGN),
-                    Token::Number("3.14"),
+                    Token::Letter('x', 0),
+                    Token::Operator(ops::EQUALS_SIGN, 2),
+                    Token::Number("3.14", 4),
                 ],
             ),
-            (r"\alpha\beta", vec![Token::Letter('α'), Token::Letter('β')]),
+            (r"\alpha\beta", vec![Token::Letter('α', 0), Token::Letter('β', 6)]),
             (
                 r"x+y",
                 vec![
-                    Token::Letter('x'),
-                    Token::Operator(ops::PLUS_SIGN),
-                    Token::Letter('y'),
+                    Token::Letter('x', 0),
+                    Token::Operator(ops::PLUS_SIGN, 1),
+                    Token::Letter('y', 2),
                 ],
             ),
-            (r"\ 1", vec![Token::Space("1"), Token::Number("1")]),
+            (r"\ 1", vec![Token::Space("1", 0), Token::Number("1", 2)]),
         ];
 
         for (problem, answer) in problems.iter() {
             let mut lexer = Lexer::new(problem);
             for answer in answer.iter() {
-                assert_eq!(&lexer.next_token(false).into_token(), answer);
+                assert_eq!(&lexer.next_token(false), answer);
             }
         }
     }

@@ -6,98 +6,100 @@ use crate::attribute::{FracAttr, MathVariant, ParenAttr, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]
-    EOF,
+    EOF(u16),
     #[strum(serialize = r"\begin{...}")]
-    Begin,
+    Begin(u16),
     #[strum(serialize = r"\end{...}")]
-    End,
+    End(u16),
     #[strum(serialize = "&")]
-    Ampersand,
+    Ampersand(u16),
     #[strum(serialize = r"\\")]
-    NewLine,
+    NewLine(u16),
     #[strum(serialize = r"\left")]
-    Left,
+    Left(u16),
     #[strum(serialize = r"\right")]
-    Right,
+    Right(u16),
     #[strum(serialize = r"\middle")]
-    Middle,
+    Middle(u16),
     #[strum(serialize = "parenthesis")]
-    Paren(Op, Option<ParenAttr>),
+    Paren(Op, Option<ParenAttr>, u16),
     /// The closing square bracket has its own token because we often
     /// need to search for it.
     #[strum(serialize = "]")]
-    SquareBracketClose,
+    SquareBracketClose(u16),
     #[strum(serialize = "{")]
-    GroupBegin,
+    GroupBegin(u16),
     #[strum(serialize = "}")]
-    GroupEnd,
-    Frac(Option<FracAttr>),
+    GroupEnd(u16),
+    Frac(Option<FracAttr>, u16),
     #[strum(serialize = r"\genfrac")]
-    Genfrac,
+    Genfrac(u16),
     #[strum(serialize = "_")]
-    Underscore,
+    Underscore(u16),
     #[strum(serialize = "^")]
-    Circumflex,
-    Binom(Option<FracAttr>),
+    Circumflex(u16),
+    Binom(Option<FracAttr>, u16),
     #[strum(serialize = r"\overset")]
-    Overset,
+    Overset(u16),
     #[strum(serialize = r"\underset")]
-    Underset,
-    Overbrace(Op),
-    Underbrace(Op),
+    Underset(u16),
+    Overbrace(Op, u16),
+    Underbrace(Op, u16),
     #[strum(serialize = r"\sqrt")]
-    Sqrt,
-    Integral(Op),
+    Sqrt(u16),
+    Integral(Op, u16),
     #[strum(serialize = r"\limits")]
-    Limits,
-    Lim(&'static str),
-    Space(&'static str),
+    Limits(u16),
+    Lim(&'static str, u16),
+    Space(&'static str, u16),
     #[strum(serialize = "~")]
-    NonBreakingSpace,
-    Whitespace,
-    Transform(Option<TextTransform>, Option<MathVariant>),
-    Big(&'static str),
-    Over(Op),
-    Under(Op),
-    Operator(Op),
+    NonBreakingSpace(u16),
+    Whitespace(u16),
+    Transform(Option<TextTransform>, Option<MathVariant>, u16),
+    Big(&'static str, u16),
+    Over(Op, u16),
+    Under(Op, u16),
+    Operator(Op, u16),
     #[strum(serialize = "'")]
-    Prime,
+    Prime(u16),
     #[strum(serialize = ">")]
-    OpGreaterThan,
+    OpGreaterThan(u16),
     #[strum(serialize = "<")]
-    OpLessThan,
+    OpLessThan(u16),
     #[strum(serialize = r"\&")]
-    OpAmpersand,
+    OpAmpersand(u16),
     #[strum(serialize = ":")]
-    Colon,
-    BigOp(Op),
-    Letter(char),
-    NormalLetter(char), // letter for which we need `mathvariant="normal"`
-    Number(&'source str),
-    NumberWithDot(&'source str),
-    NumberWithComma(&'source str),
-    Function(&'static str),
+    Colon(u16),
+    BigOp(Op, u16),
+    Letter(char, u16),
+    NormalLetter(char, u16), // letter for which we need `mathvariant="normal"`
+    Number(&'source str, u16),
+    NumberWithDot(&'source str, u16),
+    NumberWithComma(&'source str, u16),
+    Function(&'static str, u16),
     #[strum(serialize = r"\operatorname")]
-    OperatorName,
-    Slashed,
+    OperatorName(u16),
+    Slashed(u16),
     #[strum(serialize = r"\not")]
-    Not,
+    Not(u16),
     #[strum(serialize = r"\text*")]
-    Text(Option<TextTransform>),
+    Text(Option<TextTransform>, u16),
     #[strum(serialize = r"\mathstrut")]
-    Mathstrut,
-    Style(Style),
-    UnknownCommand(&'source str),
+    Mathstrut(u16),
+    Style(Style, u16),
+    UnknownCommand(&'source str, u16),
 }
 
 impl Token<'_> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
-            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(Some(_), None)
+            Token::Sqrt(_)
+                | Token::Frac(_, _)
+                | Token::Binom(_, _)
+                | Token::Transform(Some(_), None, _)
         )
     }
 
@@ -105,30 +107,5 @@ impl Token<'_> {
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
-    }
-}
-
-#[derive(Debug)]
-pub struct TokLoc<'source>(pub usize, pub Token<'source>);
-
-impl<'source> TokLoc<'source> {
-    #[inline]
-    pub fn token(&self) -> &Token<'source> {
-        &self.1
-    }
-
-    #[inline]
-    pub fn into_token(self) -> Token<'source> {
-        self.1
-    }
-
-    // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'source> {
-    //     &mut self.1
-    // }
-
-    #[inline]
-    pub fn location(&self) -> usize {
-        self.0
     }
 }

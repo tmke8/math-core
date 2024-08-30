@@ -7,7 +7,7 @@ use strum_macros::AsRefStr;
 use crate::token::Token;
 
 #[derive(Debug)]
-pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
+pub struct LatexError<'source>(pub u16, pub LatexErrKind<'source>);
 
 #[derive(Debug)]
 pub enum LatexErrKind<'source> {
