@@ -3,9 +3,9 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\Uparrow, \\Downarrow, \\Updownarrow"
 ---
 <math>
-    <mo>⇑</mo>
+    <mo stretchy="false">⇑</mo>
     <mo>,</mo>
-    <mo>⇓</mo>
+    <mo stretchy="false">⇓</mo>
     <mo>,</mo>
-    <mo>⇕</mo>
+    <mo stretchy="false">⇕</mo>
 </math>

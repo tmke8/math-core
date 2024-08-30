@@ -12,5 +12,5 @@ expression: "\\# \\$ \\% \\wedge \\& \\_ \\{ \\} \\sim \\backslash"
     <mo stretchy="false">{</mo>
     <mo stretchy="false">}</mo>
     <mo>∼</mo>
-    <mo>\</mo>
+    <mi>\</mi>
 </math>
