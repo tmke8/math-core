@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\text{x{}"
 ---
-LatexError(
-    9,
-    UnclosedGroup(
-        GroupEnd,
-    ),
+Position: 9
+UnclosedGroup(
+    GroupEnd,
 )

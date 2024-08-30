@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\begin{  pmatrix   } x \\\\ y \\end{pmatrix}"
 ---
-LatexError(
-    0,
-    UnknownEnvironment(
-        "  pmatrix   ",
-    ),
+Position: 0
+UnknownEnvironment(
+    "  pmatrix   ",
 )

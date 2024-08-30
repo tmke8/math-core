@@ -1,10 +1,8 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\operatorname{\\max}"
+expression: "x\\operatorname{\\max}"
 ---
-LatexError(
-    0,
-    ExpectedText(
-        "\\operatorname",
-    ),
+Position: 1
+ExpectedText(
+    "\\operatorname",
 )

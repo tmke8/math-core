@@ -2,7 +2,5 @@
 source: latex2mmlc/src/lib.rs
 expression: x^
 ---
-LatexError(
-    2,
-    UnexpectedEOF,
-)
+Position: 2
+UnexpectedEOF

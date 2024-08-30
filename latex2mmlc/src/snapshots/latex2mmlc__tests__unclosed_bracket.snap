@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\sqrt[lim"
 ---
-LatexError(
-    9,
-    UnclosedGroup(
-        SquareBracketClose,
-    ),
+Position: 9
+UnclosedGroup(
+    SquareBracketClose,
 )

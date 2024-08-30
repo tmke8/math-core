@@ -2,10 +2,8 @@
 source: latex2mmlc/src/lib.rs
 expression: x__3
 ---
-LatexError(
-    2,
-    CannotBeUsedHere {
-        got: Underscore,
-        correct_place: AfterOpOrIdent,
-    },
-)
+Position: 2
+CannotBeUsedHere {
+    got: Underscore,
+    correct_place: AfterOpOrIdent,
+}

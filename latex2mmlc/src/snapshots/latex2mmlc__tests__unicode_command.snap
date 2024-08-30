@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\éx"
 ---
-LatexError(
-    0,
-    UnknownCommand(
-        "é",
-    ),
+Position: 0
+UnknownCommand(
+    "é",
 )

@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: x+y
+---
+0: Letter('x')
+1: Operator(Op('+'))
+2: Letter('y')

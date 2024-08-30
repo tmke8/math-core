@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\end{matrix}"
 ---
-LatexError(
-    0,
-    UnexpectedClose(
-        End,
-    ),
+Position: 0
+UnexpectedClose(
+    End,
 )

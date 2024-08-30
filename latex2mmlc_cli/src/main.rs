@@ -216,7 +216,7 @@ fn convert_html_recursive<P: AsRef<Path>>(path: P) {
     if path.as_ref().is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(&entry.path())
+            convert_html_recursive(entry.path())
         }
     } else if path.as_ref().is_file() {
         if let Some(ext) = path.as_ref().extension() {

@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\operatorname[lim}"
 ---
-LatexError(
-    17,
-    UnexpectedClose(
-        GroupEnd,
-    ),
+Position: 17
+UnexpectedClose(
+    GroupEnd,
 )

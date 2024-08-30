@@ -1,0 +1,5 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: "\\pi"
+---
+0: Letter('π')

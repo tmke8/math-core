@@ -2,9 +2,7 @@
 source: latex2mmlc/src/lib.rs
 expression: "\\text{hello"
 ---
-LatexError(
-    11,
-    UnclosedGroup(
-        GroupEnd,
-    ),
+Position: 11
+UnclosedGroup(
+    GroupEnd,
 )

@@ -1,0 +1,5 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: 3.14.
+---
+0: NumberWithDot("3.14")
