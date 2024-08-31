@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\gcd(m, n), \\operatorname{lcm}(m, n)"
+---
+<math>
+    <mi>gcd</mi>
+    <mo stretchy="false">(</mo>
+    <mi>m</mi>
+    <mo>,</mo>
+    <mi>n</mi>
+    <mo stretchy="false">)</mo>
+    <mo>,</mo>
+    <mi>lcm</mi>
+    <mo stretchy="false">(</mo>
+    <mi>m</mi>
+    <mo>,</mo>
+    <mi>n</mi>
+    <mo stretchy="false">)</mo>
+</math>

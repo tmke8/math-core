@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\{ \\}, \\O \\empty \\emptyset, \\varnothing"
+---
+<math>
+    <mo stretchy="false">{</mo>
+    <mo stretchy="false">}</mo>
+    <mo>,</mo>
+    <mi mathvariant="normal">Ø</mi>
+    <mi mathvariant="normal">∅</mi>
+    <mi mathvariant="normal">∅</mi>
+    <mo>,</mo>
+    <mi>⌀</mi>
+</math>

@@ -1,0 +1,15 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\succ, \\nsucc, \\succeq, \\nsucceq, \\succneqq"
+---
+<math>
+    <mo>≻</mo>
+    <mo>,</mo>
+    <mo>⊁</mo>
+    <mo>,</mo>
+    <mo>⪰</mo>
+    <mo>,</mo>
+    <mo>⋡</mo>
+    <mo>,</mo>
+    <mo>⪶</mo>
+</math>
