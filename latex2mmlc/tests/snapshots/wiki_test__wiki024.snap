@@ -1,0 +1,19 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\infty, \\aleph, \\complement,\\backepsilon, \\eth, \\Finv, \\hbar"
+---
+<math>
+    <mi>∞</mi>
+    <mo>,</mo>
+    <mi>ℵ</mi>
+    <mo>,</mo>
+    <mi mathvariant="normal">∁</mi>
+    <mo>,</mo>
+    <mo>∍</mo>
+    <mo>,</mo>
+    <mi mathvariant="normal">ð</mi>
+    <mo>,</mo>
+    <mi mathvariant="normal">Ⅎ</mi>
+    <mo>,</mo>
+    <mi>ℏ</mi>
+</math>

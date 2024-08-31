@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 9);
-    assert_eq!(n_diff, 144);
-    assert_eq!(n_fail, 65);
+    assert_eq!(n_diff, 153);
+    assert_eq!(n_fail, 56);
 }
 
 /// Prettify HTML input
@@ -333,12 +333,21 @@ fn test_nonfailing_wiki_tests() {
             22,
             r"dy/dx, \mathrm{d}y/\mathrm{d}x, \frac{dy}{dx}, \frac{\mathrm{d}y}{\mathrm{d}x}, \frac{\partial^2} {\partial x_1\partial x_2}y",
         ),
-        // (23, r"\prime, \backprime, f^\prime, f', f'', f^{(3)}, \dot y, \ddot y"),
-        // (24, r"\infty, \aleph, \complement,\backepsilon, \eth, \Finv, \hbar"),
-        // (25, r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA"),
+        (
+            23,
+            r"\prime, \backprime, f^\prime, f', f'', f^{(3)}, \dot y, \ddot y",
+        ),
+        (
+            24,
+            r"\infty, \aleph, \complement,\backepsilon, \eth, \Finv, \hbar",
+        ),
+        (
+            25,
+            r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA",
+        ),
         // (26, r"s_k \equiv 0 \pmod{m}"),
         // (27, r"a \bmod b"),
-        // (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
+        (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
         // (29, r"\mid, \nmid, \shortmid, \nshortmid"),
         // (30, r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}"),
         (31, r"+, -, \pm, \mp, \dotplus"),
@@ -348,7 +357,7 @@ fn test_nonfailing_wiki_tests() {
         (35, r"\oplus, \ominus, \otimes, \oslash, \odot"),
         (36, r"\circleddash, \circledcirc, \circledast"),
         (37, r"\bigoplus, \bigotimes, \bigodot"),
-        // (38, r"\{ \}, \O \empty \emptyset, \varnothing"),
+        (38, r"\{ \}, \O \empty \emptyset, \varnothing"),
         (39, r"\in, \notin \not\in, \ni, \not\ni"),
         (40, r"\cap, \Cap, \sqcap, \bigcap"),
         (
@@ -356,8 +365,8 @@ fn test_nonfailing_wiki_tests() {
             r"\cup, \Cup, \sqcup, \bigcup, \bigsqcup, \uplus, \biguplus",
         ),
         (42, r"\setminus, \smallsetminus, \times"),
-        // (43, r"\subset, \Subset, \sqsubset"),
-        // (44, r"\supset, \Supset, \sqsupset"),
+        (43, r"\subset, \Subset, \sqsubset"),
+        (44, r"\supset, \Supset, \sqsupset"),
         // (45, r"\subseteq, \nsubseteq, \subsetneq, \varsubsetneq, \sqsubseteq"),
         // (46, r"\supseteq, \nsupseteq, \supsetneq, \varsupsetneq, \sqsupseteq"),
         // (47, r"\subseteqq, \nsubseteqq, \subsetneqq, \varsubsetneqq"),
@@ -377,8 +386,8 @@ fn test_nonfailing_wiki_tests() {
         // (58, r"\geqslant, \ngeqslant, \eqslantgtr"),
         // (59, r"\lesssim, \lnsim, \lessapprox, \lnapprox"),
         // (60, r"\gtrsim, \gnsim, \gtrapprox, \gnapprox"),
-        // (61, r"\prec, \nprec, \preceq, \npreceq, \precneqq"),
-        // (62, r"\succ, \nsucc, \succeq, \nsucceq, \succneqq"),
+        (61, r"\prec, \nprec, \preceq, \npreceq, \precneqq"),
+        (62, r"\succ, \nsucc, \succeq, \nsucceq, \succneqq"),
         // (63, r"\preccurlyeq, \curlyeqprec"),
         // (64, r"\succcurlyeq, \curlyeqsucc"),
         // (65, r"\precsim, \precnsim, \precapprox, \precnapprox"),
