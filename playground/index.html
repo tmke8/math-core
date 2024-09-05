@@ -1,75 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LaTeX to MathML</title>
-<script type="module" src="./main.js"></script>
-<style>
-html {
-    font-size: 18px;
-}
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-}
-
-#inputField {
-    float: left;
-}
-#displaystyle {
-    float: left;
-}
-#outputField {
-    border: 1px solid black;
-    padding: 0.3rem;
-    min-height: 3rem;
-    text-align: center;
-    clear: both;
-}
-
-@font-face {
-  font-family: Latin Modern Math;
-  src:
-    local('Latin Modern Math'),
-    url('./latinmodernmath.woff2') format('woff2'),
-}
-math {
-    font-family: 'Latin Modern Math', math;
-    font-size: 1.2rem;
-    /* font-feature-settings: "ss08", 'ssty'; */
-}
-</style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaTeX to MathML</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./main.js"></script>
+</head>
 <body>
     <script type="module">
       import init from './pkg/latex2mmlc_wasm.js';
       init();
     </script>
-    <h1>Convert LaTeX to MathML</h1>
-    <div>
-    <textarea rows="10" cols="60" id="inputField" placeholder="LaTeX formula here"></textarea>
-    <fieldset id="displaystyle">
-      <legend>Display style</legend>
-      <div>
-        <input type="radio" id="block" name="displaystyle" value="block" checked />
-        <label for="block">block</label>
-      </div>
-
-      <div>
-        <input type="radio" id="inline" name="displaystyle" value="inline" />
-        <label for="inline">inline</label>
-      </div>
-    </fieldset>
-    <fieldset id="prettyprint">
-      <legend>Pretty print</legend>
-      <div>
-        <input type="radio" id="pretty-true" name="prettyprint" value="true" checked />
-        <label for="pretty-true">true</label>
-      </div>
-
-      <div>
-        <input type="radio" id="pretty-false" name="prettyprint" value="false" />
-        <label for="pretty-false">false</label>
-      </div>
-    </fieldset>
+    <div class="container">
+        <h1>LaTeX to MathML</h1>
+        <div class="converter">
+            <div class="input-section">
+                <textarea id="inputField" rows="10" placeholder="Enter LaTeX math here..."></textarea>
+                <div class="options">
+                    <div id="displaystyle" class="option-group">
+                        <p>Display style:</p>
+                        <label><input type="radio" id="block" name="displaystyle" value="block" checked> Block</label>
+                        <label><input type="radio" id="inline" name="displaystyle" value="inline"> Inline</label>
+                    </div>
+                    <div id="prettyprint" class="option-group">
+                        <p>Pretty print:</p>
+                        <label><input type="radio" id="pretty-true" name="prettyprint" value="true" checked> True</label>
+                        <label><input type="radio" id="pretty-false" name="prettyprint" value="false"> False</label>
+                    </div>
+                </div>
+            </div>
+            <div class="output-section">
+                <div id="outputField" class="output-box"></div>
+                <pre id="outputCode" class="output-box"></pre>
+            </div>
+        </div>
     </div>
-    <div id="outputField"></div>
-    <div><pre id="outputCode"></pre></div>
+</body>
+</html>
