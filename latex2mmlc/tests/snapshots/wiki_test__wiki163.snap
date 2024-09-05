@@ -3,5 +3,5 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
 ---
 <math>
-    <mi>𝜜𝜝𝜞𝜟𝜠𝜡𝜢𝜣</mi>
+    <mi>𝚨𝚩𝚪𝚫𝚬𝚭𝚮𝚯</mi>
 </math>

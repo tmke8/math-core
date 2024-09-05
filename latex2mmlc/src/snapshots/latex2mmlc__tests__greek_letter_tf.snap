@@ -1,0 +1,9 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\Gamma\\varGamma\\boldsymbol{\\Gamma\\varGamma}"
+---
+<math>
+    <mi mathvariant="normal">Γ</mi>
+    <mi>Γ</mi>
+    <mi>𝚪𝜞</mi>
+</math>

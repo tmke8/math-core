@@ -91,7 +91,7 @@ impl Buffer {
     }
 
     fn transform_and_append(&mut self, input: &str, tf: TextTransform) {
-        self.0.extend(input.chars().map(|c| tf.transform(c)))
+        self.0.extend(input.chars().map(|c| tf.transform(c, false)))
     }
 }
 

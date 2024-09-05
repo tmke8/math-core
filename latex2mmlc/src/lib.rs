@@ -170,6 +170,11 @@ mod tests {
             ("single_variable", r"x"),
             ("greek_letter", r"\alpha"),
             ("greek_letters", r"\phi/\varphi"),
+            (
+                "greek_letter_tf",
+                r"\Gamma\varGamma\boldsymbol{\Gamma\varGamma}",
+            ),
+            ("greek_letter_boldsymbol", r"\boldsymbol{\alpha}"),
             ("simple_expression", r"x = 3+\alpha"),
             ("sine_function", r"\sin x"),
             ("square_root", r"\sqrt 2"),

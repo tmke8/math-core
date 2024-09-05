@@ -131,17 +131,15 @@ where
                 });
                 Node::PseudoRow(NodeList::from_two_nodes(first, second))
             }
-            Token::Letter(x) => {
-                Node::SingleLetterIdent(self.tf.as_ref().map_or(x, |tf| tf.transform(x)), self.var)
-            }
-            Token::NormalLetter(x) => Node::SingleLetterIdent(
-                self.tf.as_ref().map_or(x, |tf| tf.transform(x)),
-                Some(MathVariant::Normal),
+            Token::Letter(x) => Node::SingleLetterIdent(
+                self.tf.as_ref().map_or(x, |tf| tf.transform(x, false)),
+                self.var,
             ),
-            Token::Operator(op) => match self.tf.as_ref() {
-                None => Node::Operator(op, None),
-                Some(tf) => Node::SingleLetterIdent(tf.transform(op.into()), None),
+            Token::NormalLetter(x) => match self.tf.as_ref() {
+                Some(tf) => Node::SingleLetterIdent(tf.transform(x, true), None),
+                None => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             },
+            Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -408,7 +406,11 @@ where
                 }
             }
             Token::Colon => match &self.peek.token() {
-                Token::Operator(op @ (ops::EQUALS_SIGN | ops::IDENTICAL_TO)) => {
+                Token::Operator(ops::EQUALS_SIGN) => {
+                    self.next_token(); // Discard the equals_sign token.
+                    Node::Operator(ops::COLON_EQUALS, None)
+                }
+                Token::Operator(op @ ops::IDENTICAL_TO) => {
                     let op = *op;
                     self.next_token(); // Discard the operator token.
                     let first = self.commit(Node::OperatorWithSpacing {
@@ -874,8 +876,13 @@ fn extract_letters<'arena>(
     transform: Option<TextTransform>,
 ) -> bool {
     match node {
-        Node::SingleLetterIdent(c, _) => {
-            buffer.push_char(transform.as_ref().map_or(*c, |t| t.transform(*c)));
+        Node::SingleLetterIdent(c, var) => {
+            let is_normal = var.is_some();
+            buffer.push_char(
+                transform
+                    .as_ref()
+                    .map_or(*c, |t| t.transform(*c, is_normal)),
+            );
         }
         Node::Row { nodes, .. } | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {

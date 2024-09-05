@@ -3,5 +3,5 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega}"
 ---
 <math>
-    <mi>𝜬𝜮𝜯𝜰𝜱𝜲𝜳𝜴</mi>
+    <mi>𝚸𝚺𝚻𝚼𝚽𝚾𝚿𝛀</mi>
 </math>
