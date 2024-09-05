@@ -189,14 +189,12 @@ impl<'source> Lexer<'source> {
             c => {
                 if c.is_ascii_digit() {
                     self.read_number(loc)
-                } else if c.is_ascii_graphic() {
+                } else {
                     // Some symbols like '.' and '/' are considered operators by the MathML Core spec,
                     // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).
                     // One might think that they could be rendered as `<mo>` with custom spacing,
                     // but then they still interact with other operators in ways that are not correct.
                     Token::Letter(c)
-                } else {
-                    Token::NormalLetter(c)
                 }
             }
         };

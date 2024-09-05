@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\bigcirc, \\triangle, \\bigtriangleup, \\bigtriangledown"
+---
+<math>
+    <mo>◯</mo>
+    <mo>,</mo>
+    <mi>△</mi>
+    <mo>,</mo>
+    <mi>△</mi>
+    <mo>,</mo>
+    <mo>▽</mo>
+</math>

@@ -1,0 +1,21 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\Box, \\square, \\blacksquare, \\diamond, \\Diamond, \\lozenge, \\blacklozenge,\\bigstar"
+---
+<math>
+    <mi>◻</mi>
+    <mo>,</mo>
+    <mi>□</mi>
+    <mo>,</mo>
+    <mi>■</mi>
+    <mo>,</mo>
+    <mo>⋄</mo>
+    <mo>,</mo>
+    <mi>◊</mi>
+    <mo>,</mo>
+    <mi>◊</mi>
+    <mo>,</mo>
+    <mi>⧫</mi>
+    <mo>,</mo>
+    <mi>★</mi>
+</math>

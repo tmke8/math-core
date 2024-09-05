@@ -75,7 +75,7 @@ pub enum Token<'source> {
     Colon,
     BigOp(Op),
     Letter(char),
-    NormalLetter(char), // letter for which we need `mathvariant="normal"`
+    UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(&'source str),
     NumberWithDot(&'source str),
     NumberWithComma(&'source str),

@@ -228,9 +228,9 @@ pub(crate) const BULLET_OPERATOR: Op = Op('∙');
 pub(crate) const PROPORTIONAL_TO: Op = Op('∝');
 pub(crate) const INFINITY: char = '∞';
 // pub(crate) const RIGHT_ANGLE: Op = Op('∟');
-// pub(crate) const ANGLE: Op = Op('∠');
-// pub(crate) const MEASURED_ANGLE: Op = Op('∡');
-// pub(crate) const SPHERICAL_ANGLE: Op = Op('∢');
+pub(crate) const ANGLE: char = '∠';
+pub(crate) const MEASURED_ANGLE: char = '∡';
+pub(crate) const SPHERICAL_ANGLE: char = '∢';
 pub(crate) const DIVIDES: Op = Op('∣');
 pub(crate) const DOES_NOT_DIVIDE: Op = Op('∤');
 pub(crate) const PARALLEL_TO: Op = Op('∥');
@@ -392,7 +392,7 @@ pub(crate) const N_ARY_LOGICAL_AND: Op = Op('⋀');
 pub(crate) const N_ARY_LOGICAL_OR: Op = Op('⋁');
 pub(crate) const N_ARY_INTERSECTION: Op = Op('⋂');
 pub(crate) const N_ARY_UNION: Op = Op('⋃');
-// pub(crate) const DIAMOND_OPERATOR: Op = Op('⋄');
+pub(crate) const DIAMOND_OPERATOR: Op = Op('⋄');
 // pub(crate) const DOT_OPERATOR: Op = Op('⋅');
 pub(crate) const STAR_OPERATOR: Op = Op('⋆');
 pub(crate) const DIVISION_TIMES: Op = Op('⋇');
@@ -418,8 +418,8 @@ pub(crate) const LESS_THAN_EQUAL_TO_OR_GREATER_THAN: Op = Op('⋚');
 // pub(crate) const GREATER_THAN_EQUAL_TO_OR_LESS_THAN: Op = Op('⋛');
 // pub(crate) const EQUAL_TO_OR_LESS_THAN: Op = Op('⋜');
 // pub(crate) const EQUAL_TO_OR_GREATER_THAN: Op = Op('⋝');
-// pub(crate) const EQUAL_TO_OR_PRECEDES: Op = Op('⋞');
-// pub(crate) const EQUAL_TO_OR_SUCCEEDS: Op = Op('⋟');
+pub(crate) const EQUAL_TO_OR_PRECEDES: Op = Op('⋞');
+pub(crate) const EQUAL_TO_OR_SUCCEEDS: Op = Op('⋟');
 pub(crate) const DOES_NOT_PRECEDE_OR_EQUAL: Op = Op('⋠');
 pub(crate) const DOES_NOT_SUCCEED_OR_EQUAL: Op = Op('⋡');
 // pub(crate) const NOT_SQUARE_IMAGE_OF_OR_EQUAL_TO: Op = Op('⋢');
@@ -428,8 +428,8 @@ pub(crate) const DOES_NOT_SUCCEED_OR_EQUAL: Op = Op('⋡');
 // pub(crate) const SQUARE_ORIGINAL_OF_OR_NOT_EQUAL_TO: Op = Op('⋥');
 // pub(crate) const LESS_THAN_BUT_NOT_EQUIVALENT_TO: Op = Op('⋦');
 // pub(crate) const GREATER_THAN_BUT_NOT_EQUIVALENT_TO: Op = Op('⋧');
-// pub(crate) const PRECEDES_BUT_NOT_EQUIVALENT_TO: Op = Op('⋨');
-// pub(crate) const SUCCEEDS_BUT_NOT_EQUIVALENT_TO: Op = Op('⋩');
+pub(crate) const PRECEDES_BUT_NOT_EQUIVALENT_TO: Op = Op('⋨');
+pub(crate) const SUCCEEDS_BUT_NOT_EQUIVALENT_TO: Op = Op('⋩');
 // pub(crate) const NOT_NORMAL_SUBGROUP_OF: Op = Op('⋪');
 // pub(crate) const DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP: Op = Op('⋫');
 // pub(crate) const NOT_NORMAL_SUBGROUP_OF_OR_EQUAL_TO: Op = Op('⋬');
@@ -478,12 +478,19 @@ pub(crate) const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as
 //
 // Unicode Block: Geometric Shapes
 //
+pub(crate) const BLACK_SQUARE: char = '■';
+
 pub(crate) const WHITE_UP_POINTING_TRIANGLE: Op = Op('△');
 pub(crate) const WHITE_RIGHT_POINTING_TRIANGLE: Op = Op('▷');
 pub(crate) const WHITE_DOWN_POINTING_TRIANGLE: Op = Op('▽');
 pub(crate) const WHITE_LEFT_POINTING_TRIANGLE: Op = Op('◁');
 
 pub(crate) const LARGE_CIRCLE: Op = Op('◯');
+
+//
+// Unicode Block: Miscellaneous Symbols
+//
+pub(crate) const BLACK_STAR: char = '★';
 
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
@@ -519,6 +526,7 @@ pub(crate) const RIGHTWARDS_ARROW_TAIL: Op = Op('⤚');
 pub(crate) const SQUARED_RISING_DIAGONAL_SLASH: Op = Op('⧄');
 pub(crate) const SQUARED_FALLING_DIAGONAL_SLASH: Op = Op('⧅');
 pub(crate) const SQUARED_SQUARE: Op = Op('⧈');
+pub(crate) const BLACK_LOZENGE: char = '⧫';
 
 //
 // Unicode Block: Supplemental Mathematical Operators
@@ -706,10 +714,10 @@ pub(crate) const SUCCEEDS_ABOVE_SINGLE_LINE_EQUALS_SIGN: Op = Op('⪰');
 // pub(crate) const SUCCEEDS_ABOVE_EQUALS_SIGN: Op = Op('⪴');
 pub(crate) const PRECEDES_ABOVE_NOT_EQUAL_TO: Op = Op('⪵');
 pub(crate) const SUCCEEDS_ABOVE_NOT_EQUAL_TO: Op = Op('⪶');
-// pub(crate) const PRECEDES_ABOVE_ALMOST_EQUAL_TO: Op = Op('⪷');
-// pub(crate) const SUCCEEDS_ABOVE_ALMOST_EQUAL_TO: Op = Op('⪸');
-// pub(crate) const PRECEDES_ABOVE_NOT_ALMOST_EQUAL_TO: Op = Op('⪹');
-// pub(crate) const SUCCEEDS_ABOVE_NOT_ALMOST_EQUAL_TO: Op = Op('⪺');
+pub(crate) const PRECEDES_ABOVE_ALMOST_EQUAL_TO: Op = Op('⪷');
+pub(crate) const SUCCEEDS_ABOVE_ALMOST_EQUAL_TO: Op = Op('⪸');
+pub(crate) const PRECEDES_ABOVE_NOT_ALMOST_EQUAL_TO: Op = Op('⪹');
+pub(crate) const SUCCEEDS_ABOVE_NOT_ALMOST_EQUAL_TO: Op = Op('⪺');
 // pub(crate) const DOUBLE_PRECEDES: Op = Op('⪻');
 // pub(crate) const DOUBLE_SUCCEEDS: Op = Op('⪼');
 // pub(crate) const SUBSET_WITH_DOT: Op = Op('⪽');

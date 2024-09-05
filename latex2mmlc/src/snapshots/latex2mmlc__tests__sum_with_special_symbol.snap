@@ -10,7 +10,7 @@ expression: "\\sum_{i = 0}^∞ i"
             <mo>=</mo>
             <mn>0</mn>
         </mrow>
-        <mi mathvariant="normal">∞</mi>
+        <mi>∞</mi>
     </munderover>
     <mi>i</mi>
 </math>

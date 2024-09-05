@@ -261,9 +261,9 @@ fn wiki_test() {
             }
         }
     }
-    assert_eq!(n_match, 9);
-    assert_eq!(n_diff, 153);
-    assert_eq!(n_fail, 56);
+    assert_eq!(n_match, 10);
+    assert_eq!(n_diff, 161);
+    assert_eq!(n_fail, 47);
 }
 
 /// Prettify HTML input
@@ -388,14 +388,20 @@ fn test_nonfailing_wiki_tests() {
         // (60, r"\gtrsim, \gnsim, \gtrapprox, \gnapprox"),
         (61, r"\prec, \nprec, \preceq, \npreceq, \precneqq"),
         (62, r"\succ, \nsucc, \succeq, \nsucceq, \succneqq"),
-        // (63, r"\preccurlyeq, \curlyeqprec"),
-        // (64, r"\succcurlyeq, \curlyeqsucc"),
-        // (65, r"\precsim, \precnsim, \precapprox, \precnapprox"),
-        // (66, r"\succsim, \succnsim, \succapprox, \succnapprox"),
+        (63, r"\preccurlyeq, \curlyeqprec"),
+        (64, r"\succcurlyeq, \curlyeqsucc"),
+        (65, r"\precsim, \precnsim, \precapprox, \precnapprox"),
+        (66, r"\succsim, \succnsim, \succapprox, \succnapprox"),
         // (67, r"\parallel, \nparallel, \shortparallel, \nshortparallel"),
-        // (68, r"\perp, \angle, \sphericalangle, \measuredangle, 45^\circ"),
-        // (69, r"\Box, \square, \blacksquare, \diamond, \Diamond, \lozenge, \blacklozenge,\bigstar"),
-        // (70, r"\bigcirc, \triangle, \bigtriangleup, \bigtriangledown"),
+        (
+            68,
+            r"\perp, \angle, \sphericalangle, \measuredangle, 45^\circ",
+        ),
+        (
+            69,
+            r"\Box, \square, \blacksquare, \diamond, \Diamond, \lozenge, \blacklozenge,\bigstar",
+        ),
+        (70, r"\bigcirc, \triangle, \bigtriangleup, \bigtriangledown"),
         (71, r"\vartriangle, \triangledown"),
         // (72, r"\blacktriangle, \blacktriangledown, \blacktriangleleft, \blacktriangleright"),
         (73, r"\forall, \exists, \nexists"),
@@ -476,12 +482,12 @@ fn test_nonfailing_wiki_tests() {
         (121, r"\dbinom{n}{k}"),
         (122, r"\begin{matrix} x & y \\ z & v \end{matrix}"),
         (123, r"\begin{vmatrix} x & y \\ z & v \end{vmatrix}"),
-        // (124, r"\begin{Vmatrix} x & y \\ z & v \end{Vmatrix}"),
+        (124, r"\begin{Vmatrix} x & y \\ z & v \end{Vmatrix}"),
         (
             125,
             r"\begin{bmatrix} 0 & \cdots & 0 \\ \vdots & \ddots & \vdots \\ 0 & \cdots & 0 \end{bmatrix}",
         ),
-        // (126, r"\begin{Bmatrix} x & y \\ z & v \end{Bmatrix}"),
+        (126, r"\begin{Bmatrix} x & y \\ z & v \end{Bmatrix}"),
         (127, r"\begin{pmatrix} x & y \\ z & v \end{pmatrix}"),
         // (128, r"\bigl( \begin{smallmatrix} a&b\\ c&d \end{smallmatrix} \bigr)"),
         (
