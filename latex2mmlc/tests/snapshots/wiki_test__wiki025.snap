@@ -3,7 +3,7 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\Im, \\imath, \\jmath, \\Bbbk, \\ell, \\mho, \\wp, \\Re, \\circledS, \\S, \\P, \\AA"
 ---
 <math>
-    <mi mathvariant="normal">ℑ</mi>
+    <mi>ℑ</mi>
     <mo>,</mo>
     <mi>ı</mi>
     <mo>,</mo>
@@ -13,17 +13,17 @@ expression: "\\Im, \\imath, \\jmath, \\Bbbk, \\ell, \\mho, \\wp, \\Re, \\circled
     <mo>,</mo>
     <mi>ℓ</mi>
     <mo>,</mo>
-    <mi mathvariant="normal">℧</mi>
+    <mi>℧</mi>
     <mo>,</mo>
     <mi>℘</mi>
     <mo>,</mo>
-    <mi mathvariant="normal">ℜ</mi>
+    <mi>ℜ</mi>
     <mo>,</mo>
     <mi>Ⓢ</mi>
     <mo>,</mo>
-    <mi mathvariant="normal">§</mi>
+    <mi>§</mi>
     <mo>,</mo>
-    <mi mathvariant="normal">¶</mi>
+    <mi>¶</mi>
     <mo>,</mo>
     <mi>Å</mi>
 </math>

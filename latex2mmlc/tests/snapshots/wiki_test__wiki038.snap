@@ -6,9 +6,9 @@ expression: "\\{ \\}, \\O \\empty \\emptyset, \\varnothing"
     <mo stretchy="false">{</mo>
     <mo stretchy="false">}</mo>
     <mo>,</mo>
-    <mi mathvariant="normal">Ø</mi>
-    <mi mathvariant="normal">∅</mi>
-    <mi mathvariant="normal">∅</mi>
+    <mi>Ø</mi>
+    <mi>∅</mi>
+    <mi>∅</mi>
     <mo>,</mo>
     <mi>⌀</mi>
 </math>

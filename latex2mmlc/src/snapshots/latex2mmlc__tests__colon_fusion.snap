@@ -4,8 +4,7 @@ expression: "a := 2 \\land b :\\equiv 3"
 ---
 <math>
     <mi>a</mi>
-    <mo lspace="0.2222em" rspace="0em">:</mo>
-    <mo lspace="0em">=</mo>
+    <mo>≔</mo>
     <mn>2</mn>
     <mo>∧</mo>
     <mi>b</mi>

@@ -122,8 +122,13 @@ fn add_offset(c: char, offset: u32) -> char {
 
 impl TextTransform {
     #[allow(clippy::manual_is_ascii_check)]
-    pub fn transform(&self, c: char) -> char {
-        match self {
+    pub fn transform(&self, c: char, is_normal: bool) -> char {
+        let tf = if is_normal && matches!(self, TextTransform::BoldItalic) {
+            &TextTransform::Bold
+        } else {
+            self
+        };
+        match tf {
             TextTransform::BoldScript => match c {
                 'A'..='Z' => add_offset(c, 0x1D48F),
                 'a'..='z' => add_offset(c, 0x1D489),
@@ -325,7 +330,7 @@ mod tests {
         for (source, transform, target) in problems.into_iter() {
             assert_eq!(
                 target,
-                transform.transform(source),
+                transform.transform(source, false),
                 "executed: {:?}({})",
                 transform,
                 source

@@ -3,5 +3,5 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
 ---
 <math>
-    <mi>𝜤𝜥𝜦𝜧𝜨𝜩𝜪𝜫</mi>
+    <mi>𝚰𝚱𝚲𝚳𝚴𝚵𝚶𝚷</mi>
 </math>

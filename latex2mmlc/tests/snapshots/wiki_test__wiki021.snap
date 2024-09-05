@@ -12,6 +12,6 @@ expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
     <mi>∂</mi>
     <mi>t</mi>
     <mo>,</mo>
-    <mo>∇</mo>
+    <mi mathvariant="normal">∇</mi>
     <mi>ψ</mi>
 </math>

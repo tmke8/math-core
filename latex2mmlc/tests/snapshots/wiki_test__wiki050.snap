@@ -16,6 +16,5 @@ expression: "\\doteq, \\doteqdot, \\overset{\\underset{\\mathrm{def}}{}}{=}, :="
         </munder>
     </mover>
     <mo>,</mo>
-    <mo lspace="0.2222em" rspace="0em">:</mo>
-    <mo lspace="0em">=</mo>
+    <mo>≔</mo>
 </math>
