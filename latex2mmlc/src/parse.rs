@@ -135,7 +135,7 @@ where
                 self.tf.as_ref().map_or(x, |tf| tf.transform(x, false)),
                 self.var,
             ),
-            Token::NormalLetter(x) => match self.tf.as_ref() {
+            Token::UprightLetter(x) => match self.tf.as_ref() {
                 Some(tf) => Node::SingleLetterIdent(tf.transform(x, true), None),
                 None => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             },
@@ -330,7 +330,7 @@ where
                     }
                     Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
-                    Token::Letter(char) | Token::NormalLetter(char) => {
+                    Token::Letter(char) | Token::UprightLetter(char) => {
                         let negated_letter = [char, '\u{338}'];
                         let mut builder = self.buffer.get_builder();
                         builder.extend(negated_letter.into_iter());
@@ -547,13 +547,16 @@ where
                         content,
                         align: Align::Center,
                     },
-                    matrix_variant @ ("pmatrix" | "bmatrix" | "vmatrix") => {
+                    matrix_variant
+                    @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
                         let align = Align::Center;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
                             "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
+                            "Bmatrix" => (ops::LEFT_CURLY_BRACKET, ops::RIGHT_CURLY_BRACKET),
                             "vmatrix" => (ops::VERTICAL_LINE, ops::VERTICAL_LINE),
-                            // SAFETY: `matrix_variant` is one of the three strings above.
+                            "Vmatrix" => (ops::DOUBLE_VERTICAL_LINE, ops::DOUBLE_VERTICAL_LINE),
+                            // SAFETY: `matrix_variant` is one of the strings above.
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         Node::Fenced {

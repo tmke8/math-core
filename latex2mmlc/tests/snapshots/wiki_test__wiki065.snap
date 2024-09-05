@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\precsim, \\precnsim, \\precapprox, \\precnapprox"
+---
+<math>
+    <mo>≾</mo>
+    <mo>,</mo>
+    <mo>⋨</mo>
+    <mo>,</mo>
+    <mo>⪷</mo>
+    <mo>,</mo>
+    <mo>⪹</mo>
+</math>
