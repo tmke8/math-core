@@ -1,40 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LaTeX to MathML</title>
-    <link rel="stylesheet" href="./styles.css">
-    <script type="module" src="./main.js"></script>
-</head>
-<body>
-    <script type="module">
-      import init from './pkg/latex2mmlc_wasm.js';
-      init();
-    </script>
-    <div class="container">
-        <h1>LaTeX to MathML</h1>
-        <div class="converter">
-            <div class="input-section">
-                <textarea id="inputField" rows="10" placeholder="Enter LaTeX math here..."></textarea>
-                <div class="options">
-                    <div id="displaystyle" class="option-group">
-                        <p>Display style:</p>
-                        <label><input type="radio" id="block" name="displaystyle" value="block" checked> Block</label>
-                        <label><input type="radio" id="inline" name="displaystyle" value="inline"> Inline</label>
-                    </div>
-                    <div id="prettyprint" class="option-group">
-                        <p>Pretty print:</p>
-                        <label><input type="radio" id="pretty-true" name="prettyprint" value="true" checked> True</label>
-                        <label><input type="radio" id="pretty-false" name="prettyprint" value="false"> False</label>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>LaTeX to MathML</title>
+        <link rel="stylesheet" href="./styles.css" />
+        <script type="module" src="./main.js"></script>
+        <script src="./clipboard.js"></script>
+    </head>
+    <body>
+        <script type="module">
+            import init from "./pkg/latex2mmlc_wasm.js";
+            init();
+        </script>
+        <div class="container">
+            <h1>LaTeX to MathML</h1>
+            <p class="explanation-link">
+                <a href="#what-is-this">What is this?</a>
+            </p>
+            <div class="converter">
+                <div id="outputField" class="output-box"></div>
+                <div class="input-section">
+                    <h3>LaTeX input:</h3>
+                    <textarea
+                        id="inputField"
+                        rows="10"
+                        placeholder="Enter LaTeX math here..."
+                    ></textarea>
+                    <div class="options">
+                        <div id="displaystyle" class="option-group">
+                            <h3>Display style:</h3>
+                            <label
+                                ><input
+                                    type="radio"
+                                    id="block"
+                                    name="displaystyle"
+                                    value="block"
+                                    checked
+                                />
+                                Block (<code>$$...$$</code>)</label
+                            >
+                            <label
+                                ><input
+                                    type="radio"
+                                    id="inline"
+                                    name="displaystyle"
+                                    value="inline"
+                                />
+                                Inline (<code>$...$</code>)</label
+                            >
+                        </div>
+                        <div id="prettyprint" class="option-group">
+                            <h3>Pretty print:</h3>
+                            <label
+                                ><input
+                                    type="radio"
+                                    id="pretty-true"
+                                    name="prettyprint"
+                                    value="true"
+                                    checked
+                                />
+                                True</label
+                            >
+                            <label
+                                ><input
+                                    type="radio"
+                                    id="pretty-false"
+                                    name="prettyprint"
+                                    value="false"
+                                />
+                                False</label
+                            >
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="output-section">
-                <div id="outputField" class="output-box"></div>
-                <pre id="outputCode" class="output-box"></pre>
+                <h3>MathML source code:</h3>
+                <pre
+                    class="output-box copyable"
+                ><code id="outputCode"></code></pre>
+
+                <hr />
+
+                <h2 id="what-is-this">What is this?</h2>
+                <p>
+                    This website allows you to convert LaTeX math into MathML
+                    (or, more specifically, MathML Core), which is then rendered
+                    by your browser. For example, try this input:
+                </p>
+                <pre class="copyable"><code>\int \mathcal{D}\!x =
+\lim_{N \to \infty}
+\left( \frac{m}{2\pi i \hbar \Delta t} \right)^\frac{N}{2}
+\int\!\cdots\!\int \prod_{i=1}^{N-1} dx_i</code></pre>
+                <p>
+                    Recent versions of all the major browsers support MathML
+                    Core, so you should be able to see the rendered math.
+                </p>
+                <p>
+                    The conversion runs entirely in your browser, using
+                    WebAssembly and a tiny bit of JavaScript. Your LaTeX math is
+                    never sent to a server. The compiled WebAssembly is under
+                    100kB; less than many images on the web. If you don’t have
+                    the font <em>Latin Modern Math</em> installed on your
+                    system, then this also needs to be downloaded. The font file
+                    is 379kB.
+                </p>
+                <p>
+                    Not all features of LaTeX math are supported. Some of them
+                    simply because they haven’t been implemented yet; others
+                    because they are very difficult to translate into MathML.
+                </p>
+                <p>
+                    If you need multiline equations, you can use the
+                    environments <code>\begin{aligned}</code>,
+                    <code>\begin{align}</code>, or <code>\begin{align*}</code>.
+                    For example:
+                </p>
+                <pre class="copyable"><code>\begin{aligned}
+  x     &= 1 \\
+  y + z &= 2
+\end{aligned}</code></pre>
             </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>

@@ -6,6 +6,9 @@
     --input-background: #fff;
     --output-background: #f9f9f9;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --link-color: #007bff;
+    --hr-color: #777;
+    --button-color: #f4f4f4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,26 +20,31 @@
         --input-background: #333;
         --output-background: #383838;
         --shadow-color: rgba(0, 0, 0, 0.3);
+        --link-color: #488cd6;
+        --hr-color: #999;
+        --button-color: #1a1a1a;
     }
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 0;
     background-color: var(--background-color);
     color: var(--text-color);
+    font-size: 16px;
 }
 
 @font-face {
-  font-family: Latin Modern Math;
-  src:
-    local('Latin Modern Math'),
-    url('./latinmodernmath.woff2') format('woff2'),
+    font-family: Latin Modern Math;
+    src:
+        local("Latin Modern Math"),
+        url("./latinmodernmath.woff2") format("woff2");
 }
 math {
-    font-family: 'Latin Modern Math', math;
+    font-family: "Latin Modern Math", math;
     font-size: 1.3rem;
     /* font-feature-settings: "ss08", 'ssty'; */
 }
@@ -50,6 +58,7 @@ math {
 
 h1 {
     text-align: center;
+    margin-bottom: 0;
 }
 
 .converter {
@@ -84,7 +93,8 @@ textarea#inputField {
     flex: 1;
 }
 
-.option-group p {
+h3 {
+    font-size: 1rem;
     margin-bottom: 5px;
     font-weight: bold;
 }
@@ -94,19 +104,70 @@ textarea#inputField {
     border-radius: 4px;
     padding: 10px;
     margin-bottom: 20px;
-    min-height: 100px;
     background-color: var(--output-background);
 }
 
 #outputField {
     text-align: center;
     overflow-x: scroll;
+    min-height: 3.25rem;
 }
 
-#outputCode {
+.copyable {
     white-space: pre-wrap;
     word-wrap: break-word;
-    overflow-x: scroll;
+    min-height: 6rem;
+
+    position: relative;
+    overflow: auto;
+
+    /* make space  */
+    margin: 5px 0;
+    padding: 1.75rem 0 1.75rem 1rem;
+    border-radius: 10px;
+}
+
+.copyable button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+
+    font-size: 0.9rem;
+    padding: 0.15rem;
+    background-color: var(--button-color);
+    color: var(--text-color);
+
+    border: ridge 1px var(--border-color);
+    border-radius: 5px;
+    /* text-shadow: #c4c4c4 0 0 2px; */
+}
+
+.copyable button:hover {
+    cursor: pointer;
+    background-color: #bcbabb;
+}
+
+.explanation-link {
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.explanation-link a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+hr {
+    width: 15%;
+    border-style: dotted none none;
+    border-width: 1rem;
+    border-color: var(--hr-color);
+    margin-top: 5rem;
+    margin-bottom: 2rem;
+}
+
+pre {
+    background-color: var(--output-background);
 }
 
 @media (max-width: 600px) {
@@ -122,7 +183,7 @@ textarea#inputField {
     /* .options {
         flex-direction: column;
     } */
-    
+
     .option-group {
         margin-bottom: 10px;
     }
