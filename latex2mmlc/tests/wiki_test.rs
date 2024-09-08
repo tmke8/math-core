@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 161);
-    assert_eq!(n_fail, 47);
+    assert_eq!(n_diff, 162);
+    assert_eq!(n_fail, 46);
 }
 
 /// Prettify HTML input
@@ -411,7 +411,7 @@ fn test_nonfailing_wiki_tests() {
         // (77, r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top"),
         (78, r"\vdash \dashv, \vDash, \Vdash, \models"),
         // (79, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
-        // (80, r"\ulcorner \urcorner \llcorner \lrcorner"),
+        (80, r"\ulcorner \urcorner \llcorner \lrcorner"),
         (81, r"\Rrightarrow, \Lleftarrow"),
         (82, r"\Rightarrow, \nRightarrow, \Longrightarrow, \implies"),
         (83, r"\Leftarrow, \nLeftarrow, \Longleftarrow"),
