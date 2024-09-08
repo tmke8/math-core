@@ -109,7 +109,7 @@ h3 {
 
 #outputField {
     text-align: center;
-    overflow-x: scroll;
+    overflow-x: auto;
     min-height: 3.25rem;
 }
 
