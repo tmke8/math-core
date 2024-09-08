@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\ulcorner \\urcorner \\llcorner \\lrcorner"
+---
+<math>
+    <mo>⌜</mo>
+    <mo>⌝</mo>
+    <mo>⌞</mo>
+    <mo>⌟</mo>
+</math>
