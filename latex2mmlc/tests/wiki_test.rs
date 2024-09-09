@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 162);
-    assert_eq!(n_fail, 46);
+    assert_eq!(n_diff, 163);
+    assert_eq!(n_fail, 45);
 }
 
 /// Prettify HTML input
@@ -442,7 +442,7 @@ fn test_nonfailing_wiki_tests() {
             r"\curvearrowright \circlearrowright \Rsh \downdownarrows \leftleftarrows \leftrightarrows \leftarrowtail \looparrowleft",
         ),
         // (95, r"\hookrightarrow \hookleftarrow \multimap \leftrightsquigarrow \rightsquigarrow \twoheadrightarrow \twoheadleftarrow"),
-        // (96, r"\amalg \P \S \% \dagger\ddagger\ldots\cdots"),
+        (96, r"\amalg \P \S \% \dagger\ddagger\ldots\cdots"),
         (97, r"\smile \frown \wr \triangleleft \triangleright"),
         (
             98,

@@ -8,7 +8,7 @@ expression: "/ \\big/ \\Big/ \\bigg/ \\Bigg/ \\dots \\Bigg\\backslash \\bigg\\ba
     <mo maxsize="1.623em" minsize="1.623em">/</mo>
     <mo maxsize="2.047em" minsize="2.047em">/</mo>
     <mo maxsize="2.470em" minsize="2.470em">/</mo>
-    <mo>⋯</mo>
+    <mo>…</mo>
     <mo maxsize="2.470em" minsize="2.470em">\</mo>
     <mo maxsize="2.047em" minsize="2.047em">\</mo>
     <mo maxsize="1.623em" minsize="1.623em">\</mo>
