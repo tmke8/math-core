@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\amalg \\P \\S \\% \\dagger\\ddagger\\ldots\\cdots"
+---
+<math>
+    <mo>⨿</mo>
+    <mi>¶</mi>
+    <mi>§</mi>
+    <mi>%</mi>
+    <mi>†</mi>
+    <mi>‡</mi>
+    <mo>…</mo>
+    <mo>⋯</mo>
+</math>
