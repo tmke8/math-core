@@ -262,8 +262,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 163);
-    assert_eq!(n_fail, 45);
+    assert_eq!(n_diff, 165);
+    assert_eq!(n_fail, 43);
 }
 
 /// Prettify HTML input
@@ -449,7 +449,7 @@ fn test_nonfailing_wiki_tests() {
             r"\diamondsuit, \heartsuit, \clubsuit, \spadesuit, \Game, \flat, \natural, \sharp",
         ),
         // (99, r"\diagup \diagdown \centerdot \ltimes \rtimes \leftthreetimes \rightthreetimes"),
-        // (100, r"\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq"),
+        (100, r"\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq"),
         // (101, r"\intercal \barwedge \veebar \doublebarwedge \between \pitchfork"),
         // (102, r"\vartriangleleft \ntriangleleft \vartriangleright \ntriangleright"),
         // (103, r"\trianglelefteq \ntrianglelefteq \trianglerighteq \ntrianglerighteq"),
@@ -503,7 +503,7 @@ fn test_nonfailing_wiki_tests() {
         (133, r"( \frac{1}{2} )^n"),
         (134, r"\left ( \frac{1}{2} \right )^n"),
         (135, r"\left ( \frac{a}{b} \right )"),
-        // (136, r"\left [ \frac{a}{b} \right ] \quad \left \lbrack \frac{a}{b} \right \rbrack"),
+        (136, r"\left [ \frac{a}{b} \right ] \quad \left \lbrack \frac{a}{b} \right \rbrack"),
         (
             137,
             r"\left \{ \frac{a}{b} \right \} \quad \left \lbrace \frac{a}{b} \right \rbrace",

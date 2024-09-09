@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\eqcirc \\circeq \\triangleq \\bumpeq\\Bumpeq \\doteqdot \\risingdotseq \\fallingdotseq"
+---
+<math>
+    <mo>≖</mo>
+    <mo>≗</mo>
+    <mo>≜</mo>
+    <mo>≏</mo>
+    <mo>≎</mo>
+    <mo>≑</mo>
+    <mo>≓</mo>
+    <mo>≒</mo>
+</math>

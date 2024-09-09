@@ -282,6 +282,7 @@ mod tests {
             ("vertical_line", r"P(x|y)"),
             ("mid", r"P(x\mid y)"),
             ("special_symbols", r"\%\$\#"),
+            ("lbrack_instead_of_bracket", r"\sqrt\lbrack 4]{2}"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -330,6 +331,7 @@ mod tests {
             ("super_then_prime", "f^2'"),
             ("sup_sup", "x^2^3 y"),
             ("sub_sub", "x_2_3 y"),
+            ("no_rbrack_instead_of_bracket", r"\sqrt[3\rbrack{1}"),
         ];
 
         for (name, problem) in problems.into_iter() {
