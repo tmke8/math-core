@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sqrt[3\\rbrack{1}"
+---
+Position: 17
+UnclosedGroup(
+    SquareBracketClose,
+)

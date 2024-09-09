@@ -5,10 +5,5 @@ expression: "\\begin[matrix} x \\end{matrix}"
 Position: 6
 UnexpectedToken {
     expected: GroupBegin,
-    got: Paren(
-        Op(
-            '[',
-        ),
-        None,
-    ),
+    got: SquareBracketOpen,
 }

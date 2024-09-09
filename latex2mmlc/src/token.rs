@@ -26,8 +26,13 @@ pub enum Token<'source> {
     Middle,
     #[strum(serialize = "parenthesis")]
     Paren(Op, Option<ParenAttr>),
+    /// The opening square bracket has its own token because we need to
+    /// distinguish it from `\lbrack` after `\sqrt`.
+    #[strum(serialize = "[")]
+    SquareBracketOpen,
     /// The closing square bracket has its own token because we often
     /// need to search for it.
+    /// Additionally, it's useful to distinguish this from `\rbrack`.
     #[strum(serialize = "]")]
     SquareBracketClose,
     #[strum(serialize = "{")]

@@ -1,0 +1,12 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\sqrt\\lbrack 4]{2}"
+---
+<math>
+    <msqrt>
+        <mo stretchy="false">[</mo>
+    </msqrt>
+    <mn>4</mn>
+    <mo stretchy="false">]</mo>
+    <mn>2</mn>
+</math>

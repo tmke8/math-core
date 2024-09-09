@@ -148,7 +148,7 @@ where
             Token::NonBreakingSpace | Token::Whitespace => Node::Text("\u{A0}"),
             Token::Sqrt => {
                 let next = self.next_token();
-                if matches!(next.token(), Token::Paren(ops::LEFT_SQUARE_BRACKET, None)) {
+                if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
@@ -440,6 +440,9 @@ where
                 Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), None),
                 None => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
             },
+            Token::SquareBracketOpen => {
+                Node::Operator(ops::LEFT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
+            }
             Token::SquareBracketClose => {
                 Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
             }
@@ -447,6 +450,7 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
                     Token::Paren(open, _) => open,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
@@ -464,6 +468,7 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
                     Token::Paren(close, _) => close,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
@@ -489,6 +494,9 @@ where
                     Token::Operator(op) | Token::Paren(op, _) => {
                         Node::Operator(op, Some(OpAttr::StretchyTrue))
                     }
+                    Token::SquareBracketOpen => {
+                        Node::Operator(ops::LEFT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
+                    }
                     Token::SquareBracketClose => {
                         Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
                     }
@@ -507,6 +515,10 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 match next_token {
                     Token::Paren(paren, _) => Node::SizedParen { size, paren },
+                    Token::SquareBracketOpen => Node::SizedParen {
+                        size,
+                        paren: ops::LEFT_SQUARE_BRACKET,
+                    },
                     Token::SquareBracketClose => Node::SizedParen {
                         size,
                         paren: ops::RIGHT_SQUARE_BRACKET,

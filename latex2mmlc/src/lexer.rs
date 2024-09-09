@@ -170,7 +170,7 @@ impl<'source> Lexer<'source> {
             '<' => Token::OpLessThan,
             '=' => Token::Operator(ops::EQUALS_SIGN),
             '>' => Token::OpGreaterThan,
-            '[' => Token::Paren(ops::LEFT_SQUARE_BRACKET, None),
+            '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
