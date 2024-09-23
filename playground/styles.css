@@ -93,6 +93,12 @@ textarea#inputField {
     flex: 1;
 }
 
+.options {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+}
+
 h3 {
     font-size: 1rem;
     margin-bottom: 5px;
