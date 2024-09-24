@@ -56,7 +56,7 @@ math {
      * ss08: slanted integral sign
      * ssty: prime ( https://www.compart.com/en/unicode/U+2032 ) is rendered correctly
      */
-    font-feature-settings: "ss08", "ssty";
+    /* font-feature-settings: "ss08", "ssty"; */
 }
 
 .container {
