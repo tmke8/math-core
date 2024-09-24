@@ -43,10 +43,20 @@ body {
         local("Latin Modern Math"),
         url("./latinmodernmath.woff2") format("woff2");
 }
+
+/* @font-face {
+  font-family: Libertinus Math;
+  src: url('./LibertinusMath-Regular.woff2') format('woff2'),
+} */
+
 math {
     font-family: "Latin Modern Math", math;
     font-size: 1.3rem;
-    /* font-feature-settings: "ss08", 'ssty'; */
+    /* Font features of *Libertinus Math*:
+     * ss08: slanted integral sign
+     * ssty: prime ( https://www.compart.com/en/unicode/U+2032 ) is rendered correctly
+     */
+    font-feature-settings: "ss08", "ssty";
 }
 
 .container {
