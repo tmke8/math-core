@@ -40,7 +40,7 @@ body {
 @font-face {
     font-family: Latin Modern Math;
     src:
-        local("Latin Modern Math"),
+        /* local("Latin Modern Math"), */
         url("./latinmodernmath.woff2") format("woff2");
 }
 
