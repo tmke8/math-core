@@ -4,7 +4,7 @@ expression: "\\left[ x  ( x + 2 ) \\right]"
 ---
 <math>
     <mrow>
-        <mo stretchy="true" form="prefix">[</mo>
+        <mo stretchy="true">[</mo>
         <mrow>
             <mi>x</mi>
             <mo stretchy="false">(</mo>
@@ -13,6 +13,6 @@ expression: "\\left[ x  ( x + 2 ) \\right]"
             <mn>2</mn>
             <mo stretchy="false">)</mo>
         </mrow>
-        <mo stretchy="true" form="postfix">]</mo>
+        <mo stretchy="true">]</mo>
     </mrow>
 </math>

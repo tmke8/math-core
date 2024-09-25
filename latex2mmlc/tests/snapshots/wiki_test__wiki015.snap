@@ -7,8 +7,8 @@ expression: "\\sgn r, \\left\\vert s \\right\\vert"
     <mi>r</mi>
     <mo>,</mo>
     <mrow>
-        <mo stretchy="true" form="prefix">|</mo>
+        <mo stretchy="true">|</mo>
         <mi>s</mi>
-        <mo stretchy="true" form="postfix">|</mo>
+        <mo stretchy="true">|</mo>
     </mrow>
 </math>

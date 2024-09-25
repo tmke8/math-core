@@ -4,12 +4,12 @@ expression: "\\left . \\frac{A}{B} \\right \\} \\to X"
 ---
 <math>
     <mrow>
-        <mo stretchy="true" form="prefix"></mo>
+        <mo stretchy="true"></mo>
         <mfrac>
             <mi>A</mi>
             <mi>B</mi>
         </mfrac>
-        <mo stretchy="true" form="postfix">}</mo>
+        <mo stretchy="true">}</mo>
     </mrow>
     <mo>→</mo>
     <mi>X</mi>

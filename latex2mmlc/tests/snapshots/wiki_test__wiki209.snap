@@ -4,17 +4,17 @@ expression: "\\left( \\frac{\\left(3-x\\right) \\times 2}{3-x} \\right)"
 ---
 <math>
     <mrow>
-        <mo stretchy="true" form="prefix">(</mo>
+        <mo stretchy="true">(</mo>
         <mfrac>
             <mrow>
                 <mrow>
-                    <mo stretchy="true" form="prefix">(</mo>
+                    <mo stretchy="true">(</mo>
                     <mrow>
                         <mn>3</mn>
                         <mo>−</mo>
                         <mi>x</mi>
                     </mrow>
-                    <mo stretchy="true" form="postfix">)</mo>
+                    <mo stretchy="true">)</mo>
                 </mrow>
                 <mo>×</mo>
                 <mn>2</mn>
@@ -25,6 +25,6 @@ expression: "\\left( \\frac{\\left(3-x\\right) \\times 2}{3-x} \\right)"
                 <mi>x</mi>
             </mrow>
         </mfrac>
-        <mo stretchy="true" form="postfix">)</mo>
+        <mo stretchy="true">)</mo>
     </mrow>
 </math>
