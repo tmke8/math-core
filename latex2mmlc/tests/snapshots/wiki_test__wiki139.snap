@@ -4,20 +4,20 @@ expression: "\\left | \\frac{a}{b} \\right \\vert \\quad \\left \\Vert \\frac{c}
 ---
 <math>
     <mrow>
-        <mo stretchy="true" form="prefix">|</mo>
+        <mo stretchy="true">|</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mo stretchy="true" form="postfix">|</mo>
+        <mo stretchy="true">|</mo>
     </mrow>
     <mspace width="1em"/>
     <mrow>
-        <mo stretchy="true" form="prefix">‖</mo>
+        <mo stretchy="true">‖</mo>
         <mfrac>
             <mi>c</mi>
             <mi>d</mi>
         </mfrac>
-        <mo stretchy="true" form="postfix">‖</mo>
+        <mo stretchy="true">‖</mo>
     </mrow>
 </math>

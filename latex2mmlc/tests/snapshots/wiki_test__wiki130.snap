@@ -4,10 +4,10 @@ expression: "\\begin{cases} 3x + 5y + z \\\\ 7x - 2y + 4z \\\\ -6x + 3y + 2z \\e
 ---
 <math>
     <mrow>
-        <mo stretchy="true" form="prefix">{</mo>
+        <mo stretchy="true">{</mo>
         <mtable>
             <mtr>
-                <mtd style="text-align: left; padding-right: 0">
+                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
                     <mn>3</mn>
                     <mi>x</mi>
                     <mo>+</mo>
@@ -18,7 +18,7 @@ expression: "\\begin{cases} 3x + 5y + z \\\\ 7x - 2y + 4z \\\\ -6x + 3y + 2z \\e
                 </mtd>
             </mtr>
             <mtr>
-                <mtd style="text-align: left; padding-right: 0">
+                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
                     <mn>7</mn>
                     <mi>x</mi>
                     <mo>−</mo>
@@ -30,7 +30,7 @@ expression: "\\begin{cases} 3x + 5y + z \\\\ 7x - 2y + 4z \\\\ -6x + 3y + 2z \\e
                 </mtd>
             </mtr>
             <mtr>
-                <mtd style="text-align: left; padding-right: 0">
+                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
                     <mo>−</mo>
                     <mn>6</mn>
                     <mi>x</mi>
@@ -43,6 +43,6 @@ expression: "\\begin{cases} 3x + 5y + z \\\\ 7x - 2y + 4z \\\\ -6x + 3y + 2z \\e
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true" form="postfix"></mo>
+        <mo stretchy="true"></mo>
     </mrow>
 </math>

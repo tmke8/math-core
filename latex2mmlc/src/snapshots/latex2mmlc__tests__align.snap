@@ -5,13 +5,13 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
 <math>
     <mtable>
         <mtr>
-            <mtd style="text-align: right; padding-right: 0">
+            <mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">
                 <mi>f</mi>
                 <mo stretchy="false">(</mo>
                 <mi>x</mi>
                 <mo stretchy="false">)</mo>
             </mtd>
-            <mtd style="text-align: left; padding-left: 0">
+            <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-left: 0">
                 <mo>=</mo>
                 <msup>
                     <mi>x</mi>
@@ -25,9 +25,9 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
             </mtd>
         </mtr>
         <mtr>
-            <mtd style="text-align: right; padding-right: 0">
+            <mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">
             </mtd>
-            <mtd style="text-align: left; padding-left: 0">
+            <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-left: 0">
                 <mo>=</mo>
                 <mo stretchy="false">(</mo>
                 <mi>x</mi>

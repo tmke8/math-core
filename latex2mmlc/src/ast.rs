@@ -308,13 +308,13 @@ impl<'arena> Node<'arena> {
                     Some(style) => push!(s, "<mrow", style, ">"),
                     None => push!(s, "<mrow>"),
                 }
-                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"prefix\">");
+                pushln!(s, child_indent, "<mo stretchy=\"true\">");
                 if char::from(open) != '\0' {
                     push!(s, @open);
                 }
                 push!(s, "</mo>");
                 content.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo stretchy=\"true\" form=\"postfix\">");
+                pushln!(s, child_indent, "<mo stretchy=\"true\">");
                 if char::from(close) != '\0' {
                     push!(s, @close);
                 }
@@ -350,15 +350,15 @@ impl<'arena> Node<'arena> {
                 };
                 let odd_col = match align {
                     Align::Center => "<mtd>",
-                    Align::Left => r#"<mtd style="text-align: left; padding-right: 0">"#,
-                    Align::Alternating => r#"<mtd style="text-align: right; padding-right: 0">"#,
+                    Align::Left => r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#,
+                    Align::Alternating => r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#,
                 };
                 let even_col = match align {
                     Align::Center => "<mtd>",
                     Align::Left => {
-                        "<mtd style=\"text-align: left; padding-right: 0; padding-left: 1em\">"
+                        "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em\">"
                     }
-                    Align::Alternating => "<mtd style=\"text-align: left; padding-left: 0\">",
+                    Align::Alternating => "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-left: 0\">",
                 };
 
                 let mut col: usize = 1;
