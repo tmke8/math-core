@@ -33,8 +33,8 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - uses: jetli/wasm-pack-action@v0.4.0
+          node-version: 20
+      - uses: qmaru/wasm-pack-action@v0.5.0
       - uses: Swatinem/rust-cache@v2
       - name: "Run wasm-pack"
         run: |

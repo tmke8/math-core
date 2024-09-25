@@ -28,19 +28,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       - name: "Install Rust toolchain"
         run: rustup target add wasm32-unknown-unknown
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - uses: jetli/wasm-pack-action@v0.4.0
+          node-version: 20
+      - uses: qmaru/wasm-pack-action@v0.5.0
       - uses: Swatinem/rust-cache@v2
       - name: "Run wasm-pack"
         run: |
           wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack latex2mmlc_wasm
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v4
         with:
           path: './playground'
 
