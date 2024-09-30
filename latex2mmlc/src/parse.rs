@@ -240,36 +240,30 @@ where
             ref tok @ (Token::Overbrace(x) | Token::Underbrace(x)) => {
                 let is_over = matches!(tok, Token::Overbrace(_));
                 let target = self.parse_single_token()?;
+                let symbol = self.commit(Node::Operator(x, None)).node();
+                let base = if is_over {
+                    self.commit(Node::Overset { symbol, target })
+                } else {
+                    self.commit(Node::Underset { symbol, target })
+                };
                 if (is_over && matches!(self.peek.token(), Token::Circumflex))
                     || (!is_over && matches!(self.peek.token(), Token::Underscore))
                 {
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token()?;
-                    let op = self.commit(Node::Operator(x, None)).node();
                     if is_over {
-                        let symbol = self
-                            .commit(Node::Overset {
-                                symbol: expl,
-                                target: op,
-                            })
-                            .node();
-                        Node::Overset { symbol, target }
+                        Node::Overset {
+                            symbol: expl,
+                            target: base.node(),
+                        }
                     } else {
-                        let symbol = self
-                            .commit(Node::Underset {
-                                symbol: expl,
-                                target: op,
-                            })
-                            .node();
-                        Node::Underset { symbol, target }
+                        Node::Underset {
+                            symbol: expl,
+                            target: base.node(),
+                        }
                     }
                 } else {
-                    let symbol = self.commit(Node::Operator(x, None)).node();
-                    if is_over {
-                        Node::Overset { symbol, target }
-                    } else {
-                        Node::Underset { symbol, target }
-                    }
+                    return Ok(base);
                 }
             }
             Token::BigOp(op) => {

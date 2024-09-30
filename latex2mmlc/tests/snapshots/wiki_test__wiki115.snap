@@ -4,18 +4,18 @@ expression: "\\overbrace{ 1+2+\\cdots+100 }^{5050}"
 ---
 <math>
     <mover>
-        <mrow>
-            <mn>1</mn>
-            <mo>+</mo>
-            <mn>2</mn>
-            <mo>+</mo>
-            <mo>⋯</mo>
-            <mo>+</mo>
-            <mn>100</mn>
-        </mrow>
         <mover>
+            <mrow>
+                <mn>1</mn>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mo>+</mo>
+                <mo>⋯</mo>
+                <mo>+</mo>
+                <mn>100</mn>
+            </mrow>
             <mo>⏞</mo>
-            <mn>5050</mn>
         </mover>
+        <mn>5050</mn>
     </mover>
 </math>

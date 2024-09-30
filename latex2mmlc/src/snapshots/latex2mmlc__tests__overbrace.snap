@@ -4,16 +4,16 @@ expression: "\\overbrace{a+b+c}^{d}"
 ---
 <math>
     <mover>
-        <mrow>
-            <mi>a</mi>
-            <mo>+</mo>
-            <mi>b</mi>
-            <mo>+</mo>
-            <mi>c</mi>
-        </mrow>
         <mover>
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+                <mo>+</mo>
+                <mi>c</mi>
+            </mrow>
             <mo>⏞</mo>
-            <mi>d</mi>
         </mover>
+        <mi>d</mi>
     </mover>
 </math>

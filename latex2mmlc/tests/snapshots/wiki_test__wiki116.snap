@@ -4,18 +4,18 @@ expression: "\\underbrace{ a+b+\\cdots+z }_{26}"
 ---
 <math>
     <munder>
-        <mrow>
-            <mi>a</mi>
-            <mo>+</mo>
-            <mi>b</mi>
-            <mo>+</mo>
-            <mo>⋯</mo>
-            <mo>+</mo>
-            <mi>z</mi>
-        </mrow>
         <munder>
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+                <mo>+</mo>
+                <mo>⋯</mo>
+                <mo>+</mo>
+                <mi>z</mi>
+            </mrow>
             <mo>⏟</mo>
-            <mn>26</mn>
         </munder>
+        <mn>26</mn>
     </munder>
 </math>
