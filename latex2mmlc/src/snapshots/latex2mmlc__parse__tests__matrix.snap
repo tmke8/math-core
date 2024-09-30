@@ -13,6 +13,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         SingleLetterIdent('y', None),
       ],
       align: Center,
+      attr: None,
     ),
     style: None,
   ),
