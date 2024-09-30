@@ -4,16 +4,16 @@ expression: "\\underbrace{a+b+c}_{d}"
 ---
 <math>
     <munder>
-        <mrow>
-            <mi>a</mi>
-            <mo>+</mo>
-            <mi>b</mi>
-            <mo>+</mo>
-            <mi>c</mi>
-        </mrow>
         <munder>
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+                <mo>+</mo>
+                <mi>c</mi>
+            </mrow>
             <mo>⏟</mo>
-            <mi>d</mi>
         </munder>
+        <mi>d</mi>
     </munder>
 </math>
