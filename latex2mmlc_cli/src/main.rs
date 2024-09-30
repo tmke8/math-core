@@ -30,6 +30,8 @@ use latex2mmlc::{latex_to_mathml, Display, LatexError};
 
 use clap::Parser;
 
+mod replace;
+
 /// Converts LaTeX formulas to MathML
 #[derive(Parser, Debug)]
 #[command(version, about = "Converts LaTeX formulas to MathML", long_about = None)]
@@ -39,8 +41,12 @@ struct Args {
     file: Option<PathBuf>,
 
     /// Sets the custom delimiter for LaTeX formulas
+    #[arg(short, long, default_value = "$", conflicts_with = "formula")]
+    inlinedel: String,
+
+    /// Sets the custom delimiter for LaTeX formulas
     #[arg(short, long, default_value = "$$", conflicts_with = "formula")]
-    delimiter: String,
+    displaydelimiter: String,
 
     /// Look recursively for HTML files in the given directory
     #[arg(short, long, conflicts_with = "formula")]
