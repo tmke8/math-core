@@ -81,6 +81,7 @@ pub enum Node<'arena> {
     Table {
         content: NodeList<'arena>,
         align: Align,
+        attr: Option<FracAttr>,
     },
     ColumnSeparator,
     RowSeparator,
@@ -337,7 +338,7 @@ impl<'arena> Node<'arena> {
                 }
                 n => n.emit(s, base_indent),
             },
-            Node::Table { content, align } => {
+            Node::Table { content, align, attr } => {
                 let child_indent2 = if base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {
@@ -362,7 +363,11 @@ impl<'arena> Node<'arena> {
                 };
 
                 let mut col: usize = 1;
-                push!(s, "<mtable>");
+                push!(s, "<mtable");
+                if let Some(attr) = attr {
+                    push!(s, attr);
+                }
+                push!(s, ">");
                 pushln!(s, child_indent, "<mtr>");
                 pushln!(s, child_indent2, odd_col);
                 for node in content.iter() {

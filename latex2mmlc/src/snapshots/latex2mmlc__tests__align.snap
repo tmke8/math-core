@@ -3,7 +3,7 @@ source: latex2mmlc/src/lib.rs
 expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{align}"
 ---
 <math>
-    <mtable>
+    <mtable displaystyle="true">
         <mtr>
             <mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">
                 <mi>f</mi>

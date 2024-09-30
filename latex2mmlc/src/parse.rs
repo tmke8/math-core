@@ -3,7 +3,9 @@ use std::mem;
 use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
-    attribute::{Accent, Align, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform},
+    attribute::{
+        Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform,
+    },
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
@@ -538,10 +540,17 @@ where
                     "align" | "align*" | "aligned" => Node::Table {
                         content,
                         align: Align::Alternating,
+                        attr: Some(FracAttr::DisplayStyleTrue),
                     },
                     "cases" => {
                         let align = Align::Left;
-                        let content = self.commit(Node::Table { content, align }).node();
+                        let content = self
+                            .commit(Node::Table {
+                                content,
+                                align,
+                                attr: None,
+                            })
+                            .node();
                         Node::Fenced {
                             open: ops::LEFT_CURLY_BRACKET,
                             close: ops::NULL,
@@ -552,6 +561,7 @@ where
                     "matrix" => Node::Table {
                         content,
                         align: Align::Center,
+                        attr: None,
                     },
                     matrix_variant
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
@@ -565,10 +575,17 @@ where
                             // SAFETY: `matrix_variant` is one of the strings above.
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
+                        let attr = None;
                         Node::Fenced {
                             open,
                             close,
-                            content: self.commit(Node::Table { content, align }).node(),
+                            content: self
+                                .commit(Node::Table {
+                                    content,
+                                    align,
+                                    attr,
+                                })
+                                .node(),
                             style: None,
                         }
                     }
