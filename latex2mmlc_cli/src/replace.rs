@@ -4,7 +4,7 @@ use memchr::memchr2;
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum DelimiterType {
-    Inline,
+    Inline = 1,
     Display,
 }
 
@@ -133,55 +133,47 @@ pub fn replace(
         let remaining = &input[current_pos..];
 
         // Find the next occurrence of any opening delimiter
-        let (opening_type, start, opening_delim_len) = find_next_delimiter(
-            remaining,
-            (inline_delim.0, DelimiterType::Inline),
-            (display_delim.0, DelimiterType::Display),
-        );
+        let opening = find_next_delimiter(remaining, inline_delim.0, display_delim.0);
 
-        match (opening_type, start) {
-            (Some(typ), Some(idx)) => {
-                let start = current_pos + idx;
-                // Append everything before the opening delimiter
-                result.push_str(&input[current_pos..start]);
-                let start = start + opening_delim_len;
-                let remaining = &input[start..];
+        let Some((open_typ, idx, opening_delim_len)) = opening else {
+            // No more opening delimiters found
+            result.push_str(&remaining);
+            break;
+        };
 
-                // Find the next occurrence of any closing delimiter
-                let (closing_type, end, closing_delim_len) = find_next_delimiter(
-                    remaining,
-                    (inline_delim.1, DelimiterType::Inline),
-                    (display_delim.1, DelimiterType::Display),
-                );
+        let start = current_pos + idx;
+        // Append everything before the opening delimiter
+        result.push_str(&input[current_pos..start]);
+        let start = start + opening_delim_len;
+        let remaining = &input[start..];
+        println!("remaining: \"{}\"", remaining);
+        println!("start: {}", start);
+        println!("open_typ: {:?}", open_typ);
 
-                match (closing_type, end) {
-                    (Some(close_typ), Some(idx)) => {
-                        if typ != close_typ {
-                            return Err(ReplaceError::MismatchedDelimiters);
-                        }
+        // Find the next occurrence of any closing delimiter
+        let closing = find_next_delimiter(remaining, inline_delim.1, display_delim.1);
 
-                        let end = start + idx;
-                        // Get the content between delimiters
-                        let content = &input[start..end];
-                        // Check whether any *opening* delimiters are present in the content
-                        if content.contains(inline_delim.0) || content.contains(display_delim.0) {
-                            return Err(ReplaceError::NestedDelimiters);
-                        }
-                        // Convert the content
-                        let converted = convert(content, typ);
-                        result.push_str(&converted);
-                        // Update current position
-                        current_pos = end + closing_delim_len;
-                    }
-                    _ => return Err(ReplaceError::UnclosedDelimiter),
-                }
-            }
-            _ => {
-                // No more opening delimiters found
-                result.push_str(remaining);
-                break;
-            }
+        let Some((close_typ, idx, closing_delim_len)) = closing else {
+            // No closing delimiter found
+            return Err(ReplaceError::UnclosedDelimiter);
+        };
+
+        if open_typ != close_typ {
+            return Err(ReplaceError::MismatchedDelimiters);
         }
+
+        let end = start + idx;
+        // Get the content between delimiters
+        let content = &input[start..end];
+        // Check whether any *opening* delimiters are present in the content
+        if find_next_delimiter(content, inline_delim.0, display_delim.0).is_some() {
+            return Err(ReplaceError::NestedDelimiters);
+        }
+        // Convert the content
+        let converted = convert(content, open_typ);
+        result.push_str(&converted);
+        // Update current position
+        current_pos = end + closing_delim_len;
     }
 
     Ok(result)
@@ -189,23 +181,28 @@ pub fn replace(
 
 fn find_next_delimiter(
     input: &str,
-    delim1: (&str, DelimiterType),
-    delim2: (&str, DelimiterType),
-) -> (Option<DelimiterType>, Option<usize>, usize) {
-    let delim1_first_byte = delim1.0.as_bytes()[0];
-    let delim2_first_byte = delim2.0.as_bytes()[0];
+    delim1: &str,
+    delim2: &str,
+) -> Option<(DelimiterType, usize, usize)> {
+    let delim1_first_byte = delim1.as_bytes()[0];
+    let delim2_first_byte = delim2.as_bytes()[0];
+    let mut current_pos = 0;
 
-    if let Some(idx) = memchr2(delim1_first_byte, delim2_first_byte, input.as_bytes()) {
-        if input[idx..].starts_with(delim2.0) {
-            (Some(delim2.1), Some(idx), delim2.0.len())
-        } else if input[idx..].starts_with(delim1.0) {
-            (Some(delim1.1), Some(idx), delim1.0.len())
+    while let Some(offset) = memchr2(
+        delim1_first_byte,
+        delim2_first_byte,
+        input[current_pos..].as_bytes(),
+    ) {
+        let idx = current_pos + offset;
+        if input[idx..].starts_with(delim2) {
+            return Some((DelimiterType::Display, idx, delim2.len()));
+        } else if input[idx..].starts_with(delim1) {
+            return Some((DelimiterType::Inline, idx, delim1.len()));
         } else {
-            find_next_delimiter(&input[idx + 1..], delim1, delim2)
+            current_pos = idx + 1;
         }
-    } else {
-        (None, None, 0)
     }
+    None
 }
 
 // Mock convert function for testing
