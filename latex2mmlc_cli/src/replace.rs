@@ -6,17 +6,28 @@ use latex2mmlc::{Display, LatexError};
 
 #[derive(Debug)]
 pub enum ConversionError<'source> {
-    UnclosedDelimiter,
-    NestedDelimiters,
-    MismatchedDelimiters,
+    UnclosedDelimiter(usize),
+    NestedDelimiters(usize),
+    MismatchedDelimiters(usize, usize),
+    DanglingDelimiter(usize),
     LatexError(LatexError<'source>, &'source str),
 }
 impl fmt::Display for ConversionError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ConversionError::UnclosedDelimiter => write!(f, "Unclosed delimiter"),
-            ConversionError::NestedDelimiters => write!(f, "Nested delimiters are not allowed"),
-            ConversionError::MismatchedDelimiters => write!(f, "Unmatched delimiters"),
+            ConversionError::UnclosedDelimiter(idx) => write!(f, "Unclosed delimiter at {idx}"),
+            ConversionError::NestedDelimiters(idx) => {
+                write!(f, "Nested delimiters are not allowed (at {idx})")
+            }
+            ConversionError::MismatchedDelimiters(open, close) => {
+                write!(f, "Mismatched delimiters at {open} and {close}")
+            }
+            ConversionError::DanglingDelimiter(idx) => {
+                write!(
+                    f,
+                    "Dangling delimiter (unmatched closing delimiter) at {idx}"
+                )
+            }
             ConversionError::LatexError(e, input) => {
                 write!(f, "Error at {} in '{}':\n{}", e.0, input, e)
             }
@@ -60,7 +71,7 @@ impl<'config> Replacer<'config> {
         f: F,
     ) -> Result<String, ConversionError<'source>>
     where
-        F: for<'buf> Fn(&'buf mut String, &'source str, Display) -> Result<(), LatexError<'source>>,
+        F: Fn(&mut String, &'source str, Display) -> Result<(), LatexError<'source>>,
     {
         let mut result = String::with_capacity(input.len());
         let mut current_pos = 0;
@@ -82,11 +93,15 @@ impl<'config> Replacer<'config> {
                 Display::Block => self.opening_lengths.1,
             };
 
-            let start = current_pos + idx;
+            let open_pos = current_pos + idx;
+            // Check whether any *closing* delimiters are present before the opening delimiter
+            if let Some((_, idx)) = self.find_next_delimiter(&input[current_pos..open_pos], false) {
+                return Err(ConversionError::DanglingDelimiter(current_pos + idx));
+            }
             // Append everything before the opening delimiter
-            result.push_str(&input[current_pos..start]);
+            result.push_str(&input[current_pos..open_pos]);
             // Skip the opening delimiter itself
-            let start = start + opening_delim_len;
+            let start = open_pos + opening_delim_len;
             let remaining = &input[start..];
 
             // Find the next occurrence of any closing delimiter
@@ -94,7 +109,7 @@ impl<'config> Replacer<'config> {
 
             let Some((close_typ, idx)) = closing else {
                 // No closing delimiter found
-                return Err(ConversionError::UnclosedDelimiter);
+                return Err(ConversionError::UnclosedDelimiter(open_pos));
             };
 
             let closing_delim_len = match close_typ {
@@ -104,15 +119,15 @@ impl<'config> Replacer<'config> {
 
             if open_typ != close_typ {
                 // Mismatch of opening and closing delimiter
-                return Err(ConversionError::MismatchedDelimiters);
+                return Err(ConversionError::MismatchedDelimiters(open_pos, start + idx));
             }
 
             let end = start + idx;
             // Get the content between delimiters
             let content = &input[start..end];
             // Check whether any *opening* delimiters are present in the content
-            if self.find_next_delimiter(content, true).is_some() {
-                return Err(ConversionError::NestedDelimiters);
+            if let Some((_, idx)) = self.find_next_delimiter(content, true) {
+                return Err(ConversionError::NestedDelimiters(start + idx));
             }
             // Convert the content
             f(&mut result, content, open_typ)
@@ -151,7 +166,7 @@ mod tests {
     use std::fmt::Write;
 
     /// Mock convert function for testing
-    fn convert(
+    fn mock_convert(
         buf: &mut String,
         content: &'static str,
         typ: Display,
@@ -169,7 +184,7 @@ mod tests {
         block_delim: (&str, &str),
     ) -> Result<String, ConversionError<'static>> {
         let replacer = Replacer::new(inline_delim, block_delim);
-        replacer.replace(input, |buf, content, typ| convert(buf, content, typ))
+        replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ))
     }
 
     #[test]
@@ -183,21 +198,30 @@ mod tests {
     fn test_nested_delimiters() {
         let input = "Nested $$outer $inner$ delimiter$$";
         let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
-        assert!(matches!(result, ConversionError::MismatchedDelimiters));
+        println!("{}", result);
+        assert!(matches!(
+            result,
+            ConversionError::MismatchedDelimiters(7, 15)
+        ));
     }
 
     #[test]
     fn test_nested_delimiters2() {
         let input = "Nested $outer $$inner$$ delimiter$";
         let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
-        assert!(matches!(result, ConversionError::MismatchedDelimiters));
+        println!("{}", result);
+        assert!(matches!(
+            result,
+            ConversionError::MismatchedDelimiters(7, 14)
+        ));
     }
 
     #[test]
     fn test_mismatched_unclosed() {
         let input = "Unclosed $delimiter";
         let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
-        assert!(matches!(result, ConversionError::UnclosedDelimiter));
+        println!("{}", result);
+        assert!(matches!(result, ConversionError::UnclosedDelimiter(9)));
     }
 
     #[test]
@@ -231,8 +255,12 @@ mod tests {
     #[test]
     fn test_mismatched_delimiters() {
         let input = "Mismatch $$ and $ signs";
-        let result = replace(input, ("$", "$"), ("$$", "$$"));
-        assert!(matches!(result, Err(ConversionError::MismatchedDelimiters)));
+        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(
+            result,
+            ConversionError::MismatchedDelimiters(9, 16)
+        ));
     }
 
     #[test]
@@ -259,22 +287,44 @@ mod tests {
     #[test]
     fn test_asymmetric_delimiters_nested() {
         let input = r"let \(a=1 and \[b=2\]\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"));
-        assert!(matches!(result, Err(ConversionError::MismatchedDelimiters)));
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(
+            result,
+            ConversionError::MismatchedDelimiters(4, 19)
+        ));
     }
 
     #[test]
     fn test_asymmetric_delimiters_nested2() {
         let input = r"let \(a=1 and \[b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"));
-        assert!(matches!(result, Err(ConversionError::NestedDelimiters)));
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(result, ConversionError::NestedDelimiters(14)));
     }
 
     #[test]
     fn test_asymmetric_delimiters_nested3() {
         let input = r"let \(a=1 and \(b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"));
-        assert!(matches!(result, Err(ConversionError::NestedDelimiters)));
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(result, ConversionError::NestedDelimiters(14)));
+    }
+
+    #[test]
+    fn test_asymmetric_delimiters_unclosed() {
+        let input = r"let \(a=1 and b=2.";
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(result, ConversionError::UnclosedDelimiter(4)));
+    }
+
+    #[test]
+    fn test_asymmetric_delimiters_dangling() {
+        let input = r"let a=1\) and \(b=2\).";
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        println!("{}", result);
+        assert!(matches!(result, ConversionError::DanglingDelimiter(7)));
     }
 
     #[test]
