@@ -183,7 +183,6 @@ impl TextTransform {
             TextTransform::Script => match c {
                 'C'..='D' => add_offset(c, 0x1D45B),
                 'E'..='F' => add_offset(c, 0x20EB),
-                'H'..='I' => add_offset(c, 0x20C3),
                 'J'..='K' => add_offset(c, 0x1D45B),
                 'N'..='Q' => add_offset(c, 0x1D45B),
                 'S'..='Z' => add_offset(c, 0x1D45B),
@@ -193,6 +192,8 @@ impl TextTransform {
                 'A' => '𝒜',
                 'B' => 'ℬ',
                 'G' => '𝒢',
+                'H' => 'ℋ',
+                'I' => 'ℐ',
                 'L' => 'ℒ',
                 'M' => 'ℳ',
                 'R' => 'ℛ',

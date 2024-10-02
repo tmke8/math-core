@@ -41,6 +41,7 @@ pub struct Replacer<'config> {
     closing_finders: (Finder<'config>, Finder<'config>),
     opening_lengths: (usize, usize),
     closing_lengths: (usize, usize),
+    closing_identical: bool,
 }
 
 impl<'config> Replacer<'config> {
@@ -58,6 +59,7 @@ impl<'config> Replacer<'config> {
             closing_finders: (inline_closing, block_closing),
             opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
             closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
+            closing_identical: inline_delim.1 == block_delim.1,
         }
     }
 
@@ -117,7 +119,7 @@ impl<'config> Replacer<'config> {
                 Display::Block => self.closing_lengths.1,
             };
 
-            if open_typ != close_typ {
+            if !self.closing_identical && open_typ != close_typ {
                 // Mismatch of opening and closing delimiter
                 return Err(ConversionError::MismatchedDelimiters(open_pos, start + idx));
             }
@@ -332,5 +334,21 @@ mod tests {
         let input = "this is über ü(a=2ü).";
         let result = replace(input, ("ü(", "ü)"), ("ü[", "ü]")).unwrap();
         assert_eq!(result, "this is über [T1:a=2].");
+    }
+
+    #[test]
+    fn test_long_delimiters() {
+        let input = r#"based on its length, <span class="math inline">P(p)=2^{-len(p)}</span>, and then for a given
+    <span class="math block">
+    P(p)=2^{-len(p)}
+    </span>
+    Hello."#;
+        let result = replace(
+            input,
+            ("<span class=\"math inline\">", "</span>"),
+            ("<span class=\"math block\">", "</span>"),
+        )
+        .unwrap();
+        assert_eq!(result, "based on its length, [T1:P(p)=2^{-len(p)}], and then for a given\n    [T2:\n    P(p)=2^{-len(p)}\n    ]\n    Hello.");
     }
 }
