@@ -104,20 +104,32 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
+    let mut output = String::new();
+    append_mathml(&mut output, latex, display, pretty)?;
+    Ok(output)
+}
+
+/// Same as `latex_to_mathml`, but appends the result to the given string.
+pub fn append_mathml<'source>(
+    output: &mut String,
+    latex: &'source str,
+    display: Display,
+    pretty: bool,
+) -> Result<(), error::LatexError<'source>> {
     let arena = Arena::new();
     let nodes = get_nodes(latex, &arena)?;
 
-    let mut output = match display {
-        Display::Block => "<math display=\"block\">".to_string(),
-        Display::Inline => "<math>".to_string(),
+    match display {
+        Display::Block => output.push_str("<math display=\"block\">"),
+        Display::Inline => output.push_str("<math>"),
     };
 
-    nodes.emit(&mut output, if pretty { 1 } else { 0 });
+    nodes.emit(output, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
     output.push_str("</math>");
-    Ok(output)
+    Ok(())
 }
 
 #[cfg(test)]

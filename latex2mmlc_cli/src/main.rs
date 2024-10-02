@@ -21,14 +21,16 @@
 //! ```
 
 use std::{
-    fmt, fs,
+    fs,
     io::{Read, Write},
     path::{Path, PathBuf},
 };
 
-use latex2mmlc::{latex_to_mathml, Display, LatexError};
-
 use clap::Parser;
+
+use latex2mmlc::{append_mathml, latex_to_mathml, Display};
+
+use crate::replace::{ConversionError, Replacer};
 
 mod replace;
 
@@ -40,13 +42,59 @@ struct Args {
     #[arg(conflicts_with = "formula", value_name = "FILE")]
     file: Option<PathBuf>,
 
-    /// Sets the custom delimiter for LaTeX formulas
-    #[arg(short, long, default_value = "$", conflicts_with = "formula")]
-    inlinedel: String,
+    /// Sets the custom delimiter for inline LaTeX formulas
+    #[arg(
+        long,
+        default_value = "$",
+        conflicts_with = "formula",
+        value_name = "STR"
+    )]
+    inline_del: String,
 
-    /// Sets the custom delimiter for LaTeX formulas
-    #[arg(short, long, default_value = "$$", conflicts_with = "formula")]
-    displaydelimiter: String,
+    /// Sets the custom delimiter for block LaTeX formulas
+    #[arg(
+        long,
+        default_value = "$$",
+        conflicts_with = "formula",
+        value_name = "STR"
+    )]
+    block_del: String,
+
+    /// Sets the custom opening delimiter for inline LaTeX formulas
+    #[arg(
+        long,
+        conflicts_with = "inline_del",
+        requires = "inline_close",
+        value_name = "STR"
+    )]
+    inline_open: Option<String>,
+
+    /// Sets the custom closing delimiter for inline LaTeX formulas
+    #[arg(
+        long,
+        conflicts_with = "inline_del",
+        requires = "inline_open",
+        value_name = "STR"
+    )]
+    inline_close: Option<String>,
+
+    /// Sets the custom opening delimiter for block LaTeX formulas
+    #[arg(
+        long,
+        conflicts_with = "block_del",
+        requires = "block_close",
+        value_name = "STR"
+    )]
+    block_open: Option<String>,
+
+    /// Sets the custom closing delimiter for block LaTeX formulas
+    #[arg(
+        long,
+        conflicts_with = "block_del",
+        requires = "block_open",
+        value_name = "STR"
+    )]
+    block_close: Option<String>,
 
     /// Look recursively for HTML files in the given directory
     #[arg(short, long, conflicts_with = "formula")]
@@ -68,18 +116,29 @@ struct Args {
 fn main() {
     let args = Args::parse();
     if let Some(ref fpath) = args.file {
+        let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {
+            (open, &args.inline_close.unwrap())
+        } else {
+            (&args.inline_del, &args.inline_del)
+        };
+        let block_delim: (&str, &str) = if let Some(ref open) = args.block_open {
+            (open, &args.block_close.unwrap())
+        } else {
+            (&args.block_del, &args.block_del)
+        };
+        let replacer = Replacer::new(inline_delim, block_delim);
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
-            match replace(&input) {
+            match replace(&replacer, &input) {
                 Ok(mathml) => {
                     println!("{}", mathml);
                 }
                 Err(e) => exit_latex_error(e),
             };
         } else if args.recursive {
-            convert_html_recursive(fpath);
+            convert_html_recursive(fpath, &replacer);
         } else {
-            convert_html(fpath);
+            convert_html(fpath, &replacer);
         };
     } else if let Some(ref formula) = args.formula {
         convert_and_exit(&args, formula);
@@ -108,27 +167,6 @@ fn convert_and_exit(args: &Args, latex: &str) {
     }
 }
 
-#[derive(Debug)]
-enum ConversionError<'source> {
-    InvalidNumberOfDollarSigns,
-    LatexError(LatexError<'source>, &'source str),
-}
-
-impl fmt::Display for ConversionError<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ConversionError::InvalidNumberOfDollarSigns => {
-                write!(f, "Invalid number of dollar signs")
-            }
-            ConversionError::LatexError(e, input) => {
-                write!(f, "Error at {} in '{}':\n{}", e.0, input, e)
-            }
-        }
-    }
-}
-
-impl std::error::Error for ConversionError<'_> {}
-
 /// Find LaTeX equations and replace them to MathML.
 ///
 /// - inline-math: `$..$`
@@ -143,54 +181,20 @@ impl std::error::Error for ConversionError<'_> {}
 /// In fact, this relation is a spacial case of the equation
 /// $$E = \sqrt{ m^2 c^4 + p^2 c^2 } ,$$
 /// which describes the relation between energy and momentum."#;
-/// let output = latex2mmlc::replace(input).unwrap();
+/// let replacer = latex2mmlc::Replacer::new(("$", "$"), ("$$", "$$"));
+/// let output = latex2mmlc::replace(&replacer, input).unwrap();
 /// println!("{}", output);
 /// ```
 ///
 /// `examples/document.rs` gives a sample code using this function.
 ///
-fn replace(input: &str) -> Result<String, ConversionError<'_>> {
-    let mut output = String::with_capacity(input.len());
-
-    //**** Convert block-math ****//
-
-    // Generate an index list that matches `$$`.
-    let slices: Vec<&str> = input.split("$$").collect();
-    if slices.len() % 2 == 0 {
-        return Err(ConversionError::InvalidNumberOfDollarSigns);
-    }
-
-    for (i, outer_slice) in slices.iter().enumerate() {
-        if i % 2 == 0 {
-            //**** Convert inline-math ****//
-
-            // Generate an index list that matches `$`.
-            // (Any `$` that we can still find has to be an inline-math delimiter,
-            // because we have already converted the block-math delimiters `$$`.)
-            let inner_slices: Vec<&str> = outer_slice.split('$').collect();
-            if inner_slices.len() % 2 == 0 {
-                return Err(ConversionError::InvalidNumberOfDollarSigns);
-            }
-
-            for (i, inner_slice) in inner_slices.iter().enumerate() {
-                if i % 2 == 0 {
-                    output += inner_slice;
-                } else {
-                    // convert LaTeX to MathML
-                    let mathml = latex_to_mathml(inner_slice, Display::Inline, false)
-                        .map_err(|e| ConversionError::LatexError(e, inner_slice))?;
-                    output += &mathml;
-                }
-            }
-        } else {
-            // convert LaTeX to MathML
-            let mathml = latex_to_mathml(outer_slice, Display::Block, false)
-                .map_err(|e| ConversionError::LatexError(e, outer_slice))?;
-            output += &mathml;
-        }
-    }
-
-    Ok(output)
+fn replace<'source>(
+    replacer: &Replacer,
+    input: &'source str,
+) -> Result<String, ConversionError<'source>> {
+    replacer.replace(input, |buf, latex, display| {
+        append_mathml(buf, latex, display, false)
+    })
 }
 
 /// Convert all LaTeX expressions for all HTMLs in a given directory.
@@ -218,24 +222,24 @@ fn replace(input: &str) -> Result<String, ConversionError<'_>> {
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive<P: AsRef<Path>>(path: P) {
+fn convert_html_recursive<P: AsRef<Path>>(path: P, replacer: &Replacer) {
     if path.as_ref().is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(entry.path())
+            convert_html_recursive(entry.path(), replacer)
         }
     } else if path.as_ref().is_file() {
         if let Some(ext) = path.as_ref().extension() {
             if ext == "html" {
-                convert_html(&path);
+                convert_html(&path, replacer);
             }
         }
     }
 }
 
-fn convert_html<P: AsRef<Path>>(fp: P) {
+fn convert_html<P: AsRef<Path>>(fp: P, replacer: &Replacer) {
     let original = fs::read_to_string(&fp).unwrap_or_else(|e| exit_io_error(e));
-    let converted = replace(&original).unwrap_or_else(|e| exit_latex_error(e));
+    let converted = replace(replacer, &original).unwrap_or_else(|e| exit_latex_error(e));
     if original != converted {
         let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
@@ -271,7 +275,8 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-        let mathml = crate::replace(text).unwrap();
+        let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"));
+        let mathml = crate::replace(&replacer, text).unwrap();
         println!("{}", mathml);
     }
 }
