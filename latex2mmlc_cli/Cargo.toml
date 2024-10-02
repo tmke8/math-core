@@ -10,3 +10,4 @@ license = { workspace = true }
 [dependencies]
 clap = { version = "4.5.18", features = ["derive"] }
 latex2mmlc = { path = "../latex2mmlc" }
+memchr = "2.7.4"
