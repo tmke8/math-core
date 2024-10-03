@@ -32,6 +32,7 @@ use latex2mmlc::{append_mathml, latex_to_mathml, Display};
 
 use crate::replace::{ConversionError, Replacer};
 
+mod html_entities;
 mod replace;
 
 /// Converts LaTeX formulas to MathML
@@ -126,19 +127,19 @@ fn main() {
         } else {
             (&args.block_del, &args.block_del)
         };
-        let replacer = Replacer::new(inline_delim, block_delim);
+        let mut replacer = Replacer::new(inline_delim, block_delim);
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
-            match replace(&replacer, &input) {
+            match replace(&mut replacer, &input) {
                 Ok(mathml) => {
                     println!("{}", mathml);
                 }
                 Err(e) => exit_latex_error(e),
             };
         } else if args.recursive {
-            convert_html_recursive(fpath, &replacer);
+            convert_html_recursive(fpath, &mut replacer);
         } else {
-            convert_html(fpath, &replacer);
+            convert_html(fpath, &mut replacer);
         };
     } else if let Some(ref formula) = args.formula {
         convert_and_exit(&args, formula);
@@ -188,10 +189,13 @@ fn convert_and_exit(args: &Args, latex: &str) {
 ///
 /// `examples/document.rs` gives a sample code using this function.
 ///
-fn replace<'source>(
-    replacer: &Replacer,
+fn replace<'source, 'buf>(
+    replacer: &'buf mut Replacer,
     input: &'source str,
-) -> Result<String, ConversionError<'source>> {
+) -> Result<String, ConversionError<'buf>>
+where
+    'source: 'buf,
+{
     replacer.replace(input, |buf, latex, display| {
         append_mathml(buf, latex, display, false)
     })
@@ -222,7 +226,7 @@ fn replace<'source>(
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive<P: AsRef<Path>>(path: P, replacer: &Replacer) {
+fn convert_html_recursive<P: AsRef<Path>>(path: P, replacer: &mut Replacer) {
     if path.as_ref().is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
@@ -237,7 +241,7 @@ fn convert_html_recursive<P: AsRef<Path>>(path: P, replacer: &Replacer) {
     }
 }
 
-fn convert_html<P: AsRef<Path>>(fp: P, replacer: &Replacer) {
+fn convert_html<P: AsRef<Path>>(fp: P, replacer: &mut Replacer) {
     let original = fs::read_to_string(&fp).unwrap_or_else(|e| exit_io_error(e));
     let converted = replace(replacer, &original).unwrap_or_else(|e| exit_latex_error(e));
     if original != converted {
@@ -275,8 +279,8 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-        let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"));
-        let mathml = crate::replace(&replacer, text).unwrap();
+        let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"));
+        let mathml = crate::replace(&mut replacer, text).unwrap();
         println!("{}", mathml);
     }
 }

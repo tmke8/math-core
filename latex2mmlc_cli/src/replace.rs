@@ -2,14 +2,15 @@ use std::fmt;
 
 use memchr::memmem::Finder;
 
-use latex2mmlc::{Display, LatexError};
+use latex2mmlc::{append_mathml, Display, LatexError};
+
+use crate::html_entities::replace_html_entities;
 
 #[derive(Debug)]
 pub enum ConversionError<'source> {
     UnclosedDelimiter(usize),
     NestedDelimiters(usize),
     MismatchedDelimiters(usize, usize),
-    DanglingDelimiter(usize),
     LatexError(LatexError<'source>, &'source str),
 }
 impl fmt::Display for ConversionError<'_> {
@@ -22,12 +23,6 @@ impl fmt::Display for ConversionError<'_> {
             ConversionError::MismatchedDelimiters(open, close) => {
                 write!(f, "Mismatched delimiters at {open} and {close}")
             }
-            ConversionError::DanglingDelimiter(idx) => {
-                write!(
-                    f,
-                    "Dangling delimiter (unmatched closing delimiter) at {idx}"
-                )
-            }
             ConversionError::LatexError(e, input) => {
                 write!(f, "Error at {} in '{}':\n{}", e.0, input, e)
             }
@@ -37,6 +32,11 @@ impl fmt::Display for ConversionError<'_> {
 impl std::error::Error for ConversionError<'_> {}
 
 pub struct Replacer<'config> {
+    delimiter_config: DelimiterConfig<'config>,
+    entity_buffer: String,
+}
+
+struct DelimiterConfig<'config> {
     opening_finders: (Finder<'config>, Finder<'config>),
     closing_finders: (Finder<'config>, Finder<'config>),
     opening_lengths: (usize, usize),
@@ -55,11 +55,14 @@ impl<'config> Replacer<'config> {
         let block_closing = Finder::new(block_delim.1);
 
         Self {
-            opening_finders: (inline_opening, block_opening),
-            closing_finders: (inline_closing, block_closing),
-            opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
-            closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
-            closing_identical: inline_delim.1 == block_delim.1,
+            delimiter_config: DelimiterConfig {
+                opening_finders: (inline_opening, block_opening),
+                closing_finders: (inline_closing, block_closing),
+                opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
+                closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
+                closing_identical: inline_delim.1 == block_delim.1,
+            },
+            entity_buffer: String::new(),
         }
     }
 
@@ -67,47 +70,50 @@ impl<'config> Replacer<'config> {
     ///
     /// Any kind of nesting of delimiters is not allowed.
     #[inline]
-    pub(crate) fn replace<'source, F>(
-        &self,
+    pub(crate) fn replace<'source, 'buf, F>(
+        &'buf mut self,
         input: &'source str,
         f: F,
-    ) -> Result<String, ConversionError<'source>>
+    ) -> Result<String, ConversionError<'buf>>
     where
-        F: Fn(&mut String, &'source str, Display) -> Result<(), LatexError<'source>>,
+        F: for<'a> Fn(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
+        'source: 'buf,
     {
-        let mut result = String::with_capacity(input.len());
+        let mut output = String::with_capacity(input.len());
         let mut current_pos = 0;
+        let delim = &self.delimiter_config;
+        let entity_buffer = &mut self.entity_buffer;
 
-        while current_pos < input.len() {
+        // while current_pos < input.len() {
+        let error_typ = loop {
+            if current_pos >= input.len() {
+                break None;
+            }
             let remaining = &input[current_pos..];
 
             // Find the next occurrence of any opening delimiter
-            let opening = self.find_next_delimiter(remaining, true);
+            let opening = delim.find_next_delimiter(remaining, true);
 
             let Some((open_typ, idx)) = opening else {
                 // No more opening delimiters found
-                result.push_str(remaining);
-                break;
+                output.push_str(remaining);
+                break None;
             };
 
             let opening_delim_len = match open_typ {
-                Display::Inline => self.opening_lengths.0,
-                Display::Block => self.opening_lengths.1,
+                Display::Inline => delim.opening_lengths.0,
+                Display::Block => delim.opening_lengths.1,
             };
 
             let open_pos = current_pos + idx;
-            // Check whether any *closing* delimiters are present before the opening delimiter
-            if let Some((_, idx)) = self.find_next_delimiter(&input[current_pos..open_pos], false) {
-                return Err(ConversionError::DanglingDelimiter(current_pos + idx));
-            }
             // Append everything before the opening delimiter
-            result.push_str(&input[current_pos..open_pos]);
+            output.push_str(&input[current_pos..open_pos]);
             // Skip the opening delimiter itself
             let start = open_pos + opening_delim_len;
             let remaining = &input[start..];
 
             // Find the next occurrence of any closing delimiter
-            let closing = self.find_next_delimiter(remaining, false);
+            let closing = delim.find_next_delimiter(remaining, false);
 
             let Some((close_typ, idx)) = closing else {
                 // No closing delimiter found
@@ -115,11 +121,11 @@ impl<'config> Replacer<'config> {
             };
 
             let closing_delim_len = match close_typ {
-                Display::Inline => self.closing_lengths.0,
-                Display::Block => self.closing_lengths.1,
+                Display::Inline => delim.closing_lengths.0,
+                Display::Block => delim.closing_lengths.1,
             };
 
-            if !self.closing_identical && open_typ != close_typ {
+            if !delim.closing_identical && open_typ != close_typ {
                 // Mismatch of opening and closing delimiter
                 return Err(ConversionError::MismatchedDelimiters(open_pos, start + idx));
             }
@@ -128,19 +134,35 @@ impl<'config> Replacer<'config> {
             // Get the content between delimiters
             let content = &input[start..end];
             // Check whether any *opening* delimiters are present in the content
-            if let Some((_, idx)) = self.find_next_delimiter(content, true) {
+            if let Some((_, idx)) = delim.find_next_delimiter(content, true) {
                 return Err(ConversionError::NestedDelimiters(start + idx));
             }
+            // Replace HTML entities
+            replace_html_entities(entity_buffer, content);
             // Convert the content
-            f(&mut result, content, open_typ)
-                .map_err(|e| ConversionError::LatexError(e, content))?;
+            let result = f(&mut output, entity_buffer.as_str(), open_typ);
+            match result {
+                Ok(_) => {}
+                Err(_) => {
+                    // We know a problem occurred in the slice `replaced`
+                    break Some(open_typ);
+                }
+            }
             // Update current position
             current_pos = end + closing_delim_len;
+        };
+
+        if let Some(open_typ) = error_typ {
+            // Do the conversion again so we can get the error.
+            let result = f(&mut output, entity_buffer.as_str(), open_typ).unwrap_err();
+            return Err(ConversionError::LatexError(result, entity_buffer.as_str()));
         }
 
-        Ok(result)
+        Ok(output)
     }
+}
 
+impl DelimiterConfig<'_> {
     /// Finds the next occurrence of either an inline or block delimiter.
     fn find_next_delimiter(&self, input: &str, opening: bool) -> Option<(Display, usize)> {
         let (inline_finder, block_finder) = if opening {
@@ -168,11 +190,11 @@ mod tests {
     use std::fmt::Write;
 
     /// Mock convert function for testing
-    fn mock_convert(
+    fn mock_convert<'source>(
         buf: &mut String,
-        content: &'static str,
+        content: &'source str,
         typ: Display,
-    ) -> Result<(), LatexError<'static>> {
+    ) -> Result<(), LatexError<'source>> {
         match typ {
             Display::Inline => write!(buf, "[T1:{}]", content).unwrap(),
             Display::Block => write!(buf, "[T2:{}]", content).unwrap(),
@@ -182,11 +204,22 @@ mod tests {
 
     fn replace(
         input: &'static str,
-        inline_delim: (&str, &str),
-        block_delim: (&str, &str),
+        inline_delim: (&'static str, &'static str),
+        block_delim: (&'static str, &'static str),
     ) -> Result<String, ConversionError<'static>> {
-        let replacer = Replacer::new(inline_delim, block_delim);
-        replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ))
+        let mut replacer = Replacer::new(inline_delim, block_delim);
+        match replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ)) {
+            Ok(s) => Ok(s),
+            Err(e) => match e {
+                // The following is needed to do a kind of "lifetime laundering".
+                ConversionError::MismatchedDelimiters(a, b) => {
+                    Err(ConversionError::MismatchedDelimiters(a, b))
+                }
+                ConversionError::NestedDelimiters(a) => Err(ConversionError::NestedDelimiters(a)),
+                ConversionError::UnclosedDelimiter(a) => Err(ConversionError::UnclosedDelimiter(a)),
+                ConversionError::LatexError(_, _) => unreachable!(),
+            },
+        }
     }
 
     #[test]
@@ -323,10 +356,18 @@ mod tests {
 
     #[test]
     fn test_asymmetric_delimiters_dangling() {
+        // We could make this an error, but it's sometimes useful to allow this.
         let input = r"let a=1\) and \(b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
-        println!("{}", result);
-        assert!(matches!(result, ConversionError::DanglingDelimiter(7)));
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        assert_eq!(result, r"let a=1\) and [T1:b=2].");
+    }
+
+    #[test]
+    fn test_asymmetric_delimiters_dangling2() {
+        // We could make this an error, but it's sometimes useful to allow this.
+        let input = r"let \(a=1\) and b=2\).";
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        assert_eq!(result, r"let [T1:a=1] and b=2\).");
     }
 
     #[test]

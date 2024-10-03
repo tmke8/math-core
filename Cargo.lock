@@ -236,6 +236,7 @@ dependencies = [
  "clap",
  "latex2mmlc",
  "memchr",
+ "phf",
 ]
 
 [[package]]
