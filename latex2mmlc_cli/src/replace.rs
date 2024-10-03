@@ -2,7 +2,7 @@ use std::fmt;
 
 use memchr::memmem::Finder;
 
-use latex2mmlc::{append_mathml, Display, LatexError};
+use latex2mmlc::{Display, LatexError};
 
 use crate::html_entities::replace_html_entities;
 
@@ -32,16 +32,12 @@ impl fmt::Display for ConversionError<'_> {
 impl std::error::Error for ConversionError<'_> {}
 
 pub struct Replacer<'config> {
-    delimiter_config: DelimiterConfig<'config>,
-    entity_buffer: String,
-}
-
-struct DelimiterConfig<'config> {
     opening_finders: (Finder<'config>, Finder<'config>),
     closing_finders: (Finder<'config>, Finder<'config>),
     opening_lengths: (usize, usize),
     closing_lengths: (usize, usize),
     closing_identical: bool,
+    entity_buffer: String,
 }
 
 impl<'config> Replacer<'config> {
@@ -55,13 +51,11 @@ impl<'config> Replacer<'config> {
         let block_closing = Finder::new(block_delim.1);
 
         Self {
-            delimiter_config: DelimiterConfig {
-                opening_finders: (inline_opening, block_opening),
-                closing_finders: (inline_closing, block_closing),
-                opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
-                closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
-                closing_identical: inline_delim.1 == block_delim.1,
-            },
+            opening_finders: (inline_opening, block_opening),
+            closing_finders: (inline_closing, block_closing),
+            opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
+            closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
+            closing_identical: inline_delim.1 == block_delim.1,
             entity_buffer: String::new(),
         }
     }
@@ -81,8 +75,6 @@ impl<'config> Replacer<'config> {
     {
         let mut output = String::with_capacity(input.len());
         let mut current_pos = 0;
-        let delim = &self.delimiter_config;
-        let entity_buffer = &mut self.entity_buffer;
 
         // while current_pos < input.len() {
         let error_typ = loop {
@@ -92,7 +84,7 @@ impl<'config> Replacer<'config> {
             let remaining = &input[current_pos..];
 
             // Find the next occurrence of any opening delimiter
-            let opening = delim.find_next_delimiter(remaining, true);
+            let opening = self.find_next_delimiter(remaining, true);
 
             let Some((open_typ, idx)) = opening else {
                 // No more opening delimiters found
@@ -101,8 +93,8 @@ impl<'config> Replacer<'config> {
             };
 
             let opening_delim_len = match open_typ {
-                Display::Inline => delim.opening_lengths.0,
-                Display::Block => delim.opening_lengths.1,
+                Display::Inline => self.opening_lengths.0,
+                Display::Block => self.opening_lengths.1,
             };
 
             let open_pos = current_pos + idx;
@@ -113,7 +105,7 @@ impl<'config> Replacer<'config> {
             let remaining = &input[start..];
 
             // Find the next occurrence of any closing delimiter
-            let closing = delim.find_next_delimiter(remaining, false);
+            let closing = self.find_next_delimiter(remaining, false);
 
             let Some((close_typ, idx)) = closing else {
                 // No closing delimiter found
@@ -121,11 +113,11 @@ impl<'config> Replacer<'config> {
             };
 
             let closing_delim_len = match close_typ {
-                Display::Inline => delim.closing_lengths.0,
-                Display::Block => delim.closing_lengths.1,
+                Display::Inline => self.closing_lengths.0,
+                Display::Block => self.closing_lengths.1,
             };
 
-            if !delim.closing_identical && open_typ != close_typ {
+            if !self.closing_identical && open_typ != close_typ {
                 // Mismatch of opening and closing delimiter
                 return Err(ConversionError::MismatchedDelimiters(open_pos, start + idx));
             }
@@ -134,13 +126,13 @@ impl<'config> Replacer<'config> {
             // Get the content between delimiters
             let content = &input[start..end];
             // Check whether any *opening* delimiters are present in the content
-            if let Some((_, idx)) = delim.find_next_delimiter(content, true) {
+            if let Some((_, idx)) = self.find_next_delimiter(content, true) {
                 return Err(ConversionError::NestedDelimiters(start + idx));
             }
             // Replace HTML entities
-            replace_html_entities(entity_buffer, content);
+            replace_html_entities(&mut self.entity_buffer, content);
             // Convert the content
-            let result = f(&mut output, entity_buffer.as_str(), open_typ);
+            let result = f(&mut output, self.entity_buffer.as_str(), open_typ);
             match result {
                 Ok(_) => {}
                 Err(_) => {
@@ -154,15 +146,16 @@ impl<'config> Replacer<'config> {
 
         if let Some(open_typ) = error_typ {
             // Do the conversion again so we can get the error.
-            let result = f(&mut output, entity_buffer.as_str(), open_typ).unwrap_err();
-            return Err(ConversionError::LatexError(result, entity_buffer.as_str()));
+            let result = f(&mut output, self.entity_buffer.as_str(), open_typ).unwrap_err();
+            return Err(ConversionError::LatexError(
+                result,
+                self.entity_buffer.as_str(),
+            ));
         }
 
         Ok(output)
     }
-}
 
-impl DelimiterConfig<'_> {
     /// Finds the next occurrence of either an inline or block delimiter.
     fn find_next_delimiter(&self, input: &str, opening: bool) -> Option<(Display, usize)> {
         let (inline_finder, block_finder) = if opening {

@@ -73,7 +73,6 @@ mod tests {
     fn test_replace_html_entities() {
         let b = &mut String::new();
         replace_html_entities(b, "you &amp; I");
-        b.as_str();
         assert_eq!(b.as_str(), "you & I");
         replace_html_entities(b, "&lt;hello&gt;");
         assert_eq!(b.as_str(), "<hello>");
