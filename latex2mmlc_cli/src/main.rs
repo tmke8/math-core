@@ -170,8 +170,10 @@ fn convert_and_exit(args: &Args, latex: &str) {
 
 /// Find LaTeX equations and replace them to MathML.
 ///
-/// - inline-math: `$..$`
-/// - display-math: `$$..$$`
+/// The delimiters are configured by the `replacer` argument.
+///
+/// A common configuration is to use `("$", "$")` for inline equations and `("$$", "$$")` for block
+/// equations.
 ///
 /// Note that dollar signs that do not enclose a LaTeX equation (e.g. `This apple is $3.`) must not appear
 /// in the input string. Dollar sings in LaTeX equation (i.e. `\$` command) must also not appear.
@@ -187,8 +189,6 @@ fn convert_and_exit(args: &Args, latex: &str) {
 /// println!("{}", output);
 /// ```
 ///
-/// `examples/document.rs` gives a sample code using this function.
-///
 fn replace<'source, 'buf>(
     replacer: &'buf mut Replacer,
     input: &'source str,
@@ -197,11 +197,11 @@ where
     'source: 'buf,
 {
     replacer.replace(input, |buf, latex, display| {
-        append_mathml(buf, latex, display, false)
+        append_mathml(buf, latex, display, matches!(display, Display::Block))
     })
 }
 
-/// Convert all LaTeX expressions for all HTMLs in a given directory.
+/// Convert all LaTeX expressions for all HTML files in a given directory.
 ///
 /// The argument of this function can be a file name or a directory name.
 /// For the latter case, all HTML files in the directory is coneverted.

@@ -73,10 +73,9 @@ impl<'config> Replacer<'config> {
         F: for<'a> Fn(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
         'source: 'buf,
     {
-        let mut output = String::with_capacity(input.len());
+        let mut result = String::with_capacity(input.len());
         let mut current_pos = 0;
 
-        // while current_pos < input.len() {
         let error_typ = loop {
             if current_pos >= input.len() {
                 break None;
@@ -88,7 +87,7 @@ impl<'config> Replacer<'config> {
 
             let Some((open_typ, idx)) = opening else {
                 // No more opening delimiters found
-                output.push_str(remaining);
+                result.push_str(remaining);
                 break None;
             };
 
@@ -99,7 +98,7 @@ impl<'config> Replacer<'config> {
 
             let open_pos = current_pos + idx;
             // Append everything before the opening delimiter
-            output.push_str(&input[current_pos..open_pos]);
+            result.push_str(&input[current_pos..open_pos]);
             // Skip the opening delimiter itself
             let start = open_pos + opening_delim_len;
             let remaining = &input[start..];
@@ -130,13 +129,16 @@ impl<'config> Replacer<'config> {
                 return Err(ConversionError::NestedDelimiters(start + idx));
             }
             // Replace HTML entities
-            replace_html_entities(&mut self.entity_buffer, content);
+            let replaced = replace_html_entities(&mut self.entity_buffer, content);
             // Convert the content
-            let result = f(&mut output, self.entity_buffer.as_str(), open_typ);
+            let result = f(&mut result, replaced, open_typ);
             match result {
                 Ok(_) => {}
                 Err(_) => {
-                    // We know a problem occurred in the slice `replaced`
+                    // We know a problem occurred in the slice `content`.
+                    // We store the content in the buffer so we can get the error message later.
+                    self.entity_buffer.clear();
+                    self.entity_buffer.push_str(content);
                     break Some(open_typ);
                 }
             }
@@ -146,14 +148,14 @@ impl<'config> Replacer<'config> {
 
         if let Some(open_typ) = error_typ {
             // Do the conversion again so we can get the error.
-            let result = f(&mut output, self.entity_buffer.as_str(), open_typ).unwrap_err();
+            let result = f(&mut result, self.entity_buffer.as_str(), open_typ).unwrap_err();
             return Err(ConversionError::LatexError(
                 result,
                 self.entity_buffer.as_str(),
             ));
         }
 
-        Ok(output)
+        Ok(result)
     }
 
     /// Finds the next occurrence of either an inline or block delimiter.
@@ -197,8 +199,8 @@ mod tests {
 
     fn replace(
         input: &'static str,
-        inline_delim: (&'static str, &'static str),
-        block_delim: (&'static str, &'static str),
+        inline_delim: (&str, &str),
+        block_delim: (&str, &str),
     ) -> Result<String, ConversionError<'static>> {
         let mut replacer = Replacer::new(inline_delim, block_delim);
         match replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ)) {

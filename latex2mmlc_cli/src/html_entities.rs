@@ -13,20 +13,27 @@ static HTML_RESERVED_MAP: phf::Map<&'static [u8], u8> = phf::phf_map! {
     b"gt" => b'>',
 };
 
-pub fn replace_html_entities(buffer: &mut String, input: &str) {
+/// Replace HTML entities in the input string with their corresponding characters.
+///
+/// Returns `true` if any replacement was done.
+pub fn replace_html_entities<'source, 'buf>(
+    buffer: &'buf mut String,
+    input: &'source str,
+) -> &'buf str
+where
+    'source: 'buf,
+{
+    let bytes = input.as_bytes();
+
+    let Some(first_ampersand) = memchr(b'&', bytes) else {
+        // No `&` character found, return the original input.
+        return input;
+    };
     // Clear the buffer and reserve enough space for the new string.
     buffer.clear();
     if buffer.capacity() < input.len() {
         buffer.reserve(input.len() - buffer.capacity());
     }
-
-    let bytes = input.as_bytes();
-
-    let Some(first_ampersand) = memchr(b'&', bytes) else {
-        // No `&` character found, return the original input.
-        buffer.push_str(input);
-        return;
-    };
 
     let mut last_end = 0;
     let mut next_start = first_ampersand;
@@ -63,6 +70,7 @@ pub fn replace_html_entities(buffer: &mut String, input: &str) {
 
     // Push the remaining part of the input
     buffer.push_str(&input[last_end..]);
+    &buffer[..]
 }
 
 #[cfg(test)]
@@ -72,25 +80,24 @@ mod tests {
     #[test]
     fn test_replace_html_entities() {
         let b = &mut String::new();
-        replace_html_entities(b, "you &amp; I");
-        assert_eq!(b.as_str(), "you & I");
-        replace_html_entities(b, "&lt;hello&gt;");
-        assert_eq!(b.as_str(), "<hello>");
-        replace_html_entities(b, "no entities");
-        assert_eq!(b.as_str(), "no entities");
-        replace_html_entities(b, "&#34;quoted&#34;");
-        assert_eq!(b.as_str(), "\"quoted\"");
-        replace_html_entities(b, "&apos;single&apos;");
-        assert_eq!(b.as_str(), "'single'");
-        replace_html_entities(b, "mix &amp; &#60;match&#62;");
-        assert_eq!(b.as_str(), "mix & <match>");
-        replace_html_entities(b, "incomplete &amp");
-        assert_eq!(b.as_str(), "incomplete &amp");
-        replace_html_entities(b, "unknown &nbsp; entity");
-        assert_eq!(b.as_str(), "unknown &nbsp; entity");
-        replace_html_entities(b, "at end &");
-        assert_eq!(b.as_str(), "at end &");
-        replace_html_entities(b, "you &&amp; I");
-        assert_eq!(b.as_str(), "you &&amp; I");
+        assert_eq!(replace_html_entities(b, "you &amp; I"), "you & I");
+        assert_eq!(replace_html_entities(b, "&lt;hello&gt;"), "<hello>");
+        assert_eq!(replace_html_entities(b, "no entities"), "no entities");
+        assert_eq!(replace_html_entities(b, "&#34;quoted&#34;"), "\"quoted\"");
+        assert_eq!(replace_html_entities(b, "&apos;single&apos;"), "'single'");
+        assert_eq!(
+            replace_html_entities(b, "mix &amp; &#60;match&#62;"),
+            "mix & <match>"
+        );
+        assert_eq!(
+            replace_html_entities(b, "incomplete &amp"),
+            "incomplete &amp"
+        );
+        assert_eq!(
+            replace_html_entities(b, "unknown &nbsp; entity"),
+            "unknown &nbsp; entity"
+        );
+        assert_eq!(replace_html_entities(b, "at end &"), "at end &");
+        assert_eq!(replace_html_entities(b, "you &&amp; I"), "you &&amp; I");
     }
 }
