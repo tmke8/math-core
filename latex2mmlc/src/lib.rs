@@ -57,7 +57,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
-pub use error::LatexError;
+pub use error::{LatexErrKind, LatexError};
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

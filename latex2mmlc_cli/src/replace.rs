@@ -7,24 +7,28 @@ use latex2mmlc::{Display, LatexError};
 use crate::html_entities::replace_html_entities;
 
 #[derive(Debug)]
-pub enum ConversionError<'source> {
-    UnclosedDelimiter(usize),
-    NestedDelimiters(usize),
-    MismatchedDelimiters(usize, usize),
+pub struct ConversionError<'source>(pub usize, pub ConvErrKind<'source>);
+
+#[derive(Debug)]
+pub enum ConvErrKind<'source> {
+    UnclosedDelimiter,
+    NestedDelimiters,
+    MismatchedDelimiters(usize),
     LatexError(LatexError<'source>, &'source str),
 }
 impl fmt::Display for ConversionError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ConversionError::UnclosedDelimiter(idx) => write!(f, "Unclosed delimiter at {idx}"),
-            ConversionError::NestedDelimiters(idx) => {
+        let idx = self.0;
+        match &self.1 {
+            ConvErrKind::UnclosedDelimiter => write!(f, "Unclosed delimiter at {idx}"),
+            ConvErrKind::NestedDelimiters => {
                 write!(f, "Nested delimiters are not allowed (at {idx})")
             }
-            ConversionError::MismatchedDelimiters(open, close) => {
-                write!(f, "Mismatched delimiters at {open} and {close}")
+            ConvErrKind::MismatchedDelimiters(close) => {
+                write!(f, "Mismatched delimiters at {idx} and {close}")
             }
-            ConversionError::LatexError(e, input) => {
-                write!(f, "Error at {} in '{}':\n{}", e.0, input, e)
+            ConvErrKind::LatexError(e, input) => {
+                write!(f, "Error at {} in '{}':\n{}", idx, input, e)
             }
         }
     }
@@ -76,10 +80,7 @@ impl<'config> Replacer<'config> {
         let mut result = String::with_capacity(input.len());
         let mut current_pos = 0;
 
-        let error_typ = loop {
-            if current_pos >= input.len() {
-                break None;
-            }
+        while current_pos < input.len() {
             let remaining = &input[current_pos..];
 
             // Find the next occurrence of any opening delimiter
@@ -88,7 +89,7 @@ impl<'config> Replacer<'config> {
             let Some((open_typ, idx)) = opening else {
                 // No more opening delimiters found
                 result.push_str(remaining);
-                break None;
+                break;
             };
 
             let opening_delim_len = match open_typ {
@@ -108,7 +109,7 @@ impl<'config> Replacer<'config> {
 
             let Some((close_typ, idx)) = closing else {
                 // No closing delimiter found
-                return Err(ConversionError::UnclosedDelimiter(open_pos));
+                return Err(ConversionError(open_pos, ConvErrKind::UnclosedDelimiter));
             };
 
             let closing_delim_len = match close_typ {
@@ -118,7 +119,10 @@ impl<'config> Replacer<'config> {
 
             if !self.closing_identical && open_typ != close_typ {
                 // Mismatch of opening and closing delimiter
-                return Err(ConversionError::MismatchedDelimiters(open_pos, start + idx));
+                return Err(ConversionError(
+                    open_pos,
+                    ConvErrKind::MismatchedDelimiters(start + idx),
+                ));
             }
 
             let end = start + idx;
@@ -126,33 +130,29 @@ impl<'config> Replacer<'config> {
             let content = &input[start..end];
             // Check whether any *opening* delimiters are present in the content
             if let Some((_, idx)) = self.find_next_delimiter(content, true) {
-                return Err(ConversionError::NestedDelimiters(start + idx));
+                return Err(ConversionError(start + idx, ConvErrKind::NestedDelimiters));
             }
             // Replace HTML entities
             let replaced = replace_html_entities(&mut self.entity_buffer, content);
-            // Convert the content
-            let result = f(&mut result, replaced, open_typ);
-            match result {
-                Ok(_) => {}
-                Err(_) => {
-                    // We know a problem occurred in the slice `content`.
-                    // We store the content in the buffer so we can get the error message later.
-                    self.entity_buffer.clear();
-                    self.entity_buffer.push_str(content);
-                    break Some(open_typ);
-                }
+            // Convert the content and check for error.
+            if f(&mut result, replaced, open_typ).is_err() {
+                // If there is an error, return the error together with the snippet.
+                // Unfortunately, due to limitations in the borrow checker, we have to run the
+                // conversion again to get the error.
+                // The reason seems to be that the borrow checker cannot tell that when we return
+                // `replaced` here, we are not maintaining the borrow for the next iteration of the
+                // loop.
+                // This is quite unfortunate, but we only have to do this in the error case,
+                // which is hopefully not too common.
+                let replaced = replace_html_entities(&mut self.entity_buffer, content);
+                let result = f(&mut result, replaced, open_typ).unwrap_err();
+                return Err(ConversionError(
+                    start,
+                    ConvErrKind::LatexError(result, replaced),
+                ));
             }
             // Update current position
             current_pos = end + closing_delim_len;
-        };
-
-        if let Some(open_typ) = error_typ {
-            // Do the conversion again so we can get the error.
-            let result = f(&mut result, self.entity_buffer.as_str(), open_typ).unwrap_err();
-            return Err(ConversionError::LatexError(
-                result,
-                self.entity_buffer.as_str(),
-            ));
         }
 
         Ok(result)
@@ -182,6 +182,7 @@ impl<'config> Replacer<'config> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use latex2mmlc::LatexErrKind;
     use std::fmt::Write;
 
     /// Mock convert function for testing
@@ -205,14 +206,19 @@ mod tests {
         let mut replacer = Replacer::new(inline_delim, block_delim);
         match replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ)) {
             Ok(s) => Ok(s),
-            Err(e) => match e {
+            Err(e) => match &e.1 {
                 // The following is needed to do a kind of "lifetime laundering".
-                ConversionError::MismatchedDelimiters(a, b) => {
-                    Err(ConversionError::MismatchedDelimiters(a, b))
+                ConvErrKind::MismatchedDelimiters(close) => Err(ConversionError(
+                    e.0,
+                    ConvErrKind::MismatchedDelimiters(*close),
+                )),
+                ConvErrKind::NestedDelimiters => {
+                    Err(ConversionError(e.0, ConvErrKind::NestedDelimiters))
                 }
-                ConversionError::NestedDelimiters(a) => Err(ConversionError::NestedDelimiters(a)),
-                ConversionError::UnclosedDelimiter(a) => Err(ConversionError::UnclosedDelimiter(a)),
-                ConversionError::LatexError(_, _) => unreachable!(),
+                ConvErrKind::UnclosedDelimiter => {
+                    Err(ConversionError(e.0, ConvErrKind::UnclosedDelimiter))
+                }
+                ConvErrKind::LatexError(_, _) => unreachable!(),
             },
         }
     }
@@ -231,7 +237,7 @@ mod tests {
         println!("{}", result);
         assert!(matches!(
             result,
-            ConversionError::MismatchedDelimiters(7, 15)
+            ConversionError(7, ConvErrKind::MismatchedDelimiters(15))
         ));
     }
 
@@ -242,7 +248,7 @@ mod tests {
         println!("{}", result);
         assert!(matches!(
             result,
-            ConversionError::MismatchedDelimiters(7, 14)
+            ConversionError(7, ConvErrKind::MismatchedDelimiters(14))
         ));
     }
 
@@ -251,7 +257,10 @@ mod tests {
         let input = "Unclosed $delimiter";
         let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
         println!("{}", result);
-        assert!(matches!(result, ConversionError::UnclosedDelimiter(9)));
+        assert!(matches!(
+            result,
+            ConversionError(9, ConvErrKind::UnclosedDelimiter)
+        ));
     }
 
     #[test]
@@ -289,7 +298,7 @@ mod tests {
         println!("{}", result);
         assert!(matches!(
             result,
-            ConversionError::MismatchedDelimiters(9, 16)
+            ConversionError(9, ConvErrKind::MismatchedDelimiters(16))
         ));
     }
 
@@ -321,7 +330,7 @@ mod tests {
         println!("{}", result);
         assert!(matches!(
             result,
-            ConversionError::MismatchedDelimiters(4, 19)
+            ConversionError(4, ConvErrKind::MismatchedDelimiters(19))
         ));
     }
 
@@ -330,7 +339,10 @@ mod tests {
         let input = r"let \(a=1 and \[b=2\).";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
         println!("{}", result);
-        assert!(matches!(result, ConversionError::NestedDelimiters(14)));
+        assert!(matches!(
+            result,
+            ConversionError(14, ConvErrKind::NestedDelimiters)
+        ));
     }
 
     #[test]
@@ -338,7 +350,10 @@ mod tests {
         let input = r"let \(a=1 and \(b=2\).";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
         println!("{}", result);
-        assert!(matches!(result, ConversionError::NestedDelimiters(14)));
+        assert!(matches!(
+            result,
+            ConversionError(14, ConvErrKind::NestedDelimiters)
+        ));
     }
 
     #[test]
@@ -346,7 +361,10 @@ mod tests {
         let input = r"let \(a=1 and b=2.";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
         println!("{}", result);
-        assert!(matches!(result, ConversionError::UnclosedDelimiter(4)));
+        assert!(matches!(
+            result,
+            ConversionError(4, ConvErrKind::UnclosedDelimiter)
+        ));
     }
 
     #[test]
@@ -386,5 +404,24 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result, "based on its length, [T1:P(p)=2^{-len(p)}], and then for a given\n    [T2:\n    P(p)=2^{-len(p)}\n    ]\n    Hello.");
+    }
+
+    #[test]
+    fn test_error() {
+        let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"));
+        let input = r"let \(&amp;=1\).";
+        // This conversion function always returns an error.
+        let err = replacer
+            .replace(input, |_buf, _content, _typ| {
+                Err(LatexError(0, LatexErrKind::UnexpectedEOF))
+            })
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            ConversionError(
+                6,
+                ConvErrKind::LatexError(LatexError(0, LatexErrKind::UnexpectedEOF), "&=1")
+            )
+        ));
     }
 }
