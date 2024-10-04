@@ -75,7 +75,20 @@ pub(crate) const DOT_ABOVE: Op = Op('˙');
 pub(crate) const DOUBLE_VERTICAL_LINE: Op = Op('‖');
 pub(crate) const HORIZONTAL_ELLIPSIS: Op = Op('…');
 pub(crate) const PRIME: Op = Op('′');
+pub(crate) const DOUBLE_PRIME: Op = Op('″');
+pub(crate) const TRIPLE_PRIME: Op = Op('‴');
 pub(crate) const REVERSED_PRIME: Op = Op('‵');
+// pub(crate) const REVERSED_DOUBLE_PRIME: Op = Op('‶');
+// pub(crate) const REVERSED_TRIPLE_PRIME: Op = Op('‷');
+// pub(crate) const CARET: Op = Op('‸');
+// pub(crate) const SINGLE_LEFT_POINTING_ANGLE_QUOTATION_MARK: Op = Op('‹');
+// pub(crate) const SINGLE_RIGHT_POINTING_ANGLE_QUOTATION_MARK: Op = Op('›');
+// pub(crate) const REFERENCE_MARK: Op = Op('※');
+// pub(crate) const DOUBLE_EXCLAMATION_MARK: Op = Op('‼');
+// pub(crate) const INTERROBANG: Op = Op('‽');
+// pub(crate) const OVERLINE: Op = Op('‾');
+
+pub(crate) const QUADRUPLE_PRIME: Op = Op('⁗');
 
 //
 // Unicode Block: Arrows

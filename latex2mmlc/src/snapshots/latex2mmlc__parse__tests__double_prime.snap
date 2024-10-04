@@ -5,12 +5,6 @@ expression: "f''"
 [
   Superscript(
     target: SingleLetterIdent('f', None),
-    symbol: Row(
-      nodes: [
-        Operator(Op('′'), None),
-        Operator(Op('′'), None),
-      ],
-      style: None,
-    ),
+    symbol: Operator(Op('″'), None),
   ),
 ]

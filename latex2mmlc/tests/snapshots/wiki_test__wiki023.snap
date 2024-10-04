@@ -19,10 +19,7 @@ expression: "\\prime, \\backprime, f^\\prime, f', f'', f^{(3)}, \\dot y, \\ddot 
     <mo>,</mo>
     <msup>
         <mi>f</mi>
-        <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
-        </mrow>
+        <mo>″</mo>
     </msup>
     <mo>,</mo>
     <msup>

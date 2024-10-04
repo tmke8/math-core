@@ -57,7 +57,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
-pub use error::LatexError;
+pub use error::{LatexErrKind, LatexError};
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -280,7 +280,10 @@ mod tests {
             ("prime", r"f'"),
             ("double_prime", r"f''"),
             ("triple_prime", r"f'''"),
+            ("quadruple_prime", r"f''''"),
+            ("quintuple_prime", r"f'''''"),
             ("prime_and_super", r"f'^2"),
+            ("sub_prime_super", r"f_3'^2"),
             ("double_prime_and_super", r"f''^2"),
             ("double_prime_and_super_sub", r"f''^2_3"),
             ("double_prime_and_sub_super", r"f''_3^2"),
