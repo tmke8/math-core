@@ -281,6 +281,7 @@ mod tests {
             ("double_prime", r"f''"),
             ("triple_prime", r"f'''"),
             ("prime_and_super", r"f'^2"),
+            ("sub_prime_super", r"f_3'^2"),
             ("double_prime_and_super", r"f''^2"),
             ("double_prime_and_super_sub", r"f''^2_3"),
             ("double_prime_and_sub_super", r"f''_3^2"),

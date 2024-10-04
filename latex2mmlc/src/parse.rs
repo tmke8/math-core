@@ -741,30 +741,18 @@ where
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
-        let mut primes = NodeListBuilder::new();
-        let mut prime_count = 0usize;
-        while matches!(self.peek.token(), Token::Prime) {
-            self.next_token(); // Discard the prime token.
-            prime_count += 1;
-        }
-        match prime_count {
-            0 => (),
-            1 => primes.push(self.commit(Node::Operator(ops::PRIME, None))),
-            2 => primes.push(self.commit(Node::Operator(ops::DOUBLE_PRIME, None))),
-            3 => primes.push(self.commit(Node::Operator(ops::TRIPLE_PRIME, None))),
-            4 => primes.push(self.commit(Node::Operator(ops::QUADRUPLE_PRIME, None))),
-            _ => {
-                for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(ops::PRIME, None)));
-                }
-            }
-        }
-
+        let mut primes = self.prime_check();
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.peek.token(), Token::Underscore);
 
         let (sub, sup) = if first_underscore || matches!(self.peek.token(), Token::Circumflex) {
             let first_bound = Some(self.get_sub_or_sub()?);
+
+            // If the first bound was a subscript *and* we didn't encounter primes yet,
+            // we check once more for primes.
+            if first_underscore && primes.is_empty() {
+                primes = self.prime_check();
+            }
 
             // Check whether both an upper and a lower bound were specified.
             let second_underscore = matches!(self.peek.token(), Token::Underscore);
@@ -809,6 +797,28 @@ where
         };
 
         Ok(Bounds(sub.map(|s| s.node()), sup.map(|s| s.node())))
+    }
+
+    fn prime_check(&mut self) -> NodeListBuilder<'arena> {
+        let mut primes = NodeListBuilder::new();
+        let mut prime_count = 0usize;
+        while matches!(self.peek.token(), Token::Prime) {
+            self.next_token(); // Discard the prime token.
+            prime_count += 1;
+        }
+        match prime_count {
+            0 => (),
+            1 => primes.push(self.commit(Node::Operator(ops::PRIME, None))),
+            2 => primes.push(self.commit(Node::Operator(ops::DOUBLE_PRIME, None))),
+            3 => primes.push(self.commit(Node::Operator(ops::TRIPLE_PRIME, None))),
+            4 => primes.push(self.commit(Node::Operator(ops::QUADRUPLE_PRIME, None))),
+            _ => {
+                for _ in 0..prime_count {
+                    primes.push(self.commit(Node::Operator(ops::PRIME, None)));
+                }
+            }
+        }
+        primes
     }
 
     /// Parse the node after a `_` or `^` token.
