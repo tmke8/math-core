@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "f''''"
+---
+<math>
+    <msup>
+        <mi>f</mi>
+        <mo>⁗</mo>
+    </msup>
+</math>

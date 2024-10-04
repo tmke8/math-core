@@ -808,10 +808,15 @@ where
         }
         match prime_count {
             0 => (),
-            1 => primes.push(self.commit(Node::Operator(ops::PRIME, None))),
-            2 => primes.push(self.commit(Node::Operator(ops::DOUBLE_PRIME, None))),
-            3 => primes.push(self.commit(Node::Operator(ops::TRIPLE_PRIME, None))),
-            4 => primes.push(self.commit(Node::Operator(ops::QUADRUPLE_PRIME, None))),
+            idx @ 1..5 => {
+                let prime_selection = [
+                    ops::PRIME,
+                    ops::DOUBLE_PRIME,
+                    ops::TRIPLE_PRIME,
+                    ops::QUADRUPLE_PRIME,
+                ];
+                primes.push(self.commit(Node::Operator(prime_selection[idx - 1], None)));
+            }
             _ => {
                 for _ in 0..prime_count {
                     primes.push(self.commit(Node::Operator(ops::PRIME, None)));
