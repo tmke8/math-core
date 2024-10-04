@@ -5,10 +5,6 @@ expression: "f'''"
 <math>
     <msup>
         <mi>f</mi>
-        <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
-            <mo>′</mo>
-        </mrow>
+        <mo>‴</mo>
     </msup>
 </math>

@@ -742,9 +742,22 @@ where
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
         let mut primes = NodeListBuilder::new();
+        let mut prime_count = 0usize;
         while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
-            primes.push(self.commit(Node::Operator(ops::PRIME, None)));
+            prime_count += 1;
+        }
+        match prime_count {
+            0 => (),
+            1 => primes.push(self.commit(Node::Operator(ops::PRIME, None))),
+            2 => primes.push(self.commit(Node::Operator(ops::DOUBLE_PRIME, None))),
+            3 => primes.push(self.commit(Node::Operator(ops::TRIPLE_PRIME, None))),
+            4 => primes.push(self.commit(Node::Operator(ops::QUADRUPLE_PRIME, None))),
+            _ => {
+                for _ in 0..prime_count {
+                    primes.push(self.commit(Node::Operator(ops::PRIME, None)));
+                }
+            }
         }
 
         // Check whether the first bound is specified and is a lower bound.

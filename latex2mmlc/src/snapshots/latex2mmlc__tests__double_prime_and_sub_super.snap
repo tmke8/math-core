@@ -7,8 +7,7 @@ expression: "f''_3^2"
         <mi>f</mi>
         <mn>3</mn>
         <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
+            <mo>″</mo>
             <mn>2</mn>
         </mrow>
     </msubsup>

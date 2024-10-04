@@ -10,10 +10,7 @@ expression: "x', y'', f', f'' \\\\ x^\\prime, y^{\\prime\\prime}"
     <mo>,</mo>
     <msup>
         <mi>y</mi>
-        <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
-        </mrow>
+        <mo>″</mo>
     </msup>
     <mo>,</mo>
     <msup>
@@ -23,10 +20,7 @@ expression: "x', y'', f', f'' \\\\ x^\\prime, y^{\\prime\\prime}"
     <mo>,</mo>
     <msup>
         <mi>f</mi>
-        <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
-        </mrow>
+        <mo>″</mo>
     </msup>
     <msup>
         <mi>x</mi>

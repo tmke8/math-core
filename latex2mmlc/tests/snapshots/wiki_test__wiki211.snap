@@ -5,10 +5,7 @@ expression: "u'' + p(x)u' + q(x)u=f(x),\\quad x>a"
 <math>
     <msup>
         <mi>u</mi>
-        <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
-        </mrow>
+        <mo>″</mo>
     </msup>
     <mo>+</mo>
     <mi>p</mi>

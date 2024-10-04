@@ -6,8 +6,7 @@ expression: "f''^2"
     <msup>
         <mi>f</mi>
         <mrow>
-            <mo>′</mo>
-            <mo>′</mo>
+            <mo>″</mo>
             <mn>2</mn>
         </mrow>
     </msup>
