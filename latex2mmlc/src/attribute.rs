@@ -27,7 +27,7 @@ pub enum Accent {
     False,
 }
 
-#[derive(Debug, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(test, derive(Serialize))]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="true""#)]

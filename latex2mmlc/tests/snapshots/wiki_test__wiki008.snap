@@ -5,7 +5,7 @@ expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
 <math>
     <mover>
         <mi>a</mi>
-        <mo accent="true">^</mo>
+        <mo accent="true" stretchy="false">^</mo>
     </mover>
     <mo>,</mo>
     <mover>
@@ -15,6 +15,6 @@ expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
     <mo>,</mo>
     <mover>
         <mi>a</mi>
-        <mo accent="true">→</mo>
+        <mo accent="true" stretchy="false">→</mo>
     </mover>
 </math>

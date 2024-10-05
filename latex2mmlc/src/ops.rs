@@ -86,7 +86,7 @@ pub(crate) const REVERSED_PRIME: Op = Op('‵');
 // pub(crate) const REFERENCE_MARK: Op = Op('※');
 // pub(crate) const DOUBLE_EXCLAMATION_MARK: Op = Op('‼');
 // pub(crate) const INTERROBANG: Op = Op('‽');
-// pub(crate) const OVERLINE: Op = Op('‾');
+pub(crate) const OVERLINE: Op = Op('‾');
 
 pub(crate) const QUADRUPLE_PRIME: Op = Op('⁗');
 
