@@ -9,7 +9,7 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
     <mo stretchy="false">)</mo>
     <mo>=</mo>
     <mrow>
-        <mo stretchy="true">{</mo>
+        <mo>{</mo>
         <mtable>
             <mtr>
                 <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
@@ -39,6 +39,6 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true"></mo>
+        <mo></mo>
     </mrow>
 </math>

@@ -45,6 +45,18 @@ pub enum ParenAttr {
     Ordinary = 1,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Stretchy {
+    /// The operator is always stretchy (e.g. `(`, `)`).
+    Always = 1,
+    /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
+    PrePostfix,
+    /// The operator is never stretchy (e.g. `/`).
+    Never,
+    /// There don't seem to be any rules for this operator (e.g. `↑` on Chrome).
+    Inconsistent,
+}
+
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(test, derive(Serialize))]

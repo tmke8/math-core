@@ -4,14 +4,14 @@ expression: "\\updownarrow\\big\\updownarrow\\Big\\updownarrow \\bigg\\updownarr
 ---
 <math>
     <mo stretchy="false">↕</mo>
-    <mo maxsize="1.2em" minsize="1.2em">↕</mo>
-    <mo maxsize="1.623em" minsize="1.623em">↕</mo>
-    <mo maxsize="2.047em" minsize="2.047em">↕</mo>
-    <mo maxsize="2.470em" minsize="2.470em">↕</mo>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">↕</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">↕</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">↕</mo>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">↕</mo>
     <mo>…</mo>
-    <mo maxsize="2.470em" minsize="2.470em">⇕</mo>
-    <mo maxsize="2.047em" minsize="2.047em">⇕</mo>
-    <mo maxsize="1.623em" minsize="1.623em">⇕</mo>
-    <mo maxsize="1.2em" minsize="1.2em">⇕</mo>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">⇕</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">⇕</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">⇕</mo>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">⇕</mo>
     <mo stretchy="false">⇕</mo>
 </math>

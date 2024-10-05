@@ -4,8 +4,8 @@ expression: "\\left( x \\right."
 ---
 <math>
     <mrow>
-        <mo stretchy="true">(</mo>
+        <mo>(</mo>
         <mi>x</mi>
-        <mo stretchy="true"></mo>
+        <mo></mo>
     </mrow>
 </math>

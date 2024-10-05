@@ -12,11 +12,11 @@ expression: "V = \\frac{1}{6} \\pi h \\left [ 3 \\left ( r_1^2 + r_2^2 \\right )
     <mi>π</mi>
     <mi>h</mi>
     <mrow>
-        <mo stretchy="true">[</mo>
+        <mo>[</mo>
         <mrow>
             <mn>3</mn>
             <mrow>
-                <mo stretchy="true">(</mo>
+                <mo>(</mo>
                 <mrow>
                     <msubsup>
                         <mi>r</mi>
@@ -30,7 +30,7 @@ expression: "V = \\frac{1}{6} \\pi h \\left [ 3 \\left ( r_1^2 + r_2^2 \\right )
                         <mn>2</mn>
                     </msubsup>
                 </mrow>
-                <mo stretchy="true">)</mo>
+                <mo>)</mo>
             </mrow>
             <mo>+</mo>
             <msup>
@@ -38,6 +38,6 @@ expression: "V = \\frac{1}{6} \\pi h \\left [ 3 \\left ( r_1^2 + r_2^2 \\right )
                 <mn>2</mn>
             </msup>
         </mrow>
-        <mo stretchy="true">]</mo>
+        <mo>]</mo>
     </mrow>
 </math>

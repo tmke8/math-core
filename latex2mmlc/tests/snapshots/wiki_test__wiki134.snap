@@ -5,12 +5,12 @@ expression: "\\left ( \\frac{1}{2} \\right )^n"
 <math>
     <msup>
         <mrow>
-            <mo stretchy="true">(</mo>
+            <mo>(</mo>
             <mfrac>
                 <mn>1</mn>
                 <mn>2</mn>
             </mfrac>
-            <mo stretchy="true">)</mo>
+            <mo>)</mo>
         </mrow>
         <mi>n</mi>
     </msup>

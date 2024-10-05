@@ -9,7 +9,7 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.
     <mo stretchy="false">)</mo>
     <mo>≔</mo>
     <mrow>
-        <mo stretchy="true">{</mo>
+        <mo>{</mo>
         <mtable>
             <mtr>
                 <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
@@ -31,6 +31,6 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true"></mo>
+        <mo></mo>
     </mrow>
 </math>

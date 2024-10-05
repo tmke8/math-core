@@ -9,7 +9,7 @@ expression: "f(x) = \\begin{cases} 1 & -1 \\le x < 0 \\\\ \\frac{1}{2} & x = 0 \
     <mo stretchy="false">)</mo>
     <mo>=</mo>
     <mrow>
-        <mo stretchy="true">{</mo>
+        <mo>{</mo>
         <mtable>
             <mtr>
                 <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
@@ -51,6 +51,6 @@ expression: "f(x) = \\begin{cases} 1 & -1 \\le x < 0 \\\\ \\frac{1}{2} & x = 0 \
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true"></mo>
+        <mo></mo>
     </mrow>
 </math>

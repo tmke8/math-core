@@ -4,13 +4,13 @@ expression: "\\left [ 0,1 \\right ) \\left \\langle \\psi \\right |"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">[</mo>
+        <mo>[</mo>
         <mn>0,1</mn>
-        <mo stretchy="true">)</mo>
+        <mo>)</mo>
     </mrow>
     <mrow>
-        <mo stretchy="true">⟨</mo>
+        <mo>⟨</mo>
         <mi>ψ</mi>
-        <mo stretchy="true">|</mo>
+        <mo>|</mo>
     </mrow>
 </math>

@@ -4,11 +4,11 @@ expression: "\\dbinom{n}{k}"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">(</mo>
+        <mo>(</mo>
         <mfrac linethickness="0pt" displaystyle="true">
             <mi>n</mi>
             <mi>k</mi>
         </mfrac>
-        <mo stretchy="true">)</mo>
+        <mo>)</mo>
     </mrow>
 </math>

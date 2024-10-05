@@ -26,8 +26,8 @@ impl From<&Op> for char {
 pub(crate) const NULL: Op = Op('\u{0}');
 pub(crate) const EXCLAMATION_MARK: Op = Op('!');
 // pub(crate) const APOSTROPHE: Op = Op('\'');
-pub(crate) const LEFT_PARENTHESIS: Op = Op('(');
-pub(crate) const RIGHT_PARENTHESIS: Op = Op(')');
+pub(crate) const LEFT_PARENTHESIS: Op = Op('('); // stretchy symmetric fence
+pub(crate) const RIGHT_PARENTHESIS: Op = Op(')'); // stretchy symmetric fence
 pub(crate) const ASTERISK: Op = Op('*');
 pub(crate) const PLUS_SIGN: Op = Op('+');
 pub(crate) const COMMA: Op = Op(',');
@@ -39,15 +39,15 @@ pub(crate) const SEMICOLON: Op = Op(';');
 pub(crate) const EQUALS_SIGN: Op = Op('=');
 // pub(crate) const GREATER_THAN_SIGN: Op = Op('>');
 // pub(crate) const QUESTION_MARK: Op = Op('?');
-pub(crate) const LEFT_SQUARE_BRACKET: Op = Op('[');
+pub(crate) const LEFT_SQUARE_BRACKET: Op = Op('['); // stretchy symmetric fence
 pub(crate) const REVERSE_SOLIDUS: Op = Op('\\');
-pub(crate) const RIGHT_SQUARE_BRACKET: Op = Op(']');
+pub(crate) const RIGHT_SQUARE_BRACKET: Op = Op(']'); // stretchy symmetric fence
 pub(crate) const CIRCUMFLEX_ACCENT: Op = Op('^');
 pub(crate) const LOW_LINE: Op = Op('_');
 pub(crate) const GRAVE_ACCENT: Op = Op('`');
-pub(crate) const LEFT_CURLY_BRACKET: Op = Op('{');
-pub(crate) const VERTICAL_LINE: Op = Op('|');
-pub(crate) const RIGHT_CURLY_BRACKET: Op = Op('}');
+pub(crate) const LEFT_CURLY_BRACKET: Op = Op('{'); // stretchy symmetric fence
+pub(crate) const VERTICAL_LINE: Op = Op('|'); // fence, but if pre-/postfix, then stretchy symmetric fence
+pub(crate) const RIGHT_CURLY_BRACKET: Op = Op('}'); // stretchy symmetric fence
 pub(crate) const TILDE: Op = Op('~');
 
 //
@@ -469,10 +469,10 @@ pub(crate) const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Op = Op('⋱');
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub(crate) const LEFT_CEILING: Op = Op('⌈');
-pub(crate) const RIGHT_CEILING: Op = Op('⌉');
-pub(crate) const LEFT_FLOOR: Op = Op('⌊');
-pub(crate) const RIGHT_FLOOR: Op = Op('⌋');
+pub(crate) const LEFT_CEILING: Op = Op('⌈'); // stretchy symmetric fence
+pub(crate) const RIGHT_CEILING: Op = Op('⌉'); // stretchy symmetric fence
+pub(crate) const LEFT_FLOOR: Op = Op('⌊'); // stretchy symmetric fence
+pub(crate) const RIGHT_FLOOR: Op = Op('⌋'); // stretchy symmetric fence
 pub(crate) const TOP_LEFT_CORNER: char = '⌜';
 pub(crate) const TOP_RIGHT_CORNER: char = '⌝';
 pub(crate) const BOTTOM_LEFT_CORNER: char = '⌞';
@@ -512,12 +512,12 @@ pub(crate) const BLACK_STAR: char = '★';
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
-pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Op = Op('⟦');
-pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Op = Op('⟧');
-pub(crate) const MATHEMATICAL_LEFT_ANGLE_BRACKET: Op = Op('⟨');
-pub(crate) const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Op = Op('⟩');
-pub(crate) const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Op = Op('⟮');
-pub(crate) const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Op = Op('⟯');
+pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Op = Op('⟦'); // stretchy symmetric fence
+pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Op = Op('⟧'); // stretchy symmetric fence
+pub(crate) const MATHEMATICAL_LEFT_ANGLE_BRACKET: Op = Op('⟨'); // stretchy symmetric fence
+pub(crate) const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Op = Op('⟩'); // stretchy symmetric fence
+pub(crate) const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Op = Op('⟮'); // stretchy symmetric fence
+pub(crate) const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Op = Op('⟯'); // stretchy symmetric fence
 
 //
 // Unicode Block: Supplemental Arrows-A

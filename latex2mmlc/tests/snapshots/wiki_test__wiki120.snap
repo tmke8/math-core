@@ -4,11 +4,11 @@ expression: "\\binom{n}{k}"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">(</mo>
+        <mo>(</mo>
         <mfrac linethickness="0pt">
             <mi>n</mi>
             <mi>k</mi>
         </mfrac>
-        <mo stretchy="true">)</mo>
+        <mo>)</mo>
     </mrow>
 </math>
