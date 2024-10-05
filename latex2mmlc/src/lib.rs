@@ -298,6 +298,12 @@ mod tests {
             ("mid", r"P(x\mid y)"),
             ("special_symbols", r"\%\$\#"),
             ("lbrack_instead_of_bracket", r"\sqrt\lbrack 4]{2}"),
+            ("middle_vert", r"\left(\frac12\middle|\frac12\right)"),
+            (
+                "middle_uparrow",
+                r"\left(\frac12\middle\uparrow\frac12\right)",
+            ),
+            ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
         ];
 
         for (name, problem) in problems.into_iter() {

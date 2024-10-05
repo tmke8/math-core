@@ -493,6 +493,7 @@ where
                     close: close_paren,
                     content: self.squeeze(content, None).node(),
                     style: None,
+                    // TODO: Handle open and close separately.
                     stretchy: open_stretchy || close_stretchy,
                 }
             }
@@ -501,19 +502,15 @@ where
                 match next_token {
                     // Token::Operator(op) | Token::Paren(op, _, stretchy) => {
                     Token::Paren(op, _, stretchy) => {
-                        let attr = if matches!(stretchy, Stretchy::Never | Stretchy::Inconsistent) {
-                            Some(OpAttr::StretchyFalse)
+                        let attr = if !matches!(stretchy, Stretchy::Always) {
+                            Some(OpAttr::StretchyTrue)
                         } else {
                             None
                         };
                         Node::Operator(op, attr)
                     }
-                    Token::SquareBracketOpen => {
-                        Node::Operator(ops::LEFT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
-                    }
-                    Token::SquareBracketClose => {
-                        Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyTrue))
-                    }
+                    Token::SquareBracketOpen => Node::Operator(ops::LEFT_SQUARE_BRACKET, None),
+                    Token::SquareBracketClose => Node::Operator(ops::RIGHT_SQUARE_BRACKET, None),
                     _ => {
                         return Err(LatexError(
                             loc,
