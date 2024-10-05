@@ -4,8 +4,8 @@ expression: "\\left| \\uparrow \\right\\rangle"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">|</mo>
+        <mo>|</mo>
         <mo stretchy="false">↑</mo>
-        <mo stretchy="true">⟩</mo>
+        <mo>⟩</mo>
     </mrow>
 </math>

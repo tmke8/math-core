@@ -8,7 +8,7 @@ use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
 
-use crate::attribute::ParenAttr;
+use crate::attribute::{ParenAttr, Stretchy};
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
 use crate::token::TokLoc;
@@ -158,13 +158,13 @@ impl<'source> Lexer<'source> {
             '!' => Token::Operator(ops::EXCLAMATION_MARK),
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
-            '(' => Token::Paren(ops::LEFT_PARENTHESIS, None),
-            ')' => Token::Paren(ops::RIGHT_PARENTHESIS, None),
+            '(' => Token::Paren(ops::LEFT_PARENTHESIS, None, Stretchy::Always),
+            ')' => Token::Paren(ops::RIGHT_PARENTHESIS, None, Stretchy::Always),
             '*' => Token::Operator(ops::ASTERISK),
             '+' => Token::Operator(ops::PLUS_SIGN),
             ',' => Token::Operator(ops::COMMA),
             '-' => Token::Operator(ops::MINUS_SIGN),
-            '/' => Token::Paren(ops::SOLIDUS, Some(ParenAttr::Ordinary)),
+            '/' => Token::Paren(ops::SOLIDUS, Some(ParenAttr::Ordinary), Stretchy::Never),
             ':' => Token::Colon,
             ';' => Token::Operator(ops::SEMICOLON),
             '<' => Token::OpLessThan,
@@ -175,7 +175,11 @@ impl<'source> Lexer<'source> {
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => Token::GroupBegin,
-            '|' => Token::Paren(ops::VERTICAL_LINE, Some(ParenAttr::Ordinary)),
+            '|' => Token::Paren(
+                ops::VERTICAL_LINE,
+                Some(ParenAttr::Ordinary),
+                Stretchy::PrePostfix,
+            ),
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {

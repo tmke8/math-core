@@ -4,7 +4,7 @@ expression: "\\begin{pmatrix} x & y \\\\ z & v \\end{pmatrix}"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">(</mo>
+        <mo>(</mo>
         <mtable>
             <mtr>
                 <mtd>
@@ -23,6 +23,6 @@ expression: "\\begin{pmatrix} x & y \\\\ z & v \\end{pmatrix}"
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true">)</mo>
+        <mo>)</mo>
     </mrow>
 </math>

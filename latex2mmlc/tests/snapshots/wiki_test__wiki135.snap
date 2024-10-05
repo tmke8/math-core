@@ -4,11 +4,11 @@ expression: "\\left ( \\frac{a}{b} \\right )"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">(</mo>
+        <mo>(</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mo stretchy="true">)</mo>
+        <mo>)</mo>
     </mrow>
 </math>

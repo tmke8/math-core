@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::AsRefStr;
 
-use crate::attribute::{FracAttr, MathVariant, OpAttr, ParenAttr, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, OpAttr, ParenAttr, Stretchy, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
@@ -25,7 +25,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\middle")]
     Middle,
     #[strum(serialize = "parenthesis")]
-    Paren(Op, Option<ParenAttr>),
+    Paren(Op, Option<ParenAttr>, Stretchy),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]

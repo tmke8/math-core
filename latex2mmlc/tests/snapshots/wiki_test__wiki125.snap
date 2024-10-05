@@ -4,7 +4,7 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
 ---
 <math>
     <mrow>
-        <mo stretchy="true">[</mo>
+        <mo>[</mo>
         <mtable>
             <mtr>
                 <mtd>
@@ -40,6 +40,6 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
                 </mtd>
             </mtr>
         </mtable>
-        <mo stretchy="true">]</mo>
+        <mo>]</mo>
     </mrow>
 </math>

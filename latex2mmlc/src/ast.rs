@@ -70,12 +70,14 @@ pub enum Node<'arena> {
     Fenced {
         open: Op,
         close: Op,
-        content: &'arena Node<'arena>,
         style: Option<Style>,
+        stretchy: bool,
+        content: &'arena Node<'arena>,
     },
     SizedParen {
         size: &'static str,
         paren: Op,
+        stretchy: bool,
     },
     Text(&'arena str),
     Table {
@@ -306,29 +308,47 @@ impl<'arena> Node<'arena> {
             Node::Fenced {
                 open,
                 close,
-                content,
                 style,
+                stretchy,
+                content,
             } => {
                 match style {
                     Some(style) => push!(s, "<mrow", style, ">"),
                     None => push!(s, "<mrow>"),
                 }
-                pushln!(s, child_indent, "<mo stretchy=\"true\">");
+                pushln!(s, child_indent, "<mo");
+                if *stretchy {
+                    // TODO: Should we set `symmetric="true"` as well?
+                    push!(s, " stretchy=\"true\"");
+                }
+                push!(s, ">");
                 if char::from(open) != '\0' {
                     push!(s, @open);
                 }
                 push!(s, "</mo>");
                 content.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo stretchy=\"true\">");
+                pushln!(s, child_indent, "<mo");
+                if *stretchy {
+                    // TODO: Should we set `symmetric="true"` as well?
+                    push!(s, " stretchy=\"true\"");
+                }
+                push!(s, ">");
                 if char::from(close) != '\0' {
                     push!(s, @close);
                 }
                 push!(s, "</mo>");
                 pushln!(s, base_indent, "</mrow>");
             }
-            Node::SizedParen { size, paren } => {
-                push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\">");
-                push!(s, @paren, "</mo>");
+            Node::SizedParen {
+                size,
+                paren,
+                stretchy,
+            } => {
+                push!(s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
+                if *stretchy {
+                    push!(s, " stretchy=\"true\" symmetric=\"true\"");
+                }
+                push!(s, ">", @paren, "</mo>");
             }
             Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, var) => match var {
