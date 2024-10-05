@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::AsRefStr;
 
-use crate::attribute::{FracAttr, MathVariant, ParenAttr, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, OpAttr, ParenAttr, Style, TextTransform};
 use crate::ops::Op;
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
@@ -51,8 +51,7 @@ pub enum Token<'source> {
     Overset,
     #[strum(serialize = r"\underset")]
     Underset,
-    Overbrace(Op),
-    Underbrace(Op),
+    OverUnderBrace(Op, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
     Integral(Op),
@@ -65,8 +64,7 @@ pub enum Token<'source> {
     Whitespace,
     Transform(Option<TextTransform>, Option<MathVariant>),
     Big(&'static str),
-    Over(Op),
-    Under(Op),
+    OverUnder(Op, bool, Option<OpAttr>),
     Operator(Op),
     #[strum(serialize = "'")]
     Prime,

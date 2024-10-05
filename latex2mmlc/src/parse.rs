@@ -222,10 +222,10 @@ where
                     style,
                 }
             }
-            ref tok @ (Token::Over(op) | Token::Under(op)) => {
+            Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_token()?;
-                if matches!(tok, Token::Over(_)) {
-                    Node::OverOp(op, Accent::True, target)
+                if is_over {
+                    Node::OverOp(op, Accent::True, attr, target)
                 } else {
                     Node::UnderOp(op, Accent::True, target)
                 }
@@ -239,8 +239,7 @@ where
                     Node::Underset { symbol, target }
                 }
             }
-            ref tok @ (Token::Overbrace(x) | Token::Underbrace(x)) => {
-                let is_over = matches!(tok, Token::Overbrace(_));
+            Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_single_token()?;
                 let symbol = self.commit(Node::Operator(x, None)).node();
                 let base = if is_over {

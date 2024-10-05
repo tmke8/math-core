@@ -5,17 +5,17 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
 <math>
     <mover>
         <mi>a</mi>
-        <mo accent="true">^</mo>
+        <mo accent="true" stretchy="false">^</mo>
     </mover>
     <mspace width="1em"/>
     <mover>
         <mi>b</mi>
-        <mo accent="true">¯</mo>
+        <mo accent="true" stretchy="false">¯</mo>
     </mover>
     <mspace width="1em"/>
     <mover>
         <mi>c</mi>
-        <mo accent="true">→</mo>
+        <mo accent="true" stretchy="false">→</mo>
     </mover>
     <mover>
         <mrow>
@@ -46,7 +46,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
             <mi>h</mi>
             <mi>i</mi>
         </mrow>
-        <mo accent="true">_</mo>
+        <mo accent="true">‾</mo>
     </mover>
     <mspace width="1em"/>
     <munder>

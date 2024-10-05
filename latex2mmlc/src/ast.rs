@@ -35,7 +35,7 @@ pub enum Node<'arena> {
         sub: &'arena Node<'arena>,
         sup: &'arena Node<'arena>,
     },
-    OverOp(Op, Accent, &'arena Node<'arena>),
+    OverOp(Op, Accent, Option<OpAttr>, &'arena Node<'arena>),
     UnderOp(Op, Accent, &'arena Node<'arena>),
     Overset {
         symbol: &'arena Node<'arena>,
@@ -248,10 +248,14 @@ impl<'arena> Node<'arena> {
                 pushln!(s, child_indent, "<mrow></mrow>");
                 pushln!(s, base_indent, "</mmultiscripts>");
             }
-            Node::OverOp(op, acc, target) => {
+            Node::OverOp(op, acc, attr, target) => {
                 push!(s, "<mover>");
                 target.emit(s, child_indent);
-                pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
+                pushln!(s, child_indent, "<mo accent=\"", acc, "\"");
+                if let Some(attr) = attr {
+                    push!(s, attr);
+                }
+                push!(s, ">", @op, "</mo>");
                 pushln!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
@@ -338,7 +342,11 @@ impl<'arena> Node<'arena> {
                 }
                 n => n.emit(s, base_indent),
             },
-            Node::Table { content, align, attr } => {
+            Node::Table {
+                content,
+                align,
+                attr,
+            } => {
                 let child_indent2 = if base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {
@@ -351,8 +359,12 @@ impl<'arena> Node<'arena> {
                 };
                 let odd_col = match align {
                     Align::Center => "<mtd>",
-                    Align::Left => r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#,
-                    Align::Alternating => r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#,
+                    Align::Left => {
+                        r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#
+                    }
+                    Align::Alternating => {
+                        r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#
+                    }
                 };
                 let even_col = match align {
                     Align::Center => "<mtd>",
