@@ -4,6 +4,6 @@ expression: "x\\ y"
 ---
 <math>
     <mi>x</mi>
-    <mspace width="1em"/>
+    <mtext> </mtext>
     <mi>y</mi>
 </math>

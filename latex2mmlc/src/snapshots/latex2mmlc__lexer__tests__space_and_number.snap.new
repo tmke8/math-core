@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lexer.rs
-assertion_line: 265
-expression: "\\ 1"
-snapshot_kind: text
----
-0: SingleSpace
-2: Number("1")

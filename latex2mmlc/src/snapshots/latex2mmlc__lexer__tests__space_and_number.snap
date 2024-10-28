@@ -2,5 +2,5 @@
 source: latex2mmlc/src/lexer.rs
 expression: "\\ 1"
 ---
-0: Space("1")
+0: SingleSpace
 2: Number("1")
