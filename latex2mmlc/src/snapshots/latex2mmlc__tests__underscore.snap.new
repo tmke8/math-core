@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/lib.rs
+assertion_line: 316
+expression: "x\\ y"
+snapshot_kind: text
+---
+<math>
+    <mi>x</mi>
+    <mtext> </mtext>
+    <mi>y</mi>
+</math>

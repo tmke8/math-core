@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+assertion_line: 717
+expression: "\\text{if}~n\\ \\text{is even}"
+snapshot_kind: text
+---
+<math>
+    <mtext>if</mtext>
+    <mtext> </mtext>
+    <mi>n</mi>
+    <mtext> </mtext>
+    <mtext>is even</mtext>
+</math>

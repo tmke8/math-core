@@ -3,7 +3,7 @@ use crate::ops::{self, Op};
 use crate::token::Token;
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
-    " " => Token::Space("1"),
+    " " => Token::SingleSpace,
     "!" => Token::Space("-0.1667"),
     "#" => Token::Letter('#'),
     "$" => Token::Letter('$'),

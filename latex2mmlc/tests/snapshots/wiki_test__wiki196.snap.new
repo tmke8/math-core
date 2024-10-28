@@ -1,0 +1,34 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+assertion_line: 717
+expression: "a \\qquad b \\\\ a \\quad b \\\\ a\\ b \\\\ a \\text{ } b \\\\ a\\;b \\\\ a\\,b \\\\ ab \\\\ a b \\\\ \\mathit{ab} \\\\ a\\!b"
+snapshot_kind: text
+---
+<math>
+    <mi>a</mi>
+    <mspace width="2em"/>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mspace width="1em"/>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mtext> </mtext>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mtext> </mtext>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mspace width="0.2778em"/>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mspace width="0.1667em"/>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mi>b</mi>
+    <mi>a</mi>
+    <mi>b</mi>
+    <mi>𝑎𝑏</mi>
+    <mi>a</mi>
+    <mspace width="-0.1667em"/>
+    <mi>b</mi>
+</math>
