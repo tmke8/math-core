@@ -22,7 +22,7 @@ phf = { version = "0.11.2", features = ["macros"] }
 strum_macros = "0.26.4"
 
 [dev-dependencies]
-insta = { version = "1.40.0", features = ["default", "ron"] }
+insta = { version = "1.41.0", features = ["default", "ron"] }
 serde = { version = "1.0.210", features = ["derive"] }
 lazy_static = "1.5.0"
 regex = "1.11.1"
