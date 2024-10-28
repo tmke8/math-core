@@ -5,6 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>LaTeX to MathML</title>
         <link rel="stylesheet" href="./styles.css" />
+        <link
+            rel="preload"
+            href="./latinmodernmath.woff2"
+            as="font"
+            type="font/woff2"
+            crossorigin="anonymous"
+        />
         <script type="module" src="./main.js"></script>
         <script src="./clipboard.js"></script>
     </head>
@@ -31,49 +38,49 @@
                         <div id="displaystyle" class="option-group">
                             <h3>Display style:</h3>
                             <div class="options">
-                            <label
-                                ><input
-                                    type="radio"
-                                    id="block"
-                                    name="displaystyle"
-                                    value="block"
-                                    checked
-                                />
-                                Block (<code>$$&hellip;$$</code>)</label
-                            >
-                            <label
-                                ><input
-                                    type="radio"
-                                    id="inline"
-                                    name="displaystyle"
-                                    value="inline"
-                                />
-                                Inline (<code>$&hellip;$</code>)</label
-                            >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="block"
+                                        name="displaystyle"
+                                        value="block"
+                                        checked
+                                    />
+                                    Block (<code>$$&hellip;$$</code>)</label
+                                >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="inline"
+                                        name="displaystyle"
+                                        value="inline"
+                                    />
+                                    Inline (<code>$&hellip;$</code>)</label
+                                >
                             </div>
                         </div>
                         <div id="prettyprint" class="option-group">
                             <h3>Pretty print:</h3>
                             <div class="options">
-                            <label
-                                ><input
-                                    type="radio"
-                                    id="pretty-true"
-                                    name="prettyprint"
-                                    value="true"
-                                    checked
-                                />
-                                True</label
-                            >
-                            <label
-                                ><input
-                                    type="radio"
-                                    id="pretty-false"
-                                    name="prettyprint"
-                                    value="false"
-                                />
-                                False</label
-                            >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="pretty-true"
+                                        name="prettyprint"
+                                        value="true"
+                                        checked
+                                    />
+                                    True</label
+                                >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="pretty-false"
+                                        name="prettyprint"
+                                        value="false"
+                                    />
+                                    False</label
+                                >
                             </div>
                         </div>
                     </div>
@@ -104,7 +111,8 @@
                     WebAssembly and a tiny bit of JavaScript. Your LaTeX math is
                     never sent to a server. The compiled WebAssembly is under
                     100kB; less than many images on the web. Additionally, this
-                    webpage needs a patched version of the <em>Latin Modern Math</em>
+                    webpage needs a patched version of the
+                    <em>Latin Modern Math</em>
                     font, to render primes correctly on Chromium-based browsers.
                     The font file for that is 375kB.
                 </p>

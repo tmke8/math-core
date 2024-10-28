@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\vec{x}'"
+---
+<math>
+    <msup>
+        <mover>
+            <mi>x</mi>
+            <mo accent="true" stretchy="false">→</mo>
+        </mover>
+        <mo>′</mo>
+    </msup>
+</math>
