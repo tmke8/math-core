@@ -226,7 +226,7 @@ where
                 }
             }
             Token::OverUnder(op, is_over, attr) => {
-                let target = self.parse_token()?;
+                let target = self.parse_single_token()?;
                 if is_over {
                     Node::OverOp(op, Accent::True, attr, target)
                 } else {
@@ -235,7 +235,7 @@ where
             }
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_token()?;
-                let target = self.parse_token()?;
+                let target = self.parse_single_token()?;
                 if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
@@ -666,7 +666,7 @@ where
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
             }
             // Token::Underscore | Token::Circumflex => {
-            Token::Circumflex | Token::Prime => {
+            Token::Circumflex => {
                 return Err(LatexError(
                     loc,
                     LatexErrKind::CannotBeUsedHere {
@@ -674,6 +674,16 @@ where
                         correct_place: Place::AfterOpOrIdent,
                     },
                 ));
+            }
+            Token::Prime => {
+                let target = self
+                    .commit(Node::Row {
+                        nodes: NodeList::empty(),
+                        style: None,
+                    })
+                    .node();
+                let symbol = self.commit(Node::Operator(ops::PRIME, None)).node();
+                Node::Superscript { target, symbol }
             }
             Token::Underscore => {
                 let sub = self.parse_single_token()?;
@@ -762,9 +772,10 @@ where
         let mut primes = self.prime_check();
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.peek.token(), Token::Underscore);
+        let first_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
-        let (sub, sup) = if first_underscore || matches!(self.peek.token(), Token::Circumflex) {
-            let first_bound = Some(self.get_sub_or_sub()?);
+        let (sub, sup) = if first_underscore || first_circumflex {
+            let first_bound = Some(self.get_sub_or_sub(first_circumflex)?);
 
             // If the first bound was a subscript *and* we didn't encounter primes yet,
             // we check once more for primes.
@@ -776,7 +787,7 @@ where
             let second_underscore = matches!(self.peek.token(), Token::Underscore);
             let second_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
-            if (!first_underscore && second_circumflex) || (first_underscore && second_underscore) {
+            if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
                 let TokLoc(loc, token) = self.next_token();
                 return Err(LatexError(
                     loc,
@@ -787,8 +798,8 @@ where
                 ));
             }
 
-            if (first_underscore && second_circumflex) || (!first_underscore && second_underscore) {
-                let second_bound = Some(self.get_sub_or_sub()?);
+            if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
+                let second_bound = Some(self.get_sub_or_sub(second_circumflex)?);
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if first_underscore {
@@ -845,7 +856,7 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sub(&mut self) -> Result<NodeRef<'arena>, LatexError<'source>> {
+    fn get_sub_or_sub(&mut self, is_sup: bool) -> Result<NodeRef<'arena>, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next = self.next_token();
         if matches!(
@@ -860,7 +871,20 @@ where
                 },
             ));
         }
-        self.parse_single_node(next)
+        let node = self.parse_single_node(next);
+
+        // If the bound was a superscript, it may *not* be followed by a prime.
+        if is_sup && matches!(self.peek.token(), Token::Prime) {
+            return Err(LatexError(
+                self.peek.location(),
+                LatexErrKind::CannotBeUsedHere {
+                    got: Token::Prime,
+                    correct_place: Place::AfterOpOrIdent,
+                },
+            ));
+        }
+
+        node
     }
 
     fn squeeze(

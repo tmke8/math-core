@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "'"
+---
+<math>
+    <msup>
+        <mrow>
+        </mrow>
+        <mo>′</mo>
+    </msup>
+</math>

@@ -1,0 +1,14 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\overset{'}{=}"
+---
+<math>
+    <mover>
+        <mo>=</mo>
+        <msup>
+            <mrow>
+            </mrow>
+            <mo>′</mo>
+        </msup>
+    </mover>
+</math>
