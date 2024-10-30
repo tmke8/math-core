@@ -9,9 +9,9 @@ expression: "\\Pr j, \\hom l, \\lVert z \\rVert, \\arg z"
     <mi>hom</mi>
     <mi>l</mi>
     <mo>,</mo>
-    <mo stretchy="false">‖</mo>
+    <mi>‖</mi>
     <mi>z</mi>
-    <mo stretchy="false">‖</mo>
+    <mi>‖</mi>
     <mo>,</mo>
     <mi>arg</mi>
     <mi>z</mi>
