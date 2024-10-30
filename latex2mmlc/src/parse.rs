@@ -149,6 +149,7 @@ where
             Token::Function(fun) => Node::MultiLetterIdent(fun),
             Token::Space(space) => Node::Space(space),
             Token::NonBreakingSpace | Token::Whitespace => Node::Text("\u{A0}"),
+            Token::SingleSpace => Node::Text(" "),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {

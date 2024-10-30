@@ -7,10 +7,10 @@ expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
         <mi>f</mi>
         <mi>i</mi>
     </mrow>
-    <mspace width="1em"/>
+    <mtext> </mtext>
     <mi>𝑓𝑖</mi>
-    <mspace width="1em"/>
+    <mtext> </mtext>
     <mi>fi</mi>
-    <mspace width="1em"/>
+    <mtext> </mtext>
     <mtext>𝚏𝚒</mtext>
 </math>
