@@ -33,7 +33,7 @@ impl Arena {
 
     #[cfg(target_arch = "wasm32")]
     #[inline]
-    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut NodeListElement<'arena> {
         // This fails if the bump allocator is out of memory.
         self.bump
             .try_alloc_with(|| NodeListElement { node, next: None })
@@ -41,7 +41,7 @@ impl Arena {
     }
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
-    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &mut NodeListElement<'arena> {
+    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut NodeListElement<'arena> {
         self.bump
             .alloc_with(|| NodeListElement { node, next: None })
     }
