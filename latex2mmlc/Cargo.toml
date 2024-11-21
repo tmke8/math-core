@@ -17,7 +17,7 @@ categories = ["science"]
 
 [dependencies]
 bumpalo = "3.16.0"
-no-panic = "0.1.30"
+no-panic = "0.1.31"
 phf = { version = "0.11.2", features = ["macros"] }
 strum_macros = "0.26.4"
 
