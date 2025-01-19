@@ -57,6 +57,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
+use ast::MathMLEmitter;
 pub use error::{LatexErrKind, LatexError};
 
 /// display
@@ -124,7 +125,8 @@ pub fn append_mathml<'source>(
         Display::Inline => output.push_str("<math>"),
     };
 
-    nodes.emit(output, if pretty { 1 } else { 0 });
+    let mut emitter = MathMLEmitter::new(output);
+    emitter.emit(&nodes, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }
