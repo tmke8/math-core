@@ -125,8 +125,8 @@ pub fn append_mathml<'source>(
         Display::Inline => output.push_str("<math>"),
     };
 
-    let mut emitter = MathMLEmitter::new(output);
-    emitter.emit(&nodes, if pretty { 1 } else { 0 });
+    let mut emitter = MathMLEmitter::new(output, if pretty { 1 } else { 0 });
+    emitter.emit(&nodes);
     if pretty {
         output.push('\n');
     }

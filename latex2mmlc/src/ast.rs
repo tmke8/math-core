@@ -1,3 +1,5 @@
+use std::mem;
+
 #[cfg(test)]
 use serde::Serialize;
 
@@ -123,25 +125,29 @@ macro_rules! pushln {
 impl<'arena> Node<'arena> {
     pub fn render(&'arena self) -> String {
         let mut buf = String::new();
-        let mut emitter = MathMLEmitter::new(&mut buf);
-        emitter.emit(self, 0);
+        let mut emitter = MathMLEmitter::new(&mut buf, 0);
+        emitter.emit(self);
         buf
     }
 }
 
 pub struct MathMLEmitter<'output> {
     s: &'output mut String,
+    base_indent: usize,
 }
 
 impl<'output> MathMLEmitter<'output> {
-    pub fn new(buf: &'output mut String) -> Self {
-        Self { s: buf }
+    pub fn new(buf: &'output mut String, base_indent: usize) -> Self {
+        Self {
+            s: buf,
+            base_indent,
+        }
     }
 
-    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) {
+    pub fn emit(&mut self, node: &Node<'_>) {
         // Compute the indent for the children of the node.
-        let child_indent = if base_indent > 0 {
-            base_indent.saturating_add(1)
+        let child_indent = if self.base_indent > 0 {
+            self.base_indent.saturating_add(1)
         } else {
             0
         };
@@ -151,7 +157,7 @@ impl<'output> MathMLEmitter<'output> {
             Node::PseudoRow(_) | Node::ColumnSeparator | Node::RowSeparator
         ) {
             // Get the base indent out of the way.
-            new_line_and_indent(&mut self.s, base_indent);
+            new_line_and_indent(&mut self.s, self.base_indent);
         }
 
         match node {
@@ -226,9 +232,11 @@ impl<'output> MathMLEmitter<'output> {
                     _ => unreachable!(),
                 };
                 push!(self.s, open);
-                self.emit(first, child_indent);
-                self.emit(second, child_indent);
-                pushln!(self.s, base_indent, close);
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(first);
+                self.emit(second);
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, close);
             }
             // The following nodes have exactly three children.
             node @ (Node::SubSup {
@@ -248,39 +256,49 @@ impl<'output> MathMLEmitter<'output> {
                     _ => unreachable!(),
                 };
                 push!(self.s, open);
-                self.emit(first, child_indent);
-                self.emit(second, child_indent);
-                self.emit(third, child_indent);
-                pushln!(self.s, base_indent, close);
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(first);
+                self.emit(second);
+                self.emit(third);
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, close);
             }
             Node::Multiscript { base, sub } => {
                 push!(self.s, "<mmultiscripts>");
-                self.emit(base, child_indent);
-                pushln!(self.s, child_indent, "<mprescripts/>");
-                self.emit(sub, child_indent);
-                pushln!(self.s, child_indent, "<mrow></mrow>");
-                pushln!(self.s, base_indent, "</mmultiscripts>");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(base);
+                pushln!(self.s, self.base_indent, "<mprescripts/>");
+                self.emit(sub);
+                pushln!(self.s, self.base_indent, "<mrow></mrow>");
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, acc, attr, target) => {
                 push!(self.s, "<mover>");
-                self.emit(target, child_indent);
-                pushln!(self.s, child_indent, "<mo accent=\"", acc, "\"");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(target);
+                pushln!(self.s, self.base_indent, "<mo accent=\"", acc, "\"");
+                self.base_indent = old_indent;
                 if let Some(attr) = attr {
                     push!(self.s, attr);
                 }
                 push!(self.s, ">", @op, "</mo>");
-                pushln!(self.s, base_indent, "</mover>");
+                pushln!(self.s, self.base_indent, "</mover>");
             }
             Node::UnderOp(op, acc, target) => {
                 push!(self.s, "<munder>");
-                self.emit(target, child_indent);
-                pushln!(self.s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
-                pushln!(self.s, base_indent, "</munder>");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(target);
+                pushln!(self.s, self.base_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
                 push!(self.s, "<msqrt>");
-                self.emit(content, child_indent);
-                pushln!(self.s, base_indent, "</msqrt>");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(content);
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, "</msqrt>");
             }
             Node::Frac { num, den, lt, attr } => {
                 push!(self.s, "<mfrac");
@@ -291,23 +309,27 @@ impl<'output> MathMLEmitter<'output> {
                     push!(self.s, style);
                 }
                 push!(self.s, ">");
-                self.emit(num, child_indent);
-                self.emit(den, child_indent);
-                pushln!(self.s, base_indent, "</mfrac>");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(num);
+                self.emit(den);
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, "</mfrac>");
             }
             Node::Row { nodes, style } => {
                 match style {
                     Some(style) => push!(self.s, "<mrow", style, ">"),
                     None => push!(self.s, "<mrow>"),
                 }
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
                 for node in nodes.iter() {
-                    self.emit(node, child_indent);
+                    self.emit(node);
                 }
-                pushln!(self.s, base_indent, "</mrow>");
+                self.base_indent = old_indent;
+                pushln!(self.s, self.base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
-                    self.emit(node, base_indent);
+                    self.emit(node);
                 }
             }
             Node::Mathstrut => {
@@ -337,8 +359,10 @@ impl<'output> MathMLEmitter<'output> {
                     push!(self.s, @open);
                 }
                 push!(self.s, "</mo>");
-                self.emit(content, child_indent);
-                pushln!(self.s, child_indent, "<mo");
+                let old_indent = mem::replace(&mut self.base_indent, child_indent);
+                self.emit(content);
+                pushln!(self.s, self.base_indent, "<mo");
+                self.base_indent = old_indent;
                 if *stretchy {
                     // TODO: Should we set `symmetric="true"` as well?
                     push!(self.s, " stretchy=\"true\"");
@@ -348,7 +372,7 @@ impl<'output> MathMLEmitter<'output> {
                     push!(self.s, @close);
                 }
                 push!(self.s, "</mo>");
-                pushln!(self.s, base_indent, "</mrow>");
+                pushln!(self.s, self.base_indent, "</mrow>");
             }
             Node::SizedParen {
                 size,
@@ -371,19 +395,19 @@ impl<'output> MathMLEmitter<'output> {
                 Node::Operator(x, _) => {
                     push!(self.s, "<mo>", @x, "&#x0338;</mo>");
                 }
-                n => self.emit(n, base_indent),
+                n => self.emit(n),
             },
             Node::Table {
                 content,
                 align,
                 attr,
             } => {
-                let child_indent2 = if base_indent > 0 {
+                let child_indent2 = if self.base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {
                     0
                 };
-                let child_indent3 = if base_indent > 0 {
+                let child_indent3 = if self.base_indent > 0 {
                     child_indent2.saturating_add(1)
                 } else {
                     0
@@ -432,13 +456,15 @@ impl<'output> MathMLEmitter<'output> {
                             col = 1;
                         }
                         node => {
-                            self.emit(node, child_indent3);
+                            let old_indent = mem::replace(&mut self.base_indent, child_indent3);
+                            self.emit(node);
+                            self.base_indent = old_indent;
                         }
                     }
                 }
                 pushln!(self.s, child_indent2, "</mtd>");
                 pushln!(self.s, child_indent, "</mtr>");
-                pushln!(self.s, base_indent, "</mtable>");
+                pushln!(self.s, self.base_indent, "</mtable>");
             }
             Node::Text(text) => {
                 push!(self.s, "<mtext>", text, "</mtext>");
