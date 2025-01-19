@@ -123,11 +123,16 @@ macro_rules! pushln {
 impl<'arena> Node<'arena> {
     pub fn render(&'arena self) -> String {
         let mut buf = String::new();
-        self.emit(&mut buf, 0);
+        let emitter = MathMLEmitter;
+        emitter.emit(self, &mut buf, 0);
         buf
     }
+}
 
-    pub fn emit(&'arena self, s: &mut String, base_indent: usize) {
+pub struct MathMLEmitter;
+
+impl MathMLEmitter {
+    pub fn emit(&self, node: &Node<'_>, s: &mut String, base_indent: usize) {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -136,14 +141,14 @@ impl<'arena> Node<'arena> {
         };
 
         if !matches!(
-            self,
+            node,
             Node::PseudoRow(_) | Node::ColumnSeparator | Node::RowSeparator
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(s, base_indent);
         }
 
-        match self {
+        match node {
             Node::Number(number) => push!(s, "<mn>", number, "</mn>"),
             Node::SingleLetterIdent(letter, var) => {
                 match var {
@@ -215,8 +220,8 @@ impl<'arena> Node<'arena> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.emit(s, child_indent);
-                second.emit(s, child_indent);
+                self.emit(first, s, child_indent);
+                self.emit(second, s, child_indent);
                 pushln!(s, base_indent, close);
             }
             // The following nodes have exactly three children.
@@ -237,22 +242,22 @@ impl<'arena> Node<'arena> {
                     _ => unreachable!(),
                 };
                 push!(s, open);
-                first.emit(s, child_indent);
-                second.emit(s, child_indent);
-                third.emit(s, child_indent);
+                self.emit(first, s, child_indent);
+                self.emit(second, s, child_indent);
+                self.emit(third, s, child_indent);
                 pushln!(s, base_indent, close);
             }
             Node::Multiscript { base, sub } => {
                 push!(s, "<mmultiscripts>");
-                base.emit(s, child_indent);
+                self.emit(base, s, child_indent);
                 pushln!(s, child_indent, "<mprescripts/>");
-                sub.emit(s, child_indent);
+                self.emit(sub, s, child_indent);
                 pushln!(s, child_indent, "<mrow></mrow>");
                 pushln!(s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, acc, attr, target) => {
                 push!(s, "<mover>");
-                target.emit(s, child_indent);
+                self.emit(target, s, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\"");
                 if let Some(attr) = attr {
                     push!(s, attr);
@@ -262,13 +267,13 @@ impl<'arena> Node<'arena> {
             }
             Node::UnderOp(op, acc, target) => {
                 push!(s, "<munder>");
-                target.emit(s, child_indent);
+                self.emit(target, s, child_indent);
                 pushln!(s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
                 pushln!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
                 push!(s, "<msqrt>");
-                content.emit(s, child_indent);
+                self.emit(content, s, child_indent);
                 pushln!(s, base_indent, "</msqrt>");
             }
             Node::Frac { num, den, lt, attr } => {
@@ -280,8 +285,8 @@ impl<'arena> Node<'arena> {
                     push!(s, style);
                 }
                 push!(s, ">");
-                num.emit(s, child_indent);
-                den.emit(s, child_indent);
+                self.emit(num, s, child_indent);
+                self.emit(den, s, child_indent);
                 pushln!(s, base_indent, "</mfrac>");
             }
             Node::Row { nodes, style } => {
@@ -290,13 +295,13 @@ impl<'arena> Node<'arena> {
                     None => push!(s, "<mrow>"),
                 }
                 for node in nodes.iter() {
-                    node.emit(s, child_indent);
+                    self.emit(node, s, child_indent);
                 }
                 pushln!(s, base_indent, "</mrow>");
             }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
-                    node.emit(s, base_indent);
+                    self.emit(node, s, base_indent);
                 }
             }
             Node::Mathstrut => {
@@ -326,7 +331,7 @@ impl<'arena> Node<'arena> {
                     push!(s, @open);
                 }
                 push!(s, "</mo>");
-                content.emit(s, child_indent);
+                self.emit(content, s, child_indent);
                 pushln!(s, child_indent, "<mo");
                 if *stretchy {
                     // TODO: Should we set `symmetric="true"` as well?
@@ -360,7 +365,7 @@ impl<'arena> Node<'arena> {
                 Node::Operator(x, _) => {
                     push!(s, "<mo>", @x, "&#x0338;</mo>");
                 }
-                n => n.emit(s, base_indent),
+                n => self.emit(n, s, base_indent),
             },
             Node::Table {
                 content,
@@ -421,7 +426,7 @@ impl<'arena> Node<'arena> {
                             col = 1;
                         }
                         node => {
-                            node.emit(s, child_indent3);
+                            self.emit(node, s, child_indent3);
                         }
                     }
                 }
