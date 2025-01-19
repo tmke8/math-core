@@ -57,7 +57,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
-use ast::MathMLEmitter;
+pub use ast::MathMLEmitter;
 pub use error::{LatexErrKind, LatexError};
 
 /// display
@@ -105,14 +105,14 @@ pub fn latex_to_mathml(
     display: Display,
     pretty: bool,
 ) -> Result<String, error::LatexError<'_>> {
-    let mut output = String::new();
+    let mut output = MathMLEmitter::new();
     append_mathml(&mut output, latex, display, pretty)?;
-    Ok(output)
+    Ok(output.into_inner())
 }
 
 /// Same as `latex_to_mathml`, but appends the result to the given string.
 pub fn append_mathml<'source>(
-    output: &mut String,
+    output: &mut MathMLEmitter,
     latex: &'source str,
     display: Display,
     pretty: bool,
@@ -120,13 +120,13 @@ pub fn append_mathml<'source>(
     let arena = Arena::new();
     let nodes = get_nodes(latex, &arena)?;
 
+    output.clear();
     match display {
         Display::Block => output.push_str("<math display=\"block\">"),
         Display::Inline => output.push_str("<math>"),
     };
 
-    let emitter = MathMLEmitter;
-    emitter.emit(&nodes, output, if pretty { 1 } else { 0 });
+    output.emit(&nodes, if pretty { 1 } else { 0 });
     if pretty {
         output.push('\n');
     }

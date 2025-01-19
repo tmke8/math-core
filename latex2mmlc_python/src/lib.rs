@@ -25,13 +25,13 @@ fn convert_latex<'a>(
         pretty,
     )
     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
-    Ok(PyString::new_bound(py, &result))
+    Ok(PyString::new(py, &result))
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _latex2mmlc_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("LatexError", m.py().get_type_bound::<LatexError>())?;
+    m.add("LatexError", m.py().get_type::<LatexError>())?;
     m.add_function(wrap_pyfunction!(convert_latex, m)?)?;
     Ok(())
 }
