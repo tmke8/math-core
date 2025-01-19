@@ -41,6 +41,7 @@ pub struct Replacer<'config> {
     opening_lengths: (usize, usize),
     closing_lengths: (usize, usize),
     closing_identical: bool,
+    /// A buffer for storing the result of replacing HTML entities.
     entity_buffer: String,
 }
 
@@ -71,10 +72,10 @@ impl<'config> Replacer<'config> {
     pub(crate) fn replace<'source, 'buf, F>(
         &'buf mut self,
         input: &'source str,
-        f: F,
+        mut f: F,
     ) -> Result<String, ConversionError<'buf>>
     where
-        F: for<'a> Fn(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
+        F: for<'a> FnMut(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
