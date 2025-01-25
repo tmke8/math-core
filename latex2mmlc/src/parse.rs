@@ -305,9 +305,9 @@ where
                     Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
                     Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
                     Token::Letter(char) | Token::UprightLetter(char) => {
-                        let negated_letter = [char, '\u{338}'];
                         let mut builder = self.buffer.get_builder();
-                        builder.extend(negated_letter.into_iter());
+                        builder.push_char(char);
+                        builder.push_char('\u{338}');
                         Node::MultiLetterIdent(builder.finish(self.arena))
                     }
                     _ => {
