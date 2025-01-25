@@ -3,5 +3,14 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
 ---
 <math>
-    <mi>𝚰𝚱𝚲𝚳𝚴𝚵𝚶𝚷</mi>
+    <mrow>
+        <mi>𝚰</mi>
+        <mi>𝚱</mi>
+        <mi>𝚲</mi>
+        <mi>𝚳</mi>
+        <mi>𝚴</mi>
+        <mi>𝚵</mi>
+        <mi>𝚶</mi>
+        <mi>𝚷</mi>
+    </mrow>
 </math>

@@ -19,8 +19,6 @@ pub(crate) struct Parser<'arena, 'source> {
     peek: TokLoc<'source>,
     buffer: Buffer,
     arena: &'arena Arena,
-    tf: Option<TextTransform>,
-    var: Option<MathVariant>,
 }
 impl<'arena, 'source> Parser<'arena, 'source>
 where
@@ -33,8 +31,6 @@ where
             peek: TokLoc(0, Token::EOF),
             buffer: Buffer::new(input_length),
             arena,
-            tf: None,
-            var: None,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -109,24 +105,9 @@ where
     ) -> Result<NodeRef<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
-            Token::Number(number) => match self.tf {
-                Some(tf) => {
-                    let mut builder = self.buffer.get_builder();
-                    builder.transform_and_push(number, tf);
-                    Node::MultiLetterIdent(builder.finish(self.arena))
-                }
-                None => Node::Number(number),
-            },
+            Token::Number(number) => Node::Number(number),
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
-                let num = match self.tf {
-                    Some(tf) => {
-                        let mut builder = self.buffer.get_builder();
-                        builder.transform_and_push(number, tf);
-                        Node::MultiLetterIdent(builder.finish(self.arena))
-                    }
-                    None => Node::Number(number),
-                };
-                let first = self.commit(num);
+                let first = self.commit(Node::Number(number));
                 let second = self.commit(match tok {
                     Token::NumberWithDot(_) => Node::SingleLetterIdent(ops::FULL_STOP, None),
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
@@ -134,14 +115,8 @@ where
                 });
                 Node::PseudoRow(NodeList::from_two_nodes(first, second))
             }
-            Token::Letter(x) => Node::SingleLetterIdent(
-                self.tf.as_ref().map_or(x, |tf| tf.transform(x, false)),
-                self.var,
-            ),
-            Token::UprightLetter(x) => match self.tf.as_ref() {
-                Some(tf) => Node::SingleLetterIdent(tf.transform(x, true), None),
-                None => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
-            },
+            Token::Letter(x) => Node::SingleLetterIdent(x, None),
+            Token::UprightLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
             Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
@@ -346,19 +321,17 @@ where
                     }
                 }
             }
-            Token::Transform(tf, var) => {
-                let old_var = mem::replace(&mut self.var, var);
-                let old_tf = mem::replace(&mut self.tf, tf);
+            Token::Transform(tf) => {
                 let token = self.next_token();
                 let node_ref = self.parse_single_node(token)?;
-                self.var = old_var;
-                self.tf = old_tf;
-                if let Node::Row { nodes, style } = node_ref.mut_node() {
+                let child = if let Node::Row { nodes, style } = node_ref.mut_node() {
                     let nodes = mem::replace(nodes, NodeList::empty());
                     let style = *style;
-                    return Ok(self.merge_single_letters(nodes, style));
-                }
-                return Ok(node_ref);
+                    self.merge_single_letters(nodes, style, tf)
+                } else {
+                    node_ref
+                };
+                Node::TextTransform(child.node(), tf)
             }
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
@@ -630,7 +603,7 @@ where
                 // TODO: Don't parse a node just to immediately destructure it.
                 let node = self.parse_single_token()?;
                 let mut builder = self.buffer.get_builder();
-                if !extract_letters(&mut builder, node, None) {
+                if !extract_letters(&mut builder, node) {
                     return Err(LatexError(
                         loc,
                         LatexErrKind::ExpectedText("\\operatorname"),
@@ -642,7 +615,7 @@ where
                 self.l.text_mode = true;
                 let node = self.parse_single_token()?;
                 let mut builder = self.buffer.get_builder();
-                if !extract_letters(&mut builder, node, transform) {
+                if !extract_letters(&mut builder, node) {
                     return Err(LatexError(loc, LatexErrKind::ExpectedText("\\text")));
                 }
                 let text = builder.finish(self.arena);
@@ -651,7 +624,12 @@ where
                 if matches!(self.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
-                Node::Text(text)
+                let text = self.commit(Node::Text(text));
+                if let Some(transform) = transform {
+                    Node::TextTransform(text.node(), Some(transform))
+                } else {
+                    return Ok(text);
+                }
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
@@ -903,38 +881,45 @@ where
         &mut self,
         nodes: NodeList<'arena>,
         style: Option<Style>,
+        tf: Option<TextTransform>,
     ) -> NodeRef<'arena> {
+        let is_bold_italic = matches!(tf, Some(TextTransform::BoldItalic));
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         for node_ref in nodes {
-            if let Node::SingleLetterIdent(c, _) = node_ref.node() {
-                let c = *c;
-                if let Some(LetterCollector {
-                    ref mut only_one_char,
-                    ref mut builder,
-                    ..
-                }) = collector
-                {
-                    *only_one_char = false;
-                    builder.push_char(c);
-                } else {
-                    let mut builder = self.buffer.get_builder();
-                    builder.push_char(c);
-                    // We start collecting.
-                    collector = Some(LetterCollector {
-                        builder,
-                        node_ref,
-                        only_one_char: true,
-                    });
+            match node_ref.node() {
+                Node::SingleLetterIdent(c, var) => {
+                    if !(is_bold_italic && matches!(var, Some(MathVariant::Normal))) {
+                        let c = *c;
+                        if let Some(LetterCollector {
+                            ref mut only_one_char,
+                            ref mut builder,
+                            ..
+                        }) = collector
+                        {
+                            *only_one_char = false;
+                            builder.push_char(c);
+                        } else {
+                            let mut builder = self.buffer.get_builder();
+                            builder.push_char(c);
+                            // We start collecting.
+                            collector = Some(LetterCollector {
+                                builder,
+                                node_ref,
+                                only_one_char: true,
+                            });
+                        }
+                        continue;
+                    }
                 }
-            } else {
-                // Commit the collected letters.
-                if let Some(collector) = collector.take() {
-                    let node_ref = collector.finish(self.arena);
-                    list_builder.push(node_ref);
-                }
+                _ => {}
+            }
+            // Commit the collected letters.
+            if let Some(collector) = collector.take() {
+                let node_ref = collector.finish(self.arena);
                 list_builder.push(node_ref);
             }
+            list_builder.push(node_ref);
         }
         if let Some(collector) = collector {
             let node_ref = collector.finish(self.arena);
@@ -956,7 +941,7 @@ impl<'arena> LetterCollector<'arena, '_> {
     fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
         let node = self.node_ref.mut_node();
         if !self.only_one_char {
-            *node = Node::MultiLetterIdent(self.builder.finish(arena));
+            *node = Node::CollectedLetters(self.builder.finish(arena));
         }
         self.node_ref
     }
@@ -967,33 +952,17 @@ impl<'arena> LetterCollector<'arena, '_> {
 /// but buffer mutably. This is not possible with a mutable self reference.
 ///
 /// Returns false if no letters could be extracted.
-fn extract_letters<'arena>(
-    buffer: &mut StringBuilder,
-    node: &'arena Node<'arena>,
-    transform: Option<TextTransform>,
-) -> bool {
+fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena>) -> bool {
     match node {
-        Node::SingleLetterIdent(c, var) => {
-            let is_normal = var.is_some();
-            buffer.push_char(
-                transform
-                    .as_ref()
-                    .map_or(*c, |t| t.transform(*c, is_normal)),
-            );
-        }
+        Node::SingleLetterIdent(c, _) => buffer.push_char(*c),
         Node::Row { nodes, .. } | Node::PseudoRow(nodes) => {
             for node in nodes.iter() {
-                if !extract_letters(buffer, node, transform) {
+                if !extract_letters(buffer, node) {
                     return false;
                 }
             }
         }
-        Node::Number(n) => {
-            match transform {
-                Some(tf) => buffer.transform_and_push(n, tf),
-                None => buffer.push_str(n),
-            };
-        }
+        Node::Number(n) => buffer.push_str(n),
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
         }
@@ -1021,6 +990,14 @@ mod tests {
             ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
             ("number_with_dot", r"4.x"),
             ("double_prime", r"f''"),
+            ("textbf", r"\textbf{abc}"),
+            ("mathit_greek", r"\mathit{\Alpha\Beta}"),
+            ("mathrm_mathit_nested", r"\mathrm{\mathit{a}b}"),
+            ("mathrm_mathit_nested_multi", r"\mathrm{ab\mathit{cd}ef}"),
+            ("mathit_mathrm_nested", r"\mathit{\mathrm{a}b}"),
+            ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
+            ("boldsymbol_greek_var", r"\boldsymbol{\Gamma\varGamma}"),
+            ("mathit_func", r"\mathit{ab \log cd}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

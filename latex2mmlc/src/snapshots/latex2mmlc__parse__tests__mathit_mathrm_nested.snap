@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\mathit{\\mathrm{a}b}"
+---
+[
+  TextTransform(Row(
+    nodes: [
+      TextTransform(SingleLetterIdent('a', None), None),
+      SingleLetterIdent('b', None),
+    ],
+    style: None,
+  ), Some(Italic)),
+]

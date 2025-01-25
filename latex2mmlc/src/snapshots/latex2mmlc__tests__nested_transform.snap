@@ -3,5 +3,8 @@ source: latex2mmlc/src/lib.rs
 expression: "\\mathit{\\mathbf{a}b}"
 ---
 <math>
-    <mi>𝐚𝑏</mi>
+    <mrow>
+        <mi>𝐚</mi>
+        <mi>𝑏</mi>
+    </mrow>
 </math>

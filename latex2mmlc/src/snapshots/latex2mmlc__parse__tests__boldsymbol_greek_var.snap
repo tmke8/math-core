@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\boldsymbol{\\Gamma\\varGamma}"
+---
+[
+  TextTransform(Row(
+    nodes: [
+      SingleLetterIdent('Γ', Some(Normal)),
+      SingleLetterIdent('Γ', None),
+    ],
+    style: None,
+  ), Some(BoldItalic)),
+]

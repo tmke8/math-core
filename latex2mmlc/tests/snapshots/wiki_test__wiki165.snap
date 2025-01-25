@@ -3,5 +3,14 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega}"
 ---
 <math>
-    <mi>𝚸𝚺𝚻𝚼𝚽𝚾𝚿𝛀</mi>
+    <mrow>
+        <mi>𝚸</mi>
+        <mi>𝚺</mi>
+        <mi>𝚻</mi>
+        <mi>𝚼</mi>
+        <mi>𝚽</mi>
+        <mi>𝚾</mi>
+        <mi>𝚿</mi>
+        <mi>𝛀</mi>
+    </mrow>
 </math>

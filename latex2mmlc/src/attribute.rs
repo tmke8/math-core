@@ -101,6 +101,7 @@ pub enum MathSpacing {
 
 // Transform of unicode characters.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum TextTransform {
     Bold = 1,
     BoldFraktur,
@@ -281,6 +282,7 @@ impl TextTransform {
                 'C' => 'ℂ',
                 'H' => 'ℍ',
                 'N' => 'ℕ',
+                'O' => '𝕆',
                 'R' => 'ℝ',
                 'Z' => 'ℤ',
                 _ => c,

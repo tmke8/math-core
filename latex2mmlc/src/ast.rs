@@ -1,8 +1,12 @@
+use std::mem;
+
 #[cfg(test)]
 use serde::Serialize;
 
 use crate::arena::NodeList;
-use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
+use crate::attribute::{
+    Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform,
+};
 use crate::ops::Op;
 
 /// AST node
@@ -21,6 +25,7 @@ pub enum Node<'arena> {
         right: Option<MathSpacing>,
     },
     MultiLetterIdent(&'arena str),
+    CollectedLetters(&'arena str),
     Space(&'static str),
     Subscript {
         target: &'arena Node<'arena>,
@@ -92,6 +97,7 @@ pub enum Node<'arena> {
         base: &'arena Node<'arena>,
         sub: &'arena Node<'arena>,
     },
+    TextTransform(&'arena Node<'arena>, Option<TextTransform>),
 }
 
 const INDENT: &str = "    ";
@@ -130,21 +136,31 @@ impl Node<'_> {
 
 pub struct MathMLEmitter {
     s: String,
+    tf: Option<TextTransform>,
+    var: Option<MathVariant>,
 }
 
 impl MathMLEmitter {
+    #[inline]
     pub fn new() -> Self {
-        Self { s: String::new() }
+        Self {
+            s: String::new(),
+            tf: None,
+            var: None,
+        }
     }
 
+    #[inline]
     pub fn into_inner(self) -> String {
         self.s
     }
 
+    #[inline]
     pub fn as_str(&self) -> &str {
         &self.s
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.s.clear();
     }
@@ -169,20 +185,54 @@ impl MathMLEmitter {
 
         if !matches!(
             node,
-            Node::PseudoRow(_) | Node::ColumnSeparator | Node::RowSeparator
+            Node::PseudoRow(_)
+                | Node::ColumnSeparator
+                | Node::RowSeparator
+                | Node::TextTransform(_, _)
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
         }
 
         match node {
-            Node::Number(number) => push!(self.s, "<mn>", number, "</mn>"),
+            Node::Number(number) => {
+                if let Some(tf) = self.tf {
+                    // We render transformed numbers as identifiers.
+                    push!(self.s, "<mi>");
+                    self.s
+                        .extend(number.chars().map(|c| tf.transform(c, false)));
+                    push!(self.s, "</mi>");
+                } else {
+                    push!(self.s, "<mn>", number, "</mn>");
+                }
+            }
             Node::SingleLetterIdent(letter, var) => {
+                // If the mathvariant is not set, we use the default value.
+                let var = var.or(self.var);
+                // Only set "mathvariant" if we are not transforming the letter.
                 match var {
-                    Some(var) => push!(self.s, "<mi", var, ">"),
-                    None => push!(self.s, "<mi>"),
+                    Some(var) if self.tf.is_none() => push!(self.s, "<mi", var, ">"),
+                    _ => push!(self.s, "<mi>"),
                 };
-                push!(self.s, @*letter, "</mi>");
+                let c = match self.tf {
+                    Some(tf) => tf.transform(*letter, var.is_some()),
+                    None => *letter,
+                };
+                push!(self.s, @c, "</mi>");
+            }
+            Node::TextTransform(child, tf) => {
+                let old_var = mem::replace(
+                    &mut self.var,
+                    if tf.is_none() {
+                        Some(MathVariant::Normal)
+                    } else {
+                        None
+                    },
+                );
+                let old_tf = mem::replace(&mut self.tf, *tf);
+                self.emit(child, base_indent);
+                self.var = old_var;
+                self.tf = old_tf;
             }
             Node::Operator(op, attributes) => {
                 match attributes {
@@ -217,6 +267,22 @@ impl MathMLEmitter {
             }
             Node::MultiLetterIdent(letters) => {
                 push!(self.s, "<mi>", letters, "</mi>");
+            }
+            node @ (Node::CollectedLetters(letters) | Node::Text(letters)) => {
+                let (open, close) = match node {
+                    Node::CollectedLetters(_) => ("<mi>", "</mi>"),
+                    Node::Text(_) => ("<mtext>", "</mtext>"),
+                    // Compiler is able to infer that this is unreachable.
+                    _ => unreachable!(),
+                };
+                push!(self.s, open);
+                match self.tf {
+                    Some(tf) if self.var.is_none() => self
+                        .s
+                        .extend(letters.chars().map(|c| tf.transform(c, false))),
+                    _ => self.s.push_str(letters),
+                }
+                push!(self.s, close);
             }
             Node::Space(space) => push!(self.s, "<mspace width=\"", space, "em\"/>"),
             // The following nodes have exactly two children.
@@ -383,7 +449,7 @@ impl MathMLEmitter {
                 push!(self.s, ">", @paren, "</mo>");
             }
             Node::Slashed(node) => match node {
-                Node::SingleLetterIdent(x, var) => match var {
+                Node::SingleLetterIdent(x, _) => match self.var {
                     Some(var) => {
                         push!(self.s, "<mi", var, ">", @*x, "&#x0338;</mi>")
                     }
@@ -461,9 +527,6 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, child_indent, "</mtr>");
                 pushln!(&mut self.s, base_indent, "</mtable>");
             }
-            Node::Text(text) => {
-                push!(self.s, "<mtext>", text, "</mtext>");
-            }
             Node::ColumnSeparator | Node::RowSeparator => (),
         }
     }
@@ -486,7 +549,8 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::super::attribute::MathVariant;
+    use crate::attribute::MathVariant;
+
     use super::Node;
 
     #[test]
