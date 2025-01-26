@@ -3,5 +3,8 @@ source: latex2mmlc/src/parse.rs
 expression: "\\textbf{abc}"
 ---
 [
-  TextTransform(Text("abc"), Some(Bold)),
+  TextTransform(
+    tf: Some(Bold),
+    content: Text("abc"),
+  ),
 ]

@@ -3,5 +3,8 @@ source: latex2mmlc/src/parse.rs
 expression: "\\mathit{\\Alpha\\Beta}"
 ---
 [
-  TextTransform(CollectedLetters("ΑΒ"), Some(Italic)),
+  TextTransform(
+    tf: Some(Italic),
+    content: CollectedLetters("ΑΒ"),
+  ),
 ]

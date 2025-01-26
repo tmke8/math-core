@@ -331,7 +331,10 @@ where
                 } else {
                     node_ref
                 };
-                Node::TextTransform(child.node(), tf)
+                Node::TextTransform {
+                    content: child.node(),
+                    tf,
+                }
             }
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
@@ -626,7 +629,10 @@ where
                 }
                 let text = self.commit(Node::Text(text));
                 if let Some(transform) = transform {
-                    Node::TextTransform(text.node(), Some(transform))
+                    Node::TextTransform {
+                        content: text.node(),
+                        tf: Some(transform),
+                    }
                 } else {
                     return Ok(text);
                 }

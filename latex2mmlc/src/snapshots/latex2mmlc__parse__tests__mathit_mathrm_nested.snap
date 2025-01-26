@@ -3,11 +3,17 @@ source: latex2mmlc/src/parse.rs
 expression: "\\mathit{\\mathrm{a}b}"
 ---
 [
-  TextTransform(Row(
-    nodes: [
-      TextTransform(SingleLetterIdent('a', None), None),
-      SingleLetterIdent('b', None),
-    ],
-    style: None,
-  ), Some(Italic)),
+  TextTransform(
+    tf: Some(Italic),
+    content: Row(
+      nodes: [
+        TextTransform(
+          tf: None,
+          content: SingleLetterIdent('a', None),
+        ),
+        SingleLetterIdent('b', None),
+      ],
+      style: None,
+    ),
+  ),
 ]

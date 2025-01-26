@@ -97,7 +97,10 @@ pub enum Node<'arena> {
         base: &'arena Node<'arena>,
         sub: &'arena Node<'arena>,
     },
-    TextTransform(&'arena Node<'arena>, Option<TextTransform>),
+    TextTransform {
+        tf: Option<TextTransform>,
+        content: &'arena Node<'arena>,
+    },
 }
 
 const INDENT: &str = "    ";
@@ -188,7 +191,7 @@ impl MathMLEmitter {
             Node::PseudoRow(_)
                 | Node::ColumnSeparator
                 | Node::RowSeparator
-                | Node::TextTransform(_, _)
+                | Node::TextTransform { .. }
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -220,7 +223,7 @@ impl MathMLEmitter {
                 };
                 push!(self.s, @c, "</mi>");
             }
-            Node::TextTransform(child, tf) => {
+            Node::TextTransform { content, tf } => {
                 let old_var = mem::replace(
                     &mut self.var,
                     if tf.is_none() {
@@ -230,7 +233,7 @@ impl MathMLEmitter {
                     },
                 );
                 let old_tf = mem::replace(&mut self.tf, *tf);
-                self.emit(child, base_indent);
+                self.emit(content, base_indent);
                 self.var = old_var;
                 self.tf = old_tf;
             }
@@ -449,7 +452,7 @@ impl MathMLEmitter {
                 push!(self.s, ">", @paren, "</mo>");
             }
             Node::Slashed(node) => match node {
-                Node::SingleLetterIdent(x, _) => match self.var {
+                Node::SingleLetterIdent(x, var) => match var.or(self.var) {
                     Some(var) => {
                         push!(self.s, "<mi", var, ">", @*x, "&#x0338;</mi>")
                     }
@@ -549,7 +552,7 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
-    use crate::attribute::MathVariant;
+    use super::super::attribute::MathVariant;
 
     use super::Node;
 

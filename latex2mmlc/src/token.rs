@@ -101,7 +101,7 @@ impl Token<'_> {
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         matches!(
             self,
-            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(_)
+            Token::Sqrt | Token::Frac(_) | Token::Binom(_) | Token::Transform(Some(_))
         )
     }
 

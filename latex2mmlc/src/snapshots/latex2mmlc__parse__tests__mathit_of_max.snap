@@ -3,12 +3,15 @@ source: latex2mmlc/src/parse.rs
 expression: "\\mathit{ab \\max \\alpha\\beta}"
 ---
 [
-  TextTransform(Row(
-    nodes: [
-      CollectedLetters("ab"),
-      MultiLetterIdent("max"),
-      CollectedLetters("αβ"),
-    ],
-    style: None,
-  ), Some(Italic)),
+  TextTransform(
+    tf: Some(Italic),
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        MultiLetterIdent("max"),
+        CollectedLetters("αβ"),
+      ],
+      style: None,
+    ),
+  ),
 ]

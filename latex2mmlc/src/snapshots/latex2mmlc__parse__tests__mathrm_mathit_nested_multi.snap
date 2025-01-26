@@ -3,12 +3,18 @@ source: latex2mmlc/src/parse.rs
 expression: "\\mathrm{ab\\mathit{cd}ef}"
 ---
 [
-  TextTransform(Row(
-    nodes: [
-      CollectedLetters("ab"),
-      TextTransform(CollectedLetters("cd"), Some(Italic)),
-      CollectedLetters("ef"),
-    ],
-    style: None,
-  ), None),
+  TextTransform(
+    tf: None,
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        TextTransform(
+          tf: Some(Italic),
+          content: CollectedLetters("cd"),
+        ),
+        CollectedLetters("ef"),
+      ],
+      style: None,
+    ),
+  ),
 ]
