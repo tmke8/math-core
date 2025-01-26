@@ -4,7 +4,7 @@ use bumpalo::{AllocErr, Bump};
 #[cfg(test)]
 use serde::ser::{Serialize, SerializeSeq, Serializer};
 
-use crate::{ast::Node, attribute::TextTransform};
+use crate::ast::Node;
 
 #[derive(Debug)]
 pub struct NodeListElement<'arena> {
@@ -89,10 +89,6 @@ impl Buffer {
     pub fn get_builder(&mut self) -> StringBuilder<'_> {
         StringBuilder::new(self)
     }
-
-    fn transform_and_append(&mut self, input: &str, tf: TextTransform) {
-        self.0.extend(input.chars().map(|c| tf.transform(c, false)))
-    }
 }
 
 /// A helper type to safely build a string in the buffer from multiple pieces.
@@ -118,15 +114,6 @@ impl<'buffer> StringBuilder<'buffer> {
 
     pub fn push_char(&mut self, c: char) {
         self.buffer.0.push(c)
-    }
-
-    pub fn extend<I: Iterator<Item = char>>(&mut self, iter: I) {
-        self.buffer.0.extend(iter)
-    }
-
-    #[inline]
-    pub fn transform_and_push(&mut self, input: &str, tf: TextTransform) {
-        self.buffer.transform_and_append(input, tf)
     }
 
     pub fn finish(self, arena: &Arena) -> &str {
@@ -380,9 +367,10 @@ mod tests {
         let arena = Arena::new();
         let mut buffer = Buffer::new(0);
         let mut builder = buffer.get_builder();
-        builder.extend("Hello, world!".chars());
+        builder.push_char('H');
+        builder.push_char('i');
         let str_ref = builder.finish(&arena);
-        assert_eq!(str_ref, "Hello, world!");
+        assert_eq!(str_ref, "Hi");
     }
 
     #[test]

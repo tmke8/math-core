@@ -1,0 +1,17 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\mathit{ab \\log cd}"
+---
+[
+  TextTransform(
+    tf: Some(Italic),
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        MultiLetterIdent("log"),
+        CollectedLetters("cd"),
+      ],
+      style: None,
+    ),
+  ),
+]

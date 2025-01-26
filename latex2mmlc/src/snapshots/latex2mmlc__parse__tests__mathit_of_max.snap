@@ -1,0 +1,17 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\mathit{ab \\max \\alpha\\beta}"
+---
+[
+  TextTransform(
+    tf: Some(Italic),
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        MultiLetterIdent("max"),
+        CollectedLetters("αβ"),
+      ],
+      style: None,
+    ),
+  ),
+]

@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\textbf{abc}"
+---
+[
+  TextTransform(
+    tf: Some(Bold),
+    content: Text("abc"),
+  ),
+]

@@ -3,5 +3,14 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\boldsymbol{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
 ---
 <math>
-    <mi>𝚨𝚩𝚪𝚫𝚬𝚭𝚮𝚯</mi>
+    <mrow>
+        <mi>𝚨</mi>
+        <mi>𝚩</mi>
+        <mi>𝚪</mi>
+        <mi>𝚫</mi>
+        <mi>𝚬</mi>
+        <mi>𝚭</mi>
+        <mi>𝚮</mi>
+        <mi>𝚯</mi>
+    </mrow>
 </math>
