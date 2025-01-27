@@ -4,7 +4,7 @@ use std::mem;
 use serde::Serialize;
 
 use crate::arena::NodeList;
-use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
+use crate::attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
@@ -38,8 +38,8 @@ pub enum Node<'arena> {
         sub: &'arena Node<'arena>,
         sup: &'arena Node<'arena>,
     },
-    OverOp(Op, Accent, Option<OpAttr>, &'arena Node<'arena>),
-    UnderOp(Op, Accent, &'arena Node<'arena>),
+    OverOp(Op, Option<OpAttr>, &'arena Node<'arena>),
+    UnderOp(Op, &'arena Node<'arena>),
     Overset {
         symbol: &'arena Node<'arena>,
         target: &'arena Node<'arena>,
@@ -125,14 +125,6 @@ macro_rules! pushln {
         new_line_and_indent($buf, $indent);
         push!($buf, $($tail)+)
     };
-}
-
-impl Node<'_> {
-    pub fn render(&self) -> String {
-        let mut emitter = MathMLEmitter::new();
-        emitter.emit(self, 0);
-        emitter.into_inner()
-    }
 }
 
 pub struct MathMLEmitter {
@@ -340,20 +332,20 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, child_indent, "<mrow></mrow>");
                 pushln!(&mut self.s, base_indent, "</mmultiscripts>");
             }
-            Node::OverOp(op, acc, attr, target) => {
+            Node::OverOp(op, attr, target) => {
                 push!(self.s, "<mover>");
                 self.emit(target, child_indent);
-                pushln!(&mut self.s, child_indent, "<mo accent=\"", acc, "\"");
+                pushln!(&mut self.s, child_indent, "<mo accent=\"true\"");
                 if let Some(attr) = attr {
                     push!(self.s, attr);
                 }
                 push!(self.s, ">", @op, "</mo>");
                 pushln!(&mut self.s, base_indent, "</mover>");
             }
-            Node::UnderOp(op, acc, target) => {
+            Node::UnderOp(op, target) => {
                 push!(self.s, "<munder>");
                 self.emit(target, child_indent);
-                pushln!(&mut self.s, child_indent, "<mo accent=\"", acc, "\">", @op, "</mo>");
+                pushln!(&mut self.s, child_indent, "<mo accent=\"true\">", @op, "</mo>");
                 pushln!(&mut self.s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
@@ -541,22 +533,477 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 }
 
 #[cfg(test)]
+pub fn render(node: &Node) -> String {
+    let mut emitter = MathMLEmitter::new();
+    emitter.emit(node, 0);
+    emitter.into_inner()
+}
+
+#[cfg(test)]
 mod tests {
-    use super::Node;
+    use super::{render, Node};
+    use crate::arena::{NodeList, NodeListElement};
+    use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, TextTransform};
+    use crate::ops;
 
     #[test]
-    fn node_display() {
-        let problems = vec![
-            (Node::Number("3.14"), "<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', false), "<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', false), "<mi>α</mi>"),
-            (
-                Node::SingleLetterIdent('あ', true),
-                "<mi mathvariant=\"normal\">あ</mi>",
-            ),
-        ];
-        for (problem, answer) in problems.iter() {
-            assert_eq!(&problem.render(), answer);
-        }
+    fn render_number() {
+        assert_eq!(render(&Node::Number("3.14")), "<mn>3.14</mn>");
+    }
+
+    #[test]
+    fn render_single_letter_ident() {
+        assert_eq!(render(&Node::SingleLetterIdent('x', false)), "<mi>x</mi>");
+        assert_eq!(
+            render(&Node::SingleLetterIdent('Γ', true)),
+            "<mi mathvariant=\"normal\">Γ</mi>"
+        );
+    }
+
+    #[test]
+    fn render_operator() {
+        assert_eq!(render(&Node::Operator(ops::PLUS_SIGN, None)), "<mo>+</mo>");
+        assert_eq!(
+            render(&Node::Operator(
+                ops::LEFT_PARENTHESIS,
+                Some(OpAttr::StretchyTrue)
+            )),
+            "<mo stretchy=\"true\">(</mo>"
+        );
+        assert_eq!(
+            render(&Node::Operator(
+                ops::LEFT_PARENTHESIS,
+                Some(OpAttr::StretchyFalse)
+            )),
+            "<mo stretchy=\"false\">(</mo>"
+        );
+        assert_eq!(
+            render(&Node::Operator(
+                ops::N_ARY_SUMMATION,
+                Some(OpAttr::NoMovableLimits)
+            )),
+            "<mo movablelimits=\"false\">∑</mo>"
+        );
+    }
+
+    #[test]
+    fn render_op_greater_than() {
+        assert_eq!(render(&Node::OpGreaterThan), "<mo>&gt;</mo>");
+    }
+
+    #[test]
+    fn render_op_less_than() {
+        assert_eq!(render(&Node::OpLessThan), "<mo>&lt;</mo>");
+    }
+
+    #[test]
+    fn render_op_ampersand() {
+        assert_eq!(render(&Node::OpAmpersand), "<mo>&amp;</mo>");
+    }
+
+    #[test]
+    fn render_operator_with_spacing() {
+        assert_eq!(
+            render(&Node::OperatorWithSpacing {
+                op: ops::COLON,
+                left: Some(MathSpacing::FourMu),
+                right: Some(MathSpacing::FourMu),
+            }),
+            "<mo lspace=\"0.2222em\" rspace=\"0.2222em\">:</mo>"
+        );
+        assert_eq!(
+            render(&Node::OperatorWithSpacing {
+                op: ops::COLON,
+                left: Some(MathSpacing::FourMu),
+                right: Some(MathSpacing::Zero),
+            }),
+            "<mo lspace=\"0.2222em\" rspace=\"0em\">:</mo>"
+        );
+        assert_eq!(
+            render(&Node::OperatorWithSpacing {
+                op: ops::IDENTICAL_TO,
+                left: Some(MathSpacing::Zero),
+                right: None,
+            }),
+            "<mo lspace=\"0em\">≡</mo>"
+        );
+    }
+
+    #[test]
+    fn render_multi_letter_ident() {
+        assert_eq!(render(&Node::MultiLetterIdent("sin")), "<mi>sin</mi>");
+    }
+
+    #[test]
+    fn render_collected_letters() {
+        assert_eq!(render(&Node::CollectedLetters("sin")), "<mi>sin</mi>");
+    }
+
+    #[test]
+    fn render_space() {
+        assert_eq!(render(&Node::Space("1")), "<mspace width=\"1em\"/>");
+    }
+
+    #[test]
+    fn render_subscript() {
+        assert_eq!(
+            render(&Node::Subscript {
+                target: &Node::SingleLetterIdent('x', false),
+                symbol: &Node::Number("2"),
+            }),
+            "<msub><mi>x</mi><mn>2</mn></msub>"
+        );
+    }
+
+    #[test]
+    fn render_superscript() {
+        assert_eq!(
+            render(&Node::Superscript {
+                target: &Node::SingleLetterIdent('x', false),
+                symbol: &Node::Number("2"),
+            }),
+            "<msup><mi>x</mi><mn>2</mn></msup>"
+        );
+    }
+
+    #[test]
+    fn render_sub_sup() {
+        assert_eq!(
+            render(&Node::SubSup {
+                target: &Node::SingleLetterIdent('x', false),
+                sub: &Node::Number("1"),
+                sup: &Node::Number("2"),
+            }),
+            "<msubsup><mi>x</mi><mn>1</mn><mn>2</mn></msubsup>"
+        );
+    }
+
+    #[test]
+    fn render_over_op() {
+        assert_eq!(
+            render(&Node::OverOp(
+                ops::MACRON,
+                Some(OpAttr::StretchyFalse),
+                &Node::SingleLetterIdent('x', false),
+            )),
+            "<mover><mi>x</mi><mo accent=\"true\" stretchy=\"false\">¯</mo></mover>"
+        );
+        assert_eq!(
+            render(&Node::OverOp(
+                ops::OVERLINE,
+                None,
+                &Node::SingleLetterIdent('x', false),
+            )),
+            "<mover><mi>x</mi><mo accent=\"true\">‾</mo></mover>"
+        );
+    }
+
+    #[test]
+    fn render_under_op() {
+        assert_eq!(
+            render(&Node::UnderOp(
+                ops::LOW_LINE,
+                &Node::SingleLetterIdent('x', false),
+            )),
+            "<munder><mi>x</mi><mo accent=\"true\">_</mo></munder>"
+        );
+    }
+
+    #[test]
+    fn render_overset() {
+        assert_eq!(
+            render(&Node::Overset {
+                symbol: &Node::Operator(ops::EXCLAMATION_MARK, None),
+                target: &Node::Operator(ops::EQUALS_SIGN, None),
+            }),
+            "<mover><mo>=</mo><mo>!</mo></mover>"
+        );
+    }
+
+    #[test]
+    fn render_underset() {
+        assert_eq!(
+            render(&Node::Underset {
+                symbol: &Node::SingleLetterIdent('θ', false),
+                target: &Node::MultiLetterIdent("min"),
+            }),
+            "<munder><mi>min</mi><mi>θ</mi></munder>"
+        );
+    }
+
+    #[test]
+    fn render_under_over() {
+        assert_eq!(
+            render(&Node::UnderOver {
+                target: &Node::SingleLetterIdent('x', false),
+                under: &Node::Number("1"),
+                over: &Node::Number("2"),
+            }),
+            "<munderover><mi>x</mi><mn>1</mn><mn>2</mn></munderover>"
+        );
+    }
+
+    #[test]
+    fn render_sqrt() {
+        assert_eq!(
+            render(&Node::Sqrt(&Node::SingleLetterIdent('x', false))),
+            "<msqrt><mi>x</mi></msqrt>"
+        );
+    }
+
+    #[test]
+    fn render_root() {
+        assert_eq!(
+            render(&Node::Root(
+                &Node::Number("3"),
+                &Node::SingleLetterIdent('x', false),
+            )),
+            "<mroot><mi>x</mi><mn>3</mn></mroot>"
+        );
+    }
+
+    #[test]
+    fn render_frac() {
+        let num = &Node::Number("1");
+        let den = &Node::Number("2");
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: None,
+                attr: None,
+            }),
+            "<mfrac><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: Some('1'),
+                attr: None,
+            }),
+            "<mfrac linethickness=\"1pt\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: None,
+                attr: Some(FracAttr::DisplayStyleTrue),
+            }),
+            "<mfrac displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: Some('0'),
+                attr: Some(FracAttr::DisplayStyleTrue),
+            }),
+            "<mfrac linethickness=\"0pt\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: None,
+                attr: Some(FracAttr::DisplayStyleFalse),
+            }),
+            "<mfrac displaystyle=\"false\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+    }
+
+    #[test]
+    fn render_row() {
+        // Construct the linked list manually.
+        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
+        let mut elem2 = unsafe {
+            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
+        };
+        let mut elem1 = unsafe {
+            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
+        };
+        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+
+        assert_eq!(
+            render(&Node::Row { nodes, style: None }),
+            "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_pseudo_row() {
+        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
+        let mut elem2 = unsafe {
+            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
+        };
+        let mut elem1 = unsafe {
+            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
+        };
+        let vec = unsafe { NodeList::from_raw(&mut elem1) };
+        assert_eq!(
+            render(&Node::PseudoRow(vec)),
+            "<mi>x</mi><mo>+</mo><mn>1</mn>"
+        );
+    }
+
+    #[test]
+    fn render_mathstrut() {
+        assert_eq!(
+            render(&Node::Mathstrut),
+            r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
+        );
+    }
+
+    #[test]
+    fn render_fenced() {
+        assert_eq!(
+            render(&Node::Fenced {
+                open: ops::LEFT_PARENTHESIS,
+                close: ops::RIGHT_PARENTHESIS,
+                style: None,
+                stretchy: false,
+                content: &Node::SingleLetterIdent('x', false),
+            }),
+            "<mrow><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
+        );
+        assert_eq!(
+            render(&Node::Fenced {
+                open: ops::LEFT_PARENTHESIS,
+                close: ops::RIGHT_PARENTHESIS,
+                style: None,
+                stretchy: true,
+                content: &Node::SingleLetterIdent('x', false),
+            }),
+            "<mrow><mo stretchy=\"true\">(</mo><mi>x</mi><mo stretchy=\"true\">)</mo></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_sized_paren() {
+        assert_eq!(
+            render(&Node::SizedParen {
+                size: "1",
+                paren: ops::LEFT_PARENTHESIS,
+                stretchy: false,
+            }),
+            "<mo maxsize=\"1\" minsize=\"1\">(</mo>"
+        );
+        assert_eq!(
+            render(&Node::SizedParen {
+                size: "3",
+                paren: ops::LEFT_PARENTHESIS,
+                stretchy: true,
+            }),
+            "<mo maxsize=\"3\" minsize=\"3\" stretchy=\"true\" symmetric=\"true\">(</mo>"
+        );
+    }
+
+    #[test]
+    fn render_text() {
+        assert_eq!(render(&Node::Text("hello")), "<mtext>hello</mtext>");
+    }
+
+    #[test]
+    fn render_table() {
+        // Construct the linked list manually.
+        let mut elem7 = unsafe { NodeListElement::from_raw(Node::Number("4"), None) };
+        let mut elem6 =
+            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem7)) };
+        let mut elem5 = unsafe { NodeListElement::from_raw(Node::Number("3"), Some(&mut elem6)) };
+        let mut elem4 = unsafe { NodeListElement::from_raw(Node::RowSeparator, Some(&mut elem5)) };
+        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("2"), Some(&mut elem4)) };
+        let mut elem2 =
+            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem3)) };
+        let mut elem1 = unsafe { NodeListElement::from_raw(Node::Number("1"), Some(&mut elem2)) };
+        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+
+        assert_eq!(
+            render(&Node::Table {
+                content: nodes,
+                align: crate::attribute::Align::Center,
+                attr: None,
+            }),
+            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_slashed() {
+        assert_eq!(
+            render(&Node::Slashed(&Node::SingleLetterIdent('x', false))),
+            "<mi>x&#x0338;</mi>"
+        );
+    }
+
+    #[test]
+    fn render_multiscript() {
+        assert_eq!(
+            render(&Node::Multiscript {
+                base: &Node::SingleLetterIdent('x', false),
+                sub: &Node::Number("1"),
+            }),
+            "<mmultiscripts><mi>x</mi><mprescripts/><mn>1</mn><mrow></mrow></mmultiscripts>"
+        );
+    }
+
+    #[test]
+    fn render_text_transform() {
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Normal,
+                content: &Node::SingleLetterIdent('a', true),
+            }),
+            "<mi mathvariant=\"normal\">a</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Normal,
+                content: &Node::SingleLetterIdent('a', false),
+            }),
+            "<mi mathvariant=\"normal\">a</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Normal,
+                content: &Node::CollectedLetters("abc"),
+            }),
+            "<mi>abc</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Normal,
+                content: &Node::MultiLetterIdent("abc"),
+            }),
+            "<mi>abc</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Transform(TextTransform::BoldItalic),
+                content: &Node::SingleLetterIdent('a', true),
+            }),
+            "<mi>𝐚</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Transform(TextTransform::BoldItalic),
+                content: &Node::SingleLetterIdent('a', false),
+            }),
+            "<mi>𝒂</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Transform(TextTransform::BoldItalic),
+                content: &Node::CollectedLetters("abc"),
+            }),
+            "<mi>𝒂𝒃𝒄</mi>"
+        );
+        assert_eq!(
+            render(&Node::TextTransform {
+                tf: MathVariant::Transform(TextTransform::BoldItalic),
+                content: &Node::MultiLetterIdent("abc"),
+            }),
+            "<mi>abc</mi>"
+        );
     }
 }

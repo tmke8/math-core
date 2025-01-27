@@ -4,7 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Stretchy, Style,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Stretchy, Style,
         TextTransform,
     },
     commands::get_negated_op,
@@ -204,9 +204,9 @@ where
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_single_token()?;
                 if is_over {
-                    Node::OverOp(op, Accent::True, attr, target)
+                    Node::OverOp(op, attr, target)
                 } else {
-                    Node::UnderOp(op, Accent::True, target)
+                    Node::UnderOp(op, target)
                 }
             }
             Token::Overset | Token::Underset => {
@@ -898,32 +898,29 @@ where
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         for node_ref in nodes {
-            match node_ref.node() {
-                Node::SingleLetterIdent(c, is_normal) => {
-                    if !(is_bold_italic && *is_normal) {
-                        let c = *c;
-                        if let Some(LetterCollector {
-                            ref mut only_one_char,
-                            ref mut builder,
-                            ..
-                        }) = collector
-                        {
-                            *only_one_char = false;
-                            builder.push_char(c);
-                        } else {
-                            let mut builder = self.buffer.get_builder();
-                            builder.push_char(c);
-                            // We start collecting.
-                            collector = Some(LetterCollector {
-                                builder,
-                                node_ref,
-                                only_one_char: true,
-                            });
-                        }
-                        continue;
+            if let Node::SingleLetterIdent(c, is_normal) = node_ref.node() {
+                if !(is_bold_italic && *is_normal) {
+                    let c = *c;
+                    if let Some(LetterCollector {
+                        ref mut only_one_char,
+                        ref mut builder,
+                        ..
+                    }) = collector
+                    {
+                        *only_one_char = false;
+                        builder.push_char(c);
+                    } else {
+                        let mut builder = self.buffer.get_builder();
+                        builder.push_char(c);
+                        // We start collecting.
+                        collector = Some(LetterCollector {
+                            builder,
+                            node_ref,
+                            only_one_char: true,
+                        });
                     }
+                    continue;
                 }
-                _ => {}
             }
             // Commit the collected letters.
             if let Some(collector) = collector.take() {

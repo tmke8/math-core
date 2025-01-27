@@ -138,6 +138,7 @@ pub fn append_mathml<'source>(
 mod tests {
     use insta::assert_snapshot;
 
+    use crate::ast::render;
     use crate::{error, latex_to_mathml, LatexError};
 
     use super::{get_nodes, Arena};
@@ -145,7 +146,7 @@ mod tests {
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
         let arena = Arena::new();
         let nodes = get_nodes(latex, &arena)?;
-        Ok(nodes.render())
+        Ok(render(&nodes))
     }
 
     #[test]
