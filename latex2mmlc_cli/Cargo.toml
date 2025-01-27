@@ -11,4 +11,4 @@ license = { workspace = true }
 clap = { version = "4.5.26", features = ["derive"] }
 latex2mmlc = { path = "../latex2mmlc" }
 memchr = "2.7.4"
-phf = { version = "0.11.2", features = ["macros"] }
+phf = { version = "0.11.3", features = ["macros"] }
