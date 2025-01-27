@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\operatorname{a}"
+---
+<math>
+    <mi mathvariant="normal">a</mi>
+</math>

@@ -207,6 +207,7 @@ mod tests {
             ("simple_accent", r"\dot{x}"),
             ("operator_name", r"\operatorname{sn} x"),
             ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
+            ("operator_name_with_single_char", r"\operatorname{a}"),
             ("simple_binomial_coefficient", r"\binom12"),
             ("stretchy_parentheses", r"\left( x \right)"),
             ("stretchy_one-sided_parenthesis", r"\left( x \right."),

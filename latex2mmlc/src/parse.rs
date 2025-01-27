@@ -612,7 +612,12 @@ where
                         LatexErrKind::ExpectedText("\\operatorname"),
                     ));
                 }
-                Node::MultiLetterIdent(builder.finish(self.arena))
+                let letters = builder.finish(self.arena);
+                if let Some(ch) = get_single_char(letters) {
+                    Node::SingleLetterIdent(ch, true)
+                } else {
+                    Node::MultiLetterIdent(letters)
+                }
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
@@ -978,6 +983,14 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         _ => return false,
     }
     true
+}
+
+fn get_single_char(s: &str) -> Option<char> {
+    let mut chars = s.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) => Some(c), // Exactly one char
+        _ => None,                  // Zero or multiple chars
+    }
 }
 
 #[cfg(test)]
