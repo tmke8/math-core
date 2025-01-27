@@ -4,11 +4,11 @@ expression: "\\boldsymbol{\\Gamma\\varGamma}"
 ---
 [
   TextTransform(
-    tf: Some(BoldItalic),
+    tf: Transform(BoldItalic),
     content: Row(
       nodes: [
-        SingleLetterIdent('Γ', Some(Normal)),
-        SingleLetterIdent('Γ', None),
+        SingleLetterIdent('Γ', true),
+        SingleLetterIdent('Γ', false),
       ],
       style: None,
     ),

@@ -4,7 +4,7 @@ expression: "f''"
 ---
 [
   Superscript(
-    target: SingleLetterIdent('f', None),
+    target: SingleLetterIdent('f', false),
     symbol: Operator(Op('″'), None),
   ),
 ]

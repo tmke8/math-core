@@ -5,7 +5,7 @@ expression: "\\sqrt{x+2}"
 [
   Sqrt(Row(
     nodes: [
-      SingleLetterIdent('x', None),
+      SingleLetterIdent('x', false),
       Operator(Op('+'), None),
       Number("2"),
     ],

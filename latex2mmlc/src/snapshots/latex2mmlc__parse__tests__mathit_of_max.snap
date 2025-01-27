@@ -4,7 +4,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
 ---
 [
   TextTransform(
-    tf: Some(Italic),
+    tf: Transform(Italic),
     content: Row(
       nodes: [
         CollectedLetters("ab"),

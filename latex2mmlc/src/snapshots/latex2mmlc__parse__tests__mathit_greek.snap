@@ -4,7 +4,7 @@ expression: "\\mathit{\\Alpha\\Beta}"
 ---
 [
   TextTransform(
-    tf: Some(Italic),
+    tf: Transform(Italic),
     content: CollectedLetters("ΑΒ"),
   ),
 ]

@@ -5,7 +5,7 @@ expression: 4.x
 [
   PseudoRow([
     Number("4"),
-    SingleLetterIdent('.', None),
+    SingleLetterIdent('.', false),
   ]),
-  SingleLetterIdent('x', None),
+  SingleLetterIdent('x', false),
 ]

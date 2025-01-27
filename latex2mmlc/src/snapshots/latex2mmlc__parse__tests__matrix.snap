@@ -10,9 +10,9 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
     stretchy: false,
     content: Table(
       content: [
-        SingleLetterIdent('x', None),
+        SingleLetterIdent('x', false),
         RowSeparator,
-        SingleLetterIdent('y', None),
+        SingleLetterIdent('y', false),
       ],
       align: Center,
       attr: None,

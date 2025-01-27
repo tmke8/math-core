@@ -4,7 +4,7 @@ expression: "\\textbf{abc}"
 ---
 [
   TextTransform(
-    tf: Some(Bold),
+    tf: Transform(Bold),
     content: Text("abc"),
   ),
 ]

@@ -109,14 +109,14 @@ where
             ref tok @ (Token::NumberWithDot(number) | Token::NumberWithComma(number)) => {
                 let first = self.commit(Node::Number(number));
                 let second = self.commit(match tok {
-                    Token::NumberWithDot(_) => Node::SingleLetterIdent(ops::FULL_STOP, None),
+                    Token::NumberWithDot(_) => Node::SingleLetterIdent(ops::FULL_STOP, false),
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
                     _ => unreachable!(),
                 });
                 Node::PseudoRow(NodeList::from_two_nodes(first, second))
             }
-            Token::Letter(x) => Node::SingleLetterIdent(x, None),
-            Token::UprightLetter(x) => Node::SingleLetterIdent(x, Some(MathVariant::Normal)),
+            Token::Letter(x) => Node::SingleLetterIdent(x, false),
+            Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
             Token::Operator(op) => Node::Operator(op, None),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
@@ -412,7 +412,7 @@ where
                 return Ok(self.squeeze(content, None));
             }
             Token::Paren(paren, spacing, stretchy) => match spacing {
-                Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), None),
+                Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
                 None => match stretchy {
                     Stretchy::Never => Node::Operator(paren, None),
                     _ => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
@@ -612,7 +612,12 @@ where
                         LatexErrKind::ExpectedText("\\operatorname"),
                     ));
                 }
-                Node::MultiLetterIdent(builder.finish(self.arena))
+                let letters = builder.finish(self.arena);
+                if let Some(ch) = get_single_char(letters) {
+                    Node::SingleLetterIdent(ch, true)
+                } else {
+                    Node::MultiLetterIdent(letters)
+                }
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
@@ -631,7 +636,7 @@ where
                 if let Some(transform) = transform {
                     Node::TextTransform {
                         content: text.node(),
-                        tf: Some(transform),
+                        tf: MathVariant::Transform(transform),
                     }
                 } else {
                     return Ok(text);
@@ -887,15 +892,15 @@ where
         &mut self,
         nodes: NodeList<'arena>,
         style: Option<Style>,
-        tf: Option<TextTransform>,
+        tf: MathVariant,
     ) -> NodeRef<'arena> {
-        let is_bold_italic = matches!(tf, Some(TextTransform::BoldItalic));
+        let is_bold_italic = matches!(tf, MathVariant::Transform(TextTransform::BoldItalic));
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
         for node_ref in nodes {
             match node_ref.node() {
-                Node::SingleLetterIdent(c, var) => {
-                    if !(is_bold_italic && matches!(var, Some(MathVariant::Normal))) {
+                Node::SingleLetterIdent(c, is_normal) => {
+                    if !(is_bold_italic && *is_normal) {
                         let c = *c;
                         if let Some(LetterCollector {
                             ref mut only_one_char,
@@ -978,6 +983,14 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         _ => return false,
     }
     true
+}
+
+fn get_single_char(s: &str) -> Option<char> {
+    let mut chars = s.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) => Some(c), // Exactly one char
+        _ => None,                  // Zero or multiple chars
+    }
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@ expression: "x_{92}^{31415}"
 ---
 [
   SubSup(
-    target: SingleLetterIdent('x', None),
+    target: SingleLetterIdent('x', false),
     sub: Number("92"),
     sup: Number("31415"),
   ),
