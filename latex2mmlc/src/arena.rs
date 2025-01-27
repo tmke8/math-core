@@ -18,6 +18,13 @@ impl<'arena> NodeListElement<'arena> {
     pub fn mut_node(&mut self) -> &mut Node<'arena> {
         &mut self.node
     }
+    #[cfg(test)]
+    pub unsafe fn from_raw(node: Node<'arena>, next: Option<&mut NodeListElement<'arena>>) -> Self {
+        NodeListElement {
+            node,
+            next: next.map(|n| NonNull::from(n)),
+        }
+    }
 }
 
 pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
@@ -201,6 +208,11 @@ impl<'arena> NodeListBuilder<'arena> {
 pub struct NodeList<'arena>(Option<NodeRef<'arena>>);
 
 impl<'arena> NodeList<'arena> {
+    #[cfg(test)]
+    pub unsafe fn from_raw(node: NodeRef<'arena>) -> Self {
+        NodeList(Some(node))
+    }
+
     #[inline]
     pub fn empty() -> Self {
         NodeList(None)

@@ -13,15 +13,6 @@ pub enum MathVariant {
     Transform(TextTransform),
 }
 
-#[derive(Debug, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
-pub enum Accent {
-    #[strum(serialize = "true")]
-    True,
-    #[strum(serialize = "false")]
-    False,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(test, derive(Serialize))]
 pub enum OpAttr {
