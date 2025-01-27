@@ -4,9 +4,7 @@ use std::mem;
 use serde::Serialize;
 
 use crate::arena::NodeList;
-use crate::attribute::{
-    Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform,
-};
+use crate::attribute::{Accent, Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
 use crate::ops::Op;
 
 /// AST node
@@ -14,7 +12,7 @@ use crate::ops::Op;
 #[cfg_attr(test, derive(Serialize))]
 pub enum Node<'arena> {
     Number(&'arena str),
-    SingleLetterIdent(char, Option<MathVariant>),
+    SingleLetterIdent(char, bool),
     Operator(Op, Option<OpAttr>),
     OpGreaterThan,
     OpLessThan,
@@ -98,7 +96,7 @@ pub enum Node<'arena> {
         sub: &'arena Node<'arena>,
     },
     TextTransform {
-        tf: Option<TextTransform>,
+        tf: MathVariant,
         content: &'arena Node<'arena>,
     },
 }
@@ -139,7 +137,6 @@ impl Node<'_> {
 
 pub struct MathMLEmitter {
     s: String,
-    tf: Option<TextTransform>,
     var: Option<MathVariant>,
 }
 
@@ -148,7 +145,6 @@ impl MathMLEmitter {
     pub fn new() -> Self {
         Self {
             s: String::new(),
-            tf: None,
             var: None,
         }
     }
@@ -199,7 +195,7 @@ impl MathMLEmitter {
 
         match node {
             Node::Number(number) => {
-                if let Some(tf) = self.tf {
+                if let Some(MathVariant::Transform(tf)) = self.var {
                     // We render transformed numbers as identifiers.
                     push!(self.s, "<mi>");
                     self.s
@@ -209,33 +205,26 @@ impl MathMLEmitter {
                     push!(self.s, "<mn>", number, "</mn>");
                 }
             }
-            Node::SingleLetterIdent(letter, var) => {
-                // If the mathvariant is not set, we use the default value.
-                let var = var.or(self.var);
+            Node::SingleLetterIdent(letter, is_normal) => {
+                // The identifier is "normal" if either `is_normal` is set,
+                // or the global `self.var` is set to `MathVariant::Normal`.
+                let is_normal = *is_normal || matches!(self.var, Some(MathVariant::Normal));
                 // Only set "mathvariant" if we are not transforming the letter.
-                match var {
-                    Some(var) if self.tf.is_none() => push!(self.s, "<mi", var, ">"),
-                    _ => push!(self.s, "<mi>"),
-                };
-                let c = match self.tf {
-                    Some(tf) => tf.transform(*letter, var.is_some()),
-                    None => *letter,
+                if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
+                    push!(self.s, "<mi mathvariant=\"normal\">");
+                } else {
+                    push!(self.s, "<mi>");
+                }
+                let c = match self.var {
+                    Some(MathVariant::Transform(tf)) => tf.transform(*letter, is_normal),
+                    _ => *letter,
                 };
                 push!(self.s, @c, "</mi>");
             }
             Node::TextTransform { content, tf } => {
-                let old_var = mem::replace(
-                    &mut self.var,
-                    if tf.is_none() {
-                        Some(MathVariant::Normal)
-                    } else {
-                        None
-                    },
-                );
-                let old_tf = mem::replace(&mut self.tf, *tf);
+                let old_var = mem::replace(&mut self.var, Some(*tf));
                 self.emit(content, base_indent);
                 self.var = old_var;
-                self.tf = old_tf;
             }
             Node::Operator(op, attributes) => {
                 match attributes {
@@ -279,8 +268,8 @@ impl MathMLEmitter {
                     _ => unreachable!(),
                 };
                 push!(self.s, open);
-                match self.tf {
-                    Some(tf) if self.var.is_none() => self
+                match self.var {
+                    Some(MathVariant::Transform(tf)) => self
                         .s
                         .extend(letters.chars().map(|c| tf.transform(c, false))),
                     _ => self.s.push_str(letters),
@@ -452,12 +441,13 @@ impl MathMLEmitter {
                 push!(self.s, ">", @paren, "</mo>");
             }
             Node::Slashed(node) => match node {
-                Node::SingleLetterIdent(x, var) => match var.or(self.var) {
-                    Some(var) => {
-                        push!(self.s, "<mi", var, ">", @*x, "&#x0338;</mi>")
+                Node::SingleLetterIdent(x, is_normal) => {
+                    if *is_normal || matches!(self.var, Some(MathVariant::Normal)) {
+                        push!(self.s, "<mi mathvariant=\"normal\">", @*x, "&#x0338;</mi>");
+                    } else {
+                        push!(self.s, "<mi>", @*x, "&#x0338;</mi>");
                     }
-                    None => push!(self.s, "<mi>", @*x, "&#x0338;</mi>"),
-                },
+                }
                 Node::Operator(x, _) => {
                     push!(self.s, "<mo>", @x, "&#x0338;</mo>");
                 }
@@ -552,18 +542,16 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::super::attribute::MathVariant;
-
     use super::Node;
 
     #[test]
     fn node_display() {
         let problems = vec![
             (Node::Number("3.14"), "<mn>3.14</mn>"),
-            (Node::SingleLetterIdent('x', None), "<mi>x</mi>"),
-            (Node::SingleLetterIdent('α', None), "<mi>α</mi>"),
+            (Node::SingleLetterIdent('x', false), "<mi>x</mi>"),
+            (Node::SingleLetterIdent('α', false), "<mi>α</mi>"),
             (
-                Node::SingleLetterIdent('あ', Some(MathVariant::Normal)),
+                Node::SingleLetterIdent('あ', true),
                 "<mi mathvariant=\"normal\">あ</mi>",
             ),
         ];

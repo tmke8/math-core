@@ -1,4 +1,4 @@
-use crate::attribute::{FracAttr, OpAttr, ParenAttr, Stretchy, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, OpAttr, ParenAttr, Stretchy, Style, TextTransform};
 use crate::ops::{self, Op};
 use crate::token::Token;
 
@@ -144,8 +144,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "binom" => Token::Binom(None),
     "blacklozenge" => Token::Letter(ops::BLACK_LOZENGE),
     "blacksquare" => Token::Letter(ops::BLACK_SQUARE),
-    "bm" => Token::Transform(Some(TextTransform::BoldItalic)),
-    "boldsymbol" => Token::Transform(Some(TextTransform::BoldItalic)),
+    "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
+    "boldsymbol" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Token::Operator(ops::UP_TACK),
     "botdoteq" => Token::Operator(ops::EQUALS_SIGN_WITH_DOT_BELOW),
     "boxbox" => Token::Operator(ops::SQUARED_SQUARE),
@@ -363,16 +363,16 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "maltese" => Token::Letter('✠'),
     "mapsto" => Token::Operator(ops::RIGHTWARDS_ARROW_FROM_BAR),
     "mars" => Token::Letter('♂'),
-    "mathbb" => Token::Transform(Some(TextTransform::DoubleStruck)),
-    "mathbf" => Token::Transform(Some(TextTransform::Bold)),
-    "mathcal" => Token::Transform(Some(TextTransform::Script)),
-    "mathfrak" => Token::Transform(Some(TextTransform::Fraktur)),
-    "mathit" => Token::Transform(Some(TextTransform::Italic)),
-    "mathrm" => Token::Transform(None),
-    "mathscr" => Token::Transform(Some(TextTransform::Script)),
-    "mathsf" => Token::Transform(Some(TextTransform::SansSerif)),
+    "mathbb" => Token::Transform(MathVariant::Transform(TextTransform::DoubleStruck)),
+    "mathbf" => Token::Transform(MathVariant::Transform(TextTransform::Bold)),
+    "mathcal" => Token::Transform(MathVariant::Transform(TextTransform::Script)),
+    "mathfrak" => Token::Transform(MathVariant::Transform(TextTransform::Fraktur)),
+    "mathit" => Token::Transform(MathVariant::Transform(TextTransform::Italic)),
+    "mathrm" => Token::Transform(MathVariant::Normal),
+    "mathscr" => Token::Transform(MathVariant::Transform(TextTransform::Script)),
+    "mathsf" => Token::Transform(MathVariant::Transform(TextTransform::SansSerif)),
     "mathstrut" => Token::Mathstrut,
-    "mathtt" => Token::Transform(Some(TextTransform::Monospace)),
+    "mathtt" => Token::Transform(MathVariant::Transform(TextTransform::Monospace)),
     "max" => Token::Lim("max"),
     "measeq" => Token::Operator(ops::MEASURED_BY), // from "stix"
     "measuredangle" => Token::Letter(ops::MEASURED_ANGLE),
@@ -544,7 +544,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "supsetneq" => Token::Operator(ops::SUPERSET_OF_WITH_NOT_EQUAL_TO),
     "supsetneqq" => Token::Operator(ops::SUPERSET_OF_ABOVE_NOT_EQUAL_TO),
     "swarrow" => Token::Operator(ops::SOUTH_WEST_ARROW),
-    "symbf" => Token::Transform(Some(TextTransform::BoldItalic)),
+    "symbf" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "tan" => Token::Function("tan"),
     "tanh" => Token::Function("tanh"),
     "tau" => Token::Letter('τ'),

@@ -4,12 +4,12 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
 ---
 [
   TextTransform(
-    tf: None,
+    tf: Normal,
     content: Row(
       nodes: [
         CollectedLetters("ab"),
         TextTransform(
-          tf: Some(Italic),
+          tf: Transform(Italic),
           content: CollectedLetters("cd"),
         ),
         CollectedLetters("ef"),

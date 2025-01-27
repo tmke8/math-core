@@ -4,14 +4,14 @@ expression: "\\mathrm{\\mathit{a}b}"
 ---
 [
   TextTransform(
-    tf: None,
+    tf: Normal,
     content: Row(
       nodes: [
         TextTransform(
-          tf: Some(Italic),
-          content: SingleLetterIdent('a', None),
+          tf: Transform(Italic),
+          content: SingleLetterIdent('a', false),
         ),
-        SingleLetterIdent('b', None),
+        SingleLetterIdent('b', false),
       ],
       style: None,
     ),

@@ -8,6 +8,6 @@ expression: "\\int\\limits^1_0 dx"
     under: Number("0"),
     over: Number("1"),
   ),
-  SingleLetterIdent('d', None),
-  SingleLetterIdent('x', None),
+  SingleLetterIdent('d', false),
+  SingleLetterIdent('x', false),
 ]
