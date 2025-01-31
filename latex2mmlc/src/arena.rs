@@ -19,11 +19,8 @@ impl<'arena> NodeListElement<'arena> {
         &mut self.node
     }
     #[cfg(test)]
-    pub unsafe fn from_raw(node: Node<'arena>, next: Option<&mut NodeListElement<'arena>>) -> Self {
-        NodeListElement {
-            node,
-            next: next.map(|n| NonNull::from(n)),
-        }
+    pub const fn new(node: Node<'arena>) -> Self {
+        NodeListElement { node, next: None }
     }
 }
 
@@ -208,11 +205,6 @@ impl<'arena> NodeListBuilder<'arena> {
 pub struct NodeList<'arena>(Option<NodeRef<'arena>>);
 
 impl<'arena> NodeList<'arena> {
-    #[cfg(test)]
-    pub unsafe fn from_raw(node: NodeRef<'arena>) -> Self {
-        NodeList(Some(node))
-    }
-
     #[inline]
     pub fn empty() -> Self {
         NodeList(None)
@@ -222,9 +214,21 @@ impl<'arena> NodeList<'arena> {
         self.0.is_none()
     }
 
-    pub fn from_two_nodes(first: NodeRef<'arena>, second: NodeRef<'arena>) -> Self {
-        first.next = Some(NonNull::from(second));
-        NodeList(Some(first))
+    /// Create a list from an array of nodes.
+    ///
+    /// We pass in the last element of the list separately, in order to ensure that
+    /// the list is not empty. If you want an empty list, use `NodeList::empty()`.
+    pub fn from_node_refs<const N: usize>(
+        nodes: [NodeRef<'arena>; N],
+        last_element: NodeRef<'arena>,
+    ) -> Self {
+        let mut current = last_element;
+        // We iterate in reverse order, because we transfer ownership of the `next` pointer.
+        for node in nodes.into_iter().rev() {
+            node.next = Some(NonNull::from(current));
+            current = node;
+        }
+        NodeList(Some(current))
     }
 
     pub fn iter<'list>(&'list self) -> NodeListIterator<'arena, 'list> {
@@ -372,6 +376,20 @@ mod tests {
         assert!(matches!(reference.node, Node::Space("Hello, world!")));
         let reference = iter.next().unwrap();
         assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
+    }
+
+    #[test]
+    fn list_from_node_refs() {
+        let arena = Arena::new();
+        let nodes = [arena.push(Node::Space("Hello, world!"))];
+        let last_node = arena.push(Node::Space("Goodbye, world!"));
+        let list = NodeList::from_node_refs(nodes, last_node);
+        let mut iter = list.iter();
+        assert!(matches!(iter.next().unwrap(), Node::Space("Hello, world!")));
+        assert!(matches!(
+            iter.next().unwrap(),
+            Node::Space("Goodbye, world!")
+        ));
     }
 
     #[test]

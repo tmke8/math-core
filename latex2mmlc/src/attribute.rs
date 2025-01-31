@@ -16,22 +16,46 @@ pub enum MathVariant {
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(test, derive(Serialize))]
 pub enum OpAttr {
-    #[strum(serialize = r#" stretchy="true""#)]
-    StretchyTrue = 1,
     #[strum(serialize = r#" stretchy="false""#)]
     StretchyFalse,
     #[strum(serialize = r#" movablelimits="false""#)]
     NoMovableLimits,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
+pub enum Size {
+    #[strum(serialize = "1.2em")]
+    Scale1,
+    #[strum(serialize = "1.623em")]
+    Scale2,
+    #[strum(serialize = "2.047em")]
+    Scale3,
+    #[strum(serialize = "2.470em")]
+    Scale4,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
+pub enum StretchMode {
+    /// Don't stretch the operator.
+    NoStretch = 1,
+    /// Operator is in a fence and should stretch.
+    Fence,
+    /// Operator is in the middle of a fenced expression and should stretch.
+    Middle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum ParenAttr {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)
     Ordinary = 1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Stretchy {
     /// The operator is always stretchy (e.g. `(`, `)`).
     Always = 1,

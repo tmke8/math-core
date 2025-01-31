@@ -3,9 +3,11 @@ use std::mem;
 #[cfg(test)]
 use serde::Serialize;
 
-use crate::arena::NodeList;
-use crate::attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
-use crate::ops::Op;
+use crate::arena::{Arena, NodeList, NodeRef};
+use crate::attribute::{
+    Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
+};
+use crate::ops::{Op, ParenOp};
 
 /// AST node
 #[derive(Debug)]
@@ -14,6 +16,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, bool),
     Operator(Op, Option<OpAttr>),
+    StretchableOp(ParenOp, StretchMode),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
@@ -70,18 +73,7 @@ pub enum Node<'arena> {
     },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
-    Fenced {
-        open: Op,
-        close: Op,
-        style: Option<Style>,
-        stretchy: bool,
-        content: &'arena Node<'arena>,
-    },
-    SizedParen {
-        size: &'static str,
-        paren: Op,
-        stretchy: bool,
-    },
+    SizedParen(Size, ParenOp),
     Text(&'arena str),
     Table {
         content: NodeList<'arena>,
@@ -99,6 +91,24 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
+}
+
+impl<'arena> Node<'arena> {
+    pub fn make_fenced(
+        arena: &'arena Arena,
+        open: ParenOp,
+        close: ParenOp,
+        content: NodeRef<'arena>,
+        style: Option<Style>,
+    ) -> Self {
+        let open = arena.push(Node::StretchableOp(open, StretchMode::Fence));
+        let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
+        let node_list = NodeList::from_node_refs([open, content], close);
+        Node::Row {
+            nodes: node_list,
+            style,
+        }
+    }
 }
 
 const INDENT: &str = "    ";
@@ -224,6 +234,28 @@ impl MathMLEmitter {
                     None => push!(self.s, "<mo>"),
                 }
                 push!(self.s, @op, "</mo>");
+            }
+            Node::StretchableOp(op, stretch_mode) => {
+                match (stretch_mode, op.stretchy()) {
+                    (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
+                    | (
+                        StretchMode::Middle,
+                        Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
+                    ) => {
+                        push!(self.s, "<mo stretchy=\"true\">")
+                    }
+                    (
+                        StretchMode::NoStretch,
+                        Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+                    ) => {
+                        push!(self.s, "<mo stretchy=\"false\">")
+                    }
+                    _ => push!(self.s, "<mo>"),
+                }
+                if char::from(*op) != '\0' {
+                    push!(self.s, @*op);
+                }
+                push!(self.s, "</mo>");
             }
             node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
                 let op = match node {
@@ -387,50 +419,12 @@ impl MathMLEmitter {
                     r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
                 );
             }
-            Node::Fenced {
-                open,
-                close,
-                style,
-                stretchy,
-                content,
-            } => {
-                match style {
-                    Some(style) => push!(self.s, "<mrow", style, ">"),
-                    None => push!(self.s, "<mrow>"),
-                }
-                pushln!(&mut self.s, child_indent, "<mo");
-                if *stretchy {
-                    // TODO: Should we set `symmetric="true"` as well?
-                    push!(self.s, " stretchy=\"true\"");
-                }
-                push!(self.s, ">");
-                if char::from(open) != '\0' {
-                    push!(self.s, @open);
-                }
-                push!(self.s, "</mo>");
-                self.emit(content, child_indent);
-                pushln!(&mut self.s, child_indent, "<mo");
-                if *stretchy {
-                    // TODO: Should we set `symmetric="true"` as well?
-                    push!(self.s, " stretchy=\"true\"");
-                }
-                push!(self.s, ">");
-                if char::from(close) != '\0' {
-                    push!(self.s, @close);
-                }
-                push!(self.s, "</mo>");
-                pushln!(&mut self.s, base_indent, "</mrow>");
-            }
-            Node::SizedParen {
-                size,
-                paren,
-                stretchy,
-            } => {
+            Node::SizedParen(size, paren) => {
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
-                if *stretchy {
+                if !matches!(paren.stretchy(), Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");
                 }
-                push!(self.s, ">", @paren, "</mo>");
+                push!(self.s, ">", @*paren, "</mo>");
             }
             Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, is_normal) => {
@@ -563,20 +557,6 @@ mod tests {
     #[test]
     fn render_operator() {
         assert_eq!(render(&Node::Operator(ops::PLUS_SIGN, None)), "<mo>+</mo>");
-        assert_eq!(
-            render(&Node::Operator(
-                ops::LEFT_PARENTHESIS,
-                Some(OpAttr::StretchyTrue)
-            )),
-            "<mo stretchy=\"true\">(</mo>"
-        );
-        assert_eq!(
-            render(&Node::Operator(
-                ops::LEFT_PARENTHESIS,
-                Some(OpAttr::StretchyFalse)
-            )),
-            "<mo stretchy=\"false\">(</mo>"
-        );
         assert_eq!(
             render(&Node::Operator(
                 ops::N_ARY_SUMMATION,
@@ -815,15 +795,12 @@ mod tests {
 
     #[test]
     fn render_row() {
-        // Construct the linked list manually.
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
-        let mut elem2 = unsafe {
-            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
-        };
-        let mut elem1 = unsafe {
-            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
-        };
-        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
+            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
+        ];
+        let last_element = &mut NodeListElement::new(Node::Number("1"));
+        let nodes = NodeList::from_node_refs(nodes, last_element);
 
         assert_eq!(
             render(&Node::Row { nodes, style: None }),
@@ -833,14 +810,12 @@ mod tests {
 
     #[test]
     fn render_pseudo_row() {
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
-        let mut elem2 = unsafe {
-            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
-        };
-        let mut elem1 = unsafe {
-            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
-        };
-        let vec = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
+            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
+        ];
+        let last_element = &mut NodeListElement::new(Node::Number("1"));
+        let vec = NodeList::from_node_refs(nodes, last_element);
         assert_eq!(
             render(&Node::PseudoRow(vec)),
             "<mi>x</mi><mo>+</mo><mn>1</mn>"
@@ -856,46 +831,20 @@ mod tests {
     }
 
     #[test]
-    fn render_fenced() {
-        assert_eq!(
-            render(&Node::Fenced {
-                open: ops::LEFT_PARENTHESIS,
-                close: ops::RIGHT_PARENTHESIS,
-                style: None,
-                stretchy: false,
-                content: &Node::SingleLetterIdent('x', false),
-            }),
-            "<mrow><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
-        );
-        assert_eq!(
-            render(&Node::Fenced {
-                open: ops::LEFT_PARENTHESIS,
-                close: ops::RIGHT_PARENTHESIS,
-                style: None,
-                stretchy: true,
-                content: &Node::SingleLetterIdent('x', false),
-            }),
-            "<mrow><mo stretchy=\"true\">(</mo><mi>x</mi><mo stretchy=\"true\">)</mo></mrow>"
-        );
-    }
-
-    #[test]
     fn render_sized_paren() {
         assert_eq!(
-            render(&Node::SizedParen {
-                size: "1",
-                paren: ops::LEFT_PARENTHESIS,
-                stretchy: false,
-            }),
-            "<mo maxsize=\"1\" minsize=\"1\">(</mo>"
+            render(&Node::SizedParen(
+                crate::attribute::Size::Scale1,
+                ops::LEFT_PARENTHESIS,
+            )),
+            "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen {
-                size: "3",
-                paren: ops::LEFT_PARENTHESIS,
-                stretchy: true,
-            }),
-            "<mo maxsize=\"3\" minsize=\"3\" stretchy=\"true\" symmetric=\"true\">(</mo>"
+            render(&Node::SizedParen (
+                crate::attribute::Size::Scale3,
+                ops::SOLIDUS,
+            )),
+            "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }
 
@@ -906,17 +855,16 @@ mod tests {
 
     #[test]
     fn render_table() {
-        // Construct the linked list manually.
-        let mut elem7 = unsafe { NodeListElement::from_raw(Node::Number("4"), None) };
-        let mut elem6 =
-            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem7)) };
-        let mut elem5 = unsafe { NodeListElement::from_raw(Node::Number("3"), Some(&mut elem6)) };
-        let mut elem4 = unsafe { NodeListElement::from_raw(Node::RowSeparator, Some(&mut elem5)) };
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("2"), Some(&mut elem4)) };
-        let mut elem2 =
-            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem3)) };
-        let mut elem1 = unsafe { NodeListElement::from_raw(Node::Number("1"), Some(&mut elem2)) };
-        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::Number("1")),
+            &mut NodeListElement::new(Node::ColumnSeparator),
+            &mut NodeListElement::new(Node::Number("2")),
+            &mut NodeListElement::new(Node::RowSeparator),
+            &mut NodeListElement::new(Node::Number("3")),
+            &mut NodeListElement::new(Node::ColumnSeparator),
+        ];
+        let elem7 = &mut NodeListElement::new(Node::Number("4"));
+        let nodes = NodeList::from_node_refs(nodes, elem7);
 
         assert_eq!(
             render(&Node::Table {

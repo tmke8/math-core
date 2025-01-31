@@ -4,7 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Stretchy, Style,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, StretchMode, Style,
         TextTransform,
     },
     commands::get_negated_op,
@@ -113,7 +113,7 @@ where
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
                     _ => unreachable!(),
                 });
-                Node::PseudoRow(NodeList::from_two_nodes(first, second))
+                Node::PseudoRow(NodeList::from_node_refs([first], second))
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, false),
             Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
@@ -142,13 +142,13 @@ where
                 let den = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some('0');
-                    Node::Fenced {
-                        open: ops::LEFT_PARENTHESIS,
-                        close: ops::RIGHT_PARENTHESIS,
-                        content: self.commit(Node::Frac { num, den, lt, attr }).node(),
-                        style: None,
-                        stretchy: false,
-                    }
+                    Node::make_fenced(
+                        self.arena,
+                        ops::LEFT_PARENTHESIS,
+                        ops::RIGHT_PARENTHESIS,
+                        self.commit(Node::Frac { num, den, lt, attr }),
+                        None,
+                    )
                 } else {
                     let lt = None;
                     Node::Frac { num, den, lt, attr }
@@ -160,12 +160,12 @@ where
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_token()? {
-                    Node::Operator(op, _) => *op,
+                    Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()? {
-                    Node::Operator(op, _) => *op,
+                    Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
@@ -193,13 +193,13 @@ where
                 let num = self.parse_token()?;
                 let den = self.parse_token()?;
                 let attr = None;
-                Node::Fenced {
+                Node::make_fenced(
+                    self.arena,
                     open,
                     close,
-                    content: self.commit(Node::Frac { num, den, lt, attr }).node(),
+                    self.commit(Node::Frac { num, den, lt, attr }),
                     style,
-                    stretchy: true,
-                }
+                )
             }
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_single_token()?;
@@ -398,7 +398,7 @@ where
                         left: Some(MathSpacing::Zero),
                         right: None,
                     });
-                    Node::PseudoRow(NodeList::from_two_nodes(first, second))
+                    Node::PseudoRow(NodeList::from_node_refs([first], second))
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
@@ -411,29 +411,23 @@ where
                 self.next_token(); // Discard the closing token.
                 return Ok(self.squeeze(content, None));
             }
-            Token::Paren(paren, spacing, stretchy) => match spacing {
+            Token::Paren(paren) => match paren.spacing() {
                 Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
-                None => match stretchy {
-                    Stretchy::Never => Node::Operator(paren, None),
-                    _ => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
-                },
+                None => Node::StretchableOp(paren, StretchMode::NoStretch),
             },
             Token::SquareBracketOpen => {
-                Node::Operator(ops::LEFT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
+                Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::SquareBracketClose => {
-                Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
+                Node::StretchableOp(ops::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
-                let (open_paren, open_stretchy) = match next_token {
-                    Token::Paren(open, _, stretchy) => (
-                        open,
-                        matches!(stretchy, Stretchy::Never | Stretchy::Inconsistent),
-                    ),
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
-                    Token::Letter(ops::FULL_STOP) => (ops::NULL, false),
+                let open_paren = match next_token {
+                    Token::Paren(open) => open,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -447,14 +441,11 @@ where
                 let content = self.parse_group(Token::Right)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
-                let (close_paren, close_stretchy) = match next_token {
-                    Token::Paren(close, _, stretchy) => (
-                        close,
-                        matches!(stretchy, Stretchy::Never | Stretchy::Inconsistent),
-                    ),
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
-                    Token::Letter(ops::FULL_STOP) => (ops::NULL, false),
+                let close_paren = match next_token {
+                    Token::Paren(close) => close,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -465,63 +456,49 @@ where
                         ))
                     }
                 };
-                Node::Fenced {
-                    open: open_paren,
-                    close: close_paren,
-                    content: self.squeeze(content, None).node(),
-                    style: None,
-                    // TODO: Handle open and close separately.
-                    stretchy: open_stretchy || close_stretchy,
-                }
+                Node::make_fenced(
+                    self.arena,
+                    open_paren,
+                    close_paren,
+                    self.squeeze(content, None),
+                    None,
+                )
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
-                match next_token {
-                    // Token::Operator(op) | Token::Paren(op, _, stretchy) => {
-                    Token::Paren(op, _, stretchy) => {
-                        let attr = if !matches!(stretchy, Stretchy::Always) {
-                            Some(OpAttr::StretchyTrue)
-                        } else {
-                            None
-                        };
-                        Node::Operator(op, attr)
-                    }
-                    Token::SquareBracketOpen => Node::Operator(ops::LEFT_SQUARE_BRACKET, None),
-                    Token::SquareBracketClose => Node::Operator(ops::RIGHT_SQUARE_BRACKET, None),
+                let op = match next_token {
+                    Token::Paren(op) => op,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Operator(ops::NULL),
-                                got: next_token,
-                            },
-                        ))
-                    }
-                }
-            }
-            Token::Big(size) => {
-                let TokLoc(loc, next_token) = self.next_token();
-                let (paren, stretchy) = match next_token {
-                    Token::Paren(paren, _, stretchy) => {
-                        (paren, !matches!(stretchy, Stretchy::Always))
-                    }
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::UnexpectedToken {
-                                expected: &Token::Paren(ops::NULL, None, Stretchy::Always),
+                                expected: &Token::Paren(ops::NULL),
                                 got: next_token,
                             },
                         ));
                     }
                 };
-                Node::SizedParen {
-                    size,
-                    paren,
-                    stretchy,
-                }
+                Node::StretchableOp(op, StretchMode::Middle)
+            }
+            Token::Big(size) => {
+                let TokLoc(loc, next_token) = self.next_token();
+                let paren = match next_token {
+                    Token::Paren(paren) => paren,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    _ => {
+                        return Err(LatexError(
+                            loc,
+                            LatexErrKind::UnexpectedToken {
+                                expected: &Token::Paren(ops::NULL),
+                                got: next_token,
+                            },
+                        ));
+                    }
+                };
+                Node::SizedParen(size, paren)
             }
             Token::Begin => {
                 self.check_lbrace()?;
@@ -537,20 +514,18 @@ where
                     },
                     "cases" => {
                         let align = Align::Left;
-                        let content = self
-                            .commit(Node::Table {
-                                content,
-                                align,
-                                attr: None,
-                            })
-                            .node();
-                        Node::Fenced {
-                            open: ops::LEFT_CURLY_BRACKET,
-                            close: ops::NULL,
+                        let content = self.commit(Node::Table {
                             content,
-                            style: None,
-                            stretchy: false,
-                        }
+                            align,
+                            attr: None,
+                        });
+                        Node::make_fenced(
+                            self.arena,
+                            ops::LEFT_CURLY_BRACKET,
+                            ops::NULL,
+                            content,
+                            None,
+                        )
                     }
                     "matrix" => Node::Table {
                         content,
@@ -570,19 +545,17 @@ where
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         let attr = None;
-                        Node::Fenced {
+                        Node::make_fenced(
+                            self.arena,
                             open,
                             close,
-                            content: self
-                                .commit(Node::Table {
-                                    content,
-                                    align,
-                                    attr,
-                                })
-                                .node(),
-                            style: None,
-                            stretchy: false,
-                        }
+                            self.commit(Node::Table {
+                                content,
+                                align,
+                                attr,
+                            }),
+                            None,
+                        )
                     }
                     _ => {
                         return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
@@ -971,6 +944,10 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
             }
         }
         Node::Number(n) => buffer.push_str(n),
+        Node::StretchableOp(op, _) => {
+            let op = *op;
+            buffer.push_char(op.into());
+        }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
         }
@@ -1014,6 +991,7 @@ mod tests {
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
             ("boldsymbol_greek_var", r"\boldsymbol{\Gamma\varGamma}"),
             ("mathit_func", r"\mathit{ab \log cd}"),
+            ("big_paren", r"\big("),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
