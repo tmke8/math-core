@@ -824,15 +824,12 @@ mod tests {
 
     #[test]
     fn render_row() {
-        // Construct the linked list manually.
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
-        let mut elem2 = unsafe {
-            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
-        };
-        let mut elem1 = unsafe {
-            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
-        };
-        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
+            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
+        ];
+        let last_element = &mut NodeListElement::new(Node::Number("1"));
+        let nodes = NodeList::from_node_refs(nodes, last_element);
 
         assert_eq!(
             render(&Node::Row { nodes, style: None }),
@@ -842,14 +839,12 @@ mod tests {
 
     #[test]
     fn render_pseudo_row() {
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("1"), None) };
-        let mut elem2 = unsafe {
-            NodeListElement::from_raw(Node::Operator(ops::PLUS_SIGN, None), Some(&mut elem3))
-        };
-        let mut elem1 = unsafe {
-            NodeListElement::from_raw(Node::SingleLetterIdent('x', false), Some(&mut elem2))
-        };
-        let vec = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
+            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
+        ];
+        let last_element = &mut NodeListElement::new(Node::Number("1"));
+        let vec = NodeList::from_node_refs(nodes, last_element);
         assert_eq!(
             render(&Node::PseudoRow(vec)),
             "<mi>x</mi><mo>+</mo><mn>1</mn>"
@@ -911,17 +906,16 @@ mod tests {
 
     #[test]
     fn render_table() {
-        // Construct the linked list manually.
-        let mut elem7 = unsafe { NodeListElement::from_raw(Node::Number("4"), None) };
-        let mut elem6 =
-            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem7)) };
-        let mut elem5 = unsafe { NodeListElement::from_raw(Node::Number("3"), Some(&mut elem6)) };
-        let mut elem4 = unsafe { NodeListElement::from_raw(Node::RowSeparator, Some(&mut elem5)) };
-        let mut elem3 = unsafe { NodeListElement::from_raw(Node::Number("2"), Some(&mut elem4)) };
-        let mut elem2 =
-            unsafe { NodeListElement::from_raw(Node::ColumnSeparator, Some(&mut elem3)) };
-        let mut elem1 = unsafe { NodeListElement::from_raw(Node::Number("1"), Some(&mut elem2)) };
-        let nodes = unsafe { NodeList::from_raw(&mut elem1) };
+        let nodes = [
+            &mut NodeListElement::new(Node::Number("1")),
+            &mut NodeListElement::new(Node::ColumnSeparator),
+            &mut NodeListElement::new(Node::Number("2")),
+            &mut NodeListElement::new(Node::RowSeparator),
+            &mut NodeListElement::new(Node::Number("3")),
+            &mut NodeListElement::new(Node::ColumnSeparator),
+        ];
+        let elem7 = &mut NodeListElement::new(Node::Number("4"));
+        let nodes = NodeList::from_node_refs(nodes, elem7);
 
         assert_eq!(
             render(&Node::Table {

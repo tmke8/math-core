@@ -112,7 +112,7 @@ where
                     Token::NumberWithComma(_) => Node::Operator(ops::COMMA, None),
                     _ => unreachable!(),
                 });
-                Node::PseudoRow(NodeList::from_two_nodes(first, second))
+                Node::PseudoRow(NodeList::from_node_refs([first], second))
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, false),
             Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
@@ -395,7 +395,7 @@ where
                         left: Some(MathSpacing::Zero),
                         right: None,
                     });
-                    Node::PseudoRow(NodeList::from_two_nodes(first, second))
+                    Node::PseudoRow(NodeList::from_node_refs([first], second))
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
