@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::AsRefStr;
 
-use crate::attribute::{FracAttr, MathVariant, OpAttr, Style, TextTransform};
+use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use crate::ops::{Op, ParenOp};
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
@@ -64,7 +64,7 @@ pub enum Token<'source> {
     Whitespace,
     SingleSpace,
     Transform(MathVariant),
-    Big(&'static str),
+    Big(Size),
     OverUnder(Op, bool, Option<OpAttr>),
     Operator(Op),
     #[strum(serialize = "'")]

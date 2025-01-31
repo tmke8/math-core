@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::arena::{Arena, NodeList, NodeRef};
 use crate::attribute::{
-    Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Stretchy, Style,
+    Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
 };
 use crate::ops::{Op, ParenOp};
 
@@ -74,7 +74,7 @@ pub enum Node<'arena> {
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     SizedParen {
-        size: &'static str,
+        size: Size,
         paren: ParenOp,
     },
     Text(&'arena str),
@@ -851,17 +851,17 @@ mod tests {
     fn render_sized_paren() {
         assert_eq!(
             render(&Node::SizedParen {
-                size: "1",
+                size: crate::attribute::Size::Scale1,
                 paren: ops::LEFT_PARENTHESIS,
             }),
-            "<mo maxsize=\"1\" minsize=\"1\">(</mo>"
+            "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
             render(&Node::SizedParen {
-                size: "3",
+                size: crate::attribute::Size::Scale3,
                 paren: ops::SOLIDUS,
             }),
-            "<mo maxsize=\"3\" minsize=\"3\" stretchy=\"true\" symmetric=\"true\">/</mo>"
+            "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }
 

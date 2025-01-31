@@ -22,6 +22,19 @@ pub enum OpAttr {
     NoMovableLimits,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(test, derive(Serialize))]
+pub enum Size {
+    #[strum(serialize = "1.2em")]
+    Scale1,
+    #[strum(serialize = "1.623em")]
+    Scale2,
+    #[strum(serialize = "2.047em")]
+    Scale3,
+    #[strum(serialize = "2.470em")]
+    Scale4,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize))]
 pub enum StretchMode {
