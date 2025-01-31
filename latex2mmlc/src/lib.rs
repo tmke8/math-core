@@ -312,6 +312,7 @@ mod tests {
                 r"\left(\frac12\middle\uparrow\frac12\right)",
             ),
             ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
+            ("left_right_different_stretch", r"\left/\frac12\right)"),
         ];
 
         for (name, problem) in problems.into_iter() {
