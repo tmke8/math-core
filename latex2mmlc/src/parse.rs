@@ -158,12 +158,12 @@ where
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_token()? {
-                    Node::Operator(op, _) => *op,
+                    Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()? {
-                    Node::Operator(op, _) => *op,
+                    Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
@@ -192,10 +192,8 @@ where
                 let den = self.parse_token()?;
                 let attr = None;
                 Node::Fenced {
-                    // open,
-                    // close,
-                    open: ops::NULL,
-                    close: ops::NULL,
+                    open,
+                    close,
                     content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                     style,
                 }
