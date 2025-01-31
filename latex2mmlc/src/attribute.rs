@@ -16,8 +16,6 @@ pub enum MathVariant {
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(test, derive(Serialize))]
 pub enum OpAttr {
-    #[strum(serialize = r#" stretchy="true""#)]
-    StretchyTrue = 1,
     #[strum(serialize = r#" stretchy="false""#)]
     StretchyFalse,
     #[strum(serialize = r#" movablelimits="false""#)]

@@ -4,8 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Stretchy, Style,
-        TextTransform,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform,
     },
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
@@ -413,18 +412,10 @@ where
             }
             Token::Paren(paren) => match paren.spacing() {
                 Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
-                None => match paren.stretchy() {
-                    Stretchy::Never => Node::Operator(paren.into(), None),
-                    _ => Node::Operator(paren.into(), Some(OpAttr::StretchyFalse)),
-                },
+                None => Node::StretchableOp(paren, false),
             },
-            Token::SquareBracketOpen => {
-                Node::Operator(ops::LEFT_SQUARE_BRACKET.into(), Some(OpAttr::StretchyFalse))
-            }
-            Token::SquareBracketClose => Node::Operator(
-                ops::RIGHT_SQUARE_BRACKET.into(),
-                Some(OpAttr::StretchyFalse),
-            ),
+            Token::SquareBracketOpen => Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, false),
+            Token::SquareBracketClose => Node::StretchableOp(ops::RIGHT_SQUARE_BRACKET, false),
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
@@ -469,22 +460,10 @@ where
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
-                match next_token {
-                    // Token::Operator(op) | Token::Paren(op, _, stretchy) => {
-                    Token::Paren(op) => {
-                        let attr = if !matches!(op.stretchy(), Stretchy::Always) {
-                            Some(OpAttr::StretchyTrue)
-                        } else {
-                            None
-                        };
-                        Node::Operator(op.into(), attr)
-                    }
-                    Token::SquareBracketOpen => {
-                        Node::Operator(ops::LEFT_SQUARE_BRACKET.into(), None)
-                    }
-                    Token::SquareBracketClose => {
-                        Node::Operator(ops::RIGHT_SQUARE_BRACKET.into(), None)
-                    }
+                let op = match next_token {
+                    Token::Paren(op) => op,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -494,7 +473,8 @@ where
                             },
                         ));
                     }
-                }
+                };
+                Node::StretchableOp(op, true)
             }
             Token::Big(size) => {
                 let TokLoc(loc, next_token) = self.next_token();
@@ -960,6 +940,10 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
             }
         }
         Node::Number(n) => buffer.push_str(n),
+        Node::StretchableOp(op, _) => {
+            let op = *op;
+            buffer.push_char(op.into());
+        }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
         }
