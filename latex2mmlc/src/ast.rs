@@ -73,10 +73,7 @@ pub enum Node<'arena> {
     },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
-    SizedParen {
-        size: Size,
-        paren: ParenOp,
-    },
+    SizedParen(Size, ParenOp),
     Text(&'arena str),
     Table {
         content: NodeList<'arena>,
@@ -422,7 +419,7 @@ impl MathMLEmitter {
                     r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
                 );
             }
-            Node::SizedParen { size, paren } => {
+            Node::SizedParen(size, paren) => {
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
                 if !matches!(paren.stretchy(), Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");
@@ -560,20 +557,6 @@ mod tests {
     #[test]
     fn render_operator() {
         assert_eq!(render(&Node::Operator(ops::PLUS_SIGN, None)), "<mo>+</mo>");
-        // assert_eq!(
-        //     render(&Node::Operator(
-        //         ops::LEFT_PARENTHESIS.into(),
-        //         Some(OpAttr::StretchyTrue)
-        //     )),
-        //     "<mo stretchy=\"true\">(</mo>"
-        // );
-        // assert_eq!(
-        //     render(&Node::Operator(
-        //         ops::LEFT_PARENTHESIS.into(),
-        //         Some(OpAttr::StretchyFalse)
-        //     )),
-        //     "<mo stretchy=\"false\">(</mo>"
-        // );
         assert_eq!(
             render(&Node::Operator(
                 ops::N_ARY_SUMMATION,
@@ -850,17 +833,17 @@ mod tests {
     #[test]
     fn render_sized_paren() {
         assert_eq!(
-            render(&Node::SizedParen {
-                size: crate::attribute::Size::Scale1,
-                paren: ops::LEFT_PARENTHESIS,
-            }),
+            render(&Node::SizedParen(
+                crate::attribute::Size::Scale1,
+                ops::LEFT_PARENTHESIS,
+            )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen {
-                size: crate::attribute::Size::Scale3,
-                paren: ops::SOLIDUS,
-            }),
+            render(&Node::SizedParen (
+                crate::attribute::Size::Scale3,
+                ops::SOLIDUS,
+            )),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }

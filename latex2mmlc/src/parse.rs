@@ -161,12 +161,12 @@ where
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_token()? {
                     Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()? {
                     Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
@@ -474,7 +474,7 @@ where
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Operator(ops::EXCLAMATION_MARK),
+                                expected: &Token::Paren(ops::NULL),
                                 got: next_token,
                             },
                         ));
@@ -498,7 +498,7 @@ where
                         ));
                     }
                 };
-                Node::SizedParen { size, paren }
+                Node::SizedParen(size, paren)
             }
             Token::Begin => {
                 self.check_lbrace()?;
@@ -991,6 +991,7 @@ mod tests {
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
             ("boldsymbol_greek_var", r"\boldsymbol{\Gamma\varGamma}"),
             ("mathit_func", r"\mathit{ab \log cd}"),
+            ("big_paren", r"\big("),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
