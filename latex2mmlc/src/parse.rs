@@ -4,7 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, StretchMode, Style,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style,
         TextTransform,
     },
     commands::get_negated_op,
@@ -411,10 +411,7 @@ where
                 self.next_token(); // Discard the closing token.
                 return Ok(self.squeeze(content, None));
             }
-            Token::Paren(paren) => match paren.spacing() {
-                Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
-                None => Node::StretchableOp(paren, StretchMode::NoStretch),
-            },
+            Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
                 Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }

@@ -236,26 +236,30 @@ impl MathMLEmitter {
                 push!(self.s, @op, "</mo>");
             }
             Node::StretchableOp(op, stretch_mode) => {
-                match (stretch_mode, op.stretchy()) {
-                    (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
-                    | (
-                        StretchMode::Middle,
-                        Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
-                    ) => {
-                        push!(self.s, "<mo stretchy=\"true\">")
+                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
+                    push!(self.s, "<mi>", @*op, "</mi>");
+                } else {
+                    match (stretch_mode, op.stretchy()) {
+                        (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
+                        | (
+                            StretchMode::Middle,
+                            Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
+                        ) => {
+                            push!(self.s, "<mo stretchy=\"true\">")
+                        }
+                        (
+                            StretchMode::NoStretch,
+                            Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+                        ) => {
+                            push!(self.s, "<mo stretchy=\"false\">")
+                        }
+                        _ => push!(self.s, "<mo>"),
                     }
-                    (
-                        StretchMode::NoStretch,
-                        Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
-                    ) => {
-                        push!(self.s, "<mo stretchy=\"false\">")
+                    if char::from(*op) != '\0' {
+                        push!(self.s, @*op);
                     }
-                    _ => push!(self.s, "<mo>"),
+                    push!(self.s, "</mo>");
                 }
-                if char::from(*op) != '\0' {
-                    push!(self.s, @*op);
-                }
-                push!(self.s, "</mo>");
             }
             node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
                 let op = match node {
