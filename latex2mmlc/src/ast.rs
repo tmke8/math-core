@@ -3,8 +3,10 @@ use std::mem;
 #[cfg(test)]
 use serde::Serialize;
 
-use crate::arena::NodeList;
-use crate::attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, Stretchy, Style};
+use crate::arena::{Arena, NodeList, NodeRef};
+use crate::attribute::{
+    Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Stretchy, Style,
+};
 use crate::ops::{Op, ParenOp};
 
 /// AST node
@@ -14,7 +16,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, bool),
     Operator(Op, Option<OpAttr>),
-    StretchableOp(ParenOp, bool),
+    StretchableOp(ParenOp, StretchMode),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
@@ -71,12 +73,6 @@ pub enum Node<'arena> {
     },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
-    Fenced {
-        open: ParenOp,
-        close: ParenOp,
-        style: Option<Style>,
-        content: &'arena Node<'arena>,
-    },
     SizedParen {
         size: &'static str,
         paren: ParenOp,
@@ -98,6 +94,24 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
+}
+
+impl<'arena> Node<'arena> {
+    pub fn make_fenced(
+        arena: &'arena Arena,
+        open: ParenOp,
+        close: ParenOp,
+        content: NodeRef<'arena>,
+        style: Option<Style>,
+    ) -> Self {
+        let open = arena.push(Node::StretchableOp(open, StretchMode::Fence));
+        let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
+        let node_list = NodeList::from_node_refs([open, content], close);
+        Node::Row {
+            nodes: node_list,
+            style,
+        }
+    }
 }
 
 const INDENT: &str = "    ";
@@ -224,20 +238,27 @@ impl MathMLEmitter {
                 }
                 push!(self.s, @op, "</mo>");
             }
-            Node::StretchableOp(op, stretch) => {
-                if *stretch {
-                    match op.stretchy() {
-                        Stretchy::Always => push!(self.s, "<mo>"),
-                        _ => push!(self.s, "<mo stretchy=\"true\">"),
+            Node::StretchableOp(op, stretch_mode) => {
+                match (stretch_mode, op.stretchy()) {
+                    (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
+                    | (
+                        StretchMode::Middle,
+                        Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
+                    ) => {
+                        push!(self.s, "<mo stretchy=\"true\">")
                     }
-                } else {
-                    match op.stretchy() {
-                        Stretchy::Never => push!(self.s, "<mo>"),
-                        _ => push!(self.s, "<mo stretchy=\"false\">"),
+                    (
+                        StretchMode::NoStretch,
+                        Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+                    ) => {
+                        push!(self.s, "<mo stretchy=\"false\">")
                     }
+                    _ => push!(self.s, "<mo>"),
                 }
-                let ch = char::from(*op);
-                push!(self.s, @ch, "</mo>");
+                if char::from(*op) != '\0' {
+                    push!(self.s, @*op);
+                }
+                push!(self.s, "</mo>");
             }
             node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
                 let op = match node {
@@ -400,39 +421,6 @@ impl MathMLEmitter {
                     self.s,
                     r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
                 );
-            }
-            Node::Fenced {
-                open,
-                close,
-                style,
-                content,
-            } => {
-                match style {
-                    Some(style) => push!(self.s, "<mrow", style, ">"),
-                    None => push!(self.s, "<mrow>"),
-                }
-                pushln!(&mut self.s, child_indent, "<mo");
-                if matches!(open.stretchy(), Stretchy::Never | Stretchy::Inconsistent) {
-                    // TODO: Should we set `symmetric="true"` as well?
-                    push!(self.s, " stretchy=\"true\"");
-                }
-                push!(self.s, ">");
-                if char::from(*open) != '\0' {
-                    push!(self.s, @*open);
-                }
-                push!(self.s, "</mo>");
-                self.emit(content, child_indent);
-                pushln!(&mut self.s, child_indent, "<mo");
-                if matches!(close.stretchy(), Stretchy::Never | Stretchy::Inconsistent) {
-                    // TODO: Should we set `symmetric="true"` as well?
-                    push!(self.s, " stretchy=\"true\"");
-                }
-                push!(self.s, ">");
-                if char::from(*close) != '\0' {
-                    push!(self.s, @*close);
-                }
-                push!(self.s, "</mo>");
-                pushln!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen { size, paren } => {
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
@@ -856,28 +844,6 @@ mod tests {
         assert_eq!(
             render(&Node::Mathstrut),
             r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
-        );
-    }
-
-    #[test]
-    fn render_fenced() {
-        assert_eq!(
-            render(&Node::Fenced {
-                open: ops::LEFT_PARENTHESIS,
-                close: ops::RIGHT_PARENTHESIS,
-                style: None,
-                content: &Node::SingleLetterIdent('x', false),
-            }),
-            "<mrow><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
-        );
-        assert_eq!(
-            render(&Node::Fenced {
-                open: ops::SOLIDUS,
-                close: ops::SOLIDUS,
-                style: None,
-                content: &Node::SingleLetterIdent('x', false),
-            }),
-            "<mrow><mo stretchy=\"true\">/</mo><mi>x</mi><mo stretchy=\"true\">/</mo></mrow>"
         );
     }
 

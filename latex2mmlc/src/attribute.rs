@@ -24,6 +24,17 @@ pub enum OpAttr {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(test, derive(Serialize))]
+pub enum StretchMode {
+    /// Don't stretch the operator.
+    NoStretch = 1,
+    /// Operator is in a fence and should stretch.
+    Fence,
+    /// Operator is in the middle of a fenced expression and should stretch.
+    Middle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum ParenAttr {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)

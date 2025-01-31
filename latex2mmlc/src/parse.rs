@@ -4,7 +4,8 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, Style, TextTransform,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, ParenAttr, StretchMode, Style,
+        TextTransform,
     },
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
@@ -141,12 +142,13 @@ where
                 let den = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some('0');
-                    Node::Fenced {
-                        open: ops::LEFT_PARENTHESIS,
-                        close: ops::RIGHT_PARENTHESIS,
-                        content: self.commit(Node::Frac { num, den, lt, attr }).node(),
-                        style: None,
-                    }
+                    Node::make_fenced(
+                        self.arena,
+                        ops::LEFT_PARENTHESIS,
+                        ops::RIGHT_PARENTHESIS,
+                        self.commit(Node::Frac { num, den, lt, attr }),
+                        None,
+                    )
                 } else {
                     let lt = None;
                     Node::Frac { num, den, lt, attr }
@@ -191,12 +193,13 @@ where
                 let num = self.parse_token()?;
                 let den = self.parse_token()?;
                 let attr = None;
-                Node::Fenced {
+                Node::make_fenced(
+                    self.arena,
                     open,
                     close,
-                    content: self.commit(Node::Frac { num, den, lt, attr }).node(),
+                    self.commit(Node::Frac { num, den, lt, attr }),
                     style,
-                }
+                )
             }
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_single_token()?;
@@ -410,10 +413,14 @@ where
             }
             Token::Paren(paren) => match paren.spacing() {
                 Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
-                None => Node::StretchableOp(paren, false),
+                None => Node::StretchableOp(paren, StretchMode::NoStretch),
             },
-            Token::SquareBracketOpen => Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, false),
-            Token::SquareBracketClose => Node::StretchableOp(ops::RIGHT_SQUARE_BRACKET, false),
+            Token::SquareBracketOpen => {
+                Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
+            }
+            Token::SquareBracketClose => {
+                Node::StretchableOp(ops::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
+            }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
@@ -449,12 +456,13 @@ where
                         ))
                     }
                 };
-                Node::Fenced {
-                    open: open_paren,
-                    close: close_paren,
-                    content: self.squeeze(content, None).node(),
-                    style: None,
-                }
+                Node::make_fenced(
+                    self.arena,
+                    open_paren,
+                    close_paren,
+                    self.squeeze(content, None),
+                    None,
+                )
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
@@ -472,7 +480,7 @@ where
                         ));
                     }
                 };
-                Node::StretchableOp(op, true)
+                Node::StretchableOp(op, StretchMode::Middle)
             }
             Token::Big(size) => {
                 let TokLoc(loc, next_token) = self.next_token();
@@ -506,19 +514,18 @@ where
                     },
                     "cases" => {
                         let align = Align::Left;
-                        let content = self
-                            .commit(Node::Table {
-                                content,
-                                align,
-                                attr: None,
-                            })
-                            .node();
-                        Node::Fenced {
-                            open: ops::LEFT_CURLY_BRACKET,
-                            close: ops::NULL,
+                        let content = self.commit(Node::Table {
                             content,
-                            style: None,
-                        }
+                            align,
+                            attr: None,
+                        });
+                        Node::make_fenced(
+                            self.arena,
+                            ops::LEFT_CURLY_BRACKET,
+                            ops::NULL,
+                            content,
+                            None,
+                        )
                     }
                     "matrix" => Node::Table {
                         content,
@@ -538,18 +545,17 @@ where
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         let attr = None;
-                        Node::Fenced {
+                        Node::make_fenced(
+                            self.arena,
                             open,
                             close,
-                            content: self
-                                .commit(Node::Table {
-                                    content,
-                                    align,
-                                    attr,
-                                })
-                                .node(),
-                            style: None,
-                        }
+                            self.commit(Node::Table {
+                                content,
+                                align,
+                                attr,
+                            }),
+                            None,
+                        )
                     }
                     _ => {
                         return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
