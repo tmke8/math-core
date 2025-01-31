@@ -147,7 +147,6 @@ where
                         close: ops::RIGHT_PARENTHESIS,
                         content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                         style: None,
-                        stretchy: false,
                     }
                 } else {
                     let lt = None;
@@ -161,12 +160,12 @@ where
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_token()? {
                     Node::Operator(op, _) => *op,
-                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_token()? {
                     Node::Operator(op, _) => *op,
-                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL,
+                    Node::Row { nodes, .. } if nodes.is_empty() => ops::NULL.into(),
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
@@ -194,11 +193,12 @@ where
                 let den = self.parse_token()?;
                 let attr = None;
                 Node::Fenced {
-                    open,
-                    close,
+                    // open,
+                    // close,
+                    open: ops::NULL,
+                    close: ops::NULL,
                     content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                     style,
-                    stretchy: true,
                 }
             }
             Token::OverUnder(op, is_over, attr) => {
@@ -411,29 +411,27 @@ where
                 self.next_token(); // Discard the closing token.
                 return Ok(self.squeeze(content, None));
             }
-            Token::Paren(paren, spacing, stretchy) => match spacing {
+            Token::Paren(paren) => match paren.spacing() {
                 Some(ParenAttr::Ordinary) => Node::SingleLetterIdent(paren.into(), false),
-                None => match stretchy {
-                    Stretchy::Never => Node::Operator(paren, None),
-                    _ => Node::Operator(paren, Some(OpAttr::StretchyFalse)),
+                None => match paren.stretchy() {
+                    Stretchy::Never => Node::Operator(paren.into(), None),
+                    _ => Node::Operator(paren.into(), Some(OpAttr::StretchyFalse)),
                 },
             },
             Token::SquareBracketOpen => {
-                Node::Operator(ops::LEFT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
+                Node::Operator(ops::LEFT_SQUARE_BRACKET.into(), Some(OpAttr::StretchyFalse))
             }
-            Token::SquareBracketClose => {
-                Node::Operator(ops::RIGHT_SQUARE_BRACKET, Some(OpAttr::StretchyFalse))
-            }
+            Token::SquareBracketClose => Node::Operator(
+                ops::RIGHT_SQUARE_BRACKET.into(),
+                Some(OpAttr::StretchyFalse),
+            ),
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
-                let (open_paren, open_stretchy) = match next_token {
-                    Token::Paren(open, _, stretchy) => (
-                        open,
-                        matches!(stretchy, Stretchy::Never | Stretchy::Inconsistent),
-                    ),
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
-                    Token::Letter(ops::FULL_STOP) => (ops::NULL, false),
+                let open_paren = match next_token {
+                    Token::Paren(open) => open,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -447,14 +445,11 @@ where
                 let content = self.parse_group(Token::Right)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
-                let (close_paren, close_stretchy) = match next_token {
-                    Token::Paren(close, _, stretchy) => (
-                        close,
-                        matches!(stretchy, Stretchy::Never | Stretchy::Inconsistent),
-                    ),
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
-                    Token::Letter(ops::FULL_STOP) => (ops::NULL, false),
+                let close_paren = match next_token {
+                    Token::Paren(close) => close,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(ops::FULL_STOP) => ops::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -470,58 +465,54 @@ where
                     close: close_paren,
                     content: self.squeeze(content, None).node(),
                     style: None,
-                    // TODO: Handle open and close separately.
-                    stretchy: open_stretchy || close_stretchy,
                 }
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
                 match next_token {
                     // Token::Operator(op) | Token::Paren(op, _, stretchy) => {
-                    Token::Paren(op, _, stretchy) => {
-                        let attr = if !matches!(stretchy, Stretchy::Always) {
+                    Token::Paren(op) => {
+                        let attr = if !matches!(op.stretchy(), Stretchy::Always) {
                             Some(OpAttr::StretchyTrue)
                         } else {
                             None
                         };
-                        Node::Operator(op, attr)
+                        Node::Operator(op.into(), attr)
                     }
-                    Token::SquareBracketOpen => Node::Operator(ops::LEFT_SQUARE_BRACKET, None),
-                    Token::SquareBracketClose => Node::Operator(ops::RIGHT_SQUARE_BRACKET, None),
+                    Token::SquareBracketOpen => {
+                        Node::Operator(ops::LEFT_SQUARE_BRACKET.into(), None)
+                    }
+                    Token::SquareBracketClose => {
+                        Node::Operator(ops::RIGHT_SQUARE_BRACKET.into(), None)
+                    }
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Operator(ops::NULL),
+                                expected: &Token::Operator(ops::EXCLAMATION_MARK),
                                 got: next_token,
                             },
-                        ))
+                        ));
                     }
                 }
             }
             Token::Big(size) => {
                 let TokLoc(loc, next_token) = self.next_token();
-                let (paren, stretchy) = match next_token {
-                    Token::Paren(paren, _, stretchy) => {
-                        (paren, !matches!(stretchy, Stretchy::Always))
-                    }
-                    Token::SquareBracketOpen => (ops::LEFT_SQUARE_BRACKET, false),
-                    Token::SquareBracketClose => (ops::RIGHT_SQUARE_BRACKET, false),
+                let paren = match next_token {
+                    Token::Paren(paren) => paren,
+                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Paren(ops::NULL, None, Stretchy::Always),
+                                expected: &Token::Paren(ops::NULL),
                                 got: next_token,
                             },
                         ));
                     }
                 };
-                Node::SizedParen {
-                    size,
-                    paren,
-                    stretchy,
-                }
+                Node::SizedParen { size, paren }
             }
             Token::Begin => {
                 self.check_lbrace()?;
@@ -549,7 +540,6 @@ where
                             close: ops::NULL,
                             content,
                             style: None,
-                            stretchy: false,
                         }
                     }
                     "matrix" => Node::Table {
@@ -581,7 +571,6 @@ where
                                 })
                                 .node(),
                             style: None,
-                            stretchy: false,
                         }
                     }
                     _ => {

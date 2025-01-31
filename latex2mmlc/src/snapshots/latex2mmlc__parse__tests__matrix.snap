@@ -4,10 +4,9 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
 [
   Fenced(
-    open: Op('('),
-    close: Op(')'),
+    open: ParenOp('(', None, Always),
+    close: ParenOp(')', None, Always),
     style: None,
-    stretchy: false,
     content: Table(
       content: [
         SingleLetterIdent('x', false),

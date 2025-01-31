@@ -24,14 +24,16 @@ pub enum OpAttr {
     NoMovableLimits,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum ParenAttr {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)
     Ordinary = 1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Stretchy {
     /// The operator is always stretchy (e.g. `(`, `)`).
     Always = 1,

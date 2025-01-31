@@ -4,8 +4,8 @@ use std::mem;
 use serde::Serialize;
 
 use crate::arena::NodeList;
-use crate::attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, Style};
-use crate::ops::Op;
+use crate::attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, Stretchy, Style};
+use crate::ops::{Op, ParenOp};
 
 /// AST node
 #[derive(Debug)]
@@ -71,16 +71,14 @@ pub enum Node<'arena> {
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     Fenced {
-        open: Op,
-        close: Op,
+        open: ParenOp,
+        close: ParenOp,
         style: Option<Style>,
-        stretchy: bool,
         content: &'arena Node<'arena>,
     },
     SizedParen {
         size: &'static str,
-        paren: Op,
-        stretchy: bool,
+        paren: ParenOp,
     },
     Text(&'arena str),
     Table {
@@ -391,7 +389,6 @@ impl MathMLEmitter {
                 open,
                 close,
                 style,
-                stretchy,
                 content,
             } => {
                 match style {
@@ -399,38 +396,34 @@ impl MathMLEmitter {
                     None => push!(self.s, "<mrow>"),
                 }
                 pushln!(&mut self.s, child_indent, "<mo");
-                if *stretchy {
+                if matches!(open.stretchy(), Stretchy::Never | Stretchy::Inconsistent) {
                     // TODO: Should we set `symmetric="true"` as well?
                     push!(self.s, " stretchy=\"true\"");
                 }
                 push!(self.s, ">");
-                if char::from(open) != '\0' {
-                    push!(self.s, @open);
+                if char::from(*open) != '\0' {
+                    push!(self.s, @*open);
                 }
                 push!(self.s, "</mo>");
                 self.emit(content, child_indent);
                 pushln!(&mut self.s, child_indent, "<mo");
-                if *stretchy {
+                if matches!(close.stretchy(), Stretchy::Never | Stretchy::Inconsistent) {
                     // TODO: Should we set `symmetric="true"` as well?
                     push!(self.s, " stretchy=\"true\"");
                 }
                 push!(self.s, ">");
-                if char::from(close) != '\0' {
-                    push!(self.s, @close);
+                if char::from(*close) != '\0' {
+                    push!(self.s, @*close);
                 }
                 push!(self.s, "</mo>");
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
-            Node::SizedParen {
-                size,
-                paren,
-                stretchy,
-            } => {
+            Node::SizedParen { size, paren } => {
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
-                if *stretchy {
+                if !matches!(paren.stretchy(), Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");
                 }
-                push!(self.s, ">", @paren, "</mo>");
+                push!(self.s, ">", @*paren, "</mo>");
             }
             Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, is_normal) => {
@@ -565,14 +558,14 @@ mod tests {
         assert_eq!(render(&Node::Operator(ops::PLUS_SIGN, None)), "<mo>+</mo>");
         assert_eq!(
             render(&Node::Operator(
-                ops::LEFT_PARENTHESIS,
+                ops::LEFT_PARENTHESIS.into(),
                 Some(OpAttr::StretchyTrue)
             )),
             "<mo stretchy=\"true\">(</mo>"
         );
         assert_eq!(
             render(&Node::Operator(
-                ops::LEFT_PARENTHESIS,
+                ops::LEFT_PARENTHESIS.into(),
                 Some(OpAttr::StretchyFalse)
             )),
             "<mo stretchy=\"false\">(</mo>"
@@ -862,20 +855,18 @@ mod tests {
                 open: ops::LEFT_PARENTHESIS,
                 close: ops::RIGHT_PARENTHESIS,
                 style: None,
-                stretchy: false,
                 content: &Node::SingleLetterIdent('x', false),
             }),
             "<mrow><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
         );
         assert_eq!(
             render(&Node::Fenced {
-                open: ops::LEFT_PARENTHESIS,
-                close: ops::RIGHT_PARENTHESIS,
+                open: ops::SOLIDUS,
+                close: ops::SOLIDUS,
                 style: None,
-                stretchy: true,
                 content: &Node::SingleLetterIdent('x', false),
             }),
-            "<mrow><mo stretchy=\"true\">(</mo><mi>x</mi><mo stretchy=\"true\">)</mo></mrow>"
+            "<mrow><mo stretchy=\"true\">/</mo><mi>x</mi><mo stretchy=\"true\">/</mo></mrow>"
         );
     }
 
@@ -885,17 +876,15 @@ mod tests {
             render(&Node::SizedParen {
                 size: "1",
                 paren: ops::LEFT_PARENTHESIS,
-                stretchy: false,
             }),
             "<mo maxsize=\"1\" minsize=\"1\">(</mo>"
         );
         assert_eq!(
             render(&Node::SizedParen {
                 size: "3",
-                paren: ops::LEFT_PARENTHESIS,
-                stretchy: true,
+                paren: ops::SOLIDUS,
             }),
-            "<mo maxsize=\"3\" minsize=\"3\" stretchy=\"true\" symmetric=\"true\">(</mo>"
+            "<mo maxsize=\"3\" minsize=\"3\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }
 
