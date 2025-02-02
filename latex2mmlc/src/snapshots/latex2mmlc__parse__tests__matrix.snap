@@ -3,20 +3,18 @@ source: latex2mmlc/src/parse.rs
 expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
 [
-  Row(
-    nodes: [
-      StretchableOp(LeftParenthesis, Fence),
-      Table(
-        content: [
-          SingleLetterIdent('x', false),
-          RowSeparator,
-          SingleLetterIdent('y', false),
-        ],
-        align: Center,
-        attr: None,
-      ),
-      StretchableOp(RightParenthesis, Fence),
-    ],
+  Fence(
     style: None,
+    open: LeftParenthesis,
+    content: Table(
+      content: [
+        SingleLetterIdent('x', false),
+        RowSeparator,
+        SingleLetterIdent('y', false),
+      ],
+      align: Center,
+      attr: None,
+    ),
+    close: RightParenthesis,
   ),
 ]

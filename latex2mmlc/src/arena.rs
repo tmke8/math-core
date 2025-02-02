@@ -18,7 +18,7 @@ impl<'arena> NodeListElement<'arena> {
     pub fn mut_node(&mut self) -> &mut Node<'arena> {
         &mut self.node
     }
-    #[cfg(test)]
+    // #[cfg(test)]
     pub const fn new(node: Node<'arena>) -> Self {
         NodeListElement { node, next: None }
     }

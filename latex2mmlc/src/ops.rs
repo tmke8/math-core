@@ -64,6 +64,7 @@ impl ParenOp {
     ///    If this is true, the parenthesis behaves like a normal identifier
     ///    (which is different from an operator with reduced spacing!)
     /// 3. The stretchy property.
+    #[inline(never)]
     pub fn get(&self) -> (char, bool, Stretchy) {
         match self {
             ParenOp::Null => ('\u{0}', false, Stretchy::Always),

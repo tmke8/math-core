@@ -142,7 +142,6 @@ where
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some('0');
                     Node::make_fenced(
-                        self.arena,
                         ops::LEFT_PARENTHESIS,
                         ops::RIGHT_PARENTHESIS,
                         self.commit(Node::Frac { num, den, lt, attr }),
@@ -193,7 +192,6 @@ where
                 let den = self.parse_token()?;
                 let attr = None;
                 Node::make_fenced(
-                    self.arena,
                     open,
                     close,
                     self.commit(Node::Frac { num, den, lt, attr }),
@@ -452,13 +450,7 @@ where
                         ))
                     }
                 };
-                Node::make_fenced(
-                    self.arena,
-                    open_paren,
-                    close_paren,
-                    self.squeeze(content, None),
-                    None,
-                )
+                Node::make_fenced(open_paren, close_paren, self.squeeze(content, None), None)
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
@@ -515,13 +507,7 @@ where
                             align,
                             attr: None,
                         });
-                        Node::make_fenced(
-                            self.arena,
-                            ops::LEFT_CURLY_BRACKET,
-                            ops::NULL,
-                            content,
-                            None,
-                        )
+                        Node::make_fenced(ops::LEFT_CURLY_BRACKET, ops::NULL, content, None)
                     }
                     "matrix" => Node::Table {
                         content,
@@ -542,7 +528,6 @@ where
                         };
                         let attr = None;
                         Node::make_fenced(
-                            self.arena,
                             open,
                             close,
                             self.commit(Node::Table {

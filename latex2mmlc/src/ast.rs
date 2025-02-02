@@ -3,7 +3,7 @@ use std::mem;
 #[cfg(test)]
 use serde::Serialize;
 
-use crate::arena::{Arena, NodeList, NodeRef};
+use crate::arena::{NodeList, NodeRef};
 use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
 };
@@ -73,6 +73,12 @@ pub enum Node<'arena> {
     },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
+    Fence {
+        style: Option<Style>,
+        open: ParenOp,
+        content: &'arena Node<'arena>,
+        close: ParenOp,
+    },
     SizedParen(Size, ParenOp),
     Text(&'arena str),
     Table {
@@ -94,18 +100,21 @@ pub enum Node<'arena> {
 }
 
 impl<'arena> Node<'arena> {
+    #[inline(always)]
     pub fn make_fenced(
-        arena: &'arena Arena,
         open: ParenOp,
         close: ParenOp,
         content: NodeRef<'arena>,
         style: Option<Style>,
     ) -> Self {
-        let open = arena.push(Node::StretchableOp(open, StretchMode::Fence));
-        let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
-        let node_list = NodeList::from_node_refs([open, content], close);
-        Node::Row {
-            nodes: node_list,
+        // let open = arena.push(Node::StretchableOp(open, StretchMode::Fence));
+        // let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
+        // let nodes = NodeList::from_node_refs([open, content], close);
+        // Node::Row { nodes, style }
+        Node::Fence {
+            open,
+            close,
+            content: content.node(),
             style,
         }
     }
@@ -423,6 +432,23 @@ impl MathMLEmitter {
                     self.s,
                     r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
                 );
+            }
+            Node::Fence {
+                open,
+                close,
+                content,
+                style,
+            } => {
+                let open = Node::StretchableOp(*open, StretchMode::Fence);
+                let close = Node::StretchableOp(*close, StretchMode::Fence);
+                match style {
+                    Some(style) => push!(self.s, "<mrow", style, ">"),
+                    None => push!(self.s, "<mrow>"),
+                }
+                self.emit(&open, child_indent);
+                self.emit(content, child_indent);
+                self.emit(&close, child_indent);
+                pushln!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
                 let (paren, _, stretchy) = paren.get();
