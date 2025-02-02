@@ -236,7 +236,7 @@ impl MathMLEmitter {
                 push!(self.s, @op, "</mo>");
             }
             Node::StretchableOp(op, stretch_mode) => {
-                let (op, ordinary_spacing, stretchy) = op.unpack();
+                let (op, ordinary_spacing, stretchy) = op.get();
                 if ordinary_spacing && matches!(stretch_mode, StretchMode::NoStretch) {
                     push!(self.s, "<mi>", @op, "</mi>");
                 } else {
@@ -425,7 +425,7 @@ impl MathMLEmitter {
                 );
             }
             Node::SizedParen(size, paren) => {
-                let (paren, _, stretchy) = paren.unpack();
+                let (paren, _, stretchy) = paren.get();
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
                 if !matches!(stretchy, Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");

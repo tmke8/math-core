@@ -5,7 +5,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 [
   Row(
     nodes: [
-      StretchableOp(ParenOp('(', false, Always), Fence),
+      StretchableOp(LeftParenthesis, Fence),
       Table(
         content: [
           SingleLetterIdent('x', false),
@@ -15,7 +15,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         align: Center,
         attr: None,
       ),
-      StretchableOp(ParenOp(')', false, Always), Fence),
+      StretchableOp(RightParenthesis, Fence),
     ],
     style: None,
   ),

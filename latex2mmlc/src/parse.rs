@@ -941,7 +941,7 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         }
         Node::Number(n) => buffer.push_str(n),
         Node::StretchableOp(op, _) => {
-            buffer.push_char(op.unpack().0);
+            buffer.push_char(op.get().0);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
