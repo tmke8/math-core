@@ -3,7 +3,7 @@ source: latex2mmlc/src/parse.rs
 expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
 [
-  Fence(
+  Fenced(
     style: None,
     open: LeftParenthesis,
     content: Table(
