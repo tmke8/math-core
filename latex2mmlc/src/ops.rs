@@ -30,26 +30,8 @@ impl ParenOp {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)
     #[inline]
-    pub fn ordinary_spacing(&self) -> bool {
-        self.1
-    }
-    #[inline]
-    pub fn stretchy(&self) -> Stretchy {
-        self.2
-    }
-}
-
-impl From<ParenOp> for Op {
-    #[inline]
-    fn from(op: ParenOp) -> Self {
-        Op(op.0)
-    }
-}
-
-impl From<ParenOp> for char {
-    #[inline]
-    fn from(op: ParenOp) -> Self {
-        op.0
+    pub fn unpack(&self) -> (char, bool, Stretchy) {
+        (self.0, self.1, self.2)
     }
 }
 

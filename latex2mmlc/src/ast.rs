@@ -236,10 +236,11 @@ impl MathMLEmitter {
                 push!(self.s, @op, "</mo>");
             }
             Node::StretchableOp(op, stretch_mode) => {
-                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
-                    push!(self.s, "<mi>", @*op, "</mi>");
+                let (op, ordinary_spacing, stretchy) = op.unpack();
+                if ordinary_spacing && matches!(stretch_mode, StretchMode::NoStretch) {
+                    push!(self.s, "<mi>", @op, "</mi>");
                 } else {
-                    match (stretch_mode, op.stretchy()) {
+                    match (stretch_mode, stretchy) {
                         (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
                         | (
                             StretchMode::Middle,
@@ -255,8 +256,8 @@ impl MathMLEmitter {
                         }
                         _ => push!(self.s, "<mo>"),
                     }
-                    if char::from(*op) != '\0' {
-                        push!(self.s, @*op);
+                    if op != '\0' {
+                        push!(self.s, @op);
                     }
                     push!(self.s, "</mo>");
                 }
@@ -424,11 +425,12 @@ impl MathMLEmitter {
                 );
             }
             Node::SizedParen(size, paren) => {
+                let (paren, _, stretchy) = paren.unpack();
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
-                if !matches!(paren.stretchy(), Stretchy::Always) {
+                if !matches!(stretchy, Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");
                 }
-                push!(self.s, ">", @*paren, "</mo>");
+                push!(self.s, ">", @paren, "</mo>");
             }
             Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, is_normal) => {

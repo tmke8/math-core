@@ -4,8 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style,
-        TextTransform,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
     },
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
@@ -942,8 +941,7 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         }
         Node::Number(n) => buffer.push_str(n),
         Node::StretchableOp(op, _) => {
-            let op = *op;
-            buffer.push_char(op.into());
+            buffer.push_char(op.unpack().0);
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
