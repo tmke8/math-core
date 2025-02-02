@@ -73,7 +73,7 @@ pub enum Node<'arena> {
     },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
-    Fence {
+    Fenced {
         style: Option<Style>,
         open: ParenOp,
         content: &'arena Node<'arena>,
@@ -111,7 +111,7 @@ impl<'arena> Node<'arena> {
         // let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
         // let nodes = NodeList::from_node_refs([open, content], close);
         // Node::Row { nodes, style }
-        Node::Fence {
+        Node::Fenced {
             open,
             close,
             content: content.node(),
@@ -433,7 +433,7 @@ impl MathMLEmitter {
                     r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
                 );
             }
-            Node::Fence {
+            Node::Fenced {
                 open,
                 close,
                 content,
