@@ -102,30 +102,18 @@ where
 /// println!("{}", mathml);
 /// ```
 ///
-pub fn latex_to_mathml(
-    latex: &'_ str,
-    display: Display,
-    pretty: bool,
-) -> Result<String, error::LatexError<'_>> {
-    let mut output = MathMLEmitter::new();
-    append_mathml(&mut output, latex, display, pretty)?;
-    Ok(output.into_inner())
-}
-
-/// Same as `latex_to_mathml`, but appends the result to the given string.
-pub fn append_mathml<'source, 'emitter>(
-    output: &mut MathMLEmitter<'emitter>,
+pub fn latex_to_mathml<'source, 'emitter>(
     latex: &'source str,
     display: Display,
     pretty: bool,
-) -> Result<(), error::LatexError<'source>>
+) -> Result<String, error::LatexError<'source>>
 where
     'source: 'emitter,
 {
     let arena = Arena::new();
     let nodes = get_nodes(latex, &arena)?;
 
-    output.clear();
+    let mut output = MathMLEmitter::new();
     match display {
         Display::Block => output.push_str("<math display=\"block\">"),
         Display::Inline => output.push_str("<math>"),
@@ -136,7 +124,7 @@ where
         output.push('\n');
     }
     output.push_str("</math>");
-    Ok(())
+    Ok(output.into_inner())
 }
 
 #[cfg(test)]

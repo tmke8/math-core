@@ -9,7 +9,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    ops,
+    ops, predefined,
     token::{TokLoc, Token},
 };
 
@@ -662,6 +662,13 @@ where
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
             Token::CustomCmd0Args(node) => Node::CustomCmd0Args(node),
+            Token::CustomCmd1Arg(predefined) => {
+                let first_arg = self.parse_single_token()?;
+                Node::CustomCmd1Arg {
+                    predefined,
+                    first_arg,
+                }
+            }
         };
         Ok(self.commit(node))
     }
@@ -866,38 +873,38 @@ where
         let is_bold_italic = matches!(tf, MathVariant::Transform(TextTransform::BoldItalic));
         let mut list_builder = NodeListBuilder::new();
         let mut collector: Option<LetterCollector> = None;
-        for node_ref in nodes {
-            if let Node::SingleLetterIdent(c, is_normal) = node_ref.node() {
-                if !(is_bold_italic && *is_normal) {
-                    let c = *c;
-                    if let Some(LetterCollector {
-                        ref mut only_one_char,
-                        ref mut builder,
-                        ..
-                    }) = collector
-                    {
-                        *only_one_char = false;
-                        builder.push_char(c);
-                    } else {
-                        let mut builder = self.buffer.get_builder();
-                        builder.push_char(c);
-                        // We start collecting.
-                        collector = Some(LetterCollector {
-                            builder,
-                            node_ref,
-                            only_one_char: true,
-                        });
-                    }
-                    continue;
-                }
-            }
-            // Commit the collected letters.
-            if let Some(collector) = collector.take() {
-                let node_ref = collector.finish(self.arena);
-                list_builder.push(node_ref);
-            }
-            list_builder.push(node_ref);
-        }
+        // for node_ref in nodes {
+        //     if let Node::SingleLetterIdent(c, is_normal) = node_ref.node() {
+        //         if !(is_bold_italic && *is_normal) {
+        //             let c = *c;
+        //             if let Some(LetterCollector {
+        //                 ref mut only_one_char,
+        //                 ref mut builder,
+        //                 ..
+        //             }) = collector
+        //             {
+        //                 *only_one_char = false;
+        //                 builder.push_char(c);
+        //             } else {
+        //                 let mut builder = self.buffer.get_builder();
+        //                 builder.push_char(c);
+        //                 // We start collecting.
+        //                 collector = Some(LetterCollector {
+        //                     builder,
+        //                     node_ref,
+        //                     only_one_char: true,
+        //                 });
+        //             }
+        //             continue;
+        //         }
+        //     }
+        //     // Commit the collected letters.
+        //     if let Some(collector) = collector.take() {
+        //         let node_ref = collector.finish(self.arena);
+        //         list_builder.push(node_ref);
+        //     }
+        //     list_builder.push(node_ref);
+        // }
         if let Some(collector) = collector {
             let node_ref = collector.finish(self.arena);
             list_builder.push(node_ref);

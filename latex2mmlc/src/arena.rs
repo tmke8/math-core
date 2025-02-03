@@ -21,7 +21,18 @@ impl<'arena> NodeListElement<'arena> {
     pub const fn new(node: Node<'arena>) -> Self {
         NodeListElement { node, next: None }
     }
+    pub const unsafe fn from_raw(
+        node: Node<'arena>,
+        next: &'arena NodeListElement<'arena>,
+    ) -> Self {
+        NodeListElement {
+            node,
+            next: Some(NonNull::from(next)),
+        }
+    }
 }
+
+unsafe impl<'arena> Sync for NodeListElement<'arena> {}
 
 pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
 
@@ -177,15 +188,18 @@ impl<'arena> NodeListBuilder<'arena> {
     /// Finish building the list and return it.
     /// This method consumes the builder.
     pub fn finish(self) -> NodeList<'arena> {
-        NodeList(self.0.map(|mut list| unsafe { list.head.as_mut() }))
+        NodeList(self.0.map(|list| unsafe { list.head.as_ref() }))
     }
 }
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct NodeList<'arena>(Option<NodeRef<'arena>>);
+pub struct NodeList<'arena>(Option<&'arena NodeListElement<'arena>>);
 
 impl<'arena> NodeList<'arena> {
+    pub const unsafe fn from_raw(first_element: &'arena NodeListElement<'arena>) -> Self {
+        NodeList(Some(first_element))
+    }
     #[inline]
     pub fn empty() -> Self {
         NodeList(None)
@@ -199,7 +213,7 @@ impl<'arena> NodeList<'arena> {
     ///
     /// We pass in the last element of the list separately, in order to ensure that
     /// the list is not empty. If you want an empty list, use `NodeList::empty()`.
-    pub const fn from_node_refs<const N: usize>(
+    pub fn from_node_refs<const N: usize>(
         nodes: [NodeRef<'arena>; N],
         last_element: NodeRef<'arena>,
     ) -> Self {
@@ -236,14 +250,14 @@ impl<'arena> Serialize for NodeList<'arena> {
     }
 }
 
-impl<'arena> IntoIterator for NodeList<'arena> {
-    type Item = NodeRef<'arena>;
-    type IntoIter = NodeListIntoIter<'arena>;
+// impl<'arena> IntoIterator for NodeList<'arena> {
+//     type Item = NodeRef<'arena>;
+//     type IntoIter = NodeListIntoIter<'arena>;
 
-    fn into_iter(self) -> NodeListIntoIter<'arena> {
-        NodeListIntoIter { current: self.0 }
-    }
-}
+//     fn into_iter(self) -> NodeListIntoIter<'arena> {
+//         NodeListIntoIter { current: self.0 }
+//     }
+// }
 
 pub struct NodeListIterator<'arena, 'list> {
     current: Option<&'list NodeListElement<'arena>>,
@@ -341,21 +355,21 @@ mod tests {
         assert!(iter.next().is_none(), "Empty list should return None");
     }
 
-    #[test]
-    fn list_manual_iter() {
-        let arena = Arena::new();
-        let mut builder = NodeListBuilder::new();
-        let node_ref = arena.push(Node::Space("Hello, world!"));
-        builder.push(node_ref);
-        let node_ref = arena.push(Node::Space("Goodbye, world!"));
-        builder.push(node_ref);
-        let list = builder.finish();
-        let mut iter = list.into_iter();
-        let reference = iter.next().unwrap();
-        assert!(matches!(reference.node, Node::Space("Hello, world!")));
-        let reference = iter.next().unwrap();
-        assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
-    }
+    // #[test]
+    // fn list_manual_iter() {
+    //     let arena = Arena::new();
+    //     let mut builder = NodeListBuilder::new();
+    //     let node_ref = arena.push(Node::Space("Hello, world!"));
+    //     builder.push(node_ref);
+    //     let node_ref = arena.push(Node::Space("Goodbye, world!"));
+    //     builder.push(node_ref);
+    //     let list = builder.finish();
+    //     let mut iter = list.into_iter();
+    //     let reference = iter.next().unwrap();
+    //     assert!(matches!(reference.node, Node::Space("Hello, world!")));
+    //     let reference = iter.next().unwrap();
+    //     assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
+    // }
 
     #[test]
     fn list_from_node_refs() {

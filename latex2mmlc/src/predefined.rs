@@ -5,21 +5,29 @@ use crate::{
     ops,
 };
 
-pub static PMOD: Node = const {
-    let nodes = [
-        &mut NodeListElement::new(Node::Space("1")),
-        &mut NodeListElement::new(Node::StretchableOp(
-            ops::LEFT_PARENTHESIS,
-            StretchMode::NoStretch,
-        )),
-        &mut NodeListElement::new(Node::Text("mod")),
-        &mut NodeListElement::new(Node::Space("0.3333")),
-        &mut NodeListElement::new(Node::FirstArg),
-    ];
-    let last_element = &mut NodeListElement::new(Node::StretchableOp(
+pub mod pmod {
+    use super::*;
+
+    static ELEM6: NodeListElement = NodeListElement::new(Node::StretchableOp(
         ops::RIGHT_PARENTHESIS,
         StretchMode::NoStretch,
     ));
-    let nodes = NodeList::from_node_refs(nodes, last_element);
-    Node::Row { nodes, style: None }
-};
+    static ELEM5: NodeListElement = unsafe { NodeListElement::from_raw(Node::FirstArg, &ELEM6) };
+    static ELEM4: NodeListElement =
+        unsafe { NodeListElement::from_raw(Node::Space("0.3333"), &ELEM5) };
+    static ELEM3: NodeListElement = unsafe { NodeListElement::from_raw(Node::Text("mod"), &ELEM4) };
+    static ELEM2: NodeListElement = unsafe {
+        NodeListElement::from_raw(
+            Node::StretchableOp(
+                ops::LEFT_PARENTHESIS,
+                crate::attribute::StretchMode::NoStretch,
+            ),
+            &ELEM3,
+        )
+    };
+    static ELEM1: NodeListElement = unsafe { NodeListElement::from_raw(Node::Space("1"), &ELEM2) };
+    pub static NODE: Node = Node::Row {
+        nodes: unsafe { NodeList::from_raw(&ELEM1) },
+        style: None,
+    };
+}

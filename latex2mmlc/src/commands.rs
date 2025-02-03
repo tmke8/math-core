@@ -1,7 +1,7 @@
 use crate::ast::Node;
 use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use crate::ops::{self, Op};
-use crate::predefined::PMOD;
+use crate::predefined;
 use crate::token::Token;
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
@@ -462,7 +462,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "phi" => Token::Letter('ϕ'),
     "pi" => Token::Letter('π'),
     "pm" => Token::Operator(ops::PLUS_MINUS_SIGN),
-    "pmod" => Token::CustomCmd1Arg(&PMOD),
+    "pmod" => Token::CustomCmd1Arg(&predefined::pmod::NODE),
     "pounds" => Token::Letter('£'),
     "prec" => Token::Operator(ops::PRECEDES),
     "precapprox" => Token::Operator(ops::PRECEDES_ABOVE_ALMOST_EQUAL_TO),
