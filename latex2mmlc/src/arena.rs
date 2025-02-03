@@ -214,6 +214,11 @@ impl<'arena> NodeList<'arena> {
         self.0.is_none()
     }
 
+    pub fn from_two_nodes(first: NodeRef<'arena>, second: NodeRef<'arena>) -> Self {
+        first.next = Some(NonNull::from(second));
+        NodeList(Some(first))
+    }
+
     /// Create a list from an array of nodes.
     ///
     /// We pass in the last element of the list separately, in order to ensure that
