@@ -211,12 +211,9 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "insta",
- "lazy_static",
- "no-panic",
  "phf",
  "regex",
  "serde",
- "similar",
  "strum_macros",
 ]
 
@@ -314,17 +311,6 @@ checksum = "5c71e683cd655513b99affab7d317deb690528255a0d5f717f1024093c12b169"
 dependencies = [
  "cc",
  "walkdir",
-]
-
-[[package]]
-name = "no-panic"
-version = "0.1.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f7da86466fe446079286ef4b2f6d789755b610a9d85da8477633f734d2697e8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

@@ -1,0 +1,7 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\RR"
+---
+<math>
+    <mi>ℝ</mi>
+</math>

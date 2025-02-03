@@ -1,3 +1,4 @@
+use crate::ast::Node;
 use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use crate::ops::{self, Op};
 use crate::token::Token;
@@ -68,6 +69,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Pi" => Token::UprightLetter('Π'),
     "Pr" => Token::Function("Pr"),
     "Psi" => Token::UprightLetter('Ψ'),
+    "RR" => Token::PredefinedNode(&Node::TextTransform {
+        tf: MathVariant::Transform(TextTransform::DoubleStruck),
+        content: &Node::SingleLetterIdent('R', false),
+    }),
     "Re" => Token::Letter('ℜ'),
     "Rho" => Token::UprightLetter('Ρ'),
     "Rightarrow" => Token::Operator(ops::RIGHTWARDS_DOUBLE_ARROW),
@@ -195,7 +200,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curlywedge" => Token::Operator(ops::CURLY_LOGICAL_AND),
     "curvearrowleft" => Token::Operator(ops::ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "curvearrowright" => Token::Operator(ops::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
-    "d" => Token::Letter('d'),
+    "d" => Token::PredefinedNode(&Node::TextTransform {
+        tf: MathVariant::Normal,
+        content: &Node::SingleLetterIdent('d', false),
+    }),
     "dag" => Token::Letter('†'),
     "dagger" => Token::Letter('†'),
     "daleth" => Token::Letter('ℸ'),
@@ -449,7 +457,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "overset" => Token::Overset,
     "parallel" => Token::Operator(ops::PARALLEL_TO),
     "partial" => Token::Letter(ops::PARTIAL_DIFFERENTIAL),
-    "perp" => Token::Letter(ops::UP_TACK),
+    "perp" => Token::Operator(ops::PERPENDICULAR),
     "phi" => Token::Letter('ϕ'),
     "pi" => Token::Letter('π'),
     "pm" => Token::Operator(ops::PLUS_MINUS_SIGN),
