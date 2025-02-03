@@ -25,7 +25,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\middle")]
     Middle,
     #[strum(serialize = "parenthesis")]
-    Paren(ParenOp),
+    Paren(&'static ParenOp),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]

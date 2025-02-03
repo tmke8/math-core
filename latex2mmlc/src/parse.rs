@@ -4,8 +4,7 @@ use crate::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style,
-        TextTransform,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
     },
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
@@ -142,13 +141,12 @@ where
                 let den = self.parse_token()?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some('0');
-                    Node::make_fenced(
-                        self.arena,
-                        ops::LEFT_PARENTHESIS,
-                        ops::RIGHT_PARENTHESIS,
-                        self.commit(Node::Frac { num, den, lt, attr }),
-                        None,
-                    )
+                    Node::Fenced {
+                        open: ops::LEFT_PARENTHESIS,
+                        close: ops::RIGHT_PARENTHESIS,
+                        content: self.commit(Node::Frac { num, den, lt, attr }).node(),
+                        style: None,
+                    }
                 } else {
                     let lt = None;
                     Node::Frac { num, den, lt, attr }
@@ -193,13 +191,12 @@ where
                 let num = self.parse_token()?;
                 let den = self.parse_token()?;
                 let attr = None;
-                Node::make_fenced(
-                    self.arena,
+                Node::Fenced {
                     open,
                     close,
-                    self.commit(Node::Frac { num, den, lt, attr }),
+                    content: self.commit(Node::Frac { num, den, lt, attr }).node(),
                     style,
-                )
+                }
             }
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_single_token()?;
@@ -453,13 +450,12 @@ where
                         ))
                     }
                 };
-                Node::make_fenced(
-                    self.arena,
-                    open_paren,
-                    close_paren,
-                    self.squeeze(content, None),
-                    None,
-                )
+                Node::Fenced {
+                    open: open_paren,
+                    close: close_paren,
+                    content: self.squeeze(content, None).node(),
+                    style: None,
+                }
             }
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
@@ -511,18 +507,19 @@ where
                     },
                     "cases" => {
                         let align = Align::Left;
-                        let content = self.commit(Node::Table {
+                        let content = self
+                            .commit(Node::Table {
+                                content,
+                                align,
+                                attr: None,
+                            })
+                            .node();
+                        Node::Fenced {
+                            open: ops::LEFT_CURLY_BRACKET,
+                            close: ops::NULL,
                             content,
-                            align,
-                            attr: None,
-                        });
-                        Node::make_fenced(
-                            self.arena,
-                            ops::LEFT_CURLY_BRACKET,
-                            ops::NULL,
-                            content,
-                            None,
-                        )
+                            style: None,
+                        }
                     }
                     "matrix" => Node::Table {
                         content,
@@ -542,17 +539,18 @@ where
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         let attr = None;
-                        Node::make_fenced(
-                            self.arena,
+                        Node::Fenced {
                             open,
                             close,
-                            self.commit(Node::Table {
-                                content,
-                                align,
-                                attr,
-                            }),
-                            None,
-                        )
+                            content: self
+                                .commit(Node::Table {
+                                    content,
+                                    align,
+                                    attr,
+                                })
+                                .node(),
+                            style: None,
+                        }
                     }
                     _ => {
                         return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
@@ -942,8 +940,7 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         }
         Node::Number(n) => buffer.push_str(n),
         Node::StretchableOp(op, _) => {
-            let op = *op;
-            buffer.push_char(op.into());
+            buffer.push_char((*op).into());
         }
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
