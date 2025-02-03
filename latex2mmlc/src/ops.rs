@@ -39,9 +39,9 @@ impl ParenOp {
     }
 }
 
-impl From<ParenOp> for char {
+impl From<&ParenOp> for char {
     #[inline]
-    fn from(op: ParenOp) -> Self {
+    fn from(op: &ParenOp) -> Self {
         op.0
     }
 }
