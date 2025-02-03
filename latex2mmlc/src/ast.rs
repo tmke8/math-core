@@ -76,8 +76,8 @@ pub enum Node<'arena> {
     Fenced {
         style: Option<Style>,
         open: ParenOp,
-        content: &'arena Node<'arena>,
         close: ParenOp,
+        content: &'arena Node<'arena>,
     },
     SizedParen(Size, ParenOp),
     Text(&'arena str),
@@ -245,7 +245,7 @@ impl MathMLEmitter {
                 push!(self.s, @op, "</mo>");
             }
             Node::StretchableOp(op, stretch_mode) => {
-                let (op, ordinary_spacing, stretchy) = op.get();
+                let (op, ordinary_spacing, stretchy) = **op;
                 if ordinary_spacing && matches!(stretch_mode, StretchMode::NoStretch) {
                     push!(self.s, "<mi>", @op, "</mi>");
                 } else {
@@ -451,7 +451,7 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
-                let (paren, _, stretchy) = paren.get();
+                let (paren, _, stretchy) = **paren;
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
                 if !matches!(stretchy, Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");

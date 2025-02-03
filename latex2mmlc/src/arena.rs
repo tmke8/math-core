@@ -214,11 +214,6 @@ impl<'arena> NodeList<'arena> {
         self.0.is_none()
     }
 
-    pub fn from_two_nodes(first: NodeRef<'arena>, second: NodeRef<'arena>) -> Self {
-        first.next = Some(NonNull::from(second));
-        NodeList(Some(first))
-    }
-
     /// Create a list from an array of nodes.
     ///
     /// We pass in the last element of the list separately, in order to ensure that
@@ -261,22 +256,17 @@ impl<'arena> IntoIterator for NodeList<'arena> {
     type Item = NodeRef<'arena>;
     type IntoIter = NodeListIntoIter<'arena>;
 
-    /// Iterate over the list manually.
-    ///
-    /// This iterator cannot be used with a for loop, because the .next() method
-    /// requires a reference to the arena. This is useful when you want to use
-    /// a mutable reference to the arena within the loop body.
     fn into_iter(self) -> NodeListIntoIter<'arena> {
         NodeListIntoIter { current: self.0 }
     }
 }
 
-pub struct NodeListIterator<'arena, 'iterator> {
-    current: Option<&'iterator NodeListElement<'arena>>,
+pub struct NodeListIterator<'arena, 'list> {
+    current: Option<&'list NodeListElement<'arena>>,
 }
 
-impl<'arena, 'iterator> Iterator for NodeListIterator<'arena, 'iterator> {
-    type Item = &'iterator Node<'arena>;
+impl<'arena, 'list> Iterator for NodeListIterator<'arena, 'list> {
+    type Item = &'list Node<'arena>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current {
