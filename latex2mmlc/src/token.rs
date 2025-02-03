@@ -2,6 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::AsRefStr;
 
+use crate::ast::Node;
 use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use crate::ops::{Op, ParenOp};
 
@@ -94,6 +95,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\mathstrut")]
     Mathstrut,
     Style(Style),
+    PredefinedNode(&'static Node<'static>),
     UnknownCommand(&'source str),
 }
 

@@ -57,6 +57,7 @@ pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
 pub mod token;
+
 pub use ast::MathMLEmitter;
 pub use error::{LatexErrKind, LatexError};
 
@@ -313,6 +314,9 @@ mod tests {
             ),
             ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
             ("left_right_different_stretch", r"\left/\frac12\right)"),
+            ("d_command", r"\d"),
+            ("d_command_nested", r"\mathit{x\d x}"),
+            ("RR_command", r"\RR"),
         ];
 
         for (name, problem) in problems.into_iter() {

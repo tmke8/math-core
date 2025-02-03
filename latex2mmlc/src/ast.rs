@@ -97,6 +97,13 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
+    PredefinedNode(&'static Node<'static>),
+}
+
+impl PartialEq for &'static Node<'static> {
+    fn eq(&self, other: &&'static Node<'static>) -> bool {
+        std::ptr::eq(*self, *other)
+    }
 }
 
 const INDENT: &str = "    ";
@@ -178,6 +185,7 @@ impl MathMLEmitter {
                 | Node::ColumnSeparator
                 | Node::RowSeparator
                 | Node::TextTransform { .. }
+                | Node::PredefinedNode(_)
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -516,6 +524,7 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, base_indent, "</mtable>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
+            Node::PredefinedNode(node) => self.emit(node, base_indent),
         }
     }
 }

@@ -399,8 +399,8 @@ pub(crate) const SQUARED_TIMES: Op = Op('⊠');
 pub(crate) const SQUARED_DOT_OPERATOR: Op = Op('⊡');
 pub(crate) const RIGHT_TACK: Op = Op('⊢');
 pub(crate) const LEFT_TACK: Op = Op('⊣');
-pub(crate) const DOWN_TACK: Op = Op('⊤');
-pub(crate) const UP_TACK: Op = Op('⊥');
+pub(crate) const DOWN_TACK: char = '⊤';
+pub(crate) const UP_TACK: char = '⊥';
 // pub(crate) const ASSERTION: Op = Op('⊦');
 // pub(crate) const MODELS: Op = Op('⊧');
 pub(crate) const TRUE: Op = Op('⊨');
@@ -538,6 +538,7 @@ pub(crate) const BLACK_STAR: char = '★';
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
+pub(crate) const PERPENDICULAR: Op = Op('⟂');
 pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &ParenOp =
     &ParenOp('⟦', false, Stretchy::Always);
 pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &ParenOp =

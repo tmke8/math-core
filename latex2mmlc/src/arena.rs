@@ -220,6 +220,9 @@ impl<'arena> NodeList<'arena> {
     }
 }
 
+// NodeList is sync, because we don't allow mutation through shared references.
+unsafe impl<'arena> Sync for NodeList<'arena> {}
+
 #[cfg(test)]
 impl<'arena> Serialize for NodeList<'arena> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

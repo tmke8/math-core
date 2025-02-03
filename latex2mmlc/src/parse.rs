@@ -661,6 +661,7 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
+            Token::PredefinedNode(node) => Node::PredefinedNode(node),
         };
         Ok(self.commit(node))
     }

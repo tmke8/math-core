@@ -1,5 +1,6 @@
+use std::sync::LazyLock;
+
 use insta::assert_snapshot;
-use lazy_static::lazy_static;
 use regex::Regex;
 // use similar::{ChangeTag, TextDiff};
 
@@ -268,9 +269,7 @@ fn wiki_test() {
 
 /// Prettify HTML input
 pub fn prettify(input: &str) -> String {
-    lazy_static! {
-        static ref OPEN_TAG: Regex = Regex::new("(?P<tag><[A-z])").unwrap();
-    }
+    static OPEN_TAG: LazyLock<Regex> = LazyLock::new(|| Regex::new("(?P<tag><[A-z])").unwrap());
 
     // First get all tags on their own lines
     let mut stage1 = input.to_string();
