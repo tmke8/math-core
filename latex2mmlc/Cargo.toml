@@ -16,7 +16,7 @@ keywords = ["latex", "mathml"]
 categories = ["science"]
 
 [dependencies]
-bumpalo = "3.16.0"
+bumpalo = "3.17.0"
 no-panic = "0.1.33"
 phf = { version = "0.11.3", features = ["macros"] }
 strum_macros = "0.26.4"
