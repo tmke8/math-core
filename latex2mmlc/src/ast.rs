@@ -97,7 +97,12 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
-    PredefinedNode(&'static Node<'static>),
+    CustomCmd0Args(&'static Node<'static>),
+    CustomCmd1Arg {
+        predefined: &'static Node<'static>,
+        first_arg: &'arena Node<'arena>,
+    },
+    FirstArg,
 }
 
 impl PartialEq for &'static Node<'static> {
@@ -132,17 +137,19 @@ macro_rules! pushln {
     };
 }
 
-pub struct MathMLEmitter {
+pub struct MathMLEmitter<'arena> {
     s: String,
     var: Option<MathVariant>,
+    first_arg: Option<&'arena Node<'arena>>,
 }
 
-impl MathMLEmitter {
+impl<'arena> MathMLEmitter<'arena> {
     #[inline]
     pub fn new() -> Self {
         Self {
             s: String::new(),
             var: None,
+            first_arg: None,
         }
     }
 
@@ -171,7 +178,7 @@ impl MathMLEmitter {
         self.s.push_str(s);
     }
 
-    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) {
+    pub fn emit(&mut self, node: &'arena Node<'arena>, base_indent: usize) {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -185,7 +192,9 @@ impl MathMLEmitter {
                 | Node::ColumnSeparator
                 | Node::RowSeparator
                 | Node::TextTransform { .. }
-                | Node::PredefinedNode(_)
+                | Node::CustomCmd0Args(_)
+                | Node::CustomCmd1Arg { .. }
+                | Node::FirstArg
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -524,12 +533,29 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, base_indent, "</mtable>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
-            Node::PredefinedNode(node) => self.emit(node, base_indent),
+            Node::CustomCmd0Args(node) => {
+                let node = *node;
+                self.emit(node, base_indent)
+            }
+            Node::CustomCmd1Arg {
+                predefined,
+                first_arg,
+            } => {
+                let predefined = *predefined;
+                let old_first_arg = mem::replace(&mut self.first_arg, Some(first_arg));
+                self.emit(predefined, base_indent);
+                self.first_arg = old_first_arg;
+            }
+            Node::FirstArg => {
+                if let Some(first_arg) = self.first_arg {
+                    self.emit(first_arg, base_indent);
+                }
+            }
         }
     }
 }
 
-impl Default for MathMLEmitter {
+impl Default for MathMLEmitter<'static> {
     fn default() -> Self {
         Self::new()
     }
@@ -545,7 +571,10 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 }
 
 #[cfg(test)]
-pub fn render(node: &Node) -> String {
+pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
+where
+    'a: 'b,
+{
     let mut emitter = MathMLEmitter::new();
     emitter.emit(node, 0);
     emitter.into_inner()

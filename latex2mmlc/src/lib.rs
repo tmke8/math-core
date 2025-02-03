@@ -56,6 +56,7 @@ mod error;
 pub(crate) mod lexer;
 pub(crate) mod ops;
 pub(crate) mod parse;
+pub(crate) mod predefined;
 pub mod token;
 
 pub use ast::MathMLEmitter;
@@ -112,12 +113,15 @@ pub fn latex_to_mathml(
 }
 
 /// Same as `latex_to_mathml`, but appends the result to the given string.
-pub fn append_mathml<'source>(
-    output: &mut MathMLEmitter,
+pub fn append_mathml<'source, 'emitter>(
+    output: &mut MathMLEmitter<'emitter>,
     latex: &'source str,
     display: Display,
     pretty: bool,
-) -> Result<(), error::LatexError<'source>> {
+) -> Result<(), error::LatexError<'source>>
+where
+    'source: 'emitter,
+{
     let arena = Arena::new();
     let nodes = get_nodes(latex, &arena)?;
 

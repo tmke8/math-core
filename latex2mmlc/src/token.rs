@@ -95,7 +95,8 @@ pub enum Token<'source> {
     #[strum(serialize = r"\mathstrut")]
     Mathstrut,
     Style(Style),
-    PredefinedNode(&'static Node<'static>),
+    CustomCmd0Args(&'static Node<'static>),
+    CustomCmd1Arg(&'static Node<'static>),
     UnknownCommand(&'source str),
 }
 

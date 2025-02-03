@@ -18,7 +18,6 @@ impl<'arena> NodeListElement<'arena> {
     pub fn mut_node(&mut self) -> &mut Node<'arena> {
         &mut self.node
     }
-    #[cfg(test)]
     pub const fn new(node: Node<'arena>) -> Self {
         NodeListElement { node, next: None }
     }
@@ -200,7 +199,7 @@ impl<'arena> NodeList<'arena> {
     ///
     /// We pass in the last element of the list separately, in order to ensure that
     /// the list is not empty. If you want an empty list, use `NodeList::empty()`.
-    pub fn from_node_refs<const N: usize>(
+    pub const fn from_node_refs<const N: usize>(
         nodes: [NodeRef<'arena>; N],
         last_element: NodeRef<'arena>,
     ) -> Self {
