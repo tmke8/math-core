@@ -16,7 +16,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, bool),
     Operator(Op, Option<OpAttr>),
-    StretchableOp(ParenOp, StretchMode),
+    StretchableOp(&'static ParenOp, StretchMode),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
@@ -75,11 +75,11 @@ pub enum Node<'arena> {
     Mathstrut,
     Fenced {
         style: Option<Style>,
-        open: ParenOp,
-        close: ParenOp,
+        open: &'static ParenOp,
+        close: &'static ParenOp,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, ParenOp),
+    SizedParen(Size, &'static ParenOp),
     Text(&'arena str),
     Table {
         content: NodeList<'arena>,
@@ -223,12 +223,11 @@ impl MathMLEmitter {
                 }
                 push!(self.s, @op, "</mo>");
             }
-            Node::StretchableOp(op, stretch_mode) => {
-                let (op, ordinary_spacing, stretchy) = **op;
-                if ordinary_spacing && matches!(stretch_mode, StretchMode::NoStretch) {
+            Node::StretchableOp(&op, stretch_mode) => {
+                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     push!(self.s, "<mi>", @op, "</mi>");
                 } else {
-                    match (stretch_mode, stretchy) {
+                    match (stretch_mode, op.stretchy()) {
                         (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
                         | (
                             StretchMode::Middle,
@@ -244,7 +243,7 @@ impl MathMLEmitter {
                         }
                         _ => push!(self.s, "<mo>"),
                     }
-                    if op != '\0' {
+                    if char::from(op) != '\0' {
                         push!(self.s, @op);
                     }
                     push!(self.s, "</mo>");
@@ -429,10 +428,9 @@ impl MathMLEmitter {
                 self.emit(&close, child_indent);
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
-            Node::SizedParen(size, paren) => {
-                let (paren, _, stretchy) = **paren;
+            Node::SizedParen(size, &paren) => {
                 push!(self.s, "<mo maxsize=\"", size, "\" minsize=\"", size, "\"");
-                if !matches!(stretchy, Stretchy::Always) {
+                if !matches!(paren.stretchy(), Stretchy::Always) {
                     push!(self.s, " stretchy=\"true\" symmetric=\"true\"");
                 }
                 push!(self.s, ">", @paren, "</mo>");

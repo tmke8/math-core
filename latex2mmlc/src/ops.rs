@@ -22,74 +22,58 @@ impl From<&Op> for char {
     }
 }
 
-/// List of characters and stretchy properties.
-///
-/// Each entry is a tuple consisting of:
-/// 1. The character.
-/// 2. Whether the character has ordinary spacing.
-///    If this is true, the parenthesis behaves like a normal identifier
-///    (which is different from an operator with reduced spacing!)
-/// 3. The stretchy property.
-static PAREN_OPS: [(char, bool, Stretchy); 27] = [
-    ('\u{0}', false, Stretchy::Always),
-    ('(', false, Stretchy::Always),
-    (')', false, Stretchy::Always),
-    ('/', true, Stretchy::Never),
-    ('[', false, Stretchy::Always),
-    ('\\', true, Stretchy::Never),
-    (']', false, Stretchy::Always),
-    ('{', false, Stretchy::Always),
-    ('|', true, Stretchy::PrePostfix),
-    ('}', false, Stretchy::Always),
-    ('‖', true, Stretchy::PrePostfix),
-    ('↑', false, Stretchy::Inconsistent),
-    ('↓', false, Stretchy::Inconsistent),
-    ('↕', false, Stretchy::Inconsistent),
-    ('⇑', false, Stretchy::Inconsistent),
-    ('⇓', false, Stretchy::Inconsistent),
-    ('⇕', false, Stretchy::Inconsistent),
-    ('⌈', false, Stretchy::Always),
-    ('⌉', false, Stretchy::Always),
-    ('⌊', false, Stretchy::Always),
-    ('⌋', false, Stretchy::Always),
-    ('⟦', false, Stretchy::Always),
-    ('⟧', false, Stretchy::Always),
-    ('⟨', false, Stretchy::Always),
-    ('⟩', false, Stretchy::Always),
-    ('⦇', false, Stretchy::Always),
-    ('⦈', false, Stretchy::Always),
-];
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[cfg_attr(test, derive(Serialize))]
+pub struct ParenOp(char, bool, Stretchy);
 
-pub type ParenOp = &'static (char, bool, Stretchy);
+impl ParenOp {
+    /// The parenthesis behaves like a normal identifier
+    /// (which is different from an operator with reduced spacing!)
+    #[inline]
+    pub fn ordinary_spacing(&self) -> bool {
+        self.1
+    }
+    #[inline]
+    pub fn stretchy(&self) -> Stretchy {
+        self.2
+    }
+}
+
+impl From<ParenOp> for char {
+    #[inline]
+    fn from(op: ParenOp) -> Self {
+        op.0
+    }
+}
 
 //
 // Unicode Block: Basic Latin
 //
-pub(crate) const NULL: ParenOp = &PAREN_OPS[0];
+pub(crate) const NULL: &ParenOp = &ParenOp('\u{0}', false, Stretchy::Always);
 pub(crate) const EXCLAMATION_MARK: Op = Op('!');
 // pub(crate) const APOSTROPHE: Op = Op('\'');
-pub(crate) const LEFT_PARENTHESIS: ParenOp = &PAREN_OPS[1];
-pub(crate) const RIGHT_PARENTHESIS: ParenOp = &PAREN_OPS[2];
+pub(crate) const LEFT_PARENTHESIS: &ParenOp = &ParenOp('(', false, Stretchy::Always);
+pub(crate) const RIGHT_PARENTHESIS: &ParenOp = &ParenOp(')', false, Stretchy::Always);
 pub(crate) const ASTERISK: Op = Op('*');
 pub(crate) const PLUS_SIGN: Op = Op('+');
 pub(crate) const COMMA: Op = Op(',');
 pub(crate) const FULL_STOP: char = '.'; // not treated as operator
-pub(crate) const SOLIDUS: ParenOp = &PAREN_OPS[3];
+pub(crate) const SOLIDUS: &ParenOp = &ParenOp('/', true, Stretchy::Never);
 pub(crate) const COLON: Op = Op(':');
 pub(crate) const SEMICOLON: Op = Op(';');
 // pub(crate) const LESS_THAN_SIGN: Op = Op('<');
 pub(crate) const EQUALS_SIGN: Op = Op('=');
 // pub(crate) const GREATER_THAN_SIGN: Op = Op('>');
 // pub(crate) const QUESTION_MARK: Op = Op('?');
-pub(crate) const LEFT_SQUARE_BRACKET: ParenOp = &PAREN_OPS[4];
-pub(crate) const REVERSE_SOLIDUS: ParenOp = &PAREN_OPS[5];
-pub(crate) const RIGHT_SQUARE_BRACKET: ParenOp = &PAREN_OPS[6];
+pub(crate) const LEFT_SQUARE_BRACKET: &ParenOp = &ParenOp('[', false, Stretchy::Always);
+pub(crate) const REVERSE_SOLIDUS: &ParenOp = &ParenOp('\\', true, Stretchy::Never);
+pub(crate) const RIGHT_SQUARE_BRACKET: &ParenOp = &ParenOp(']', false, Stretchy::Always);
 pub(crate) const CIRCUMFLEX_ACCENT: Op = Op('^');
 pub(crate) const LOW_LINE: Op = Op('_');
 pub(crate) const GRAVE_ACCENT: Op = Op('`');
-pub(crate) const LEFT_CURLY_BRACKET: ParenOp = &PAREN_OPS[7];
-pub(crate) const VERTICAL_LINE: ParenOp = &PAREN_OPS[8];
-pub(crate) const RIGHT_CURLY_BRACKET: ParenOp = &PAREN_OPS[9];
+pub(crate) const LEFT_CURLY_BRACKET: &ParenOp = &ParenOp('{', false, Stretchy::Always);
+pub(crate) const VERTICAL_LINE: &ParenOp = &ParenOp('|', true, Stretchy::PrePostfix);
+pub(crate) const RIGHT_CURLY_BRACKET: &ParenOp = &ParenOp('}', false, Stretchy::Always);
 pub(crate) const TILDE: Op = Op('~');
 
 //
@@ -114,7 +98,7 @@ pub(crate) const DOT_ABOVE: Op = Op('˙');
 //
 // Unicode Block: General Punctuation
 //
-pub(crate) const DOUBLE_VERTICAL_LINE: ParenOp = &PAREN_OPS[10];
+pub(crate) const DOUBLE_VERTICAL_LINE: &ParenOp = &ParenOp('‖', true, Stretchy::PrePostfix);
 pub(crate) const HORIZONTAL_ELLIPSIS: Op = Op('…');
 pub(crate) const PRIME: Op = Op('′');
 pub(crate) const DOUBLE_PRIME: Op = Op('″');
@@ -136,11 +120,11 @@ pub(crate) const QUADRUPLE_PRIME: Op = Op('⁗');
 // Unicode Block: Arrows
 //
 pub(crate) const LEFTWARDS_ARROW: Op = Op('←');
-pub(crate) const UPWARDS_ARROW: ParenOp = &PAREN_OPS[11];
+pub(crate) const UPWARDS_ARROW: &ParenOp = &ParenOp('↑', false, Stretchy::Inconsistent);
 pub(crate) const RIGHTWARDS_ARROW: Op = Op('→');
-pub(crate) const DOWNWARDS_ARROW: ParenOp = &PAREN_OPS[12];
+pub(crate) const DOWNWARDS_ARROW: &ParenOp = &ParenOp('↓', false, Stretchy::Inconsistent);
 pub(crate) const LEFT_RIGHT_ARROW: Op = Op('↔');
-pub(crate) const UP_DOWN_ARROW: ParenOp = &PAREN_OPS[13];
+pub(crate) const UP_DOWN_ARROW: &ParenOp = &ParenOp('↕', false, Stretchy::Inconsistent);
 pub(crate) const NORTH_WEST_ARROW: Op = Op('↖');
 pub(crate) const NORTH_EAST_ARROW: Op = Op('↗');
 pub(crate) const SOUTH_EAST_ARROW: Op = Op('↘');
@@ -200,11 +184,11 @@ pub(crate) const LEFTWARDS_DOUBLE_ARROW_WITH_STROKE: Op = Op('⇍');
 pub(crate) const LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE: Op = Op('⇎');
 pub(crate) const RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE: Op = Op('⇏');
 pub(crate) const LEFTWARDS_DOUBLE_ARROW: Op = Op('⇐');
-pub(crate) const UPWARDS_DOUBLE_ARROW: ParenOp = &PAREN_OPS[14];
+pub(crate) const UPWARDS_DOUBLE_ARROW: &ParenOp = &ParenOp('⇑', false, Stretchy::Inconsistent);
 pub(crate) const RIGHTWARDS_DOUBLE_ARROW: Op = Op('⇒');
-pub(crate) const DOWNWARDS_DOUBLE_ARROW: ParenOp = &PAREN_OPS[15];
+pub(crate) const DOWNWARDS_DOUBLE_ARROW: &ParenOp = &ParenOp('⇓', false, Stretchy::Inconsistent);
 pub(crate) const LEFT_RIGHT_DOUBLE_ARROW: Op = Op('⇔');
-pub(crate) const UP_DOWN_DOUBLE_ARROW: ParenOp = &PAREN_OPS[16];
+pub(crate) const UP_DOWN_DOUBLE_ARROW: &ParenOp = &ParenOp('⇕', false, Stretchy::Inconsistent);
 // pub(crate) const NORTH_WEST_DOUBLE_ARROW: Op = Op('⇖');
 // pub(crate) const NORTH_EAST_DOUBLE_ARROW: Op = Op('⇗');
 // pub(crate) const SOUTH_EAST_DOUBLE_ARROW: Op = Op('⇘');
@@ -511,10 +495,10 @@ pub(crate) const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Op = Op('⋱');
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub(crate) const LEFT_CEILING: ParenOp = &PAREN_OPS[17];
-pub(crate) const RIGHT_CEILING: ParenOp = &PAREN_OPS[18];
-pub(crate) const LEFT_FLOOR: ParenOp = &PAREN_OPS[19];
-pub(crate) const RIGHT_FLOOR: ParenOp = &PAREN_OPS[20];
+pub(crate) const LEFT_CEILING: &ParenOp = &ParenOp('⌈', false, Stretchy::Always);
+pub(crate) const RIGHT_CEILING: &ParenOp = &ParenOp('⌉', false, Stretchy::Always);
+pub(crate) const LEFT_FLOOR: &ParenOp = &ParenOp('⌊', false, Stretchy::Always);
+pub(crate) const RIGHT_FLOOR: &ParenOp = &ParenOp('⌋', false, Stretchy::Always);
 pub(crate) const TOP_LEFT_CORNER: char = '⌜';
 pub(crate) const TOP_RIGHT_CORNER: char = '⌝';
 pub(crate) const BOTTOM_LEFT_CORNER: char = '⌞';
@@ -554,12 +538,17 @@ pub(crate) const BLACK_STAR: char = '★';
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
-pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: ParenOp = &PAREN_OPS[21];
-pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: ParenOp = &PAREN_OPS[22];
-pub(crate) const MATHEMATICAL_LEFT_ANGLE_BRACKET: ParenOp = &PAREN_OPS[23];
-pub(crate) const MATHEMATICAL_RIGHT_ANGLE_BRACKET: ParenOp = &PAREN_OPS[24];
-pub(crate) const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: ParenOp = &PAREN_OPS[25];
-pub(crate) const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: ParenOp = &PAREN_OPS[26];
+pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &ParenOp =
+    &ParenOp('⟦', false, Stretchy::Always);
+pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &ParenOp =
+    &ParenOp('⟧', false, Stretchy::Always);
+pub(crate) const MATHEMATICAL_LEFT_ANGLE_BRACKET: &ParenOp = &ParenOp('⟨', false, Stretchy::Always);
+pub(crate) const MATHEMATICAL_RIGHT_ANGLE_BRACKET: &ParenOp =
+    &ParenOp('⟩', false, Stretchy::Always);
+pub(crate) const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: &ParenOp =
+    &ParenOp('⟮', false, Stretchy::Always);
+pub(crate) const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: &ParenOp =
+    &ParenOp('⟯', false, Stretchy::Always);
 
 //
 // Unicode Block: Supplemental Arrows-A
