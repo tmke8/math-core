@@ -99,27 +99,6 @@ pub enum Node<'arena> {
     },
 }
 
-// impl<'arena> Node<'arena> {
-//     #[inline(always)]
-//     pub fn make_fenced(
-//         open: ParenOp,
-//         close: ParenOp,
-//         content: NodeRef<'arena>,
-//         style: Option<Style>,
-//     ) -> Self {
-//         // let open = arena.push(Node::StretchableOp(open, StretchMode::Fence));
-//         // let close = arena.push(Node::StretchableOp(close, StretchMode::Fence));
-//         // let nodes = NodeList::from_node_refs([open, content], close);
-//         // Node::Row { nodes, style }
-//         Node::Fenced {
-//             open,
-//             close,
-//             content: content.node(),
-//             style,
-//         }
-//     }
-// }
-
 const INDENT: &str = "    ";
 
 macro_rules! push {
