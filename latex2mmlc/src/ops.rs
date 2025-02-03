@@ -538,7 +538,7 @@ pub(crate) const BLACK_STAR: char = '★';
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
-pub(crate) const PERPENDICULAR: Op = Op('⊥');
+pub(crate) const PERPENDICULAR: Op = Op('⟂');
 pub(crate) const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &ParenOp =
     &ParenOp('⟦', false, Stretchy::Always);
 pub(crate) const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &ParenOp =

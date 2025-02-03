@@ -3,7 +3,7 @@ source: latex2mmlc/tests/wiki_test.rs
 expression: "\\perp, \\angle, \\sphericalangle, \\measuredangle, 45^\\circ"
 ---
 <math>
-    <mo>⊥</mo>
+    <mo>⟂</mo>
     <mo>,</mo>
     <mi>∠</mi>
     <mo>,</mo>
