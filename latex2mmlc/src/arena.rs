@@ -24,8 +24,6 @@ impl<'arena> NodeListElement<'arena> {
     }
 }
 
-unsafe impl<'arena> Sync for NodeListElement<'arena> {}
-
 pub type NodeRef<'arena> = &'arena mut NodeListElement<'arena>;
 
 pub struct Arena {
