@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::ptr::NonNull;
 
 use bumpalo::Bump;
 #[cfg(test)]
@@ -9,7 +9,7 @@ use crate::ast::Node;
 #[derive(Debug)]
 pub struct NodeListElement<'arena> {
     node: Node<'arena>,
-    next: Mutex<Option<&'arena NodeListElement<'arena>>>,
+    next: Option<NonNull<NodeListElement<'arena>>>,
 }
 impl<'arena> NodeListElement<'arena> {
     pub fn node(&self) -> &Node<'arena> {
@@ -19,10 +19,7 @@ impl<'arena> NodeListElement<'arena> {
         &mut self.node
     }
     pub const fn new(node: Node<'arena>) -> Self {
-        NodeListElement {
-            node,
-            next: Mutex::new(None),
-        }
+        NodeListElement { node, next: None }
     }
     pub const unsafe fn from_raw(
         node: Node<'arena>,
@@ -30,7 +27,7 @@ impl<'arena> NodeListElement<'arena> {
     ) -> Self {
         NodeListElement {
             node,
-            next: Mutex::new(Some(next)),
+            next: Some(NonNull::from(next)),
         }
     }
 }
@@ -59,10 +56,8 @@ impl Arena {
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
     pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut NodeListElement<'arena> {
-        self.bump.alloc_with(|| NodeListElement {
-            node,
-            next: Mutex::new(None),
-        })
+        self.bump
+            .alloc_with(|| NodeListElement { node, next: None })
     }
 
     fn alloc_str(&self, src: &str) -> &str {
@@ -128,13 +123,13 @@ pub struct NodeListBuilder<'arena>(Option<InhabitedNodeList<'arena>>);
 
 #[derive(Debug)]
 struct InhabitedNodeList<'arena> {
-    head: &'arena NodeListElement<'arena>,
-    tail: &'arena NodeListElement<'arena>,
+    head: NonNull<NodeListElement<'arena>>,
+    tail: NonNull<NodeListElement<'arena>>,
 }
 
 pub enum SingletonOrList<'arena> {
     List(NodeList<'arena>),
-    Singleton(&'arena NodeListElement<'arena>),
+    Singleton(NodeRef<'arena>),
 }
 
 impl Default for NodeListBuilder<'_> {
@@ -159,7 +154,7 @@ impl<'arena> NodeListBuilder<'arena> {
     pub fn push(&mut self, node_ref: NodeRef<'arena>) {
         // We need to work with raw pointers here, because we want *two* mutable references
         // to the last element of the list.
-        let new_tail = node_ref;
+        let new_tail = NonNull::from(node_ref);
         match &mut self.0 {
             None => {
                 self.0 = Some(InhabitedNodeList {
@@ -169,7 +164,9 @@ impl<'arena> NodeListBuilder<'arena> {
             }
             Some(InhabitedNodeList { tail, .. }) => {
                 // Update the tail to point to the new node.
-                *tail.next.lock().unwrap() = Some(new_tail);
+                unsafe {
+                    tail.as_mut().next = Some(new_tail);
+                };
                 // Update the tail of the list.
                 *tail = new_tail;
             }
@@ -181,8 +178,8 @@ impl<'arena> NodeListBuilder<'arena> {
     /// anything in the arena.
     pub fn as_singleton_or_finish(self) -> SingletonOrList<'arena> {
         match self.0 {
-            Some(list) if std::ptr::eq(list.head, list.tail) => {
-                SingletonOrList::Singleton(list.head)
+            Some(mut list) if list.head == list.tail => {
+                SingletonOrList::Singleton(unsafe { list.head.as_mut() })
             }
             _ => SingletonOrList::List(self.finish()),
         }
@@ -191,7 +188,7 @@ impl<'arena> NodeListBuilder<'arena> {
     /// Finish building the list and return it.
     /// This method consumes the builder.
     pub fn finish(self) -> NodeList<'arena> {
-        NodeList(self.0.map(|list| list.head))
+        NodeList(self.0.map(|list| unsafe { list.head.as_ref() }))
     }
 }
 
@@ -223,7 +220,7 @@ impl<'arena> NodeList<'arena> {
         let mut current = last_element;
         // We iterate in reverse order, because we transfer ownership of the `next` pointer.
         for node in nodes.into_iter().rev() {
-            *node.next.lock().unwrap() = Some(current);
+            node.next = Some(NonNull::from(current));
             current = node;
         }
         NodeList(Some(current))
@@ -279,32 +276,32 @@ impl<'arena, 'list> Iterator for NodeListIterator<'arena, 'list> {
                 // This should be safe, because the list owns its nodes, and we have
                 // borrowed a reference to the first node from the list, so no other
                 // references to the nodes should exist.
-                self.current = *element.next.lock().unwrap();
+                self.current = element.next.map(|next| unsafe { next.as_ref() });
                 Some(&element.node)
             }
         }
     }
 }
 
-// pub struct NodeListIntoIter<'arena> {
-//     current: Option<NodeRef<'arena>>,
-// }
+pub struct NodeListIntoIter<'arena> {
+    current: Option<NodeRef<'arena>>,
+}
 
-// impl<'arena> Iterator for NodeListIntoIter<'arena> {
-//     type Item = NodeRef<'arena>;
-//     fn next(&mut self) -> Option<NodeRef<'arena>> {
-//         match self.current.take() {
-//             None => None,
-//             Some(reference) => {
-//                 // Ownership of the next reference is transferred to the iterator.
-//                 // This ensures that returned elements can be added to new lists,
-//                 // without having a "next" reference that points to an element in the old list.
-//                 self.current = reference.next.take().map(|mut r| unsafe { r.as_mut() });
-//                 Some(reference)
-//             }
-//         }
-//     }
-// }
+impl<'arena> Iterator for NodeListIntoIter<'arena> {
+    type Item = NodeRef<'arena>;
+    fn next(&mut self) -> Option<NodeRef<'arena>> {
+        match self.current.take() {
+            None => None,
+            Some(reference) => {
+                // Ownership of the next reference is transferred to the iterator.
+                // This ensures that returned elements can be added to new lists,
+                // without having a "next" reference that points to an element in the old list.
+                self.current = reference.next.take().map(|mut r| unsafe { r.as_mut() });
+                Some(reference)
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
