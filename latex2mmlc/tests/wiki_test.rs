@@ -263,8 +263,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 165);
-    assert_eq!(n_fail, 43);
+    assert_eq!(n_diff, 166);
+    assert_eq!(n_fail, 42);
 }
 
 /// Prettify HTML input
@@ -344,7 +344,7 @@ fn test_nonfailing_wiki_tests() {
             25,
             r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA",
         ),
-        // (26, r"s_k \equiv 0 \pmod{m}"),
+        (26, r"s_k \equiv 0 \pmod{m}"),
         // (27, r"a \bmod b"),
         (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
         // (29, r"\mid, \nmid, \shortmid, \nshortmid"),

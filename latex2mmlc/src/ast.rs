@@ -71,6 +71,10 @@ pub enum Node<'arena> {
         nodes: NodeList<'arena>,
         style: Option<Style>,
     },
+    RowSlice {
+        nodes: &'arena [Node<'arena>],
+        style: Option<Style>,
+    },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     Fenced {
@@ -244,26 +248,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     push!(self.s, "<mi>", @*op, "</mi>");
                 } else {
-                    match (stretch_mode, op.stretchy()) {
-                        (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
-                        | (
-                            StretchMode::Middle,
-                            Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
-                        ) => {
-                            push!(self.s, "<mo stretchy=\"true\">")
-                        }
-                        (
-                            StretchMode::NoStretch,
-                            Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
-                        ) => {
-                            push!(self.s, "<mo stretchy=\"false\">")
-                        }
-                        _ => push!(self.s, "<mo>"),
-                    }
-                    if char::from(*op) != '\0' {
-                        push!(self.s, @*op);
-                    }
-                    push!(self.s, "</mo>");
+                    self.emit_stretchy_op(*stretch_mode, op);
                 }
             }
             node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
@@ -417,6 +402,16 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
+            Node::RowSlice { nodes, style } => {
+                match style {
+                    Some(style) => push!(self.s, "<mrow", style, ">"),
+                    None => push!(self.s, "<mrow>"),
+                }
+                for node in nodes.iter() {
+                    self.emit(node, child_indent);
+                }
+                pushln!(&mut self.s, base_indent, "</mrow>");
+            }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
                     self.emit(node, base_indent);
@@ -434,15 +429,15 @@ impl<'arena> MathMLEmitter<'arena> {
                 content,
                 style,
             } => {
-                let open = Node::StretchableOp(*open, StretchMode::Fence);
-                let close = Node::StretchableOp(*close, StretchMode::Fence);
                 match style {
                     Some(style) => push!(self.s, "<mrow", style, ">"),
                     None => push!(self.s, "<mrow>"),
                 }
-                self.emit(&open, child_indent);
+                new_line_and_indent(&mut self.s, child_indent);
+                self.emit_stretchy_op(StretchMode::Fence, open);
                 self.emit(content, child_indent);
-                self.emit(&close, child_indent);
+                new_line_and_indent(&mut self.s, child_indent);
+                self.emit_stretchy_op(StretchMode::Fence, close);
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
@@ -553,6 +548,29 @@ impl<'arena> MathMLEmitter<'arena> {
             }
         }
     }
+
+    fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &ParenOp) {
+        match (stretch_mode, op.stretchy()) {
+            (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
+            | (
+                StretchMode::Middle,
+                Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
+            ) => {
+                push!(self.s, "<mo stretchy=\"true\">")
+            }
+            (
+                StretchMode::NoStretch,
+                Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+            ) => {
+                push!(self.s, "<mo stretchy=\"false\">")
+            }
+            _ => push!(self.s, "<mo>"),
+        }
+        if char::from(op) != '\0' {
+            push!(self.s, @op);
+        }
+        push!(self.s, "</mo>");
+    }
 }
 
 impl Default for MathMLEmitter<'static> {
@@ -584,7 +602,7 @@ where
 mod tests {
     use super::{render, Node};
     use crate::arena::{NodeList, NodeListElement};
-    use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, TextTransform};
+    use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform};
     use crate::ops;
 
     #[test]
@@ -852,6 +870,20 @@ mod tests {
         assert_eq!(
             render(&Node::Row { nodes, style: None }),
             "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_row_slice() {
+        let nodes = &[
+            Node::SingleLetterIdent('x', false),
+            Node::Operator(ops::PLUS_SIGN, None),
+            Node::Number("1"),
+        ];
+
+        assert_eq!(
+            render(&Node::RowSlice { nodes, style: Some(Style::DisplayStyle) }),
+            "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
         );
     }
 

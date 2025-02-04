@@ -28,7 +28,7 @@ use std::{
 
 use clap::Parser;
 
-use latex2mmlc::{append_mathml, latex_to_mathml, Display, MathMLEmitter};
+use latex2mmlc::{latex_to_mathml, Display};
 
 use crate::replace::{ConversionError, Replacer};
 
@@ -196,16 +196,10 @@ fn replace<'source, 'buf>(
 where
     'source: 'buf,
 {
-    let mut emitter = MathMLEmitter::new();
     replacer.replace(input, |buf, latex, display| {
-        let result = append_mathml(
-            &mut emitter,
-            latex,
-            display,
-            matches!(display, Display::Block),
-        );
-        buf.push_str(emitter.as_str());
-        result
+        let result = latex_to_mathml(latex, display, matches!(display, Display::Block))?;
+        buf.push_str(result.as_str());
+        Ok(())
     })
 }
 

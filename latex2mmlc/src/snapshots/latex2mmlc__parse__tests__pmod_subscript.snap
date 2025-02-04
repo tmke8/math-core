@@ -1,0 +1,23 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\pmod{3}_4"
+---
+[
+  Subscript(
+    target: CustomCmd1Arg(
+      predefined: RowSlice(
+        nodes: [
+          Space("1"),
+          StretchableOp(ParenOp('(', false, Always), NoStretch),
+          Text("mod"),
+          Space("0.3333"),
+          FirstArg,
+          StretchableOp(ParenOp(')', false, Always), NoStretch),
+        ],
+        style: None,
+      ),
+      first_arg: Number("3"),
+    ),
+    symbol: Number("4"),
+  ),
+]

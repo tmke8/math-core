@@ -18,17 +18,9 @@ impl<'arena> NodeListElement<'arena> {
     pub fn mut_node(&mut self) -> &mut Node<'arena> {
         &mut self.node
     }
+    #[cfg(test)]
     pub const fn new(node: Node<'arena>) -> Self {
         NodeListElement { node, next: None }
-    }
-    pub const unsafe fn from_raw(
-        node: Node<'arena>,
-        next: &'arena NodeListElement<'arena>,
-    ) -> Self {
-        NodeListElement {
-            node,
-            next: Some(NonNull::from(next)),
-        }
     }
 }
 
@@ -197,9 +189,6 @@ impl<'arena> NodeListBuilder<'arena> {
 pub struct NodeList<'arena>(Option<&'arena NodeListElement<'arena>>);
 
 impl<'arena> NodeList<'arena> {
-    pub const unsafe fn from_raw(first_element: &'arena NodeListElement<'arena>) -> Self {
-        NodeList(Some(first_element))
-    }
     #[inline]
     pub fn empty() -> Self {
         NodeList(None)

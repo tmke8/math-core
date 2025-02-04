@@ -9,7 +9,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    ops, predefined,
+    ops,
     token::{TokLoc, Token},
 };
 
@@ -994,6 +994,7 @@ mod tests {
             ("boldsymbol_greek_var", r"\boldsymbol{\Gamma\varGamma}"),
             ("mathit_func", r"\mathit{ab \log cd}"),
             ("big_paren", r"\big("),
+            ("pmod_subscript", r"\pmod{3}_4"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
