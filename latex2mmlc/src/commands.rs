@@ -5,7 +5,7 @@ use crate::predefined;
 use crate::token::Token;
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
-    " " => Token::SingleSpace,
+    " " => Token::NonBreakingSpace,
     "!" => Token::Space("-0.1667"),
     "#" => Token::Letter('#'),
     "$" => Token::Letter('$'),
@@ -14,6 +14,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "," => Token::Space("0.1667"),
     ":" => Token::Space("0.2222"),
     ";" => Token::Space("0.2778"),
+    ">" => Token::Space("0.2222"),
     "\\" => Token::NewLine,
     "_" => Token::Letter('_'),
     "AA" => Token::Letter('Å'), // TODO: valid in text mode only

@@ -10,7 +10,7 @@ expression: "a \\qquad b \\\\ a \\quad b \\\\ a\\ b \\\\ a \\text{ } b \\\\ a\\;
     <mspace width="1em"/>
     <mi>b</mi>
     <mi>a</mi>
-    <mtext> </mtext>
+    <mtext> </mtext>
     <mi>b</mi>
     <mi>a</mi>
     <mtext> </mtext>

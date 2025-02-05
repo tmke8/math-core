@@ -63,7 +63,6 @@ pub enum Token<'source> {
     #[strum(serialize = "~")]
     NonBreakingSpace,
     Whitespace,
-    SingleSpace,
     Transform(MathVariant),
     Big(Size),
     OverUnder(Op, bool, Option<OpAttr>),

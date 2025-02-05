@@ -6,6 +6,6 @@ expression: "\\text{if}~n\\ \\text{is even}"
     <mtext>if</mtext>
     <mtext> </mtext>
     <mi>n</mi>
-    <mtext> </mtext>
+    <mtext> </mtext>
     <mtext>is even</mtext>
 </math>
