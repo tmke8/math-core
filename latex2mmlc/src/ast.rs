@@ -101,12 +101,11 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
-    CustomCmd0Args(&'static Node<'static>),
-    CustomCmd1Arg {
+    CustomCmd {
         predefined: &'static Node<'static>,
-        first_arg: &'arena Node<'arena>,
+        args: NodeList<'arena>,
     },
-    FirstArg,
+    CustomCmdArg(usize),
 }
 
 impl PartialEq for &'static Node<'static> {
@@ -144,7 +143,7 @@ macro_rules! pushln {
 pub struct MathMLEmitter<'arena> {
     s: String,
     var: Option<MathVariant>,
-    first_arg: Option<&'arena Node<'arena>>,
+    custom_cmd_args: Option<Vec<&'arena Node<'arena>>>,
 }
 
 impl<'arena> MathMLEmitter<'arena> {
@@ -153,7 +152,7 @@ impl<'arena> MathMLEmitter<'arena> {
         Self {
             s: String::new(),
             var: None,
-            first_arg: None,
+            custom_cmd_args: None,
         }
     }
 
@@ -196,9 +195,8 @@ impl<'arena> MathMLEmitter<'arena> {
                 | Node::ColumnSeparator
                 | Node::RowSeparator
                 | Node::TextTransform { .. }
-                | Node::CustomCmd0Args(_)
-                | Node::CustomCmd1Arg { .. }
-                | Node::FirstArg
+                | Node::CustomCmd { .. }
+                | Node::CustomCmdArg(_)
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -528,22 +526,20 @@ impl<'arena> MathMLEmitter<'arena> {
                 pushln!(&mut self.s, base_indent, "</mtable>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
-            Node::CustomCmd0Args(node) => {
-                let node = *node;
-                self.emit(node, base_indent)
-            }
-            Node::CustomCmd1Arg {
-                predefined,
-                first_arg,
-            } => {
+            Node::CustomCmd { predefined, args } => {
                 let predefined = *predefined;
-                let old_first_arg = mem::replace(&mut self.first_arg, Some(first_arg));
+                let args = args.iter().collect::<Vec<_>>();
+                let old_args = mem::replace(&mut self.custom_cmd_args, Some(args));
                 self.emit(predefined, base_indent);
-                self.first_arg = old_first_arg;
+                self.custom_cmd_args = old_args;
             }
-            Node::FirstArg => {
-                if let Some(first_arg) = self.first_arg {
-                    self.emit(first_arg, base_indent);
+            Node::CustomCmdArg(index) => {
+                if let Some(arg) = self
+                    .custom_cmd_args
+                    .as_ref()
+                    .and_then(|args| args.get(*index))
+                {
+                    self.emit(arg, base_indent);
                 }
             }
         }

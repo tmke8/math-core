@@ -4,19 +4,21 @@ expression: "\\pmod{3}_4"
 ---
 [
   Subscript(
-    target: CustomCmd1Arg(
+    target: CustomCmd(
       predefined: RowSlice(
         nodes: [
           Space("1"),
           StretchableOp(ParenOp('(', false, Always), NoStretch),
           Text("mod"),
           Space("0.3333"),
-          FirstArg,
+          CustomCmdArg(0),
           StretchableOp(ParenOp(')', false, Always), NoStretch),
         ],
         style: None,
       ),
-      first_arg: Number("3"),
+      args: [
+        Number("3"),
+      ],
     ),
     symbol: Number("4"),
   ),
