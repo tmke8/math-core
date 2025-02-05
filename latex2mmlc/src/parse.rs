@@ -18,6 +18,7 @@ pub(crate) struct Parser<'arena, 'source> {
     peek: TokLoc<'source>,
     buffer: Buffer,
     arena: &'arena Arena,
+    collector: LetterCollector<'arena>,
 }
 impl<'arena, 'source> Parser<'arena, 'source>
 where
@@ -30,6 +31,7 @@ where
             peek: TokLoc(0, Token::EOF),
             buffer: Buffer::new(input_length),
             arena,
+            collector: LetterCollector::Inactive,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -38,6 +40,39 @@ where
     }
 
     fn next_token(&mut self) -> TokLoc<'source> {
+        if let LetterCollector::Collecting { is_bold_italic } = self.collector {
+            let first_loc = self.peek.location();
+            let mut builder = self.buffer.get_builder();
+            let mut num_chars = 0usize;
+            loop {
+                // Loop until we find a non-letter token.
+                match self.peek.token() {
+                    Token::Letter(ch) => {
+                        builder.push_char(*ch);
+                        num_chars += 1;
+                    }
+                    Token::UprightLetter(ch) if !is_bold_italic => {
+                        builder.push_char(*ch);
+                        num_chars += 1;
+                    }
+                    _ => {
+                        break;
+                    }
+                }
+                // Get the next token for the next iteration.
+                self.peek = self.l.next_token(self.peek.token().acts_on_a_digit());
+            }
+            // If we collected at least one letter, commit it to the arena and signal with a token
+            // that we are done.
+            if num_chars > 0 {
+                self.collector = LetterCollector::Finished {
+                    collected_letters: builder.finish(self.arena),
+                    only_one_char: num_chars == 1,
+                    is_bold_italic,
+                };
+                return TokLoc(first_loc, Token::GetCollectedLetters);
+            }
+        }
         let peek_token = self.l.next_token(self.peek.token().acts_on_a_digit());
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek, peek_token)
@@ -319,19 +354,18 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let token = self.next_token();
-                let node_ref = self.parse_single_node(token)?;
-                let child = if let Node::Row { nodes, style } = node_ref.mut_node() {
-                    let nodes = mem::replace(nodes, NodeList::empty());
-                    let style = *style;
-                    self.merge_single_letters(nodes, style, tf)
-                } else {
-                    node_ref
-                };
-                Node::TextTransform {
-                    content: child.node(),
-                    tf,
-                }
+                let old_collector = mem::replace(
+                    &mut self.collector,
+                    LetterCollector::Collecting {
+                        is_bold_italic: matches!(
+                            tf,
+                            MathVariant::Transform(TextTransform::BoldItalic)
+                        ),
+                    },
+                );
+                let content = self.parse_single_token()?;
+                self.collector = old_collector;
+                Node::TextTransform { content, tf }
             }
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
@@ -669,6 +703,29 @@ where
                     first_arg,
                 }
             }
+            Token::GetCollectedLetters => {
+                if let LetterCollector::Finished {
+                    collected_letters,
+                    only_one_char,
+                    is_bold_italic,
+                } = self.collector
+                {
+                    self.collector = LetterCollector::Collecting { is_bold_italic };
+                    if only_one_char {
+                        Node::SingleLetterIdent(collected_letters.chars().next().unwrap(), false)
+                    } else {
+                        Node::CollectedLetters(collected_letters)
+                    }
+                } else {
+                    return Err(LatexError(
+                        loc,
+                        LatexErrKind::CannotBeUsedHere {
+                            got: cur_token,
+                            correct_place: Place::AfterOpOrIdent,
+                        },
+                    ));
+                }
+            }
         };
         Ok(self.commit(node))
     }
@@ -863,72 +920,20 @@ where
             SingletonOrList::List(nodes) => self.commit(Node::Row { nodes, style }),
         }
     }
-
-    fn merge_single_letters(
-        &mut self,
-        nodes: NodeList<'arena>,
-        style: Option<Style>,
-        tf: MathVariant,
-    ) -> NodeRef<'arena> {
-        let is_bold_italic = matches!(tf, MathVariant::Transform(TextTransform::BoldItalic));
-        let mut list_builder = NodeListBuilder::new();
-        let mut collector: Option<LetterCollector> = None;
-        // for node_ref in nodes {
-        //     if let Node::SingleLetterIdent(c, is_normal) = node_ref.node() {
-        //         if !(is_bold_italic && *is_normal) {
-        //             let c = *c;
-        //             if let Some(LetterCollector {
-        //                 ref mut only_one_char,
-        //                 ref mut builder,
-        //                 ..
-        //             }) = collector
-        //             {
-        //                 *only_one_char = false;
-        //                 builder.push_char(c);
-        //             } else {
-        //                 let mut builder = self.buffer.get_builder();
-        //                 builder.push_char(c);
-        //                 // We start collecting.
-        //                 collector = Some(LetterCollector {
-        //                     builder,
-        //                     node_ref,
-        //                     only_one_char: true,
-        //                 });
-        //             }
-        //             continue;
-        //         }
-        //     }
-        //     // Commit the collected letters.
-        //     if let Some(collector) = collector.take() {
-        //         let node_ref = collector.finish(self.arena);
-        //         list_builder.push(node_ref);
-        //     }
-        //     list_builder.push(node_ref);
-        // }
-        if let Some(collector) = collector {
-            let node_ref = collector.finish(self.arena);
-            list_builder.push(node_ref);
-        }
-        self.squeeze(list_builder, style)
-    }
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-struct LetterCollector<'arena, 'buffer> {
-    builder: StringBuilder<'buffer>,
-    node_ref: NodeRef<'arena>,
-    only_one_char: bool,
-}
-
-impl<'arena> LetterCollector<'arena, '_> {
-    fn finish(self, arena: &'arena Arena) -> NodeRef<'arena> {
-        let node = self.node_ref.mut_node();
-        if !self.only_one_char {
-            *node = Node::CollectedLetters(self.builder.finish(arena));
-        }
-        self.node_ref
-    }
+enum LetterCollector<'arena> {
+    Inactive,
+    Collecting {
+        is_bold_italic: bool,
+    },
+    Finished {
+        collected_letters: &'arena str,
+        only_one_char: bool,
+        is_bold_italic: bool,
+    },
 }
 
 /// Extract the text of all single-letter identifiers and operators in `node`.
