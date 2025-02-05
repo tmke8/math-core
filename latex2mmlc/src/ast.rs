@@ -71,6 +71,10 @@ pub enum Node<'arena> {
         nodes: NodeList<'arena>,
         style: Option<Style>,
     },
+    RowSlice {
+        nodes: &'arena [Node<'arena>],
+        style: Option<Style>,
+    },
     PseudoRow(NodeList<'arena>),
     Mathstrut,
     Fenced {
@@ -97,7 +101,12 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
-    PredefinedNode(&'static Node<'static>),
+    CustomCmd0Args(&'static Node<'static>),
+    CustomCmd1Arg {
+        predefined: &'static Node<'static>,
+        first_arg: &'arena Node<'arena>,
+    },
+    FirstArg,
 }
 
 impl PartialEq for &'static Node<'static> {
@@ -132,17 +141,19 @@ macro_rules! pushln {
     };
 }
 
-pub struct MathMLEmitter {
+pub struct MathMLEmitter<'arena> {
     s: String,
     var: Option<MathVariant>,
+    first_arg: Option<&'arena Node<'arena>>,
 }
 
-impl MathMLEmitter {
+impl<'arena> MathMLEmitter<'arena> {
     #[inline]
     pub fn new() -> Self {
         Self {
             s: String::new(),
             var: None,
+            first_arg: None,
         }
     }
 
@@ -171,7 +182,7 @@ impl MathMLEmitter {
         self.s.push_str(s);
     }
 
-    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) {
+    pub fn emit(&mut self, node: &'arena Node<'arena>, base_indent: usize) {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -185,7 +196,9 @@ impl MathMLEmitter {
                 | Node::ColumnSeparator
                 | Node::RowSeparator
                 | Node::TextTransform { .. }
-                | Node::PredefinedNode(_)
+                | Node::CustomCmd0Args(_)
+                | Node::CustomCmd1Arg { .. }
+                | Node::FirstArg
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -235,26 +248,7 @@ impl MathMLEmitter {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     push!(self.s, "<mi>", @*op, "</mi>");
                 } else {
-                    match (stretch_mode, op.stretchy()) {
-                        (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
-                        | (
-                            StretchMode::Middle,
-                            Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
-                        ) => {
-                            push!(self.s, "<mo stretchy=\"true\">")
-                        }
-                        (
-                            StretchMode::NoStretch,
-                            Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
-                        ) => {
-                            push!(self.s, "<mo stretchy=\"false\">")
-                        }
-                        _ => push!(self.s, "<mo>"),
-                    }
-                    if char::from(*op) != '\0' {
-                        push!(self.s, @*op);
-                    }
-                    push!(self.s, "</mo>");
+                    self.emit_stretchy_op(*stretch_mode, op);
                 }
             }
             node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
@@ -408,6 +402,16 @@ impl MathMLEmitter {
                 }
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
+            Node::RowSlice { nodes, style } => {
+                match style {
+                    Some(style) => push!(self.s, "<mrow", style, ">"),
+                    None => push!(self.s, "<mrow>"),
+                }
+                for node in nodes.iter() {
+                    self.emit(node, child_indent);
+                }
+                pushln!(&mut self.s, base_indent, "</mrow>");
+            }
             Node::PseudoRow(vec) => {
                 for node in vec.iter() {
                     self.emit(node, base_indent);
@@ -425,15 +429,15 @@ impl MathMLEmitter {
                 content,
                 style,
             } => {
-                let open = Node::StretchableOp(*open, StretchMode::Fence);
-                let close = Node::StretchableOp(*close, StretchMode::Fence);
                 match style {
                     Some(style) => push!(self.s, "<mrow", style, ">"),
                     None => push!(self.s, "<mrow>"),
                 }
-                self.emit(&open, child_indent);
+                new_line_and_indent(&mut self.s, child_indent);
+                self.emit_stretchy_op(StretchMode::Fence, open);
                 self.emit(content, child_indent);
-                self.emit(&close, child_indent);
+                new_line_and_indent(&mut self.s, child_indent);
+                self.emit_stretchy_op(StretchMode::Fence, close);
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
@@ -524,12 +528,52 @@ impl MathMLEmitter {
                 pushln!(&mut self.s, base_indent, "</mtable>");
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
-            Node::PredefinedNode(node) => self.emit(node, base_indent),
+            Node::CustomCmd0Args(node) => {
+                let node = *node;
+                self.emit(node, base_indent)
+            }
+            Node::CustomCmd1Arg {
+                predefined,
+                first_arg,
+            } => {
+                let predefined = *predefined;
+                let old_first_arg = mem::replace(&mut self.first_arg, Some(first_arg));
+                self.emit(predefined, base_indent);
+                self.first_arg = old_first_arg;
+            }
+            Node::FirstArg => {
+                if let Some(first_arg) = self.first_arg {
+                    self.emit(first_arg, base_indent);
+                }
+            }
         }
+    }
+
+    fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &ParenOp) {
+        match (stretch_mode, op.stretchy()) {
+            (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
+            | (
+                StretchMode::Middle,
+                Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
+            ) => {
+                push!(self.s, "<mo stretchy=\"true\">")
+            }
+            (
+                StretchMode::NoStretch,
+                Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+            ) => {
+                push!(self.s, "<mo stretchy=\"false\">")
+            }
+            _ => push!(self.s, "<mo>"),
+        }
+        if char::from(op) != '\0' {
+            push!(self.s, @op);
+        }
+        push!(self.s, "</mo>");
     }
 }
 
-impl Default for MathMLEmitter {
+impl Default for MathMLEmitter<'static> {
     fn default() -> Self {
         Self::new()
     }
@@ -545,7 +589,10 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 }
 
 #[cfg(test)]
-pub fn render(node: &Node) -> String {
+pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
+where
+    'a: 'b,
+{
     let mut emitter = MathMLEmitter::new();
     emitter.emit(node, 0);
     emitter.into_inner()
@@ -555,7 +602,7 @@ pub fn render(node: &Node) -> String {
 mod tests {
     use super::{render, Node};
     use crate::arena::{NodeList, NodeListElement};
-    use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, TextTransform};
+    use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform};
     use crate::ops;
 
     #[test]
@@ -823,6 +870,20 @@ mod tests {
         assert_eq!(
             render(&Node::Row { nodes, style: None }),
             "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_row_slice() {
+        let nodes = &[
+            Node::SingleLetterIdent('x', false),
+            Node::Operator(ops::PLUS_SIGN, None),
+            Node::Number("1"),
+        ];
+
+        assert_eq!(
+            render(&Node::RowSlice { nodes, style: Some(Style::DisplayStyle) }),
+            "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
         );
     }
 
