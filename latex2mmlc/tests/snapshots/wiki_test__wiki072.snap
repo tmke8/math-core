@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/tests/wiki_test.rs
+expression: "\\blacktriangle, \\blacktriangledown, \\blacktriangleleft, \\blacktriangleright"
+---
+<math>
+    <mi>▲</mi>
+    <mo>,</mo>
+    <mi>▼</mi>
+    <mo>,</mo>
+    <mi>◀</mi>
+    <mo>,</mo>
+    <mi>▶</mi>
+</math>

@@ -343,7 +343,7 @@ pub(crate) const LESS_THAN_BUT_NOT_EQUAL_TO: Op = Op('≨');
 pub(crate) const GREATER_THAN_BUT_NOT_EQUAL_TO: Op = Op('≩');
 pub(crate) const MUCH_LESS_THAN: Op = Op('≪');
 pub(crate) const MUCH_GREATER_THAN: Op = Op('≫');
-// pub(crate) const BETWEEN: Op = Op('≬');
+pub(crate) const BETWEEN: Op = Op('≬');
 // pub(crate) const NOT_EQUIVALENT_TO: Op = Op('≭');
 pub(crate) const NOT_LESS_THAN: Op = Op('≮');
 pub(crate) const NOT_GREATER_THAN: Op = Op('≯');
@@ -405,12 +405,12 @@ pub(crate) const UP_TACK: char = '⊥';
 // pub(crate) const MODELS: Op = Op('⊧');
 pub(crate) const TRUE: Op = Op('⊨');
 pub(crate) const FORCES: Op = Op('⊩');
-// pub(crate) const TRIPLE_VERTICAL_BAR_RIGHT_TURNSTILE: Op = Op('⊪');
-// pub(crate) const DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Op = Op('⊫');
-// pub(crate) const DOES_NOT_PROVE: Op = Op('⊬');
-// pub(crate) const NOT_TRUE: Op = Op('⊭');
-// pub(crate) const DOES_NOT_FORCE: Op = Op('⊮');
-// pub(crate) const NEGATED_DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Op = Op('⊯');
+pub(crate) const TRIPLE_VERTICAL_BAR_RIGHT_TURNSTILE: Op = Op('⊪');
+pub(crate) const DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Op = Op('⊫');
+pub(crate) const DOES_NOT_PROVE: Op = Op('⊬');
+pub(crate) const NOT_TRUE: Op = Op('⊭');
+pub(crate) const DOES_NOT_FORCE: Op = Op('⊮');
+pub(crate) const NEGATED_DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Op = Op('⊯');
 // pub(crate) const PRECEDES_UNDER_RELATION: Op = Op('⊰');
 // pub(crate) const SUCCEEDS_UNDER_RELATION: Op = Op('⊱');
 pub(crate) const NORMAL_SUBGROUP_OF: Op = Op('⊲');
@@ -447,7 +447,7 @@ pub(crate) const DOUBLE_SUBSET: Op = Op('⋐');
 pub(crate) const DOUBLE_SUPERSET: Op = Op('⋑');
 pub(crate) const DOUBLE_INTERSECTION: Op = Op('⋒');
 pub(crate) const DOUBLE_UNION: Op = Op('⋓');
-// pub(crate) const PITCHFORK: Op = Op('⋔');
+pub(crate) const PITCHFORK: Op = Op('⋔');
 // pub(crate) const EQUAL_AND_PARALLEL_TO: Op = Op('⋕');
 pub(crate) const LESS_THAN_WITH_DOT: Op = Op('⋖');
 // pub(crate) const GREATER_THAN_WITH_DOT: Op = Op('⋗');
@@ -522,13 +522,17 @@ pub(crate) const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as
 // Unicode Block: Geometric Shapes
 //
 pub(crate) const BLACK_SQUARE: char = '■';
+pub(crate) const BLACK_UP_POINTING_TRIANGLE: char = '▲';
+pub(crate) const BLACK_RIGHT_POINTING_TRIANGLE: char = '▶';
+pub(crate) const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
+pub(crate) const BLACK_LEFT_POINTING_TRIANGLE: char = '◀';
 
-pub(crate) const WHITE_UP_POINTING_TRIANGLE: Op = Op('△');
-pub(crate) const WHITE_RIGHT_POINTING_TRIANGLE: Op = Op('▷');
-pub(crate) const WHITE_DOWN_POINTING_TRIANGLE: Op = Op('▽');
-pub(crate) const WHITE_LEFT_POINTING_TRIANGLE: Op = Op('◁');
+pub(crate) const WHITE_UP_POINTING_TRIANGLE: char = '△';
+pub(crate) const WHITE_RIGHT_POINTING_TRIANGLE: char = '▷';
+pub(crate) const WHITE_DOWN_POINTING_TRIANGLE: char = '▽';
+pub(crate) const WHITE_LEFT_POINTING_TRIANGLE: char = '◁';
 
-pub(crate) const LARGE_CIRCLE: Op = Op('◯');
+pub(crate) const LARGE_CIRCLE: char = '◯';
 
 //
 // Unicode Block: Miscellaneous Symbols
@@ -674,7 +678,7 @@ pub(crate) const AMALGAMATION_OR_COPRODUCT: Op = Op('⨿');
 // pub(crate) const LOGICAL_OR_WITH_MIDDLE_STEM: Op = Op('⩛');
 // pub(crate) const LOGICAL_AND_WITH_HORIZONTAL_DASH: Op = Op('⩜');
 // pub(crate) const LOGICAL_OR_WITH_HORIZONTAL_DASH: Op = Op('⩝');
-// pub(crate) const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Op = Op('⩞');
+pub(crate) const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Op = Op('⩞');
 // pub(crate) const LOGICAL_AND_WITH_UNDERBAR: Op = Op('⩟');
 // pub(crate) const LOGICAL_AND_WITH_DOUBLE_UNDERBAR: Op = Op('⩠');
 // pub(crate) const SMALL_VEE_WITH_UNDERBAR: Op = Op('⩡');
