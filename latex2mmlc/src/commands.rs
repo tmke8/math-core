@@ -70,7 +70,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Pi" => Token::UprightLetter('Π'),
     "Pr" => Token::Function("Pr"),
     "Psi" => Token::UprightLetter('Ψ'),
-    "RR" => Token::CustomCmd0Args(&Node::TextTransform {
+    "RR" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Transform(TextTransform::DoubleStruck),
         content: &Node::SingleLetterIdent('R', false),
     }),
@@ -201,7 +201,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curlywedge" => Token::Operator(ops::CURLY_LOGICAL_AND),
     "curvearrowleft" => Token::Operator(ops::ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "curvearrowright" => Token::Operator(ops::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
-    "d" => Token::CustomCmd0Args(&Node::TextTransform {
+    "d" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Normal,
         content: &Node::SingleLetterIdent('d', false),
     }),
@@ -437,6 +437,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nwarrow" => Token::Operator(ops::NORTH_WEST_ARROW),
     "o" => Token::Letter('ø'),
     "odot" => Token::Operator(ops::CIRCLED_DOT_OPERATOR),
+    "odv" => Token::CustomCmd(2, &predefined::ODV),
     "oe" => Token::Letter('œ'),
     "oiiint" => Token::Integral(ops::VOLUME_INTEGRAL),
     "oiint" => Token::Integral(ops::SURFACE_INTEGRAL),
@@ -462,7 +463,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "phi" => Token::Letter('ϕ'),
     "pi" => Token::Letter('π'),
     "pm" => Token::Operator(ops::PLUS_MINUS_SIGN),
-    "pmod" => Token::CustomCmd1Arg(&predefined::PMOD),
+    "pmod" => Token::CustomCmd(1, &predefined::PMOD),
     "pounds" => Token::Letter('£'),
     "prec" => Token::Operator(ops::PRECEDES),
     "precapprox" => Token::Operator(ops::PRECEDES_ABOVE_ALMOST_EQUAL_TO),

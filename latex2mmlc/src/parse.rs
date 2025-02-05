@@ -701,13 +701,15 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::CustomCmd0Args(node) => Node::CustomCmd0Args(node),
-            Token::CustomCmd1Arg(predefined) => {
-                let first_arg = self.parse_single_token()?;
-                Node::CustomCmd1Arg {
-                    predefined,
-                    first_arg,
+            Token::CustomCmd(num_args, predefined) => {
+                let mut nodes = NodeListBuilder::new();
+                for _ in 0..num_args {
+                    let token = self.next_token();
+                    let node = self.parse_single_node(token)?;
+                    nodes.push(node);
                 }
+                let args = nodes.finish();
+                Node::CustomCmd { predefined, args }
             }
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {

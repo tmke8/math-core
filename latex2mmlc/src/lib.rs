@@ -309,6 +309,7 @@ mod tests {
             ("d_command", r"\d"),
             ("d_command_nested", r"\mathit{x\d x}"),
             ("RR_command", r"\RR"),
+            ("odv", r"\odv{f}{x}"),
         ];
 
         for (name, problem) in problems.into_iter() {
