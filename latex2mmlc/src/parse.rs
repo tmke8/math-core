@@ -649,7 +649,6 @@ where
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
-            Token::Mathstrut => Node::Mathstrut,
             Token::Style(style) => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 Node::Row {
@@ -727,6 +726,7 @@ where
                     ));
                 }
             },
+            Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
         };
         Ok(self.commit(node))
     }
