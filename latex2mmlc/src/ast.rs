@@ -882,7 +882,10 @@ mod tests {
         ];
 
         assert_eq!(
-            render(&Node::RowSlice { nodes, style: Some(Style::DisplayStyle) }),
+            render(&Node::RowSlice {
+                nodes,
+                style: Some(Style::DisplayStyle)
+            }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
         );
     }

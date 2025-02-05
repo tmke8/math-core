@@ -19,6 +19,7 @@ pub(crate) struct Parser<'arena, 'source> {
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
+    is_bold_italic: bool,
 }
 impl<'arena, 'source> Parser<'arena, 'source>
 where
@@ -32,6 +33,7 @@ where
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
+            is_bold_italic: false,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -40,19 +42,22 @@ where
     }
 
     fn next_token(&mut self) -> TokLoc<'source> {
-        if let LetterCollector::Collecting { is_bold_italic } = self.collector {
+        if matches!(self.collector, LetterCollector::Collecting) {
             let first_loc = self.peek.location();
             let mut builder = self.buffer.get_builder();
             let mut num_chars = 0usize;
+            let mut first_char: Option<char> = None;
             loop {
                 // Loop until we find a non-letter token.
                 match self.peek.token() {
-                    Token::Letter(ch) => {
+                    tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) => {
+                        if matches!(tok, Token::UprightLetter(_)) && self.is_bold_italic {
+                            break;
+                        }
                         builder.push_char(*ch);
-                        num_chars += 1;
-                    }
-                    Token::UprightLetter(ch) if !is_bold_italic => {
-                        builder.push_char(*ch);
+                        if first_char.is_none() {
+                            first_char = Some(*ch);
+                        }
                         num_chars += 1;
                     }
                     _ => {
@@ -64,12 +69,16 @@ where
             }
             // If we collected at least one letter, commit it to the arena and signal with a token
             // that we are done.
-            if num_chars > 0 {
-                self.collector = LetterCollector::Finished {
-                    collected_letters: builder.finish(self.arena),
-                    only_one_char: num_chars == 1,
-                    is_bold_italic,
-                };
+            if let Some(ch) = first_char {
+                if num_chars == 1 {
+                    self.collector = LetterCollector::FinishedOneLetter {
+                        collected_letter: ch,
+                    };
+                } else if num_chars > 1 {
+                    self.collector = LetterCollector::FinishedManyLetters {
+                        collected_letters: builder.finish(self.arena),
+                    };
+                }
                 return TokLoc(first_loc, Token::GetCollectedLetters);
             }
         }
@@ -354,17 +363,14 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let old_collector = mem::replace(
-                    &mut self.collector,
-                    LetterCollector::Collecting {
-                        is_bold_italic: matches!(
-                            tf,
-                            MathVariant::Transform(TextTransform::BoldItalic)
-                        ),
-                    },
+                let old_collector = mem::replace(&mut self.collector, LetterCollector::Collecting);
+                let old_is_bold_italic = mem::replace(
+                    &mut self.is_bold_italic,
+                    matches!(tf, MathVariant::Transform(TextTransform::BoldItalic)),
                 );
                 let content = self.parse_single_token()?;
                 self.collector = old_collector;
+                self.is_bold_italic = old_is_bold_italic;
                 Node::TextTransform { content, tf }
             }
             Token::Integral(int) => {
@@ -703,20 +709,16 @@ where
                     first_arg,
                 }
             }
-            Token::GetCollectedLetters => {
-                if let LetterCollector::Finished {
-                    collected_letters,
-                    only_one_char,
-                    is_bold_italic,
-                } = self.collector
-                {
-                    self.collector = LetterCollector::Collecting { is_bold_italic };
-                    if only_one_char {
-                        Node::SingleLetterIdent(collected_letters.chars().next().unwrap(), false)
-                    } else {
-                        Node::CollectedLetters(collected_letters)
-                    }
-                } else {
+            Token::GetCollectedLetters => match self.collector {
+                LetterCollector::FinishedOneLetter { collected_letter } => {
+                    self.collector = LetterCollector::Collecting;
+                    Node::SingleLetterIdent(collected_letter, false)
+                }
+                LetterCollector::FinishedManyLetters { collected_letters } => {
+                    self.collector = LetterCollector::Collecting;
+                    Node::CollectedLetters(collected_letters)
+                }
+                _ => {
                     return Err(LatexError(
                         loc,
                         LatexErrKind::CannotBeUsedHere {
@@ -725,7 +727,7 @@ where
                         },
                     ));
                 }
-            }
+            },
         };
         Ok(self.commit(node))
     }
@@ -926,14 +928,9 @@ struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>
 
 enum LetterCollector<'arena> {
     Inactive,
-    Collecting {
-        is_bold_italic: bool,
-    },
-    Finished {
-        collected_letters: &'arena str,
-        only_one_char: bool,
-        is_bold_italic: bool,
-    },
+    Collecting,
+    FinishedOneLetter { collected_letter: char },
+    FinishedManyLetters { collected_letters: &'arena str },
 }
 
 /// Extract the text of all single-letter identifiers and operators in `node`.
