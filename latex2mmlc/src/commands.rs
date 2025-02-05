@@ -393,7 +393,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mathrm" => Token::Transform(MathVariant::Normal),
     "mathscr" => Token::Transform(MathVariant::Transform(TextTransform::Script)),
     "mathsf" => Token::Transform(MathVariant::Transform(TextTransform::SansSerif)),
-    "mathstrut" => Token::Mathstrut,
+    "mathstrut" => Token::HardcodedMathML(r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#),
     "mathtt" => Token::Transform(MathVariant::Transform(TextTransform::Monospace)),
     "max" => Token::Lim("max"),
     "measeq" => Token::Operator(ops::MEASURED_BY), // from "stix"

@@ -76,7 +76,6 @@ pub enum Node<'arena> {
         style: Option<Style>,
     },
     PseudoRow(NodeList<'arena>),
-    Mathstrut,
     Fenced {
         style: Option<Style>,
         open: &'static ParenOp,
@@ -106,6 +105,7 @@ pub enum Node<'arena> {
         args: NodeList<'arena>,
     },
     CustomCmdArg(usize),
+    HardcodedMathML(&'static str),
 }
 
 impl PartialEq for &'static Node<'static> {
@@ -415,12 +415,6 @@ impl<'arena> MathMLEmitter<'arena> {
                     self.emit(node, base_indent);
                 }
             }
-            Node::Mathstrut => {
-                push!(
-                    self.s,
-                    r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
-                );
-            }
             Node::Fenced {
                 open,
                 close,
@@ -541,6 +535,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 {
                     self.emit(arg, base_indent);
                 }
+            }
+            Node::HardcodedMathML(mathml) => {
+                push!(self.s, mathml);
             }
         }
     }
@@ -901,11 +898,8 @@ mod tests {
     }
 
     #[test]
-    fn render_mathstrut() {
-        assert_eq!(
-            render(&Node::Mathstrut),
-            r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#
-        );
+    fn render_hardcoded_mathml() {
+        assert_eq!(render(&Node::HardcodedMathML("<mi>hi</mi>")), "<mi>hi</mi>");
     }
 
     #[test]

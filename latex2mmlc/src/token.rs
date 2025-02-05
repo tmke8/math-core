@@ -91,11 +91,10 @@ pub enum Token<'source> {
     Not,
     #[strum(serialize = r"\text*")]
     Text(Option<TextTransform>),
-    #[strum(serialize = r"\mathstrut")]
-    Mathstrut,
     Style(Style),
     CustomCmd(usize, &'static Node<'static>),
     GetCollectedLetters,
+    HardcodedMathML(&'static str),
     UnknownCommand(&'source str),
 }
 
