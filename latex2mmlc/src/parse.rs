@@ -47,37 +47,35 @@ where
             let mut builder = self.buffer.get_builder();
             let mut num_chars = 0usize;
             let mut first_char: Option<char> = None;
-            loop {
-                // Loop until we find a non-letter token.
-                match self.peek.token() {
-                    tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) => {
-                        if matches!(tok, Token::UprightLetter(_)) && self.is_bold_italic {
-                            break;
-                        }
-                        builder.push_char(*ch);
-                        if first_char.is_none() {
-                            first_char = Some(*ch);
-                        }
-                        num_chars += 1;
-                    }
-                    _ => {
-                        break;
-                    }
+
+            // Loop until we find a non-letter token.
+            while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
+                if matches!(tok, Token::UprightLetter(_)) && self.is_bold_italic {
+                    break;
                 }
+                builder.push_char(*ch);
+                if first_char.is_none() {
+                    first_char = Some(*ch);
+                }
+                num_chars += 1;
                 // Get the next token for the next iteration.
                 self.peek = self.l.next_token(self.peek.token().acts_on_a_digit());
             }
             // If we collected at least one letter, commit it to the arena and signal with a token
             // that we are done.
             if let Some(ch) = first_char {
-                if num_chars == 1 {
-                    self.collector = LetterCollector::FinishedOneLetter {
-                        collected_letter: ch,
-                    };
-                } else if num_chars > 1 {
-                    self.collector = LetterCollector::FinishedManyLetters {
-                        collected_letters: builder.finish(self.arena),
-                    };
+                match num_chars.cmp(&1) {
+                    std::cmp::Ordering::Equal => {
+                        self.collector = LetterCollector::FinishedOneLetter {
+                            collected_letter: ch,
+                        };
+                    }
+                    std::cmp::Ordering::Greater => {
+                        self.collector = LetterCollector::FinishedManyLetters {
+                            collected_letters: builder.finish(self.arena),
+                        };
+                    }
+                    _ => {}
                 }
                 return TokLoc(first_loc, Token::GetCollectedLetters);
             }

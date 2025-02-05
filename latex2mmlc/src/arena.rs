@@ -214,14 +214,12 @@ impl<'arena> NodeList<'arena> {
     }
 
     pub fn iter<'list>(&'list self) -> NodeListIterator<'arena, 'list> {
-        NodeListIterator {
-            current: self.0.as_deref(),
-        }
+        NodeListIterator { current: self.0 }
     }
 }
 
 // NodeList is sync, because we don't allow mutation through immutable references.
-unsafe impl<'arena> Sync for NodeList<'arena> {}
+unsafe impl Sync for NodeList<'_> {}
 
 #[cfg(test)]
 impl<'arena> Serialize for NodeList<'arena> {
