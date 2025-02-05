@@ -263,8 +263,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 166);
-    assert_eq!(n_fail, 42);
+    assert_eq!(n_diff, 172);
+    assert_eq!(n_fail, 36);
 }
 
 /// Prettify HTML input
@@ -345,7 +345,7 @@ fn test_nonfailing_wiki_tests() {
             r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA",
         ),
         (26, r"s_k \equiv 0 \pmod{m}"),
-        // (27, r"a \bmod b"),
+        (27, r"a \bmod b"),
         (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
         // (29, r"\mid, \nmid, \shortmid, \nshortmid"),
         // (30, r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}"),
@@ -402,14 +402,17 @@ fn test_nonfailing_wiki_tests() {
         ),
         (70, r"\bigcirc, \triangle, \bigtriangleup, \bigtriangledown"),
         (71, r"\vartriangle, \triangledown"),
-        // (72, r"\blacktriangle, \blacktriangledown, \blacktriangleleft, \blacktriangleright"),
+        (
+            72,
+            r"\blacktriangle, \blacktriangledown, \blacktriangleleft, \blacktriangleright",
+        ),
         (73, r"\forall, \exists, \nexists"),
         (74, r"\therefore, \because, \And"),
         (75, r"\lor \vee, \curlyvee, \bigvee"),
         (76, r"\land \wedge, \curlywedge, \bigwedge"),
         // (77, r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top"),
         (78, r"\vdash \dashv, \vDash, \Vdash, \models"),
-        // (79, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
+        (79, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
         (80, r"\ulcorner \urcorner \llcorner \lrcorner"),
         (81, r"\Rrightarrow, \Lleftarrow"),
         (82, r"\Rightarrow, \nRightarrow, \Longrightarrow, \implies"),
@@ -452,7 +455,10 @@ fn test_nonfailing_wiki_tests() {
             100,
             r"\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq",
         ),
-        // (101, r"\intercal \barwedge \veebar \doublebarwedge \between \pitchfork"),
+        (
+            101,
+            r"\intercal \barwedge \veebar \doublebarwedge \between \pitchfork",
+        ),
         // (102, r"\vartriangleleft \ntriangleleft \vartriangleright \ntriangleright"),
         // (103, r"\trianglelefteq \ntrianglelefteq \trianglerighteq \ntrianglerighteq"),
         (104, r"a^2, a^{x+3}"),
@@ -460,10 +466,10 @@ fn test_nonfailing_wiki_tests() {
         (106, r"10^{30} a^{2+2} \\ a_{i,j} b_{f'}"),
         (107, r"x_2^3 \\ {x_2}^3"),
         (108, r"10^{10^{8}}"),
-        // (
-        //     109,
-        //     r"\overset{\alpha}{\omega} \\ \underset{\alpha}{\omega} \\ \overset{\alpha}{\underset{\gamma}{\omega}}\\ \stackrel{\alpha}{\omega}",
-        // ),
+        (
+            109,
+            r"\overset{\alpha}{\omega} \\ \underset{\alpha}{\omega} \\ \overset{\alpha}{\underset{\gamma}{\omega}}\\ \stackrel{\alpha}{\omega}",
+        ),
         (110, r"x', y'', f', f'' \\ x^\prime, y^{\prime\prime}"),
         (111, r"\dot{x}, \ddot{x}"),
         (
