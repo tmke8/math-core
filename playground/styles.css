@@ -45,13 +45,15 @@ body {
     font-display: swap;
 }
 
-/* @font-face {
-  font-family: Libertinus Math;
-  src: url('./LibertinusMath-Regular.woff2') format('woff2'),
-} */
+@font-face {
+    font-family: Libertinus Math;
+    src: url('./LibertinusMath-Regular.woff2') format('woff2'),
+    font-display: swap;
+}
 
 math {
-    font-family: "Latin Modern Math", math;
+    /* We set the font-family now in JS. */
+    /* font-family: "Latin Modern Math", math; */
     font-size: 1.3rem;
     /* Font features of *Libertinus Math*:
      * ss08: slanted integral sign
@@ -101,13 +103,33 @@ textarea#inputField {
 }
 
 .option-group {
-    flex: 1;
+    flex: 1 1 10rem;
 }
 
 .options {
     display: flex;
     flex-flow: row wrap;
     justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+select {
+  /* padding: 8px 12px; */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+select:hover {
+  border-color: #999;
+}
+
+select:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
 h3 {

@@ -14,6 +14,10 @@
         />
         <script type="module" src="./main.js"></script>
         <script src="./clipboard.js"></script>
+        <!-- This style tag is updated by the JS code -->
+        <style id="math-font-style">
+            math { font-family: "Latin Modern Math", math; }
+        </style>
     </head>
     <body>
         <script type="module">
@@ -35,28 +39,13 @@
                         placeholder="Enter LaTeX math here..."
                     ></textarea>
                     <div class="options">
-                        <div id="displaystyle" class="option-group">
-                            <h3>Display style:</h3>
+                        <div class="option-group">
+                            <h3>Math font:</h3>
                             <div class="options">
-                                <label
-                                    ><input
-                                        type="radio"
-                                        id="block"
-                                        name="displaystyle"
-                                        value="block"
-                                        checked
-                                    />
-                                    Block (<code>$$&hellip;$$</code>)</label
-                                >
-                                <label
-                                    ><input
-                                        type="radio"
-                                        id="inline"
-                                        name="displaystyle"
-                                        value="inline"
-                                    />
-                                    Inline (<code>$&hellip;$</code>)</label
-                                >
+                                <select name="math-font" id="math-font">
+                                    <option value="latin-modern">Latin Modern Math</option>
+                                    <option value="libertinus">Libertinus Math</option>
+                                </select>
                             </div>
                         </div>
                         <div id="prettyprint" class="option-group">
@@ -83,12 +72,37 @@
                                 >
                             </div>
                         </div>
+                        <div id="displaystyle" class="option-group">
+                            <h3>Display style:</h3>
+                            <div class="options">
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="block"
+                                        name="displaystyle"
+                                        value="block"
+                                        checked
+                                    />
+                                    Block (<code>$$&hellip;$$</code>)</label
+                                >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="inline"
+                                        name="displaystyle"
+                                        value="inline"
+                                    />
+                                    Inline (<code>$&hellip;$</code>)</label
+                                >
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <h3>MathML source code:</h3>
                 <pre
                     class="output-box copyable"
-                ><code id="outputCode"></code></pre>
+                ><code id="outputCode">&lt;math display="block"&gt;
+&lt;/math&gt;</code></pre>
 
                 <hr />
 
