@@ -220,7 +220,7 @@ impl<'arena> NodeList<'arena> {
     }
 }
 
-// NodeList is sync, because we don't allow mutation through shared references.
+// NodeList is sync, because we don't allow mutation through immutable references.
 unsafe impl<'arena> Sync for NodeList<'arena> {}
 
 #[cfg(test)]
@@ -236,15 +236,6 @@ impl<'arena> Serialize for NodeList<'arena> {
         seq.end()
     }
 }
-
-// impl<'arena> IntoIterator for NodeList<'arena> {
-//     type Item = NodeRef<'arena>;
-//     type IntoIter = NodeListIntoIter<'arena>;
-
-//     fn into_iter(self) -> NodeListIntoIter<'arena> {
-//         NodeListIntoIter { current: self.0 }
-//     }
-// }
 
 pub struct NodeListIterator<'arena, 'list> {
     current: Option<&'list NodeListElement<'arena>>,
@@ -265,26 +256,6 @@ impl<'arena, 'list> Iterator for NodeListIterator<'arena, 'list> {
                 // references to the nodes should exist.
                 self.current = element.next.map(|next| unsafe { next.as_ref() });
                 Some(&element.node)
-            }
-        }
-    }
-}
-
-pub struct NodeListIntoIter<'arena> {
-    current: Option<NodeRef<'arena>>,
-}
-
-impl<'arena> Iterator for NodeListIntoIter<'arena> {
-    type Item = NodeRef<'arena>;
-    fn next(&mut self) -> Option<NodeRef<'arena>> {
-        match self.current.take() {
-            None => None,
-            Some(reference) => {
-                // Ownership of the next reference is transferred to the iterator.
-                // This ensures that returned elements can be added to new lists,
-                // without having a "next" reference that points to an element in the old list.
-                self.current = reference.next.take().map(|mut r| unsafe { r.as_mut() });
-                Some(reference)
             }
         }
     }
@@ -341,22 +312,6 @@ mod tests {
         let mut iter = list.iter();
         assert!(iter.next().is_none(), "Empty list should return None");
     }
-
-    // #[test]
-    // fn list_manual_iter() {
-    //     let arena = Arena::new();
-    //     let mut builder = NodeListBuilder::new();
-    //     let node_ref = arena.push(Node::Space("Hello, world!"));
-    //     builder.push(node_ref);
-    //     let node_ref = arena.push(Node::Space("Goodbye, world!"));
-    //     builder.push(node_ref);
-    //     let list = builder.finish();
-    //     let mut iter = list.into_iter();
-    //     let reference = iter.next().unwrap();
-    //     assert!(matches!(reference.node, Node::Space("Hello, world!")));
-    //     let reference = iter.next().unwrap();
-    //     assert!(matches!(reference.node, Node::Space("Goodbye, world!")));
-    // }
 
     #[test]
     fn list_from_node_refs() {
