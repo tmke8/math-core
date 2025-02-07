@@ -47,13 +47,13 @@ body {
 
 @font-face {
     font-family: Libertinus Math;
-    src: url('./LibertinusMath-Regular.woff2') format('woff2'),
+    src: url('./LibertinusMath-Regular.woff2') format('woff2');
     font-display: swap;
 }
 
 @font-face {
     font-family: STIX Two Math;
-    src: url('./STIXTwoMath-Regular.woff2') format('woff2'),
+    src: url('./STIXTwoMath-Regular.woff2') format('woff2');
     font-display: swap;
 }
 
