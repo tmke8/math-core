@@ -51,6 +51,12 @@ body {
     font-display: swap;
 }
 
+@font-face {
+    font-family: STIX Two Math;
+    src: url('./STIXTwoMath-Regular.woff2') format('woff2'),
+    font-display: swap;
+}
+
 math {
     /* We set the font-family now in JS. */
     /* font-family: "Latin Modern Math", math; */

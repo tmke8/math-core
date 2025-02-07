@@ -52,14 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSelect = document.getElementById('math-font');
     const styleElement = document.getElementById('math-font-style');
     
-    const fontMap = {
-        'latin-modern': 'Latin Modern Math',
-        'libertinus': 'Libertinus Math'
+    const fontFeaturesMap = {
+        'Libertinus Math': 'ss09',
+        'STIX Two Math': 'ss04',
     };
-    
+
     // Update the style rule when selection changes
     fontSelect.addEventListener('change', function() {
-        styleElement.textContent = `math { font-family: "${fontMap[this.value]}", math; }`;
+        const featureSettings = fontFeaturesMap[this.value] 
+            ? `font-feature-settings: "${fontFeaturesMap[this.value]}";` 
+            : '';
+        styleElement.textContent = `math { font-family: "${this.value}", math; ${featureSettings} }`;
     });
 });
-
