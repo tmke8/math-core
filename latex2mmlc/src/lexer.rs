@@ -159,7 +159,7 @@ impl<'source> Lexer<'source> {
             '\'' => Token::Prime,
             '(' => Token::Paren(ops::LEFT_PARENTHESIS),
             ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
-            '*' => Token::Operator(ops::ASTERISK),
+            '*' => Token::Operator(ops::ASTERISK_OPERATOR),
             '+' => Token::Operator(ops::PLUS_SIGN),
             ',' => Token::Operator(ops::COMMA),
             '-' => Token::Operator(ops::MINUS_SIGN),
