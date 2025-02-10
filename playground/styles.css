@@ -52,12 +52,6 @@ body {
 }
 
 @font-face {
-    font-family: Cambria Math;
-    src: url('./cambria-math.ttf') format('truetype');
-    font-display: swap;
-}
-
-@font-face {
     font-family: STIX Two Math Regular;
     src: local("STIX Two Math Regular"), url('./STIXTwoMath-Regular.woff2') format('woff2');
     font-display: block;
