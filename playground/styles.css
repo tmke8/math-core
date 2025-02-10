@@ -48,7 +48,6 @@ body {
 @font-face {
     font-family: Libertinus Math Regular;
     src: url('./LibertinusMath-Regular.woff2') format('woff2');
-    font-feature-settings: "ss09"; /* large primes */
     font-display: swap;
 }
 
@@ -61,7 +60,6 @@ body {
 @font-face {
     font-family: STIX Two Math Regular;
     src: local("STIX Two Math Regular"), url('./STIXTwoMath-Regular.woff2') format('woff2');
-    font-feature-settings: "ss04"; /* large primes */
     font-display: block;
 }
 
