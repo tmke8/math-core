@@ -46,15 +46,15 @@ body {
 }
 
 @font-face {
-    font-family: Libertinus Math;
+    font-family: Libertinus Math Regular;
     src: url('./LibertinusMath-Regular.woff2') format('woff2');
     font-display: swap;
 }
 
 @font-face {
-    font-family: STIX Two Math;
-    src: url('./STIXTwoMath-Regular.woff2') format('woff2');
-    font-display: swap;
+    font-family: STIX Two Math Regular;
+    src: local("STIX Two Math Regular"), url('./STIXTwoMath-Regular.woff2') format('woff2');
+    font-display: block;
 }
 
 math {

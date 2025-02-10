@@ -5,18 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>LaTeX to MathML</title>
         <link rel="stylesheet" href="./styles.css" />
-        <link
-            rel="preload"
-            href="./latinmodernmath.woff2"
-            as="font"
-            type="font/woff2"
-            crossorigin="anonymous"
-        />
         <script type="module" src="./main.js"></script>
         <script src="./clipboard.js"></script>
         <!-- This style tag is updated by the JS code -->
         <style id="math-font-style">
-            math { font-family: "Latin Modern Math", math; }
+            math { font-family: "STIX Two Math Regular", math; font-feature-settings: "ss04"; }
         </style>
     </head>
     <body>
@@ -43,9 +36,9 @@
                             <h3>Math font:</h3>
                             <div class="options">
                                 <select name="math-font" id="math-font">
+                                    <option value="STIX Two Math Regular">STIX Two Math</option>
                                     <option value="Latin Modern Math">Latin Modern Math</option>
-                                    <option value="Libertinus Math">Libertinus Math</option>
-                                    <option value="STIX Two Math">STIX Two Math</option>
+                                    <option value="Libertinus Math Regular">Libertinus Math</option>
                                 </select>
                             </div>
                         </div>
@@ -119,6 +112,7 @@
                 <p>
                     Recent versions of all the major browsers support MathML
                     Core, so you should be able to see the rendered math.
+                    For example: <math><msup><mi>x</mi><mn>2</mn></msup></math>.
                 </p>
                 <p>
                     The conversion runs entirely in your browser, using
