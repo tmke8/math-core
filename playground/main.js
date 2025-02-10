@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const styleElement = document.getElementById('math-font-style');
     const fontFeaturesMap = {
         'Libertinus Math Regular': '"ss09"',
-        'STIX Two Math Regular': '"ss04", "cv03"',
+        'STIX Two Math Regular': '"ss04"',
     };
 
     // Update the style rule when selection changes
