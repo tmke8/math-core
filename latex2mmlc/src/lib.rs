@@ -46,20 +46,16 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
-use arena::Arena;
+use mathml_renderer::arena::Arena;
 
-pub mod arena;
-pub mod ast;
-pub mod attribute;
 pub(crate) mod commands;
 mod error;
 pub(crate) mod lexer;
-pub(crate) mod ops;
 pub(crate) mod parse;
 pub(crate) mod predefined;
 pub mod token;
 
-pub use ast::MathMLEmitter;
+pub use mathml_renderer::ast::MathMLEmitter;
 pub use error::{LatexErrKind, LatexError};
 
 /// display
@@ -72,7 +68,7 @@ pub enum Display {
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-) -> Result<ast::Node<'arena>, error::LatexError<'source>>
+) -> Result<mathml_renderer::ast::Node<'arena>, error::LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
@@ -131,7 +127,7 @@ where
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::ast::render;
+    use mathml_renderer::ast::render;
     use crate::{error, latex_to_mathml, LatexError};
 
     use super::{get_nodes, Arena};

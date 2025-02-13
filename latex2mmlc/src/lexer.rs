@@ -8,10 +8,11 @@ use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
 
+use mathml_renderer::ops;
+
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
-use crate::token::TokLoc;
-use crate::{ops, token::Token};
+use crate::token::{TokLoc, Token};
 
 /// Lexer
 #[derive(Debug, Clone)]

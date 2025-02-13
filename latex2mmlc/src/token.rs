@@ -1,10 +1,9 @@
 use std::mem::discriminant;
 
+use mathml_renderer::ast::Node;
+use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
+use mathml_renderer::ops::{Op, ParenOp};
 use strum_macros::AsRefStr;
-
-use crate::ast::Node;
-use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
-use crate::ops::{Op, ParenOp};
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[repr(u32)]

@@ -1,6 +1,6 @@
 use std::mem;
 
-#[cfg(test)]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use crate::arena::NodeList;
@@ -11,7 +11,7 @@ use crate::ops::{Op, ParenOp};
 
 /// AST node
 #[derive(Debug)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, bool),
@@ -581,7 +581,6 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
     }
 }
 
-#[cfg(test)]
 pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
 where
     'a: 'b,

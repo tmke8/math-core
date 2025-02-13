@@ -1,6 +1,7 @@
-use crate::ast::Node;
-use crate::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
-use crate::ops::{self, Op};
+use mathml_renderer::ast::Node;
+use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
+use mathml_renderer::ops::{self, Op};
+
 use crate::predefined;
 use crate::token::Token;
 

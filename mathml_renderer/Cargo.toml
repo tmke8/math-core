@@ -1,0 +1,23 @@
+[package]
+name = "mathml_renderer"
+version = "0.1.0"
+authors = [
+    "Hiromu Sugiura <h.sugiura0705@outlook.com>",
+    "Thomas Kehrenberg <tmke8@posteo.net>",
+]
+edition = { workspace = true }
+rust-version = { workspace = true }
+
+license = { workspace = true }
+keywords = ["latex", "mathml"]
+categories = ["science"]
+
+[dependencies]
+bumpalo = "3.17.0"
+strum_macros = "0.27.0"
+serde = { version = "1.0.217", features = ["derive"], optional = true }
+
+[dev-dependencies]
+
+[features]
+serde = ["dep:serde"]

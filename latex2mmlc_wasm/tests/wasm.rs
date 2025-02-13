@@ -1,7 +1,7 @@
 use wasm_bindgen_test::*;
 
-use latex2mmlc::arena::NodeList;
-use latex2mmlc::ast::Node;
+use mathml_renderer::arena::NodeList;
+use mathml_renderer::ast::Node;
 use latex2mmlc::token::{TokLoc, Token};
 
 #[wasm_bindgen_test]
