@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
 use bumpalo::Bump;
-#[cfg(test)]
+#[cfg(feature = "serde")]
 use serde::ser::{Serialize, SerializeSeq, Serializer};
 
 use crate::ast::Node;
@@ -221,7 +221,7 @@ impl<'arena> NodeList<'arena> {
 // NodeList is sync, because we don't allow mutation through immutable references.
 unsafe impl Sync for NodeList<'_> {}
 
-#[cfg(test)]
+#[cfg(feature = "serde")]
 impl<'arena> Serialize for NodeList<'arena> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

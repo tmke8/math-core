@@ -209,11 +209,10 @@ dependencies = [
 name = "latex2mmlc"
 version = "0.1.0"
 dependencies = [
- "bumpalo",
  "insta",
+ "mathml_renderer",
  "phf",
  "regex",
- "serde",
  "strum_macros",
 ]
 
@@ -241,6 +240,7 @@ version = "0.1.0"
 dependencies = [
  "latex2mmlc",
  "lol_alloc",
+ "mathml_renderer",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -286,6 +286,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83e5106554cabc97552dcadf54f57560ae6af3276652f82ca2be06120dc4c5dc"
 dependencies = [
  "spin",
+]
+
+[[package]]
+name = "mathml_renderer"
+version = "0.1.0"
+dependencies = [
+ "bumpalo",
+ "serde",
+ "strum_macros",
 ]
 
 [[package]]

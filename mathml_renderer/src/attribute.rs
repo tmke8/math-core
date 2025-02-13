@@ -1,11 +1,11 @@
-#[cfg(test)]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 use strum_macros::AsRefStr;
 
 /// <mi> mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathVariant {
     /// This is enforced by setting `mathvariant="normal"`.
     Normal,
@@ -14,7 +14,7 @@ pub enum MathVariant {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="false""#)]
     StretchyFalse,
@@ -23,7 +23,7 @@ pub enum OpAttr {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Size {
     #[strum(serialize = "1.2em")]
     Scale1,
@@ -36,7 +36,7 @@ pub enum Size {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum StretchMode {
     /// Don't stretch the operator.
     NoStretch = 1,
@@ -47,7 +47,7 @@ pub enum StretchMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Stretchy {
     /// The operator is always stretchy (e.g. `(`, `)`).
     Always = 1,
@@ -61,7 +61,7 @@ pub enum Stretchy {
 
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum FracAttr {
     #[strum(serialize = r#" displaystyle="true""#)]
     DisplayStyleTrue = 1,
@@ -72,7 +72,7 @@ pub enum FracAttr {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
     DisplayStyle = 1,
@@ -85,7 +85,7 @@ pub enum Style {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Align {
     Center,
     Left,
@@ -93,7 +93,7 @@ pub enum Align {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
     #[strum(serialize = "0em")]
     Zero = 1,
@@ -103,7 +103,7 @@ pub enum MathSpacing {
 
 // Transform of unicode characters.
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(test, derive(Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum TextTransform {
     Bold = 1,
     BoldFraktur,

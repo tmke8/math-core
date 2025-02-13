@@ -16,11 +16,12 @@ keywords = ["latex", "mathml"]
 categories = ["science"]
 
 [dependencies]
-bumpalo = "3.17.0"
+mathml_renderer = { path = "../mathml_renderer" }
+
 phf = { version = "0.11.3", features = ["macros"] }
 strum_macros = "0.27.0"
 
 [dev-dependencies]
+mathml_renderer = { path = "../mathml_renderer", features = ["serde"] }
 insta = { version = "1.41.1", features = ["default", "ron"] }
-serde = { version = "1.0.217", features = ["derive"] }
 regex = "1.11.1"

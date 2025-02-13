@@ -4,6 +4,7 @@ members = [
     "latex2mmlc_cli",
     "latex2mmlc_python",
     "latex2mmlc_wasm",
+    "mathml_renderer",
 ]
 default-members = ["latex2mmlc_cli"]
 resolver = "2"
