@@ -6,8 +6,8 @@ expression: "a^2, a^{x+3}"
     <msup>
         <mi>a</mi>
         <mn>2</mn>
-        <mo>,</mo>
     </msup>
+    <mo>,</mo>
     <msup>
         <mi>a</mi>
         <mrow>

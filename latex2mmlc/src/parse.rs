@@ -999,6 +999,8 @@ mod tests {
             ("mathit_func", r"\mathit{ab \log cd}"),
             ("big_paren", r"\big("),
             ("pmod_subscript", r"\pmod{3}_4"),
+            ("sub_number", r"x_123"),
+            ("text_number", r"\text123"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

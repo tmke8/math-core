@@ -138,13 +138,16 @@ impl<'source> Lexer<'source> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self, wants_digit: bool) -> TokLoc<'source> {
+    ///
+    /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
+    /// but rather immediately return a single digit as a number token.
+    pub(crate) fn next_token(&mut self, wants_arg: bool) -> TokLoc<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return TokLoc(loc.get(), Token::Whitespace);
             }
         }
-        if wants_digit && self.peek.1.is_ascii_digit() {
+        if wants_arg && self.peek.1.is_ascii_digit() {
             let (start, _) = self.read_char();
             let end = self.peek.0;
             let num = self.input_string.get_unwrap(start..end);
