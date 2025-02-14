@@ -105,6 +105,9 @@ impl Token<'_> {
                 | Token::Frac(_)
                 | Token::Binom(_)
                 | Token::Transform(MathVariant::Transform(_))
+                | Token::Underscore
+                | Token::Circumflex
+                | Token::Text(_)
         )
     }
 

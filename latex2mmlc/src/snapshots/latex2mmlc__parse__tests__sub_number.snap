@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: x_123
+---
+[
+  Subscript(
+    target: SingleLetterIdent('x', false),
+    symbol: Number("1"),
+  ),
+  Number("23"),
+]

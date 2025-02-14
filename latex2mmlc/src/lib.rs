@@ -55,8 +55,8 @@ pub(crate) mod parse;
 pub(crate) mod predefined;
 pub mod token;
 
-pub use mathml_renderer::ast::MathMLEmitter;
 pub use error::{LatexErrKind, LatexError};
+pub use mathml_renderer::ast::MathMLEmitter;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,8 +127,8 @@ where
 mod tests {
     use insta::assert_snapshot;
 
-    use mathml_renderer::ast::render;
     use crate::{error, latex_to_mathml, LatexError};
+    use mathml_renderer::ast::render;
 
     use super::{get_nodes, Arena};
 
