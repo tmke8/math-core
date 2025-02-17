@@ -19,7 +19,7 @@ categories = ["science"]
 mathml_renderer = { path = "../mathml_renderer" }
 
 phf = { version = "0.11.3", features = ["macros"] }
-strum_macros = "0.27.0"
+strum_macros = "0.27.1"
 
 [dev-dependencies]
 mathml_renderer = { path = "../mathml_renderer", features = ["serde"] }
