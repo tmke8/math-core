@@ -52,7 +52,8 @@ where
 
         // We use `next_start + 1` to skip the `&` character.
         if let Some(replacement) = HTML_RESERVED_MAP.get(&bytes[entity_start..end]) {
-            buffer.push_str(unsafe { std::str::from_utf8_unchecked(&[*replacement]) });
+            let ch = [*replacement];
+            buffer.push_str(unsafe { std::str::from_utf8_unchecked(&ch) });
         } else {
             // No match, copy the original string.
             buffer.push_str(&input[next_start..=end]);

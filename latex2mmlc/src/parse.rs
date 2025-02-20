@@ -414,7 +414,7 @@ where
                                 got: cur_token,
                                 correct_place: Place::BeforeSomeOps,
                             },
-                        ))
+                        ));
                     }
                 }
             }
@@ -498,7 +498,7 @@ where
                                 location: &Token::Left,
                                 got: next_token,
                             },
-                        ))
+                        ));
                     }
                 };
                 let content = self.parse_sequence(Token::Right, false)?;
@@ -516,7 +516,7 @@ where
                                 location: &Token::Right,
                                 got: next_token,
                             },
-                        ))
+                        ));
                     }
                 };
                 Node::Fenced {
@@ -721,11 +721,11 @@ where
                         got: cur_token,
                         correct_place: Place::AfterBigOp,
                     },
-                ))
+                ));
             }
             Token::EOF => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
             Token::End | Token::Right | Token::GroupEnd => {
-                return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
+                return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
             }
             Token::CustomCmd(num_args, predefined) => {
                 let mut nodes = Vec::with_capacity(num_args);
