@@ -107,6 +107,7 @@ where
         wants_arg: bool,
     ) -> Result<NodeRef<'arena>, LatexError<'source>> {
         let target = self.parse_single_node(cur_tokloc, wants_arg)?;
+        let target = self.commit(target);
 
         match self.get_bounds()? {
             Bounds(Some(sub), Some(sup)) => Ok(self.commit(Node::SubSup {
@@ -146,7 +147,7 @@ where
         &mut self,
         cur_tokloc: TokLoc<'source>,
         wants_arg: bool,
-    ) -> Result<NodeRef<'arena>, LatexError<'source>> {
+    ) -> Result<Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         let node = match cur_token {
             Token::Number(number) => {
@@ -196,7 +197,7 @@ where
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree, None).node(), content)
+                    Node::Root(self.commit(squeeze(degree, None)).node(), content)
                 } else {
                     let content = self.parse_node(next, true)?;
                     Node::Sqrt(content.node())
@@ -285,13 +286,14 @@ where
                 let target = self.parse_single_token(true)?;
                 let symbol = self.commit(Node::Operator(x, None)).node();
                 let base = if is_over {
-                    self.commit(Node::Overset { symbol, target })
+                    Node::Overset { symbol, target }
                 } else {
-                    self.commit(Node::Underset { symbol, target })
+                    Node::Underset { symbol, target }
                 };
                 if (is_over && matches!(self.peek.token(), Token::Circumflex))
                     || (!is_over && matches!(self.peek.token(), Token::Underscore))
                 {
+                    let base = self.commit(base);
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token(true)?;
                     if is_over {
@@ -306,38 +308,37 @@ where
                         }
                     }
                 } else {
-                    return Ok(base);
+                    base
                 }
             }
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.commit(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    Node::Operator(op, Some(OpAttr::NoMovableLimits))
                 } else {
-                    self.commit(Node::Operator(op, None))
+                    Node::Operator(op, None)
                 };
-                match self.get_bounds()? {
-                    Bounds(Some(under), Some(over)) => Node::UnderOver {
-                        target: target.node(),
-                        under,
-                        over,
-                    },
-                    Bounds(Some(symbol), None) => Node::Underset {
-                        target: target.node(),
-                        symbol,
-                    },
-                    Bounds(None, Some(symbol)) => Node::Overset {
-                        target: target.node(),
-                        symbol,
-                    },
-                    Bounds(None, None) => {
-                        return Ok(target);
+                let bounds = self.get_bounds()?;
+                if matches!(bounds, Bounds(None, None)) {
+                    target
+                } else {
+                    let target = self.commit(target).node();
+                    match bounds {
+                        Bounds(Some(under), Some(over)) => Node::UnderOver {
+                            target,
+                            under,
+                            over,
+                        },
+                        Bounds(Some(symbol), None) => Node::Underset { target, symbol },
+                        Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                        Bounds(None, None) => unsafe { std::hint::unreachable_unchecked() },
                     }
                 }
             }
             Token::Lim(lim) => {
-                let lim = self.commit(Node::MultiLetterIdent(lim));
+                let lim = Node::MultiLetterIdent(lim);
                 if matches!(self.peek.token(), Token::Underscore) {
+                    let lim = self.commit(lim);
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token(true)?;
                     Node::Underset {
@@ -345,7 +346,7 @@ where
                         symbol: under,
                     }
                 } else {
-                    return Ok(lim);
+                    lim
                 }
             }
             Token::Slashed => {
@@ -398,43 +399,35 @@ where
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.commit(Node::Operator(int, None));
-                    match self.get_bounds()? {
-                        Bounds(Some(under), Some(over)) => Node::UnderOver {
-                            target: target.node(),
-                            under,
-                            over,
-                        },
-                        Bounds(Some(symbol), None) => Node::Underset {
-                            target: target.node(),
-                            symbol,
-                        },
-                        Bounds(None, Some(symbol)) => Node::Overset {
-                            target: target.node(),
-                            symbol,
-                        },
-                        Bounds(None, None) => {
-                            return Ok(target);
+                    let target = Node::Operator(int, None);
+                    let bounds = self.get_bounds()?;
+                    if matches!(bounds, Bounds(None, None)) {
+                        target
+                    } else {
+                        let target = self.commit(target).node();
+                        match bounds {
+                            Bounds(Some(under), Some(over)) => Node::UnderOver {
+                                target,
+                                under,
+                                over,
+                            },
+                            Bounds(Some(symbol), None) => Node::Underset { target, symbol },
+                            Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                            Bounds(None, None) => unsafe { std::hint::unreachable_unchecked() },
                         }
                     }
                 } else {
-                    let target = self.commit(Node::Operator(int, None));
-                    match self.get_bounds()? {
-                        Bounds(Some(sub), Some(sup)) => Node::SubSup {
-                            target: target.node(),
-                            sub,
-                            sup,
-                        },
-                        Bounds(Some(symbol), None) => Node::Subscript {
-                            target: target.node(),
-                            symbol,
-                        },
-                        Bounds(None, Some(symbol)) => Node::Superscript {
-                            target: target.node(),
-                            symbol,
-                        },
-                        Bounds(None, None) => {
-                            return Ok(target);
+                    let target = Node::Operator(int, None);
+                    let bounds = self.get_bounds()?;
+                    if matches!(bounds, Bounds(None, None)) {
+                        target
+                    } else {
+                        let target = self.commit(target).node();
+                        match bounds {
+                            Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
+                            Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
+                            Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+                            Bounds(None, None) => unsafe { std::hint::unreachable_unchecked() },
                         }
                     }
                 }
@@ -468,7 +461,7 @@ where
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.squeeze(content, None));
+                return Ok(squeeze(content, None));
             }
             Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -515,7 +508,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.squeeze(content, None).node(),
+                    content: self.commit(squeeze(content, None)).node(),
                     style: None,
                 }
             }
@@ -662,10 +655,10 @@ where
                 if matches!(self.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
-                let text = self.commit(Node::Text(text));
+                let text = Node::Text(text);
                 if let Some(transform) = transform {
                     Node::TextTransform {
-                        content: text.node(),
+                        content: self.commit(text).node(),
                         tf: MathVariant::Transform(transform),
                     }
                 } else {
@@ -727,7 +720,7 @@ where
                 for _ in 0..num_args {
                     let token = self.next_token();
                     let node = self.parse_single_node(token, true)?;
-                    nodes.push(node);
+                    nodes.push(self.commit(node));
                 }
                 let args = nodes.finish();
                 Node::CustomCmd { predefined, args }
@@ -753,7 +746,7 @@ where
             },
             Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
         };
-        Ok(self.commit(node))
+        Ok(node)
     }
 
     #[inline]
@@ -768,7 +761,8 @@ where
         wants_arg: bool,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_single_node(token, wants_arg).map(|n| n.node())
+        let node = self.parse_single_node(token, wants_arg)?;
+        Ok(self.commit(node).node())
     }
 
     /// Parse the contents of a group which can contain any expression.
@@ -869,7 +863,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.squeeze(primes, None))
+            Some(self.commit(squeeze(primes, None)))
         } else {
             sup
         };
@@ -932,19 +926,14 @@ where
                 },
             ));
         }
-
-        node
+        Ok(self.commit(node?))
     }
+}
 
-    fn squeeze(
-        &self,
-        list_builder: NodeListBuilder<'arena>,
-        style: Option<Style>,
-    ) -> NodeRef<'arena> {
-        match list_builder.as_singleton_or_finish() {
-            SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(nodes) => self.commit(Node::Row { nodes, style }),
-        }
+fn squeeze<'arena>(list_builder: NodeListBuilder<'arena>, style: Option<Style>) -> Node<'arena> {
+    match list_builder.as_singleton_or_finish() {
+        SingletonOrList::Singleton(value) => mem::replace(value.mut_node(), Node::OpLessThan),
+        SingletonOrList::List(nodes) => Node::Row { nodes, style },
     }
 }
 
