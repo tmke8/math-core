@@ -22,6 +22,7 @@ pub enum LatexErrKind<'source> {
         location: &'static Token<'static>,
         got: Token<'source>,
     },
+    UnparsableEnvName,
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
     MismatchedEnvironment {
@@ -74,6 +75,7 @@ impl LatexErrKind<'_> {
                     + got.as_ref()
                     + "\" was found."
             }
+            LatexErrKind::UnparsableEnvName => "Unparsable environment name.".to_string(),
             LatexErrKind::UnknownEnvironment(environment) => {
                 "Unknown environment \"".to_string() + environment + "\"."
             }

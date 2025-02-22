@@ -2,4 +2,7 @@
 source: latex2mmlc/src/lexer.rs
 expression: "3.14"
 ---
-0: Number("3.14")
+0: Number(Three)
+1: Letter('.')
+2: Number(One)
+3: Number(Four)

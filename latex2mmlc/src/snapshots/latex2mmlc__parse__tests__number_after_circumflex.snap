@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: x^12
+---
+[
+  Superscript(
+    target: SingleLetterIdent('x', false),
+    symbol: Number("1"),
+  ),
+  Number("2"),
+]

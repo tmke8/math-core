@@ -521,7 +521,6 @@ impl<'arena> MathMLEmitter<'arena> {
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
-                let predefined = *predefined;
                 let args = args.iter().collect::<Vec<_>>();
                 let old_args = mem::replace(&mut self.custom_cmd_args, Some(args));
                 self.emit(predefined, base_indent);

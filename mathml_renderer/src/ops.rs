@@ -104,8 +104,8 @@ pub const PRIME: Op = Op('′');
 pub const DOUBLE_PRIME: Op = Op('″');
 pub const TRIPLE_PRIME: Op = Op('‴');
 pub const REVERSED_PRIME: Op = Op('‵');
-// pub const REVERSED_DOUBLE_PRIME: Op = Op('‶');
-// pub const REVERSED_TRIPLE_PRIME: Op = Op('‷');
+pub const REVERSED_DOUBLE_PRIME: Op = Op('‶');
+pub const REVERSED_TRIPLE_PRIME: Op = Op('‷');
 // pub const CARET: Op = Op('‸');
 // pub const SINGLE_LEFT_POINTING_ANGLE_QUOTATION_MARK: Op = Op('‹');
 // pub const SINGLE_RIGHT_POINTING_ANGLE_QUOTATION_MARK: Op = Op('›');
@@ -574,6 +574,15 @@ pub const RIGHTWARDS_ARROW_TAIL: Op = Op('⤚');
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
+pub const LEFT_WHITE_CURLY_BRACKET: &ParenOp = &ParenOp('⦃', false, Stretchy::Always);
+pub const RIGHT_WHITE_CURLY_BRACKET: &ParenOp = &ParenOp('⦄', false, Stretchy::Always);
+// pub const LEFT_WHITE_PARENTHESIS: &ParenOp = &ParenOp('⦅', false, Stretchy::Always);
+// pub const RIGHT_WHITE_PARENTHESIS: &ParenOp = &ParenOp('⦆', false, Stretchy::Always);
+pub const Z_NOTATION_LEFT_IMAGE_BRACKET: &ParenOp = &ParenOp('⦇', false, Stretchy::Always);
+pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: &ParenOp = &ParenOp('⦈', false, Stretchy::Always);
+pub const Z_NOTATION_LEFT_BINDING_BRACKET: &ParenOp = &ParenOp('⦉', false, Stretchy::Always);
+pub const Z_NOTATION_RIGHT_BINDING_BRACKET: &ParenOp = &ParenOp('⦊', false, Stretchy::Always);
+
 pub const SQUARED_RISING_DIAGONAL_SLASH: Op = Op('⧄');
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Op = Op('⧅');
 pub const SQUARED_SQUARE: Op = Op('⧈');
@@ -589,8 +598,8 @@ pub const N_ARY_UNION_OPERATOR_WITH_DOT: Op = Op('⨃');
 pub const N_ARY_UNION_OPERATOR_WITH_PLUS: Op = Op('⨄');
 pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: Op = Op('⨅');
 pub const N_ARY_SQUARE_UNION_OPERATOR: Op = Op('⨆');
-// pub const TWO_LOGICAL_AND_OPERATOR: Op = Op('⨇');
-// pub const TWO_LOGICAL_OR_OPERATOR: Op = Op('⨈');
+pub const TWO_LOGICAL_AND_OPERATOR: Op = Op('⨇');
+pub const TWO_LOGICAL_OR_OPERATOR: Op = Op('⨈');
 pub const N_ARY_TIMES_OPERATOR: Op = Op('⨉');
 // pub const MODULO_TWO_SUM: Op = Op('⨊');
 pub const SUMMATION_WITH_INTEGRAL: Op = Op('⨋');
@@ -613,7 +622,7 @@ pub const ANTICLOCKWISE_INTEGRATION: Op = Op('⨑');
 // pub const INTEGRAL_WITH_UNDERBAR: Op = Op('⨜');
 // pub const JOIN: Op = Op('⨝');
 // pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op('⨞');
-// pub const Z_NOTATION_SCHEMA_COMPOSITION: Op = Op('⨟');
+pub const Z_NOTATION_SCHEMA_COMPOSITION: Op = Op('⨟');
 // pub const Z_NOTATION_SCHEMA_PIPING: Op = Op('⨠');
 // pub const Z_NOTATION_SCHEMA_PROJECTION: Op = Op('⨡');
 // pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Op = Op('⨢');

@@ -1,0 +1,13 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\sqrt{4.}"
+---
+[
+  Sqrt(Row(
+    nodes: [
+      Number("4"),
+      SingleLetterIdent('.', false),
+    ],
+    style: None,
+  )),
+]

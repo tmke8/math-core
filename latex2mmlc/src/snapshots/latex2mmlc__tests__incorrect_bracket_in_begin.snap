@@ -3,6 +3,4 @@ source: latex2mmlc/src/lib.rs
 expression: "\\begin{matrix] 1 \\end{matrix}"
 ---
 Position: 6
-UnclosedGroup(
-    GroupEnd,
-)
+UnparsableEnvName
