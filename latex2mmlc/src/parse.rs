@@ -1042,6 +1042,7 @@ mod tests {
             ("number_with_spaces", r"1 2  3    4"),
             ("number_with_spaces_with_dots", r"1 2. 3  ,  4"),
             ("number_with_spaces_in_text", r"\text{1 2  3    4}"),
+            ("comment", "\\text{% comment}\n\\%as}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

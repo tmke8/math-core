@@ -1,0 +1,8 @@
+---
+source: latex2mmlc/src/lexer.rs
+expression: "ab%hello\ncd"
+---
+0: Letter('a')
+1: Letter('b')
+9: Letter('c')
+10: Letter('d')
