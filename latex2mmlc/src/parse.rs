@@ -1012,9 +1012,13 @@ mod tests {
     fn ast_test() {
         let problems = [
             ("slightly_more_complex_fraction", r"\frac123"),
+            ("frac_with_subscript", r"\frac12_x"),
             ("integral_with_reversed_limits", r"\int\limits^1_0 dx"),
             ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
-            ("number_with_dot", r"4.x"),
+            ("number_with_dot", r"3.14"),
+            ("number_with_dot_at_end", r"3.14."),
+            ("number_with_two_inner_dots", r"3..14"),
+            ("number_with_dot_and_letter", r"4.x"),
             ("sqrt_number_with_dot", r"\sqrt{4.}"),
             ("double_prime", r"f''"),
             ("textbf", r"\textbf{abc}"),

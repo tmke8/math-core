@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: 3..14
+---
+[
+  Number("3"),
+  SingleLetterIdent('.', false),
+  SingleLetterIdent('.', false),
+  Number("14"),
+]
