@@ -336,9 +336,8 @@ where
                 }
             }
             Token::Lim(lim) => {
-                let lim = Node::MultiLetterIdent(lim);
                 if matches!(self.peek.token(), Token::Underscore) {
-                    let target = self.commit(lim).node();
+                    let target = self.commit(Node::MultiLetterIdent(lim)).node();
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token(true)?;
                     Node::Underset {
@@ -346,7 +345,7 @@ where
                         symbol: under,
                     }
                 } else {
-                    lim
+                    Node::MultiLetterIdent(lim)
                 }
             }
             Token::Slashed => {
@@ -399,12 +398,11 @@ where
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = Node::Operator(int, None);
                     let bounds = self.get_bounds()?;
                     if matches!(bounds, Bounds(None, None)) {
-                        target
+                        Node::Operator(int, None)
                     } else {
-                        let target = self.commit(target).node();
+                        let target = self.commit(Node::Operator(int, None)).node();
                         match bounds {
                             Bounds(Some(under), Some(over)) => Node::UnderOver {
                                 target,
@@ -417,12 +415,11 @@ where
                         }
                     }
                 } else {
-                    let target = Node::Operator(int, None);
                     let bounds = self.get_bounds()?;
                     if matches!(bounds, Bounds(None, None)) {
-                        target
+                        Node::Operator(int, None)
                     } else {
-                        let target = self.commit(target).node();
+                        let target = self.commit(Node::Operator(int, None)).node();
                         match bounds {
                             Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                             Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
@@ -660,14 +657,13 @@ where
                 if matches!(self.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
-                let text = Node::Text(text);
                 if let Some(transform) = transform {
                     Node::TextTransform {
-                        content: self.commit(text).node(),
+                        content: self.commit(Node::Text(text)).node(),
                         tf: MathVariant::Transform(transform),
                     }
                 } else {
-                    text
+                    Node::Text(text)
                 }
             }
             Token::Ampersand => Node::ColumnSeparator,
