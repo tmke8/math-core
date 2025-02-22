@@ -122,6 +122,13 @@ impl<'source> Lexer<'source> {
         }
 
         let (loc, ch) = self.read_char();
+        if ch == '%' {
+            // Skip comments.
+            while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
+                self.read_char();
+            }
+            return self.next_token();
+        }
         let tok = match ch {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
@@ -195,6 +202,7 @@ mod tests {
             ("simple_expression", r"x+y", false),
             ("space_and_number", r"\ 1", false),
             ("space_in_text", r"  x   y z", true),
+            ("comment", "ab%hello\ncd", false),
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
