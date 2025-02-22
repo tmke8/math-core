@@ -338,11 +338,11 @@ where
             Token::Lim(lim) => {
                 let lim = Node::MultiLetterIdent(lim);
                 if matches!(self.peek.token(), Token::Underscore) {
-                    let lim = self.commit(lim);
+                    let target = self.commit(lim).node();
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_single_token(true)?;
                     Node::Underset {
-                        target: lim.node(),
+                        target,
                         symbol: under,
                     }
                 } else {
