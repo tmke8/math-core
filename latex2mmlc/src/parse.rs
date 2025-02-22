@@ -770,13 +770,10 @@ where
 
     /// Parse the contents of a group which can only contain text.
     fn parse_text_group(&mut self) -> Result<&'source str, LatexError<'source>> {
-        let result = self.l.read_text_content();
+        let result = self.l.read_environment_name();
         // Discard the opening token (which is still stored as `peek`).
         let opening_loc = self.next_token().location();
-        result.ok_or(LatexError(
-            opening_loc,
-            LatexErrKind::UnclosedGroup(Token::GroupEnd),
-        ))
+        result.ok_or(LatexError(opening_loc, LatexErrKind::UnparsableEnvName))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {

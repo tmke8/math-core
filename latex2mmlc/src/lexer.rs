@@ -107,33 +107,25 @@ impl<'source> Lexer<'source> {
         Token::Number(number)
     }
 
-    /// Read text until the next `}`.
+    /// Read ASCII alphanumeric characters until the next `}`.
+    ///
+    /// Returns `None` if there are any non-alphanumeric characters before the `}`.
     #[inline]
-    pub(crate) fn read_text_content(&mut self) -> Option<&'source str> {
-        let mut brace_count = 1;
+    pub(crate) fn read_environment_name(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
 
-        loop {
-            let (end, cur) = self.read_char();
-            if cur == '{' {
-                brace_count += 1;
-            } else if cur == '}' {
-                brace_count -= 1;
-            }
-            if brace_count <= 0 {
-                return Some(self.input_string.get_unwrap(start..end));
-            }
-            // Check for escaped characters.
-            if cur == '\\' {
-                let (_, cur) = self.read_char();
-                // We only allow \{ and \} as escaped characters.
-                if !matches!(cur, '{' | '}') {
-                    return None;
-                }
-            }
-            if cur == '\u{0}' {
-                return None;
-            }
+        while self.peek.1.is_ascii_alphanumeric() {
+            self.read_char();
+        }
+
+        // Verify that the environment name is followed by a `}`.
+        let closing = self.read_char();
+        if closing.1 == '}' {
+            let end = closing.0;
+            // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
+            Some(self.input_string.get_unwrap(start..end))
+        } else {
+            None
         }
     }
 
