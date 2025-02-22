@@ -3,4 +3,4 @@ source: latex2mmlc/src/lexer.rs
 expression: "\\ 1"
 ---
 0: NonBreakingSpace
-2: Number("1")
+2: Number(One)

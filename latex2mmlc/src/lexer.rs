@@ -12,7 +12,7 @@ use mathml_renderer::ops;
 
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
-use crate::token::{TokLoc, Token};
+use crate::token::{Digit, TokLoc, Token};
 
 /// Lexer
 #[derive(Debug, Clone)]
@@ -80,33 +80,6 @@ impl<'source> Lexer<'source> {
         self.input_string.get_unwrap(start..end)
     }
 
-    /// Read one number.
-    #[inline]
-    fn read_number(&mut self, start: usize) -> Token<'source> {
-        while {
-            let cur = self.peek.1;
-            cur.is_ascii_digit() || Punctuation::from_char(cur).is_some()
-        } {
-            let (index_before, candidate) = self.read_char();
-            // Before we accept the current character, we need to check the next one.
-            if !self.peek.1.is_ascii_digit() {
-                if let Some(punctuation) = Punctuation::from_char(candidate) {
-                    // If the candidate is punctuation and the next character is not a digit,
-                    // we don't want to include the punctuation.
-                    // But we do need to return the punctuation as an operator.
-                    let number = self.input_string.get_unwrap(start..index_before);
-                    return match punctuation {
-                        Punctuation::Dot => Token::NumberWithDot(number),
-                        Punctuation::Comma => Token::NumberWithComma(number),
-                    };
-                }
-            }
-        }
-        let end = self.peek.0;
-        let number = self.input_string.get_unwrap(start..end);
-        Token::Number(number)
-    }
-
     /// Read ASCII alphanumeric characters until the next `}`.
     ///
     /// Returns `None` if there are any non-alphanumeric characters before the `}`.
@@ -129,21 +102,23 @@ impl<'source> Lexer<'source> {
         }
     }
 
+    /// Check if the next character is a digit.
+    pub(crate) fn is_next_digit(&mut self) -> bool {
+        if !self.text_mode {
+            self.skip_whitespace();
+        }
+        self.peek.1.is_ascii_digit()
+    }
+
     /// Generate the next token.
     ///
     /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
     /// but rather immediately return a single digit as a number token.
-    pub(crate) fn next_token(&mut self, wants_arg: bool) -> TokLoc<'source> {
+    pub(crate) fn next_token(&mut self) -> TokLoc<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return TokLoc(loc.get(), Token::Whitespace);
             }
-        }
-        if wants_arg && self.peek.1.is_ascii_digit() {
-            let (start, _) = self.read_char();
-            let end = self.peek.0;
-            let num = self.input_string.get_unwrap(start..end);
-            return TokLoc(start, Token::Number(num));
         }
 
         let (loc, ch) = self.read_char();
@@ -182,8 +157,8 @@ impl<'source> Lexer<'source> {
                 cmd
             }
             c => {
-                if c.is_ascii_digit() {
-                    self.read_number(loc)
+                if let Ok(digit) = Digit::try_from(c) {
+                    Token::Number(digit)
                 } else {
                     // Some symbols like '.' and '/' are considered operators by the MathML Core spec,
                     // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).
@@ -194,21 +169,6 @@ impl<'source> Lexer<'source> {
             }
         };
         TokLoc(loc, tok)
-    }
-}
-
-enum Punctuation {
-    Dot,
-    Comma,
-}
-
-impl Punctuation {
-    fn from_char(c: char) -> Option<Self> {
-        match c {
-            ops::FULL_STOP => Some(Self::Dot),
-            ',' => Some(Self::Comma),
-            _ => None,
-        }
     }
 }
 
@@ -246,7 +206,7 @@ mod tests {
                 write!(tokens, "(text mode)\n").unwrap();
             }
             loop {
-                let tokloc = lexer.next_token(false);
+                let tokloc = lexer.next_token();
                 if matches!(tokloc.token(), Token::EOF) {
                     break;
                 }

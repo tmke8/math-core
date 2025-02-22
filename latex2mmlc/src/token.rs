@@ -79,9 +79,7 @@ pub enum Token<'source> {
     BigOp(Op),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
-    Number(&'source str),
-    NumberWithDot(&'source str),
-    NumberWithComma(&'source str),
+    Number(Digit),
     Function(&'static str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
@@ -98,23 +96,41 @@ pub enum Token<'source> {
 }
 
 impl Token<'_> {
-    pub(crate) fn acts_on_a_digit(&self) -> bool {
-        matches!(
-            self,
-            Token::Sqrt
-                | Token::Frac(_)
-                | Token::Binom(_)
-                | Token::Transform(MathVariant::Transform(_))
-                | Token::Underscore
-                | Token::Circumflex
-                | Token::Text(_)
-        )
-    }
-
     /// Returns `true` if `self` and `other` are of the same kind.
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Digit {
+    Zero = b'0',
+    One = b'1',
+    Two = b'2',
+    Three = b'3',
+    Four = b'4',
+    Five = b'5',
+    Six = b'6',
+    Seven = b'7',
+    Eight = b'8',
+    Nine = b'9',
+}
+
+impl TryFrom<char> for Digit {
+    type Error = ();
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        if value.is_ascii_digit() {
+            // Safety:
+            // 1. We've verified this is an ASCII digit ('0'..='9')
+            // 2. Digit is #[repr(u8)] with variants exactly matching ASCII values
+            // 3. The input char is converted to the exact matching byte value
+            Ok(unsafe { std::mem::transmute(value as u8) })
+        } else {
+            Err(())
+        }
     }
 }
 
