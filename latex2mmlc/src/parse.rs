@@ -293,18 +293,18 @@ where
                 if (is_over && matches!(self.peek.token(), Token::Circumflex))
                     || (!is_over && matches!(self.peek.token(), Token::Underscore))
                 {
-                    let base = self.commit(base);
+                    let target = self.commit(base).node();
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_single_token(true)?;
                     if is_over {
                         Node::Overset {
                             symbol: expl,
-                            target: base.node(),
+                            target,
                         }
                     } else {
                         Node::Underset {
                             symbol: expl,
-                            target: base.node(),
+                            target,
                         }
                     }
                 } else {
@@ -461,7 +461,7 @@ where
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(squeeze(content, None));
+                squeeze(content, None)
             }
             Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -662,7 +662,7 @@ where
                         tf: MathVariant::Transform(transform),
                     }
                 } else {
-                    return Ok(text);
+                    text
                 }
             }
             Token::Ampersand => Node::ColumnSeparator,
