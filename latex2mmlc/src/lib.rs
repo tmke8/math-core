@@ -228,7 +228,7 @@ mod tests {
                 "align",
                 r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
             ),
-            ("align*", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+            ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
             (
                 "text_transforms",
                 r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
