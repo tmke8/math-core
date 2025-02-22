@@ -197,7 +197,7 @@ where
                     let degree = self.parse_group(Token::SquareBracketClose)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.commit(squeeze(degree, None)).node(), content)
+                    Node::Root(self.squeeze(degree, None).node(), content)
                 } else {
                     let content = self.parse_node(next, true)?;
                     Node::Sqrt(content.node())
@@ -461,7 +461,12 @@ where
             Token::GroupBegin => {
                 let content = self.parse_group(Token::GroupEnd)?;
                 self.next_token(); // Discard the closing token.
-                squeeze(content, None)
+                match content.as_singleton_or_finish() {
+                    SingletonOrList::Singleton(node) => {
+                        mem::replace(node.mut_node(), Node::OpLessThan)
+                    }
+                    SingletonOrList::List(nodes) => Node::Row { nodes, style: None },
+                }
             }
             Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -508,7 +513,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.commit(squeeze(content, None)).node(),
+                    content: self.squeeze(content, None).node(),
                     style: None,
                 }
             }
@@ -863,7 +868,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.commit(squeeze(primes, None)))
+            Some(self.squeeze(primes, None))
         } else {
             sup
         };
@@ -928,12 +933,16 @@ where
         }
         Ok(self.commit(node?))
     }
-}
 
-fn squeeze<'arena>(list_builder: NodeListBuilder<'arena>, style: Option<Style>) -> Node<'arena> {
-    match list_builder.as_singleton_or_finish() {
-        SingletonOrList::Singleton(value) => mem::replace(value.mut_node(), Node::OpLessThan),
-        SingletonOrList::List(nodes) => Node::Row { nodes, style },
+    fn squeeze(
+        &self,
+        list_builder: NodeListBuilder<'arena>,
+        style: Option<Style>,
+    ) -> NodeRef<'arena> {
+        match list_builder.as_singleton_or_finish() {
+            SingletonOrList::Singleton(value) => value,
+            SingletonOrList::List(nodes) => self.commit(Node::Row { nodes, style }),
+        }
     }
 }
 
