@@ -714,7 +714,7 @@ where
     #[inline]
     fn parse_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        Ok(self.parse_node(token, false)?)
+        self.parse_node(token, false)
     }
 
     #[inline]
@@ -723,7 +723,7 @@ where
         wants_arg: bool,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        Ok(self.parse_single_node(token, wants_arg)?)
+        self.parse_single_node(token, wants_arg)
     }
 
     /// Parse the contents of a group which can contain any expression.
@@ -747,7 +747,8 @@ where
                     ));
                 }
             }
-            nodes.push(self.parse_node(next, false)?);
+            let node = self.parse_node(next, false)?;
+            nodes.push(node);
         }
         Ok(nodes)
     }
@@ -894,6 +895,7 @@ where
                 },
             ));
         }
+
         node
     }
 
@@ -902,12 +904,11 @@ where
         mut list_builder: Vec<&'arena Node<'arena>>,
         style: Option<Style>,
     ) -> &'arena Node<'arena> {
-        match list_builder.len() {
-            1 => list_builder.swap_remove(0),
-            _ => {
-                let nodes = self.arena.push_slice(&list_builder);
-                self.commit(Node::Row { nodes, style })
-            }
+        if list_builder.len() == 1 {
+            list_builder.swap_remove(0)
+        } else {
+            let nodes = self.arena.push_slice(&list_builder);
+            self.commit(Node::Row { nodes, style })
         }
     }
 }
