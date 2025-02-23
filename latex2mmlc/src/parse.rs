@@ -102,12 +102,12 @@ where
 
         let bounds = self.get_bounds()?;
 
-        match bounds {
-            Bounds(Some(sub), Some(sup)) => Ok(self.commit(Node::SubSup { target, sub, sup })),
-            Bounds(Some(symbol), None) => Ok(self.commit(Node::Subscript { target, symbol })),
-            Bounds(None, Some(symbol)) => Ok(self.commit(Node::Superscript { target, symbol })),
-            Bounds(None, None) => Ok(target),
-        }
+        Ok(self.commit(match bounds {
+            Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
+            Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
+            Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+            Bounds(None, None) => return Ok(target),
+        }))
     }
 
     /// Put the node onto the heap in the arena and return a reference to it.
@@ -312,17 +312,16 @@ where
                 } else {
                     self.commit(Node::Operator(op, None))
                 };
-                let node_ref = match self.get_bounds()? {
-                    Bounds(Some(under), Some(over)) => self.commit(Node::UnderOver {
+                match self.get_bounds()? {
+                    Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
                         under,
                         over,
-                    }),
-                    Bounds(Some(symbol), None) => self.commit(Node::Underset { target, symbol }),
-                    Bounds(None, Some(symbol)) => self.commit(Node::Overset { target, symbol }),
-                    Bounds(None, None) => target,
-                };
-                return Ok(node_ref);
+                    },
+                    Bounds(Some(symbol), None) => Node::Underset { target, symbol },
+                    Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                    Bounds(None, None) => return Ok(target),
+                }
             }
             Token::Lim(lim) => {
                 if matches!(self.peek.token(), Token::Underscore) {
@@ -385,37 +384,28 @@ where
                 Node::TextTransform { content, tf }
             }
             Token::Integral(int) => {
-                let node_ref = if matches!(self.peek.token(), Token::Limits) {
+                if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
-                        Bounds(Some(under), Some(over)) => self.commit(Node::UnderOver {
+                        Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
                             under,
                             over,
-                        }),
-                        Bounds(Some(symbol), None) => {
-                            self.commit(Node::Underset { target, symbol })
-                        }
-                        Bounds(None, Some(symbol)) => self.commit(Node::Overset { target, symbol }),
-                        Bounds(None, None) => target,
+                        },
+                        Bounds(Some(symbol), None) => Node::Underset { target, symbol },
+                        Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                        Bounds(None, None) => return Ok(target),
                     }
                 } else {
                     let target = self.commit(Node::Operator(int, None));
                     match self.get_bounds()? {
-                        Bounds(Some(sub), Some(sup)) => {
-                            self.commit(Node::SubSup { target, sub, sup })
-                        }
-                        Bounds(Some(symbol), None) => {
-                            self.commit(Node::Subscript { target, symbol })
-                        }
-                        Bounds(None, Some(symbol)) => {
-                            self.commit(Node::Superscript { target, symbol })
-                        }
-                        Bounds(None, None) => target,
+                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
+                        Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
+                        Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+                        Bounds(None, None) => return Ok(target),
                     }
-                };
-                return Ok(node_ref);
+                }
             }
             Token::Colon => match &self.peek.token() {
                 Token::Operator(ops::EQUALS_SIGN) if !wants_arg => {
