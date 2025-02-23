@@ -72,10 +72,10 @@ impl<'config> Replacer<'config> {
     pub(crate) fn replace<'source, 'buf, F>(
         &'buf mut self,
         input: &'source str,
-        mut f: F,
+        f: F,
     ) -> Result<String, ConversionError<'buf>>
     where
-        F: for<'a> FnMut(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
+        F: for<'a> Fn(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
@@ -146,10 +146,10 @@ impl<'config> Replacer<'config> {
                 // This is quite unfortunate, but we only have to do this in the error case,
                 // which is hopefully not too common.
                 let replaced = replace_html_entities(&mut self.entity_buffer, content);
-                let result = f(&mut result, replaced, open_typ).unwrap_err();
+                let latex_error = f(&mut result, replaced, open_typ).unwrap_err();
                 return Err(ConversionError(
                     start,
-                    ConvErrKind::LatexError(result, replaced),
+                    ConvErrKind::LatexError(latex_error, replaced),
                 ));
             }
             // Update current position
@@ -205,7 +205,7 @@ mod tests {
         block_delim: (&str, &str),
     ) -> Result<String, ConversionError<'static>> {
         let mut replacer = Replacer::new(inline_delim, block_delim);
-        match replacer.replace(input, |buf, content, typ| mock_convert(buf, content, typ)) {
+        match replacer.replace(input, mock_convert) {
             Ok(s) => Ok(s),
             Err(e) => match &e.1 {
                 // The following is needed to do a kind of "lifetime laundering".

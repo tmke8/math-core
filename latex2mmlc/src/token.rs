@@ -127,7 +127,7 @@ impl TryFrom<char> for Digit {
             // 1. We've verified this is an ASCII digit ('0'..='9')
             // 2. Digit is #[repr(u8)] with variants exactly matching ASCII values
             // 3. The input char is converted to the exact matching byte value
-            Ok(unsafe { std::mem::transmute(value as u8) })
+            Ok(unsafe { std::mem::transmute::<u8, Digit>(value as u8) })
         } else {
             Err(())
         }

@@ -1,0 +1,10 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "\\overset12"
+---
+[
+  Overset(
+    symbol: Number("1"),
+    target: Number("2"),
+  ),
+]
