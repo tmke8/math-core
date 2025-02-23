@@ -3,7 +3,6 @@ use std::mem;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::arena::NodeList;
 use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
 };
@@ -68,14 +67,9 @@ pub enum Node<'arena> {
         attr: Option<FracAttr>,
     },
     Row {
-        nodes: NodeList<'arena>,
+        nodes: &'arena [&'arena Node<'arena>],
         style: Option<Style>,
     },
-    RowSlice {
-        nodes: &'arena [Node<'arena>],
-        style: Option<Style>,
-    },
-    PseudoRow(NodeList<'arena>),
     Fenced {
         style: Option<Style>,
         open: &'static ParenOp,
@@ -85,7 +79,7 @@ pub enum Node<'arena> {
     SizedParen(Size, &'static ParenOp),
     Text(&'arena str),
     Table {
-        content: NodeList<'arena>,
+        content: &'arena [&'arena Node<'arena>],
         align: Align,
         attr: Option<FracAttr>,
     },
@@ -102,7 +96,7 @@ pub enum Node<'arena> {
     },
     CustomCmd {
         predefined: &'static Node<'static>,
-        args: NodeList<'arena>,
+        args: &'arena [&'arena Node<'arena>],
     },
     CustomCmdArg(usize),
     HardcodedMathML(&'static str),
@@ -143,7 +137,7 @@ macro_rules! pushln {
 pub struct MathMLEmitter<'arena> {
     s: String,
     var: Option<MathVariant>,
-    custom_cmd_args: Option<Vec<&'arena Node<'arena>>>,
+    custom_cmd_args: Option<&'arena [&'arena Node<'arena>]>,
 }
 
 impl<'arena> MathMLEmitter<'arena> {
@@ -191,8 +185,7 @@ impl<'arena> MathMLEmitter<'arena> {
 
         if !matches!(
             node,
-            Node::PseudoRow(_)
-                | Node::ColumnSeparator
+            Node::ColumnSeparator
                 | Node::RowSeparator
                 | Node::TextTransform { .. }
                 | Node::CustomCmd { .. }
@@ -400,21 +393,6 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
-            Node::RowSlice { nodes, style } => {
-                match style {
-                    Some(style) => push!(self.s, "<mrow", style, ">"),
-                    None => push!(self.s, "<mrow>"),
-                }
-                for node in nodes.iter() {
-                    self.emit(node, child_indent);
-                }
-                pushln!(&mut self.s, base_indent, "</mrow>");
-            }
-            Node::PseudoRow(vec) => {
-                for node in vec.iter() {
-                    self.emit(node, base_indent);
-                }
-            }
             Node::Fenced {
                 open,
                 close,
@@ -521,7 +499,6 @@ impl<'arena> MathMLEmitter<'arena> {
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
-                let args = args.iter().collect::<Vec<_>>();
                 let old_args = mem::replace(&mut self.custom_cmd_args, Some(args));
                 self.emit(predefined, base_indent);
                 self.custom_cmd_args = old_args;
@@ -580,21 +557,20 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
     }
 }
 
-pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
-where
-    'a: 'b,
-{
-    let mut emitter = MathMLEmitter::new();
-    emitter.emit(node, 0);
-    emitter.into_inner()
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{render, Node};
-    use crate::arena::{NodeList, NodeListElement};
+    use super::{MathMLEmitter, Node};
     use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform};
     use crate::ops;
+
+    pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
+    where
+        'a: 'b,
+    {
+        let mut emitter = MathMLEmitter::new();
+        emitter.emit(node, 0);
+        emitter.into_inner()
+    }
 
     #[test]
     fn render_number() {
@@ -850,48 +826,19 @@ mod tests {
     }
 
     #[test]
-    fn render_row() {
-        let nodes = [
-            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
-            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
-        ];
-        let last_element = &mut NodeListElement::new(Node::Number("1"));
-        let nodes = NodeList::from_node_refs(nodes, last_element);
-
-        assert_eq!(
-            render(&Node::Row { nodes, style: None }),
-            "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
-        );
-    }
-
-    #[test]
     fn render_row_slice() {
         let nodes = &[
-            Node::SingleLetterIdent('x', false),
-            Node::Operator(ops::PLUS_SIGN, None),
-            Node::Number("1"),
+            &Node::SingleLetterIdent('x', false),
+            &Node::Operator(ops::PLUS_SIGN, None),
+            &Node::Number("1"),
         ];
 
         assert_eq!(
-            render(&Node::RowSlice {
+            render(&Node::Row {
                 nodes,
                 style: Some(Style::DisplayStyle)
             }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
-        );
-    }
-
-    #[test]
-    fn render_pseudo_row() {
-        let nodes = [
-            &mut NodeListElement::new(Node::SingleLetterIdent('x', false)),
-            &mut NodeListElement::new(Node::Operator(ops::PLUS_SIGN, None)),
-        ];
-        let last_element = &mut NodeListElement::new(Node::Number("1"));
-        let vec = NodeList::from_node_refs(nodes, last_element);
-        assert_eq!(
-            render(&Node::PseudoRow(vec)),
-            "<mi>x</mi><mo>+</mo><mn>1</mn>"
         );
     }
 
@@ -926,19 +873,18 @@ mod tests {
     #[test]
     fn render_table() {
         let nodes = [
-            &mut NodeListElement::new(Node::Number("1")),
-            &mut NodeListElement::new(Node::ColumnSeparator),
-            &mut NodeListElement::new(Node::Number("2")),
-            &mut NodeListElement::new(Node::RowSeparator),
-            &mut NodeListElement::new(Node::Number("3")),
-            &mut NodeListElement::new(Node::ColumnSeparator),
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator,
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
         ];
-        let elem7 = &mut NodeListElement::new(Node::Number("4"));
-        let nodes = NodeList::from_node_refs(nodes, elem7);
 
         assert_eq!(
             render(&Node::Table {
-                content: nodes,
+                content: &nodes,
                 align: crate::attribute::Align::Center,
                 attr: None,
             }),

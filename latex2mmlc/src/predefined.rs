@@ -4,41 +4,46 @@ use mathml_renderer::{
     ops,
 };
 
-pub static MOD: Node = RowSlice {
-    nodes: &[Space("1"), Text("mod"), Space("0.3333"), CustomCmdArg(0)],
+pub static MOD: Node = Row {
+    nodes: &[
+        &Space("1"),
+        &Text("mod"),
+        &Space("0.3333"),
+        &CustomCmdArg(0),
+    ],
     style: None,
 };
 
-pub static PMOD: Node = RowSlice {
+pub static PMOD: Node = Row {
     nodes: &[
-        Space("1"),
-        StretchableOp(ops::LEFT_PARENTHESIS, StretchMode::NoStretch),
-        Text("mod"),
-        Space("0.3333"),
-        CustomCmdArg(0),
-        StretchableOp(ops::RIGHT_PARENTHESIS, StretchMode::NoStretch),
+        &Space("1"),
+        &StretchableOp(ops::LEFT_PARENTHESIS, StretchMode::NoStretch),
+        &Text("mod"),
+        &Space("0.3333"),
+        &CustomCmdArg(0),
+        &StretchableOp(ops::RIGHT_PARENTHESIS, StretchMode::NoStretch),
     ],
     style: None,
 };
 
 pub static ODV: Node = Frac {
-    num: &RowSlice {
+    num: &Row {
         nodes: &[
-            TextTransform {
+            &TextTransform {
                 tf: MathVariant::Normal,
                 content: &SingleLetterIdent('d', false),
             },
-            CustomCmdArg(0),
+            &CustomCmdArg(0),
         ],
         style: None,
     },
-    den: &Node::RowSlice {
+    den: &Node::Row {
         nodes: &[
-            TextTransform {
+            &TextTransform {
                 tf: MathVariant::Normal,
                 content: &SingleLetterIdent('d', false),
             },
-            CustomCmdArg(1),
+            &CustomCmdArg(1),
         ],
         style: None,
     },
@@ -47,17 +52,17 @@ pub static ODV: Node = Frac {
 };
 
 static XARROW_SPACING_HACK: Node = Overset {
-    target: &RowSlice {
-        nodes: &[Space("0.4286"), CustomCmdArg(0), Space("0.4286")],
+    target: &Row {
+        nodes: &[&Space("0.4286"), &CustomCmdArg(0), &Space("0.4286")],
         style: None,
     },
     symbol: &Space("3.5"),
 };
 
-pub static XRIGHTARROW: Node = RowSlice {
+pub static XRIGHTARROW: Node = Row {
     nodes: &[
-        Space("0.2778"),
-        Overset {
+        &Space("0.2778"),
+        &Overset {
             target: &OperatorWithSpacing {
                 op: ops::RIGHTWARDS_ARROW,
                 left: Some(MathSpacing::Zero),
@@ -65,15 +70,15 @@ pub static XRIGHTARROW: Node = RowSlice {
             },
             symbol: &XARROW_SPACING_HACK,
         },
-        Space("0.2778"),
+        &Space("0.2778"),
     ],
     style: None,
 };
 
-pub static XLEFTARROW: Node = RowSlice {
+pub static XLEFTARROW: Node = Row {
     nodes: &[
-        Space("0.2778"),
-        Overset {
+        &Space("0.2778"),
+        &Overset {
             target: &OperatorWithSpacing {
                 op: ops::LEFTWARDS_ARROW,
                 left: Some(MathSpacing::Zero),
@@ -81,7 +86,7 @@ pub static XLEFTARROW: Node = RowSlice {
             },
             symbol: &XARROW_SPACING_HACK,
         },
-        Space("0.2778"),
+        &Space("0.2778"),
     ],
     style: None,
 };
