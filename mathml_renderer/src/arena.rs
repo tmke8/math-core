@@ -27,7 +27,10 @@ impl Arena {
 
     #[cfg(target_arch = "wasm32")]
     #[inline]
-    pub fn push_slice<'arena>(&'arena self, nodes: &[Node<'arena>]) -> &'arena [Node<'arena>] {
+    pub fn push_slice<'arena>(
+        &'arena self,
+        nodes: &[&'arena Node<'arena>],
+    ) -> &'arena [&'arena Node<'arena>] {
         // This fails if the bump allocator is out of memory.
         self.bump
             .try_alloc_slice_copy(nodes)
@@ -35,7 +38,10 @@ impl Arena {
     }
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
-    pub fn push_slice<'arena>(&'arena self, nodes: &[Node<'arena>]) -> &'arena [Node<'arena>] {
+    pub fn push_slice<'arena>(
+        &'arena self,
+        nodes: &[&'arena Node<'arena>],
+    ) -> &'arena [&'arena Node<'arena>] {
         self.bump.alloc_slice_copy(nodes)
     }
 

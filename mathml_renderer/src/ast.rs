@@ -9,7 +9,7 @@ use crate::attribute::{
 use crate::ops::{Op, ParenOp};
 
 /// AST node
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Node<'arena> {
     Number(&'arena str),
@@ -67,7 +67,7 @@ pub enum Node<'arena> {
         attr: Option<FracAttr>,
     },
     Row {
-        nodes: &'arena [Node<'arena>],
+        nodes: &'arena [&'arena Node<'arena>],
         style: Option<Style>,
     },
     Fenced {
@@ -79,7 +79,7 @@ pub enum Node<'arena> {
     SizedParen(Size, &'static ParenOp),
     Text(&'arena str),
     Table {
-        content: &'arena [Node<'arena>],
+        content: &'arena [&'arena Node<'arena>],
         align: Align,
         attr: Option<FracAttr>,
     },
@@ -96,7 +96,7 @@ pub enum Node<'arena> {
     },
     CustomCmd {
         predefined: &'static Node<'static>,
-        args: &'arena [Node<'arena>],
+        args: &'arena [&'arena Node<'arena>],
     },
     CustomCmdArg(usize),
     HardcodedMathML(&'static str),
@@ -137,7 +137,7 @@ macro_rules! pushln {
 pub struct MathMLEmitter<'arena> {
     s: String,
     var: Option<MathVariant>,
-    custom_cmd_args: Option<&'arena [Node<'arena>]>,
+    custom_cmd_args: Option<&'arena [&'arena Node<'arena>]>,
 }
 
 impl<'arena> MathMLEmitter<'arena> {
@@ -828,9 +828,9 @@ mod tests {
     #[test]
     fn render_row_slice() {
         let nodes = &[
-            Node::SingleLetterIdent('x', false),
-            Node::Operator(ops::PLUS_SIGN, None),
-            Node::Number("1"),
+            &Node::SingleLetterIdent('x', false),
+            &Node::Operator(ops::PLUS_SIGN, None),
+            &Node::Number("1"),
         ];
 
         assert_eq!(
@@ -873,13 +873,13 @@ mod tests {
     #[test]
     fn render_table() {
         let nodes = [
-            Node::Number("1"),
-            Node::ColumnSeparator,
-            Node::Number("2"),
-            Node::RowSeparator,
-            Node::Number("3"),
-            Node::ColumnSeparator,
-            Node::Number("4"),
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator,
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
         ];
 
         assert_eq!(

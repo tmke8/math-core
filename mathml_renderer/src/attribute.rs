@@ -84,7 +84,7 @@ pub enum Style {
     ScriptScriptStyle,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Align {
     Center,
