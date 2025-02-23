@@ -88,7 +88,7 @@ where
         next_token(&mut self.peek, &mut self.l)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Node<'arena>, LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> Result<NodeList<'arena>, LatexError<'source>> {
         let mut list_builder = NodeListBuilder::new();
 
         loop {
@@ -100,7 +100,7 @@ where
             list_builder.push(node);
         }
 
-        Ok(Node::PseudoRow(list_builder.finish()))
+        Ok(list_builder.finish())
     }
 
     fn parse_node(
@@ -973,7 +973,7 @@ enum LetterCollector<'arena> {
 fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena>) -> bool {
     match node {
         Node::SingleLetterIdent(c, _) => buffer.push_char(*c),
-        Node::Row { nodes, .. } | Node::PseudoRow(nodes) => {
+        Node::Row { nodes, .. } => {
             for node in nodes.iter() {
                 if !extract_letters(buffer, node) {
                     return false;
@@ -1052,9 +1052,7 @@ mod tests {
             let l = Lexer::new(problem);
             let mut p = Parser::new(l, &arena);
             let ast = p.parse().expect("Parsing failed");
-            if let Node::PseudoRow(nodes) = ast {
-                assert_ron_snapshot!(name, &nodes, problem);
-            }
+            assert_ron_snapshot!(name, &ast, problem);
         }
     }
 }

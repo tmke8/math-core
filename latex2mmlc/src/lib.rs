@@ -68,7 +68,7 @@ pub enum Display {
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-) -> Result<mathml_renderer::ast::Node<'arena>, error::LatexError<'source>>
+) -> Result<mathml_renderer::arena::NodeList<'arena>, error::LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
@@ -115,7 +115,10 @@ where
         Display::Inline => output.push_str("<math>"),
     };
 
-    output.emit(&nodes, if pretty { 1 } else { 0 });
+    let base_indent = if pretty { 1 } else { 0 };
+    for node in nodes.iter() {
+        output.emit(node, base_indent);
+    }
     if pretty {
         output.push('\n');
     }
@@ -128,14 +131,18 @@ mod tests {
     use insta::assert_snapshot;
 
     use crate::{error, latex_to_mathml, LatexError};
-    use mathml_renderer::ast::render;
+    use mathml_renderer::ast::MathMLEmitter;
 
     use super::{get_nodes, Arena};
 
     fn convert_content(latex: &str) -> Result<String, error::LatexError> {
         let arena = Arena::new();
         let nodes = get_nodes(latex, &arena)?;
-        Ok(render(&nodes))
+        let mut emitter = MathMLEmitter::new();
+        for node in nodes.iter() {
+            emitter.emit(node, 0);
+        }
+        Ok(emitter.into_inner())
     }
 
     #[test]
