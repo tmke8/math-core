@@ -678,7 +678,7 @@ where
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
             Token::CustomCmd(num_args, predefined) => {
-                let mut nodes = Vec::new();
+                let mut nodes = Vec::with_capacity(num_args);
                 for _ in 0..num_args {
                     let token = self.next_token();
                     let node = self.parse_single_node(token, true)?;
@@ -901,11 +901,12 @@ where
 
     fn list_as_node(
         &self,
-        mut list_builder: Vec<&'arena Node<'arena>>,
+        list_builder: Vec<&'arena Node<'arena>>,
         style: Option<Style>,
     ) -> &'arena Node<'arena> {
         if list_builder.len() == 1 {
-            list_builder.swap_remove(0)
+            // Safety: We checked that there is an element.
+            unsafe { list_builder.into_iter().next().unwrap_unchecked() }
         } else {
             let nodes = self.arena.push_slice(&list_builder);
             self.commit(Node::Row { nodes, style })
