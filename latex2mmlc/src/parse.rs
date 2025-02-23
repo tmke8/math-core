@@ -23,6 +23,7 @@ pub(crate) struct Parser<'arena, 'source> {
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
     is_bold_italic: bool,
+    is_after_colon: bool,
 }
 impl<'arena, 'source> Parser<'arena, 'source>
 where
@@ -37,6 +38,7 @@ where
             arena,
             collector: LetterCollector::Inactive,
             is_bold_italic: false,
+            is_after_colon: false,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -149,6 +151,8 @@ where
         wants_arg: bool,
     ) -> Result<Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
+        let is_after_colon = self.is_after_colon;
+        self.is_after_colon = false;
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -184,7 +188,17 @@ where
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, false),
             Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
-            Token::Operator(op) => Node::Operator(op, None),
+            Token::Operator(op) => {
+                if is_after_colon && matches!(op, ops::IDENTICAL_TO) {
+                    Node::OperatorWithSpacing {
+                        op,
+                        left: Some(MathSpacing::Zero),
+                        right: None,
+                    }
+                } else {
+                    Node::Operator(op, None)
+                }
+            }
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -430,24 +444,17 @@ where
                 }
             }
             Token::Colon => match &self.peek.token() {
-                Token::Operator(ops::EQUALS_SIGN) => {
+                Token::Operator(ops::EQUALS_SIGN) if !wants_arg => {
                     self.next_token(); // Discard the equals_sign token.
                     Node::Operator(ops::COLON_EQUALS, None)
                 }
-                Token::Operator(op @ ops::IDENTICAL_TO) => {
-                    let op = *op;
-                    self.next_token(); // Discard the operator token.
-                    let first = self.commit(Node::OperatorWithSpacing {
+                Token::Operator(ops::IDENTICAL_TO) if !wants_arg => {
+                    self.is_after_colon = true;
+                    Node::OperatorWithSpacing {
                         op: ops::COLON,
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
-                    });
-                    let second = self.commit(Node::OperatorWithSpacing {
-                        op,
-                        left: Some(MathSpacing::Zero),
-                        right: None,
-                    });
-                    Node::PseudoRow(NodeList::from_node_refs([first], second))
+                    }
                 }
                 _ => Node::OperatorWithSpacing {
                     op: ops::COLON,
@@ -1037,6 +1044,8 @@ mod tests {
             ("number_with_spaces_with_dots", r"1 2. 3  ,  4"),
             ("number_with_spaces_in_text", r"\text{1 2  3    4}"),
             ("comment", "\\text{% comment}\n\\%as}"),
+            ("colon_fusion_in_subscript", r"x_:\equiv, x_:="),
+            ("colon_fusion_stop", r":2=:="),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

@@ -1,0 +1,25 @@
+---
+source: latex2mmlc/src/parse.rs
+expression: "x_:\\equiv, x_:="
+---
+[
+  Subscript(
+    target: SingleLetterIdent('x', false),
+    symbol: OperatorWithSpacing(
+      op: Op(':'),
+      left: Some(FourMu),
+      right: Some(FourMu),
+    ),
+  ),
+  Operator(Op('≡'), None),
+  Operator(Op(','), None),
+  Subscript(
+    target: SingleLetterIdent('x', false),
+    symbol: OperatorWithSpacing(
+      op: Op(':'),
+      left: Some(FourMu),
+      right: Some(FourMu),
+    ),
+  ),
+  Operator(Op('='), None),
+]
