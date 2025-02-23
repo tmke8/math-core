@@ -89,18 +89,7 @@ where
     }
 
     pub(crate) fn parse(&mut self) -> Result<NodeList<'arena>, LatexError<'source>> {
-        let mut list_builder = NodeListBuilder::new();
-
-        loop {
-            let cur_tokloc = self.next_token();
-            if matches!(cur_tokloc.token(), Token::EOF) {
-                break;
-            }
-            let node = self.parse_node(cur_tokloc, false)?;
-            list_builder.push(node);
-        }
-
-        Ok(list_builder.finish())
+        Ok(self.parse_group(Token::EOF, true)?.finish())
     }
 
     fn parse_node(
@@ -208,10 +197,10 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
-                    let degree = self.parse_group(Token::SquareBracketClose)?;
+                    let degree = self.parse_group(Token::SquareBracketClose, false)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_token()?;
-                    Node::Root(self.squeeze(degree, None).node(), content)
+                    Node::Root(self.list_as_node(degree, None).node(), content)
                 } else {
                     let content = self.parse_node(next, true)?;
                     Node::Sqrt(content.node())
@@ -463,7 +452,7 @@ where
                 },
             },
             Token::GroupBegin => {
-                let content = self.parse_group(Token::GroupEnd)?;
+                let content = self.parse_group(Token::GroupEnd, false)?;
                 self.next_token(); // Discard the closing token.
                 match content.as_singleton_or_finish() {
                     SingletonOrList::Singleton(node) => {
@@ -496,7 +485,7 @@ where
                         ))
                     }
                 };
-                let content = self.parse_group(Token::Right)?;
+                let content = self.parse_group(Token::Right, false)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
@@ -517,7 +506,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.squeeze(content, None).node(),
+                    content: self.list_as_node(content, None).node(),
                     style: None,
                 }
             }
@@ -561,7 +550,7 @@ where
                 self.check_lbrace()?;
                 // Read the environment name.
                 let env_name = self.parse_text_group()?;
-                let content = self.parse_group(Token::End)?.finish();
+                let content = self.parse_group(Token::End, false)?.finish();
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table {
@@ -676,7 +665,7 @@ where
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
             Token::Style(style) => {
-                let content = self.parse_group(Token::GroupEnd)?;
+                let content = self.parse_group(Token::GroupEnd, true)?;
                 Node::Row {
                     nodes: content.finish(),
                     style: Some(style),
@@ -776,18 +765,23 @@ where
     /// Parse the contents of a group which can contain any expression.
     fn parse_group(
         &mut self,
-        end_token: Token<'source>,
+        end_token: Token<'static>,
+        eof_as_end_token: bool,
     ) -> Result<NodeListBuilder<'arena>, LatexError<'source>> {
         let mut nodes = NodeListBuilder::new();
 
         while !self.peek.token().is_same_kind(&end_token) {
             let next = self.next_token();
             if matches!(next.token(), Token::EOF) {
-                // When the input ends without the closing token.
-                return Err(LatexError(
-                    next.location(),
-                    LatexErrKind::UnclosedGroup(end_token),
-                ));
+                if eof_as_end_token {
+                    break;
+                } else {
+                    // When the input ends without the closing token.
+                    return Err(LatexError(
+                        next.location(),
+                        LatexErrKind::UnclosedGroup(end_token),
+                    ));
+                }
             }
             let node = self.parse_node(next, false)?;
             nodes.push(node);
@@ -871,7 +865,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.squeeze(primes, None))
+            Some(self.list_as_node(primes, None))
         } else {
             sup
         };
@@ -937,7 +931,7 @@ where
         Ok(self.commit(node?))
     }
 
-    fn squeeze(
+    fn list_as_node(
         &self,
         list_builder: NodeListBuilder<'arena>,
         style: Option<Style>,
@@ -1046,6 +1040,7 @@ mod tests {
             ("comment", "\\text{% comment}\n\\%as}"),
             ("colon_fusion_in_subscript", r"x_:\equiv, x_:="),
             ("colon_fusion_stop", r":2=:="),
+            ("scriptstyle_without_braces", r"x\scriptstyle y"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
