@@ -5,7 +5,7 @@ expression: "\\pmod{3}_4"
 [
   Subscript(
     target: CustomCmd(
-      predefined: RowSlice(
+      predefined: Row(
         nodes: [
           Space("1"),
           StretchableOp(ParenOp('(', false, Always), NoStretch),

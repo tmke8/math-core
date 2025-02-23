@@ -50,6 +50,20 @@ impl Arena {
             .alloc_with(|| NodeListElement { node, next: None })
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[inline]
+    pub fn push_slice<'arena>(&'arena self, nodes: &[Node<'arena>]) -> &'arena [Node<'arena>] {
+        // This fails if the bump allocator is out of memory.
+        self.bump
+            .try_alloc_slice_copy(nodes)
+            .unwrap_or_else(|_| std::process::abort())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    #[inline]
+    pub fn push_slice<'arena>(&'arena self, nodes: &[Node<'arena>]) -> &'arena [Node<'arena>] {
+        self.bump.alloc_slice_copy(nodes)
+    }
+
     fn alloc_str(&self, src: &str) -> &str {
         self.bump
             .try_alloc_str(src)
@@ -182,7 +196,7 @@ impl<'arena> NodeListBuilder<'arena> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct NodeList<'arena>(Option<&'arena NodeListElement<'arena>>);
 

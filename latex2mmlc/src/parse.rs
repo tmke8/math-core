@@ -1,7 +1,7 @@
 use std::mem;
 
 use mathml_renderer::{
-    arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
+    arena::{Arena, Buffer, NodeRef, StringBuilder},
     ast::Node,
     attribute::{
         Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
@@ -88,33 +88,30 @@ where
         next_token(&mut self.peek, &mut self.l)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<NodeList<'arena>, LatexError<'source>> {
-        Ok(self.parse_group(Token::EOF, true)?.finish())
+    pub(crate) fn parse(&mut self) -> Result<&'arena [Node<'arena>], LatexError<'source>> {
+        let nodes = self.parse_group(Token::EOF, true)?;
+        Ok(self.arena.push_slice(&nodes))
     }
 
     fn parse_node(
         &mut self,
         cur_tokloc: TokLoc<'source>,
         wants_arg: bool,
-    ) -> Result<NodeRef<'arena>, LatexError<'source>> {
+    ) -> Result<Node<'arena>, LatexError<'source>> {
         let target = self.parse_single_node(cur_tokloc, wants_arg)?;
-        let target = self.commit(target);
 
-        match self.get_bounds()? {
-            Bounds(Some(sub), Some(sup)) => Ok(self.commit(Node::SubSup {
-                target: target.node(),
-                sub,
-                sup,
-            })),
-            Bounds(Some(symbol), None) => Ok(self.commit(Node::Subscript {
-                target: target.node(),
-                symbol,
-            })),
-            Bounds(None, Some(symbol)) => Ok(self.commit(Node::Superscript {
-                target: target.node(),
-                symbol,
-            })),
-            Bounds(None, None) => Ok(target),
+        let bounds = self.get_bounds()?;
+
+        if matches!(bounds, Bounds(None, None)) {
+            Ok(target)
+        } else {
+            let target = self.commit(target).node();
+            match bounds {
+                Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
+                Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
+                Bounds(None, None) => unsafe { std::hint::unreachable_unchecked() },
+            }
         }
     }
 
@@ -203,7 +200,7 @@ where
                     Node::Root(self.list_as_node(degree, None).node(), content)
                 } else {
                     let content = self.parse_node(next, true)?;
-                    Node::Sqrt(content.node())
+                    Node::Sqrt(self.commit(content).node())
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
@@ -452,13 +449,14 @@ where
                 },
             },
             Token::GroupBegin => {
-                let content = self.parse_group(Token::GroupEnd, false)?;
+                let mut content = self.parse_group(Token::GroupEnd, false)?;
                 self.next_token(); // Discard the closing token.
-                match content.as_singleton_or_finish() {
-                    SingletonOrList::Singleton(node) => {
-                        mem::replace(node.mut_node(), Node::OpLessThan)
+                match content.len() {
+                    1 => content.swap_remove(0),
+                    _ => {
+                        let nodes = self.arena.push_slice(&content);
+                        Node::Row { nodes, style: None }
                     }
-                    SingletonOrList::List(nodes) => Node::Row { nodes, style: None },
                 }
             }
             Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
@@ -550,7 +548,8 @@ where
                 self.check_lbrace()?;
                 // Read the environment name.
                 let env_name = self.parse_text_group()?;
-                let content = self.parse_group(Token::End, false)?.finish();
+                let content = self.parse_group(Token::End, false)?;
+                let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table {
@@ -667,7 +666,7 @@ where
             Token::Style(style) => {
                 let content = self.parse_group(Token::GroupEnd, true)?;
                 Node::Row {
-                    nodes: content.finish(),
+                    nodes: self.arena.push_slice(&content),
                     style: Some(style),
                 }
             }
@@ -687,7 +686,7 @@ where
             Token::Prime => {
                 let target = self
                     .commit(Node::Row {
-                        nodes: NodeList::empty(),
+                        nodes: &[],
                         style: None,
                     })
                     .node();
@@ -713,13 +712,13 @@ where
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
             Token::CustomCmd(num_args, predefined) => {
-                let mut nodes = NodeListBuilder::new();
+                let mut nodes = Vec::new();
                 for _ in 0..num_args {
                     let token = self.next_token();
                     let node = self.parse_single_node(token, true)?;
-                    nodes.push(self.commit(node));
+                    nodes.push(node);
                 }
-                let args = nodes.finish();
+                let args = self.arena.push_slice(&nodes);
                 Node::CustomCmd { predefined, args }
             }
             Token::GetCollectedLetters => match self.collector {
@@ -749,7 +748,8 @@ where
     #[inline]
     fn parse_token(&mut self) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_node(token, false).map(|n| n.node())
+        let node = self.parse_node(token, false)?;
+        Ok(self.commit(node).node())
     }
 
     #[inline]
@@ -767,8 +767,8 @@ where
         &mut self,
         end_token: Token<'static>,
         eof_as_end_token: bool,
-    ) -> Result<NodeListBuilder<'arena>, LatexError<'source>> {
-        let mut nodes = NodeListBuilder::new();
+    ) -> Result<Vec<Node<'arena>>, LatexError<'source>> {
+        let mut nodes = Vec::<Node>::new();
 
         while !self.peek.token().is_same_kind(&end_token) {
             let next = self.next_token();
@@ -783,8 +783,7 @@ where
                     ));
                 }
             }
-            let node = self.parse_node(next, false)?;
-            nodes.push(node);
+            nodes.push(self.parse_node(next, false)?);
         }
         Ok(nodes)
     }
@@ -863,7 +862,7 @@ where
 
         let sup = if !primes.is_empty() {
             if let Some(sup) = sup {
-                primes.push(sup);
+                primes.push(mem::replace(sup.mut_node(), Node::OpGreaterThan));
             }
             Some(self.list_as_node(primes, None))
         } else {
@@ -873,8 +872,8 @@ where
         Ok(Bounds(sub.map(|s| s.node()), sup.map(|s| s.node())))
     }
 
-    fn prime_check(&mut self) -> NodeListBuilder<'arena> {
-        let mut primes = NodeListBuilder::new();
+    fn prime_check(&mut self) -> Vec<Node<'arena>> {
+        let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
@@ -889,11 +888,11 @@ where
                     ops::TRIPLE_PRIME,
                     ops::QUADRUPLE_PRIME,
                 ];
-                primes.push(self.commit(Node::Operator(prime_selection[idx - 1], None)));
+                primes.push(Node::Operator(prime_selection[idx - 1], None));
             }
             _ => {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(ops::PRIME, None)));
+                    primes.push(Node::Operator(ops::PRIME, None));
                 }
             }
         }
@@ -933,12 +932,15 @@ where
 
     fn list_as_node(
         &self,
-        list_builder: NodeListBuilder<'arena>,
+        mut list_builder: Vec<Node<'arena>>,
         style: Option<Style>,
     ) -> NodeRef<'arena> {
-        match list_builder.as_singleton_or_finish() {
-            SingletonOrList::Singleton(value) => value,
-            SingletonOrList::List(nodes) => self.commit(Node::Row { nodes, style }),
+        match list_builder.len() {
+            1 => self.commit(list_builder.swap_remove(0)),
+            _ => {
+                let nodes = self.arena.push_slice(&list_builder);
+                self.commit(Node::Row { nodes, style })
+            }
         }
     }
 }

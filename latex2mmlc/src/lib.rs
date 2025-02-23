@@ -68,7 +68,7 @@ pub enum Display {
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-) -> Result<mathml_renderer::arena::NodeList<'arena>, error::LatexError<'source>>
+) -> Result<&'arena [mathml_renderer::ast::Node<'arena>], error::LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {

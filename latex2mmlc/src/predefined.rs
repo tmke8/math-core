@@ -4,12 +4,12 @@ use mathml_renderer::{
     ops,
 };
 
-pub static MOD: Node = RowSlice {
+pub static MOD: Node = Row {
     nodes: &[Space("1"), Text("mod"), Space("0.3333"), CustomCmdArg(0)],
     style: None,
 };
 
-pub static PMOD: Node = RowSlice {
+pub static PMOD: Node = Row {
     nodes: &[
         Space("1"),
         StretchableOp(ops::LEFT_PARENTHESIS, StretchMode::NoStretch),
@@ -22,7 +22,7 @@ pub static PMOD: Node = RowSlice {
 };
 
 pub static ODV: Node = Frac {
-    num: &RowSlice {
+    num: &Row {
         nodes: &[
             TextTransform {
                 tf: MathVariant::Normal,
@@ -32,7 +32,7 @@ pub static ODV: Node = Frac {
         ],
         style: None,
     },
-    den: &Node::RowSlice {
+    den: &Node::Row {
         nodes: &[
             TextTransform {
                 tf: MathVariant::Normal,
@@ -47,14 +47,14 @@ pub static ODV: Node = Frac {
 };
 
 static XARROW_SPACING_HACK: Node = Overset {
-    target: &RowSlice {
+    target: &Row {
         nodes: &[Space("0.4286"), CustomCmdArg(0), Space("0.4286")],
         style: None,
     },
     symbol: &Space("3.5"),
 };
 
-pub static XRIGHTARROW: Node = RowSlice {
+pub static XRIGHTARROW: Node = Row {
     nodes: &[
         Space("0.2778"),
         Overset {
@@ -70,7 +70,7 @@ pub static XRIGHTARROW: Node = RowSlice {
     style: None,
 };
 
-pub static XLEFTARROW: Node = RowSlice {
+pub static XLEFTARROW: Node = Row {
     nodes: &[
         Space("0.2778"),
         Overset {

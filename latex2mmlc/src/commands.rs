@@ -163,7 +163,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "blacktriangleleft" => Token::Letter(ops::BLACK_LEFT_POINTING_TRIANGLE),
     "blacktriangleright" => Token::Letter(ops::BLACK_RIGHT_POINTING_TRIANGLE),
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
-    "bmod" => Token::CustomCmd(0, &Node::RowSlice {
+    "bmod" => Token::CustomCmd(0, &Node::Row {
         nodes: &[Node::Space("0.2222"), Node::Text("mod"), Node::Space("0.2222")],
         style: None
     }),
