@@ -315,6 +315,7 @@ mod tests {
             ("RR_command", r"\RR"),
             ("odv", r"\odv{f}{x}"),
             ("xrightarrow", r"\xrightarrow{x}"),
+            ("slashed", r"\slashed{\partial}"),
         ];
 
         for (name, problem) in problems.into_iter() {
