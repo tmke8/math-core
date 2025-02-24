@@ -619,7 +619,11 @@ where
             }
             Token::OperatorName => {
                 // TODO: Don't parse a node just to immediately destructure it.
+
+                // Turn off collection mode.
+                let old_collector = mem::replace(&mut self.collector, LetterCollector::Inactive);
                 let node = self.parse_next(true)?;
+                self.collector = old_collector;
                 let mut builder = self.buffer.get_builder();
                 if !extract_letters(&mut builder, node) {
                     return Err(LatexError(

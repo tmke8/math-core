@@ -266,6 +266,7 @@ mod tests {
             ("mathit_no_brackets", r"\mathit x"),
             ("mathbb_no_brackets", r"\mathbb N"),
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
+            ("mathit_of_operatorname", r"\mathit{a\operatorname{bc}d}"),
             ("nested_transform", r"\mathit{\mathbf{a}b}"),
             ("mathrm_nested", r"\mathit{\mathrm{a}b}"),
             ("mathrm_nested2", r"\mathrm{\mathit{a}b}"),
