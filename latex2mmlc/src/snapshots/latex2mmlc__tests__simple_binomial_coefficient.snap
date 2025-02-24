@@ -5,7 +5,7 @@ expression: "\\binom12"
 <math>
     <mrow>
         <mo>(</mo>
-        <mfrac linethickness="0pt">
+        <mfrac linethickness="0">
             <mn>1</mn>
             <mn>2</mn>
         </mfrac>

@@ -7,7 +7,7 @@ expression: "\\sum_{\\genfrac{}{}{0pt}{}{\\scriptstyle 0 \\le i \\le m}{\\script
         <mo>∑</mo>
         <mrow>
             <mo></mo>
-            <mfrac linethickness="0pt">
+            <mfrac linethickness="0">
                 <mrow displaystyle="false" scriptlevel="1">
                     <mn>0</mn>
                     <mo>≤</mo>

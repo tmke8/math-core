@@ -7,6 +7,7 @@ use crate::arena::NodeList;
 use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
 };
+use crate::length::Length;
 use crate::ops::{Op, ParenOp};
 
 /// AST node
@@ -64,7 +65,7 @@ pub enum Node<'arena> {
         /// Denominator
         den: &'arena Node<'arena>,
         /// Line thickness
-        lt: Option<char>,
+        lt: Option<Length>,
         attr: Option<FracAttr>,
     },
     Row {
@@ -380,7 +381,7 @@ impl<'arena> MathMLEmitter<'arena> {
             Node::Frac { num, den, lt, attr } => {
                 push!(self.s, "<mfrac");
                 if let Some(lt) = lt {
-                    push!(self.s, " linethickness=\"", @*lt, "pt\"");
+                    push!(self.s, " linethickness=\"", lt.to_string(), "\"");
                 }
                 if let Some(style) = attr {
                     push!(self.s, style);
@@ -594,6 +595,7 @@ mod tests {
     use super::{render, Node};
     use crate::arena::{NodeList, NodeListElement};
     use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform};
+    use crate::length::Length;
     use crate::ops;
 
     #[test]
@@ -815,10 +817,29 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some('1'),
+                lt: Some(Length::from_pt(1)),
                 attr: None,
             }),
             "<mfrac linethickness=\"1pt\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                lt: Some(Length::from_pt(2)),
+                attr: None,
+            }),
+            "<mfrac linethickness=\"2pt\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                den,
+                // 8/20 = 4/10
+                lt: Some(Length::from_twip(8)),
+                attr: None,
+            }),
+            "<mfrac linethickness=\"0.4pt\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {
@@ -833,10 +854,10 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some('0'),
+                lt: Some(Length::from_pt(0)),
                 attr: Some(FracAttr::DisplayStyleTrue),
             }),
-            "<mfrac linethickness=\"0pt\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"0\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {

@@ -248,6 +248,8 @@ mod tests {
                 r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
             ),
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
+            ("genfrac_1pt", r"\genfrac(]{1pt}{2}{a+b}{c+d}"),
+            ("genfrac_1px", r"\genfrac(]{1px}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),
             ("not_less_than", r"\not\lt"),
             ("not_less_than_symbol", r"\not< x"),

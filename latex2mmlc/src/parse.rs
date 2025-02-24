@@ -1,4 +1,5 @@
 use std::mem;
+use std::str::FromStr;
 
 use mathml_renderer::{
     arena::{Arena, Buffer, NodeList, NodeListBuilder, NodeRef, SingletonOrList, StringBuilder},
@@ -6,6 +7,7 @@ use mathml_renderer::{
     attribute::{
         Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
     },
+    length::{Length, LengthParseError},
     ops,
 };
 
@@ -206,7 +208,7 @@ where
                 let num = self.parse_single_token(true)?;
                 let den = self.parse_single_token(true)?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let lt = Some('0');
+                    let lt = Some(Length(0));
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
@@ -240,8 +242,8 @@ where
                 // so that we can render them as percentages.
                 let lt = match self.parse_text_group()?.trim() {
                     "" => None,
-                    "0pt" => Some('0'),
-                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    decimal => Some(Length::from_str(decimal)
+                        .map_err(|LengthParseError| LatexError(0, LatexErrKind::UnexpectedEOF))?),
                 };
                 let style = match self.parse_token()? {
                     Node::Number(num) => match num.as_bytes() {
