@@ -51,7 +51,7 @@ use mathml_renderer::arena::Arena;
 pub(crate) mod commands;
 mod error;
 pub(crate) mod lexer;
-pub(crate) mod parse;
+pub mod parse;
 pub(crate) mod predefined;
 pub mod token;
 

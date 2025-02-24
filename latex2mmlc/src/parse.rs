@@ -123,20 +123,18 @@ where
             let target = self.parse_token(cur_tokloc, false)?;
 
             // Check if there are any superscripts or subscripts following the parsed node.
-            let bounds = self.get_bounds()?;
-
-            // If there are superscripts or subscripts, we need to wrap the node we just got into
-            // one of the node types for superscripts and subscripts.
-            let node = self.commit(match bounds {
-                Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
-                Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
-                Bounds(None, None) => {
-                    nodes.push(target);
-                    continue;
-                }
-            });
-            nodes.push(node);
+            if let Some(bounds) = self.get_bounds()? {
+                // If there are superscripts or subscripts, we need to wrap the node we just got into
+                // one of the node types for superscripts and subscripts.
+                let node = self.commit(match bounds {
+                    Bounds::SubSup(sub, Some(sup)) => Node::SubSup { target, sub, sup },
+                    Bounds::SubSup(symbol, None) => Node::Subscript { target, symbol },
+                    Bounds::Sup(symbol) => Node::Superscript { target, symbol },
+                });
+                nodes.push(node);
+            } else {
+                nodes.push(target);
+            }
         }
         Ok(nodes)
     }
@@ -343,14 +341,14 @@ where
                     self.commit(Node::Operator(op, None))
                 };
                 match self.get_bounds()? {
-                    Bounds(Some(under), Some(over)) => Node::UnderOver {
+                    Some(Bounds::SubSup(under, Some(over))) => Node::UnderOver {
                         target,
                         under,
                         over,
                     },
-                    Bounds(Some(symbol), None) => Node::Underset { target, symbol },
-                    Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                    Bounds(None, None) => return Ok(target),
+                    Some(Bounds::SubSup(symbol, None)) => Node::Underset { target, symbol },
+                    Some(Bounds::Sup(symbol)) => Node::Overset { target, symbol },
+                    None => return Ok(target),
                 }
             }
             Token::Lim(lim) => {
@@ -413,24 +411,30 @@ where
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.commit(Node::Operator(int, None));
-                    match self.get_bounds()? {
-                        Bounds(Some(under), Some(over)) => Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        },
-                        Bounds(Some(symbol), None) => Node::Underset { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                        Bounds(None, None) => return Ok(target),
+                    if let Some(bounds) = self.get_bounds()? {
+                        let target = self.commit(Node::Operator(int, None));
+                        match bounds {
+                            Bounds::SubSup(under, Some(over)) => Node::UnderOver {
+                                target,
+                                under,
+                                over,
+                            },
+                            Bounds::SubSup(symbol, None) => Node::Underset { target, symbol },
+                            Bounds::Sup(symbol) => Node::Overset { target, symbol },
+                        }
+                    } else {
+                        Node::Operator(int, None)
                     }
                 } else {
-                    let target = self.commit(Node::Operator(int, None));
-                    match self.get_bounds()? {
-                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                        Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
-                        Bounds(None, None) => return Ok(target),
+                    if let Some(bounds) = self.get_bounds()? {
+                        let target = self.commit(Node::Operator(int, None));
+                        match bounds {
+                            Bounds::SubSup(sub, Some(sup)) => Node::SubSup { target, sub, sup },
+                            Bounds::SubSup(symbol, None) => Node::Subscript { target, symbol },
+                            Bounds::Sup(symbol) => Node::Superscript { target, symbol },
+                        }
+                    } else {
+                        Node::Operator(int, None)
                     }
                 }
             }
@@ -769,7 +773,7 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
+    fn get_bounds(&mut self) -> Result<Option<Bounds<'arena>>, LatexError<'source>> {
         let mut primes = self.prime_check();
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.peek.token(), Token::Underscore);
@@ -826,7 +830,13 @@ where
             sup
         };
 
-        Ok(Bounds(sub, sup))
+        Ok(if let Some(sub) = sub {
+            Some(Bounds::SubSup(sub, sup))
+        } else if let Some(sup) = sup {
+            Some(Bounds::Sup(sup))
+        } else {
+            None
+        })
     }
 
     /// Check for primes and aggregate them into a single node.
@@ -917,7 +927,10 @@ fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -
     mem::replace(peek, peek_token)
 }
 
-struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
+pub enum Bounds<'arena> {
+    Sup(&'arena Node<'arena>),
+    SubSup(&'arena Node<'arena>, Option<&'arena Node<'arena>>),
+}
 
 enum LetterCollector<'arena> {
     Inactive,
