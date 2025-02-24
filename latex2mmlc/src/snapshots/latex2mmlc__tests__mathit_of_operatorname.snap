@@ -1,0 +1,11 @@
+---
+source: latex2mmlc/src/lib.rs
+expression: "\\mathit{a\\operatorname{bc}d}"
+---
+<math>
+    <mrow>
+        <mi>𝑎</mi>
+        <mi>bc</mi>
+        <mi>𝑑</mi>
+    </mrow>
+</math>
