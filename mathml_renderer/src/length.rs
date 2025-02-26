@@ -13,6 +13,7 @@
 
 use std::error::Error;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::num::NonZeroI32;
 use std::str::FromStr;
 
 #[cfg(feature = "serde")]
@@ -26,22 +27,30 @@ const PX_IN_LEN: i32 = 480;
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-pub struct Length(pub i32);
+pub struct Length(NonZeroI32);
 
 impl Length {
     pub fn from_pt(pt: i32) -> Length {
-        Length(pt * PT_IN_LEN)
+        Length::from_value(pt * PT_IN_LEN)
     }
     pub fn from_twip(twip: i32) -> Length {
-        Length(twip * (PT_IN_LEN / 10) / 2)
+        Length::from_value(twip * (PT_IN_LEN / 10) / 2)
     }
     pub fn from_px(px: i32) -> Length {
-        Length(px * PX_IN_LEN)
+        Length::from_value(px * PX_IN_LEN)
+    }
+
+    fn from_value(value: i32) -> Length {
+        Length(NonZeroI32::new(value.wrapping_add(i32::MIN)).unwrap_or(NonZeroI32::MIN))
+    }
+    fn value(self) -> i32 {
+        i32::from(self.0).wrapping_sub(i32::MIN)
     }
 
     fn write_impl(self, f: &mut Formatter<'_>, conv: i32, unit: &str) -> fmt::Result {
-        <i32 as Display>::fmt(&(self.0 / conv), f)?;
-        let frac = self.0 % conv;
+        let value = self.value();
+        <i32 as Display>::fmt(&(value / conv), f)?;
+        let frac = value % conv;
         if frac != 0 {
             // only write two decimal points
             f.write_str(".")?;
@@ -106,16 +115,17 @@ impl FromStr for Length {
             acc += i32::from(digit - b'0');
             div *= 10;
         }
-        Ok(Length(acc * conv / div))
+        Ok(Length::from_value(acc * conv / div))
     }
 }
 
 impl Display for Length {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if self.0 == 0 {
+        let value = self.value();
+        if value == 0 {
             f.write_str("0")
         } else {
-            let (conv, unit) = if self.0 % (PT_IN_LEN / 10) == 0 || self.0 % (PX_IN_LEN / 10) != 0 {
+            let (conv, unit) = if value % (PT_IN_LEN / 10) == 0 || value % (PX_IN_LEN / 10) != 0 {
                 // If this measure can be serialized in 10ths of a point,
                 // do that.
                 (PT_IN_LEN, "pt")

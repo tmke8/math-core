@@ -208,7 +208,7 @@ where
                 let num = self.parse_single_token(true)?;
                 let den = self.parse_single_token(true)?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let lt = Some(Length(0));
+                    let lt = Some(Length::from_twip(0));
                     Node::Fenced {
                         open: ops::LEFT_PARENTHESIS,
                         close: ops::RIGHT_PARENTHESIS,
