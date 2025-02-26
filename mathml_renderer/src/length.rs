@@ -40,17 +40,18 @@ impl Length {
     }
 
     fn write_impl(self, f: &mut Formatter<'_>, conv: i32, unit: &str) -> fmt::Result {
-        write!(f, "{}", self.0 / conv)?;
+        <i32 as Display>::fmt(&(self.0 / conv), f)?;
         let frac = self.0 % conv;
         if frac != 0 {
             // only write two decimal points
-            write!(f, ".{}", (frac * 10) / conv)?;
+            f.write_str(".")?;
+            <i32 as Display>::fmt(&(frac * 10 / conv), f)?;
             let frac = (frac * 10) % conv;
             if frac != 0 {
-                write!(f, "{}", (frac * 10) / conv)?;
+                <i32 as Display>::fmt(&(frac * 10 / conv), f)?;
             }
         }
-        write!(f, "{unit}")
+        f.write_str(unit)
     }
 
     pub fn display_px(self) -> impl fmt::Display {
@@ -112,7 +113,7 @@ impl FromStr for Length {
 impl Display for Length {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.0 == 0 {
-            write!(f, "0")
+            f.write_str("0")
         } else {
             let (conv, unit) = if self.0 % (PT_IN_LEN / 10) == 0 || self.0 % (PX_IN_LEN / 10) != 0 {
                 // If this measure can be serialized in 10ths of a point,
@@ -127,7 +128,9 @@ impl Display for Length {
 }
 impl Debug for Length {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Length({self})")
+        f.write_str("Length(")?;
+        <Self as Display>::fmt(self, f)?;
+        f.write_str(")")
     }
 }
 
