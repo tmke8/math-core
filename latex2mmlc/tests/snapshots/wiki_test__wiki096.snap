@@ -10,5 +10,9 @@ expression: "\\amalg \\P \\S \\% \\dagger\\ddagger\\ldots\\cdots"
     <mi>†</mi>
     <mi>‡</mi>
     <mo>…</mo>
-    <mo>⋯</mo>
+    <mrow>
+        <mo>·</mo>
+        <mo lspace="0em" rspace="0em">·</mo>
+        <mo>·</mo>
+    </mrow>
 </math>

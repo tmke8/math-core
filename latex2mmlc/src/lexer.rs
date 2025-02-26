@@ -1,9 +1,3 @@
-//! Lexer
-//!
-//! - Input: `String`
-//! - Output: `Vec<Token>`
-//!
-
 use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
@@ -132,27 +126,27 @@ impl<'source> Lexer<'source> {
         let tok = match ch {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
-            '!' => Token::Operator(ops::EXCLAMATION_MARK),
+            '!' => Token::Relation(ops::EXCLAMATION_MARK),
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
-            '(' => Token::Paren(ops::LEFT_PARENTHESIS),
-            ')' => Token::Paren(ops::RIGHT_PARENTHESIS),
-            '*' => Token::Operator(ops::ASTERISK_OPERATOR),
-            '+' => Token::Operator(ops::PLUS_SIGN),
-            ',' => Token::Operator(ops::COMMA),
-            '-' => Token::Operator(ops::MINUS_SIGN),
-            '/' => Token::Paren(ops::SOLIDUS),
+            '(' => Token::Delimiter(ops::LEFT_PARENTHESIS),
+            ')' => Token::Delimiter(ops::RIGHT_PARENTHESIS),
+            '*' => Token::Relation(ops::ASTERISK_OPERATOR),
+            '+' => Token::BinaryOp(ops::PLUS_SIGN),
+            ',' => Token::Relation(ops::COMMA),
+            '-' => Token::BinaryOp(ops::MINUS_SIGN),
+            '/' => Token::Delimiter(ops::SOLIDUS),
             ':' => Token::Colon,
-            ';' => Token::Operator(ops::SEMICOLON),
+            ';' => Token::Relation(ops::SEMICOLON),
             '<' => Token::OpLessThan,
-            '=' => Token::Operator(ops::EQUALS_SIGN),
+            '=' => Token::Relation(ops::EQUALS_SIGN),
             '>' => Token::OpGreaterThan,
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => Token::GroupBegin,
-            '|' => Token::Paren(ops::VERTICAL_LINE),
+            '|' => Token::Delimiter(ops::VERTICAL_LINE),
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {

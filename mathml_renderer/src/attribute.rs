@@ -20,6 +20,8 @@ pub enum OpAttr {
     StretchyFalse,
     #[strum(serialize = r#" movablelimits="false""#)]
     NoMovableLimits,
+    #[strum(serialize = r#" form="prefix""#)]
+    FormPrefix,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]

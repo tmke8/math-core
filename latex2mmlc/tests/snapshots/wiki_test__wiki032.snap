@@ -5,7 +5,7 @@ expression: "\\times, \\div, \\divideontimes, /, \\backslash"
 <math>
     <mo>×</mo>
     <mo>,</mo>
-    <mo>÷</mo>
+    <mo form="prefix">÷</mo>
     <mo>,</mo>
     <mo>⋇</mo>
     <mo>,</mo>

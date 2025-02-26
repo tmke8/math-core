@@ -64,7 +64,7 @@ pub static XRIGHTARROW: Node = Row {
         &Space("0.2778"),
         &Overset {
             target: &OperatorWithSpacing {
-                op: ops::RIGHTWARDS_ARROW,
+                op: ops::RIGHTWARDS_ARROW.as_op(),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
@@ -80,7 +80,7 @@ pub static XLEFTARROW: Node = Row {
         &Space("0.2778"),
         &Overset {
             target: &OperatorWithSpacing {
-                op: ops::LEFTWARDS_ARROW,
+                op: ops::LEFTWARDS_ARROW.as_op(),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
