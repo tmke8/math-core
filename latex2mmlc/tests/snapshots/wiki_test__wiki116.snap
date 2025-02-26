@@ -10,7 +10,11 @@ expression: "\\underbrace{ a+b+\\cdots+z }_{26}"
                 <mo>+</mo>
                 <mi>b</mi>
                 <mo>+</mo>
-                <mo>⋯</mo>
+                <mrow>
+                    <mo>·</mo>
+                    <mo lspace="0em" rspace="0em">·</mo>
+                    <mo>·</mo>
+                </mrow>
                 <mo>+</mo>
                 <mi>z</mi>
             </mrow>

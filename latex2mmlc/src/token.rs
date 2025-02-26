@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
-use mathml_renderer::ops::{Op, ParenOp};
+use mathml_renderer::ops::{Big, Bin, Op, ParenOp, Rel};
 use strum_macros::AsRefStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
@@ -25,7 +25,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\middle")]
     Middle,
     #[strum(serialize = "parenthesis")]
-    Paren(&'static ParenOp),
+    Delimiter(&'static ParenOp),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]
@@ -54,7 +54,7 @@ pub enum Token<'source> {
     OverUnderBrace(Op, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
-    Integral(Op),
+    Integral(Big),
     #[strum(serialize = r"\limits")]
     Limits,
     Lim(&'static str),
@@ -65,7 +65,9 @@ pub enum Token<'source> {
     Transform(MathVariant),
     Big(Size),
     OverUnder(Op, bool, Option<OpAttr>),
-    Operator(Op),
+    Relation(Rel),
+    #[strum(serialize = "binary operator")]
+    BinaryOp(Bin),
     #[strum(serialize = "'")]
     Prime,
     #[strum(serialize = ">")]
@@ -76,7 +78,7 @@ pub enum Token<'source> {
     OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
-    BigOp(Op),
+    BigOp(Big),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),
@@ -98,7 +100,7 @@ pub enum Token<'source> {
 impl Token<'_> {
     /// Returns `true` if `self` and `other` are of the same kind.
     /// Note that this does not compare the content of the tokens.
-    pub(crate) fn is_same_kind(&self, other: &Token) -> bool {
+    pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
     }
 }

@@ -5,11 +5,11 @@ expression: "+, -, \\pm, \\mp, \\dotplus"
 <math>
     <mo>+</mo>
     <mo>,</mo>
-    <mo>−</mo>
+    <mo form="prefix">−</mo>
     <mo>,</mo>
-    <mo>±</mo>
+    <mo form="prefix">±</mo>
     <mo>,</mo>
-    <mo>∓</mo>
+    <mo form="prefix">∓</mo>
     <mo>,</mo>
-    <mo>∔</mo>
+    <mo form="prefix">∔</mo>
 </math>

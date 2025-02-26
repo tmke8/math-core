@@ -588,10 +588,13 @@ mod tests {
 
     #[test]
     fn render_operator() {
-        assert_eq!(render(&Node::Operator(ops::PLUS_SIGN, None)), "<mo>+</mo>");
+        assert_eq!(
+            render(&Node::Operator(ops::EQUALS_SIGN.into(), None)),
+            "<mo>=</mo>"
+        );
         assert_eq!(
             render(&Node::Operator(
-                ops::N_ARY_SUMMATION,
+                ops::N_ARY_SUMMATION.into(),
                 Some(OpAttr::NoMovableLimits)
             )),
             "<mo movablelimits=\"false\">∑</mo>"
@@ -617,7 +620,7 @@ mod tests {
     fn render_operator_with_spacing() {
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::COLON,
+                op: ops::COLON.into(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
             }),
@@ -625,7 +628,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::COLON,
+                op: ops::COLON.into(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
             }),
@@ -633,7 +636,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::IDENTICAL_TO,
+                op: ops::IDENTICAL_TO.into(),
                 left: Some(MathSpacing::Zero),
                 right: None,
             }),
@@ -694,7 +697,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverOp(
-                ops::MACRON,
+                ops::MACRON.into(),
                 Some(OpAttr::StretchyFalse),
                 &Node::SingleLetterIdent('x', false),
             )),
@@ -702,7 +705,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OverOp(
-                ops::OVERLINE,
+                ops::OVERLINE.into(),
                 None,
                 &Node::SingleLetterIdent('x', false),
             )),
@@ -714,7 +717,7 @@ mod tests {
     fn render_under_op() {
         assert_eq!(
             render(&Node::UnderOp(
-                ops::LOW_LINE,
+                ops::LOW_LINE.into(),
                 &Node::SingleLetterIdent('x', false),
             )),
             "<munder><mi>x</mi><mo accent=\"true\">_</mo></munder>"
@@ -725,8 +728,8 @@ mod tests {
     fn render_overset() {
         assert_eq!(
             render(&Node::Overset {
-                symbol: &Node::Operator(ops::EXCLAMATION_MARK, None),
-                target: &Node::Operator(ops::EQUALS_SIGN, None),
+                symbol: &Node::Operator(ops::EXCLAMATION_MARK.into(), None),
+                target: &Node::Operator(ops::EQUALS_SIGN.into(), None),
             }),
             "<mover><mo>=</mo><mo>!</mo></mover>"
         );
@@ -829,7 +832,7 @@ mod tests {
     fn render_row_slice() {
         let nodes = &[
             &Node::SingleLetterIdent('x', false),
-            &Node::Operator(ops::PLUS_SIGN, None),
+            &Node::Operator(ops::EQUALS_SIGN.into(), None),
             &Node::Number("1"),
         ];
 
@@ -838,7 +841,7 @@ mod tests {
                 nodes,
                 style: Some(Style::DisplayStyle)
             }),
-            "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
+            "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
     }
 

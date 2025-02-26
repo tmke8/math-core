@@ -317,6 +317,7 @@ mod tests {
             ("odv", r"\odv{f}{x}"),
             ("xrightarrow", r"\xrightarrow{x}"),
             ("slashed", r"\slashed{\partial}"),
+            ("plus_after_equal", r"x = +4"),
         ];
 
         for (name, problem) in problems.into_iter() {

@@ -24,6 +24,7 @@ pub(crate) struct Parser<'arena, 'source> {
     collector: LetterCollector<'arena>,
     is_bold_italic: bool,
     is_after_colon: bool,
+    is_after_relation: bool,
 }
 impl<'arena, 'source> Parser<'arena, 'source>
 where
@@ -39,6 +40,7 @@ where
             collector: LetterCollector::Inactive,
             is_bold_italic: false,
             is_after_colon: false,
+            is_after_relation: false,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -55,6 +57,10 @@ where
 
             // Loop until we find a non-letter token.
             while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
+                // We stop collecting if we encounter an upright letter while in bold italic mode.
+                // This is because the bold-italic transformation has to handle upright letters
+                // differently, and this wouldn't be possible anymore if we merged these letters
+                // here together with the non-upright letters.
                 if matches!(tok, Token::UprightLetter(_)) && self.is_bold_italic {
                     break;
                 }
@@ -98,7 +104,8 @@ where
     /// If `eof_as_end_token` is `false`, an error is returned if the input ends before the end
     /// token.
     ///
-    /// Note that this function does not consume the end token.
+    /// Note that this function does not consume the end token. That's because the end token might
+    /// be used by the calling function to emit another node.
     fn parse_sequence(
         &mut self,
         end_token: Token<'static>,
@@ -106,7 +113,8 @@ where
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
 
-        while !self.peek.token().is_same_kind(&end_token) {
+        // Because we don't want to consume the end token, we just peek here.
+        while !self.peek.token().is_same_kind_as(&end_token) {
             let cur_tokloc = self.next_token();
             if matches!(cur_tokloc.token(), Token::EOF) {
                 if eof_as_end_token {
@@ -164,6 +172,8 @@ where
         let TokLoc(loc, cur_token) = cur_tokloc;
         let is_after_colon = self.is_after_colon;
         self.is_after_colon = false;
+        let is_after_relation = self.is_after_relation;
+        self.is_after_relation = false;
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -178,7 +188,7 @@ where
                         } else {
                             let ch = match self.peek.token() {
                                 Token::Letter(ops::FULL_STOP) => Some('.'),
-                                Token::Operator(ops::COMMA) => Some(','),
+                                Token::Relation(ops::COMMA) => Some(','),
                                 _ => None,
                             };
                             if let Some(ch) = ch {
@@ -199,17 +209,26 @@ where
             }
             Token::Letter(x) => Node::SingleLetterIdent(x, false),
             Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
-            Token::Operator(op) => {
-                if is_after_colon && matches!(op, ops::IDENTICAL_TO) {
+            Token::Relation(relation) => {
+                self.is_after_relation = true;
+                if is_after_colon && matches!(relation, ops::IDENTICAL_TO) {
                     Node::OperatorWithSpacing {
-                        op,
+                        op: relation.into(),
                         left: Some(MathSpacing::Zero),
                         right: None,
                     }
                 } else {
-                    Node::Operator(op, None)
+                    Node::Operator(relation.into(), None)
                 }
             }
+            Token::BinaryOp(binary_op) => Node::Operator(
+                binary_op.into(),
+                if is_after_relation {
+                    Some(OpAttr::FormPrefix)
+                } else {
+                    None
+                },
+            ),
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
@@ -292,9 +311,9 @@ where
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_next(true)?;
                 if is_over {
-                    Node::OverOp(op, attr, target)
+                    Node::OverOp(op.into(), attr, target)
                 } else {
-                    Node::UnderOp(op, target)
+                    Node::UnderOp(op.into(), target)
                 }
             }
             Token::Overset | Token::Underset => {
@@ -308,7 +327,7 @@ where
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(true)?;
-                let symbol = self.commit(Node::Operator(x, None));
+                let symbol = self.commit(Node::Operator(x.into(), None));
                 let base = if is_over {
                     Node::Overset { symbol, target }
                 } else {
@@ -338,9 +357,9 @@ where
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.commit(Node::Operator(op, Some(OpAttr::NoMovableLimits)))
+                    self.commit(Node::Operator(op.into(), Some(OpAttr::NoMovableLimits)))
                 } else {
-                    self.commit(Node::Operator(op, None))
+                    self.commit(Node::Operator(op.into(), None))
                 };
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
@@ -373,15 +392,15 @@ where
             Token::Not => {
                 // `\not` has to be followed by something:
                 match self.next_token().into_token() {
-                    Token::Operator(op) => {
+                    Token::Relation(op) => {
                         if let Some(negated) = get_negated_op(op) {
-                            Node::Operator(negated, None)
+                            Node::Operator(negated.into(), None)
                         } else {
-                            Node::Operator(op, None)
+                            Node::Operator(op.into(), None)
                         }
                     }
-                    Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN, None),
-                    Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN, None),
+                    Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN.into(), None),
+                    Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN.into(), None),
                     Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
@@ -413,7 +432,7 @@ where
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.commit(Node::Operator(int, None));
+                    let target = self.commit(Node::Operator(int.into(), None));
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -425,7 +444,7 @@ where
                         Bounds(None, None) => return Ok(target),
                     }
                 } else {
-                    let target = self.commit(Node::Operator(int, None));
+                    let target = self.commit(Node::Operator(int.into(), None));
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
@@ -435,20 +454,20 @@ where
                 }
             }
             Token::Colon => match &self.peek.token() {
-                Token::Operator(ops::EQUALS_SIGN) if !wants_arg => {
+                Token::Relation(ops::EQUALS_SIGN) if !wants_arg => {
                     self.next_token(); // Discard the equals_sign token.
-                    Node::Operator(ops::COLON_EQUALS, None)
+                    Node::Operator(ops::COLON_EQUALS.into(), None)
                 }
-                Token::Operator(ops::IDENTICAL_TO) if !wants_arg => {
+                Token::Relation(ops::IDENTICAL_TO) if !wants_arg => {
                     self.is_after_colon = true;
                     Node::OperatorWithSpacing {
-                        op: ops::COLON,
+                        op: ops::COLON.into(),
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     }
                 }
                 _ => Node::OperatorWithSpacing {
-                    op: ops::COLON,
+                    op: ops::COLON.into(),
                     left: Some(MathSpacing::FourMu),
                     right: Some(MathSpacing::FourMu),
                 },
@@ -458,7 +477,7 @@ where
                 self.next_token(); // Discard the closing token.
                 return Ok(self.node_vec_to_node(content, None));
             }
-            Token::Paren(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
+            Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
                 Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
@@ -468,7 +487,7 @@ where
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
-                    Token::Paren(open) => open,
+                    Token::Delimiter(open) => open,
                     Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter(ops::FULL_STOP) => ops::NULL,
@@ -486,7 +505,7 @@ where
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
-                    Token::Paren(close) => close,
+                    Token::Delimiter(close) => close,
                     Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     Token::Letter(ops::FULL_STOP) => ops::NULL,
@@ -510,14 +529,14 @@ where
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let op = match next_token {
-                    Token::Paren(op) => op,
+                    Token::Delimiter(op) => op,
                     Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Paren(ops::NULL),
+                                expected: &Token::Delimiter(ops::NULL),
                                 got: next_token,
                             },
                         ));
@@ -528,14 +547,14 @@ where
             Token::Big(size) => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
-                    Token::Paren(paren) => paren,
+                    Token::Delimiter(paren) => paren,
                     Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Paren(ops::NULL),
+                                expected: &Token::Delimiter(ops::NULL),
                                 got: next_token,
                             },
                         ));
@@ -687,7 +706,7 @@ where
                     nodes: &[],
                     style: None,
                 });
-                let symbol = self.commit(Node::Operator(ops::PRIME, None));
+                let symbol = self.commit(Node::Operator(ops::PRIME.into(), None));
                 Node::Superscript { target, symbol }
             }
             Token::Underscore => {
@@ -841,7 +860,7 @@ where
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
-        static PRIME_SELECTION: [ops::Op; 4] = [
+        static PRIME_SELECTION: [ops::Rel; 4] = [
             ops::PRIME,
             ops::DOUBLE_PRIME,
             ops::TRIPLE_PRIME,
@@ -850,10 +869,10 @@ where
         if prime_count > 0 {
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
-                primes.push(self.commit(Node::Operator(*op, None)));
+                primes.push(self.commit(Node::Operator(op.into(), None)));
             } else {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(ops::PRIME, None)));
+                    primes.push(self.commit(Node::Operator(ops::PRIME.into(), None)));
                 }
             }
         }
