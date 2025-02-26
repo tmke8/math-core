@@ -236,14 +236,10 @@ where
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
-                // The default line thickness in LaTeX is 0.4pt.
-                // TODO: Support other line thicknesses.
-                // We could maybe store them as multiples of 0.4pt,
-                // so that we can render them as percentages.
                 let lt = match self.parse_text_group()?.trim() {
                     "" => None,
                     decimal => Some(Length::from_str(decimal)
-                        .map_err(|LengthParseError| LatexError(0, LatexErrKind::UnexpectedEOF))?),
+                        .map_err(|LengthParseError| LatexError(0, LatexErrKind::ExpectedLength(decimal)))?),
                 };
                 let style = match self.parse_token()? {
                     Node::Number(num) => match num.as_bytes() {

@@ -34,6 +34,7 @@ pub enum LatexErrKind<'source> {
         correct_place: Place,
     },
     ExpectedText(&'static str),
+    ExpectedLength(&'source str),
 }
 
 #[derive(Debug, AsRefStr)]
@@ -91,6 +92,7 @@ impl LatexErrKind<'_> {
                     + "."
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
+            LatexErrKind::ExpectedLength(got) => "Expected length with units, got \"".to_string() + got.as_ref() + "\".",
         }
     }
 }
