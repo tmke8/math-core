@@ -256,6 +256,13 @@ mod tests {
                 r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
             ),
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
+            ("genfrac_1pt", r"\genfrac(]{1pt}{2}{a+b}{c+d}"),
+            (
+                "genfrac_1pt_with_space",
+                r"\genfrac(]{  1pt     }{2}{a+b}{c+d}",
+            ),
+            ("genfrac_0.4pt", r"\genfrac(]{0.4pt}{2}{a+b}{c+d}"),
+            ("genfrac_1px", r"\genfrac(]{1px}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),
             ("not_less_than", r"\not\lt"),
             ("not_less_than_symbol", r"\not< x"),
@@ -368,6 +375,7 @@ mod tests {
             ("sup_sup", "x^2^3 y"),
             ("sub_sub", "x_2_3 y"),
             ("no_rbrack_instead_of_bracket", r"\sqrt[3\rbrack{1}"),
+            ("genfrac_wrong_unit", r"\genfrac(]{1pg}{2}{a+b}{c+d}"),
         ];
 
         for (name, problem) in problems.into_iter() {

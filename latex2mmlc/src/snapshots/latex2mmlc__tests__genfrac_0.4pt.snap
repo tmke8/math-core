@@ -1,11 +1,11 @@
 ---
 source: latex2mmlc/src/lib.rs
-expression: "\\genfrac(]{0pt}{2}{a+b}{c+d}"
+expression: "\\genfrac(]{0.4pt}{2}{a+b}{c+d}"
 ---
 <math>
     <mrow displaystyle="false" scriptlevel="1">
         <mo>(</mo>
-        <mfrac linethickness="0">
+        <mfrac linethickness="0.4pt">
             <mrow>
                 <mi>a</mi>
                 <mo>+</mo>

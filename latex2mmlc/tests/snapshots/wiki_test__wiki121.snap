@@ -5,7 +5,7 @@ expression: "\\dbinom{n}{k}"
 <math>
     <mrow>
         <mo>(</mo>
-        <mfrac linethickness="0pt" displaystyle="true">
+        <mfrac linethickness="0" displaystyle="true">
             <mi>n</mi>
             <mi>k</mi>
         </mfrac>
