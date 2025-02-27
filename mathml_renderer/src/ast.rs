@@ -381,7 +381,9 @@ impl<'arena> MathMLEmitter<'arena> {
             Node::Frac { num, den, lt, attr } => {
                 push!(self.s, "<mfrac");
                 if let Some(lt) = lt {
-                    push!(self.s, " linethickness=\"", lt.to_string(), "\"");
+                    push!(self.s, " linethickness=\"");
+                    lt.push_to_string(&mut self.s);
+                    push!(self.s, "\"");
                 }
                 if let Some(style) = attr {
                     push!(self.s, style);
@@ -817,10 +819,10 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some(Length::from_pt(1)),
+                lt: Some(Length::from_pt(-1)),
                 attr: None,
             }),
-            "<mfrac linethickness=\"1pt\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"-1pt\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {

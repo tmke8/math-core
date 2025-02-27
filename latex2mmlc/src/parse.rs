@@ -236,10 +236,12 @@ where
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
-                let lt = match self.parse_text_group()?.trim() {
+                let (loc, length) = self.parse_text_group()?;
+                let lt = match length.trim() {
                     "" => None,
-                    decimal => Some(Length::from_str(decimal)
-                        .map_err(|LengthParseError| LatexError(0, LatexErrKind::ExpectedLength(decimal)))?),
+                    decimal => Some(Length::from_str(decimal).map_err(|LengthParseError| {
+                        LatexError(loc, LatexErrKind::ExpectedLength(decimal))
+                    })?),
                 };
                 let style = match self.parse_token()? {
                     Node::Number(num) => match num.as_bytes() {
@@ -556,7 +558,7 @@ where
             Token::Begin => {
                 self.check_lbrace()?;
                 // Read the environment name.
-                let env_name = self.parse_text_group()?;
+                let env_name = self.parse_text_group()?.1;
                 let content = self.parse_group(Token::End)?.finish();
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -617,7 +619,7 @@ where
                     }
                 };
                 self.check_lbrace()?;
-                let end_name = self.parse_text_group()?;
+                let end_name = self.parse_text_group()?.1;
                 if end_name != env_name {
                     return Err(LatexError(
                         end_token_loc,
@@ -792,11 +794,13 @@ where
     }
 
     /// Parse the contents of a group which can only contain text.
-    fn parse_text_group(&mut self) -> Result<&'source str, LatexError<'source>> {
-        let result = self.l.read_environment_name();
+    fn parse_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
+        let result = self.l.read_length_or_env_name();
         // Discard the opening token (which is still stored as `peek`).
         let opening_loc = self.next_token().location();
-        result.ok_or(LatexError(opening_loc, LatexErrKind::UnparsableEnvName))
+        result
+            .map(|r| (opening_loc, r))
+            .ok_or(LatexError(opening_loc, LatexErrKind::UnparsableEnvName))
     }
 
     fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
@@ -1041,6 +1045,7 @@ mod tests {
             ("number_with_spaces_with_dots", r"1 2. 3  ,  4"),
             ("number_with_spaces_in_text", r"\text{1 2  3    4}"),
             ("comment", "\\text{% comment}\n\\%as}"),
+            ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

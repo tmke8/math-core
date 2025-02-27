@@ -11,20 +11,21 @@
 //! [CSS values and units 4]:
 //!     https://www.w3.org/TR/css-values-4/#absolute-lengths
 
-use std::error::Error;
-use std::fmt::{self, Debug, Display, Formatter};
+use std::mem::MaybeUninit;
 use std::num::NonZeroI32;
 use std::str::FromStr;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
+use crate::itoa::fmt_i32;
+
 const PT_IN_LEN: i32 = 360;
 const PX_IN_LEN: i32 = 480;
 
 /// An absolute length.
 /// See [the module][crate::length] for more information.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Length(NonZeroI32);
@@ -43,44 +44,52 @@ impl Length {
     fn from_value(value: i32) -> Length {
         Length(NonZeroI32::new(value.wrapping_add(i32::MIN)).unwrap_or(NonZeroI32::MIN))
     }
+
     fn value(self) -> i32 {
         i32::from(self.0).wrapping_sub(i32::MIN)
     }
 
-    fn write_impl(self, f: &mut Formatter<'_>, conv: i32, unit: &str) -> fmt::Result {
+    fn write_impl(self, output: &mut String, conv: i32, unit: &str) {
         let value = self.value();
-        <i32 as Display>::fmt(&(value / conv), f)?;
+        let mut buf = [MaybeUninit::uninit(); 11];
+        output.push_str(fmt_i32(value / conv, &mut buf));
         let frac = value % conv;
         if frac != 0 {
             // only write two decimal points
-            f.write_str(".")?;
-            <i32 as Display>::fmt(&(frac * 10 / conv), f)?;
+            output.push('.');
+            output.push_str(fmt_i32(frac * 10 / conv, &mut buf));
             let frac = (frac * 10) % conv;
             if frac != 0 {
-                <i32 as Display>::fmt(&(frac * 10 / conv), f)?;
+                output.push_str(fmt_i32(frac * 10 / conv, &mut buf));
             }
         }
-        f.write_str(unit)
+        output.push_str(unit)
     }
 
-    pub fn display_px(self) -> impl fmt::Display {
-        struct Wrap(Length);
-        impl Display for Wrap {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.0.write_impl(f, PX_IN_LEN, "px")
-            }
-        }
-        Wrap(self)
+    #[cfg(test)]
+    fn display_px(self, output: &mut String) {
+        self.write_impl(output, PX_IN_LEN, "px")
     }
 
-    pub fn display_pt(self) -> impl fmt::Display {
-        struct Wrap(Length);
-        impl Display for Wrap {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.0.write_impl(f, PT_IN_LEN, "pt")
-            }
+    #[cfg(test)]
+    fn display_pt(self, output: &mut String) {
+        self.write_impl(output, PT_IN_LEN, "pt")
+    }
+
+    pub fn push_to_string(&self, output: &mut String) {
+        let value = self.value();
+        if value == 0 {
+            output.push('0');
+        } else {
+            let (conv, unit) = if value % (PT_IN_LEN / 10) == 0 || value % (PX_IN_LEN / 10) != 0 {
+                // If this measure can be serialized in 10ths of a point,
+                // do that.
+                (PT_IN_LEN, "pt")
+            } else {
+                (PX_IN_LEN, "px")
+            };
+            self.write_impl(output, conv, unit)
         }
-        Wrap(self)
     }
 }
 
@@ -101,14 +110,14 @@ impl FromStr for Length {
             if digit == b'.' {
                 break;
             }
-            if digit < b'0' || digit > b'9' {
+            if !(b'0'..=b'9').contains(&digit) {
                 return Err(LengthParseError);
             }
             acc *= 10;
             acc += i32::from(digit - b'0');
         }
         for digit in &mut digits {
-            if digit < b'0' || digit > b'9' {
+            if !(b'0'..=b'9').contains(&digit) {
                 return Err(LengthParseError);
             }
             acc *= 10;
@@ -119,45 +128,9 @@ impl FromStr for Length {
     }
 }
 
-impl Display for Length {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let value = self.value();
-        if value == 0 {
-            f.write_str("0")
-        } else {
-            let (conv, unit) = if value % (PT_IN_LEN / 10) == 0 || value % (PX_IN_LEN / 10) != 0 {
-                // If this measure can be serialized in 10ths of a point,
-                // do that.
-                (PT_IN_LEN, "pt")
-            } else {
-                (PX_IN_LEN, "px")
-            };
-            self.write_impl(f, conv, unit)
-        }
-    }
-}
-impl Debug for Length {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("Length(")?;
-        <Self as Display>::fmt(self, f)?;
-        f.write_str(")")
-    }
-}
-
 /// A failed conversion from decimal to `Length`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LengthParseError;
-
-impl Error for LengthParseError {}
-impl Display for LengthParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("Length parse error")
-    }
-}
-impl Debug for LengthParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("LengthParseError")
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -166,7 +139,11 @@ mod tests {
     #[test]
     fn round_trip_pt_default() {
         fn rt(s: &str) {
-            assert_eq!(s, &Length::from_str(s).expect("valid").to_string());
+            let mut output = String::new();
+            Length::from_str(s)
+                .expect("valid")
+                .push_to_string(&mut output);
+            assert_eq!(s, &output);
         }
         for i in 1..10 {
             rt(&format!("{i}pt"));
@@ -183,7 +160,9 @@ mod tests {
     #[test]
     fn round_trip_px() {
         fn rt(s: &str) {
-            assert_eq!(s, &Length::from_str(s).expect("valid").display_px().to_string());
+            let mut output = String::new();
+            Length::from_str(s).expect("valid").display_px(&mut output);
+            assert_eq!(s, &output);
         }
         for i in 1..10 {
             rt(&format!("{i}px"));
@@ -200,7 +179,9 @@ mod tests {
     #[test]
     fn round_trip_pt() {
         fn rt(s: &str) {
-            assert_eq!(s, &Length::from_str(s).expect("valid").display_pt().to_string());
+            let mut output = String::new();
+            Length::from_str(s).expect("valid").display_pt(&mut output);
+            assert_eq!(s, &output);
         }
         for i in 1..10 {
             rt(&format!("{i}pt"));
@@ -214,4 +195,3 @@ mod tests {
         }
     }
 }
-

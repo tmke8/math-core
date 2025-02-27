@@ -92,7 +92,9 @@ impl LatexErrKind<'_> {
                     + "."
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
-            LatexErrKind::ExpectedLength(got) => "Expected length with units, got \"".to_string() + got.as_ref() + "\".",
+            LatexErrKind::ExpectedLength(got) => {
+                "Expected length with units, got \"".to_string() + got + "\"."
+            }
         }
     }
 }

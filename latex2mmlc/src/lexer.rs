@@ -84,10 +84,10 @@ impl<'source> Lexer<'source> {
     ///
     /// Returns `None` if there are any non-alphanumeric characters before the `}`.
     #[inline]
-    pub(crate) fn read_environment_name(&mut self) -> Option<&'source str> {
+    pub(crate) fn read_length_or_env_name(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
 
-        while self.peek.1.is_ascii_alphanumeric() {
+        while self.peek.1.is_ascii_alphanumeric() || matches!(self.peek.1, '.' | ' ') {
             self.read_char();
         }
 
