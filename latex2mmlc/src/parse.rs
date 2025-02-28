@@ -7,7 +7,7 @@ use mathml_renderer::{
     attribute::{
         Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
     },
-    length::{Length, LengthParseError},
+    length::Length,
     ops,
 };
 
@@ -283,9 +283,10 @@ where
                 let (loc, length) = self.parse_text_group()?;
                 let lt = match length.trim() {
                     "" => None,
-                    decimal => Some(Length::from_str(decimal).map_err(|LengthParseError| {
-                        LatexError(loc, LatexErrKind::ExpectedLength(decimal))
-                    })?),
+                    decimal => Some(
+                        Length::from_str(decimal)
+                            .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
+                    ),
                 };
                 let style = match self.parse_next(true)? {
                     Node::Number(num) => match num.as_bytes() {

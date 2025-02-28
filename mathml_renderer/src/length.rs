@@ -26,17 +26,17 @@ const PX_IN_LEN: i32 = 480;
 /// An absolute length.
 /// See [the module][crate::length] for more information.
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Length(NonZeroI32);
 
 impl Length {
     pub fn from_pt(pt: i32) -> Length {
         Length::from_value(pt * PT_IN_LEN)
     }
+
     pub fn from_twip(twip: i32) -> Length {
         Length::from_value(twip * (PT_IN_LEN / 10) / 2)
     }
+
     pub fn from_px(px: i32) -> Length {
         Length::from_value(px * PX_IN_LEN)
     }
@@ -94,16 +94,24 @@ impl Length {
 }
 
 impl FromStr for Length {
-    type Err = LengthParseError;
-    fn from_str(s: &str) -> Result<Length, LengthParseError> {
-        let conv = if s.ends_with("pt") {
-            PT_IN_LEN
-        } else if s.ends_with("px") {
-            PX_IN_LEN
-        } else {
-            return Err(LengthParseError);
+    type Err = ();
+    fn from_str(s: &str) -> Result<Length, Self::Err> {
+        let len = s.len();
+        // We need at least 2 characters to have a unit.
+        let Some(unit_offset) = len.checked_sub(2) else {
+            return Err(());
         };
-        let mut digits = s[..s.len() - 2].bytes();
+        // Check whether we can split the string at the unit offset.
+        // (This can fail if `unit_offset` is not a valid UTF-8 boundary.)
+        let Some((digits, unit)) = s.split_at_checked(unit_offset) else {
+            return Err(());
+        };
+        let conv = match unit {
+            "pt" => PT_IN_LEN,
+            "px" => PX_IN_LEN,
+            _ => return Err(()),
+        };
+        let mut digits = digits.bytes();
         let mut acc = 0;
         let mut div = 1;
         for digit in &mut digits {
@@ -111,14 +119,14 @@ impl FromStr for Length {
                 break;
             }
             if !(b'0'..=b'9').contains(&digit) {
-                return Err(LengthParseError);
+                return Err(());
             }
             acc *= 10;
             acc += i32::from(digit - b'0');
         }
         for digit in &mut digits {
             if !(b'0'..=b'9').contains(&digit) {
-                return Err(LengthParseError);
+                return Err(());
             }
             acc *= 10;
             acc += i32::from(digit - b'0');
@@ -128,9 +136,12 @@ impl FromStr for Length {
     }
 }
 
-/// A failed conversion from decimal to `Length`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LengthParseError;
+#[cfg(feature = "serde")]
+impl Serialize for Length {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_i32(self.value())
+    }
+}
 
 #[cfg(test)]
 mod tests {
