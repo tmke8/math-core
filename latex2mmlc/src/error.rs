@@ -25,6 +25,7 @@ pub enum LatexErrKind<'source> {
     UnparsableEnvName,
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
+    UnknownColor(&'source str),
     MismatchedEnvironment {
         expected: &'source str,
         got: &'source str,
@@ -81,6 +82,7 @@ impl LatexErrKind<'_> {
                 "Unknown environment \"".to_string() + environment + "\"."
             }
             LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
+            LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\"."
             }

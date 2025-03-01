@@ -6,6 +6,7 @@ use serde::Serialize;
 use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, Size, StretchMode, Stretchy, Style,
 };
+use crate::color::RGB;
 use crate::length::Length;
 use crate::ops::{Op, ParenOp};
 
@@ -70,6 +71,10 @@ pub enum Node<'arena> {
     Row {
         nodes: &'arena [&'arena Node<'arena>],
         style: Option<Style>,
+    },
+    ColorRow {
+        nodes: &'arena [&'arena Node<'arena>],
+        color: RGB,
     },
     Fenced {
         style: Option<Style>,
@@ -396,6 +401,15 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 pushln!(&mut self.s, base_indent, "</mrow>");
             }
+            Node::ColorRow { nodes, color } => {
+                push!(self.s, "<mrow style=\"color:");
+                color.append_as_hex(&mut self.s);
+                push!(self.s, ";\">");
+                for node in nodes.iter() {
+                    self.emit(node, child_indent);
+                }
+                pushln!(&mut self.s, base_indent, "</mrow>");
+            }
             Node::Fenced {
                 open,
                 close,
@@ -564,6 +578,7 @@ fn new_line_and_indent(s: &mut String, indent_num: usize) {
 mod tests {
     use super::{MathMLEmitter, Node};
     use crate::attribute::{FracAttr, MathSpacing, MathVariant, OpAttr, Style, TextTransform};
+    use crate::color::RGB;
     use crate::length::Length;
     use crate::ops;
 
@@ -852,7 +867,7 @@ mod tests {
     }
 
     #[test]
-    fn render_row_slice() {
+    fn render_row() {
         let nodes = &[
             &Node::SingleLetterIdent('x', false),
             &Node::Operator(ops::EQUALS_SIGN.into(), None),
@@ -865,6 +880,23 @@ mod tests {
                 style: Some(Style::DisplayStyle)
             }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_color_row() {
+        let nodes = &[
+            &Node::SingleLetterIdent('x', false),
+            &Node::Operator(ops::EQUALS_SIGN.into(), None),
+            &Node::Number("1"),
+        ];
+
+        assert_eq!(
+            render(&Node::ColorRow {
+                nodes,
+                color: RGB::new(0, 0, 0)
+            }),
+            "<mrow style=\"color:#000000;\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
     }
 

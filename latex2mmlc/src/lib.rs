@@ -48,6 +48,7 @@
 //!
 use mathml_renderer::arena::Arena;
 
+mod color_defs;
 pub(crate) mod commands;
 mod error;
 pub(crate) mod lexer;
@@ -325,6 +326,7 @@ mod tests {
             ("xrightarrow", r"\xrightarrow{x}"),
             ("slashed", r"\slashed{\partial}"),
             ("plus_after_equal", r"x = +4"),
+            ("color", r"{\color{Blue}x^2}"),
         ];
 
         for (name, problem) in problems.into_iter() {

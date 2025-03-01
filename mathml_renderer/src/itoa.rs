@@ -42,6 +42,31 @@ pub fn fmt_u32(mut n: u32, buf: &mut [MaybeUninit<u8>; MAX_DEC_N]) -> &str {
     }
 }
 
+pub fn fmt_u8_as_hex(b: u8, buf: &mut [MaybeUninit<u8>; 2]) -> &str {
+    let buf_ptr = buf.as_mut_ptr() as *mut u8;
+
+    // SAFETY: We're writing exactly 2 bytes (for hex representation of a u8)
+    // which is within the bounds of our 2-byte buffer
+    unsafe {
+        // Write the high nibble
+        buf_ptr.write(digit_to_hex_ascii(b >> 4));
+        // Write the low nibble
+        buf_ptr.add(1).write(digit_to_hex_ascii(b & 0xF));
+    }
+
+    // SAFETY: Both bytes are valid ASCII (and thus UTF-8)
+    unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(buf_ptr, 2)) }
+}
+
+#[inline]
+fn digit_to_hex_ascii(digit: u8) -> u8 {
+    match digit {
+        0..=9 => digit + b'0',
+        10..=15 => digit - 10 + b'A',
+        _ => unreachable!("Invalid hex digit"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,5 +79,16 @@ mod tests {
         assert_eq!(fmt_u32(10, &mut buf), "10");
         assert_eq!(fmt_u32(1234567890, &mut buf), "1234567890");
         assert_eq!(fmt_u32(u32::MAX, &mut buf), "4294967295");
+    }
+
+    #[test]
+    fn test_fmt_u8_hex() {
+        let mut buf = [MaybeUninit::uninit(); 2];
+        assert_eq!(fmt_u8_as_hex(0, &mut buf), "00");
+        assert_eq!(fmt_u8_as_hex(1, &mut buf), "01");
+        assert_eq!(fmt_u8_as_hex(10, &mut buf), "0A");
+        assert_eq!(fmt_u8_as_hex(15, &mut buf), "0F");
+        assert_eq!(fmt_u8_as_hex(16, &mut buf), "10");
+        assert_eq!(fmt_u8_as_hex(255, &mut buf), "FF");
     }
 }

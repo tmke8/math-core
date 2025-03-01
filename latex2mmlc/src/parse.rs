@@ -12,6 +12,7 @@ use mathml_renderer::{
 };
 
 use crate::{
+    color_defs::get_color,
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
@@ -682,6 +683,17 @@ where
             }
             Token::Ampersand => Node::ColumnSeparator,
             Token::NewLine => Node::RowSeparator,
+            Token::Color => {
+                let (loc, color_name) = self.parse_text_group()?;
+                let Some(color) = get_color(color_name) else {
+                    return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
+                };
+                let content = self.parse_sequence(Token::GroupEnd, true)?;
+                Node::ColorRow {
+                    nodes: self.arena.push_slice(&content),
+                    color,
+                }
+            }
             Token::Style(style) => {
                 let content = self.parse_sequence(Token::GroupEnd, true)?;
                 Node::Row {

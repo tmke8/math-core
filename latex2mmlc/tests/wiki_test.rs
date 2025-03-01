@@ -263,8 +263,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 172);
-    assert_eq!(n_fail, 36);
+    assert_eq!(n_diff, 177);
+    assert_eq!(n_fail, 31);
 }
 
 /// Prettify HTML input
@@ -673,11 +673,26 @@ fn test_nonfailing_wiki_tests() {
         (187, r"\text{if} n \text{is even}"),
         (188, r"\text{if }n\text{ is even}"),
         (189, r"\text{if}~n\ \text{is even}"),
-        // (190, r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}"),
-        // (191, r"x_{1,2}=\frac{{\color{Blue}-b}\pm \sqrt{\color{Red}b^2-4ac}}{\color{Green}2a }"),
-        // (192, r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}"),
-        // (193, r"\color{Blue}x^2\color{Black}+\color{Orange} 2x\color{Black}-\color{LimeGreen}1"),
-        // (194, r"\color{Blue}{x^2}+\color{Orange}{2x}- \color{LimeGreen}{1}"),
+        (
+            190,
+            r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}",
+        ),
+        (
+            191,
+            r"x_{1,2}=\frac{{\color{Blue}-b}\pm \sqrt{\color{Red}b^2-4ac}}{\color{Green}2a }",
+        ),
+        (
+            192,
+            r"{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}",
+        ),
+        (
+            193,
+            r"\color{Blue}x^2\color{Black}+\color{Orange} 2x\color{Black}-\color{LimeGreen}1",
+        ),
+        (
+            194,
+            r"\color{Blue}{x^2}+\color{Orange}{2x}- \color{LimeGreen}{1}",
+        ),
         // (195, r"\definecolor{myorange}{rgb}{1,0.65,0.4} \color{myorange}e^{i \pi}\color{Black} + 1= 0"),
         (
             196,
