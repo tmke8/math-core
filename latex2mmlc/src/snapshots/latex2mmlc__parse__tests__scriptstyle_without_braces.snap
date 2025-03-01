@@ -8,6 +8,6 @@ expression: "x\\scriptstyle y"
     nodes: [
       SingleLetterIdent('y', false),
     ],
-    style: Some(ScriptStyle),
+    attr: Style(ScriptStyle),
   ),
 ]

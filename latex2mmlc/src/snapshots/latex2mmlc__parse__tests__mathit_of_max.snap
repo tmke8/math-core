@@ -11,7 +11,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
         MultiLetterIdent("max"),
         CollectedLetters("αβ"),
       ],
-      style: None,
+      attr: None,
     ),
   ),
 ]

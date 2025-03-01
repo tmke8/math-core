@@ -4,7 +4,8 @@ use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, StretchMode, Style, TextTransform,
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
+        TextTransform,
     },
     length::Length,
     ops,
@@ -252,7 +253,7 @@ where
                     let degree = self.parse_sequence(Token::SquareBracketClose, false)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
-                    Node::Root(self.node_vec_to_node(degree, None), content)
+                    Node::Root(self.node_vec_to_node(degree), content)
                 } else {
                     Node::Sqrt(self.parse_token(next, true, None)?)
                 }
@@ -487,7 +488,7 @@ where
             Token::GroupBegin => {
                 let content = self.parse_sequence(Token::GroupEnd, false)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.node_vec_to_node(content, None));
+                return Ok(self.node_vec_to_node(content));
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -534,7 +535,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.node_vec_to_node(content, None),
+                    content: self.node_vec_to_node(content),
                     style: None,
                 }
             }
@@ -699,16 +700,16 @@ where
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
                 let content = self.parse_sequence(Token::GroupEnd, true)?;
-                Node::ColorRow {
+                Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    color,
+                    attr: color,
                 }
             }
             Token::Style(style) => {
                 let content = self.parse_sequence(Token::GroupEnd, true)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    style: Some(style),
+                    attr: RowAttr::Style(style),
                 }
             }
             Token::UnknownCommand(name) => {
@@ -727,7 +728,7 @@ where
             Token::Prime => {
                 let target = self.commit(Node::Row {
                     nodes: &[],
-                    style: None,
+                    attr: RowAttr::None,
                 });
                 let symbol = self.commit(Node::Operator(ops::PRIME.into(), None));
                 Node::Superscript { target, symbol }
@@ -869,7 +870,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.node_vec_to_node(primes, None))
+            Some(self.node_vec_to_node(primes))
         } else {
             sup
         };
@@ -943,17 +944,16 @@ where
     //
     // This is done either by returning the single node if there is only one,
     // or by creating a row node if there are multiple nodes.
-    fn node_vec_to_node(
-        &self,
-        list_builder: Vec<&'arena Node<'arena>>,
-        style: Option<Style>,
-    ) -> &'arena Node<'arena> {
+    fn node_vec_to_node(&self, list_builder: Vec<&'arena Node<'arena>>) -> &'arena Node<'arena> {
         if list_builder.len() == 1 {
             // Safety: We checked that there is an element.
             unsafe { list_builder.into_iter().next().unwrap_unchecked() }
         } else {
             let nodes = self.arena.push_slice(&list_builder);
-            self.commit(Node::Row { nodes, style })
+            self.commit(Node::Row {
+                nodes,
+                attr: RowAttr::None,
+            })
         }
     }
 }

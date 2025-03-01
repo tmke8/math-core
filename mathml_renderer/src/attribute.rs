@@ -103,6 +103,14 @@ pub enum MathSpacing {
     FourMu, // 4/18 of an em/\quad
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum RowAttr {
+    None,
+    Style(Style),
+    Color(u8, u8, u8),
+}
+
 // Transform of unicode characters.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]

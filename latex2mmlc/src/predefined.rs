@@ -1,6 +1,6 @@
 use mathml_renderer::{
     ast::Node::{self, *},
-    attribute::{MathSpacing, MathVariant, StretchMode},
+    attribute::{MathSpacing, MathVariant, RowAttr, StretchMode},
     ops,
 };
 
@@ -11,7 +11,7 @@ pub static MOD: Node = Row {
         &Space("0.3333"),
         &CustomCmdArg(0),
     ],
-    style: None,
+    attr: RowAttr::None,
 };
 
 pub static PMOD: Node = Row {
@@ -23,7 +23,7 @@ pub static PMOD: Node = Row {
         &CustomCmdArg(0),
         &StretchableOp(ops::RIGHT_PARENTHESIS, StretchMode::NoStretch),
     ],
-    style: None,
+    attr: RowAttr::None,
 };
 
 pub static ODV: Node = Frac {
@@ -35,7 +35,7 @@ pub static ODV: Node = Frac {
             },
             &CustomCmdArg(0),
         ],
-        style: None,
+        attr: RowAttr::None,
     },
     den: &Node::Row {
         nodes: &[
@@ -45,7 +45,7 @@ pub static ODV: Node = Frac {
             },
             &CustomCmdArg(1),
         ],
-        style: None,
+        attr: RowAttr::None,
     },
     lt: None,
     attr: None,
@@ -54,7 +54,7 @@ pub static ODV: Node = Frac {
 static XARROW_SPACING_HACK: Node = Overset {
     target: &Row {
         nodes: &[&Space("0.4286"), &CustomCmdArg(0), &Space("0.4286")],
-        style: None,
+        attr: RowAttr::None,
     },
     symbol: &Space("3.5"),
 };
@@ -72,7 +72,7 @@ pub static XRIGHTARROW: Node = Row {
         },
         &Space("0.2778"),
     ],
-    style: None,
+    attr: RowAttr::None,
 };
 
 pub static XLEFTARROW: Node = Row {
@@ -88,5 +88,5 @@ pub static XLEFTARROW: Node = Row {
         },
         &Space("0.2778"),
     ],
-    style: None,
+    attr: RowAttr::None,
 };

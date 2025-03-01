@@ -8,6 +8,6 @@ expression: "\\sqrt{4.}"
       Number("4"),
       SingleLetterIdent('.', false),
     ],
-    style: None,
+    attr: None,
   )),
 ]

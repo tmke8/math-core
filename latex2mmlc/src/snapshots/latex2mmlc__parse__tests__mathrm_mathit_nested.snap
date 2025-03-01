@@ -13,7 +13,7 @@ expression: "\\mathrm{\\mathit{a}b}"
         ),
         SingleLetterIdent('b', false),
       ],
-      style: None,
+      attr: None,
     ),
   ),
 ]

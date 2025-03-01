@@ -10,7 +10,7 @@ expression: "\\boldsymbol{\\Gamma\\varGamma}"
         SingleLetterIdent('Γ', true),
         SingleLetterIdent('Γ', false),
       ],
-      style: None,
+      attr: None,
     ),
   ),
 ]
