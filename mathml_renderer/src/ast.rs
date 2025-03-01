@@ -817,10 +817,10 @@ mod tests {
                 num,
                 den,
                 // 8/20 = 4/10
-                lt: Some(Length::from_twip(8)),
+                lt: Some(Length::from_twip(-8)),
                 attr: None,
             }),
-            "<mfrac linethickness=\"0.4pt\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"-0.4pt\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {
