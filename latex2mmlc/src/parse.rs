@@ -26,9 +26,15 @@ pub(crate) struct Parser<'arena, 'source> {
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
     is_bold_italic: bool,
-    is_after_colon: bool,
-    is_after_relation: bool,
 }
+
+/// A struct for managing the state of the sequence parser.
+#[derive(Debug, Default)]
+struct SequenceState {
+    is_colon: bool,
+    is_relation: bool,
+}
+
 impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
@@ -42,8 +48,6 @@ where
             arena,
             collector: LetterCollector::Inactive,
             is_bold_italic: false,
-            is_after_colon: false,
-            is_after_relation: false,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -115,6 +119,7 @@ where
         eof_as_end_token: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
+        let mut sequence_state = SequenceState::default();
 
         // Because we don't want to consume the end token, we just peek here.
         while !self.peek.token().is_same_kind_as(&end_token) {
@@ -131,7 +136,7 @@ where
                 }
             }
             // Parse the token.
-            let target = self.parse_token(cur_tokloc, false)?;
+            let target = self.parse_token(cur_tokloc, false, Some(&mut sequence_state))?;
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds()?;
@@ -171,12 +176,13 @@ where
         &mut self,
         cur_tokloc: TokLoc<'source>,
         wants_arg: bool,
+        mut sequence_state: Option<&mut SequenceState>,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
-        let is_after_colon = self.is_after_colon;
-        self.is_after_colon = false;
-        let is_after_relation = self.is_after_relation;
-        self.is_after_relation = false;
+        // Move out the sequence state if it exists, and replace it with the default state.
+        let prev_state = sequence_state
+            .as_mut()
+            .map_or_else(SequenceState::default, |state| mem::take(state));
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -213,8 +219,10 @@ where
             Token::Letter(x) => Node::SingleLetterIdent(x, false),
             Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
             Token::Relation(relation) => {
-                self.is_after_relation = true;
-                if is_after_colon && matches!(relation, ops::IDENTICAL_TO) {
+                if let Some(state) = sequence_state {
+                    state.is_relation = true;
+                };
+                if prev_state.is_colon && matches!(relation, ops::IDENTICAL_TO) {
                     Node::OperatorWithSpacing {
                         op: relation.into(),
                         left: Some(MathSpacing::Zero),
@@ -226,7 +234,7 @@ where
             }
             Token::BinaryOp(binary_op) => Node::Operator(
                 binary_op.into(),
-                if is_after_relation {
+                if prev_state.is_relation {
                     Some(OpAttr::FormPrefix)
                 } else {
                     None
@@ -246,7 +254,7 @@ where
                     let content = self.parse_next(true)?;
                     Node::Root(self.node_vec_to_node(degree, None), content)
                 } else {
-                    Node::Sqrt(self.parse_token(next, true)?)
+                    Node::Sqrt(self.parse_token(next, true, None)?)
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
@@ -313,9 +321,9 @@ where
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_next(true)?;
                 if is_over {
-                    Node::OverOp(op.into(), attr, target)
+                    Node::OverOp(op, attr, target)
                 } else {
-                    Node::UnderOp(op.into(), target)
+                    Node::UnderOp(op, target)
                 }
             }
             Token::Overset | Token::Underset => {
@@ -329,7 +337,7 @@ where
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(true)?;
-                let symbol = self.commit(Node::Operator(x.into(), None));
+                let symbol = self.commit(Node::Operator(x, None));
                 let base = if is_over {
                     Node::Overset { symbol, target }
                 } else {
@@ -461,7 +469,9 @@ where
                     Node::Operator(ops::COLON_EQUALS.into(), None)
                 }
                 Token::Relation(ops::IDENTICAL_TO) if !wants_arg => {
-                    self.is_after_colon = true;
+                    if let Some(state) = sequence_state {
+                        state.is_colon = true;
+                    };
                     Node::OperatorWithSpacing {
                         op: ops::COLON.into(),
                         left: Some(MathSpacing::FourMu),
@@ -744,7 +754,7 @@ where
                 let mut nodes = Vec::with_capacity(num_args);
                 for _ in 0..num_args {
                     let token = self.next_token();
-                    let node = self.parse_token(token, true)?;
+                    let node = self.parse_token(token, true, None)?;
                     nodes.push(node);
                 }
                 let args = self.arena.push_slice(&nodes);
@@ -778,7 +788,7 @@ where
     #[inline]
     fn parse_next(&mut self, wants_arg: bool) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_token(token, wants_arg)
+        self.parse_token(token, wants_arg, None)
     }
 
     /// Parse the contents of a group which can only contain text.
@@ -913,7 +923,7 @@ where
                 },
             ));
         }
-        let node = self.parse_token(next, true);
+        let node = self.parse_token(next, true, None);
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.peek.token(), Token::Prime) {

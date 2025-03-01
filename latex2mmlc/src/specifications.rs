@@ -29,14 +29,14 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
         if digit == b'.' {
             break;
         }
-        if !(b'0'..=b'9').contains(&digit) {
+        if !digit.is_ascii_digit() {
             return Err(());
         }
         acc *= 10;
         acc += u32::from(digit - b'0');
     }
     for digit in &mut digits {
-        if !(b'0'..=b'9').contains(&digit) {
+        if !digit.is_ascii_digit() {
             return Err(());
         }
         acc *= 10;
