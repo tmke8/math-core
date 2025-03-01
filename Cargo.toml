@@ -13,8 +13,8 @@ default-members = ["latex2mmlc_cli"]
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
-rust-version = "1.79"
+edition = "2024"
+rust-version = "1.85"
 license = "MIT"
 
 [profile.dev.package]

@@ -404,7 +404,10 @@ mod tests {
             ("<span class=\"math block\">", "</span>"),
         )
         .unwrap();
-        assert_eq!(result, "based on its length, [T1:P(p)=2^{-len(p)}], and then for a given\n    [T2:\n    P(p)=2^{-len(p)}\n    ]\n    Hello.");
+        assert_eq!(
+            result,
+            "based on its length, [T1:P(p)=2^{-len(p)}], and then for a given\n    [T2:\n    P(p)=2^{-len(p)}\n    ]\n    Hello."
+        );
     }
 
     #[test]
