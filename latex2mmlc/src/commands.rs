@@ -1,6 +1,6 @@
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{
-    FracAttr, MathSpacing, MathVariant, OpAttr, Size, Style, TextTransform,
+    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
 };
 use mathml_renderer::ops::{self, Rel};
 
@@ -167,7 +167,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bmod" => Token::CustomCmd(0, &Node::Row {
         nodes: &[&Node::Space("0.2222"), &Node::Text("mod"), &Node::Space("0.2222")],
-        style: None
+        attr: RowAttr::None
     }),
     "boldsymbol" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Token::Letter(ops::UP_TACK),
@@ -194,7 +194,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
             },
             &Node::Operator(ops::MIDDLE_DOT.as_op(), None),
         ],
-        style:None
+        attr: RowAttr::None
     }),
     "centerdot" => Token::Relation(ops::BULLET_OPERATOR),
     "cfrac" => Token::Frac(Some(FracAttr::CFracStyle)),

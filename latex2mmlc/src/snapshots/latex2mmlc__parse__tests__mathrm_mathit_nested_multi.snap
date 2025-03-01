@@ -14,7 +14,7 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
         ),
         CollectedLetters("ef"),
       ],
-      style: None,
+      attr: None,
     ),
   ),
 ]

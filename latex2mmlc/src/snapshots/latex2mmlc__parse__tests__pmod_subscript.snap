@@ -14,7 +14,7 @@ expression: "\\pmod{3}_4"
           CustomCmdArg(0),
           StretchableOp(ParenOp(')', false, Always), NoStretch),
         ],
-        style: None,
+        attr: None,
       ),
       args: [
         Number("3"),
