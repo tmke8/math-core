@@ -215,6 +215,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "colon" => Token::Letter(':'),
     "coloneq" => Token::Relation(ops::COLON_EQUALS),
     "coloneqq" => Token::Relation(ops::COLON_EQUALS),
+    "color" => Token::Color,
     "complement" => Token::Letter(ops::COMPLEMENT),
     "cong" => Token::Relation(ops::APPROXIMATELY_EQUAL_TO),
     "coprod" => Token::BigOp(ops::N_ARY_COPRODUCT),

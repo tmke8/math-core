@@ -48,11 +48,13 @@
 //!
 use mathml_renderer::arena::Arena;
 
+mod color_defs;
 pub(crate) mod commands;
 mod error;
 pub(crate) mod lexer;
 pub(crate) mod parse;
 pub(crate) mod predefined;
+pub(crate) mod specifications;
 pub mod token;
 
 pub use error::{LatexErrKind, LatexError};
@@ -325,6 +327,9 @@ mod tests {
             ("xrightarrow", r"\xrightarrow{x}"),
             ("slashed", r"\slashed{\partial}"),
             ("plus_after_equal", r"x = +4"),
+            ("plus_after_equal_subscript", r"x =_+4"),
+            ("plus_after_equal_subscript2", r"x =_2 +4"),
+            ("color", r"{\color{Blue}x^2}"),
         ];
 
         for (name, problem) in problems.into_iter() {

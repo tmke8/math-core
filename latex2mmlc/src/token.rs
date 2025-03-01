@@ -91,6 +91,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\text*")]
     Text(Option<TextTransform>),
     Style(Style),
+    Color,
     CustomCmd(usize, &'static Node<'static>),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
