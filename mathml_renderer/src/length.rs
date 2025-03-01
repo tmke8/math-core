@@ -13,16 +13,14 @@
 
 use std::mem::MaybeUninit;
 use std::num::{NonZeroI32, NonZeroU32};
-use std::str::FromStr;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
 use crate::itoa::fmt_u32;
 
-const PT_IN_LEN: NonZeroU32 = NonZeroU32::new(360).unwrap();
-const PX_IN_LEN: NonZeroU32 = NonZeroU32::new(480).unwrap();
-const TEN: NonZeroU32 = NonZeroU32::new(10).unwrap();
+pub const PT_IN_LEN: NonZeroU32 = NonZeroU32::new(360).unwrap();
+pub const PX_IN_LEN: NonZeroU32 = NonZeroU32::new(480).unwrap();
 
 /// An absolute length.
 /// See [the module][crate::length] for more information.
@@ -42,7 +40,7 @@ impl Length {
         Length::from_value(px * (PX_IN_LEN.get() as i32))
     }
 
-    fn from_value(value: i32) -> Length {
+    pub fn from_value(value: i32) -> Length {
         // The problem that we are trying to solve here is that we want a niche in `Length`
         // but we also want to be able to represent 0, so we cannot just use `NonZeroI32` as is.
         // What we're doing here instead is adding `i32::MIN` to the plain value, such that
@@ -59,14 +57,12 @@ impl Length {
         i32::from(self.0).wrapping_sub(i32::MIN)
     }
 
-    #[cfg(test)]
-    fn display_px(self, output: &mut String) {
+    pub fn display_px(self, output: &mut String) {
         let value = self.value();
         write_impl(value, output, PX_IN_LEN, "px")
     }
 
-    #[cfg(test)]
-    fn display_pt(self, output: &mut String) {
+    pub fn display_pt(self, output: &mut String) {
         let value = self.value();
         write_impl(value, output, PT_IN_LEN, "pt")
     }
@@ -110,49 +106,6 @@ fn write_impl(value: i32, output: &mut String, conv: NonZeroU32, unit: &str) {
     output.push_str(unit)
 }
 
-impl FromStr for Length {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Length, Self::Err> {
-        let len = s.len();
-        // We need at least 2 characters to have a unit.
-        let Some(unit_offset) = len.checked_sub(2) else {
-            return Err(());
-        };
-        // Check whether we can split the string at the unit offset.
-        // (This can fail if `unit_offset` is not a valid UTF-8 boundary.)
-        let Some((digits, unit)) = s.split_at_checked(unit_offset) else {
-            return Err(());
-        };
-        let conv = match unit {
-            "pt" => PT_IN_LEN,
-            "px" => PX_IN_LEN,
-            _ => return Err(()),
-        };
-        let mut digits = digits.bytes();
-        let mut acc: u32 = 0;
-        let mut div = const { NonZeroU32::new(1).unwrap() };
-        for digit in &mut digits {
-            if digit == b'.' {
-                break;
-            }
-            if !(b'0'..=b'9').contains(&digit) {
-                return Err(());
-            }
-            acc *= 10;
-            acc += u32::from(digit - b'0');
-        }
-        for digit in &mut digits {
-            if !(b'0'..=b'9').contains(&digit) {
-                return Err(());
-            }
-            acc *= 10;
-            acc += u32::from(digit - b'0');
-            div = div.saturating_mul(TEN);
-        }
-        Ok(Length::from_value((acc * conv.get() / div) as i32))
-    }
-}
-
 #[cfg(feature = "serde")]
 impl Serialize for Length {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -163,65 +116,6 @@ impl Serialize for Length {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn round_trip_pt_default() {
-        fn rt(s: &str) {
-            let mut output = String::new();
-            Length::from_str(s)
-                .expect("valid")
-                .push_to_string(&mut output);
-            assert_eq!(s, &output);
-        }
-        for i in 1..10 {
-            rt(&format!("{i}pt"));
-            rt(&format!("0.{i}pt"));
-            rt(&format!("{i}.25pt"));
-            rt(&format!("{i}.75pt"));
-            for j in 1..10 {
-                rt(&format!("{i}{j}pt"));
-                rt(&format!("{i}.{j}pt"));
-            }
-        }
-    }
-
-    #[test]
-    fn round_trip_px() {
-        fn rt(s: &str) {
-            let mut output = String::new();
-            Length::from_str(s).expect("valid").display_px(&mut output);
-            assert_eq!(s, &output);
-        }
-        for i in 1..10 {
-            rt(&format!("{i}px"));
-            rt(&format!("0.{i}px"));
-            rt(&format!("{i}.25px"));
-            rt(&format!("{i}.75px"));
-            for j in 1..10 {
-                rt(&format!("{i}{j}px"));
-                rt(&format!("{i}.{j}px"));
-            }
-        }
-    }
-
-    #[test]
-    fn round_trip_pt() {
-        fn rt(s: &str) {
-            let mut output = String::new();
-            Length::from_str(s).expect("valid").display_pt(&mut output);
-            assert_eq!(s, &output);
-        }
-        for i in 1..10 {
-            rt(&format!("{i}pt"));
-            rt(&format!("0.{i}pt"));
-            rt(&format!("{i}.25pt"));
-            rt(&format!("{i}.75pt"));
-            for j in 1..10 {
-                rt(&format!("{i}{j}pt"));
-                rt(&format!("{i}.{j}pt"));
-            }
-        }
-    }
 
     #[test]
     fn write() {

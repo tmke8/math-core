@@ -54,6 +54,7 @@ mod error;
 pub(crate) mod lexer;
 pub(crate) mod parse;
 pub(crate) mod predefined;
+pub(crate) mod specifications;
 pub mod token;
 
 pub use error::{LatexErrKind, LatexError};

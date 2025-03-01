@@ -1,5 +1,4 @@
 use std::mem;
-use std::str::FromStr;
 
 use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
@@ -16,6 +15,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
+    specifications::parse_length_specification,
     token::{TokLoc, Token},
 };
 
@@ -285,7 +285,7 @@ where
                 let lt = match length.trim() {
                     "" => None,
                     decimal => Some(
-                        Length::from_str(decimal)
+                        parse_length_specification(decimal)
                             .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
                     ),
                 };
