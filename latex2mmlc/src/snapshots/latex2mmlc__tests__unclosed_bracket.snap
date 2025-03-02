@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\sqrt[lim"
----
-Position: 9
-UnclosedGroup(
-    SquareBracketClose,
-)

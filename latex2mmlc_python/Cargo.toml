@@ -11,5 +11,5 @@ name = "latex2mmlc_python"
 crate-type = ["cdylib"]
 
 [dependencies]
-latex2mmlc = { path = "../latex2mmlc" }
+math-core = { path = "../math-core" }
 pyo3 = "0.23.4"

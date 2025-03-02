@@ -1,0 +1,7 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\alpha"
+---
+<math>
+    <mi>α</mi>
+</math>

@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\boldsymbol{\\alpha}"
----
-<math>
-    <mi>𝜶</mi>
-</math>

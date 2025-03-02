@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\begin{matrix} x"
+---
+Position: 16
+UnclosedGroup(
+    End,
+)

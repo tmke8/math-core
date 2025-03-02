@@ -1,6 +1,6 @@
 use wasm_bindgen_test::*;
 
-use latex2mmlc::token::{TokLoc, Token};
+use math_core::token::{TokLoc, Token};
 use mathml_renderer::ast::Node;
 
 #[wasm_bindgen_test]

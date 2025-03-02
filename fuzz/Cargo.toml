@@ -1,5 +1,5 @@
 [package]
-name = "latex2mmlc-fuzz"
+name = "math-core-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2021"
@@ -13,10 +13,15 @@ image = "0.25"
 katex = "0.4.6"
 libfuzzer-sys = "0.4"
 tempfile = "3"
-tokio = { version = "1", features = ["test-util", "rt-multi-thread", "process", "fs"] }
+tokio = { version = "1", features = [
+    "test-util",
+    "rt-multi-thread",
+    "process",
+    "fs",
+] }
 
-[dependencies.latex2mmlc]
-path = "../latex2mmlc"
+[dependencies.math-core]
+path = "../math-core"
 
 [[bin]]
 name = "vs_katex"

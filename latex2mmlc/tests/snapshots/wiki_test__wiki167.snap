@@ -1,7 +1,0 @@
----
-source: latex2mmlc/tests/wiki_test.rs
-expression: "\\boldsymbol{\\iota \\kappa \\lambda \\mu \\nu \\xi \\omicron \\pi}"
----
-<math>
-    <mi>𝜾𝜿𝝀𝝁𝝂𝝃𝝄𝝅</mi>
-</math>

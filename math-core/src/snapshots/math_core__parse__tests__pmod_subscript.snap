@@ -1,0 +1,25 @@
+---
+source: math-core/src/parse.rs
+expression: "\\pmod{3}_4"
+---
+[
+  Subscript(
+    target: CustomCmd(
+      predefined: Row(
+        nodes: [
+          Space("1"),
+          StretchableOp(ParenOp('(', false, Always), NoStretch),
+          Text("mod"),
+          Space("0.3333"),
+          CustomCmdArg(0),
+          StretchableOp(ParenOp(')', false, Always), NoStretch),
+        ],
+        attr: None,
+      ),
+      args: [
+        Number("3"),
+      ],
+    ),
+    symbol: Number("4"),
+  ),
+]

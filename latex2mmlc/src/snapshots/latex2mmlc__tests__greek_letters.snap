@@ -1,9 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\phi/\\varphi"
----
-<math>
-    <mi>ϕ</mi>
-    <mi>/</mi>
-    <mi>φ</mi>
-</math>

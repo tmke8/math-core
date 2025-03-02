@@ -1,0 +1,20 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
+---
+<math>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true" stretchy="false">^</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true">^</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mi>a</mi>
+        <mo accent="true" stretchy="false">→</mo>
+    </mover>
+</math>

@@ -1,0 +1,12 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\rightarrow \\to, \\nrightarrow, \\longrightarrow"
+---
+<math>
+    <mo>→</mo>
+    <mo>→</mo>
+    <mo>,</mo>
+    <mo>↛</mo>
+    <mo>,</mo>
+    <mo>⟶</mo>
+</math>

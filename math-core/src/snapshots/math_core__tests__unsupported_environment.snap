@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\begin{xmatrix} 1 \\end{xmatrix}"
+---
+Position: 0
+UnknownEnvironment(
+    "xmatrix",
+)

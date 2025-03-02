@@ -1,0 +1,17 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\| \\big\\| \\Big\\| \\bigg\\| \\Bigg\\| \\dots \\Bigg| \\bigg| \\Big| \\big| |"
+---
+<math>
+    <mi>‖</mi>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">‖</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">‖</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">‖</mo>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">‖</mo>
+    <mo>…</mo>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">|</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">|</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">|</mo>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">|</mo>
+    <mi>|</mi>
+</math>

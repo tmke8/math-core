@@ -1,0 +1,48 @@
+---
+source: math-core/src/lib.rs
+expression: "a_0 + \\cfrac{1}{a_1 + \\cfrac{1}{a_2 + \\cfrac{1}{a_3 + \\cfrac{1}{a_4}}}}"
+---
+<math>
+    <msub>
+        <mi>a</mi>
+        <mn>0</mn>
+    </msub>
+    <mo>+</mo>
+    <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+        <mn>1</mn>
+        <mrow>
+            <msub>
+                <mi>a</mi>
+                <mn>1</mn>
+            </msub>
+            <mo>+</mo>
+            <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+                <mn>1</mn>
+                <mrow>
+                    <msub>
+                        <mi>a</mi>
+                        <mn>2</mn>
+                    </msub>
+                    <mo>+</mo>
+                    <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+                        <mn>1</mn>
+                        <mrow>
+                            <msub>
+                                <mi>a</mi>
+                                <mn>3</mn>
+                            </msub>
+                            <mo>+</mo>
+                            <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+                                <mn>1</mn>
+                                <msub>
+                                    <mi>a</mi>
+                                    <mn>4</mn>
+                                </msub>
+                            </mfrac>
+                        </mrow>
+                    </mfrac>
+                </mrow>
+            </mfrac>
+        </mrow>
+    </mfrac>
+</math>

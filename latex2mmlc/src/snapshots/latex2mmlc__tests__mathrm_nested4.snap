@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\mathit{\\mathrm{a}}"
----
-<math>
-    <mi mathvariant="normal">a</mi>
-</math>

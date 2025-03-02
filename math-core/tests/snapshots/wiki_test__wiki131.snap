@@ -1,0 +1,12 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "f(x) \\,\\!"
+---
+<math>
+    <mi>f</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mspace width="0.1667em"/>
+    <mspace width="-0.1667em"/>
+</math>

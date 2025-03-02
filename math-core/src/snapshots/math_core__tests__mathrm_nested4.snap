@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathit{\\mathrm{a}}"
+---
+<math>
+    <mi mathvariant="normal">a</mi>
+</math>

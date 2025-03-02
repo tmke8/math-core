@@ -1,9 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "x\\ y"
----
-<math>
-    <mi>x</mi>
-    <mtext> </mtext>
-    <mi>y</mi>
-</math>

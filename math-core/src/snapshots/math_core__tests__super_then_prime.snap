@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: "f^2'"
+---
+Position: 3
+CannotBeUsedHere {
+    got: Prime,
+    correct_place: AfterOpOrIdent,
+}

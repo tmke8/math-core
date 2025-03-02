@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\éx"
----
-Position: 0
-UnknownCommand(
-    "é",
-)

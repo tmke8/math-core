@@ -11,7 +11,7 @@ license = "MIT"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-latex2mmlc = { path = "../latex2mmlc" }
+math-core = { path = "../math-core" }
 lol_alloc = "0.4.1"
 wasm-bindgen = "0.2.100"
 

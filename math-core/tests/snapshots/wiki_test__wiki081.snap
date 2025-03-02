@@ -1,0 +1,9 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\Rrightarrow, \\Lleftarrow"
+---
+<math>
+    <mo>⇛</mo>
+    <mo>,</mo>
+    <mo>⇚</mo>
+</math>

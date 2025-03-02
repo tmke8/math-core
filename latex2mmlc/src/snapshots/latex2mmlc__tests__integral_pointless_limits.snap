@@ -1,9 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\int\\limits dx"
----
-<math>
-    <mo>∫</mo>
-    <mi>d</mi>
-    <mi>x</mi>
-</math>

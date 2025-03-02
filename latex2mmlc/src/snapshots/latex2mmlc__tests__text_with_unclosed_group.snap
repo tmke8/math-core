@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\text{x{}"
----
-Position: 9
-UnclosedGroup(
-    GroupEnd,
-)

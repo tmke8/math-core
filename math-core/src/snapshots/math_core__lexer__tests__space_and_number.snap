@@ -1,0 +1,6 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\ 1"
+---
+0: NonBreakingSpace
+2: Number(One)

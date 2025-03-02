@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "3.14"
+---
+<math>
+    <mn>3.14</mn>
+</math>

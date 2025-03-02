@@ -1,0 +1,9 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\preccurlyeq, \\curlyeqprec"
+---
+<math>
+    <mo>≼</mo>
+    <mo>,</mo>
+    <mo>⋞</mo>
+</math>

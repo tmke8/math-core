@@ -8,7 +8,7 @@ use crate::attribute::{
 };
 use crate::itoa::append_u8_as_hex;
 use crate::length::Length;
-use crate::ops::{Op, ParenOp};
+use crate::symbol::{Op, ParenOp};
 
 /// AST node
 #[derive(Debug)]
@@ -577,7 +577,7 @@ mod tests {
         FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Style, TextTransform,
     };
     use crate::length::Length;
-    use crate::ops;
+    use crate::symbol;
 
     pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
     where
@@ -605,12 +605,12 @@ mod tests {
     #[test]
     fn render_operator() {
         assert_eq!(
-            render(&Node::Operator(ops::EQUALS_SIGN.into(), None)),
+            render(&Node::Operator(symbol::EQUALS_SIGN.into(), None)),
             "<mo>=</mo>"
         );
         assert_eq!(
             render(&Node::Operator(
-                ops::N_ARY_SUMMATION.into(),
+                symbol::N_ARY_SUMMATION.into(),
                 Some(OpAttr::NoMovableLimits)
             )),
             "<mo movablelimits=\"false\">∑</mo>"
@@ -636,7 +636,7 @@ mod tests {
     fn render_operator_with_spacing() {
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::COLON.into(),
+                op: symbol::COLON.into(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
             }),
@@ -644,7 +644,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::COLON.into(),
+                op: symbol::COLON.into(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
             }),
@@ -652,7 +652,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OperatorWithSpacing {
-                op: ops::IDENTICAL_TO.into(),
+                op: symbol::IDENTICAL_TO.into(),
                 left: Some(MathSpacing::Zero),
                 right: None,
             }),
@@ -713,7 +713,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverOp(
-                ops::MACRON.into(),
+                symbol::MACRON.into(),
                 Some(OpAttr::StretchyFalse),
                 &Node::SingleLetterIdent('x', false),
             )),
@@ -721,7 +721,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OverOp(
-                ops::OVERLINE.into(),
+                symbol::OVERLINE.into(),
                 None,
                 &Node::SingleLetterIdent('x', false),
             )),
@@ -733,7 +733,7 @@ mod tests {
     fn render_under_op() {
         assert_eq!(
             render(&Node::UnderOp(
-                ops::LOW_LINE.into(),
+                symbol::LOW_LINE.into(),
                 &Node::SingleLetterIdent('x', false),
             )),
             "<munder><mi>x</mi><mo accent=\"true\">_</mo></munder>"
@@ -744,8 +744,8 @@ mod tests {
     fn render_overset() {
         assert_eq!(
             render(&Node::Overset {
-                symbol: &Node::Operator(ops::EXCLAMATION_MARK.into(), None),
-                target: &Node::Operator(ops::EQUALS_SIGN.into(), None),
+                symbol: &Node::Operator(symbol::EXCLAMATION_MARK.into(), None),
+                target: &Node::Operator(symbol::EQUALS_SIGN.into(), None),
             }),
             "<mover><mo>=</mo><mo>!</mo></mover>"
         );
@@ -867,7 +867,7 @@ mod tests {
     fn render_row() {
         let nodes = &[
             &Node::SingleLetterIdent('x', false),
-            &Node::Operator(ops::EQUALS_SIGN.into(), None),
+            &Node::Operator(symbol::EQUALS_SIGN.into(), None),
             &Node::Number("1"),
         ];
 
@@ -898,14 +898,14 @@ mod tests {
         assert_eq!(
             render(&Node::SizedParen(
                 crate::attribute::Size::Scale1,
-                ops::LEFT_PARENTHESIS,
+                symbol::LEFT_PARENTHESIS,
             )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
             render(&Node::SizedParen(
                 crate::attribute::Size::Scale3,
-                ops::SOLIDUS,
+                symbol::SOLIDUS,
             )),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );

@@ -1,0 +1,6 @@
+---
+source: math-core/src/lib.rs
+expression: "\\begin{matrix] 1 \\end{matrix}"
+---
+Position: 6
+UnparsableEnvName

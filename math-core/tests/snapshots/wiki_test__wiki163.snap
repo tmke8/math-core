@@ -1,0 +1,16 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\boldsymbol{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
+---
+<math>
+    <mrow>
+        <mi>𝚨</mi>
+        <mi>𝚩</mi>
+        <mi>𝚪</mi>
+        <mi>𝚫</mi>
+        <mi>𝚬</mi>
+        <mi>𝚭</mi>
+        <mi>𝚮</mi>
+        <mi>𝚯</mi>
+    </mrow>
+</math>

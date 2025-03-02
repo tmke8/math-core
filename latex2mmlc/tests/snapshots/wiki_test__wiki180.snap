@@ -1,7 +1,0 @@
----
-source: latex2mmlc/tests/wiki_test.rs
-expression: "\\mathsf{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
----
-<math>
-    <mi>ΙΚΛΜΝΞΟΠ</mi>
-</math>

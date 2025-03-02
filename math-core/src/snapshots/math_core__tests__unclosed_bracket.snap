@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sqrt[lim"
+---
+Position: 9
+UnclosedGroup(
+    SquareBracketClose,
+)

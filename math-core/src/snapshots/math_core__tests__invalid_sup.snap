@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: x^^
+---
+Position: 2
+CannotBeUsedHere {
+    got: Circumflex,
+    correct_place: AfterOpOrIdent,
+}

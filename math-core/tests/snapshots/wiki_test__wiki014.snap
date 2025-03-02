@@ -1,0 +1,17 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\operatorname{sh}k, \\operatorname{ch}l, \\operatorname{th}m, \\operatorname{coth}n"
+---
+<math>
+    <mi>sh</mi>
+    <mi>k</mi>
+    <mo>,</mo>
+    <mi>ch</mi>
+    <mi>l</mi>
+    <mo>,</mo>
+    <mi>th</mi>
+    <mi>m</mi>
+    <mo>,</mo>
+    <mi>coth</mi>
+    <mi>n</mi>
+</math>

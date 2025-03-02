@@ -1,0 +1,9 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\succcurlyeq, \\curlyeqsucc"
+---
+<math>
+    <mo>≽</mo>
+    <mo>,</mo>
+    <mo>⋟</mo>
+</math>

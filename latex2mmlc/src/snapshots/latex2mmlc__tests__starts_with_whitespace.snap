@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "  x  "
----
-<math>
-    <mi>x</mi>
-</math>

@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\frac 12"
+---
+<math>
+    <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+    </mfrac>
+</math>

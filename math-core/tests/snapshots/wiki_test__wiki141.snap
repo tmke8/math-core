@@ -1,0 +1,14 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\left / \\frac{a}{b} \\right \\backslash"
+---
+<math>
+    <mrow>
+        <mo stretchy="true">/</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo stretchy="true">\</mo>
+    </mrow>
+</math>

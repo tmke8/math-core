@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "x_{92}^{31415}"
+---
+<math>
+    <msubsup>
+        <mi>x</mi>
+        <mn>92</mn>
+        <mn>31415</mn>
+    </msubsup>
+</math>

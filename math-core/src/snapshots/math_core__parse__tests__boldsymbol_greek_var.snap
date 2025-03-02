@@ -1,0 +1,16 @@
+---
+source: math-core/src/parse.rs
+expression: "\\boldsymbol{\\Gamma\\varGamma}"
+---
+[
+  TextTransform(
+    tf: Transform(BoldItalic),
+    content: Row(
+      nodes: [
+        SingleLetterIdent('Γ', true),
+        SingleLetterIdent('Γ', false),
+      ],
+      attr: None,
+    ),
+  ),
+]

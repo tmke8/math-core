@@ -1,0 +1,21 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "{\\color{Blue}x^2}+{\\color{Orange}2x}- {\\color{LimeGreen}1}"
+---
+<math>
+    <mrow style="color:#102694;">
+        <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msup>
+    </mrow>
+    <mo>+</mo>
+    <mrow style="color:#FF7C37;">
+        <mn>2</mn>
+        <mi>x</mi>
+    </mrow>
+    <mo>−</mo>
+    <mrow style="color:#88C946;">
+        <mn>1</mn>
+    </mrow>
+</math>

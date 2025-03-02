@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathit{\\mathrm{a}b}"
+---
+<math>
+    <mrow>
+        <mi mathvariant="normal">a</mi>
+        <mi>𝑏</mi>
+    </mrow>
+</math>

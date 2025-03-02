@@ -1,0 +1,16 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\rightharpoonup \\rightharpoondown \\leftharpoonup \\leftharpoondown \\upharpoonleft \\upharpoonright \\downharpoonleft \\downharpoonright \\rightleftharpoons \\leftrightharpoons"
+---
+<math>
+    <mo>⇀</mo>
+    <mo>⇁</mo>
+    <mo>↼</mo>
+    <mo>↽</mo>
+    <mo>↿</mo>
+    <mo>↾</mo>
+    <mo>⇃</mo>
+    <mo>⇂</mo>
+    <mo>⇌</mo>
+    <mo>⇋</mo>
+</math>

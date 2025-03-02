@@ -1,0 +1,36 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "x_{1,2}=\\frac{{\\color{Blue}-b}\\pm \\sqrt{\\color{Red}b^2-4ac}}{\\color{Green}2a }"
+---
+<math>
+    <msub>
+        <mi>x</mi>
+        <mn>1,2</mn>
+    </msub>
+    <mo>=</mo>
+    <mfrac>
+        <mrow>
+            <mrow style="color:#102694;">
+                <mo>−</mo>
+                <mi>b</mi>
+            </mrow>
+            <mo>±</mo>
+            <msqrt>
+                <mrow style="color:#FF2E17;">
+                    <msup>
+                        <mi>b</mi>
+                        <mn>2</mn>
+                    </msup>
+                    <mo>−</mo>
+                    <mn>4</mn>
+                    <mi>a</mi>
+                    <mi>c</mi>
+                </mrow>
+            </msqrt>
+        </mrow>
+        <mrow style="color:#00AB4F;">
+            <mn>2</mn>
+            <mi>a</mi>
+        </mrow>
+    </mfrac>
+</math>

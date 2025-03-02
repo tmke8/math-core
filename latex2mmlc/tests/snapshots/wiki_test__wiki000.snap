@@ -1,7 +1,0 @@
----
-source: latex2mmlc/tests/wiki_test.rs
-expression: "\\alpha"
----
-<math>
-    <mi>α</mi>
-</math>

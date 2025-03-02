@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathit{a{bc}d}"
+---
+<math>
+    <mrow>
+        <mi>𝑎</mi>
+        <mi>𝑏𝑐</mi>
+        <mi>𝑑</mi>
+    </mrow>
+</math>

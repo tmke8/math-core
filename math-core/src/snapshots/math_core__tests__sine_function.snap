@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sin x"
+---
+<math>
+    <mi>sin</mi>
+    <mi>x</mi>
+</math>

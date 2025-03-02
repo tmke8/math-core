@@ -1,0 +1,20 @@
+---
+source: math-core/src/parse.rs
+expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
+---
+[
+  Fenced(
+    style: None,
+    open: ParenOp('(', false, Always),
+    close: ParenOp(')', false, Always),
+    content: Table(
+      content: [
+        SingleLetterIdent('x', false),
+        RowSeparator,
+        SingleLetterIdent('y', false),
+      ],
+      align: Center,
+      attr: None,
+    ),
+  ),
+]

@@ -3,7 +3,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
-use latex2mmlc::{latex_to_mathml, Display};
+use math_core::{Display, latex_to_mathml};
 
 create_exception!(_latex2mmlc_rust, LatexError, PyException);
 

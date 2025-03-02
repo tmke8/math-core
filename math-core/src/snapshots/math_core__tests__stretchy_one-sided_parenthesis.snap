@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "\\left( x \\right."
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mi>x</mi>
+        <mo></mo>
+    </mrow>
+</math>

@@ -1,9 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\not\\text{hello}"
----
-Position: 0
-CannotBeUsedHere {
-    got: Not,
-    correct_place: BeforeSomeOps,
-}

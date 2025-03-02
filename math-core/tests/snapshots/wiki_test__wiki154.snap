@@ -1,0 +1,14 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega"
+---
+<math>
+    <mi mathvariant="normal">Ρ</mi>
+    <mi mathvariant="normal">Σ</mi>
+    <mi mathvariant="normal">Τ</mi>
+    <mi mathvariant="normal">Υ</mi>
+    <mi mathvariant="normal">Φ</mi>
+    <mi mathvariant="normal">Χ</mi>
+    <mi mathvariant="normal">Ψ</mi>
+    <mi mathvariant="normal">Ω</mi>
+</math>

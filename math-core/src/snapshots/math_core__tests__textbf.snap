@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\textbf{x}"
+---
+<math>
+    <mtext>𝐱</mtext>
+</math>

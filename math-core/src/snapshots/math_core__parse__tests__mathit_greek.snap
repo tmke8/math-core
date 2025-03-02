@@ -1,0 +1,10 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathit{\\Alpha\\Beta}"
+---
+[
+  TextTransform(
+    tf: Transform(Italic),
+    content: CollectedLetters("ΑΒ"),
+  ),
+]

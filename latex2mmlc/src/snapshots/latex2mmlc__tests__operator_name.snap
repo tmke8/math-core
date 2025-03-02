@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\operatorname{sn} x"
----
-<math>
-    <mi>sn</mi>
-    <mi>x</mi>
-</math>
