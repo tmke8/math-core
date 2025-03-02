@@ -177,6 +177,10 @@ pub const DOT_ABOVE: Op = Op('˙');
 // Unicode Block: General Punctuation
 //
 pub const DOUBLE_VERTICAL_LINE: &ParenOp = &ParenOp('‖', true, Stretchy::PrePostfix);
+
+pub const DAGGER: char = '†';
+pub const DOUBLE_DAGGER: char = '‡';
+
 pub const HORIZONTAL_ELLIPSIS: Rel = Rel('…');
 pub const PRIME: Rel = Rel('′');
 pub const DOUBLE_PRIME: Rel = Rel('″');
@@ -600,15 +604,20 @@ pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as operat
 // Unicode Block: Geometric Shapes
 //
 pub const BLACK_SQUARE: char = '■';
-pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
-pub const BLACK_RIGHT_POINTING_TRIANGLE: char = '▶';
-pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
-pub const BLACK_LEFT_POINTING_TRIANGLE: char = '◀';
 
+pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
 pub const WHITE_UP_POINTING_TRIANGLE: char = '△';
+
+pub const BLACK_RIGHT_POINTING_TRIANGLE: char = '▶';
 pub const WHITE_RIGHT_POINTING_TRIANGLE: char = '▷';
+
+pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
 pub const WHITE_DOWN_POINTING_TRIANGLE: char = '▽';
+
+pub const BLACK_LEFT_POINTING_TRIANGLE: char = '◀';
 pub const WHITE_LEFT_POINTING_TRIANGLE: char = '◁';
+
+pub const LOZENGE: char = '◊';
 
 pub const LARGE_CIRCLE: char = '◯';
 
@@ -616,6 +625,27 @@ pub const LARGE_CIRCLE: char = '◯';
 // Unicode Block: Miscellaneous Symbols
 //
 pub const BLACK_STAR: char = '★';
+
+pub const SUN: char = '☉';
+
+pub const MERCURY: char = '☿';
+pub const FEMALE_SIGN: char = '♀';
+pub const EARTH: char = '♁';
+pub const MALE_SIGN: char = '♂';
+pub const JUPITER: char = '♃';
+pub const SATURN: char = '♄';
+pub const URANUS: char = '♅';
+pub const NEPTUNE: char = '♆';
+// pub const PLUTO: char = '♇';
+
+pub const BLACK_SPADE_SUIT: char = '♠';
+pub const WHITE_HEART_SUIT: char = '♡';
+pub const WHITE_DIAMOND_SUIT: char = '♢';
+pub const BLACK_CLUB_SUIT: char = '♣';
+// pub const WHITE_SPADE_SUIT: char = '♤';
+// pub const BLACK_HEART_SUIT: char = '♥';
+// pub const BLACK_DIAMOND_SUIT: char = '♦';
+// pub const WHITE_CLUB_SUIT: char = '♧';
 
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
