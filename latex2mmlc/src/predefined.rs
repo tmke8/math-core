@@ -1,7 +1,7 @@
 use mathml_renderer::{
     ast::Node::{self, *},
     attribute::{MathSpacing, MathVariant, RowAttr, StretchMode},
-    ops,
+    symbol,
 };
 
 pub static MOD: Node = Row {
@@ -17,11 +17,11 @@ pub static MOD: Node = Row {
 pub static PMOD: Node = Row {
     nodes: &[
         &Space("1"),
-        &StretchableOp(ops::LEFT_PARENTHESIS, StretchMode::NoStretch),
+        &StretchableOp(symbol::LEFT_PARENTHESIS, StretchMode::NoStretch),
         &Text("mod"),
         &Space("0.3333"),
         &CustomCmdArg(0),
-        &StretchableOp(ops::RIGHT_PARENTHESIS, StretchMode::NoStretch),
+        &StretchableOp(symbol::RIGHT_PARENTHESIS, StretchMode::NoStretch),
     ],
     attr: RowAttr::None,
 };
@@ -64,7 +64,7 @@ pub static XRIGHTARROW: Node = Row {
         &Space("0.2778"),
         &Overset {
             target: &OperatorWithSpacing {
-                op: ops::RIGHTWARDS_ARROW.as_op(),
+                op: symbol::RIGHTWARDS_ARROW.as_op(),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
@@ -80,7 +80,7 @@ pub static XLEFTARROW: Node = Row {
         &Space("0.2778"),
         &Overset {
             target: &OperatorWithSpacing {
-                op: ops::LEFTWARDS_ARROW.as_op(),
+                op: symbol::LEFTWARDS_ARROW.as_op(),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },

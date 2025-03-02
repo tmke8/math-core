@@ -8,7 +8,7 @@ use mathml_renderer::{
         TextTransform,
     },
     length::Length,
-    ops,
+    symbol,
 };
 
 use crate::{
@@ -190,15 +190,15 @@ where
                 builder.push_char(number as u8 as char);
                 if !wants_arg {
                     // Consume tokens as long as they are `Token::Number` or
-                    // `Token::Letter(ops::FULL_STOP)` or `Token::Operator(ops::COMMA)`,
+                    // `Token::Letter(symbol::FULL_STOP)` or `Token::Operator(symbol::COMMA)`,
                     // but only if the token *after that* is a digit.
                     loop {
                         let ch = if let Token::Number(number) = self.peek.token() {
                             *number as u8 as char
                         } else {
                             let ch = match self.peek.token() {
-                                Token::Letter(ops::FULL_STOP) => Some('.'),
-                                Token::Relation(ops::COMMA) => Some(','),
+                                Token::Letter(symbol::FULL_STOP) => Some('.'),
+                                Token::Relation(symbol::COMMA) => Some(','),
                                 _ => None,
                             };
                             if let Some(ch) = ch {
@@ -223,7 +223,7 @@ where
                 if let Some(state) = sequence_state {
                     state.is_relation = true;
                 };
-                if prev_state.is_colon && matches!(relation, ops::IDENTICAL_TO) {
+                if prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO) {
                     Node::OperatorWithSpacing {
                         op: relation.into(),
                         left: Some(MathSpacing::Zero),
@@ -264,8 +264,8 @@ where
                 if matches!(cur_token, Token::Binom(_)) {
                     let lt = Some(Length::from_twip(0));
                     Node::Fenced {
-                        open: ops::LEFT_PARENTHESIS,
-                        close: ops::RIGHT_PARENTHESIS,
+                        open: symbol::LEFT_PARENTHESIS,
+                        close: symbol::RIGHT_PARENTHESIS,
                         content: self.commit(Node::Frac { num, den, lt, attr }),
                         style: None,
                     }
@@ -281,12 +281,12 @@ where
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_next(true)? {
                     Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes: [], .. } => ops::NULL,
+                    Node::Row { nodes: [], .. } => symbol::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_next(true)? {
                     Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes: [], .. } => ops::NULL,
+                    Node::Row { nodes: [], .. } => symbol::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 self.check_lbrace()?;
@@ -410,8 +410,8 @@ where
                             Node::Operator(op.into(), None)
                         }
                     }
-                    Token::OpLessThan => Node::Operator(ops::NOT_LESS_THAN.into(), None),
-                    Token::OpGreaterThan => Node::Operator(ops::NOT_GREATER_THAN.into(), None),
+                    Token::OpLessThan => Node::Operator(symbol::NOT_LESS_THAN.into(), None),
+                    Token::OpGreaterThan => Node::Operator(symbol::NOT_GREATER_THAN.into(), None),
                     Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
@@ -465,22 +465,22 @@ where
                 }
             }
             Token::Colon => match &self.peek.token() {
-                Token::Relation(ops::EQUALS_SIGN) if !wants_arg => {
+                Token::Relation(symbol::EQUALS_SIGN) if !wants_arg => {
                     self.next_token(); // Discard the equals_sign token.
-                    Node::Operator(ops::COLON_EQUALS.into(), None)
+                    Node::Operator(symbol::COLON_EQUALS.into(), None)
                 }
-                Token::Relation(ops::IDENTICAL_TO) if !wants_arg => {
+                Token::Relation(symbol::IDENTICAL_TO) if !wants_arg => {
                     if let Some(state) = sequence_state {
                         state.is_colon = true;
                     };
                     Node::OperatorWithSpacing {
-                        op: ops::COLON.into(),
+                        op: symbol::COLON.into(),
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     }
                 }
                 _ => Node::OperatorWithSpacing {
-                    op: ops::COLON.into(),
+                    op: symbol::COLON.into(),
                     left: Some(MathSpacing::FourMu),
                     right: Some(MathSpacing::FourMu),
                 },
@@ -492,18 +492,18 @@ where
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
-                Node::StretchableOp(ops::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
+                Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::SquareBracketClose => {
-                Node::StretchableOp(ops::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
+                Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
                     Token::Delimiter(open) => open,
-                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Letter(ops::FULL_STOP) => ops::NULL,
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(symbol::FULL_STOP) => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -519,9 +519,9 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
                     Token::Delimiter(close) => close,
-                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
-                    Token::Letter(ops::FULL_STOP) => ops::NULL,
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
+                    Token::Letter(symbol::FULL_STOP) => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -543,13 +543,13 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 let op = match next_token {
                     Token::Delimiter(op) => op,
-                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Delimiter(ops::NULL),
+                                expected: &Token::Delimiter(symbol::NULL),
                                 got: next_token,
                             },
                         ));
@@ -561,13 +561,13 @@ where
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
                     Token::Delimiter(paren) => paren,
-                    Token::SquareBracketOpen => ops::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => ops::RIGHT_SQUARE_BRACKET,
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Delimiter(ops::NULL),
+                                expected: &Token::Delimiter(symbol::NULL),
                                 got: next_token,
                             },
                         ));
@@ -596,8 +596,8 @@ where
                             attr: None,
                         });
                         Node::Fenced {
-                            open: ops::LEFT_CURLY_BRACKET,
-                            close: ops::NULL,
+                            open: symbol::LEFT_CURLY_BRACKET,
+                            close: symbol::NULL,
                             content,
                             style: None,
                         }
@@ -611,11 +611,15 @@ where
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
                         let align = Align::Center;
                         let (open, close) = match matrix_variant {
-                            "pmatrix" => (ops::LEFT_PARENTHESIS, ops::RIGHT_PARENTHESIS),
-                            "bmatrix" => (ops::LEFT_SQUARE_BRACKET, ops::RIGHT_SQUARE_BRACKET),
-                            "Bmatrix" => (ops::LEFT_CURLY_BRACKET, ops::RIGHT_CURLY_BRACKET),
-                            "vmatrix" => (ops::VERTICAL_LINE, ops::VERTICAL_LINE),
-                            "Vmatrix" => (ops::DOUBLE_VERTICAL_LINE, ops::DOUBLE_VERTICAL_LINE),
+                            "pmatrix" => (symbol::LEFT_PARENTHESIS, symbol::RIGHT_PARENTHESIS),
+                            "bmatrix" => {
+                                (symbol::LEFT_SQUARE_BRACKET, symbol::RIGHT_SQUARE_BRACKET)
+                            }
+                            "Bmatrix" => (symbol::LEFT_CURLY_BRACKET, symbol::RIGHT_CURLY_BRACKET),
+                            "vmatrix" => (symbol::VERTICAL_LINE, symbol::VERTICAL_LINE),
+                            "Vmatrix" => {
+                                (symbol::DOUBLE_VERTICAL_LINE, symbol::DOUBLE_VERTICAL_LINE)
+                            }
                             // SAFETY: `matrix_variant` is one of the strings above.
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
@@ -730,7 +734,7 @@ where
                     nodes: &[],
                     attr: RowAttr::None,
                 });
-                let symbol = self.commit(Node::Operator(ops::PRIME.into(), None));
+                let symbol = self.commit(Node::Operator(symbol::PRIME.into(), None));
                 Node::Superscript { target, symbol }
             }
             Token::Underscore => {
@@ -886,11 +890,11 @@ where
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
-        static PRIME_SELECTION: [ops::Rel; 4] = [
-            ops::PRIME,
-            ops::DOUBLE_PRIME,
-            ops::TRIPLE_PRIME,
-            ops::QUADRUPLE_PRIME,
+        static PRIME_SELECTION: [symbol::Rel; 4] = [
+            symbol::PRIME,
+            symbol::DOUBLE_PRIME,
+            symbol::TRIPLE_PRIME,
+            symbol::QUADRUPLE_PRIME,
         ];
         if prime_count > 0 {
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
@@ -898,7 +902,7 @@ where
                 primes.push(self.commit(Node::Operator(op.into(), None)));
             } else {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(ops::PRIME.into(), None)));
+                    primes.push(self.commit(Node::Operator(symbol::PRIME.into(), None)));
                 }
             }
         }

@@ -2,7 +2,7 @@ use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
 
-use mathml_renderer::ops;
+use mathml_renderer::symbol;
 
 use crate::commands::get_command;
 use crate::error::GetUnwrap;
@@ -126,27 +126,27 @@ impl<'source> Lexer<'source> {
         let tok = match ch {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
-            '!' => Token::Relation(ops::EXCLAMATION_MARK),
+            '!' => Token::Relation(symbol::EXCLAMATION_MARK),
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
-            '(' => Token::Delimiter(ops::LEFT_PARENTHESIS),
-            ')' => Token::Delimiter(ops::RIGHT_PARENTHESIS),
-            '*' => Token::Relation(ops::ASTERISK_OPERATOR),
-            '+' => Token::BinaryOp(ops::PLUS_SIGN),
-            ',' => Token::Relation(ops::COMMA),
-            '-' => Token::BinaryOp(ops::MINUS_SIGN),
-            '/' => Token::Delimiter(ops::SOLIDUS),
+            '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
+            ')' => Token::Delimiter(symbol::RIGHT_PARENTHESIS),
+            '*' => Token::Relation(symbol::ASTERISK_OPERATOR),
+            '+' => Token::BinaryOp(symbol::PLUS_SIGN),
+            ',' => Token::Relation(symbol::COMMA),
+            '-' => Token::BinaryOp(symbol::MINUS_SIGN),
+            '/' => Token::Delimiter(symbol::SOLIDUS),
             ':' => Token::Colon,
-            ';' => Token::Relation(ops::SEMICOLON),
+            ';' => Token::Relation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
-            '=' => Token::Relation(ops::EQUALS_SIGN),
+            '=' => Token::Relation(symbol::EQUALS_SIGN),
             '>' => Token::OpGreaterThan,
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => Token::GroupBegin,
-            '|' => Token::Delimiter(ops::VERTICAL_LINE),
+            '|' => Token::Delimiter(symbol::VERTICAL_LINE),
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
