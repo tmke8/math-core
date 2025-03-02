@@ -2,7 +2,7 @@ use std::fmt;
 
 use memchr::memmem::Finder;
 
-use latex2mmlc::{Display, LatexError};
+use math_core::{Display, LatexError};
 
 use crate::html_entities::replace_html_entities;
 
@@ -183,7 +183,7 @@ impl<'config> Replacer<'config> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use latex2mmlc::LatexErrKind;
+    use math_core::LatexErrKind;
     use std::fmt::Write;
 
     /// Mock convert function for testing

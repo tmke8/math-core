@@ -1,0 +1,10 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\ulcorner \\urcorner \\llcorner \\lrcorner"
+---
+<math>
+    <mi>⌜</mi>
+    <mi>⌝</mi>
+    <mi>⌞</mi>
+    <mi>⌟</mi>
+</math>

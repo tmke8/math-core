@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\int'"
+---
+<math>
+    <msup>
+        <mo>∫</mo>
+        <mo>′</mo>
+    </msup>
+</math>

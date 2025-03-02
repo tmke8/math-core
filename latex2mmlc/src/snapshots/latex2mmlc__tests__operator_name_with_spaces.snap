@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\operatorname{ hel lo }"
----
-<math>
-    <mi>hello</mi>
-</math>

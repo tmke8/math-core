@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\operatorname[lim}"
----
-Position: 17
-UnexpectedClose(
-    GroupEnd,
-)

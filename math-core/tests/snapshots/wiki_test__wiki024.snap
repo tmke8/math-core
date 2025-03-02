@@ -1,0 +1,19 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\infty, \\aleph, \\complement,\\backepsilon, \\eth, \\Finv, \\hbar"
+---
+<math>
+    <mi>∞</mi>
+    <mo>,</mo>
+    <mi>ℵ</mi>
+    <mo>,</mo>
+    <mi>∁</mi>
+    <mo>,</mo>
+    <mo>∍</mo>
+    <mo>,</mo>
+    <mi>ð</mi>
+    <mo>,</mo>
+    <mi>Ⅎ</mi>
+    <mo>,</mo>
+    <mi>ℏ</mi>
+</math>

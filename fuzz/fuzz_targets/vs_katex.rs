@@ -1,9 +1,9 @@
 #![no_main]
 
-use latex2mmlc::latex_to_mathml;
 use fantoccini::{ClientBuilder, Locator};
-use libfuzzer_sys::fuzz_target;
 use image::{ImageFormat, ImageReader};
+use libfuzzer_sys::fuzz_target;
+use math_core::latex_to_mathml;
 use std::io::Cursor;
 use std::io::Write;
 use std::process::Stdio;
@@ -12,7 +12,7 @@ use std::time::Duration;
 fuzz_target!(|data: &str| {
     // Parse with our parser
     let l2m = {
-        if let Ok(l2m) = latex_to_mathml(data, latex2mmlc::Display::Block, false) {
+        if let Ok(l2m) = latex_to_mathml(data, math_core::Display::Block, false) {
             let l2m = l2m
                 .strip_prefix(r#"<math display="block">"#)
                 .unwrap()
@@ -35,7 +35,7 @@ fuzz_target!(|data: &str| {
     //return;
 
     // Parse with katex
-    let katex = if let Ok(katex) = 
+    let katex = if let Ok(katex) =
         katex::render_with_opts(
             data,
             &katex::Opts::builder()

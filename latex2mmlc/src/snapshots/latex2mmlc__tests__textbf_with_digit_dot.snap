@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\textbf{1234.}"
----
-<math>
-    <mtext>𝟏𝟐𝟑𝟒.</mtext>
-</math>

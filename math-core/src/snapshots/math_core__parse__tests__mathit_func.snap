@@ -1,0 +1,17 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathit{ab \\log cd}"
+---
+[
+  TextTransform(
+    tf: Transform(Italic),
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        MultiLetterIdent("log"),
+        CollectedLetters("cd"),
+      ],
+      attr: None,
+    ),
+  ),
+]

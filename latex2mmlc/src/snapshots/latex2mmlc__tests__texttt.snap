@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\texttt{x}"
----
-<math>
-    <mtext>𝚡</mtext>
-</math>

@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\int\\limits'"
+---
+<math>
+    <mover>
+        <mo>∫</mo>
+        <mo>′</mo>
+    </mover>
+</math>

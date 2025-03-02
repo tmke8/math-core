@@ -1,0 +1,17 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\{ \\bigl\\{ \\Bigl\\{ \\biggl\\{ \\Biggl\\{ \\dots \\Biggr\\rangle \\biggr\\rangle \\Bigr\\rangle \\bigr\\rangle \\rangle"
+---
+<math>
+    <mo stretchy="false">{</mo>
+    <mo maxsize="1.2em" minsize="1.2em">{</mo>
+    <mo maxsize="1.623em" minsize="1.623em">{</mo>
+    <mo maxsize="2.047em" minsize="2.047em">{</mo>
+    <mo maxsize="2.470em" minsize="2.470em">{</mo>
+    <mo>…</mo>
+    <mo maxsize="2.470em" minsize="2.470em">⟩</mo>
+    <mo maxsize="2.047em" minsize="2.047em">⟩</mo>
+    <mo maxsize="1.623em" minsize="1.623em">⟩</mo>
+    <mo maxsize="1.2em" minsize="1.2em">⟩</mo>
+    <mo stretchy="false">⟩</mo>
+</math>

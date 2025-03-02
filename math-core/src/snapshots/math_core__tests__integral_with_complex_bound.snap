@@ -1,0 +1,15 @@
+---
+source: math-core/src/lib.rs
+expression: "\\int_{0+1}^\\infty"
+---
+<math>
+    <msubsup>
+        <mo>∫</mo>
+        <mrow>
+            <mn>0</mn>
+            <mo>+</mo>
+            <mn>1</mn>
+        </mrow>
+        <mi>∞</mi>
+    </msubsup>
+</math>

@@ -1,0 +1,9 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\text{if }n\\text{ is even}"
+---
+<math>
+    <mtext>if </mtext>
+    <mi>n</mi>
+    <mtext> is even</mtext>
+</math>

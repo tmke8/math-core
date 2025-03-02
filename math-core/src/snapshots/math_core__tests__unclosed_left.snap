@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\left( x"
+---
+Position: 8
+UnclosedGroup(
+    Right,
+)

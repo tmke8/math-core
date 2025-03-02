@@ -1,7 +1,0 @@
----
-source: latex2mmlc/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varepsilon\\digamma\\varkappa \\varpi}"
----
-<math>
-    <mi>𝜺ϝ𝝒𝝕</mi>
-</math>

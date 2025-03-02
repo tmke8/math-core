@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\mathstrut"
----
-<math>
-    <mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>
-</math>

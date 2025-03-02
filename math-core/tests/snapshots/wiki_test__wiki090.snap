@@ -1,0 +1,13 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\nearrow, \\swarrow, \\nwarrow, \\searrow"
+---
+<math>
+    <mo>↗</mo>
+    <mo>,</mo>
+    <mo>↙</mo>
+    <mo>,</mo>
+    <mo>↖</mo>
+    <mo>,</mo>
+    <mo>↘</mo>
+</math>

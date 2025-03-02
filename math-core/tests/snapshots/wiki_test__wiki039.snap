@@ -1,0 +1,14 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\in, \\notin \\not\\in, \\ni, \\not\\ni"
+---
+<math>
+    <mo>∈</mo>
+    <mo>,</mo>
+    <mo>∉</mo>
+    <mo>∉</mo>
+    <mo>,</mo>
+    <mo>∋</mo>
+    <mo>,</mo>
+    <mo>∋</mo>
+</math>

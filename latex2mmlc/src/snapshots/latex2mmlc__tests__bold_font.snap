@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\bm{x}"
----
-<math>
-    <mi>𝒙</mi>
-</math>

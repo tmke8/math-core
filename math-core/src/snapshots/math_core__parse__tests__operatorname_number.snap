@@ -1,0 +1,8 @@
+---
+source: math-core/src/parse.rs
+expression: "\\operatorname123"
+---
+[
+  SingleLetterIdent('1', true),
+  Number("23"),
+]

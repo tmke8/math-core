@@ -1,0 +1,15 @@
+---
+source: math-core/src/parse.rs
+expression: "\\frac12_x"
+---
+[
+  Subscript(
+    target: Frac(
+      num: Number("1"),
+      den: Number("2"),
+      lt: None,
+      attr: None,
+    ),
+    symbol: SingleLetterIdent('x', false),
+  ),
+]

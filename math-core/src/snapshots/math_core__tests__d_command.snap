@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\d"
+---
+<math>
+    <mi mathvariant="normal">d</mi>
+</math>

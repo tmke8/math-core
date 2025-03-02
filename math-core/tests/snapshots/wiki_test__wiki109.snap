@@ -1,0 +1,25 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\overset{\\alpha}{\\omega} \\\\ \\underset{\\alpha}{\\omega} \\\\ \\overset{\\alpha}{\\underset{\\gamma}{\\omega}}\\\\ \\stackrel{\\alpha}{\\omega}"
+---
+<math>
+    <mover>
+        <mi>ω</mi>
+        <mi>α</mi>
+    </mover>
+    <munder>
+        <mi>ω</mi>
+        <mi>α</mi>
+    </munder>
+    <mover>
+        <munder>
+            <mi>ω</mi>
+            <mi>γ</mi>
+        </munder>
+        <mi>α</mi>
+    </mover>
+    <mover>
+        <mi>ω</mi>
+        <mi>α</mi>
+    </mover>
+</math>

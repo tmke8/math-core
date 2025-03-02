@@ -1,14 +1,12 @@
 [workspace]
 members = [
-    "latex2mmlc",
+    "math-core",
     "latex2mmlc_cli",
     "latex2mmlc_python",
     "latex2mmlc_wasm",
     "mathml_renderer",
 ]
-exclude = [
-    "fuzz"
-]
+exclude = ["fuzz"]
 default-members = ["latex2mmlc_cli"]
 resolver = "2"
 

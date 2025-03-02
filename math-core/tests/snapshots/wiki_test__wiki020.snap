@@ -1,0 +1,18 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\Pr j, \\hom l, \\lVert z \\rVert, \\arg z"
+---
+<math>
+    <mi>Pr</mi>
+    <mi>j</mi>
+    <mo>,</mo>
+    <mi>hom</mi>
+    <mi>l</mi>
+    <mo>,</mo>
+    <mi>‖</mi>
+    <mi>z</mi>
+    <mi>‖</mi>
+    <mo>,</mo>
+    <mi>arg</mi>
+    <mi>z</mi>
+</math>

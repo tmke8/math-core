@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "}"
----
-Position: 0
-UnexpectedClose(
-    GroupEnd,
-)

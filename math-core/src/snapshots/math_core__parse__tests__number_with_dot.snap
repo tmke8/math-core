@@ -1,0 +1,7 @@
+---
+source: math-core/src/parse.rs
+expression: "3.14"
+---
+[
+  Number("3.14"),
+]

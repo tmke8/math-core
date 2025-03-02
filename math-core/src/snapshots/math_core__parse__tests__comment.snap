@@ -1,0 +1,7 @@
+---
+source: math-core/src/parse.rs
+expression: "\\text{% comment}\n\\%as}"
+---
+[
+  Text("\u{a0}%as"),
+]

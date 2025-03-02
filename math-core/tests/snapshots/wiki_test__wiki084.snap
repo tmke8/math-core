@@ -1,0 +1,13 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\Leftrightarrow, \\nLeftrightarrow, \\Longleftrightarrow, \\iff"
+---
+<math>
+    <mo>⇔</mo>
+    <mo>,</mo>
+    <mo>⇎</mo>
+    <mo>,</mo>
+    <mo>⟺</mo>
+    <mo>,</mo>
+    <mo>⟺</mo>
+</math>

@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\text{\\rq}"
+---
+<math>
+    <mtext>’</mtext>
+</math>

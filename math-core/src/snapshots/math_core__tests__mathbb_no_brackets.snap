@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathbb N"
+---
+<math>
+    <mi>ℕ</mi>
+</math>

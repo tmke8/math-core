@@ -1,0 +1,10 @@
+---
+source: math-core/src/parse.rs
+expression: "f''"
+---
+[
+  Superscript(
+    target: SingleLetterIdent('f', false),
+    symbol: Operator(Op('″'), None),
+  ),
+]

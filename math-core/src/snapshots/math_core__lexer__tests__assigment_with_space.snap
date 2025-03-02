@@ -1,0 +1,10 @@
+---
+source: math-core/src/lexer.rs
+expression: x = 3.14
+---
+0: Letter('x')
+2: Relation(Rel('='))
+4: Number(Three)
+5: Letter('.')
+6: Number(One)
+7: Number(Four)

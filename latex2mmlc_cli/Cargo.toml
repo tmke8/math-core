@@ -9,6 +9,6 @@ license = { workspace = true }
 
 [dependencies]
 clap = { version = "4.5.30", features = ["derive"] }
-latex2mmlc = { path = "../latex2mmlc" }
+math-core = { path = "../math-core" }
 memchr = "2.7.4"
 phf = { version = "0.11.3", features = ["macros"] }

@@ -1,0 +1,17 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathit{ab \\max \\alpha\\beta}"
+---
+[
+  TextTransform(
+    tf: Transform(Italic),
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        MultiLetterIdent("max"),
+        CollectedLetters("αβ"),
+      ],
+      attr: None,
+    ),
+  ),
+]

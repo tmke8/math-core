@@ -1,0 +1,28 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\begin{pmatrix} x & y \\\\ z & v \\end{pmatrix}"
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mtable>
+            <mtr>
+                <mtd>
+                    <mi>x</mi>
+                </mtd>
+                <mtd>
+                    <mi>y</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>z</mi>
+                </mtd>
+                <mtd>
+                    <mi>v</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>)</mo>
+    </mrow>
+</math>

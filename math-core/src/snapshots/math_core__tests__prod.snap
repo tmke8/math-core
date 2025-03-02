@@ -1,0 +1,24 @@
+---
+source: math-core/src/lib.rs
+expression: "\\prod_i \\prod^n \\prod^n_i \\prod_i^n"
+---
+<math>
+    <munder>
+        <mo>∏</mo>
+        <mi>i</mi>
+    </munder>
+    <mover>
+        <mo>∏</mo>
+        <mi>n</mi>
+    </mover>
+    <munderover>
+        <mo>∏</mo>
+        <mi>i</mi>
+        <mi>n</mi>
+    </munderover>
+    <munderover>
+        <mo>∏</mo>
+        <mi>i</mi>
+        <mi>n</mi>
+    </munderover>
+</math>

@@ -1,5 +1,0 @@
----
-source: latex2mmlc/src/lexer.rs
-expression: x
----
-0: Letter('x')

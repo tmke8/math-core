@@ -1,0 +1,14 @@
+---
+source: math-core/src/parse.rs
+expression: ":2=:="
+---
+[
+  OperatorWithSpacing(
+    op: Op(':'),
+    left: Some(FourMu),
+    right: Some(FourMu),
+  ),
+  Number("2"),
+  Operator(Op('='), None),
+  Operator(Op('≔'), None),
+]

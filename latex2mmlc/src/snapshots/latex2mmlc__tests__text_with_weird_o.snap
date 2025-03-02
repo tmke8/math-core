@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\text{x\\o y}"
----
-<math>
-    <mtext>xøy</mtext>
-</math>

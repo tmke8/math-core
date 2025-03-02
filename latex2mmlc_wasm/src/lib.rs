@@ -9,7 +9,7 @@ use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
 static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
-use latex2mmlc::{latex_to_mathml, Display};
+use math_core::{Display, latex_to_mathml};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]

@@ -1,0 +1,14 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta"
+---
+<math>
+    <mi mathvariant="normal">Α</mi>
+    <mi mathvariant="normal">Β</mi>
+    <mi mathvariant="normal">Γ</mi>
+    <mi mathvariant="normal">Δ</mi>
+    <mi mathvariant="normal">Ε</mi>
+    <mi mathvariant="normal">Ζ</mi>
+    <mi mathvariant="normal">Η</mi>
+    <mi mathvariant="normal">Θ</mi>
+</math>

@@ -1,0 +1,10 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\aleph \\beth \\gimel \\daleth"
+---
+<math>
+    <mi>ℵ</mi>
+    <mi>ℶ</mi>
+    <mi>ℷ</mi>
+    <mi>ℸ</mi>
+</math>

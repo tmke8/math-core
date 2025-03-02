@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\not\\subset"
+---
+<math>
+    <mo>⊄</mo>
+</math>

@@ -1,0 +1,33 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\dfrac{2}{4} = 0.5 \\qquad \\dfrac{2}{c + \\dfrac{2}{d + \\dfrac{2}{4}}} = a"
+---
+<math>
+    <mfrac displaystyle="true">
+        <mn>2</mn>
+        <mn>4</mn>
+    </mfrac>
+    <mo>=</mo>
+    <mn>0.5</mn>
+    <mspace width="2em"/>
+    <mfrac displaystyle="true">
+        <mn>2</mn>
+        <mrow>
+            <mi>c</mi>
+            <mo>+</mo>
+            <mfrac displaystyle="true">
+                <mn>2</mn>
+                <mrow>
+                    <mi>d</mi>
+                    <mo>+</mo>
+                    <mfrac displaystyle="true">
+                        <mn>2</mn>
+                        <mn>4</mn>
+                    </mfrac>
+                </mrow>
+            </mfrac>
+        </mrow>
+    </mfrac>
+    <mo>=</mo>
+    <mi>a</mi>
+</math>

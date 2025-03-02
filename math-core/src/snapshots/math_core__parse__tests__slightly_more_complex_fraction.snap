@@ -1,0 +1,13 @@
+---
+source: math-core/src/parse.rs
+expression: "\\frac123"
+---
+[
+  Frac(
+    num: Number("1"),
+    den: Number("2"),
+    lt: None,
+    attr: None,
+  ),
+  Number("3"),
+]

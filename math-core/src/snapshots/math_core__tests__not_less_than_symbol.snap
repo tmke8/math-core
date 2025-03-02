@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\not< x"
+---
+<math>
+    <mo>≮</mo>
+    <mi>x</mi>
+</math>

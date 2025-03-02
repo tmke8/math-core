@@ -1,0 +1,16 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\# \\$ \\% \\wedge \\& \\_ \\{ \\} \\sim \\backslash"
+---
+<math>
+    <mi>#</mi>
+    <mi>$</mi>
+    <mi>%</mi>
+    <mo>∧</mo>
+    <mo>&amp;</mo>
+    <mi>_</mi>
+    <mo stretchy="false">{</mo>
+    <mo stretchy="false">}</mo>
+    <mo>∼</mo>
+    <mi>\</mi>
+</math>

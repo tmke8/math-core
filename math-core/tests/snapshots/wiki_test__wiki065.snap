@@ -1,0 +1,13 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\precsim, \\precnsim, \\precapprox, \\precnapprox"
+---
+<math>
+    <mo>≾</mo>
+    <mo>,</mo>
+    <mo>⋨</mo>
+    <mo>,</mo>
+    <mo>⪷</mo>
+    <mo>,</mo>
+    <mo>⪹</mo>
+</math>

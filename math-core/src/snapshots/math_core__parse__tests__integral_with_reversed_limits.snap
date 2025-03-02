@@ -1,0 +1,13 @@
+---
+source: math-core/src/parse.rs
+expression: "\\int\\limits^1_0 dx"
+---
+[
+  UnderOver(
+    target: Operator(Op('∫'), None),
+    under: Number("0"),
+    over: Number("1"),
+  ),
+  SingleLetterIdent('d', false),
+  SingleLetterIdent('x', false),
+]

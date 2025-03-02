@@ -1,0 +1,20 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathrm{ab\\mathit{cd}ef}"
+---
+[
+  TextTransform(
+    tf: Normal,
+    content: Row(
+      nodes: [
+        CollectedLetters("ab"),
+        TextTransform(
+          tf: Transform(Italic),
+          content: CollectedLetters("cd"),
+        ),
+        CollectedLetters("ef"),
+      ],
+      attr: None,
+    ),
+  ),
+]

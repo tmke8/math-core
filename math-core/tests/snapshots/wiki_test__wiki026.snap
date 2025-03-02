@@ -1,0 +1,20 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "s_k \\equiv 0 \\pmod{m}"
+---
+<math>
+    <msub>
+        <mi>s</mi>
+        <mi>k</mi>
+    </msub>
+    <mo>≡</mo>
+    <mn>0</mn>
+    <mrow>
+        <mspace width="1em"/>
+        <mo stretchy="false">(</mo>
+        <mtext>mod</mtext>
+        <mspace width="0.3333em"/>
+        <mi>m</mi>
+        <mo stretchy="false">)</mo>
+    </mrow>
+</math>

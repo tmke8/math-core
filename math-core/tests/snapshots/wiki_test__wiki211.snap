@@ -1,0 +1,35 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "u'' + p(x)u' + q(x)u=f(x),\\quad x>a"
+---
+<math>
+    <msup>
+        <mi>u</mi>
+        <mo>″</mo>
+    </msup>
+    <mo>+</mo>
+    <mi>p</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <msup>
+        <mi>u</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>+</mo>
+    <mi>q</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mi>u</mi>
+    <mo>=</mo>
+    <mi>f</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo>,</mo>
+    <mspace width="1em"/>
+    <mi>x</mi>
+    <mo>&gt;</mo>
+    <mi>a</mi>
+</math>

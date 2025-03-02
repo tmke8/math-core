@@ -1,0 +1,17 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
+---
+<math>
+    <mi>d</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mi mathvariant="normal">d</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mi>∂</mi>
+    <mi>t</mi>
+    <mo>,</mo>
+    <mi mathvariant="normal">∇</mi>
+    <mi>ψ</mi>
+</math>

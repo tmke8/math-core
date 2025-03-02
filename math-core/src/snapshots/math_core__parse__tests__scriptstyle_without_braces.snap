@@ -1,0 +1,13 @@
+---
+source: math-core/src/parse.rs
+expression: "x\\scriptstyle y"
+---
+[
+  SingleLetterIdent('x', false),
+  Row(
+    nodes: [
+      SingleLetterIdent('y', false),
+    ],
+    attr: Style(ScriptStyle),
+  ),
+]

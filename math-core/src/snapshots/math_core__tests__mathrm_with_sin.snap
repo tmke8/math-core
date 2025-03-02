@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathrm{x\\sin}"
+---
+<math>
+    <mrow>
+        <mi mathvariant="normal">x</mi>
+        <mi>sin</mi>
+    </mrow>
+</math>

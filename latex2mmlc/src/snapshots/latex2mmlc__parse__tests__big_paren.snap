@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/parse.rs
-expression: "\\big("
----
-[
-  SizedParen(Scale1, ParenOp('(', false, Always)),
-]

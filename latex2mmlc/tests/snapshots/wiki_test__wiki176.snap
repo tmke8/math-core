@@ -1,7 +1,0 @@
----
-source: latex2mmlc/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varXi \\varPi \\varSigma \\varUpsilon \\varOmega}"
----
-<math>
-    <mi>𝜩𝜫𝜮ϒ𝜴</mi>
-</math>

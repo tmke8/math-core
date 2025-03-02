@@ -1,7 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\not\\lt"
----
-<math>
-    <mo>≮</mo>
-</math>

@@ -1,0 +1,13 @@
+---
+source: math-core/src/lib.rs
+expression: "\\int_0^1 dx"
+---
+<math>
+    <msubsup>
+        <mo>∫</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </msubsup>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

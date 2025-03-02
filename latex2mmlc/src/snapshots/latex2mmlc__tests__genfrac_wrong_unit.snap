@@ -1,8 +1,0 @@
----
-source: latex2mmlc/src/lib.rs
-expression: "\\genfrac(]{1pg}{2}{a+b}{c+d}"
----
-Position: 10
-ExpectedLength(
-    "1pg",
-)

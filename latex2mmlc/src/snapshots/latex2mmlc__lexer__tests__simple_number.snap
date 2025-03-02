@@ -1,5 +1,0 @@
----
-source: latex2mmlc/src/lexer.rs
-expression: "3"
----
-0: Number(Three)

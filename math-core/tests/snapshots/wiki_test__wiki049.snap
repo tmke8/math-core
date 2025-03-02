@@ -1,0 +1,15 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "=, \\ne, \\neq, \\equiv, \\not\\equiv"
+---
+<math>
+    <mo>=</mo>
+    <mo>,</mo>
+    <mo>≠</mo>
+    <mo>,</mo>
+    <mo>≠</mo>
+    <mo>,</mo>
+    <mo>≡</mo>
+    <mo>,</mo>
+    <mo>≡</mo>
+</math>

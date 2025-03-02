@@ -1,0 +1,11 @@
+---
+source: math-core/src/lexer.rs
+expression: "  x   y z"
+---
+(text mode)
+1: Whitespace
+2: Letter('x')
+5: Whitespace
+6: Letter('y')
+7: Whitespace
+8: Letter('z')

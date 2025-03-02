@@ -1,0 +1,13 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\boxplus, \\boxminus, \\boxtimes, \\boxdot"
+---
+<math>
+    <mo>⊞</mo>
+    <mo>,</mo>
+    <mo>⊟</mo>
+    <mo>,</mo>
+    <mo>⊠</mo>
+    <mo>,</mo>
+    <mo>⊡</mo>
+</math>

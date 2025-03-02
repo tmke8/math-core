@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\text{ \\text{a}}"
+---
+<math>
+    <mtext> a</mtext>
+</math>

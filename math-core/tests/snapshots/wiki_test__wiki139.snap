@@ -1,0 +1,23 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\left | \\frac{a}{b} \\right \\vert \\quad \\left \\Vert \\frac{c}{d} \\right \\|"
+---
+<math>
+    <mrow>
+        <mo>|</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>|</mo>
+    </mrow>
+    <mspace width="1em"/>
+    <mrow>
+        <mo>‖</mo>
+        <mfrac>
+            <mi>c</mi>
+            <mi>d</mi>
+        </mfrac>
+        <mo>‖</mo>
+    </mrow>
+</math>

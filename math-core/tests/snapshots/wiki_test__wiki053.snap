@@ -1,0 +1,19 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "<, \\nless, \\ll, \\not\\ll, \\lll, \\not\\lll, \\lessdot"
+---
+<math>
+    <mo>&lt;</mo>
+    <mo>,</mo>
+    <mo>≮</mo>
+    <mo>,</mo>
+    <mo>≪</mo>
+    <mo>,</mo>
+    <mo>≪</mo>
+    <mo>,</mo>
+    <mo>⋘</mo>
+    <mo>,</mo>
+    <mo>⋘</mo>
+    <mo>,</mo>
+    <mo>⋖</mo>
+</math>

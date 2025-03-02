@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "\\prod_n n"
+---
+<math>
+    <munder>
+        <mo>∏</mo>
+        <mi>n</mi>
+    </munder>
+    <mi>n</mi>
+</math>

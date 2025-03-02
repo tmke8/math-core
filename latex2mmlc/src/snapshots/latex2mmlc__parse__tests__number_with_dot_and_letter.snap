@@ -1,9 +1,0 @@
----
-source: latex2mmlc/src/parse.rs
-expression: 4.x
----
-[
-  Number("4"),
-  SingleLetterIdent('.', false),
-  SingleLetterIdent('x', false),
-]
