@@ -2,11 +2,11 @@
 
 use std::num::NonZeroU32;
 
-use mathml_renderer::length::{Length, PT_IN_LEN, PX_IN_LEN};
+use mathml_renderer::length::{AbsoluteLength, PT_IN_LEN, PX_IN_LEN};
 
 const TEN: NonZeroU32 = NonZeroU32::new(10).unwrap();
 
-pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
+pub(crate) fn parse_length_specification(s: &str) -> Result<AbsoluteLength, ()> {
     let len = s.len();
     // We need at least 2 characters to have a unit.
     let Some(unit_offset) = len.checked_sub(2) else {
@@ -43,7 +43,7 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
         acc += u32::from(digit - b'0');
         div = div.saturating_mul(TEN);
     }
-    Ok(Length::from_value((acc * conv.get() / div) as i32))
+    Ok(AbsoluteLength::from_value((acc * conv.get() / div) as i32))
 }
 
 #[cfg(test)]

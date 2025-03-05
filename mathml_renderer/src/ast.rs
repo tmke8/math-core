@@ -7,7 +7,7 @@ use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
 };
 use crate::itoa::append_u8_as_hex;
-use crate::length::Length;
+use crate::length::AbsoluteLength;
 use crate::symbol::{Op, ParenOp};
 
 /// AST node
@@ -65,7 +65,7 @@ pub enum Node<'arena> {
         /// Denominator
         den: &'arena Node<'arena>,
         /// Line thickness
-        lt: Option<Length>,
+        lt: Option<AbsoluteLength>,
         attr: Option<FracAttr>,
     },
     Row {
@@ -576,7 +576,7 @@ mod tests {
     use crate::attribute::{
         FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Style, TextTransform,
     };
-    use crate::length::Length;
+    use crate::length::AbsoluteLength;
     use crate::symbol;
 
     pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
@@ -810,7 +810,7 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some(Length::from_pt(-1)),
+                lt: Some(AbsoluteLength::from_pt(-1)),
                 attr: None,
             }),
             "<mfrac linethickness=\"-1pt\"><mn>1</mn><mn>2</mn></mfrac>"
@@ -819,7 +819,7 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some(Length::from_pt(2)),
+                lt: Some(AbsoluteLength::from_pt(2)),
                 attr: None,
             }),
             "<mfrac linethickness=\"2pt\"><mn>1</mn><mn>2</mn></mfrac>"
@@ -829,7 +829,7 @@ mod tests {
                 num,
                 den,
                 // 8/20 = 4/10
-                lt: Some(Length::from_twip(-8)),
+                lt: Some(AbsoluteLength::from_twip(-8)),
                 attr: None,
             }),
             "<mfrac linethickness=\"-0.4pt\"><mn>1</mn><mn>2</mn></mfrac>"
@@ -847,7 +847,7 @@ mod tests {
             render(&Node::Frac {
                 num,
                 den,
-                lt: Some(Length::from_pt(0)),
+                lt: Some(AbsoluteLength::from_pt(0)),
                 attr: Some(FracAttr::DisplayStyleTrue),
             }),
             "<mfrac linethickness=\"0\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
