@@ -262,7 +262,7 @@ where
                 let num = self.parse_next(true)?;
                 let den = self.parse_next(true)?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let lt = Some(AbsoluteLength::from_twip(0));
+                    let lt = Some(AbsoluteLength::from_twip(0).into());
                     Node::Fenced {
                         open: symbol::LEFT_PARENTHESIS,
                         close: symbol::RIGHT_PARENTHESIS,

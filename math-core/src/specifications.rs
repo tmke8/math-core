@@ -2,11 +2,14 @@
 
 use std::num::NonZeroU32;
 
-use mathml_renderer::length::{AbsoluteLength, PT_IN_LEN, PX_IN_LEN};
+use mathml_renderer::length::{
+    AbsoluteLength, FONT_RELATIVE_CONV, FontRelativeLength, FontRelativeUnit, PT_IN_LEN, PX_IN_LEN,
+    SpecifiedLength,
+};
 
 const TEN: NonZeroU32 = NonZeroU32::new(10).unwrap();
 
-pub(crate) fn parse_length_specification(s: &str) -> Result<AbsoluteLength, ()> {
+pub(crate) fn parse_length_specification(s: &str) -> Result<SpecifiedLength, ()> {
     let len = s.len();
     // We need at least 2 characters to have a unit.
     let Some(unit_offset) = len.checked_sub(2) else {
@@ -17,9 +20,11 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<AbsoluteLength, ()> 
     let Some((digits, unit)) = s.split_at_checked(unit_offset) else {
         return Err(());
     };
-    let conv = match unit {
-        "pt" => PT_IN_LEN,
-        "px" => PX_IN_LEN,
+    let (font_relative_unit, conv) = match unit {
+        "pt" => (None, PT_IN_LEN),
+        "px" => (None, PX_IN_LEN),
+        "ex" => (Some(FontRelativeUnit::Ex), FONT_RELATIVE_CONV),
+        "em" => (Some(FontRelativeUnit::Em), FONT_RELATIVE_CONV),
         _ => return Err(()),
     };
     let mut digits = digits.bytes();
@@ -43,12 +48,30 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<AbsoluteLength, ()> 
         acc += u32::from(digit - b'0');
         div = div.saturating_mul(TEN);
     }
-    Ok(AbsoluteLength::from_value((acc * conv.get() / div) as i32))
+    let value = (acc * conv.get() / div) as i32;
+    Ok(if let Some(unit) = font_relative_unit {
+        SpecifiedLength::from_font_relative_length(FontRelativeLength { value, unit })
+    } else {
+        SpecifiedLength::from_absolute_length(AbsoluteLength(value))
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mathml_renderer::length::LengthKind;
+
+    trait ResultIsAbsolute {
+        fn result_is_absolute(&self) -> AbsoluteLength;
+    }
+    impl ResultIsAbsolute for SpecifiedLength {
+        fn result_is_absolute(&self) -> AbsoluteLength {
+            match self.kind() {
+                LengthKind::AbsoluteLength(len) => len,
+                _ => unreachable!(),
+            }
+        }
+    }
 
     #[test]
     fn round_trip_pt_default() {
@@ -77,6 +100,7 @@ mod tests {
             let mut output = String::new();
             parse_length_specification(s)
                 .expect("valid")
+                .result_is_absolute()
                 .display_px(&mut output);
             assert_eq!(s, &output);
         }
@@ -98,6 +122,7 @@ mod tests {
             let mut output = String::new();
             parse_length_specification(s)
                 .expect("valid")
+                .result_is_absolute()
                 .display_pt(&mut output);
             assert_eq!(s, &output);
         }
