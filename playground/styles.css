@@ -65,6 +65,12 @@ body {
     font-display: swap;
 }
 
+@font-face {
+    font-family: NewComputerModernMath Book;
+    src: url('./NewCMMath-Book-prime-roundhand.woff2') format('woff2');
+    font-display: swap;
+}
+
 math {
     /* We set the font-family now in a <style> tag with an id. */
     /* font-family: "Latin Modern Math", math; */
