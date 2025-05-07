@@ -57,15 +57,18 @@ body {
     font-display: block;
 }
 
+@font-face {
+    font-family: TeX Gyre Pagella Math BB;
+    /* The following unicode-range is for the math black-board bold characters (\mathbb in LaTeX). */
+    unicode-range: U+1D538-1D56B, U+2102, U+210D, U+2115, U+211D, U+2124;
+    src: local("TeX Gyre Pagella Math Regular"), url('./texgyrepagella-math-bb.woff2') format('woff2');
+    font-display: swap;
+}
+
 math {
-    /* We set the font-family now in JS. */
+    /* We set the font-family now in a <style> tag with an id. */
     /* font-family: "Latin Modern Math", math; */
     font-size: 1.3rem;
-    /* Font features of *Libertinus Math*:
-     * ss08: slanted integral sign
-     * ssty: prime ( https://www.compart.com/en/unicode/U+2032 ) is rendered correctly
-     */
-    /* font-feature-settings: "ss08", "ssty"; */
 }
 
 .container {
