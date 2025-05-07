@@ -3,10 +3,7 @@ use std::mem;
 use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
-    attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-        TextTransform,
-    },
+    attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
     length::AbsoluteLength,
     symbol,
 };
@@ -26,7 +23,7 @@ pub(crate) struct Parser<'arena, 'source> {
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
-    is_bold_italic: bool,
+    tf_differs_on_upright_letters: bool,
 }
 
 /// A struct for managing the state of the sequence parser.
@@ -48,7 +45,7 @@ where
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
-            is_bold_italic: false,
+            tf_differs_on_upright_letters: false,
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
@@ -65,11 +62,11 @@ where
 
             // Loop until we find a non-letter token.
             while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
-                // We stop collecting if we encounter an upright letter while in bold italic mode.
-                // This is because the bold-italic transformation has to handle upright letters
-                // differently, and this wouldn't be possible anymore if we merged these letters
-                // here together with the non-upright letters.
-                if matches!(tok, Token::UprightLetter(_)) && self.is_bold_italic {
+                // We stop collecting if we encounter an upright letter while the transformation is
+                // different on upright letters. Handling upright letters differently wouldn't be
+                // possible anymore if we merged these letters // here together with the non-upright
+                // letters.
+                if matches!(tok, Token::UprightLetter(_)) && self.tf_differs_on_upright_letters {
                     break;
                 }
                 builder.push_char(*ch);
@@ -431,13 +428,13 @@ where
             }
             Token::Transform(tf) => {
                 let old_collector = mem::replace(&mut self.collector, LetterCollector::Collecting);
-                let old_is_bold_italic = mem::replace(
-                    &mut self.is_bold_italic,
-                    matches!(tf, MathVariant::Transform(TextTransform::BoldItalic)),
+                let old_tf_differs_on_upright_letters = mem::replace(
+                    &mut self.tf_differs_on_upright_letters,
+                    tf.differs_on_upright_letters(),
                 );
                 let content = self.parse_next(true)?;
                 self.collector = old_collector;
-                self.is_bold_italic = old_is_bold_italic;
+                self.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
                 Node::TextTransform { content, tf }
             }
             Token::Integral(int) => {
