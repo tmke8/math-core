@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::attribute::{
     Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
+    TextTransform,
 };
 use crate::itoa::append_u8_as_hex;
 use crate::length::SpecifiedLength;
@@ -209,10 +210,10 @@ impl<'arena> MathMLEmitter<'arena> {
                     push!(self.s, "<mn>", number, "</mn>");
                 }
             }
-            Node::SingleLetterIdent(letter, is_normal) => {
-                // The identifier is "normal" if either `is_normal` is set,
+            Node::SingleLetterIdent(letter, is_upright) => {
+                // The identifier is "normal" if either `is_upright` is set,
                 // or the global `self.var` is set to `MathVariant::Normal`.
-                let is_normal = *is_normal || matches!(self.var, Some(MathVariant::Normal));
+                let is_normal = *is_upright || matches!(self.var, Some(MathVariant::Normal));
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
                     push!(self.s, "<mi mathvariant=\"normal\">");
@@ -223,7 +224,15 @@ impl<'arena> MathMLEmitter<'arena> {
                     Some(MathVariant::Transform(tf)) => tf.transform(*letter, is_normal),
                     _ => *letter,
                 };
-                push!(self.s, @c, "</mi>");
+                let closing = if matches!(
+                    self.var,
+                    Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
+                ) {
+                    "\u{FE01}</mi>"
+                } else {
+                    "</mi>"
+                };
+                push!(self.s, @c, closing);
             }
             Node::TextTransform { content, tf } => {
                 let old_var = mem::replace(&mut self.var, Some(*tf));
@@ -429,8 +438,8 @@ impl<'arena> MathMLEmitter<'arena> {
                 push!(self.s, ">", @*paren, "</mo>");
             }
             Node::Slashed(node) => match node {
-                Node::SingleLetterIdent(x, is_normal) => {
-                    if *is_normal || matches!(self.var, Some(MathVariant::Normal)) {
+                Node::SingleLetterIdent(x, is_upright) => {
+                    if *is_upright || matches!(self.var, Some(MathVariant::Normal)) {
                         push!(self.s, "<mi mathvariant=\"normal\">", @*x, "&#x0338;</mi>");
                     } else {
                         push!(self.s, "<mi>", @*x, "&#x0338;</mi>");
@@ -600,6 +609,11 @@ mod tests {
             render(&Node::SingleLetterIdent('Γ', true)),
             "<mi mathvariant=\"normal\">Γ</mi>"
         );
+
+        let mut emitter = MathMLEmitter::new();
+        emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
+        emitter.emit(&Node::SingleLetterIdent('L', false), 0);
+        assert_eq!(emitter.into_inner(), "<mi>ℒ︁</mi>");
     }
 
     #[test]

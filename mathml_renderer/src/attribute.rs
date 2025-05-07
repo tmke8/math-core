@@ -13,6 +13,15 @@ pub enum MathVariant {
     Transform(TextTransform),
 }
 
+impl MathVariant {
+    /// Returns `true` if the transformation is sensitive to whether a letter is "upright".
+    /// An example of an upright letter is "\Alpha".
+    #[inline]
+    pub fn differs_on_upright_letters(&self) -> bool {
+        matches!(self, MathVariant::Transform(TextTransform::BoldItalic))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OpAttr {
@@ -129,7 +138,8 @@ pub enum TextTransform {
     SansSerif,
     SansSerifBoldItalic,
     SansSerifItalic,
-    Script,
+    ScriptChancery,
+    ScriptRoundhand,
     // Stretched,
     // Tailed,
 }
@@ -148,8 +158,8 @@ fn add_offset(c: char, offset: u32) -> char {
 
 impl TextTransform {
     #[allow(clippy::manual_is_ascii_check)]
-    pub fn transform(&self, c: char, is_normal: bool) -> char {
-        let tf = if is_normal && matches!(self, TextTransform::BoldItalic) {
+    pub fn transform(&self, c: char, is_upright: bool) -> char {
+        let tf = if is_upright && matches!(self, TextTransform::BoldItalic) {
             &TextTransform::Bold
         } else {
             self
@@ -203,7 +213,7 @@ impl TextTransform {
                 'Z' => 'ℨ',
                 _ => c,
             },
-            TextTransform::Script => match c {
+            TextTransform::ScriptChancery | TextTransform::ScriptRoundhand => match c {
                 'A' | 'C'..='D' | 'G' | 'J'..='K' | 'N'..='Q' | 'S'..='Z' => add_offset(c, 0x1D45B),
                 'E'..='F' => add_offset(c, 0x20EB),
                 'a'..='d' | 'f' | 'h'..='n' | 'p'..='z' => add_offset(c, 0x1D455),
@@ -318,7 +328,7 @@ mod tests {
             ('G', TextTransform::BoldScript, '𝓖'),
             ('H', TextTransform::Italic, '𝐻'),
             ('X', TextTransform::Fraktur, '𝔛'),
-            ('S', TextTransform::Script, '𝒮'),
+            ('S', TextTransform::ScriptChancery, '𝒮'),
             ('f', TextTransform::Bold, '𝐟'),
             ('g', TextTransform::Bold, '𝐠'),
             ('o', TextTransform::DoubleStruck, '𝕠'),
