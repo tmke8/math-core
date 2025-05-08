@@ -102,6 +102,7 @@ fn simple_float_parse(digits: &str) -> Result<f32, ()> {
     value *= sign;
     Ok(value)
 }
+
 fn to_nearest_f32(integer: u32, fraction: u32, frac_len: u32) -> f32 {
     // Calculate the denominator (power of 10) for the fraction
     let denominator = 10u128.pow(frac_len);
