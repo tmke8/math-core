@@ -292,8 +292,8 @@ dependencies = [
 name = "mathml_renderer"
 version = "0.1.0"
 dependencies = [
- "bumpalo",
  "serde",
+ "stable-arena",
  "strum_macros",
 ]
 
@@ -572,12 +572,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
 
 [[package]]
+name = "smallvec"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
+
+[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 dependencies = [
  "lock_api",
+]
+
+[[package]]
+name = "stable-arena"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1685b35356f257e030fd2c63b50cc7e6a065104325cc6a980a1f1bf8c4613f31"
+dependencies = [
+ "smallvec",
 ]
 
 [[package]]
