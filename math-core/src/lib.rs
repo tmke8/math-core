@@ -48,6 +48,7 @@
 //!
 use mathml_renderer::arena::Arena;
 
+pub(crate) mod atod;
 mod color_defs;
 pub(crate) mod commands;
 mod error;
