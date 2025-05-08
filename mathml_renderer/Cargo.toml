@@ -16,7 +16,7 @@ categories = ["science"]
 stable-arena = "0.1.1"
 strum_macros = "0.27.1"
 serde = { version = "1.0.218", features = ["derive"], optional = true }
-dtoa = "1.0"
+dtoa = { version = "1.0" }
 
 [dev-dependencies]
 
