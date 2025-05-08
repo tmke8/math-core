@@ -13,12 +13,10 @@ impl Arena {
         }
     }
 
-    #[inline(always)]
     pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut Node<'arena> {
         self.inner.alloc(node)
     }
 
-    #[inline]
     pub fn push_slice<'arena>(
         &'arena self,
         nodes: &[&'arena Node<'arena>],
@@ -31,7 +29,6 @@ impl Arena {
         }
     }
 
-    #[inline]
     fn alloc_str(&self, src: &str) -> &str {
         // `DroplessArena::alloc_str()` panics on empty strings.
         if src.is_empty() {
