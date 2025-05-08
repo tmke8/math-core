@@ -1,54 +1,41 @@
-use bumpalo::Bump;
+use stable_arena::DroplessArena;
 
 use crate::ast::Node;
 
 pub struct Arena {
-    bump: Bump,
+    inner: DroplessArena,
 }
 
 impl Arena {
     pub fn new() -> Self {
-        Arena { bump: Bump::new() }
+        Arena {
+            inner: DroplessArena::default(),
+        }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    #[inline]
     pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut Node<'arena> {
-        // This fails if the bump allocator is out of memory.
-        self.bump
-            .try_alloc_with(|| node)
-            .unwrap_or_else(|_| std::process::abort())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    #[inline]
-    pub fn push<'arena>(&'arena self, node: Node<'arena>) -> &'arena mut Node<'arena> {
-        self.bump.alloc_with(|| node)
+        self.inner.alloc(node)
     }
 
-    #[cfg(target_arch = "wasm32")]
-    #[inline]
     pub fn push_slice<'arena>(
         &'arena self,
         nodes: &[&'arena Node<'arena>],
     ) -> &'arena [&'arena Node<'arena>] {
-        // This fails if the bump allocator is out of memory.
-        self.bump
-            .try_alloc_slice_copy(nodes)
-            .unwrap_or_else(|_| std::process::abort())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    #[inline]
-    pub fn push_slice<'arena>(
-        &'arena self,
-        nodes: &[&'arena Node<'arena>],
-    ) -> &'arena [&'arena Node<'arena>] {
-        self.bump.alloc_slice_copy(nodes)
+        // `DroplessArena::alloc_slice()` panics on empty slices.
+        if nodes.is_empty() {
+            &[]
+        } else {
+            self.inner.alloc_slice(nodes)
+        }
     }
 
     fn alloc_str(&self, src: &str) -> &str {
-        self.bump
-            .try_alloc_str(src)
-            .unwrap_or_else(|_| std::process::abort())
+        // `DroplessArena::alloc_str()` panics on empty strings.
+        if src.is_empty() {
+            ""
+        } else {
+            self.inner.alloc_str(src)
+        }
     }
 }
 
@@ -147,7 +134,7 @@ mod tests {
 
     #[test]
     fn basic_arena() {
-        let arena = Bump::new();
+        let arena = DroplessArena::default();
 
         let a = arena.alloc(CycleParticipant { val: 1, next: None });
         let b = arena.alloc(CycleParticipant { val: 2, next: None });

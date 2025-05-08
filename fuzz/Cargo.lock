@@ -960,28 +960,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "latex2mmlc"
-version = "0.1.0"
-dependencies = [
- "mathml_renderer",
- "phf",
- "strum_macros",
-]
-
-[[package]]
-name = "latex2mmlc-fuzz"
-version = "0.0.0"
-dependencies = [
- "fantoccini",
- "image",
- "katex",
- "latex2mmlc",
- "libfuzzer-sys",
- "tempfile",
- "tokio",
-]
-
-[[package]]
 name = "lebe"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1041,10 +1019,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "math-core"
+version = "0.1.0"
+dependencies = [
+ "mathml_renderer",
+ "phf",
+ "strum_macros",
+]
+
+[[package]]
+name = "math-core-fuzz"
+version = "0.0.0"
+dependencies = [
+ "fantoccini",
+ "image",
+ "katex",
+ "libfuzzer-sys",
+ "math-core",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "mathml_renderer"
 version = "0.1.0"
 dependencies = [
- "bumpalo",
+ "stable-arena",
  "strum_macros",
 ]
 
@@ -1691,6 +1691,15 @@ checksum = "c970269d99b64e60ec3bd6ad27270092a5394c4e309314b18ae3fe575695fbe8"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "stable-arena"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1685b35356f257e030fd2c63b50cc7e6a065104325cc6a980a1f1bf8c4613f31"
+dependencies = [
+ "smallvec",
 ]
 
 [[package]]
