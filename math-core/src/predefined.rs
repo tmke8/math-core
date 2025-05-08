@@ -27,7 +27,7 @@ pub static PMOD: Node = Row {
     attr: RowAttr::None,
 };
 
-const LENGTH_NONE: (LengthValue, LengthUnit) = Length::empty().into_parts();
+const LENGTH_NONE: (LengthValue, LengthUnit) = Length::none().into_parts();
 
 pub static ODV: Node = Frac {
     num: &Row {

@@ -42,7 +42,7 @@ impl Length {
         }
     }
 
-    pub const fn empty() -> Self {
+    pub const fn none() -> Self {
         Length {
             value: LengthValue(f32::NAN),
             unit: LengthUnit::Px,
@@ -65,6 +65,8 @@ impl Length {
 
     pub fn from_pt(pt: f32) -> Self {
         Length {
+            // This conversion factor implies that the current font has size 10pt.
+            // This is what KaTeX does, too.
             value: LengthValue(pt * 0.1),
             unit: LengthUnit::Em,
         }

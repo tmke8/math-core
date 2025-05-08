@@ -821,7 +821,7 @@ mod tests {
     fn render_frac() {
         let num = &Node::Number("1");
         let denom = &Node::Number("2");
-        let (lt_value, lt_unit) = Length::empty().into_parts();
+        let (lt_value, lt_unit) = Length::none().into_parts();
         assert_eq!(
             render(&Node::Frac {
                 num,

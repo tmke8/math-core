@@ -273,7 +273,7 @@ where
                         style: None,
                     }
                 } else {
-                    let (lt_value, lt_unit) = Length::empty().into_parts();
+                    let (lt_value, lt_unit) = Length::none().into_parts();
                     Node::Frac {
                         num,
                         denom,
@@ -301,7 +301,7 @@ where
                 self.check_lbrace()?;
                 let (loc, length) = self.parse_text_group()?;
                 let lt = match length.trim() {
-                    "" => Length::empty(),
+                    "" => Length::none(),
                     decimal => parse_length_specification(decimal)
                         .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
                 };
