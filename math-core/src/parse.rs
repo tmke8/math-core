@@ -4,7 +4,7 @@ use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
-    length::AbsoluteLength,
+    length::Length,
     symbol,
 };
 
@@ -257,18 +257,30 @@ where
             }
             Token::Frac(attr) | Token::Binom(attr) => {
                 let num = self.parse_next(true)?;
-                let den = self.parse_next(true)?;
+                let denom = self.parse_next(true)?;
                 if matches!(cur_token, Token::Binom(_)) {
-                    let lt = Some(AbsoluteLength::from_twip(0).into());
+                    let (lt_value, lt_unit) = Length::zero().into_parts();
                     Node::Fenced {
                         open: symbol::LEFT_PARENTHESIS,
                         close: symbol::RIGHT_PARENTHESIS,
-                        content: self.commit(Node::Frac { num, den, lt, attr }),
+                        content: self.commit(Node::Frac {
+                            num,
+                            denom,
+                            lt_value,
+                            lt_unit,
+                            attr,
+                        }),
                         style: None,
                     }
                 } else {
-                    let lt = None;
-                    Node::Frac { num, den, lt, attr }
+                    let (lt_value, lt_unit) = Length::empty().into_parts();
+                    Node::Frac {
+                        num,
+                        denom,
+                        lt_value,
+                        lt_unit,
+                        attr,
+                    }
                 }
             }
             Token::Genfrac => {
@@ -289,11 +301,9 @@ where
                 self.check_lbrace()?;
                 let (loc, length) = self.parse_text_group()?;
                 let lt = match length.trim() {
-                    "" => None,
-                    decimal => Some(
-                        parse_length_specification(decimal)
-                            .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
-                    ),
+                    "" => Length::empty(),
+                    decimal => parse_length_specification(decimal)
+                        .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
                 };
                 let style = match self.parse_next(true)? {
                     Node::Number(num) => match num.as_bytes() {
@@ -307,12 +317,19 @@ where
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let num = self.parse_next(true)?;
-                let den = self.parse_next(true)?;
+                let denom = self.parse_next(true)?;
                 let attr = None;
+                let (lt_value, lt_unit) = lt.into_parts();
                 Node::Fenced {
                     open,
                     close,
-                    content: self.commit(Node::Frac { num, den, lt, attr }),
+                    content: self.commit(Node::Frac {
+                        num,
+                        denom,
+                        lt_value,
+                        lt_unit,
+                        attr,
+                    }),
                     style,
                 }
             }

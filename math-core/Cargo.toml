@@ -16,6 +16,7 @@ keywords = ["latex", "mathml"]
 categories = ["science"]
 
 [dependencies]
+# lexical-core = { version = "1.0.5", default-features = false, features = ["parse-floats", "std", "compact"] }
 mathml_renderer = { path = "../mathml_renderer" }
 
 phf = { version = "0.11.3", features = ["macros"] }

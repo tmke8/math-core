@@ -1,6 +1,7 @@
 use mathml_renderer::{
     ast::Node::{self, *},
     attribute::{MathSpacing, MathVariant, RowAttr, StretchMode},
+    length::{Length, LengthUnit, LengthValue},
     symbol,
 };
 
@@ -26,6 +27,8 @@ pub static PMOD: Node = Row {
     attr: RowAttr::None,
 };
 
+const LENGTH_NONE: (LengthValue, LengthUnit) = Length::empty().into_parts();
+
 pub static ODV: Node = Frac {
     num: &Row {
         nodes: &[
@@ -37,7 +40,7 @@ pub static ODV: Node = Frac {
         ],
         attr: RowAttr::None,
     },
-    den: &Node::Row {
+    denom: &Node::Row {
         nodes: &[
             &TextTransform {
                 tf: MathVariant::Normal,
@@ -47,7 +50,8 @@ pub static ODV: Node = Frac {
         ],
         attr: RowAttr::None,
     },
-    lt: None,
+    lt_value: LENGTH_NONE.0,
+    lt_unit: LENGTH_NONE.1,
     attr: None,
 };
 

@@ -9,7 +9,7 @@ use crate::attribute::{
     TextTransform,
 };
 use crate::itoa::append_u8_as_hex;
-use crate::length::SpecifiedLength;
+use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Op, ParenOp};
 
 /// AST node
@@ -65,9 +65,10 @@ pub enum Node<'arena> {
         /// Numerator
         num: &'arena Node<'arena>,
         /// Denominator
-        den: &'arena Node<'arena>,
+        denom: &'arena Node<'arena>,
         /// Line thickness
-        lt: Option<SpecifiedLength>,
+        lt_value: LengthValue,
+        lt_unit: LengthUnit,
         attr: Option<FracAttr>,
     },
     Row {
@@ -367,8 +368,15 @@ impl<'arena> MathMLEmitter<'arena> {
                 self.emit(content, child_indent)?;
                 writeln_indent!(&mut self.s, base_indent, "</msqrt>");
             }
-            Node::Frac { num, den, lt, attr } => {
+            Node::Frac {
+                num,
+                denom: den,
+                lt_value: line_length,
+                lt_unit: line_unit,
+                attr,
+            } => {
                 write!(self.s, "<mfrac")?;
+                let lt = Length::from_parts(*line_length, *line_unit);
                 if let Some(lt) = lt {
                     write!(self.s, " linethickness=\"")?;
                     lt.push_to_string(&mut self.s);
@@ -585,7 +593,7 @@ mod tests {
     use crate::attribute::{
         FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Style, TextTransform,
     };
-    use crate::length::{AbsoluteLength, FontRelativeLength};
+    use crate::length::{Length, LengthUnit, LengthValue};
     use crate::symbol;
 
     pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
@@ -812,12 +820,14 @@ mod tests {
     #[test]
     fn render_frac() {
         let num = &Node::Number("1");
-        let den = &Node::Number("2");
+        let denom = &Node::Number("2");
+        let (lt_value, lt_unit) = Length::empty().into_parts();
         assert_eq!(
             render(&Node::Frac {
                 num,
-                den,
-                lt: None,
+                denom,
+                lt_value,
+                lt_unit,
                 attr: None,
             }),
             "<mfrac><mn>1</mn><mn>2</mn></mfrac>"
@@ -825,54 +835,9 @@ mod tests {
         assert_eq!(
             render(&Node::Frac {
                 num,
-                den,
-                lt: Some(AbsoluteLength::from_pt(-1).into()),
-                attr: None,
-            }),
-            "<mfrac linethickness=\"-1pt\"><mn>1</mn><mn>2</mn></mfrac>"
-        );
-        assert_eq!(
-            render(&Node::Frac {
-                num,
-                den,
-                lt: Some(FontRelativeLength::from_em(1).into()),
-                attr: None,
-            }),
-            "<mfrac linethickness=\"1em\"><mn>1</mn><mn>2</mn></mfrac>"
-        );
-        assert_eq!(
-            render(&Node::Frac {
-                num,
-                den,
-                lt: Some(FontRelativeLength::from_ex(-1).into()),
-                attr: None,
-            }),
-            "<mfrac linethickness=\"-1ex\"><mn>1</mn><mn>2</mn></mfrac>"
-        );
-        assert_eq!(
-            render(&Node::Frac {
-                num,
-                den,
-                lt: Some(AbsoluteLength::from_pt(2).into()),
-                attr: None,
-            }),
-            "<mfrac linethickness=\"2pt\"><mn>1</mn><mn>2</mn></mfrac>"
-        );
-        assert_eq!(
-            render(&Node::Frac {
-                num,
-                den,
-                // 8/20 = 4/10
-                lt: Some(AbsoluteLength::from_twip(-8).into()),
-                attr: None,
-            }),
-            "<mfrac linethickness=\"-0.4pt\"><mn>1</mn><mn>2</mn></mfrac>"
-        );
-        assert_eq!(
-            render(&Node::Frac {
-                num,
-                den,
-                lt: None,
+                denom,
+                lt_value,
+                lt_unit,
                 attr: Some(FracAttr::DisplayStyleTrue),
             }),
             "<mfrac displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
@@ -880,20 +845,65 @@ mod tests {
         assert_eq!(
             render(&Node::Frac {
                 num,
-                den,
-                lt: Some(AbsoluteLength::from_pt(0).into()),
-                attr: Some(FracAttr::DisplayStyleTrue),
+                denom,
+                lt_value,
+                lt_unit,
+                attr: Some(FracAttr::DisplayStyleFalse),
             }),
-            "<mfrac linethickness=\"0\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac displaystyle=\"false\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        let (lt_value, lt_unit) = Length::from_pt(-1.0).into_parts();
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                denom,
+                lt_value,
+                lt_unit,
+                attr: None,
+            }),
+            "<mfrac linethickness=\"-0.1em\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {
                 num,
-                den,
-                lt: None,
-                attr: Some(FracAttr::DisplayStyleFalse),
+                denom,
+                lt_value: LengthValue(1.0),
+                lt_unit: LengthUnit::Em,
+                attr: None,
             }),
-            "<mfrac displaystyle=\"false\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"1em\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                denom,
+                lt_value: LengthValue(-1.0),
+                lt_unit: LengthUnit::Ex,
+                attr: None,
+            }),
+            "<mfrac linethickness=\"-1ex\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        let (lt_value, lt_unit) = Length::from_pt(2.0).into_parts();
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                denom,
+                lt_value,
+                lt_unit,
+                attr: None,
+            }),
+            "<mfrac linethickness=\"0.2em\"><mn>1</mn><mn>2</mn></mfrac>"
+        );
+        let (lt_value, lt_unit) = Length::zero().into_parts();
+        assert_eq!(
+            render(&Node::Frac {
+                num,
+                denom,
+                lt_value,
+                lt_unit,
+                attr: Some(FracAttr::DisplayStyleTrue),
+            }),
+            "<mfrac linethickness=\"0\" displaystyle=\"true\"><mn>1</mn><mn>2</mn></mfrac>"
         );
     }
 
