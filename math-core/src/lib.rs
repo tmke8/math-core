@@ -119,7 +119,9 @@ where
 
     let base_indent = if pretty { 1 } else { 0 };
     for node in nodes.iter() {
-        output.emit(node, base_indent);
+        output
+            .emit(node, base_indent)
+            .map_err(|_| error::LatexError(0, LatexErrKind::RenderError))?;
     }
     if pretty {
         output.push('\n');
@@ -132,7 +134,7 @@ where
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{LatexError, error, latex_to_mathml};
+    use crate::{LatexErrKind, LatexError, error, latex_to_mathml};
     use mathml_renderer::ast::MathMLEmitter;
 
     use super::{Arena, get_nodes};
@@ -142,7 +144,9 @@ mod tests {
         let nodes = get_nodes(latex, &arena)?;
         let mut emitter = MathMLEmitter::new();
         for node in nodes.iter() {
-            emitter.emit(node, 0);
+            emitter
+                .emit(node, 0)
+                .map_err(|_| error::LatexError(0, LatexErrKind::RenderError))?;
         }
         Ok(emitter.into_inner())
     }
