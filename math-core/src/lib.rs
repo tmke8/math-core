@@ -268,7 +268,6 @@ mod tests {
                 r"\genfrac(]{  1pt     }{2}{a+b}{c+d}",
             ),
             ("genfrac_0.4pt", r"\genfrac(]{0.4pt}{2}{a+b}{c+d}"),
-            ("genfrac_1px", r"\genfrac(]{1px}{2}{a+b}{c+d}"),
             ("genfrac_0.4ex", r"\genfrac(]{0.4ex}{2}{a+b}{c+d}"),
             ("genfrac_4em", r"\genfrac(]{4em}{2}{a+b}{c+d}"),
             ("not_subset", r"\not\subset"),

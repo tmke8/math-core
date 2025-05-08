@@ -5,7 +5,7 @@ expression: "\\genfrac(]{  1pt     }{2}{a+b}{c+d}"
 <math>
     <mrow displaystyle="false" scriptlevel="1">
         <mo>(</mo>
-        <mfrac linethickness="1pt">
+        <mfrac linethickness="0.1em">
             <mrow>
                 <mi>a</mi>
                 <mo>+</mo>

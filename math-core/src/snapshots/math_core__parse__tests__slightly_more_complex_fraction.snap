@@ -5,8 +5,9 @@ expression: "\\frac123"
 [
   Frac(
     num: Number("1"),
-    den: Number("2"),
-    lt: None,
+    denom: Number("2"),
+    lt_value: LengthValue(NaN),
+    lt_unit: Px,
     attr: None,
   ),
   Number("3"),
