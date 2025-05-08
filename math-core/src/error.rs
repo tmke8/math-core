@@ -36,6 +36,7 @@ pub enum LatexErrKind<'source> {
     },
     ExpectedText(&'static str),
     ExpectedLength(&'source str),
+    RenderError,
 }
 
 #[derive(Debug, AsRefStr)]
@@ -97,6 +98,7 @@ impl LatexErrKind<'_> {
             LatexErrKind::ExpectedLength(got) => {
                 "Expected length with units, got \"".to_string() + got + "\"."
             }
+            LatexErrKind::RenderError => "Render error".to_string(),
         }
     }
 }
