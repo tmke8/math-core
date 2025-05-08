@@ -32,7 +32,7 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
 ///
 /// The largest number this function can handle is 4294967295.4294967295 and the smallest is the
 /// same but with a minus sign.
-fn simple_float_parse(digits: &str) -> Result<f32, ()> {
+fn simple_float_parse2(digits: &str) -> Result<f32, ()> {
     let (digits, sign) = if let Some(digits) = digits.strip_prefix('-') {
         (digits, -1.0f32)
     } else {
@@ -54,6 +54,31 @@ fn simple_float_parse(digits: &str) -> Result<f32, ()> {
     value *= sign;
     Ok(value)
 }
+fn simple_float_parse(digits: &str) -> Result<f32, ()> {
+    let (digits, sign) = if let Some(digits) = digits.strip_prefix('-') {
+        (digits, -1.0f64)
+    } else {
+        (digits, 1.0f64)
+    };
+    let (integer, fraction) = if let Some(parts) = digits.split_once('.') {
+        parts
+    } else {
+        (digits, "")
+    };
+    let frac_len = fraction.len() as i32;
+    // the most digits we can handle is 39
+    let mut buffer = [0u8; 39];
+    buffer[0..integer.len()].copy_from_slice(integer.as_bytes());
+    buffer[integer.len()..(integer.len() + fraction.len())].copy_from_slice(fraction.as_bytes());
+    let mut value =
+        unsafe { std::str::from_utf8_unchecked(&buffer[0..(integer.len() + fraction.len())]) }
+            .parse::<u128>()
+            .map_err(|_| ())? as f64;
+    value /= 10f64.powi(frac_len);
+    value *= sign;
+    Ok(value as f32)
+}
+
 fn to_nearest_f32(integer: u32, fraction: u32, frac_len: u32) -> f32 {
     // Calculate the denominator (power of 10) for the fraction
     let denominator = 10u128.pow(frac_len);
