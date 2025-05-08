@@ -23,7 +23,7 @@ impl Arena {
         &'arena self,
         nodes: &[&'arena Node<'arena>],
     ) -> &'arena [&'arena Node<'arena>] {
-        // `DroplessArena::alloc_str()` panics on empty slices.
+        // `DroplessArena::alloc_slice()` panics on empty slices.
         if nodes.is_empty() {
             &[]
         } else {
