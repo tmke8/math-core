@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\hspace{2b2cm}"
+---
+Position: 7
+ExpectedLength(
+    "2b2cm",
+)

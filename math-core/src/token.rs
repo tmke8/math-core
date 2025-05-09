@@ -60,6 +60,7 @@ pub enum Token<'source> {
     Limits,
     Lim(&'static str),
     Space(Length),
+    CustomSpace,
     #[strum(serialize = "~")]
     NonBreakingSpace,
     Whitespace,

@@ -335,6 +335,8 @@ mod tests {
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
             ("color", r"{\color{Blue}x^2}"),
+            ("hspace", r"\hspace{1cm}"),
+            ("hspace_whitespace", r"\hspace{  4mm }"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -386,6 +388,9 @@ mod tests {
             ("sub_sub", "x_2_3 y"),
             ("no_rbrack_instead_of_bracket", r"\sqrt[3\rbrack{1}"),
             ("genfrac_wrong_unit", r"\genfrac(]{1pg}{2}{a+b}{c+d}"),
+            ("hspace_empty", r"\hspace{  }"),
+            ("hspace_unknown_unit", r"\hspace{2ly}"),
+            ("hspace_non_digits", r"\hspace{2b2cm}"),
         ];
 
         for (name, problem) in problems.into_iter() {
