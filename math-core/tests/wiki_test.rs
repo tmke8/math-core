@@ -905,8 +905,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 179);
-    assert_eq!(n_fail, 29);
+    assert_eq!(n_diff, 181);
+    assert_eq!(n_fail, 27);
 }
 
 /// Prettify HTML input
@@ -1022,7 +1022,7 @@ fn test_nonfailing_wiki_tests() {
         (53, r"<, \nless, \ll, \not\ll, \lll, \not\lll, \lessdot"),
         // (54, r"\le, \leq, \lneq, \leqq, \nleq, \nleqq, \lneqq, \lvertneqq"),
         // (55, r"\ge, \geq, \gneq, \geqq, \ngeq, \ngeqq, \gneqq, \gvertneqq"),
-        // (56, r"\lessgtr, \lesseqgtr, \lesseqqgtr, \gtrless, \gtreqless, \gtreqqless"),
+        (56, r"\lessgtr, \lesseqgtr, \lesseqqgtr, \gtrless, \gtreqless, \gtreqqless"),
         // (57, r"\leqslant, \nleqslant, \eqslantless"),
         // (58, r"\geqslant, \ngeqslant, \eqslantgtr"),
         (59, r"\lesssim, \lnsim, \lessapprox, \lnapprox"),
@@ -1085,7 +1085,7 @@ fn test_nonfailing_wiki_tests() {
             94,
             r"\curvearrowright \circlearrowright \Rsh \downdownarrows \leftleftarrows \leftrightarrows \leftarrowtail \looparrowleft",
         ),
-        // (95, r"\hookrightarrow \hookleftarrow \multimap \leftrightsquigarrow \rightsquigarrow \twoheadrightarrow \twoheadleftarrow"),
+        (95, r"\hookrightarrow \hookleftarrow \multimap \leftrightsquigarrow \rightsquigarrow \twoheadrightarrow \twoheadleftarrow"),
         (96, r"\amalg \P \S \% \dagger\ddagger\ldots\cdots"),
         (97, r"\smile \frown \wr \triangleleft \triangleright"),
         (

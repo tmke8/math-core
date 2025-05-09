@@ -1,0 +1,13 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\hookrightarrow \\hookleftarrow \\multimap \\leftrightsquigarrow \\rightsquigarrow \\twoheadrightarrow \\twoheadleftarrow"
+---
+<math>
+    <mo>↪</mo>
+    <mo>↩</mo>
+    <mo>⊸</mo>
+    <mo>↭</mo>
+    <mo>⇝</mo>
+    <mo>↠</mo>
+    <mo>↞</mo>
+</math>
