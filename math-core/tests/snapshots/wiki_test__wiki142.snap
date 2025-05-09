@@ -11,7 +11,7 @@ expression: "\\left\\uparrow\\frac{a}{b}\\right\\downarrow\\; \\left\\Uparrow\\f
         </mfrac>
         <mo stretchy="true">↓</mo>
     </mrow>
-    <mspace width="0.2778em"/>
+    <mspace width="0.2777778em"/>
     <mrow>
         <mo stretchy="true">⇑</mo>
         <mfrac>
@@ -20,7 +20,7 @@ expression: "\\left\\uparrow\\frac{a}{b}\\right\\downarrow\\; \\left\\Uparrow\\f
         </mfrac>
         <mo stretchy="true">⇓</mo>
     </mrow>
-    <mspace width="0.2778em"/>
+    <mspace width="0.2777778em"/>
     <mrow>
         <mo stretchy="true">↕</mo>
         <mfrac>

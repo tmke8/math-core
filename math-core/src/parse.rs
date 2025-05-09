@@ -243,6 +243,13 @@ where
             Token::OpAmpersand => Node::OpAmpersand,
             Token::Function(fun) => Node::MultiLetterIdent(fun),
             Token::Space(space) => Node::Space(space),
+            Token::CustomSpace => {
+                self.check_lbrace()?;
+                let (loc, length) = self.parse_text_group()?;
+                let space = parse_length_specification(length.trim())
+                    .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
+                Node::Space(space)
+            }
             Token::NonBreakingSpace | Token::Whitespace => Node::Text("\u{A0}"),
             Token::Sqrt => {
                 let next = self.next_token();
@@ -1079,6 +1086,7 @@ mod tests {
             ("scriptstyle_without_braces", r"x\scriptstyle y"),
             ("overset_digits", r"\overset12"),
             ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
+            ("mspace", r"\mspace{1mu}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

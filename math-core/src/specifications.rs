@@ -1,6 +1,54 @@
 //! Functions for parsing specifications in LaTeX commands.
 
-use mathml_renderer::length::Length;
+use strum_macros::EnumString;
+
+use mathml_renderer::length::{Length, LengthUnit};
+
+#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
+pub enum LaTeXUnit {
+    /// Point
+    #[strum(ascii_case_insensitive)]
+    Pt,
+    /// Millimeter
+    #[strum(ascii_case_insensitive)]
+    Mm,
+    /// Centimeter
+    #[strum(ascii_case_insensitive)]
+    Cm,
+    /// Inch
+    #[strum(ascii_case_insensitive)]
+    In,
+    /// roughly the height of an 'x' (lowercase) in the current font
+    #[strum(ascii_case_insensitive)]
+    Ex,
+    /// roughly the width of an 'M' (uppercase) in the current font
+    #[strum(ascii_case_insensitive)]
+    Em,
+    /// math unit equal to 1/18 em, where em is taken from the math symbols family
+    #[strum(ascii_case_insensitive)]
+    Mu,
+    /// so-called "special points", a low-level unit of measure where 65536sp=1pt
+    #[strum(ascii_case_insensitive)]
+    Sp,
+}
+
+impl LaTeXUnit {
+    pub const fn length_with_unit(self, value: f32) -> Length {
+        use LengthUnit::*;
+        // The conversions are based on the assumption that 1Rem=10pt,
+        // which means that we assume the LaTeX document had the font size set to 10pt.
+        match self {
+            LaTeXUnit::Pt => Length::new(0.1 * value, Rem),
+            LaTeXUnit::Mm => Length::new(0.28453 * value, Rem),
+            LaTeXUnit::Cm => Length::new(2.8453 * value, Rem),
+            LaTeXUnit::In => Length::new(7.2 * value, Rem),
+            LaTeXUnit::Ex => Length::new(value, Ex),
+            LaTeXUnit::Em => Length::new(value, Em),
+            LaTeXUnit::Mu => Length::new(0.055555556 * value, Em),
+            LaTeXUnit::Sp => Length::new(1.525879e-6 * value, Rem),
+        }
+    }
+}
 
 pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
     let len = s.len();
@@ -17,12 +65,8 @@ pub(crate) fn parse_length_specification(s: &str) -> Result<Length, ()> {
     let value = simple_float_parse(digits)?;
     // let value = digits.parse::<f32>().map_err(|_| ())?;
 
-    match unit {
-        "pt" => Ok(Length::from_pt(value)),
-        "em" => Ok(Length::from_em(value)),
-        "ex" => Ok(Length::from_ex(value)),
-        _ => return Err(()),
-    }
+    let parsed_unit = LaTeXUnit::try_from(unit).map_err(|_| ())?;
+    Ok(parsed_unit.length_with_unit(value))
 }
 
 /// Simple float parsing.
@@ -90,6 +134,12 @@ mod tests {
         assert_eq!(simple_float_parse("16777217.0").unwrap(), 16777216.0);
         assert_eq!(simple_float_parse("16777218.0").unwrap(), 16777218.0);
         assert_eq!(simple_float_parse("16777219.0").unwrap(), 16777220.0);
+    }
+
+    #[test]
+    fn latex_unit() {
+        assert_eq!(LaTeXUnit::try_from("CM").unwrap(), LaTeXUnit::Cm);
+        assert_eq!(LaTeXUnit::try_from("mM").unwrap(), LaTeXUnit::Mm);
     }
 
     #[test]

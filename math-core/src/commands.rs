@@ -5,19 +5,20 @@ use mathml_renderer::attribute::{
 use mathml_renderer::symbol::{self, Rel};
 
 use crate::predefined;
+use crate::specifications::LaTeXUnit;
 use crate::token::Token;
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     " " => Token::NonBreakingSpace,
-    "!" => Token::Space("-0.1667"),
+    "!" => Token::Space(LaTeXUnit::Mu.length_with_unit(-3.0)),
     "#" => Token::Letter('#'),
     "$" => Token::Letter('$'),
     "%" => Token::Letter('%'),
     "&" => Token::OpAmpersand,
-    "," => Token::Space("0.1667"),
-    ":" => Token::Space("0.2222"),
-    ";" => Token::Space("0.2778"),
-    ">" => Token::Space("0.2222"),
+    "," => Token::Space(LaTeXUnit::Mu.length_with_unit(3.0)),
+    ":" => Token::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+    ";" => Token::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+    ">" => Token::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
     "\\" => Token::NewLine,
     "_" => Token::Letter('_'),
     "AA" => Token::Letter('Å'), // TODO: valid in text mode only
@@ -166,7 +167,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "blacktriangleright" => Token::Letter(symbol::BLACK_RIGHT_POINTING_TRIANGLE),
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bmod" => Token::CustomCmd(0, &Node::Row {
-        nodes: &[&Node::Space("0.2222"), &Node::Text("mod"), &Node::Space("0.2222")],
+        nodes: &[
+            &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+            &Node::Text("mod"),
+            &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+        ],
         attr: RowAttr::None
     }),
     "boldsymbol" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
@@ -324,6 +329,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hookleftarrow" => Token::Relation(symbol::LEFTWARDS_ARROW_WITH_HOOK),
     "hookrightarrow" => Token::Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hslash" => Token::Letter('ℏ'),
+    "hspace" => Token::CustomSpace,
     "iff" => Token::Relation(symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW),
     "iiiint" => Token::Integral(symbol::QUADRUPLE_INTEGRAL_OPERATOR),
     "iiint" => Token::Integral(symbol::TRIPLE_INTEGRAL),
@@ -432,6 +438,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mod" => Token::CustomCmd(1, &predefined::MOD),
     "models" => Token::Relation(symbol::TRUE),
     "mp" => Token::BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
+    "mspace" => Token::CustomSpace,
     "mu" => Token::Letter('μ'),
     "multimap" => Token::Relation(symbol::MULTIMAP),
     "nLeftarrow" => Token::Relation(symbol::LEFTWARDS_DOUBLE_ARROW_WITH_STROKE),
@@ -522,8 +529,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "propto" => Token::Relation(symbol::PROPORTIONAL_TO),
     "psi" => Token::Letter('ψ'),
     "qprime" => Token::Relation(symbol::QUADRUPLE_PRIME),
-    "qquad" => Token::Space("2"),
-    "quad" => Token::Space("1"),
+    "qquad" => Token::Space(LaTeXUnit::Em.length_with_unit(2.0)),
+    "quad" => Token::Space(LaTeXUnit::Em.length_with_unit(1.0)),
     "questeq" => Token::Relation(symbol::QUESTIONED_EQUAL_TO), // from "stix"
     "rBrace" => Token::Delimiter(symbol::RIGHT_WHITE_CURLY_BRACKET),
     "rVert" => Token::Delimiter(symbol::DOUBLE_VERTICAL_LINE),

@@ -10,8 +10,8 @@ expression: "\\genfrac(){1pt}{0}{1}{2}"
     content: Frac(
       num: Number("1"),
       denom: Number("2"),
-      lt_value: LengthValue(0.1),
-      lt_unit: Em,
+      lt_value: 0.1,
+      lt_unit: Rem,
       attr: None,
     ),
   ),
