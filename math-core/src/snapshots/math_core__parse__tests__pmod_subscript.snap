@@ -7,10 +7,16 @@ expression: "\\pmod{3}_4"
     target: CustomCmd(
       predefined: Row(
         nodes: [
-          Space("1"),
+          Space(Length(
+            value: 1.0,
+            unit: Em,
+          )),
           StretchableOp(ParenOp('(', false, Always), NoStretch),
           Text("mod"),
-          Space("0.3333"),
+          Space(Length(
+            value: 0.33333334,
+            unit: Em,
+          )),
           CustomCmdArg(0),
           StretchableOp(ParenOp(')', false, Always), NoStretch),
         ],

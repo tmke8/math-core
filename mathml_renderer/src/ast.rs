@@ -30,7 +30,7 @@ pub enum Node<'arena> {
     },
     MultiLetterIdent(&'arena str),
     CollectedLetters(&'arena str),
-    Space(&'static str),
+    Space(Length),
     Subscript {
         target: &'arena Node<'arena>,
         symbol: &'arena Node<'arena>,
@@ -277,7 +277,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, "{close}")?;
             }
             Node::Space(space) => {
-                write!(self.s, "<mspace width=\"{space}em\"/>")?;
+                write!(self.s, "<mspace width=\"")?;
+                space.push_to_string(&mut self.s);
+                write!(self.s, "\"/>")?;
             }
             // The following nodes have exactly two children.
             node @ (Node::Subscript {
@@ -696,7 +698,10 @@ mod tests {
 
     #[test]
     fn render_space() {
-        assert_eq!(render(&Node::Space("1")), "<mspace width=\"1em\"/>");
+        assert_eq!(
+            render(&Node::Space(Length::new(1.0, LengthUnit::Em))),
+            "<mspace width=\"1em\"/>"
+        );
     }
 
     #[test]

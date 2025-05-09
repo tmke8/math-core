@@ -96,9 +96,9 @@ mod tests {
     #[test]
     fn arena_test() {
         let arena = Arena::new();
-        let node = Node::Space("Hello, world!");
+        let node = Node::HardcodedMathML("Hello, world!");
         let reference = arena.push(node);
-        assert!(matches!(reference, Node::Space("Hello, world!")));
+        assert!(matches!(reference, Node::HardcodedMathML("Hello, world!")));
     }
 
     #[test]

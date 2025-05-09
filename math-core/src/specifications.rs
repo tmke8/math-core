@@ -5,7 +5,7 @@ use strum_macros::EnumString;
 use mathml_renderer::length::{Length, LengthUnit};
 
 #[derive(Debug, Clone, Copy, PartialEq, EnumString)]
-enum LaTeXUnit {
+pub enum LaTeXUnit {
     /// Point
     #[strum(ascii_case_insensitive)]
     Pt,
@@ -33,7 +33,7 @@ enum LaTeXUnit {
 }
 
 impl LaTeXUnit {
-    fn length_with_unit(self, value: f32) -> Length {
+    pub const fn length_with_unit(self, value: f32) -> Length {
         use LengthUnit::*;
         // The conversions are based on the assumption that 1Rem=10pt,
         // which means that we assume the LaTeX document had the font size set to 10pt.
@@ -44,7 +44,7 @@ impl LaTeXUnit {
             LaTeXUnit::In => Length::new(7.2 * value, Rem),
             LaTeXUnit::Ex => Length::new(value, Ex),
             LaTeXUnit::Em => Length::new(value, Em),
-            LaTeXUnit::Mu => Length::new(0.05555555555 * value, Em),
+            LaTeXUnit::Mu => Length::new(0.055555556 * value, Em),
             LaTeXUnit::Sp => Length::new(1.525879e-6 * value, Rem),
         }
     }

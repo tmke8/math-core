@@ -16,10 +16,10 @@ expression: "a \\qquad b \\\\ a \\quad b \\\\ a\\ b \\\\ a \\text{ } b \\\\ a\\;
     <mtext> </mtext>
     <mi>b</mi>
     <mi>a</mi>
-    <mspace width="0.2778em"/>
+    <mspace width="0.2777778em"/>
     <mi>b</mi>
     <mi>a</mi>
-    <mspace width="0.1667em"/>
+    <mspace width="0.16666667em"/>
     <mi>b</mi>
     <mi>a</mi>
     <mi>b</mi>
@@ -27,6 +27,6 @@ expression: "a \\qquad b \\\\ a \\quad b \\\\ a\\ b \\\\ a \\text{ } b \\\\ a\\;
     <mi>b</mi>
     <mi>𝑎𝑏</mi>
     <mi>a</mi>
-    <mspace width="-0.1667em"/>
+    <mspace width="-0.16666667em"/>
     <mi>b</mi>
 </math>

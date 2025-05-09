@@ -4,7 +4,7 @@ expression: "\\xrightarrow{x}"
 ---
 <math>
     <mrow>
-        <mspace width="0.2778em"/>
+        <mspace width="0.2777778em"/>
         <mover>
             <mo lspace="0em" rspace="0em">→</mo>
             <mover>
@@ -16,6 +16,6 @@ expression: "\\xrightarrow{x}"
                 <mspace width="3.5em"/>
             </mover>
         </mover>
-        <mspace width="0.2778em"/>
+        <mspace width="0.2777778em"/>
     </mrow>
 </math>

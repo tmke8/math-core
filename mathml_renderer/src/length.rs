@@ -6,7 +6,7 @@
 use serde::Serialize;
 use strum_macros::IntoStaticStr;
 
-#[derive(Debug, Clone, Copy, IntoStaticStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LengthUnit {
     // absolute unit
@@ -19,16 +19,17 @@ pub enum LengthUnit {
     Ex,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Length {
     value: LengthValue,
     unit: LengthUnit,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[repr(transparent)]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct LengthValue(pub(crate) f32);
 
 impl Length {

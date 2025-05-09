@@ -2,6 +2,7 @@ use std::mem::discriminant;
 
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
+use mathml_renderer::length::Length;
 use mathml_renderer::symbol::{Big, Bin, Op, ParenOp, Rel};
 use strum_macros::IntoStaticStr;
 
@@ -58,7 +59,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\limits")]
     Limits,
     Lim(&'static str),
-    Space(&'static str),
+    Space(Length),
     #[strum(serialize = "~")]
     NonBreakingSpace,
     Whitespace,
