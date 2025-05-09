@@ -852,7 +852,7 @@ mod tests {
             }),
             "<mfrac displaystyle=\"false\"><mn>1</mn><mn>2</mn></mfrac>"
         );
-        let (lt_value, lt_unit) = Length::from_pt(-1.0).into_parts();
+        let (lt_value, lt_unit) = Length::new(-1.0, LengthUnit::Rem).into_parts();
         assert_eq!(
             render(&Node::Frac {
                 num,
@@ -861,7 +861,7 @@ mod tests {
                 lt_unit,
                 attr: None,
             }),
-            "<mfrac linethickness=\"-0.1em\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"-1rem\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         assert_eq!(
             render(&Node::Frac {
@@ -883,7 +883,7 @@ mod tests {
             }),
             "<mfrac linethickness=\"-1ex\"><mn>1</mn><mn>2</mn></mfrac>"
         );
-        let (lt_value, lt_unit) = Length::from_pt(2.0).into_parts();
+        let (lt_value, lt_unit) = Length::new(2.0, LengthUnit::Rem).into_parts();
         assert_eq!(
             render(&Node::Frac {
                 num,
@@ -892,7 +892,7 @@ mod tests {
                 lt_unit,
                 attr: None,
             }),
-            "<mfrac linethickness=\"0.2em\"><mn>1</mn><mn>2</mn></mfrac>"
+            "<mfrac linethickness=\"2rem\"><mn>1</mn><mn>2</mn></mfrac>"
         );
         let (lt_value, lt_unit) = Length::zero().into_parts();
         assert_eq!(

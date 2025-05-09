@@ -7,7 +7,7 @@ expression: "\\frac123"
     num: Number("1"),
     denom: Number("2"),
     lt_value: LengthValue(NaN),
-    lt_unit: Px,
+    lt_unit: Rem,
     attr: None,
   ),
   Number("3"),

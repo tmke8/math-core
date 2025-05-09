@@ -8,7 +8,7 @@ expression: "\\frac12_x"
       num: Number("1"),
       denom: Number("2"),
       lt_value: LengthValue(NaN),
-      lt_unit: Px,
+      lt_unit: Rem,
       attr: None,
     ),
     symbol: SingleLetterIdent('x', false),
