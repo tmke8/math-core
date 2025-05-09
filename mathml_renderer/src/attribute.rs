@@ -1,7 +1,7 @@
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use strum_macros::AsRefStr;
+use strum_macros::IntoStaticStr;
 
 /// <mi> mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -22,7 +22,7 @@ impl MathVariant {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="false""#)]
@@ -33,7 +33,7 @@ pub enum OpAttr {
     FormPrefix,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Size {
     #[strum(serialize = "1.2em")]
@@ -71,7 +71,7 @@ pub enum Stretchy {
 }
 
 /// display style
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum FracAttr {
     #[strum(serialize = r#" displaystyle="true""#)]
@@ -82,7 +82,7 @@ pub enum FracAttr {
     CFracStyle,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
@@ -103,7 +103,7 @@ pub enum Align {
     Alternating,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
     #[strum(serialize = "0em")]
@@ -112,7 +112,7 @@ pub enum MathSpacing {
     FourMu, // 4/18 of an em/\quad
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum RowAttr {
     None,

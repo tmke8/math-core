@@ -1,6 +1,6 @@
 use std::fmt;
 
-use strum_macros::AsRefStr;
+use strum_macros::IntoStaticStr;
 
 // use no_panic::no_panic;
 
@@ -39,7 +39,7 @@ pub enum LatexErrKind<'source> {
     RenderError,
 }
 
-#[derive(Debug, AsRefStr)]
+#[derive(Debug, IntoStaticStr)]
 #[repr(u32)] // A different value here somehow increases code size on WASM enormously.
 pub enum Place {
     #[strum(serialize = r"after \int, \sum, ...")]
@@ -59,23 +59,23 @@ impl LatexErrKind<'_> {
         match self {
             LatexErrKind::UnexpectedToken { expected, got } => {
                 "Expected token \"".to_string()
-                    + expected.as_ref()
+                    + <&str>::from(*expected)
                     + "\", but found token \""
-                    + got.as_ref()
+                    + <&str>::from(got)
                     + "\"."
             }
             LatexErrKind::UnclosedGroup(expected) => {
-                "Expected token \"".to_string() + expected.as_ref() + "\", but not found."
+                "Expected token \"".to_string() + <&str>::from(expected) + "\", but not found."
             }
             LatexErrKind::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string() + got.as_ref() + "\"."
+                "Unexpected closing token: \"".to_string() + <&str>::from(got) + "\"."
             }
             LatexErrKind::UnexpectedEOF => "Unexpected end of file.".to_string(),
             LatexErrKind::MissingParenthesis { location, got } => {
                 "There must be a parenthesis after \"".to_string()
-                    + location.as_ref()
+                    + <&str>::from(*location)
                     + "\", but not found. Instead, \""
-                    + got.as_ref()
+                    + <&str>::from(got)
                     + "\" was found."
             }
             LatexErrKind::UnparsableEnvName => "Unparsable environment name.".to_string(),
@@ -89,9 +89,9 @@ impl LatexErrKind<'_> {
             }
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
                 "Got \"".to_string()
-                    + got.as_ref()
+                    + <&str>::from(got)
                     + "\", which may only appear "
-                    + correct_place.as_ref()
+                    + <&str>::from(correct_place)
                     + "."
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
