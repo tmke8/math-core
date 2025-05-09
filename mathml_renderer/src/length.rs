@@ -4,9 +4,9 @@
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
-use strum_macros::AsRefStr;
+use strum_macros::IntoStaticStr;
 
-#[derive(Debug, Clone, Copy, AsRefStr)]
+#[derive(Debug, Clone, Copy, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LengthUnit {
     // absolute unit
@@ -38,7 +38,7 @@ impl Length {
         // let _ = write!(output, "{}", self.value.0).is_ok();
         output.push_str(result.strip_suffix(".0").unwrap_or(result));
         if self.value.0 != 0.0 {
-            output.push_str(self.unit.as_ref());
+            output.push_str(<&'static str>::from(self.unit));
         }
     }
 

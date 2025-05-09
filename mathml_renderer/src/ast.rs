@@ -216,14 +216,14 @@ impl<'arena> MathMLEmitter<'arena> {
             }
             Node::Operator(op, attributes) => {
                 match attributes {
-                    Some(attributes) => write!(self.s, "<mo{}>", attributes.as_ref())?,
+                    Some(attributes) => write!(self.s, "<mo{}>", <&str>::from(attributes))?,
                     None => write!(self.s, "<mo>")?,
                 };
                 write!(self.s, "{}</mo>", op.as_char())?;
             }
             Node::StretchableOp(op, stretch_mode) => {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
-                    write!(self.s, "<mi>{}</mi>", <&ParenOp as Into<char>>::into(op))?;
+                    write!(self.s, "<mi>{}</mi>", char::from(*op))?;
                 } else {
                     self.emit_stretchy_op(*stretch_mode, op)?;
                 }
@@ -243,19 +243,19 @@ impl<'arena> MathMLEmitter<'arena> {
                         write!(
                             self.s,
                             "<mo lspace=\"{}\" rspace=\"{}\"",
-                            left.as_ref(),
-                            right.as_ref()
+                            <&str>::from(left),
+                            <&str>::from(right)
                         )?;
                     }
                     (Some(left), None) => {
-                        write!(self.s, "<mo lspace=\"{}\"", left.as_ref())?;
+                        write!(self.s, "<mo lspace=\"{}\"", <&str>::from(left))?;
                     }
                     (None, Some(right)) => {
-                        write!(self.s, "<mo rspace=\"{}\"", right.as_ref())?;
+                        write!(self.s, "<mo rspace=\"{}\"", <&str>::from(right))?;
                     }
                     (None, None) => self.s.push_str("<mo"),
                 }
-                write!(self.s, ">{}</mo>", <&Op as Into<char>>::into(op))?;
+                write!(self.s, ">{}</mo>", char::from(op))?;
             }
             Node::MultiLetterIdent(letters) => {
                 write!(self.s, "<mi>{letters}</mi>")?;
@@ -347,9 +347,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 self.emit(target, child_indent)?;
                 writeln_indent!(&mut self.s, child_indent, "<mo accent=\"true\"");
                 if let Some(attr) = attr {
-                    write!(self.s, "{}", attr.as_ref())?;
+                    write!(self.s, "{}", <&str>::from(attr))?;
                 }
-                write!(self.s, ">{}</mo>", <&Op as Into<char>>::into(op))?;
+                write!(self.s, ">{}</mo>", char::from(op))?;
                 writeln_indent!(&mut self.s, base_indent, "</mover>");
             }
             Node::UnderOp(op, target) => {
@@ -359,7 +359,7 @@ impl<'arena> MathMLEmitter<'arena> {
                     &mut self.s,
                     child_indent,
                     "<mo accent=\"true\">{}</mo>",
-                    <&Op as Into<char>>::into(op)
+                    char::from(op)
                 );
                 writeln_indent!(&mut self.s, base_indent, "</munder>");
             }
@@ -383,7 +383,7 @@ impl<'arena> MathMLEmitter<'arena> {
                     write!(self.s, "\"")?;
                 }
                 if let Some(style) = attr {
-                    write!(self.s, "{}", style.as_ref())?;
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
                 self.emit(num, child_indent)?;
@@ -396,7 +396,7 @@ impl<'arena> MathMLEmitter<'arena> {
                         write!(self.s, "<mrow>")?;
                     }
                     RowAttr::Style(style) => {
-                        write!(self.s, "<mrow{}>", style.as_ref())?;
+                        write!(self.s, "<mrow{}>", <&str>::from(style))?;
                     }
                     RowAttr::Color(r, g, b) => {
                         write!(self.s, "<mrow style=\"color:#")?;
@@ -418,7 +418,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 style,
             } => {
                 match style {
-                    Some(style) => write!(self.s, "<mrow{}>", style.as_ref())?,
+                    Some(style) => write!(self.s, "<mrow{}>", <&str>::from(style))?,
                     None => write!(self.s, "<mrow>")?,
                 };
                 new_line_and_indent(&mut self.s, child_indent);
@@ -432,13 +432,13 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(
                     self.s,
                     "<mo maxsize=\"{}\" minsize=\"{}\"",
-                    size.as_ref(),
-                    size.as_ref()
+                    <&str>::from(size),
+                    <&str>::from(size)
                 )?;
                 if !matches!(paren.stretchy(), Stretchy::Always) {
                     write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
                 }
-                write!(self.s, ">{}</mo>", <&ParenOp as Into<char>>::into(paren))?;
+                write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
                 Node::SingleLetterIdent(x, is_upright) => {
@@ -449,7 +449,7 @@ impl<'arena> MathMLEmitter<'arena> {
                     }
                 }
                 Node::Operator(x, _) => {
-                    write!(self.s, "<mo>{}&#x0338;</mo>", <&Op as Into<char>>::into(x))?;
+                    write!(self.s, "<mo>{}&#x0338;</mo>", char::from(x))?;
                 }
                 n => self.emit(n, base_indent)?,
             },
@@ -490,7 +490,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 let mut col: usize = 1;
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
-                    write!(self.s, "{}", attr.as_ref())?;
+                    write!(self.s, "{}", <&str>::from(attr))?;
                 }
                 write!(self.s, ">")?;
                 writeln_indent!(&mut self.s, child_indent, "<mtr>");
@@ -565,7 +565,7 @@ impl<'arena> MathMLEmitter<'arena> {
             }
         }
         if char::from(op) != '\0' {
-            write!(self.s, "{}", <&ParenOp as Into<char>>::into(op))?;
+            write!(self.s, "{}", char::from(op))?;
         }
         write!(self.s, "</mo>")?;
         Ok(())

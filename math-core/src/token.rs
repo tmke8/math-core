@@ -3,9 +3,9 @@ use std::mem::discriminant;
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use mathml_renderer::symbol::{Big, Bin, Op, ParenOp, Rel};
-use strum_macros::AsRefStr;
+use strum_macros::IntoStaticStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]
