@@ -44,7 +44,7 @@ pub enum Node<'arena> {
         sub: &'arena Node<'arena>,
         sup: &'arena Node<'arena>,
     },
-    OverOp(Op, Option<OpAttr>, &'arena Node<'arena>),
+    OverOp(Op, &'arena Node<'arena>),
     UnderOp(Op, &'arena Node<'arena>),
     Overset {
         symbol: &'arena Node<'arena>,
@@ -344,14 +344,15 @@ impl<'arena> MathMLEmitter<'arena> {
                 writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
                 writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
             }
-            Node::OverOp(op, attr, target) => {
+            Node::OverOp(op, target) => {
                 write!(self.s, "<mover>")?;
                 self.emit(target, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mo accent=\"true\"");
-                if let Some(attr) = attr {
-                    write!(self.s, "{}", <&str>::from(attr))?;
-                }
-                write!(self.s, ">{}</mo>", char::from(op))?;
+                writeln_indent!(
+                    &mut self.s,
+                    child_indent,
+                    "<mo accent=\"true\">{}</mo>",
+                    char::from(op)
+                );
                 writeln_indent!(&mut self.s, base_indent, "</mover>");
             }
             Node::UnderOp(op, target) => {
@@ -742,16 +743,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverOp(
-                symbol::MACRON.into(),
-                Some(OpAttr::StretchyFalse),
-                &Node::SingleLetterIdent('x', false),
-            )),
-            "<mover><mi>x</mi><mo accent=\"true\" stretchy=\"false\">¯</mo></mover>"
-        );
-        assert_eq!(
-            render(&Node::OverOp(
                 symbol::OVERLINE.into(),
-                None,
                 &Node::SingleLetterIdent('x', false),
             )),
             "<mover><mi>x</mi><mo accent=\"true\">‾</mo></mover>"

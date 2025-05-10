@@ -1,0 +1,7 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\dddot{x}"
+---
+<math>
+    <mi>𝑥⃛</mi>
+</math>

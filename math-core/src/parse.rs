@@ -3,7 +3,10 @@ use std::mem;
 use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
-    attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
+    attribute::{
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
+        TextTransform,
+    },
     length::Length,
     symbol,
 };
@@ -340,12 +343,32 @@ where
                     style,
                 }
             }
-            Token::OverUnder(op, is_over, attr) => {
+            Token::OverUnder(op, is_over) => {
                 let target = self.parse_next(true)?;
                 if is_over {
-                    Node::OverOp(op, attr, target)
+                    Node::OverOp(op, target)
                 } else {
                     Node::UnderOp(op, target)
+                }
+            }
+            Token::Accent(combining_character) => {
+                // let target = self.parse_next(true)?;
+                // Node::OverOp(combining_character.into(), target)
+                if let Node::SingleLetterIdent(letter, is_upright) = self.parse_next(true)? {
+                    let mut builder = self.buffer.get_builder();
+                    builder.push_char(*letter);
+                    builder.push_char(combining_character.into());
+                    let identifier = builder.finish(self.arena);
+                    if *is_upright {
+                        Node::CollectedLetters(identifier)
+                    } else {
+                        Node::TextTransform {
+                            tf: MathVariant::Transform(TextTransform::Italic),
+                            content: self.commit(Node::CollectedLetters(identifier)),
+                        }
+                    }
+                } else {
+                    return Err(LatexError(loc, LatexErrKind::ExpectedText("")));
                 }
             }
             Token::Overset | Token::Underset => {

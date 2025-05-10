@@ -1,9 +1,9 @@
 use std::mem::discriminant;
 
 use mathml_renderer::ast::Node;
-use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
+use mathml_renderer::attribute::{FracAttr, MathVariant, Size, Style, TextTransform};
 use mathml_renderer::length::Length;
-use mathml_renderer::symbol::{Big, Bin, Op, ParenOp, Rel};
+use mathml_renderer::symbol::{Big, Bin, CombChar, Op, ParenOp, Rel};
 use strum_macros::IntoStaticStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -66,7 +66,8 @@ pub enum Token<'source> {
     Whitespace,
     Transform(MathVariant),
     Big(Size),
-    OverUnder(Op, bool, Option<OpAttr>),
+    OverUnder(Op, bool),
+    Accent(CombChar),
     Relation(Rel),
     #[strum(serialize = "binary operator")]
     BinaryOp(Bin),

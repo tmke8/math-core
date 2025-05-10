@@ -102,6 +102,31 @@ impl From<&Big> for Op {
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[repr(transparent)]
+pub struct CombChar(char);
+
+impl From<CombChar> for char {
+    #[inline]
+    fn from(op: CombChar) -> Self {
+        op.0
+    }
+}
+
+// impl From<CombChar> for Op {
+//     #[inline]
+//     fn from(op: CombChar) -> Self {
+//         Op(op.0)
+//     }
+// }
+
+impl From<&CombChar> for char {
+    #[inline]
+    fn from(op: &CombChar) -> Self {
+        op.0
+    }
+}
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ParenOp(char, bool, Stretchy);
 
 impl ParenOp {
@@ -174,6 +199,23 @@ pub const BREVE: Op = Op('˘');
 pub const DOT_ABOVE: Op = Op('˙');
 
 //
+// Unicode Block: Combining Diacritical Marks
+//
+pub const COMBINING_GRAVE_ACCENT: CombChar = CombChar('\u{0300}');
+pub const COMBINING_ACUTE_ACCENT: CombChar = CombChar('\u{0301}');
+pub const COMBINING_CIRCUMFLEX_ACCENT: CombChar = CombChar('\u{0302}');
+pub const COMBINING_TILDE: CombChar = CombChar('\u{0303}');
+pub const COMBINING_MACRON: CombChar = CombChar('\u{0304}');
+pub const COMBINING_OVERLINE: CombChar = CombChar('\u{0305}');
+pub const COMBINING_BREVE: CombChar = CombChar('\u{0306}');
+pub const COMBINING_DOT_ABOVE: CombChar = CombChar('\u{0307}');
+pub const COMBINING_DIAERESIS: CombChar = CombChar('\u{0308}');
+// pub const COMBINING_HOOK_ABOVE: CombChar = CombChar('\u{0309}');
+// pub const COMBINING_RING_ABOVE: CombChar = CombChar('\u{030A}');
+// pub const COMBINING_DOUBLE_ACUTE_ACCENT: CombChar = CombChar('\u{030B}');
+pub const COMBINING_CARON: CombChar = CombChar('\u{030C}');
+
+//
 // Unicode Block: General Punctuation
 //
 pub const DOUBLE_VERTICAL_LINE: &ParenOp = &ParenOp('‖', true, Stretchy::PrePostfix);
@@ -194,9 +236,17 @@ pub const REVERSED_TRIPLE_PRIME: Rel = Rel('‷');
 // pub const REFERENCE_MARK: Op = Op('※');
 // pub const DOUBLE_EXCLAMATION_MARK: Op = Op('‼');
 // pub const INTERROBANG: Op = Op('‽');
-pub const OVERLINE: Rel = Rel('‾');
+pub const OVERLINE: Op = Op('‾');
 
 pub const QUADRUPLE_PRIME: Rel = Rel('⁗');
+
+//
+// Unicode Block: Combining Diacritical Marks for Symbols
+//
+pub const COMBINING_RIGHT_ARROW_ABOVE: CombChar = CombChar('\u{20D7}');
+
+pub const COMBINING_THREE_DOTS_ABOVE: CombChar = CombChar('\u{20DB}');
+pub const COMBINING_FOUR_DOTS_ABOVE: CombChar = CombChar('\u{20DC}');
 
 //
 // Unicode Block: Arrows
