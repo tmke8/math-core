@@ -3,23 +3,23 @@ source: math-core/tests/wiki_test.rs
 expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
 ---
 <math>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true" stretchy="false">ˇ</mo>
+        <mo stretchy="false">ˇ</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true">˘</mo>
+        <mo>˘</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true" stretchy="false">~</mo>
+        <mo stretchy="false">̃</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true" stretchy="false">¯</mo>
+        <mo stretchy="false">¯</mo>
     </mover>
 </math>

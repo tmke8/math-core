@@ -4,9 +4,9 @@ expression: "\\vec{x}'"
 ---
 <math>
     <msup>
-        <mover>
+        <mover accent="true">
             <mi>x</mi>
-            <mo accent="true" stretchy="false">→</mo>
+            <mo stretchy="false">⃗</mo>
         </mover>
         <mo>′</mo>
     </msup>

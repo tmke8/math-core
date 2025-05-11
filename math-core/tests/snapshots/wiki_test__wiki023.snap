@@ -31,13 +31,13 @@ expression: "\\prime, \\backprime, f^\\prime, f', f'', f^{(3)}, \\dot y, \\ddot 
         </mrow>
     </msup>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>y</mi>
-        <mo accent="true">˙</mo>
+        <mo>˙</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>y</mi>
-        <mo accent="true">¨</mo>
+        <mo stretchy="false">¨</mo>
     </mover>
 </math>

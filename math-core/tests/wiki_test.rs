@@ -905,8 +905,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 181);
-    assert_eq!(n_fail, 27);
+    assert_eq!(n_diff, 182);
+    assert_eq!(n_fail, 26);
 }
 
 /// Prettify HTML input
@@ -1345,7 +1345,7 @@ fn test_nonfailing_wiki_tests() {
         (199, r"| {\uparrow} \rangle"),
         // (200, r"| \mathord\uparrow \rangle"),
         // (201, r"\wideparen{AB}"),
-        // (202, r"\dddot{x}"),
+        (202, r"\dddot{x}"),
         // (203, r"\sout{q}"),
         // (204, r"\mathrlap{\,/}{=}"),
         // (205, r"\text{\textsf{textual description}}"),

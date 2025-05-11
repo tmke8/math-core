@@ -174,6 +174,12 @@ pub const BREVE: Op = Op('˘');
 pub const DOT_ABOVE: Op = Op('˙');
 
 //
+// Unicode Block: Combining Diacritical Marks
+//
+pub const COMBINING_CIRCUMFLEX_ACCENT: Op = Op('\u{302}');
+pub const COMBINING_TILDE: Op = Op('\u{303}');
+
+//
 // Unicode Block: General Punctuation
 //
 pub const DOUBLE_VERTICAL_LINE: &ParenOp = &ParenOp('‖', true, Stretchy::PrePostfix);
@@ -197,6 +203,13 @@ pub const REVERSED_TRIPLE_PRIME: Rel = Rel('‷');
 pub const OVERLINE: Rel = Rel('‾');
 
 pub const QUADRUPLE_PRIME: Rel = Rel('⁗');
+
+//
+// Combining Diacritical Marks for Symbols
+//
+pub const COMBINING_RIGHT_ARROW_ABOVE: Op = Op('\u{20D7}');
+
+pub const COMBINING_THREE_DOTS_ABOVE: Op = Op('\u{20DB}');
 
 //
 // Unicode Block: Arrows

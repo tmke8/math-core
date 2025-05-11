@@ -3,23 +3,23 @@ source: math-core/tests/wiki_test.rs
 expression: "\\dot{a}, \\ddot{a}, \\acute{a}, \\grave{a}"
 ---
 <math>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true">˙</mo>
+        <mo>˙</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true">¨</mo>
+        <mo stretchy="false">¨</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true">´</mo>
+        <mo>´</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true">`</mo>
+        <mo>`</mo>
     </mover>
 </math>

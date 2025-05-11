@@ -3,8 +3,8 @@ source: math-core/src/lib.rs
 expression: "\\dot{x}"
 ---
 <math>
-    <mover>
+    <mover accent="true">
         <mi>x</mi>
-        <mo accent="true">˙</mo>
+        <mo>˙</mo>
     </mover>
 </math>
