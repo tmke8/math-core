@@ -10,7 +10,7 @@ expression: "\\dot{a}, \\ddot{a}, \\acute{a}, \\grave{a}"
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo>¨</mo>
+        <mo stretchy="false">¨</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">

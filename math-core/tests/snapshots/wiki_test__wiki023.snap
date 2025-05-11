@@ -38,6 +38,6 @@ expression: "\\prime, \\backprime, f^\\prime, f', f'', f^{(3)}, \\dot y, \\ddot 
     <mo>,</mo>
     <mover accent="true">
         <mi>y</mi>
-        <mo>¨</mo>
+        <mo stretchy="false">¨</mo>
     </mover>
 </math>

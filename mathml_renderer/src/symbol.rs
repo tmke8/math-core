@@ -209,6 +209,8 @@ pub const QUADRUPLE_PRIME: Rel = Rel('⁗');
 //
 pub const COMBINING_RIGHT_ARROW_ABOVE: Op = Op('\u{20D7}');
 
+pub const COMBINING_THREE_DOTS_ABOVE: Op = Op('\u{20DB}');
+
 //
 // Unicode Block: Arrows
 //

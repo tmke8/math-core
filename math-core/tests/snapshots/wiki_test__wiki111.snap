@@ -10,6 +10,6 @@ expression: "\\dot{x}, \\ddot{x}"
     <mo>,</mo>
     <mover accent="true">
         <mi>x</mi>
-        <mo>¨</mo>
+        <mo stretchy="false">¨</mo>
     </mover>
 </math>
