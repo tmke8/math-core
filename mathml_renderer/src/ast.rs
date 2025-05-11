@@ -345,9 +345,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, attr, target) => {
-                write!(self.s, "<mover>")?;
+                write!(self.s, "<mover accent=\"true\">")?;
                 self.emit(target, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mo accent=\"true\"");
+                writeln_indent!(&mut self.s, child_indent, "<mo");
                 if let Some(attr) = attr {
                     write!(self.s, "{}", <&str>::from(attr))?;
                 }
@@ -355,14 +355,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 writeln_indent!(&mut self.s, base_indent, "</mover>");
             }
             Node::UnderOp(op, target) => {
-                write!(self.s, "<munder>")?;
+                write!(self.s, "<munder accent=\"true\">")?;
                 self.emit(target, child_indent)?;
-                writeln_indent!(
-                    &mut self.s,
-                    child_indent,
-                    "<mo accent=\"true\">{}</mo>",
-                    char::from(op)
-                );
+                writeln_indent!(&mut self.s, child_indent, "<mo>{}</mo>", char::from(op));
                 writeln_indent!(&mut self.s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
@@ -746,7 +741,7 @@ mod tests {
                 Some(OpAttr::StretchyFalse),
                 &Node::SingleLetterIdent('x', false),
             )),
-            "<mover><mi>x</mi><mo accent=\"true\" stretchy=\"false\">¯</mo></mover>"
+            "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
         assert_eq!(
             render(&Node::OverOp(
@@ -754,7 +749,7 @@ mod tests {
                 None,
                 &Node::SingleLetterIdent('x', false),
             )),
-            "<mover><mi>x</mi><mo accent=\"true\">‾</mo></mover>"
+            "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
     }
 
@@ -765,7 +760,7 @@ mod tests {
                 symbol::LOW_LINE.into(),
                 &Node::SingleLetterIdent('x', false),
             )),
-            "<munder><mi>x</mi><mo accent=\"true\">_</mo></munder>"
+            "<munder accent=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
     }
 

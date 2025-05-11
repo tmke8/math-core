@@ -3,58 +3,58 @@ source: math-core/tests/wiki_test.rs
 expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overleftarrow{c d}\\\\ \\widehat{d e f} \\\\ \\overline{g h i} \\ \\underline{j k l}"
 ---
 <math>
-    <mover>
+    <mover accent="true">
         <mi>a</mi>
-        <mo accent="true" stretchy="false">^</mo>
+        <mo stretchy="false">^</mo>
     </mover>
     <mtext> </mtext>
-    <mover>
+    <mover accent="true">
         <mi>b</mi>
-        <mo accent="true" stretchy="false">¯</mo>
+        <mo stretchy="false">¯</mo>
     </mover>
     <mtext> </mtext>
-    <mover>
+    <mover accent="true">
         <mi>c</mi>
-        <mo accent="true" stretchy="false">→</mo>
+        <mo stretchy="false">→</mo>
     </mover>
-    <mover>
+    <mover accent="true">
         <mrow>
             <mi>a</mi>
             <mi>b</mi>
         </mrow>
-        <mo accent="true">→</mo>
+        <mo>→</mo>
     </mover>
     <mtext> </mtext>
-    <mover>
+    <mover accent="true">
         <mrow>
             <mi>c</mi>
             <mi>d</mi>
         </mrow>
-        <mo accent="true">←</mo>
+        <mo>←</mo>
     </mover>
-    <mover>
+    <mover accent="true">
         <mrow>
             <mi>d</mi>
             <mi>e</mi>
             <mi>f</mi>
         </mrow>
-        <mo accent="true">^</mo>
+        <mo>^</mo>
     </mover>
-    <mover>
+    <mover accent="true">
         <mrow>
             <mi>g</mi>
             <mi>h</mi>
             <mi>i</mi>
         </mrow>
-        <mo accent="true">‾</mo>
+        <mo>‾</mo>
     </mover>
     <mtext> </mtext>
-    <munder>
+    <munder accent="true">
         <mrow>
             <mi>j</mi>
             <mi>k</mi>
             <mi>l</mi>
         </mrow>
-        <mo accent="true">_</mo>
+        <mo>_</mo>
     </munder>
 </math>

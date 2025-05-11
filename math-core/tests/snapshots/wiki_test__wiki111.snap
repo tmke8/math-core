@@ -3,13 +3,13 @@ source: math-core/tests/wiki_test.rs
 expression: "\\dot{x}, \\ddot{x}"
 ---
 <math>
-    <mover>
+    <mover accent="true">
         <mi>x</mi>
-        <mo accent="true">˙</mo>
+        <mo>˙</mo>
     </mover>
     <mo>,</mo>
-    <mover>
+    <mover accent="true">
         <mi>x</mi>
-        <mo accent="true">¨</mo>
+        <mo>¨</mo>
     </mover>
 </math>
