@@ -695,6 +695,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "wedge" => Token::Relation(symbol::LOGICAL_AND),
     "wedgeq" => Token::Relation(symbol::ESTIMATES), // from "stix"
     "widehat" => Token::OverUnder(symbol::CIRCUMFLEX_ACCENT, true, None),
+    "wideparen" => Token::OverUnderBrace(symbol::TOP_PARENTHESIS, true),
     "widetilde" => Token::OverUnder(symbol::TILDE, true, None),
     "wp" => Token::Function("℘"),
     "wr" => Token::Relation(symbol::WREATH_PRODUCT),

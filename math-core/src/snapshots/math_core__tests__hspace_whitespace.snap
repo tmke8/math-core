@@ -3,5 +3,5 @@ source: math-core/src/lib.rs
 expression: "\\hspace{  4mm }"
 ---
 <math>
-    <mspace width="1.13812rem"/>
+    <mspace width="1.13812rem" style="width:1.13812rem"/>
 </math>

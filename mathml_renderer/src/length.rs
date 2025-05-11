@@ -23,7 +23,7 @@ pub enum LengthUnit {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Length {
     value: LengthValue,
-    unit: LengthUnit,
+    pub(crate) unit: LengthUnit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

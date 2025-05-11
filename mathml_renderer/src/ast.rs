@@ -279,6 +279,11 @@ impl<'arena> MathMLEmitter<'arena> {
             Node::Space(space) => {
                 write!(self.s, "<mspace width=\"")?;
                 space.push_to_string(&mut self.s);
+                // Work-around for a Firefox bug that causes "rem" to not be processed correctly
+                if matches!(space.unit, LengthUnit::Rem) {
+                    write!(self.s, "\" style=\"width:")?;
+                    space.push_to_string(&mut self.s);
+                }
                 write!(self.s, "\"/>")?;
             }
             // The following nodes have exactly two children.
