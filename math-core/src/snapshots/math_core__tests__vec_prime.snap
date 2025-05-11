@@ -6,7 +6,7 @@ expression: "\\vec{x}'"
     <msup>
         <mover accent="true">
             <mi>x</mi>
-            <mo stretchy="false">→</mo>
+            <mo stretchy="false">⃗</mo>
         </mover>
         <mo>′</mo>
     </msup>
