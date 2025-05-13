@@ -254,7 +254,6 @@ where
                 Node::Space(space)
             }
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
-            Token::Whitespace => Node::SingleLetterIdent('\u{A0}', false),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
@@ -813,7 +812,9 @@ where
                     ));
                 }
             },
-            Token::TextModeAccent(_) => {
+            Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
+            // The following are text-mode-only tokens.
+            Token::Whitespace | Token::TextModeAccent(_) => {
                 return Err(LatexError(
                     loc,
                     // TODO: Find a better error.
@@ -823,7 +824,6 @@ where
                     },
                 ));
             }
-            Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
         };
         Ok(self.commit(node))
     }
@@ -1038,6 +1038,11 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         }
     }
 
+    /// Parse the given token in text mode.
+    ///
+    /// This function may read in more tokens from the lexer, but it will always leave the last
+    /// processed token in `peek`. This is important for turning of the text mode in the lexer at
+    /// the right time.
     fn parse_token_in_text_mode(
         &mut self,
         tokloc: TokLoc<'source>,
