@@ -1060,6 +1060,12 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                     LatexErrKind::UnexpectedClose(tokloc.into_token()),
                 ));
             }
+            Token::UnknownCommand(command) => {
+                return Err(LatexError(
+                    tokloc.location(),
+                    LatexErrKind::UnknownCommand(command),
+                ));
+            }
             _ => {
                 return Err(LatexError(
                     tokloc.location(),

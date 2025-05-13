@@ -4,7 +4,7 @@ use std::str::CharIndices;
 
 use mathml_renderer::symbol;
 
-use crate::commands::get_command;
+use crate::commands::{get_command, get_text_command};
 use crate::error::GetUnwrap;
 use crate::token::{Digit, TokLoc, Token};
 
@@ -150,11 +150,14 @@ impl<'source> Lexer<'source> {
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
-                let cmd = get_command(self.read_command());
-                if self.text_mode {
+                let cmd_string = self.read_command();
+                let cmd = if self.text_mode {
                     // After a command, all whitespace is skipped, even in text mode.
                     self.skip_whitespace();
-                }
+                    get_text_command(cmd_string)
+                } else {
+                    get_command(cmd_string)
+                };
                 cmd
             }
             c => {

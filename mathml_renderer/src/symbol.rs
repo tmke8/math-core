@@ -178,6 +178,65 @@ pub const DOT_ABOVE: Op = Op('˙');
 //
 pub const COMBINING_CIRCUMFLEX_ACCENT: Op = Op('\u{302}');
 pub const COMBINING_TILDE: Op = Op('\u{303}');
+// pub const COMBINING_MACRON: Op = Op('\u{304}');
+// pub const COMBINING_OVERLINE: Op = Op('\u{305}');
+// pub const COMBINING_BREVE: Op = Op('\u{306}');
+// pub const COMBINING_DOT_ABOVE: Op = Op('\u{307}');
+pub const COMBINING_DIAERESIS: char = '\u{308}';
+
+//
+// Unicode Block: Greek and Coptic
+//
+pub const GREEK_CAPITAL_LETTER_ALPHA: char = 'Α';
+pub const GREEK_CAPITAL_LETTER_BETA: char = 'Β';
+pub const GREEK_CAPITAL_LETTER_GAMMA: char = 'Γ';
+pub const GREEK_CAPITAL_LETTER_DELTA: char = 'Δ';
+pub const GREEK_CAPITAL_LETTER_EPSILON: char = 'Ε';
+pub const GREEK_CAPITAL_LETTER_ZETA: char = 'Ζ';
+pub const GREEK_CAPITAL_LETTER_ETA: char = 'Η';
+pub const GREEK_CAPITAL_LETTER_THETA: char = 'Θ';
+pub const GREEK_CAPITAL_LETTER_IOTA: char = 'Ι';
+pub const GREEK_CAPITAL_LETTER_KAPPA: char = 'Κ';
+pub const GREEK_CAPITAL_LETTER_LAMBDA: char = 'Λ';
+pub const GREEK_CAPITAL_LETTER_MU: char = 'Μ';
+pub const GREEK_CAPITAL_LETTER_NU: char = 'Ν';
+pub const GREEK_CAPITAL_LETTER_XI: char = 'Ξ';
+pub const GREEK_CAPITAL_LETTER_OMICRON: char = 'Ο';
+pub const GREEK_CAPITAL_LETTER_PI: char = 'Π';
+pub const GREEK_CAPITAL_LETTER_RHO: char = 'Ρ';
+pub const GREEK_CAPITAL_LETTER_SIGMA: char = 'Σ';
+pub const GREEK_CAPITAL_LETTER_TAU: char = 'Τ';
+pub const GREEK_CAPITAL_LETTER_UPSILON: char = 'Υ';
+pub const GREEK_CAPITAL_LETTER_PHI: char = 'Φ';
+pub const GREEK_CAPITAL_LETTER_CHI: char = 'Χ';
+pub const GREEK_CAPITAL_LETTER_PSI: char = 'Ψ';
+pub const GREEK_CAPITAL_LETTER_OMEGA: char = 'Ω';
+
+pub const GREEK_SMALL_LETTER_ALPHA: char = 'α';
+pub const GREEK_SMALL_LETTER_BETA: char = 'β';
+pub const GREEK_SMALL_LETTER_GAMMA: char = 'γ';
+pub const GREEK_SMALL_LETTER_DELTA: char = 'δ';
+pub const GREEK_SMALL_LETTER_EPSILON: char = 'ε';
+pub const GREEK_SMALL_LETTER_ZETA: char = 'ζ';
+pub const GREEK_SMALL_LETTER_ETA: char = 'η';
+pub const GREEK_SMALL_LETTER_THETA: char = 'θ';
+pub const GREEK_SMALL_LETTER_IOTA: char = 'ι';
+pub const GREEK_SMALL_LETTER_KAPPA: char = 'κ';
+pub const GREEK_SMALL_LETTER_LAMBDA: char = 'λ';
+pub const GREEK_SMALL_LETTER_MU: char = 'μ';
+pub const GREEK_SMALL_LETTER_NU: char = 'ν';
+pub const GREEK_SMALL_LETTER_XI: char = 'ξ';
+pub const GREEK_SMALL_LETTER_OMICRON: char = 'ο';
+pub const GREEK_SMALL_LETTER_PI: char = 'π';
+pub const GREEK_SMALL_LETTER_RHO: char = 'ρ';
+// pub const GREEK_SMALL_LETTER_FINAL_SIGMA: char = 'ς';
+pub const GREEK_SMALL_LETTER_SIGMA: char = 'σ';
+pub const GREEK_SMALL_LETTER_TAU: char = 'τ';
+pub const GREEK_SMALL_LETTER_UPSILON: char = 'υ';
+pub const GREEK_SMALL_LETTER_PHI: char = 'φ';
+pub const GREEK_SMALL_LETTER_CHI: char = 'χ';
+pub const GREEK_SMALL_LETTER_PSI: char = 'ψ';
+pub const GREEK_SMALL_LETTER_OMEGA: char = 'ω';
 
 //
 // Unicode Block: General Punctuation
