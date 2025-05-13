@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\operatorname{\\end{matrix}}"
+---
+Position: 14
+UnexpectedClose(
+    End,
+)

@@ -2,7 +2,7 @@
 source: math-core/src/lib.rs
 expression: "x\\operatorname{\\max}"
 ---
-Position: 1
-ExpectedText(
-    "\\operatorname",
-)
+<math>
+    <mi>x</mi>
+    <mi>max</mi>
+</math>

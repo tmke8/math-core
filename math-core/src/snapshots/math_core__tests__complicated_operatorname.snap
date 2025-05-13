@@ -1,7 +1,7 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\operatorname {{\\pi} o \\o a}"
+expression: "\\operatorname {{\\pi} o \\AA a}"
 ---
 <math>
-    <mi>πoøa</mi>
+    <mi>πoÅa</mi>
 </math>

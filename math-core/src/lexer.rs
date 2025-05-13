@@ -4,7 +4,7 @@ use std::str::CharIndices;
 
 use mathml_renderer::symbol;
 
-use crate::commands::get_command;
+use crate::commands::{get_command, get_text_command};
 use crate::error::GetUnwrap;
 use crate::token::{Digit, TokLoc, Token};
 
@@ -150,12 +150,18 @@ impl<'source> Lexer<'source> {
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
-                let cmd = get_command(self.read_command());
-                if self.text_mode {
+                let cmd_string = self.read_command();
+                let tok = if self.text_mode {
                     // After a command, all whitespace is skipped, even in text mode.
                     self.skip_whitespace();
+                    get_text_command(cmd_string)
+                } else {
+                    get_command(cmd_string)
+                };
+                if matches!(tok, Token::Text(_)) {
+                    self.text_mode = true;
                 }
-                cmd
+                tok
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
@@ -197,6 +203,7 @@ mod tests {
             ("space_and_number", r"\ 1", false),
             ("space_in_text", r"  x   y z", true),
             ("comment", "ab%hello\ncd", false),
+            ("switch_to_text_mode", r"\text\o", false),
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {

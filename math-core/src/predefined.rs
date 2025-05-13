@@ -100,3 +100,16 @@ pub static XLEFTARROW: Node = Row {
     ],
     attr: RowAttr::None,
 };
+
+pub static DOTS: Node = Row {
+    nodes: &[
+        &Operator(symbol::FULL_STOP, None),
+        &OperatorWithSpacing {
+            op: symbol::FULL_STOP,
+            left: Some(MathSpacing::Zero),
+            right: Some(MathSpacing::Zero),
+        },
+        &Operator(symbol::FULL_STOP, None),
+    ],
+    attr: RowAttr::None,
+};
