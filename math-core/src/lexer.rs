@@ -131,7 +131,13 @@ impl<'source> Lexer<'source> {
             '\'' => Token::Prime,
             '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
             ')' => Token::Delimiter(symbol::RIGHT_PARENTHESIS),
-            '*' => Token::Relation(symbol::ASTERISK_OPERATOR),
+            '*' => {
+                if self.text_mode {
+                    Token::Letter(ch)
+                } else {
+                    Token::Relation(symbol::ASTERISK_OPERATOR)
+                }
+            }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
             ',' => Token::Relation(symbol::COMMA),
             '-' => Token::BinaryOp(symbol::MINUS_SIGN),
