@@ -135,7 +135,7 @@ pub const RIGHT_PARENTHESIS: &ParenOp = &ParenOp(')', false, Stretchy::Always);
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = Bin('+');
 pub const COMMA: Rel = Rel(',');
-pub const FULL_STOP: char = '.'; // not treated as operator
+pub const FULL_STOP: Op = Op('.');
 pub const SOLIDUS: &ParenOp = &ParenOp('/', true, Stretchy::Never);
 pub const COLON: Rel = Rel(':');
 pub const SEMICOLON: Rel = Rel(';');
@@ -176,13 +176,21 @@ pub const DOT_ABOVE: Op = Op('˙');
 //
 // Unicode Block: Combining Diacritical Marks
 //
+pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
+pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
 pub const COMBINING_CIRCUMFLEX_ACCENT: Op = Op('\u{302}');
 pub const COMBINING_TILDE: Op = Op('\u{303}');
-// pub const COMBINING_MACRON: Op = Op('\u{304}');
-// pub const COMBINING_OVERLINE: Op = Op('\u{305}');
-// pub const COMBINING_BREVE: Op = Op('\u{306}');
-// pub const COMBINING_DOT_ABOVE: Op = Op('\u{307}');
+// pub const COMBINING_MACRON: char = '\u{304}';
+pub const COMBINING_OVERLINE: char = '\u{305}';
+pub const COMBINING_BREVE: char = '\u{306}';
+pub const COMBINING_DOT_ABOVE: char = '\u{307}';
 pub const COMBINING_DIAERESIS: char = '\u{308}';
+// pub const COMBINING_HOOK_ABOVE: char = '\u{309}';
+pub const COMBINING_RING_ABOVE: char = '\u{30A}';
+pub const COMBINING_DOUBLE_ACUTE_ACCENT: char = '\u{30B}';
+pub const COMBINING_CARON: Op = Op('\u{30C}');
+
+pub const COMBINING_CEDILLA: char = '\u{327}';
 
 //
 // Unicode Block: Greek and Coptic
@@ -246,7 +254,7 @@ pub const DOUBLE_VERTICAL_LINE: &ParenOp = &ParenOp('‖', true, Stretchy::PrePo
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
 
-pub const HORIZONTAL_ELLIPSIS: Rel = Rel('…');
+pub const HORIZONTAL_ELLIPSIS: char = '…';
 pub const PRIME: Rel = Rel('′');
 pub const DOUBLE_PRIME: Rel = Rel('″');
 pub const TRIPLE_PRIME: Rel = Rel('‴');

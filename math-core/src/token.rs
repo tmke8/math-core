@@ -97,6 +97,7 @@ pub enum Token<'source> {
     CustomCmd(usize, &'static Node<'static>),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
+    TextModeAccent(char),
     UnknownCommand(&'source str),
 }
 

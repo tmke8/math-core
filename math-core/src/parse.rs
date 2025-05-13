@@ -197,7 +197,7 @@ where
                             *number as u8 as char
                         } else {
                             let ch = match self.peek.token() {
-                                Token::Letter(symbol::FULL_STOP) => Some('.'),
+                                Token::Letter('.') => Some('.'),
                                 Token::Relation(symbol::COMMA) => Some(','),
                                 _ => None,
                             };
@@ -528,7 +528,7 @@ where
                     Token::Delimiter(open) => open,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
-                    Token::Letter(symbol::FULL_STOP) => symbol::NULL,
+                    Token::Letter('.') => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -546,7 +546,7 @@ where
                     Token::Delimiter(close) => close,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
-                    Token::Letter(symbol::FULL_STOP) => symbol::NULL,
+                    Token::Letter('.') => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -679,20 +679,14 @@ where
                 node
             }
             Token::OperatorName => {
-                // TODO: Don't parse a node just to immediately destructure it.
-
-                // Turn off collection mode.
-                let old_collector = mem::replace(&mut self.collector, LetterCollector::Inactive);
-                let node = self.parse_next(true)?;
-                self.collector = old_collector;
+                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 let mut builder = self.buffer.get_builder();
-                if !extract_letters(&mut builder, node) {
-                    return Err(LatexError(
-                        loc,
-                        LatexErrKind::ExpectedText("\\operatorname"),
-                    ));
-                }
+                let mut text_parser =
+                    TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
+                text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
+                // Discard the last token.
+                next_token(&mut self.peek, &mut self.l);
                 if let Some(ch) = get_single_char(letters) {
                     Node::SingleLetterIdent(ch, true)
                 } else {
@@ -700,17 +694,27 @@ where
                 }
             }
             Token::Text(transform) => {
-                self.l.text_mode = true;
-                let tokloc = next_token(&mut self.peek, &mut self.l);
+                // Discard any whitespace that immediately follows the `Text` token.
+                if matches!(self.peek.token(), Token::Whitespace) {
+                    next_token(&mut self.peek, &mut self.l);
+                }
+                // Copy the token out of the peek variable.
+                // We do this because we need to turn off text mode while there is still a peek
+                // token that is consumed by the `Text` command.
+                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser =
                     TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
-                text_parser.parse_token(tokloc)?;
+                text_parser.parse_token_in_text_mode(tokloc)?;
                 let text = builder.finish(self.arena);
+                // Now turn off text mode.
                 self.l.text_mode = false;
+                // Discard the last token that we already processed but we kept it in `peek`,
+                // so that we can turn off text mode before new tokens are read.
+                next_token(&mut self.peek, &mut self.l);
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
-                    self.next_token();
+                    next_token(&mut self.peek, &mut self.l);
                 }
                 if let Some(transform) = transform {
                     Node::TextTransform {
@@ -809,6 +813,16 @@ where
                     ));
                 }
             },
+            Token::TextModeAccent(_) => {
+                return Err(LatexError(
+                    loc,
+                    // TODO: Find a better error.
+                    LatexErrKind::CannotBeUsedHere {
+                        got: cur_token,
+                        correct_place: Place::BeforeSomeOps,
+                    },
+                ));
+            }
             Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
         };
         Ok(self.commit(node))
@@ -1024,27 +1038,48 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         }
     }
 
-    fn parse_token(&mut self, tokloc: TokLoc<'source>) -> Result<(), LatexError<'source>> {
-        let (c, is_upright): (char, bool) = match tokloc.token() {
-            Token::Letter(c) => (*c, false),
-            Token::UprightLetter(c) => (*c, true),
-            Token::Whitespace | Token::NonBreakingSpace => ('\u{A0}', false),
-            Token::Delimiter(op) => ((*op).into(), false),
-            Token::Number(digit) => (*digit as u8 as char, false),
+    fn parse_token_in_text_mode(
+        &mut self,
+        tokloc: TokLoc<'source>,
+    ) -> Result<(), LatexError<'source>> {
+        let c: char = match tokloc.token() {
+            Token::Letter(c) | Token::UprightLetter(c) => *c,
+            Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
+            Token::Delimiter(op) => (*op).into(),
+            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
+            Token::Number(digit) => *digit as u8 as char,
+            Token::Function(name) | Token::Lim(name) => {
+                // We don't transform these strings.
+                self.builder.push_str(name);
+                return Ok(());
+            }
+            Token::TextModeAccent(accent) => {
+                // Discard `TextModeAccent` token.
+                next_token(&mut self.peek, &mut self.lexer);
+                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                self.parse_token_in_text_mode(tokloc)?;
+                self.builder.push_char(*accent);
+                return Ok(());
+            }
             Token::Text(tf) => {
+                // Discard `Text` token.
+                next_token(&mut self.peek, &mut self.lexer);
                 let old_tf = mem::replace(&mut self.tf, *tf);
-                let tokloc = next_token(&mut self.peek, &mut self.lexer);
-                self.parse_token(tokloc)?;
+                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                self.parse_token_in_text_mode(tokloc)?;
                 self.tf = old_tf;
                 return Ok(());
             }
             Token::GroupBegin => {
-                let mut tokloc: TokLoc<'source>;
-                while {
-                    tokloc = next_token(&mut self.peek, &mut self.lexer);
-                    !tokloc.token().is_same_kind_as(&Token::GroupEnd)
-                } {
-                    self.parse_token(tokloc)?;
+                // Discard opening token.
+                next_token(&mut self.peek, &mut self.lexer);
+                while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
+                    let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                    self.parse_token_in_text_mode(tokloc)?;
+                    // Discard the last token.
+                    // We must do this here, because `parse_token_in_text_mode` always leaves the
+                    // last token in `peek`, but we want to continue here, so we need to discard it.
+                    next_token(&mut self.peek, &mut self.lexer);
                 }
                 return Ok(());
             }
@@ -1069,44 +1104,14 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             _ => {
                 return Err(LatexError(
                     tokloc.location(),
-                    LatexErrKind::ExpectedText("something else"),
+                    LatexErrKind::NotValidInTextMode(tokloc.into_token()),
                 ));
             }
         };
         self.builder
-            .push_char(self.tf.map(|tf| tf.transform(c, is_upright)).unwrap_or(c));
+            .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));
         Ok(())
     }
-}
-
-/// Extract the text of all single-letter identifiers and operators in `node`.
-/// This function cannot be a method, because we need to borrow arena immutably
-/// but buffer mutably. This is not possible with a mutable self reference.
-///
-/// Returns false if no letters could be extracted.
-fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena>) -> bool {
-    match node {
-        Node::SingleLetterIdent(c, _) => buffer.push_char(*c),
-        Node::Row { nodes, .. } => {
-            for node in nodes.iter() {
-                if !extract_letters(buffer, node) {
-                    return false;
-                }
-            }
-        }
-        Node::Number(n) => buffer.push_str(n),
-        Node::StretchableOp(op, _) => {
-            buffer.push_char((*op).into());
-        }
-        Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
-            buffer.push_char(op.into());
-        }
-        // Node::Text(str_ref) => {
-        //     buffer.push_str(str_ref);
-        // }
-        _ => return false,
-    }
-    true
 }
 
 fn get_single_char(s: &str) -> Option<char> {
