@@ -3,7 +3,10 @@ use std::mem;
 use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
-    attribute::{Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
+    attribute::{
+        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
+        TextTransform,
+    },
     length::Length,
     symbol,
 };
@@ -698,11 +701,11 @@ where
             }
             Token::Text(transform) => {
                 self.l.text_mode = true;
-                let node = self.parse_next(true)?;
+                let tokloc = next_token(&mut self.peek, &mut self.l);
                 let mut builder = self.buffer.get_builder();
-                if !extract_letters(&mut builder, node) {
-                    return Err(LatexError(loc, LatexErrKind::ExpectedText("\\text")));
-                }
+                let mut text_parser =
+                    TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
+                text_parser.parse_token(tokloc)?;
                 let text = builder.finish(self.arena);
                 self.l.text_mode = false;
                 // Discard any whitespace tokens that are still stored in self.peek_token.
@@ -1000,36 +1003,72 @@ enum LetterCollector<'arena> {
     FinishedManyLetters { collected_letters: &'arena str },
 }
 
-struct TextModeParser<'buffer> {
-    buffer: &'buffer StringBuilder<'buffer>,
+struct TextModeParser<'builder, 'source, 'parser> {
+    builder: &'builder mut StringBuilder<'parser>,
+    peek: &'parser mut TokLoc<'source>,
+    lexer: &'parser mut Lexer<'source>,
+    tf: Option<TextTransform>,
 }
 
-impl<'buffer> TextModeParser<'buffer> {
-    fn new(buffer: &'buffer StringBuilder<'buffer>) -> Self {
-        Self { buffer }
+impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
+    fn new(
+        builder: &'builder mut StringBuilder<'parser>,
+        peek: &'parser mut TokLoc<'source>,
+        lexer: &'parser mut Lexer<'source>,
+    ) -> Self {
+        Self {
+            builder,
+            peek,
+            lexer,
+            tf: None,
+        }
     }
 
-    fn parse_token(&mut self, token: Token) -> Result<(), LatexError<'buffer>> {
-        match token {
-            Token::Letter(c) => {
-                self.buffer.push_char(c);
+    fn parse_token(&mut self, tokloc: TokLoc<'source>) -> Result<(), LatexError<'source>> {
+        let (c, is_upright): (char, bool) = match tokloc.token() {
+            Token::Letter(c) => (*c, false),
+            Token::UprightLetter(c) => (*c, true),
+            Token::Whitespace | Token::NonBreakingSpace => ('\u{A0}', false),
+            Token::Delimiter(op) => ((*op).into(), false),
+            Token::Number(digit) => (*digit as u8 as char, false),
+            Token::Text(tf) => {
+                let old_tf = mem::replace(&mut self.tf, *tf);
+                let tokloc = next_token(&mut self.peek, &mut self.lexer);
+                self.parse_token(tokloc)?;
+                self.tf = old_tf;
+                return Ok(());
             }
-            Token::UprightLetter(c) => {
-                self.buffer.push_char(c);
+            Token::GroupBegin => {
+                let mut tokloc: TokLoc<'source>;
+                while {
+                    tokloc = next_token(&mut self.peek, &mut self.lexer);
+                    !tokloc.token().is_same_kind_as(&Token::GroupEnd)
+                } {
+                    self.parse_token(tokloc)?;
+                }
+                return Ok(());
             }
-            Token::Text(text) => {
-                self.buffer.push_str(text);
+            Token::EOF => {
+                return Err(LatexError(
+                    tokloc.location(),
+                    LatexErrKind::UnclosedGroup(Token::GroupEnd),
+                ));
+            }
+            Token::End | Token::Right | Token::GroupEnd => {
+                return Err(LatexError(
+                    tokloc.location(),
+                    LatexErrKind::UnexpectedClose(tokloc.into_token()),
+                ));
             }
             _ => {
                 return Err(LatexError(
-                    0,
-                    LatexErrKind::UnexpectedToken {
-                        expected: &token,
-                        got: token,
-                    },
+                    tokloc.location(),
+                    LatexErrKind::ExpectedText("something else"),
                 ));
             }
-        }
+        };
+        self.builder
+            .push_char(self.tf.map(|tf| tf.transform(c, is_upright)).unwrap_or(c));
         Ok(())
     }
 }
