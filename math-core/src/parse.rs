@@ -250,7 +250,8 @@ where
                     .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
                 Node::Space(space)
             }
-            Token::NonBreakingSpace | Token::Whitespace => Node::Text("\u{A0}"),
+            Token::NonBreakingSpace => Node::Text("\u{A0}"),
+            Token::Whitespace => Node::SingleLetterIdent('\u{A0}', false),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
@@ -999,6 +1000,40 @@ enum LetterCollector<'arena> {
     FinishedManyLetters { collected_letters: &'arena str },
 }
 
+struct TextModeParser<'buffer> {
+    buffer: &'buffer StringBuilder<'buffer>,
+}
+
+impl<'buffer> TextModeParser<'buffer> {
+    fn new(buffer: &'buffer StringBuilder<'buffer>) -> Self {
+        Self { buffer }
+    }
+
+    fn parse_token(&mut self, token: Token) -> Result<(), LatexError<'buffer>> {
+        match token {
+            Token::Letter(c) => {
+                self.buffer.push_char(c);
+            }
+            Token::UprightLetter(c) => {
+                self.buffer.push_char(c);
+            }
+            Token::Text(text) => {
+                self.buffer.push_str(text);
+            }
+            _ => {
+                return Err(LatexError(
+                    0,
+                    LatexErrKind::UnexpectedToken {
+                        expected: &token,
+                        got: token,
+                    },
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Extract the text of all single-letter identifiers and operators in `node`.
 /// This function cannot be a method, because we need to borrow arena immutably
 /// but buffer mutably. This is not possible with a mutable self reference.
@@ -1021,9 +1056,9 @@ fn extract_letters<'arena>(buffer: &mut StringBuilder, node: &'arena Node<'arena
         Node::Operator(op, _) | Node::OperatorWithSpacing { op, .. } => {
             buffer.push_char(op.into());
         }
-        Node::Text(str_ref) => {
-            buffer.push_str(str_ref);
-        }
+        // Node::Text(str_ref) => {
+        //     buffer.push_str(str_ref);
+        // }
         _ => return false,
     }
     true

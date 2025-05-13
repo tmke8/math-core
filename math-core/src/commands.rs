@@ -739,3 +739,9 @@ pub fn get_negated_op(op: Rel) -> Option<Rel> {
         _ => None,
     }
 }
+
+static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
+    "\"" => Token::Letter('α'),
+    "alpha" => Token::Letter('α'),
+    "rq" => Token::Letter('’'),
+};
