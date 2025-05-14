@@ -277,6 +277,7 @@ pub const QUADRUPLE_PRIME: Rel = Rel('⁗');
 pub const COMBINING_RIGHT_ARROW_ABOVE: Op = Op('\u{20D7}');
 
 pub const COMBINING_THREE_DOTS_ABOVE: Op = Op('\u{20DB}');
+pub const COMBINING_FOUR_DOTS_ABOVE: Op = Op('\u{20DC}');
 
 //
 // Unicode Block: Arrows
