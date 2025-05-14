@@ -38,36 +38,34 @@ body {
 }
 
 @font-face {
-    font-family: Latin Modern Math;
-    src:
-        /* local("Latin Modern Math"), */
-        url("./latinmodernmath.woff2") format("woff2");
-    font-display: swap;
-}
-
-@font-face {
     font-family: Libertinus Math Regular;
     src: url('./LibertinusMath-Regular.woff2') format('woff2');
     font-display: swap;
 }
 
 @font-face {
-    font-family: STIX Two Math Regular;
-    src: local("STIX Two Math Regular"), url('./STIXTwoMath-Regular.woff2') format('woff2');
-    font-display: block;
+    font-family: TeX Gyre Pagella Math Regular;
+    src: local("TeX Gyre Pagella Math Regular"), url('./texgyrepagella-math.woff2') format('woff2');
+    font-display: swap;
 }
 
-@font-face {
+/* @font-face {
     font-family: TeX Gyre Pagella Math BB;
-    /* The following unicode-range is for the math blackboard bold characters (\mathbb in LaTeX). */
+    /* The following unicode-range is for the math blackboard bold characters (\mathbb in LaTeX). * /
     unicode-range: U+1D538-1D56B, U+2102, U+210D, U+2115, U+2119, U+211A, U+211D, U+2124;
     src: local("TeX Gyre Pagella Math Regular"), url('./texgyrepagella-math-bb.woff2') format('woff2');
     font-display: swap;
-}
+} */
 
 @font-face {
     font-family: NewComputerModernMath Book;
     src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: Fira Math Regular;
+    src: url('./FiraMath-Regular.otf') format('opentype');
     font-display: swap;
 }
 

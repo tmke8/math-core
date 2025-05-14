@@ -53,22 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const styleElement = document.getElementById('math-font-style');
     const fontFeaturesMap = {
         'Libertinus Math Regular': '"ss09"',
-        'STIX Two Math Regular': '"ss04"',
     };
 
-    const mathBBMap = {
+    /* const mathBBMap = {
         'STIX Two Math Regular': 'TeX Gyre Pagella Math BB',
         'Latin Modern Math': 'TeX Gyre Pagella Math BB',
-    };
+    }; */
 
     // Update the style rule when selection changes
     fontSelect.addEventListener('change', function() {
         const featureSettings = fontFeaturesMap[this.value]
             ? `font-feature-settings: ${fontFeaturesMap[this.value]};`
             : '';
-        const mathBB = mathBBMap[this.value]
+        /* const mathBB = mathBBMap[this.value]
             ? `"${mathBBMap[this.value]}", `
-            : '';
-        styleElement.textContent = `math { font-family: ${mathBB}"${this.value}", math; ${featureSettings} }`;
+            : ''; */
+        styleElement.textContent = `math { font-family: "${this.value}", math; ${featureSettings} }`;
     });
 });
