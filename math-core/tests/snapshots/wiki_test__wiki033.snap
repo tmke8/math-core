@@ -6,7 +6,7 @@ expression: "\\cdot, * \\ast, \\star, \\circ, \\bullet"
     <mo>·</mo>
     <mo>,</mo>
     <mo>∗</mo>
-    <mo>∗</mo>
+    <mo lspace="0">∗</mo>
     <mo>,</mo>
     <mo>⋆</mo>
     <mo>,</mo>

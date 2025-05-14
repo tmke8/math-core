@@ -293,7 +293,10 @@ mod tests {
             ("mathrm_nested3", r"\mathrm{ab\mathit{cd}ef}"),
             ("mathrm_nested4", r"\mathit{\mathrm{a}}"),
             ("mathrm_multiletter", r"\mathrm{abc}"),
-            ("complicated_operatorname", r"\operatorname {{\pi} o \Angstrom a}"),
+            (
+                "complicated_operatorname",
+                r"\operatorname {{\pi} o \Angstrom a}",
+            ),
             ("operatorname_with_other_operator", r"x\operatorname{\max}"),
             (
                 "continued_fraction",
@@ -341,6 +344,7 @@ mod tests {
             ("plus_after_equal", r"x = +4"),
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
+            ("equal_equal", r"4==4"),
             ("color", r"{\color{Blue}x^2}"),
             ("hspace", r"\hspace{1cm}"),
             ("hspace_whitespace", r"\hspace{  4mm }"),

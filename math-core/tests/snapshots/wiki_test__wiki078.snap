@@ -4,7 +4,7 @@ expression: "\\vdash \\dashv, \\vDash, \\Vdash, \\models"
 ---
 <math>
     <mo>⊢</mo>
-    <mo>⊣</mo>
+    <mo lspace="0">⊣</mo>
     <mo>,</mo>
     <mo>⊨</mo>
     <mo>,</mo>

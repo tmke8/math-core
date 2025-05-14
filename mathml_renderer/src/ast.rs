@@ -10,7 +10,7 @@ use crate::attribute::{
 };
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
-use crate::symbol::{Op, ParenOp};
+use crate::symbol::{Fence, Op};
 
 /// AST node
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     SingleLetterIdent(char, bool),
     Operator(Op, Option<OpAttr>),
-    StretchableOp(&'static ParenOp, StretchMode),
+    StretchableOp(&'static Fence, StretchMode),
     OpGreaterThan,
     OpLessThan,
     OpAmpersand,
@@ -77,11 +77,11 @@ pub enum Node<'arena> {
     },
     Fenced {
         style: Option<Style>,
-        open: &'static ParenOp,
-        close: &'static ParenOp,
+        open: &'static Fence,
+        close: &'static Fence,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, &'static ParenOp),
+    SizedParen(Size, &'static Fence),
     Text(&'arena str),
     Table {
         content: &'arena [&'arena Node<'arena>],
@@ -547,7 +547,7 @@ impl<'arena> MathMLEmitter<'arena> {
         Ok(())
     }
 
-    fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &ParenOp) -> std::fmt::Result {
+    fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &Fence) -> std::fmt::Result {
         match (stretch_mode, op.stretchy()) {
             (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
             | (
@@ -674,7 +674,7 @@ mod tests {
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
             }),
-            "<mo lspace=\"0.2222em\" rspace=\"0em\">:</mo>"
+            "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
         );
         assert_eq!(
             render(&Node::OperatorWithSpacing {
@@ -682,7 +682,7 @@ mod tests {
                 left: Some(MathSpacing::Zero),
                 right: None,
             }),
-            "<mo lspace=\"0em\">≡</mo>"
+            "<mo lspace=\"0\">≡</mo>"
         );
     }
 

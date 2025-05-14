@@ -4,9 +4,9 @@ expression: "\\intercal \\barwedge \\veebar \\doublebarwedge \\between \\pitchfo
 ---
 <math>
     <mo>⊺</mo>
-    <mo>⊼</mo>
-    <mo>⊻</mo>
-    <mo>⩞</mo>
-    <mo>≬</mo>
-    <mo>⋔</mo>
+    <mo lspace="0">⊼</mo>
+    <mo lspace="0">⊻</mo>
+    <mo lspace="0">⩞</mo>
+    <mo lspace="0">≬</mo>
+    <mo lspace="0">⋔</mo>
 </math>

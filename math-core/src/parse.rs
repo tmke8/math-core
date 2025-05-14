@@ -34,6 +34,7 @@ pub(crate) struct Parser<'arena, 'source> {
 struct SequenceState {
     is_colon: bool,
     is_relation: bool,
+    is_punctuation: bool,
 }
 
 impl<'arena, 'source> Parser<'arena, 'source>
@@ -198,7 +199,7 @@ where
                         } else {
                             let ch = match self.peek.token() {
                                 Token::Letter('.') => Some('.'),
-                                Token::Relation(symbol::COMMA) => Some(','),
+                                Token::Punctuation(symbol::COMMA) => Some(','),
                                 _ => None,
                             };
                             if let Some(ch) = ch {
@@ -223,7 +224,9 @@ where
                 if let Some(state) = sequence_state {
                     state.is_relation = true;
                 };
-                if prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO) {
+                if (prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO))
+                    || prev_state.is_relation
+                {
                     Node::OperatorWithSpacing {
                         op: relation.into(),
                         left: Some(MathSpacing::Zero),
@@ -233,9 +236,16 @@ where
                     Node::Operator(relation.into(), None)
                 }
             }
+            Token::Punctuation(punc) => {
+                if let Some(state) = sequence_state {
+                    state.is_punctuation = true;
+                };
+                Node::Operator(punc.into(), None)
+            }
+            Token::Ord(ord) => Node::Operator(ord, None),
             Token::BinaryOp(binary_op) => Node::Operator(
                 binary_op.into(),
-                if prev_state.is_relation {
+                if prev_state.is_relation || prev_state.is_punctuation {
                     Some(OpAttr::FormPrefix)
                 } else {
                     None
@@ -929,7 +939,7 @@ where
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
-        static PRIME_SELECTION: [symbol::Rel; 4] = [
+        static PRIME_SELECTION: [symbol::Op; 4] = [
             symbol::PRIME,
             symbol::DOUBLE_PRIME,
             symbol::TRIPLE_PRIME,
@@ -938,10 +948,10 @@ where
         if prime_count > 0 {
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
-                primes.push(self.commit(Node::Operator(op.into(), None)));
+                primes.push(self.commit(Node::Operator(*op, None)));
             } else {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(symbol::PRIME.into(), None)));
+                    primes.push(self.commit(Node::Operator(symbol::PRIME, None)));
                 }
             }
         }
@@ -1056,6 +1066,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::Number(digit) => *digit as u8 as char,
             Token::Prime => '’',
             Token::Colon => ':',
+            Token::Punctuation(op) => (*op).as_op().into(),
             Token::Function(name) | Token::Lim(name) => {
                 // We don't transform these strings.
                 self.builder.push_str(name);

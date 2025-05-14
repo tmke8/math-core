@@ -10,7 +10,7 @@ expression: "\\uparrow \\big\\uparrow \\Big\\uparrow \\bigg\\uparrow \\Bigg\\upa
     <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">↑</mo>
     <mrow>
         <mo>.</mo>
-        <mo lspace="0em" rspace="0em">.</mo>
+        <mo lspace="0" rspace="0">.</mo>
         <mo>.</mo>
     </mrow>
     <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">⇓</mo>

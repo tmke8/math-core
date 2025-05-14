@@ -4,8 +4,8 @@ expression: "\\Vvdash \\nvdash \\nVdash \\nvDash \\nVDash"
 ---
 <math>
     <mo>⊪</mo>
-    <mo>⊬</mo>
-    <mo>⊮</mo>
-    <mo>⊭</mo>
-    <mo>⊯</mo>
+    <mo lspace="0">⊬</mo>
+    <mo lspace="0">⊮</mo>
+    <mo lspace="0">⊭</mo>
+    <mo lspace="0">⊯</mo>
 </math>

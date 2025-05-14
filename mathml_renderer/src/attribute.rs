@@ -106,7 +106,7 @@ pub enum Align {
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
-    #[strum(serialize = "0em")]
+    #[strum(serialize = "0")]
     Zero = 1,
     #[strum(serialize = "0.2222em")]
     FourMu, // 4/18 of an em/\quad

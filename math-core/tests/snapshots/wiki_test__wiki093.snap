@@ -4,11 +4,11 @@ expression: "\\curvearrowleft \\circlearrowleft \\Lsh \\upuparrows \\rightrighta
 ---
 <math>
     <mo>↶</mo>
-    <mo>↺</mo>
-    <mo>↰</mo>
-    <mo>⇈</mo>
-    <mo>⇉</mo>
-    <mo>⇄</mo>
-    <mo>↣</mo>
-    <mo>↬</mo>
+    <mo lspace="0">↺</mo>
+    <mo lspace="0">↰</mo>
+    <mo lspace="0">⇈</mo>
+    <mo lspace="0">⇉</mo>
+    <mo lspace="0">⇄</mo>
+    <mo lspace="0">↣</mo>
+    <mo lspace="0">↬</mo>
 </math>
