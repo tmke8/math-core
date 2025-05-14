@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\operatorname {{\\pi} o \\AA a}"
+expression: "\\operatorname {{\\pi} o \\Angstrom a}"
 ---
 <math>
     <mi>πoÅa</mi>
