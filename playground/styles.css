@@ -65,7 +65,7 @@ body {
 
 @font-face {
     font-family: Fira Math Regular;
-    src: url('./FiraMath-Regular.otf') format('opentype');
+    src: url('./FiraMath-Regular-prime-centered-diacritics.woff2') format('woff2');
     font-display: swap;
 }
 
