@@ -1051,8 +1051,11 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::Letter(c) | Token::UprightLetter(c) => *c,
             Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
             Token::Delimiter(op) => (*op).into(),
+            Token::Relation(op) => op.as_op().into(),
             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
             Token::Number(digit) => *digit as u8 as char,
+            Token::Prime => '’',
+            Token::Colon => ':',
             Token::Function(name) | Token::Lim(name) => {
                 // We don't transform these strings.
                 self.builder.push_str(name);

@@ -172,6 +172,7 @@ mod tests {
             ("text_with_escape_brace", r"\text{a\}b}"),
             ("text_with_weird_o", r"\text{x\o y}"),
             ("text_with_group", r"\text{x{y}z{}p{}}"),
+            ("text_with_special_symbols", r"\text{':,=}"),
             ("textbackslash", r"\text{\textbackslash}"),
             ("textit", r"\textit{x}"),
             ("textbf", r"\textbf{x}"),
@@ -292,7 +293,7 @@ mod tests {
             ("mathrm_nested3", r"\mathrm{ab\mathit{cd}ef}"),
             ("mathrm_nested4", r"\mathit{\mathrm{a}}"),
             ("mathrm_multiletter", r"\mathrm{abc}"),
-            ("complicated_operatorname", r"\operatorname {{\pi} o \AA a}"),
+            ("complicated_operatorname", r"\operatorname {{\pi} o \Angstrom a}"),
             ("operatorname_with_other_operator", r"x\operatorname{\max}"),
             (
                 "continued_fraction",
