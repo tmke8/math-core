@@ -4,7 +4,7 @@ expression: "\\land \\wedge, \\curlywedge, \\bigwedge"
 ---
 <math>
     <mo>∧</mo>
-    <mo>∧</mo>
+    <mo lspace="0">∧</mo>
     <mo>,</mo>
     <mo>⋏</mo>
     <mo>,</mo>

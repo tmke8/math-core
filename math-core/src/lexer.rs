@@ -126,7 +126,7 @@ impl<'source> Lexer<'source> {
         let tok = match ch {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
-            '!' => Token::Relation(symbol::EXCLAMATION_MARK),
+            '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
             '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
@@ -139,11 +139,11 @@ impl<'source> Lexer<'source> {
                 }
             }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
-            ',' => Token::Relation(symbol::COMMA),
+            ',' => Token::Punctuation(symbol::COMMA),
             '-' => Token::BinaryOp(symbol::MINUS_SIGN),
             '/' => Token::Delimiter(symbol::SOLIDUS),
             ':' => Token::Colon,
-            ';' => Token::Relation(symbol::SEMICOLON),
+            ';' => Token::Punctuation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
             '=' => Token::Relation(symbol::EQUALS_SIGN),
             '>' => Token::OpGreaterThan,

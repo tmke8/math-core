@@ -10,7 +10,7 @@ expression: "( \\bigl( \\Bigl( \\biggl( \\Biggl( \\dots \\Biggr] \\biggr] \\Bigr
     <mo maxsize="2.470em" minsize="2.470em">(</mo>
     <mrow>
         <mo>.</mo>
-        <mo lspace="0em" rspace="0em">.</mo>
+        <mo lspace="0" rspace="0">.</mo>
         <mo>.</mo>
     </mrow>
     <mo maxsize="2.470em" minsize="2.470em">]</mo>

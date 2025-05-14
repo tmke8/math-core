@@ -3,7 +3,7 @@ use std::mem::discriminant;
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{FracAttr, MathVariant, OpAttr, Size, Style, TextTransform};
 use mathml_renderer::length::Length;
-use mathml_renderer::symbol::{Big, Bin, Op, ParenOp, Rel};
+use mathml_renderer::symbol::{Big, Bin, Fence, Op, Punct, Rel};
 use strum_macros::IntoStaticStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -26,7 +26,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\middle")]
     Middle,
     #[strum(serialize = "parenthesis")]
-    Delimiter(&'static ParenOp),
+    Delimiter(&'static Fence),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]
@@ -68,6 +68,8 @@ pub enum Token<'source> {
     Big(Size),
     OverUnder(Op, bool, Option<OpAttr>),
     Relation(Rel),
+    Ord(Op),
+    Punctuation(Punct),
     #[strum(serialize = "binary operator")]
     BinaryOp(Bin),
     #[strum(serialize = "'")]

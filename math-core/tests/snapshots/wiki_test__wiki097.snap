@@ -4,8 +4,8 @@ expression: "\\smile \\frown \\wr \\triangleleft \\triangleright"
 ---
 <math>
     <mo>⌣</mo>
-    <mo>⌢</mo>
-    <mo>≀</mo>
+    <mo lspace="0">⌢</mo>
+    <mo lspace="0">≀</mo>
     <mi>◁</mi>
     <mi>▷</mi>
 </math>

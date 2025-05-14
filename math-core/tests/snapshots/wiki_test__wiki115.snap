@@ -12,7 +12,7 @@ expression: "\\overbrace{ 1+2+\\cdots+100 }^{5050}"
                 <mo>+</mo>
                 <mrow>
                     <mo>·</mo>
-                    <mo lspace="0em" rspace="0em">·</mo>
+                    <mo lspace="0" rspace="0">·</mo>
                     <mo>·</mo>
                 </mrow>
                 <mo>+</mo>

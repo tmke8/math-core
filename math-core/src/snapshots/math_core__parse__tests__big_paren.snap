@@ -3,5 +3,5 @@ source: math-core/src/parse.rs
 expression: "\\big("
 ---
 [
-  SizedParen(Scale1, ParenOp('(', false, Always)),
+  SizedParen(Scale1, Fence('(', false, Always)),
 ]
