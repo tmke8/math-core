@@ -324,6 +324,7 @@ mod tests {
             ("prime_command_braces", r"f^{\prime}"),
             ("transform_group", r"\mathit{a{bc}d}"),
             ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
+            ("mathcal_vs_mathscr", r"\mathcal{A}, \mathscr{A}"),
             ("vertical_line", r"P(x|y)"),
             ("mid", r"P(x\mid y)"),
             ("special_symbols", r"\%\$\#"),
