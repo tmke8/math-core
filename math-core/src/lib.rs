@@ -404,6 +404,7 @@ mod tests {
             ("hspace_empty", r"\hspace{  }"),
             ("hspace_unknown_unit", r"\hspace{2ly}"),
             ("hspace_non_digits", r"\hspace{2b2cm}"),
+            ("hspace_non_ascii", r"\hspace{22öm}"),
         ];
 
         for (name, problem) in problems.into_iter() {
