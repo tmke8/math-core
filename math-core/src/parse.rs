@@ -224,16 +224,22 @@ where
                 if let Some(state) = sequence_state {
                     state.is_relation = true;
                 };
-                if (prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO))
+                let left = if (prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO))
                     || prev_state.is_relation
                 {
-                    Node::OperatorWithSpacing {
-                        op: relation.into(),
-                        left: Some(MathSpacing::Zero),
-                        right: None,
-                    }
+                    Some(MathSpacing::Zero)
                 } else {
-                    Node::Operator(relation.into(), None)
+                    None
+                };
+                let right = if !wants_arg && matches!(self.peek.token(), Token::Relation(_)) {
+                    Some(MathSpacing::Zero)
+                } else {
+                    None
+                };
+                Node::OperatorWithSpacing {
+                    op: relation.into(),
+                    left,
+                    right,
                 }
             }
             Token::Punctuation(punc) => {
@@ -257,7 +263,6 @@ where
             Token::Function(fun) => Node::MultiLetterIdent(fun),
             Token::Space(space) => Node::Space(space),
             Token::CustomSpace => {
-                self.check_lbrace()?;
                 let (loc, length) = self.parse_text_group()?;
                 let space = parse_length_specification(length.trim())
                     .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
@@ -318,7 +323,6 @@ where
                     Node::Row { nodes: [], .. } => symbol::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                self.check_lbrace()?;
                 let (loc, length) = self.parse_text_group()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
@@ -610,7 +614,6 @@ where
                 Node::SizedParen(size, paren)
             }
             Token::Begin => {
-                self.check_lbrace()?;
                 // Read the environment name.
                 let env_name = self.parse_text_group()?.1;
                 let content = self.parse_sequence(Token::End, false)?;
@@ -673,7 +676,6 @@ where
                         return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
                     }
                 };
-                self.check_lbrace()?;
                 let end_name = self.parse_text_group()?.1;
                 if end_name != env_name {
                     return Err(LatexError(
@@ -847,15 +849,7 @@ where
 
     /// Parse the contents of a group which can only contain text.
     fn parse_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
-        let result = self.l.read_length_or_env_name();
-        // Discard the opening token (which is still stored as `peek`).
-        let opening_loc = self.next_token().location();
-        result
-            .map(|r| (opening_loc, r))
-            .ok_or(LatexError(opening_loc, LatexErrKind::UnparsableEnvName))
-    }
-
-    fn check_lbrace(&mut self) -> Result<(), LatexError<'source>> {
+        // First check whether there is an opening `{` token.
         if !matches!(self.peek.token(), Token::GroupBegin) {
             let TokLoc(loc, token) = self.next_token();
             return Err(LatexError(
@@ -866,7 +860,13 @@ where
                 },
             ));
         }
-        Ok(())
+        // Read the text.
+        let result = self.l.read_ascii_text_group();
+        // Discard the opening `{` token (which is still stored as `peek`).
+        let opening_loc = self.next_token().location();
+        result
+            .map(|r| (opening_loc, r))
+            .ok_or(LatexError(opening_loc, LatexErrKind::UnparsableEnvName))
     }
 
     /// Parse the bounds of an integral, sum, or product.

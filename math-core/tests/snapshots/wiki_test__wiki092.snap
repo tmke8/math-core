@@ -3,14 +3,14 @@ source: math-core/tests/wiki_test.rs
 expression: "\\rightharpoonup \\rightharpoondown \\leftharpoonup \\leftharpoondown \\upharpoonleft \\upharpoonright \\downharpoonleft \\downharpoonright \\rightleftharpoons \\leftrightharpoons"
 ---
 <math>
-    <mo>⇀</mo>
-    <mo lspace="0">⇁</mo>
-    <mo lspace="0">↼</mo>
-    <mo lspace="0">↽</mo>
-    <mo lspace="0">↿</mo>
-    <mo lspace="0">↾</mo>
-    <mo lspace="0">⇃</mo>
-    <mo lspace="0">⇂</mo>
-    <mo lspace="0">⇌</mo>
+    <mo rspace="0">⇀</mo>
+    <mo lspace="0" rspace="0">⇁</mo>
+    <mo lspace="0" rspace="0">↼</mo>
+    <mo lspace="0" rspace="0">↽</mo>
+    <mo lspace="0" rspace="0">↿</mo>
+    <mo lspace="0" rspace="0">↾</mo>
+    <mo lspace="0" rspace="0">⇃</mo>
+    <mo lspace="0" rspace="0">⇂</mo>
+    <mo lspace="0" rspace="0">⇌</mo>
     <mo lspace="0">⇋</mo>
 </math>

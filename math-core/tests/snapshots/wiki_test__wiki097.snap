@@ -3,8 +3,8 @@ source: math-core/tests/wiki_test.rs
 expression: "\\smile \\frown \\wr \\triangleleft \\triangleright"
 ---
 <math>
-    <mo>⌣</mo>
-    <mo lspace="0">⌢</mo>
+    <mo rspace="0">⌣</mo>
+    <mo lspace="0" rspace="0">⌢</mo>
     <mo lspace="0">≀</mo>
     <mi>◁</mi>
     <mi>▷</mi>

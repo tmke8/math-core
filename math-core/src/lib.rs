@@ -345,6 +345,7 @@ mod tests {
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
             ("equal_equal", r"4==4"),
+            ("subscript_equal_equal", r"x_==4"),
             ("color", r"{\color{Blue}x^2}"),
             ("hspace", r"\hspace{1cm}"),
             ("hspace_whitespace", r"\hspace{  4mm }"),
