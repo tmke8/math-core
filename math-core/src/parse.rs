@@ -7,7 +7,7 @@ use mathml_renderer::{
         Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
         TextTransform,
     },
-    length::Length,
+    length::{Length, LengthUnit},
     symbol,
 };
 
@@ -16,7 +16,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::parse_length_specification,
+    specifications::{LaTeXUnit, parse_length_specification},
     token::{TokLoc, Token},
 };
 
@@ -1071,6 +1071,20 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 // We don't transform these strings.
                 self.builder.push_str(name);
                 return Ok(());
+            }
+            Token::Space(length) => {
+                let length = *length;
+                if length == Length::new(1.0, LengthUnit::Em) {
+                    '\u{2003}'
+                } else if length == LaTeXUnit::Mu.length_with_unit(5.0) {
+                    '\u{2004}'
+                } else if length == LaTeXUnit::Mu.length_with_unit(4.0) {
+                    '\u{205F}'
+                } else if length == LaTeXUnit::Mu.length_with_unit(3.0) {
+                    '\u{2009}'
+                } else {
+                    return Ok(());
+                }
             }
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.

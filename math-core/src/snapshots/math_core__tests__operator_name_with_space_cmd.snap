@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\operatorname{arg\\,max}"
+---
+<math>
+    <mi>arg max</mi>
+</math>
