@@ -217,6 +217,7 @@ mod tests {
             ("operator_name", r"\operatorname{sn} x"),
             ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
             ("operator_name_with_single_char", r"\operatorname{a}"),
+            ("operator_name_with_space_cmd", r"\operatorname{arg\,max}"),
             ("simple_binomial_coefficient", r"\binom12"),
             ("stretchy_parentheses", r"\left( x \right)"),
             ("stretchy_one-sided_parenthesis", r"\left( x \right."),
