@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathcal{A}, \\mathscr{A}"
+---
+<math>
+    <mi>𝒜︀</mi>
+    <mo>,</mo>
+    <mi>𝒜︁</mi>
+</math>

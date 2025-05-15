@@ -199,15 +199,20 @@ impl<'arena> MathMLEmitter<'arena> {
                     Some(MathVariant::Transform(tf)) => tf.transform(*letter, is_normal),
                     _ => *letter,
                 };
-                let closing = if matches!(
+                let variant_selector = if matches!(
+                    self.var,
+                    Some(MathVariant::Transform(TextTransform::ScriptChancery))
+                ) {
+                    "\u{FE00}"
+                } else if matches!(
                     self.var,
                     Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
                 ) {
-                    "\u{FE01}</mi>"
+                    "\u{FE01}"
                 } else {
-                    "</mi>"
+                    ""
                 };
-                write!(self.s, "{c}{closing}")?;
+                write!(self.s, "{c}{variant_selector}</mi>")?;
             }
             Node::TextTransform { content, tf } => {
                 let old_var = mem::replace(&mut self.var, Some(*tf));
