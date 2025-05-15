@@ -9,6 +9,10 @@ expression: ":2=:="
     right: Some(FourMu),
   ),
   Number("2"),
-  Operator(Op('='), None),
+  OperatorWithSpacing(
+    op: Op('='),
+    left: None,
+    right: None,
+  ),
   Operator(Op('≔'), None),
 ]

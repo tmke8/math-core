@@ -3,12 +3,12 @@ source: math-core/tests/wiki_test.rs
 expression: "\\eqcirc \\circeq \\triangleq \\bumpeq\\Bumpeq \\doteqdot \\risingdotseq \\fallingdotseq"
 ---
 <math>
-    <mo>≖</mo>
-    <mo lspace="0">≗</mo>
-    <mo lspace="0">≜</mo>
-    <mo lspace="0">≏</mo>
-    <mo lspace="0">≎</mo>
-    <mo lspace="0">≑</mo>
-    <mo lspace="0">≓</mo>
+    <mo rspace="0">≖</mo>
+    <mo lspace="0" rspace="0">≗</mo>
+    <mo lspace="0" rspace="0">≜</mo>
+    <mo lspace="0" rspace="0">≏</mo>
+    <mo lspace="0" rspace="0">≎</mo>
+    <mo lspace="0" rspace="0">≑</mo>
+    <mo lspace="0" rspace="0">≓</mo>
     <mo lspace="0">≒</mo>
 </math>

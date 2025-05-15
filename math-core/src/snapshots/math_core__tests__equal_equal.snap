@@ -4,7 +4,7 @@ expression: 4==4
 ---
 <math>
     <mn>4</mn>
-    <mo>=</mo>
+    <mo rspace="0">=</mo>
     <mo lspace="0">=</mo>
     <mn>4</mn>
 </math>

@@ -11,7 +11,11 @@ expression: "x_:\\equiv, x_:="
       right: Some(FourMu),
     ),
   ),
-  Operator(Op('≡'), None),
+  OperatorWithSpacing(
+    op: Op('≡'),
+    left: None,
+    right: None,
+  ),
   Operator(Op(','), None),
   Subscript(
     target: SingleLetterIdent('x', false),
@@ -21,5 +25,9 @@ expression: "x_:\\equiv, x_:="
       right: Some(FourMu),
     ),
   ),
-  Operator(Op('='), None),
+  OperatorWithSpacing(
+    op: Op('='),
+    left: None,
+    right: None,
+  ),
 ]
