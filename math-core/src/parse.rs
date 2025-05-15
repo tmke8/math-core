@@ -774,7 +774,7 @@ where
                     nodes: &[],
                     attr: RowAttr::None,
                 });
-                let symbol = self.commit(Node::Operator(symbol::PRIME.into(), None));
+                let symbol = self.commit(Node::Operator(symbol::PRIME, None));
                 Node::Superscript { target, symbol }
             }
             Token::Underscore => {
@@ -1074,7 +1074,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
-                next_token(&mut self.peek, &mut self.lexer);
+                next_token(self.peek, self.lexer);
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(*accent);
@@ -1082,7 +1082,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::Text(tf) => {
                 // Discard `Text` token.
-                next_token(&mut self.peek, &mut self.lexer);
+                next_token(self.peek, self.lexer);
                 let old_tf = mem::replace(&mut self.tf, *tf);
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
@@ -1091,14 +1091,14 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::GroupBegin => {
                 // Discard opening token.
-                next_token(&mut self.peek, &mut self.lexer);
+                next_token(self.peek, self.lexer);
                 while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
                     let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
                     // last token in `peek`, but we want to continue here, so we need to discard it.
-                    next_token(&mut self.peek, &mut self.lexer);
+                    next_token(self.peek, self.lexer);
                 }
                 return Ok(());
             }
