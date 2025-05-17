@@ -58,7 +58,7 @@ pub(crate) fn parse_length_specification(s: &str) -> Option<Length> {
     // (This can fail if `unit_offset` is not a valid UTF-8 boundary.)
     let (digits, unit) = s.split_at_checked(unit_offset)?;
 
-    let value = crate::atof::limited_float_parse(digits)?;
+    let value = crate::atof::limited_float_parse(digits.trim_end())?;
 
     let parsed_unit = LaTeXUnit::try_from(unit).ok()?;
     Some(parsed_unit.length_with_unit(value))
