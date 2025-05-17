@@ -16,7 +16,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{LaTeXUnit, parse_length_specification},
+    specifications::{LaTeXUnit, parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
 };
 
@@ -616,6 +616,13 @@ where
             Token::Begin => {
                 // Read the environment name.
                 let env_name = self.parse_ascii_text_group()?.1;
+                if env_name == "array" {
+                    // Parse the array options.
+                    let (loc, options) = self.parse_ascii_text_group()?;
+                    let array_spec = parse_column_specification(options).ok_or_else(|| {
+                        LatexError(loc, LatexErrKind::ExpectedLength(options.trim()))
+                    })?;
+                }
                 let content = self.parse_sequence(Token::End, false)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
@@ -644,6 +651,9 @@ where
                         align: Align::Center,
                         attr: None,
                     },
+                    "array" => {
+                        todo!();
+                    }
                     matrix_variant
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
                         let align = Align::Center;
