@@ -4,11 +4,11 @@ use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-        TextTransform,
+        FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
     },
     length::{Length, LengthUnit},
     symbol,
+    table::Align,
 };
 
 use crate::{
@@ -616,14 +616,17 @@ where
             Token::Begin => {
                 // Read the environment name.
                 let env_name = self.parse_ascii_text_group()?.1;
-                if env_name == "array" {
+                let array_spec = if env_name == "array" {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
-                    let array_spec =
+                    Some(
                         parse_column_specification(options, self.arena).ok_or_else(|| {
-                            LatexError(loc, LatexErrKind::ExpectedLength(options.trim()))
-                        })?;
-                }
+                            LatexError(loc, LatexErrKind::ExpectedColSpec(options.trim()))
+                        })?,
+                    )
+                } else {
+                    None
+                };
                 let content = self.parse_sequence(Token::End, false)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
@@ -653,7 +656,12 @@ where
                         attr: None,
                     },
                     "array" => {
-                        todo!();
+                        // SAFETY: `array_spec` is guaranteed to be Some because we checked for "array" above.
+                        let spec = unsafe { array_spec.unwrap_unchecked() };
+                        Node::Array {
+                            content,
+                            align: self.arena.inner.alloc(spec),
+                        }
                     }
                     matrix_variant
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
