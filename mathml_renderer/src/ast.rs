@@ -1,5 +1,4 @@
 use std::fmt::Write;
-use std::mem;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -215,7 +214,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, "{c}{variant_selector}</mi>")?;
             }
             Node::TextTransform { content, tf } => {
-                let old_var = mem::replace(&mut self.var, Some(*tf));
+                let old_var = self.var.replace(*tf);
                 self.emit(content, base_indent)?;
                 self.var = old_var;
             }
@@ -532,7 +531,7 @@ impl<'arena> MathMLEmitter<'arena> {
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
-                let old_args = mem::replace(&mut self.custom_cmd_args, Some(args));
+                let old_args = self.custom_cmd_args.replace(args);
                 self.emit(predefined, base_indent)?;
                 self.custom_cmd_args = old_args;
             }
