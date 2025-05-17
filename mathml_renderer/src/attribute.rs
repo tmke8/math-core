@@ -95,14 +95,6 @@ pub enum Style {
     ScriptScriptStyle,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum Align {
-    Center,
-    Left,
-    Alternating,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {

@@ -353,6 +353,7 @@ mod tests {
             ("hspace", r"\hspace{1cm}"),
             ("hspace_whitespace", r"\hspace{  4em }"),
             ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
+            ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         ];
 
         for (name, problem) in problems.into_iter() {

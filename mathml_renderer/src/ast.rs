@@ -4,13 +4,13 @@ use std::fmt::Write;
 use serde::Serialize;
 
 use crate::attribute::{
-    Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
+    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
     TextTransform,
 };
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
-use crate::table::{ArraySpec, alternating_alignment, cases_alignment, center_alignment};
+use crate::table::{Align, ArraySpec, MtdOpening};
 
 /// AST node
 #[derive(Debug)]
@@ -91,7 +91,6 @@ pub enum Node<'arena> {
     Array {
         content: &'arena [&'arena Node<'arena>],
         align: &'arena ArraySpec<'arena>,
-        attr: Option<FracAttr>,
     },
     ColumnSeparator,
     RowSeparator,
@@ -470,67 +469,19 @@ impl<'arena> MathMLEmitter<'arena> {
                 align,
                 attr,
             } => {
-                let mtd_opening = match align {
-                    Align::Center => center_alignment,
-                    Align::Left => cases_alignment,
-                    Align::Alternating => alternating_alignment,
-                };
+                let mtd_opening = MtdOpening::Predefined(*align);
 
-                let child_indent2 = if base_indent > 0 {
-                    child_indent.saturating_add(1)
-                } else {
-                    0
-                };
-                let child_indent3 = if base_indent > 0 {
-                    child_indent2.saturating_add(1)
-                } else {
-                    0
-                };
-
-                let mut col: usize = 0;
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
                     write!(self.s, "{}", <&str>::from(attr))?;
                 }
                 write!(self.s, ">")?;
-                writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                if let Some(first_mtd) = mtd_opening(col) {
-                    writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
-                    for node in content.iter() {
-                        match node {
-                            Node::ColumnSeparator => {
-                                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                                col += 1;
-                                writeln_indent!(
-                                    &mut self.s,
-                                    child_indent2,
-                                    "{}",
-                                    mtd_opening(col).unwrap_or("<mtd>")
-                                );
-                            }
-                            Node::RowSeparator => {
-                                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                                writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                                writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                                writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
-                                col = 0;
-                            }
-                            node => {
-                                self.emit(node, child_indent3)?;
-                            }
-                        }
-                    }
-                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                }
-                writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                writeln_indent!(&mut self.s, base_indent, "</mtable>");
+                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
-            Node::Array {
-                content,
-                align,
-                attr,
-            } => {
-                todo!()
+            Node::Array { content, align } => {
+                let mtd_opening = MtdOpening::Custom(align);
+                write!(self.s, "<mtable>")?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
@@ -551,6 +502,58 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, "{mathml}")?;
             }
         };
+        Ok(())
+    }
+
+    fn emit_table(
+        &mut self,
+        base_indent: usize,
+        child_indent: usize,
+        content: &'arena [&Node<'arena>],
+        mtd_opening: MtdOpening,
+    ) -> Result<(), std::fmt::Error> {
+        let child_indent2 = if base_indent > 0 {
+            child_indent.saturating_add(1)
+        } else {
+            0
+        };
+        let child_indent3 = if base_indent > 0 {
+            child_indent2.saturating_add(1)
+        } else {
+            0
+        };
+        let mut col: usize = 0;
+        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+        if let Some(first_mtd) = mtd_opening.get_opening(col) {
+            writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+            for node in content.iter() {
+                match node {
+                    Node::ColumnSeparator => {
+                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                        col += 1;
+                        writeln_indent!(
+                            &mut self.s,
+                            child_indent2,
+                            "{}",
+                            mtd_opening.get_opening(col).unwrap_or("<mtd>")
+                        );
+                    }
+                    Node::RowSeparator => {
+                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                        writeln_indent!(&mut self.s, child_indent, "</mtr>");
+                        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                        writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+                        col = 0;
+                    }
+                    node => {
+                        self.emit(node, child_indent3)?;
+                    }
+                }
+            }
+            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        }
+        writeln_indent!(&mut self.s, child_indent, "</mtr>");
+        writeln_indent!(&mut self.s, base_indent, "</mtable>");
         Ok(())
     }
 
@@ -987,7 +990,7 @@ mod tests {
         assert_eq!(
             render(&Node::Table {
                 content: &nodes,
-                align: crate::attribute::Align::Center,
+                align: crate::table::Align::Center,
                 attr: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"

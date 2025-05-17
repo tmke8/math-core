@@ -112,12 +112,12 @@ pub fn parse_column_specification<'arena>(
                 };
 
                 // Skip all whitespace
-                while chars.peek().map_or(false, |&&c| c.is_ascii_whitespace()) {
+                while chars.peek().is_some_and(|&&c| c.is_ascii_whitespace()) {
                     chars.next();
                 }
 
                 // Check if the next character is a vertical line
-                let with_line = chars.peek().map_or(false, |&&c| c == b'|');
+                let with_line = chars.peek().is_some_and(|&&c| c == b'|');
                 if with_line {
                     chars.next(); // Skip over the vertical line
                 }

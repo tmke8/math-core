@@ -36,6 +36,7 @@ pub enum LatexErrKind<'source> {
     },
     ExpectedText(&'static str),
     ExpectedLength(&'source str),
+    ExpectedColSpec(&'source str),
     RenderError,
     NotValidInTextMode(Token<'source>),
 }
@@ -98,6 +99,9 @@ impl LatexErrKind<'_> {
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
             LatexErrKind::ExpectedLength(got) => {
                 "Expected length with units, got \"".to_string() + got + "\"."
+            }
+            LatexErrKind::ExpectedColSpec(got) => {
+                "Expected column specification, got \"".to_string() + got + "\"."
             }
             LatexErrKind::RenderError => "Render error".to_string(),
             LatexErrKind::NotValidInTextMode(got) => {
