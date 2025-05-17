@@ -4,3 +4,4 @@ pub mod attribute;
 mod itoa;
 pub mod length;
 pub mod symbol;
+pub mod table;
