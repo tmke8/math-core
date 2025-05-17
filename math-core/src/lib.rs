@@ -48,6 +48,7 @@
 //!
 use mathml_renderer::arena::Arena;
 
+pub mod atof;
 mod color_defs;
 pub(crate) mod commands;
 mod error;
@@ -350,7 +351,8 @@ mod tests {
             ("subscript_equal_equal", r"x_==4"),
             ("color", r"{\color{Blue}x^2}"),
             ("hspace", r"\hspace{1cm}"),
-            ("hspace_whitespace", r"\hspace{  4mm }"),
+            ("hspace_whitespace", r"\hspace{  4em }"),
+            ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
         ];
 
         for (name, problem) in problems.into_iter() {

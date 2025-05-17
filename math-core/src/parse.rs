@@ -265,7 +265,7 @@ where
             Token::CustomSpace => {
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let space = parse_length_specification(length.trim())
-                    .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
+                    .ok_or(LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
                 Node::Space(space)
             }
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
@@ -327,7 +327,7 @@ where
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal)
-                        .map_err(|_| LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
+                        .ok_or(LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
                 };
                 let style = match self.parse_next(true)? {
                     Node::Number(num) => match num.as_bytes() {

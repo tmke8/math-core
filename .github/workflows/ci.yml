@@ -76,7 +76,7 @@ jobs:
             const sizeDiffPercent = (sizeDiff / baseSize) * 100;
             const sizeDiffPercentStr = sizeDiffPercent.toFixed(2);
             const sizeDiffStr = sizeDiff > 0 ? `+${sizeDiff}` : `${sizeDiff}`;
-            const comment = `Wasm size on PR: ${prSize} bytes\nWasm size on base branch: ${baseSize} bytes\nSize diff: ${sizeDiffStr} bytes (${sizeDiffPercentStr}%)`;
+            const comment = `Wasm sizes:\nBase branch: ${baseSize} bytes\nPR: ${prSize} bytes\nSize diff: ${sizeDiffStr} bytes (${sizeDiffPercentStr}%)`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
