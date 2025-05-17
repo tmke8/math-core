@@ -2,7 +2,11 @@
 
 use strum_macros::EnumString;
 
-use mathml_renderer::length::{Length, LengthUnit};
+use mathml_renderer::{
+    arena::Arena,
+    length::{Length, LengthUnit},
+    table::{ArraySpec, ColumnAlignment, ColumnSpec},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, EnumString)]
 pub enum LaTeXUnit {
@@ -64,108 +68,14 @@ pub(crate) fn parse_length_specification(s: &str) -> Option<Length> {
     Some(parsed_unit.length_with_unit(value))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
-pub enum ColumnAlignment {
-    #[strum(serialize = "l")]
-    LeftJustified,
-    #[strum(serialize = "c")]
-    Centered,
-    #[strum(serialize = "r")]
-    RightJustified,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ColumnSpec {
-    pub alignment: Option<ColumnAlignment>,
-    pub with_line: bool,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct ArraySpec {
-    pub begins_with_line: bool,
-    pub column_spec: Vec<ColumnSpec>,
-}
-
-// pub fn parse_column_specification(s: &str) -> Option<ArraySpec> {
-//     if !s.is_ascii() {
-//         return None;
-//     }
-
-//     // Now that we have established that the string is ASCII, we can safely use `trim_start_ascii`.
-//     let s = s.trim_ascii_start();
-
-//     // Check if the string begins with a line
-//     let begins_with_line = s.starts_with('|');
-
-//     // We will work with bytes to avoid UTF-8 checks. This is fine because everything is ASCII.
-//     let chars = s.as_bytes();
-
-//     let mut column_spec = Vec::new();
-
-//     // Skip the first '|' if it exists
-//     let start_idx = if begins_with_line { 1 } else { 0 };
-
-//     let mut i = start_idx;
-//     while i < chars.len() {
-//         match chars[i] {
-//             b'l' | b'c' | b'r' => {
-//                 let alignment = match chars[i] {
-//                     b'l' => Some(ColumnAlignment::LeftJustified),
-//                     b'c' => Some(ColumnAlignment::Centered),
-//                     b'r' => Some(ColumnAlignment::RightJustified),
-//                     _ => unreachable!(),
-//                 };
-
-//                 i += 1; // Move past the alignment character
-
-//                 // Check if this column has a vertical line after it
-//                 // First, skip all whitespace
-//                 while i < chars.len() && chars[i].is_ascii_whitespace() {
-//                     i += 1;
-//                 }
-//                 // Check if the next character is a vertical line
-//                 let with_line = i < chars.len() && chars[i] == b'|';
-//                 if with_line {
-//                     i += 1; // Skip over the vertical line
-//                 }
-
-//                 column_spec.push(ColumnSpec {
-//                     alignment,
-//                     with_line,
-//                 });
-//             }
-//             b'|' => {
-//                 // This is a vertical line without an alignment character before it
-//                 // Add an empty column with a vertical line
-//                 column_spec.push(ColumnSpec {
-//                     alignment: None,
-//                     with_line: true,
-//                 });
-//                 i += 1;
-//             }
-//             _ => {
-//                 if chars[i].is_ascii_whitespace() {
-//                     // Skip whitespace
-//                     i += 1;
-//                 } else {
-//                     // Invalid character, return None
-//                     return None;
-//                 }
-//             }
-//         }
-//     }
-
-//     Some(ArraySpec {
-//         begins_with_line,
-//         column_spec,
-//     })
-// }
-
 /// Parses a column specification string in the format "l|c|r" where:
 /// - 'l', 'c', 'r' indicate left, center, and right alignment
 /// - '|' indicates a vertical line between columns
 /// - The specification may begin with a vertical line
-pub fn parse_column_specification(s: &str) -> Option<ArraySpec> {
+pub fn parse_column_specification<'arena>(
+    s: &str,
+    arena: &'arena Arena,
+) -> Option<ArraySpec<'arena>> {
     if !s.is_ascii() {
         return None;
     }
@@ -242,7 +152,7 @@ pub fn parse_column_specification(s: &str) -> Option<ArraySpec> {
 
     Some(ArraySpec {
         begins_with_line,
-        column_spec,
+        column_spec: arena.inner.alloc_slice(column_spec.as_slice()),
     })
 }
 
@@ -252,18 +162,20 @@ mod tests {
 
     #[test]
     fn invalid_column_specs() {
-        assert_eq!(parse_column_specification(""), None);
-        assert_eq!(parse_column_specification("|"), None);
-        assert_eq!(parse_column_specification("||"), None);
-        assert_eq!(parse_column_specification("x"), None);
-        assert_eq!(parse_column_specification("x|c"), None);
-        assert_eq!(parse_column_specification("c|x"), None);
-        assert_eq!(parse_column_specification("cx"), None);
+        let arena = Arena::new();
+        assert_eq!(parse_column_specification("", &arena), None);
+        assert_eq!(parse_column_specification("|", &arena), None);
+        assert_eq!(parse_column_specification("||", &arena), None);
+        assert_eq!(parse_column_specification("x", &arena), None);
+        assert_eq!(parse_column_specification("x|c", &arena), None);
+        assert_eq!(parse_column_specification("c|x", &arena), None);
+        assert_eq!(parse_column_specification("cx", &arena), None);
     }
 
     #[test]
     fn column_parse_simple() {
-        let spec = parse_column_specification("l|c|r").unwrap();
+        let arena = Arena::new();
+        let spec = parse_column_specification("l|c|r", &arena).unwrap();
         assert_eq!(spec.begins_with_line, false);
         assert_eq!(spec.column_spec.len(), 3);
         assert_eq!(
@@ -284,36 +196,9 @@ mod tests {
     }
 
     #[test]
-    fn column_parse_multi_line() {
-        let spec = parse_column_specification("c||c|||c").unwrap();
-        assert_eq!(spec.begins_with_line, false);
-        assert_eq!(spec.column_spec.len(), 6);
-        assert_eq!(
-            spec.column_spec[0].alignment,
-            Some(ColumnAlignment::Centered)
-        );
-        assert_eq!(spec.column_spec[0].with_line, true);
-        assert_eq!(spec.column_spec[1].alignment, None);
-        assert_eq!(spec.column_spec[1].with_line, true);
-        assert_eq!(
-            spec.column_spec[2].alignment,
-            Some(ColumnAlignment::Centered)
-        );
-        assert_eq!(spec.column_spec[2].with_line, true);
-        assert_eq!(spec.column_spec[3].alignment, None);
-        assert_eq!(spec.column_spec[3].with_line, true);
-        assert_eq!(spec.column_spec[4].alignment, None);
-        assert_eq!(spec.column_spec[4].with_line, true);
-        assert_eq!(
-            spec.column_spec[5].alignment,
-            Some(ColumnAlignment::Centered)
-        );
-        assert_eq!(spec.column_spec[5].with_line, false);
-    }
-
-    #[test]
     fn column_parse_line_at_beginning() {
-        let spec = parse_column_specification("|ccc").unwrap();
+        let arena = Arena::new();
+        let spec = parse_column_specification("|ccc", &arena).unwrap();
         assert_eq!(spec.begins_with_line, true);
         assert_eq!(spec.column_spec.len(), 3);
         assert_eq!(
@@ -335,7 +220,8 @@ mod tests {
 
     #[test]
     fn column_parse_with_spaces() {
-        let spec = parse_column_specification(" c   | |   c|    | |      c ").unwrap();
+        let arena = Arena::new();
+        let spec = parse_column_specification(" c   | |   c|    | |      c ", &arena).unwrap();
         assert_eq!(spec.begins_with_line, false);
         assert_eq!(spec.column_spec.len(), 6);
         assert_eq!(

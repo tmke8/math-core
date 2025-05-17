@@ -3,7 +3,7 @@ use stable_arena::DroplessArena;
 use crate::ast::Node;
 
 pub struct Arena {
-    inner: DroplessArena,
+    pub inner: DroplessArena,
 }
 
 impl Arena {

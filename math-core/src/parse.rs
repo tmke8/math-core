@@ -619,9 +619,10 @@ where
                 if env_name == "array" {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
-                    let array_spec = parse_column_specification(options).ok_or_else(|| {
-                        LatexError(loc, LatexErrKind::ExpectedLength(options.trim()))
-                    })?;
+                    let array_spec =
+                        parse_column_specification(options, self.arena).ok_or_else(|| {
+                            LatexError(loc, LatexErrKind::ExpectedLength(options.trim()))
+                        })?;
                 }
                 let content = self.parse_sequence(Token::End, false)?;
                 let content = self.arena.push_slice(&content);

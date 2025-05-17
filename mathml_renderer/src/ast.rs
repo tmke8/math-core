@@ -10,6 +10,7 @@ use crate::attribute::{
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
+use crate::table::{ArraySpec, alternating_alignment, cases_alignment, center_alignment};
 
 /// AST node
 #[derive(Debug)]
@@ -85,6 +86,11 @@ pub enum Node<'arena> {
     Table {
         content: &'arena [&'arena Node<'arena>],
         align: Align,
+        attr: Option<FracAttr>,
+    },
+    Array {
+        content: &'arena [&'arena Node<'arena>],
+        align: &'arena ArraySpec<'arena>,
         attr: Option<FracAttr>,
     },
     ColumnSeparator,
@@ -464,6 +470,12 @@ impl<'arena> MathMLEmitter<'arena> {
                 align,
                 attr,
             } => {
+                let mtd_opening = match align {
+                    Align::Center => center_alignment,
+                    Align::Left => cases_alignment,
+                    Align::Alternating => alternating_alignment,
+                };
+
                 let child_indent2 = if base_indent > 0 {
                     child_indent.saturating_add(1)
                 } else {
@@ -474,60 +486,51 @@ impl<'arena> MathMLEmitter<'arena> {
                 } else {
                     0
                 };
-                let odd_col = match align {
-                    Align::Center => "<mtd>",
-                    Align::Left => {
-                        r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#
-                    }
-                    Align::Alternating => {
-                        r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#
-                    }
-                };
-                let even_col = match align {
-                    Align::Center => "<mtd>",
-                    Align::Left => {
-                        "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em\">"
-                    }
-                    Align::Alternating => {
-                        "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-left: 0\">"
-                    }
-                };
 
-                let mut col: usize = 1;
+                let mut col: usize = 0;
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
                     write!(self.s, "{}", <&str>::from(attr))?;
                 }
                 write!(self.s, ">")?;
                 writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                writeln_indent!(&mut self.s, child_indent2, "{odd_col}");
-                for node in content.iter() {
-                    match node {
-                        Node::ColumnSeparator => {
-                            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                            col += 1;
-                            writeln_indent!(
-                                &mut self.s,
-                                child_indent2,
-                                "{}",
-                                if col % 2 == 0 { even_col } else { odd_col }
-                            );
-                        }
-                        Node::RowSeparator => {
-                            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                            writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                            writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                            writeln_indent!(&mut self.s, child_indent2, "{odd_col}");
-                            col = 1;
-                        }
-                        node => {
-                            self.emit(node, child_indent3)?;
+                if let Some(first_mtd) = mtd_opening(col) {
+                    writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+                    for node in content.iter() {
+                        match node {
+                            Node::ColumnSeparator => {
+                                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                                col += 1;
+                                writeln_indent!(
+                                    &mut self.s,
+                                    child_indent2,
+                                    "{}",
+                                    mtd_opening(col).unwrap_or("<mtd>")
+                                );
+                            }
+                            Node::RowSeparator => {
+                                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                                writeln_indent!(&mut self.s, child_indent, "</mtr>");
+                                writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                                writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+                                col = 0;
+                            }
+                            node => {
+                                self.emit(node, child_indent3)?;
+                            }
                         }
                     }
+                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                 }
-                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                 writeln_indent!(&mut self.s, child_indent, "</mtr>");
                 writeln_indent!(&mut self.s, base_indent, "</mtable>");
+            }
+            Node::Array {
+                content,
+                align,
+                attr,
+            } => {
+                todo!()
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
