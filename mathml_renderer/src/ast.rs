@@ -11,7 +11,7 @@ use crate::attribute::{
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
-use crate::table::{Align, ArraySpec, MtdOpening};
+use crate::table::{Alignment, ArraySpec, ColumnGenerator};
 
 /// AST node
 #[derive(Debug)]
@@ -86,12 +86,12 @@ pub enum Node<'arena> {
     Text(&'arena str),
     Table {
         content: &'arena [&'arena Node<'arena>],
-        align: Align,
+        align: Alignment,
         attr: Option<FracAttr>,
     },
     Array {
         content: &'arena [&'arena Node<'arena>],
-        align: &'arena ArraySpec<'arena>,
+        array_spec: &'arena ArraySpec<'arena>,
     },
     ColumnSeparator,
     RowSeparator,
@@ -470,7 +470,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 align,
                 attr,
             } => {
-                let mtd_opening = MtdOpening::Predefined(*align);
+                let mtd_opening = ColumnGenerator::new_predefined(*align);
 
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
@@ -479,9 +479,16 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
-            Node::Array { content, align } => {
-                let mtd_opening = MtdOpening::Custom(align);
-                write!(self.s, "<mtable>")?;
+            Node::Array {
+                content,
+                array_spec,
+            } => {
+                let mtd_opening = ColumnGenerator::new_custom(array_spec);
+                write!(self.s, "<mtable")?;
+                if array_spec.begins_with_line {
+                    write!(self.s, r#" style="border-left: 1px solid black""#)?;
+                }
+                write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
@@ -511,7 +518,7 @@ impl<'arena> MathMLEmitter<'arena> {
         base_indent: usize,
         child_indent: usize,
         content: &'arena [&Node<'arena>],
-        mtd_opening: MtdOpening,
+        mut col_gen: ColumnGenerator,
     ) -> Result<(), std::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
@@ -523,20 +530,19 @@ impl<'arena> MathMLEmitter<'arena> {
         } else {
             0
         };
-        let mut col: usize = 0;
+        col_gen.reset_columns();
         writeln_indent!(&mut self.s, child_indent, "<mtr>");
-        if let Some(first_mtd) = mtd_opening.get_opening(col) {
+        if let Some(first_mtd) = col_gen.next() {
             writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
             for node in content.iter() {
                 match node {
                     Node::ColumnSeparator => {
                         writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                        col += 1;
                         writeln_indent!(
                             &mut self.s,
                             child_indent2,
                             "{}",
-                            mtd_opening.get_opening(col).unwrap_or("<mtd>")
+                            col_gen.next().unwrap_or("<mtd>")
                         );
                     }
                     Node::RowSeparator => {
@@ -544,7 +550,8 @@ impl<'arena> MathMLEmitter<'arena> {
                         writeln_indent!(&mut self.s, child_indent, "</mtr>");
                         writeln_indent!(&mut self.s, child_indent, "<mtr>");
                         writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
-                        col = 0;
+                        col_gen.reset_columns();
+                        col_gen.next(); // we used the cached `first_mtd` above
                     }
                     node => {
                         self.emit(node, child_indent3)?;
@@ -991,7 +998,7 @@ mod tests {
         assert_eq!(
             render(&Node::Table {
                 content: &nodes,
-                align: crate::table::Align::Center,
+                align: crate::table::Alignment::Centered,
                 attr: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
