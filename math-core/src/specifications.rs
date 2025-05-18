@@ -197,7 +197,7 @@ pub fn parse_column_specification<'arena>(
 
     Some(ArraySpec {
         begins_with_line,
-        column_spec: arena.inner.alloc_slice(column_spec.as_slice()),
+        column_spec: arena.alloc_column_specs(column_spec.as_slice()),
     })
 }
 
