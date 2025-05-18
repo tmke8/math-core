@@ -660,7 +660,7 @@ where
                         let spec = unsafe { array_spec.unwrap_unchecked() };
                         Node::Array {
                             content,
-                            array_spec: self.arena.inner.alloc(spec),
+                            array_spec: self.arena.alloc_array_spec(spec),
                         }
                     }
                     matrix_variant
