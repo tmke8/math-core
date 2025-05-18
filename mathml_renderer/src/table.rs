@@ -23,44 +23,55 @@ pub struct ArraySpec<'arena> {
     pub column_spec: &'arena [ColumnSpec],
 }
 
-impl<'arena> ArraySpec<'arena> {
-    #[inline]
-    fn get_opening(&self, counter: usize) -> Option<&'static str> {
-        self.column_spec
-            .get(counter)
-            .and_then(|column_spec| match column_spec.alignment {
-                Some(ColumnAlignment::LeftJustified) => {
-                    Some(r#"<mtd style="text-align: -webkit-left; text-align: -moz-left">"#)
-                }
-                Some(ColumnAlignment::Centered) => Some("<mtd>"),
-                Some(ColumnAlignment::RightJustified) => {
-                    Some(r#"<mtd style="text-align: -webkit-right; text-align: -moz-right">"#)
-                }
-                None => None,
-            })
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum Align {
-    Center,
-    Left,
+pub enum Alignment {
+    Centered,
+    Cases,
     Alternating,
 }
 
-pub enum MtdOpening<'arena> {
-    Predefined(Align),
+enum AlignmentType<'arena> {
+    Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),
 }
 
-impl<'arena> MtdOpening<'arena> {
-    pub fn get_opening(&self, counter: usize) -> Option<&'static str> {
-        match self {
-            MtdOpening::Predefined(align) => {
-                let is_even = counter % 2 == 0;
+pub struct ColumnGenerator<'arena> {
+    typ: AlignmentType<'arena>,
+    column_idx: usize,
+}
+
+impl<'arena> ColumnGenerator<'arena> {
+    pub fn new_predefined(align: Alignment) -> Self {
+        ColumnGenerator {
+            typ: AlignmentType::Predefined(align),
+            column_idx: 0,
+        }
+    }
+
+    pub fn new_custom(array_spec: &'arena ArraySpec<'arena>) -> Self {
+        ColumnGenerator {
+            typ: AlignmentType::Custom(array_spec),
+            column_idx: 0,
+        }
+    }
+
+    pub fn reset_columns(&mut self) {
+        self.column_idx = 0;
+    }
+}
+
+impl<'arena> Iterator for ColumnGenerator<'arena> {
+    type Item = &'static str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let column_idx = self.column_idx;
+        self.column_idx += 1;
+        match self.typ {
+            AlignmentType::Predefined(align) => {
+                let is_even = column_idx % 2 == 0;
                 match align {
-                    Align::Left => {
+                    Alignment::Cases => {
                         if is_even {
                             Some(
                                 r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#,
@@ -71,8 +82,8 @@ impl<'arena> MtdOpening<'arena> {
                             )
                         }
                     }
-                    Align::Center => Some("<mtd>"),
-                    Align::Alternating => {
+                    Alignment::Centered => Some("<mtd>"),
+                    Alignment::Alternating => {
                         if is_even {
                             Some(
                                 r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#,
@@ -85,7 +96,34 @@ impl<'arena> MtdOpening<'arena> {
                     }
                 }
             }
-            MtdOpening::Custom(array_spec) => array_spec.get_opening(counter),
+            AlignmentType::Custom(array_spec) => {
+                let column_spec = array_spec.column_spec.get(column_idx)?;
+                match column_spec.alignment {
+                    Some(ColumnAlignment::LeftJustified) => {
+                        Some(r#"<mtd style="text-align: -webkit-left; text-align: -moz-left">"#)
+                    }
+                    Some(ColumnAlignment::Centered) => {
+                        if column_spec.with_line {
+                            Some(r#"<mtd style="border-right: 1px solid black">"#)
+                        } else {
+                            Some("<mtd>")
+                        }
+                    }
+                    Some(ColumnAlignment::RightJustified) => {
+                        Some(r#"<mtd style="text-align: -webkit-right; text-align: -moz-right">"#)
+                    }
+                    None => {
+                        self.column_idx += 1;
+                        if column_spec.with_line {
+                            Some(
+                                r#"<mtd style="border-right: 1px solid black; padding-left: 0.2em; padding-right: 0.2em"></mtd><mtd>"#,
+                            )
+                        } else {
+                            Some("<mtd></mtd><mtd>")
+                        }
+                    }
+                }
+            }
         }
     }
 }

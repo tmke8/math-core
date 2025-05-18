@@ -8,7 +8,7 @@ use mathml_renderer::{
     },
     length::{Length, LengthUnit},
     symbol,
-    table::Align,
+    table::Alignment,
 };
 
 use crate::{
@@ -633,11 +633,11 @@ where
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table {
                         content,
-                        align: Align::Alternating,
+                        align: Alignment::Alternating,
                         attr: Some(FracAttr::DisplayStyleTrue),
                     },
                     "cases" => {
-                        let align = Align::Left;
+                        let align = Alignment::Cases;
                         let content = self.commit(Node::Table {
                             content,
                             align,
@@ -652,7 +652,7 @@ where
                     }
                     "matrix" => Node::Table {
                         content,
-                        align: Align::Center,
+                        align: Alignment::Centered,
                         attr: None,
                     },
                     "array" => {
@@ -660,12 +660,12 @@ where
                         let spec = unsafe { array_spec.unwrap_unchecked() };
                         Node::Array {
                             content,
-                            align: self.arena.inner.alloc(spec),
+                            array_spec: self.arena.inner.alloc(spec),
                         }
                     }
                     matrix_variant
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
-                        let align = Align::Center;
+                        let align = Alignment::Centered;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (symbol::LEFT_PARENTHESIS, symbol::RIGHT_PARENTHESIS),
                             "bmatrix" => {
