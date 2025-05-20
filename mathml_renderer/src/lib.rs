@@ -5,3 +5,4 @@ mod itoa;
 pub mod length;
 pub mod symbol;
 pub mod table;
+mod fmt;

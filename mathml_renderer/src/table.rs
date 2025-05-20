@@ -1,6 +1,8 @@
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
+use crate::fmt::StrJoiner;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ColumnAlignment {
@@ -61,8 +63,17 @@ impl<'arena> ColumnGenerator<'arena> {
     }
 }
 
+const MTD_OPEN_STYLE: &'static str = "<mtd style=\"";
+const MTD_CLOSE_STYLE: &'static str = "\">";
+const LEFT_ALIGN: &'static str = "text-align: -webkit-left;text-align: -moz-left;";
+const RIGHT_ALIGN: &'static str = "text-align: -webkit-right;text-align: -moz-right;";
+const PADDING_RIGHT_ZERO: &'static str = "padding-right: 0;";
+const PADDING_LEFT_ZERO: &'static str = "padding-left: 0;";
+const BORDER_RIGHT: &'static str = "border-right: 1px solid black;";
+pub const SIMPLE_CENTERED: &'static StrJoiner = StrJoiner::from_slice(&["<mtd>"]);
+
 impl<'arena> Iterator for ColumnGenerator<'arena> {
-    type Item = &'static str;
+    type Item = &'static StrJoiner;
 
     fn next(&mut self) -> Option<Self::Item> {
         let column_idx = self.column_idx;
@@ -74,23 +85,23 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
                     Alignment::Cases => {
                         if is_even {
                             Some(
-                                r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#,
+                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_RIGHT_ZERO, MTD_CLOSE_STYLE])
                             )
                         } else {
                             Some(
-                                r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em">"#,
+                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_RIGHT_ZERO, "padding-left:1em;", MTD_CLOSE_STYLE])
                             )
                         }
                     }
-                    Alignment::Centered => Some("<mtd>"),
+                    Alignment::Centered => Some(SIMPLE_CENTERED),
                     Alignment::Alternating => {
                         if is_even {
                             Some(
-                                r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#,
+                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, RIGHT_ALIGN, PADDING_RIGHT_ZERO, MTD_CLOSE_STYLE])
                             )
                         } else {
                             Some(
-                                r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-left: 0">"#,
+                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_LEFT_ZERO, MTD_CLOSE_STYLE])
                             )
                         }
                     }
@@ -100,26 +111,24 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
                 let column_spec = array_spec.column_spec.get(column_idx)?;
                 match column_spec.alignment {
                     Some(ColumnAlignment::LeftJustified) => {
-                        Some(r#"<mtd style="text-align: -webkit-left; text-align: -moz-left">"#)
+                        Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, MTD_CLOSE_STYLE]))
                     }
                     Some(ColumnAlignment::Centered) => {
                         if column_spec.with_line {
-                            Some(r#"<mtd style="border-right: 1px solid black">"#)
+                            Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, BORDER_RIGHT, MTD_CLOSE_STYLE]))
                         } else {
-                            Some("<mtd>")
+                            Some(SIMPLE_CENTERED)
                         }
                     }
                     Some(ColumnAlignment::RightJustified) => {
-                        Some(r#"<mtd style="text-align: -webkit-right; text-align: -moz-right">"#)
+                        Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, RIGHT_ALIGN, MTD_CLOSE_STYLE]))
                     }
                     None => {
                         self.column_idx += 1;
                         if column_spec.with_line {
-                            Some(
-                                r#"<mtd style="border-right: 1px solid black; padding-left: 0.2em; padding-right: 0.2em"></mtd><mtd>"#,
-                            )
+                            Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, BORDER_RIGHT, "padding-left: 0.2em;padding-right: 0.2em;", "\"></mtd><mtd>"]))
                         } else {
-                            Some("<mtd></mtd><mtd>")
+                            Some(StrJoiner::from_slice(&["<mtd></mtd><mtd>"]))
                         }
                     }
                 }

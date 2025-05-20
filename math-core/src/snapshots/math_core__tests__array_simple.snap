@@ -5,13 +5,13 @@ expression: "\\begin{array}{lcr} 0 & 1 & 2 \\end{array}"
 <math>
     <mtable>
         <mtr>
-            <mtd style="text-align: -webkit-left; text-align: -moz-left">
+            <mtd style="text-align: -webkit-left;text-align: -moz-left;">
                 <mn>0</mn>
             </mtd>
             <mtd>
                 <mn>1</mn>
             </mtd>
-            <mtd style="text-align: -webkit-right; text-align: -moz-right">
+            <mtd style="text-align: -webkit-right;text-align: -moz-right;">
                 <mn>2</mn>
             </mtd>
         </mtr>

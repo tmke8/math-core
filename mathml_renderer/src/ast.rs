@@ -11,7 +11,7 @@ use crate::attribute::{
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
-use crate::table::{Alignment, ArraySpec, ColumnGenerator};
+use crate::table::{Alignment, ArraySpec, ColumnGenerator, SIMPLE_CENTERED};
 
 /// AST node
 #[derive(Debug)]
@@ -542,7 +542,7 @@ impl<'arena> MathMLEmitter<'arena> {
                             &mut self.s,
                             child_indent2,
                             "{}",
-                            col_gen.next().unwrap_or("<mtd>")
+                            col_gen.next().unwrap_or(SIMPLE_CENTERED)
                         );
                     }
                     Node::RowSeparator => {
