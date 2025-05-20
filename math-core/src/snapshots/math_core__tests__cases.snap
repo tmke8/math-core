@@ -12,10 +12,10 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.
         <mo>{</mo>
         <mtable>
             <mtr>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;">
                     <mn>0</mn>
                 </mtd>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>if </mtext>
                     <mi>x</mi>
                     <mo>≥</mo>
@@ -23,10 +23,10 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.
                 </mtd>
             </mtr>
             <mtr>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;">
                     <mn>1</mn>
                 </mtd>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>otherwise.</mtext>
                 </mtd>
             </mtr>
