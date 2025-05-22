@@ -104,9 +104,7 @@ where
     }
 
     fn next_token(&mut self) -> TokLoc<'source> {
-        let peek_token = self.l.next_token();
-        // Return the previous peek token and store the new peek token.
-        mem::replace(&mut self.peek, peek_token)
+        next_token(&mut self.peek, &mut self.l)
     }
 
     pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
