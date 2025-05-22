@@ -84,25 +84,38 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
                 match align {
                     Alignment::Cases => {
                         if is_even {
-                            Some(
-                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_RIGHT_ZERO, MTD_CLOSE_STYLE])
-                            )
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                LEFT_ALIGN,
+                                PADDING_RIGHT_ZERO,
+                                MTD_CLOSE_STYLE,
+                            ]))
                         } else {
-                            Some(
-                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_RIGHT_ZERO, "padding-left:1em;", MTD_CLOSE_STYLE])
-                            )
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                LEFT_ALIGN,
+                                PADDING_RIGHT_ZERO,
+                                "padding-left:1em;",
+                                MTD_CLOSE_STYLE,
+                            ]))
                         }
                     }
                     Alignment::Centered => Some(SIMPLE_CENTERED),
                     Alignment::Alternating => {
                         if is_even {
-                            Some(
-                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, RIGHT_ALIGN, PADDING_RIGHT_ZERO, MTD_CLOSE_STYLE])
-                            )
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                RIGHT_ALIGN,
+                                PADDING_RIGHT_ZERO,
+                                MTD_CLOSE_STYLE,
+                            ]))
                         } else {
-                            Some(
-                                StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, PADDING_LEFT_ZERO, MTD_CLOSE_STYLE])
-                            )
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                LEFT_ALIGN,
+                                PADDING_LEFT_ZERO,
+                                MTD_CLOSE_STYLE,
+                            ]))
                         }
                     }
                 }
@@ -110,23 +123,36 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
             AlignmentType::Custom(array_spec) => {
                 let column_spec = array_spec.column_spec.get(column_idx)?;
                 match column_spec.alignment {
-                    Some(ColumnAlignment::LeftJustified) => {
-                        Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, LEFT_ALIGN, MTD_CLOSE_STYLE]))
-                    }
+                    Some(ColumnAlignment::LeftJustified) => Some(StrJoiner::from_slice(&[
+                        MTD_OPEN_STYLE,
+                        LEFT_ALIGN,
+                        MTD_CLOSE_STYLE,
+                    ])),
                     Some(ColumnAlignment::Centered) => {
                         if column_spec.with_line {
-                            Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, BORDER_RIGHT, MTD_CLOSE_STYLE]))
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                BORDER_RIGHT,
+                                MTD_CLOSE_STYLE,
+                            ]))
                         } else {
                             Some(SIMPLE_CENTERED)
                         }
                     }
-                    Some(ColumnAlignment::RightJustified) => {
-                        Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, RIGHT_ALIGN, MTD_CLOSE_STYLE]))
-                    }
+                    Some(ColumnAlignment::RightJustified) => Some(StrJoiner::from_slice(&[
+                        MTD_OPEN_STYLE,
+                        RIGHT_ALIGN,
+                        MTD_CLOSE_STYLE,
+                    ])),
                     None => {
                         self.column_idx += 1;
                         if column_spec.with_line {
-                            Some(StrJoiner::from_slice(&[MTD_OPEN_STYLE, BORDER_RIGHT, "padding-left: 0.2em;padding-right: 0.2em;", "\"></mtd><mtd>"]))
+                            Some(StrJoiner::from_slice(&[
+                                MTD_OPEN_STYLE,
+                                BORDER_RIGHT,
+                                "padding-left: 0.2em;padding-right: 0.2em;",
+                                "\"></mtd><mtd>",
+                            ]))
                         } else {
                             Some(StrJoiner::from_slice(&["<mtd></mtd><mtd>"]))
                         }
