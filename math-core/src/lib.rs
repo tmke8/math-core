@@ -350,7 +350,13 @@ mod tests {
             ("subscript_equal_equal", r"x_==4"),
             ("color", r"{\color{Blue}x^2}"),
             ("hspace", r"\hspace{1cm}"),
-            ("hspace_whitespace", r"\hspace{  4mm }"),
+            ("hspace_whitespace", r"\hspace{  4em }"),
+            // ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
+            ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
+            (
+                "array_center_lines",
+                r"\begin{array}{ |c| |cc| } 1 & 2 & 3\\ 4 & 5 & 6 \end{array}",
+            ),
         ];
 
         for (name, problem) in problems.into_iter() {

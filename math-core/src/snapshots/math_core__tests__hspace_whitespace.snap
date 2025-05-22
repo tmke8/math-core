@@ -1,7 +1,7 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\hspace{  4mm }"
+expression: "\\hspace{  4em }"
 ---
 <math>
-    <mspace width="1.13812rem" style="width:1.13812rem"/>
+    <mspace width="4em"/>
 </math>

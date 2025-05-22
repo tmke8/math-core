@@ -1,6 +1,9 @@
 use stable_arena::DroplessArena;
 
-use crate::ast::Node;
+use crate::{
+    ast::Node,
+    table::{ArraySpec, ColumnSpec},
+};
 
 pub struct Arena {
     inner: DroplessArena,
@@ -36,6 +39,25 @@ impl Arena {
         } else {
             self.inner.alloc_str(src)
         }
+    }
+
+    pub fn alloc_column_specs<'arena>(
+        &'arena self,
+        column_specs: &[ColumnSpec],
+    ) -> &'arena [ColumnSpec] {
+        // `DroplessArena::alloc_slice()` panics on empty slices.
+        if column_specs.is_empty() {
+            &[]
+        } else {
+            self.inner.alloc_slice(column_specs)
+        }
+    }
+
+    pub fn alloc_array_spec<'arena>(
+        &'arena self,
+        array_spec: ArraySpec<'arena>,
+    ) -> &'arena ArraySpec<'arena> {
+        self.inner.alloc(array_spec)
     }
 }
 

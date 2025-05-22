@@ -5,12 +5,13 @@ use std::mem;
 use serde::Serialize;
 
 use crate::attribute::{
-    Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
+    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
     TextTransform,
 };
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
+use crate::table::{Alignment, ArraySpec, ColumnGenerator, SIMPLE_CENTERED};
 
 /// AST node
 #[derive(Debug)]
@@ -85,8 +86,12 @@ pub enum Node<'arena> {
     Text(&'arena str),
     Table {
         content: &'arena [&'arena Node<'arena>],
-        align: Align,
+        align: Alignment,
         attr: Option<FracAttr>,
+    },
+    Array {
+        content: &'arena [&'arena Node<'arena>],
+        array_spec: &'arena ArraySpec<'arena>,
     },
     ColumnSeparator,
     RowSeparator,
@@ -465,70 +470,26 @@ impl<'arena> MathMLEmitter<'arena> {
                 align,
                 attr,
             } => {
-                let child_indent2 = if base_indent > 0 {
-                    child_indent.saturating_add(1)
-                } else {
-                    0
-                };
-                let child_indent3 = if base_indent > 0 {
-                    child_indent2.saturating_add(1)
-                } else {
-                    0
-                };
-                let odd_col = match align {
-                    Align::Center => "<mtd>",
-                    Align::Left => {
-                        r#"<mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">"#
-                    }
-                    Align::Alternating => {
-                        r#"<mtd style="text-align: -webkit-right; text-align: -moz-right; padding-right: 0">"#
-                    }
-                };
-                let even_col = match align {
-                    Align::Center => "<mtd>",
-                    Align::Left => {
-                        "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em\">"
-                    }
-                    Align::Alternating => {
-                        "<mtd style=\"text-align: -webkit-left; text-align: -moz-left; padding-left: 0\">"
-                    }
-                };
+                let mtd_opening = ColumnGenerator::new_predefined(*align);
 
-                let mut col: usize = 1;
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
                     write!(self.s, "{}", <&str>::from(attr))?;
                 }
                 write!(self.s, ">")?;
-                writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                writeln_indent!(&mut self.s, child_indent2, "{odd_col}");
-                for node in content.iter() {
-                    match node {
-                        Node::ColumnSeparator => {
-                            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                            col += 1;
-                            writeln_indent!(
-                                &mut self.s,
-                                child_indent2,
-                                "{}",
-                                if col % 2 == 0 { even_col } else { odd_col }
-                            );
-                        }
-                        Node::RowSeparator => {
-                            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                            writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                            writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                            writeln_indent!(&mut self.s, child_indent2, "{odd_col}");
-                            col = 1;
-                        }
-                        node => {
-                            self.emit(node, child_indent3)?;
-                        }
-                    }
+                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
+            }
+            Node::Array {
+                content,
+                array_spec,
+            } => {
+                let mtd_opening = ColumnGenerator::new_custom(array_spec);
+                write!(self.s, "<mtable")?;
+                if array_spec.begins_with_line {
+                    write!(self.s, r#" style="border-left: 1px solid black""#)?;
                 }
-                writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                writeln_indent!(&mut self.s, base_indent, "</mtable>");
+                write!(self.s, ">")?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
@@ -549,6 +510,58 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, "{mathml}")?;
             }
         };
+        Ok(())
+    }
+
+    fn emit_table(
+        &mut self,
+        base_indent: usize,
+        child_indent: usize,
+        content: &'arena [&Node<'arena>],
+        mut col_gen: ColumnGenerator,
+    ) -> Result<(), std::fmt::Error> {
+        let child_indent2 = if base_indent > 0 {
+            child_indent.saturating_add(1)
+        } else {
+            0
+        };
+        let child_indent3 = if base_indent > 0 {
+            child_indent2.saturating_add(1)
+        } else {
+            0
+        };
+        col_gen.reset_columns();
+        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+        if let Some(first_mtd) = col_gen.next() {
+            writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+            for node in content.iter() {
+                match node {
+                    Node::ColumnSeparator => {
+                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                        writeln_indent!(
+                            &mut self.s,
+                            child_indent2,
+                            "{}",
+                            col_gen.next().unwrap_or(SIMPLE_CENTERED)
+                        );
+                    }
+                    Node::RowSeparator => {
+                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                        writeln_indent!(&mut self.s, child_indent, "</mtr>");
+                        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                        writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
+                        col_gen.reset_columns();
+                        col_gen.next(); // we used the cached `first_mtd` above
+                    }
+                    node => {
+                        self.emit(node, child_indent3)?;
+                    }
+                }
+            }
+            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        }
+        writeln_indent!(&mut self.s, child_indent, "</mtr>");
+        writeln_indent!(&mut self.s, base_indent, "</mtable>");
         Ok(())
     }
 
@@ -985,7 +998,7 @@ mod tests {
         assert_eq!(
             render(&Node::Table {
                 content: &nodes,
-                align: crate::attribute::Align::Center,
+                align: crate::table::Alignment::Centered,
                 attr: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"

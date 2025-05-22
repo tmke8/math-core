@@ -81,7 +81,10 @@ impl<'source> Lexer<'source> {
     pub(crate) fn read_ascii_text_group(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
 
-        while self.peek.1.is_ascii_alphanumeric() || matches!(self.peek.1, '*' | '.' | ' ') {
+        while self.peek.1.is_ascii_alphanumeric()
+            || self.peek.1.is_ascii_whitespace()
+            || matches!(self.peek.1, '|' | '.' | '-' | ',' | '*')
+        {
             self.read_char();
         }
 

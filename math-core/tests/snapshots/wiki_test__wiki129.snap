@@ -12,27 +12,27 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
         <mo>{</mo>
         <mtable>
             <mtr>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;">
                     <mi>n</mi>
                     <mi>/</mi>
                     <mn>2</mn>
                     <mo>,</mo>
                 </mtd>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>if </mtext>
                     <mi>n</mi>
                     <mtext> is even</mtext>
                 </mtd>
             </mtr>
             <mtr>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;">
                     <mn>3</mn>
                     <mi>n</mi>
                     <mo>+</mo>
                     <mn>1</mn>
                     <mo>,</mo>
                 </mtd>
-                <mtd style="text-align: -webkit-left; text-align: -moz-left; padding-right: 0; padding-left: 1em">
+                <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>if </mtext>
                     <mi>n</mi>
                     <mtext> is odd</mtext>

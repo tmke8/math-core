@@ -4,11 +4,11 @@ use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        Align, FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-        TextTransform,
+        FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
     },
     length::{Length, LengthUnit},
     symbol,
+    table::Alignment,
 };
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{LaTeXUnit, parse_length_specification},
+    specifications::{LaTeXUnit, parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
 };
 
@@ -616,17 +616,28 @@ where
             Token::Begin => {
                 // Read the environment name.
                 let env_name = self.parse_ascii_text_group()?.1;
+                let array_spec = if env_name == "array" {
+                    // Parse the array options.
+                    let (loc, options) = self.parse_ascii_text_group()?;
+                    Some(
+                        parse_column_specification(options, self.arena).ok_or_else(|| {
+                            LatexError(loc, LatexErrKind::ExpectedColSpec(options.trim()))
+                        })?,
+                    )
+                } else {
+                    None
+                };
                 let content = self.parse_sequence(Token::End, false)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table {
                         content,
-                        align: Align::Alternating,
+                        align: Alignment::Alternating,
                         attr: Some(FracAttr::DisplayStyleTrue),
                     },
                     "cases" => {
-                        let align = Align::Left;
+                        let align = Alignment::Cases;
                         let content = self.commit(Node::Table {
                             content,
                             align,
@@ -641,12 +652,20 @@ where
                     }
                     "matrix" => Node::Table {
                         content,
-                        align: Align::Center,
+                        align: Alignment::Centered,
                         attr: None,
                     },
+                    "array" => {
+                        // SAFETY: `array_spec` is guaranteed to be Some because we checked for "array" above.
+                        let spec = unsafe { array_spec.unwrap_unchecked() };
+                        Node::Array {
+                            content,
+                            array_spec: self.arena.alloc_array_spec(spec),
+                        }
+                    }
                     matrix_variant
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
-                        let align = Align::Center;
+                        let align = Alignment::Centered;
                         let (open, close) = match matrix_variant {
                             "pmatrix" => (symbol::LEFT_PARENTHESIS, symbol::RIGHT_PARENTHESIS),
                             "bmatrix" => {
