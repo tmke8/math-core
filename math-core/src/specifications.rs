@@ -121,32 +121,13 @@ pub fn parse_column_specification<'arena>(
     s: &str,
     arena: &'arena Arena,
 ) -> Option<ArraySpec<'arena>> {
-    if !s.is_ascii() {
-        return None;
-    }
-
-    // Now that we have established that the string is ASCII, we can safely use `trim_start_ascii`.
-    let s = s.trim_ascii_start();
-
-    if s.is_empty() {
-        return None;
-    }
-
-    // Check if the string begins with a line
-    let begins_with_line = s.starts_with('|');
-
-    // We will work with bytes to avoid UTF-8 checks. This is fine because everything is ASCII.
-    let mut chars = s.as_bytes().iter().peekable();
-
-    // Skip the first '|' if it exists
-    if begins_with_line {
-        chars.next();
-    }
-
     let mut column_spec = Vec::new();
+    let mut begins_with_line = false;
     let mut has_content_column = false;
 
-    while let Some(&ch) = chars.next() {
+    // We will work with bytes to avoid UTF-8 checks.
+    // This is possible because we only match on ASCII characters.
+    for ch in s.as_bytes() {
         match ch {
             b'l' | b'c' | b'r' => {
                 let alignment = match ch {
@@ -156,30 +137,32 @@ pub fn parse_column_specification<'arena>(
                     _ => unreachable!(),
                 };
 
-                // Skip all whitespace
-                while chars.peek().is_some_and(|&&c| c.is_ascii_whitespace()) {
-                    chars.next();
-                }
-
-                // Check if the next character is a vertical line
-                let with_line = chars.peek().is_some_and(|&&c| c == b'|');
-                if with_line {
-                    chars.next(); // Skip over the vertical line
-                }
-
                 column_spec.push(ColumnSpec {
                     alignment,
-                    with_line,
+                    with_line: false,
                 });
                 has_content_column = true;
             }
             b'|' => {
-                // This is a vertical line without an alignment character before it
-                // Add an empty column with a vertical line
-                column_spec.push(ColumnSpec {
-                    alignment: None,
-                    with_line: true,
-                });
+                if let Some(last) = column_spec.last_mut() {
+                    if !last.with_line {
+                        last.with_line = true;
+                    } else {
+                        column_spec.push(ColumnSpec {
+                            alignment: None,
+                            with_line: true,
+                        })
+                    }
+                } else {
+                    if !begins_with_line {
+                        begins_with_line = true;
+                    } else {
+                        column_spec.push(ColumnSpec {
+                            alignment: None,
+                            with_line: true,
+                        })
+                    }
+                }
             }
             _ if ch.is_ascii_whitespace() => {
                 // Skip whitespace, already handled by next()
@@ -215,6 +198,8 @@ mod tests {
         assert_eq!(parse_column_specification("x|c", &arena), None);
         assert_eq!(parse_column_specification("c|x", &arena), None);
         assert_eq!(parse_column_specification("cx", &arena), None);
+        assert_eq!(parse_column_specification("👍🏽c", &arena), None);
+        assert_eq!(parse_column_specification("|c|👍🏽", &arena), None);
     }
 
     #[test]
@@ -259,6 +244,23 @@ mod tests {
         assert_eq!(
             spec.column_spec[2].alignment,
             Some(ColumnAlignment::Centered)
+        );
+        assert_eq!(spec.column_spec[2].with_line, false);
+    }
+
+    #[test]
+    fn column_parse_multiple_line_at_beginning() {
+        let arena = Arena::new();
+        let spec = parse_column_specification("   | ||c", &arena).unwrap();
+        assert_eq!(spec.begins_with_line, true);
+        assert_eq!(spec.column_spec.len(), 3);
+        assert_eq!(spec.column_spec[0].alignment, None);
+        assert_eq!(spec.column_spec[0].with_line, true);
+        assert_eq!(spec.column_spec[1].alignment, None);
+        assert_eq!(spec.column_spec[1].with_line, true);
+        assert_eq!(
+            spec.column_spec[2].alignment,
+            Some(ColumnAlignment::Centered),
         );
         assert_eq!(spec.column_spec[2].with_line, false);
     }
