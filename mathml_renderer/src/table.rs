@@ -6,16 +6,23 @@ use crate::fmt::StrJoiner;
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ColumnAlignment {
-    LeftJustified,
-    Centered,
-    RightJustified,
+    LeftJustified = 0,
+    Centered = 1,
+    RightJustified = 2,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct ColumnSpec {
-    pub alignment: Option<ColumnAlignment>,
-    pub with_line: bool,
+pub enum LineType {
+    Solid = 3,
+    Dotted = 4,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum ColumnSpec {
+    WithContent(ColumnAlignment, Option<LineType>),
+    OnlyLine(LineType),
 }
 
 #[derive(Debug, PartialEq)]
@@ -122,14 +129,16 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
             }
             AlignmentType::Custom(array_spec) => {
                 let column_spec = array_spec.column_spec.get(column_idx)?;
-                match column_spec.alignment {
-                    Some(ColumnAlignment::LeftJustified) => Some(StrJoiner::from_slice(&[
-                        MTD_OPEN_STYLE,
-                        LEFT_ALIGN,
-                        MTD_CLOSE_STYLE,
-                    ])),
-                    Some(ColumnAlignment::Centered) => {
-                        if column_spec.with_line {
+                match column_spec {
+                    ColumnSpec::WithContent(ColumnAlignment::LeftJustified, _lt) => {
+                        Some(StrJoiner::from_slice(&[
+                            MTD_OPEN_STYLE,
+                            LEFT_ALIGN,
+                            MTD_CLOSE_STYLE,
+                        ]))
+                    }
+                    ColumnSpec::WithContent(ColumnAlignment::Centered, line_type) => {
+                        if matches!(line_type, Some(LineType::Solid)) {
                             Some(StrJoiner::from_slice(&[
                                 MTD_OPEN_STYLE,
                                 BORDER_RIGHT,
@@ -139,14 +148,16 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
                             Some(SIMPLE_CENTERED)
                         }
                     }
-                    Some(ColumnAlignment::RightJustified) => Some(StrJoiner::from_slice(&[
-                        MTD_OPEN_STYLE,
-                        RIGHT_ALIGN,
-                        MTD_CLOSE_STYLE,
-                    ])),
-                    None => {
+                    ColumnSpec::WithContent(ColumnAlignment::RightJustified, _lt) => {
+                        Some(StrJoiner::from_slice(&[
+                            MTD_OPEN_STYLE,
+                            RIGHT_ALIGN,
+                            MTD_CLOSE_STYLE,
+                        ]))
+                    }
+                    ColumnSpec::OnlyLine(line_type) => {
                         self.column_idx += 1;
-                        if column_spec.with_line {
+                        if matches!(line_type, LineType::Solid) {
                             Some(StrJoiner::from_slice(&[
                                 MTD_OPEN_STYLE,
                                 BORDER_RIGHT,
