@@ -57,7 +57,7 @@ where
         p
     }
 
-    fn next_token(&mut self) -> TokLoc<'source> {
+    fn maybe_collect(&mut self) -> TokLoc<'source> {
         if matches!(self.collector, LetterCollector::Collecting) {
             let first_loc = self.peek.location();
             let mut builder = self.buffer.get_builder();
@@ -100,7 +100,13 @@ where
                 return TokLoc(first_loc, Token::GetCollectedLetters);
             }
         }
-        next_token(&mut self.peek, &mut self.l)
+        self.next_token()
+    }
+
+    fn next_token(&mut self) -> TokLoc<'source> {
+        let peek_token = self.l.next_token();
+        // Return the previous peek token and store the new peek token.
+        mem::replace(&mut self.peek, peek_token)
     }
 
     pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
@@ -125,7 +131,7 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !self.peek.token().is_same_kind_as(&end_token) {
-            let cur_tokloc = self.next_token();
+            let cur_tokloc = self.maybe_collect();
             if matches!(cur_tokloc.token(), Token::EOF) {
                 if eof_as_end_token {
                     break;
@@ -716,7 +722,7 @@ where
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
-                next_token(&mut self.peek, &mut self.l);
+                self.next_token();
                 if let Some(ch) = get_single_char(letters) {
                     Node::SingleLetterIdent(ch, true)
                 } else {
@@ -726,7 +732,7 @@ where
             Token::Text(transform) => {
                 // Discard any whitespace that immediately follows the `Text` token.
                 if matches!(self.peek.token(), Token::Whitespace) {
-                    next_token(&mut self.peek, &mut self.l);
+                    self.next_token();
                 }
                 // Copy the token out of the peek variable.
                 // We do this because we need to turn off text mode while there is still a peek
@@ -741,10 +747,10 @@ where
                 self.l.text_mode = false;
                 // Discard the last token that we already processed but we kept it in `peek`,
                 // so that we can turn off text mode before new tokens are read.
-                next_token(&mut self.peek, &mut self.l);
+                self.next_token();
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
-                    next_token(&mut self.peek, &mut self.l);
+                    self.next_token();
                 }
                 if let Some(transform) = transform {
                     Node::TextTransform {
@@ -1067,6 +1073,10 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         }
     }
 
+    fn next_token(&mut self) -> TokLoc<'source> {
+        next_token(self.peek, self.lexer)
+    }
+
     /// Parse the given token in text mode.
     ///
     /// This function may read in more tokens from the lexer, but it will always leave the last
@@ -1107,7 +1117,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
-                next_token(self.peek, self.lexer);
+                self.next_token();
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(*accent);
@@ -1115,7 +1125,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::Text(tf) => {
                 // Discard `Text` token.
-                next_token(self.peek, self.lexer);
+                self.next_token();
                 let old_tf = mem::replace(&mut self.tf, *tf);
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
@@ -1124,14 +1134,14 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::GroupBegin => {
                 // Discard opening token.
-                next_token(self.peek, self.lexer);
+                self.next_token();
                 while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
                     let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
                     // last token in `peek`, but we want to continue here, so we need to discard it.
-                    next_token(self.peek, self.lexer);
+                    self.next_token();
                 }
                 return Ok(());
             }
@@ -1204,6 +1214,8 @@ mod tests {
             ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
             ("boldsymbol_greek_var", r"\boldsymbol{\Gamma\varGamma}"),
             ("mathit_func", r"\mathit{ab \log cd}"),
+            ("mathrm_subscript", r"\mathrm{x_x y_y}"),
+            ("mathrm_sqrt", r"\mathrm{\sqrt xy}"),
             ("big_paren", r"\big("),
             ("sub_big_paren", r"x_\big("),
             ("pmod_subscript", r"\pmod{3}_4"),
