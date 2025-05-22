@@ -1,0 +1,22 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathrm{x_x y_y}"
+---
+[
+  TextTransform(
+    tf: Normal,
+    content: Row(
+      nodes: [
+        Subscript(
+          target: SingleLetterIdent('x', false),
+          symbol: SingleLetterIdent('x', false),
+        ),
+        Subscript(
+          target: SingleLetterIdent('y', false),
+          symbol: SingleLetterIdent('y', false),
+        ),
+      ],
+      attr: None,
+    ),
+  ),
+]
