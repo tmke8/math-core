@@ -103,6 +103,7 @@ where
         self.next_token()
     }
 
+    #[inline(never)]
     fn next_token(&mut self) -> TokLoc<'source> {
         next_token(&mut self.peek, &mut self.l)
     }
