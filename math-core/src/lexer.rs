@@ -83,7 +83,7 @@ impl<'source> Lexer<'source> {
 
         while self.peek.1.is_ascii_alphanumeric()
             || self.peek.1.is_ascii_whitespace()
-            || matches!(self.peek.1, '|' | '.' | '-' | ',' | '*')
+            || matches!(self.peek.1, '|' | '.' | '-' | ',' | '*' | ':')
         {
             self.read_char();
         }
