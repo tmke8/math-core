@@ -1,0 +1,29 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sum_{\\begin{subarray}{c} 0 \\le i \\le m\\\\ 0 < j < n \\end{subarray}}"
+---
+<math>
+    <munder>
+        <mo>∑</mo>
+        <mtable displaystyle="false" scriptlevel="1">
+            <mtr>
+                <mtd style="padding-top: 0;padding-bottom: 0;">
+                    <mn>0</mn>
+                    <mo>≤</mo>
+                    <mi>i</mi>
+                    <mo>≤</mo>
+                    <mi>m</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="padding-top: 0;padding-bottom: 0;">
+                    <mn>0</mn>
+                    <mo>&lt;</mo>
+                    <mi>j</mi>
+                    <mo>&lt;</mo>
+                    <mi>n</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+    </munder>
+</math>

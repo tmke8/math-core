@@ -621,7 +621,7 @@ where
             Token::Begin => {
                 // Read the environment name.
                 let env_name = self.parse_ascii_text_group()?.1;
-                let array_spec = if env_name == "array" {
+                let array_spec = if env_name == "array" || env_name == "subarray" {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
                     Some(
@@ -660,10 +660,19 @@ where
                         align: Alignment::Centered,
                         attr: None,
                     },
-                    "array" => {
-                        // SAFETY: `array_spec` is guaranteed to be Some because we checked for "array" above.
-                        let spec = unsafe { array_spec.unwrap_unchecked() };
+                    array_variant @ ("array" | "subarray") => {
+                        // SAFETY: `array_spec` is guaranteed to be Some because we checked for
+                        // "array" and "subarray" above.
+                        // TODO: Refactor this to avoid using `unsafe`.
+                        let mut spec = unsafe { array_spec.unwrap_unchecked() };
+                        let style = if array_variant == "subarray" {
+                            spec.is_sub = true;
+                            Some(Style::ScriptStyle)
+                        } else {
+                            None
+                        };
                         Node::Array {
+                            style,
                             content,
                             array_spec: self.arena.alloc_array_spec(spec),
                         }

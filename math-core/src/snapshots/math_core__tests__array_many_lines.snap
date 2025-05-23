@@ -1,0 +1,26 @@
+---
+source: math-core/src/lib.rs
+expression: "\\begin{array}{ ||::|l } 10\\\\ 2 \\end{array}"
+---
+<math>
+    <mtable style="border-left: 0.05em solid black">
+        <mtr>
+            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="text-align: -webkit-left;text-align: -moz-left;">
+                <mn>10</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="text-align: -webkit-left;text-align: -moz-left;">
+                <mn>2</mn>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

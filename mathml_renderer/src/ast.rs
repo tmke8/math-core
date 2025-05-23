@@ -8,10 +8,11 @@ use crate::attribute::{
     FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
     TextTransform,
 };
+use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::{Fence, Op};
-use crate::table::{Alignment, ArraySpec, ColumnGenerator, SIMPLE_CENTERED};
+use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType};
 
 /// AST node
 #[derive(Debug)]
@@ -90,6 +91,7 @@ pub enum Node<'arena> {
         attr: Option<FracAttr>,
     },
     Array {
+        style: Option<Style>,
         content: &'arena [&'arena Node<'arena>],
         array_spec: &'arena ArraySpec<'arena>,
     },
@@ -117,8 +119,6 @@ impl PartialEq for &'static Node<'static> {
         std::ptr::eq(*self, *other)
     }
 }
-
-const INDENT: &str = "    ";
 
 macro_rules! writeln_indent {
     ($buf:expr, $indent:expr, $($tail:tt)+) => {
@@ -480,13 +480,23 @@ impl<'arena> MathMLEmitter<'arena> {
                 self.emit_table(base_indent, child_indent, content, mtd_opening)?;
             }
             Node::Array {
+                style,
                 content,
                 array_spec,
             } => {
                 let mtd_opening = ColumnGenerator::new_custom(array_spec);
                 write!(self.s, "<mtable")?;
-                if array_spec.begins_with_line {
-                    write!(self.s, r#" style="border-left: 1px solid black""#)?;
+                match array_spec.beginning_line {
+                    Some(LineType::Solid) => {
+                        write!(self.s, " style=\"border-left: 0.05em solid black\"")?;
+                    }
+                    Some(LineType::Dashed) => {
+                        write!(self.s, " style=\"border-left: 0.05em dashed black\"")?;
+                    }
+                    _ => (),
+                }
+                if let Some(style) = style {
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening)?;
@@ -532,34 +542,26 @@ impl<'arena> MathMLEmitter<'arena> {
         };
         col_gen.reset_columns();
         writeln_indent!(&mut self.s, child_indent, "<mtr>");
-        if let Some(first_mtd) = col_gen.next() {
-            writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
-            for node in content.iter() {
-                match node {
-                    Node::ColumnSeparator => {
-                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                        writeln_indent!(
-                            &mut self.s,
-                            child_indent2,
-                            "{}",
-                            col_gen.next().unwrap_or(SIMPLE_CENTERED)
-                        );
-                    }
-                    Node::RowSeparator => {
-                        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                        writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                        writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                        writeln_indent!(&mut self.s, child_indent2, "{}", first_mtd);
-                        col_gen.reset_columns();
-                        col_gen.next(); // we used the cached `first_mtd` above
-                    }
-                    node => {
-                        self.emit(node, child_indent3)?;
-                    }
+        col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+        for node in content.iter() {
+            match node {
+                Node::ColumnSeparator => {
+                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                }
+                Node::RowSeparator => {
+                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    writeln_indent!(&mut self.s, child_indent, "</mtr>");
+                    writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                    col_gen.reset_columns();
+                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                }
+                node => {
+                    self.emit(node, child_indent3)?;
                 }
             }
-            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         }
+        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         writeln_indent!(&mut self.s, child_indent, "</mtr>");
         writeln_indent!(&mut self.s, base_indent, "</mtable>");
         Ok(())
@@ -595,15 +597,6 @@ impl<'arena> MathMLEmitter<'arena> {
 impl Default for MathMLEmitter<'static> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-fn new_line_and_indent(s: &mut String, indent_num: usize) {
-    if indent_num > 0 {
-        s.push('\n');
-    }
-    for _ in 0..indent_num {
-        s.push_str(INDENT);
     }
 }
 

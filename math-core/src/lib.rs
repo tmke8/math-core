@@ -354,8 +354,16 @@ mod tests {
             // ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
             ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
             (
-                "array_center_lines",
-                r"\begin{array}{ |c| |cc| } 1 & 2 & 3\\ 4 & 5 & 6 \end{array}",
+                "array_lines",
+                r"\begin{array}{ |l| |rc| } 10 & 20 & 30\\ 4 & 5 & 6 \end{array}",
+            ),
+            (
+                "array_many_lines",
+                r"\begin{array}{ ||::|l } 10\\ 2 \end{array}",
+            ),
+            (
+                "subarray",
+                r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
             ),
         ];
 

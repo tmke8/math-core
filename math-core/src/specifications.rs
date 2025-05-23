@@ -122,12 +122,13 @@ pub fn parse_column_specification<'arena>(
     arena: &'arena Arena,
 ) -> Option<ArraySpec<'arena>> {
     let mut column_spec = Vec::new();
-    let mut begins_with_line = false;
+    let mut beginning_line: Option<LineType> = None;
     let mut has_content_column = false;
 
     // We will work with bytes to avoid UTF-8 checks.
     // This is possible because we only match on ASCII characters.
     for ch in s.as_bytes() {
+        let ch = *ch;
         match ch {
             b'l' | b'c' | b'r' => {
                 let alignment = match ch {
@@ -140,22 +141,27 @@ pub fn parse_column_specification<'arena>(
                 column_spec.push(ColumnSpec::WithContent(alignment, None));
                 has_content_column = true;
             }
-            b'|' => {
+            b'|' | b':' => {
+                let line_type = match ch {
+                    b'|' => LineType::Solid,
+                    b':' => LineType::Dashed,
+                    _ => unreachable!(),
+                };
                 if let Some(last) = column_spec.last_mut() {
                     // If the last column was a content column, we need to add a line type.
                     // If it is already set, we add a new element to the column spec vector.
-                    if let ColumnSpec::WithContent(_, line_type @ None) = last {
-                        *line_type = Some(LineType::Solid);
+                    if let ColumnSpec::WithContent(_, last_line_type @ None) = last {
+                        *last_line_type = Some(line_type);
                     } else {
-                        column_spec.push(ColumnSpec::OnlyLine(LineType::Solid))
+                        column_spec.push(ColumnSpec::OnlyLine(line_type))
                     }
                 } else {
                     // Nothing has been added yet, so this is the first column.
-                    if begins_with_line {
-                        // If `begins_with_line` is already true, we have a double line.
-                        column_spec.push(ColumnSpec::OnlyLine(LineType::Solid))
+                    if beginning_line.is_none() {
+                        beginning_line = Some(line_type);
                     } else {
-                        begins_with_line = true;
+                        // If there already is a `beginning_line`, we have a double line.
+                        column_spec.push(ColumnSpec::OnlyLine(line_type))
                     }
                 }
             }
@@ -174,7 +180,8 @@ pub fn parse_column_specification<'arena>(
     }
 
     Some(ArraySpec {
-        begins_with_line,
+        beginning_line,
+        is_sub: false,
         column_spec: arena.alloc_column_specs(column_spec.as_slice()),
     })
 }
@@ -201,7 +208,7 @@ mod tests {
     fn column_parse_simple() {
         let arena = Arena::new();
         let spec = parse_column_specification("l|c|r", &arena).unwrap();
-        assert_eq!(spec.begins_with_line, false);
+        assert!(matches!(spec.beginning_line, None));
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
@@ -221,7 +228,7 @@ mod tests {
     fn column_parse_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("|ccc", &arena).unwrap();
-        assert_eq!(spec.begins_with_line, true);
+        assert!(matches!(spec.beginning_line, Some(LineType::Solid)));
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
@@ -241,7 +248,7 @@ mod tests {
     fn column_parse_multiple_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("   | ||c", &arena).unwrap();
-        assert_eq!(spec.begins_with_line, true);
+        assert!(matches!(spec.beginning_line, Some(LineType::Solid)));
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
@@ -260,12 +267,12 @@ mod tests {
     #[test]
     fn column_parse_with_spaces() {
         let arena = Arena::new();
-        let spec = parse_column_specification(" c   | |   c|    | |      c ", &arena).unwrap();
-        assert_eq!(spec.begins_with_line, false);
+        let spec = parse_column_specification(" c   : |   c|    : |      c ", &arena).unwrap();
+        assert!(matches!(spec.beginning_line, None));
         assert_eq!(spec.column_spec.len(), 6);
         assert!(matches!(
             spec.column_spec[0],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, Some(LineType::Solid))
+            ColumnSpec::WithContent(ColumnAlignment::Centered, Some(LineType::Dashed))
         ));
         assert!(matches!(
             spec.column_spec[1],
@@ -277,7 +284,7 @@ mod tests {
         ));
         assert!(matches!(
             spec.column_spec[3],
-            ColumnSpec::OnlyLine(LineType::Solid)
+            ColumnSpec::OnlyLine(LineType::Dashed)
         ));
         assert!(matches!(
             spec.column_spec[4],

@@ -1,7 +1,9 @@
+use std::fmt::Write;
+
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::fmt::StrJoiner;
+use crate::fmt::new_line_and_indent;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -15,7 +17,7 @@ pub enum ColumnAlignment {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LineType {
     Solid = 3,
-    Dotted = 4,
+    Dashed = 4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,7 +30,8 @@ pub enum ColumnSpec {
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ArraySpec<'arena> {
-    pub begins_with_line: bool,
+    pub beginning_line: Option<LineType>,
+    pub is_sub: bool,
     pub column_spec: &'arena [ColumnSpec],
 }
 
@@ -44,6 +47,17 @@ enum AlignmentType<'arena> {
     Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),
 }
+
+const MTD_OPEN_STYLE: &'static str = "<mtd style=\"";
+const MTD_CLOSE_STYLE: &'static str = "\">";
+const LEFT_ALIGN: &'static str = "text-align: -webkit-left;text-align: -moz-left;";
+const RIGHT_ALIGN: &'static str = "text-align: -webkit-right;text-align: -moz-right;";
+const PADDING_RIGHT_ZERO: &'static str = "padding-right: 0;";
+const PADDING_LEFT_ZERO: &'static str = "padding-left: 0;";
+const PADDING_TOP_BOTTOM_ZERO: &'static str = "padding-top: 0;padding-bottom: 0;";
+pub const BORDER_RIGHT_SOLID: &'static str = "border-right: 0.05em solid black;";
+pub const BORDER_RIGHT_DASHED: &'static str = "border-right: 0.05em dashed black;";
+const SIMPLE_CENTERED: &'static str = "<mtd>";
 
 pub struct ColumnGenerator<'arena> {
     typ: AlignmentType<'arena>,
@@ -68,21 +82,13 @@ impl<'arena> ColumnGenerator<'arena> {
     pub fn reset_columns(&mut self) {
         self.column_idx = 0;
     }
-}
 
-const MTD_OPEN_STYLE: &'static str = "<mtd style=\"";
-const MTD_CLOSE_STYLE: &'static str = "\">";
-const LEFT_ALIGN: &'static str = "text-align: -webkit-left;text-align: -moz-left;";
-const RIGHT_ALIGN: &'static str = "text-align: -webkit-right;text-align: -moz-right;";
-const PADDING_RIGHT_ZERO: &'static str = "padding-right: 0;";
-const PADDING_LEFT_ZERO: &'static str = "padding-left: 0;";
-const BORDER_RIGHT: &'static str = "border-right: 1px solid black;";
-pub const SIMPLE_CENTERED: &'static StrJoiner = StrJoiner::from_slice(&["<mtd>"]);
-
-impl<'arena> Iterator for ColumnGenerator<'arena> {
-    type Item = &'static StrJoiner;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn write_next_mtd(
+        &mut self,
+        s: &mut String,
+        indent_num: usize,
+    ) -> Result<(), std::fmt::Error> {
+        new_line_and_indent(s, indent_num);
         let column_idx = self.column_idx;
         self.column_idx += 1;
         match self.typ {
@@ -90,86 +96,90 @@ impl<'arena> Iterator for ColumnGenerator<'arena> {
                 let is_even = column_idx % 2 == 0;
                 match align {
                     Alignment::Cases => {
-                        if is_even {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                LEFT_ALIGN,
-                                PADDING_RIGHT_ZERO,
-                                MTD_CLOSE_STYLE,
-                            ]))
-                        } else {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                LEFT_ALIGN,
-                                PADDING_RIGHT_ZERO,
-                                "padding-left:1em;",
-                                MTD_CLOSE_STYLE,
-                            ]))
+                        write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}")?;
+                        if !is_even {
+                            write!(s, "padding-left:1em;")?;
                         }
+                        write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
-                    Alignment::Centered => Some(SIMPLE_CENTERED),
+                    Alignment::Centered => {
+                        write!(s, "{SIMPLE_CENTERED}")?;
+                    }
                     Alignment::Alternating => {
+                        write!(s, "{MTD_OPEN_STYLE}")?;
                         if is_even {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                RIGHT_ALIGN,
-                                PADDING_RIGHT_ZERO,
-                                MTD_CLOSE_STYLE,
-                            ]))
+                            write!(s, "{RIGHT_ALIGN}{PADDING_RIGHT_ZERO}")?;
                         } else {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                LEFT_ALIGN,
-                                PADDING_LEFT_ZERO,
-                                MTD_CLOSE_STYLE,
-                            ]))
+                            write!(s, "{LEFT_ALIGN}{PADDING_LEFT_ZERO}")?;
                         }
+                        write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
                 }
             }
             AlignmentType::Custom(array_spec) => {
-                let column_spec = array_spec.column_spec.get(column_idx)?;
+                let mut column_spec = array_spec
+                    .column_spec
+                    .get(column_idx)
+                    .unwrap_or(&ColumnSpec::WithContent(ColumnAlignment::Centered, None));
+                while let ColumnSpec::OnlyLine(line_type) = column_spec {
+                    column_spec = array_spec
+                        .column_spec
+                        .get(self.column_idx)
+                        .unwrap_or(&ColumnSpec::WithContent(ColumnAlignment::Centered, None));
+                    self.column_idx += 1;
+                    write!(s, "{MTD_OPEN_STYLE}")?;
+                    match line_type {
+                        LineType::Solid => {
+                            write!(s, "{BORDER_RIGHT_SOLID}")?;
+                        }
+                        LineType::Dashed => {
+                            write!(s, "{BORDER_RIGHT_DASHED}")?;
+                        }
+                    }
+                    if array_spec.is_sub {
+                        write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
+                    }
+                    write!(s, "padding-left: 0.1em;padding-right: 0.1em;")?;
+                    write!(s, "\"></mtd>")?;
+                    new_line_and_indent(s, indent_num);
+                }
                 match column_spec {
-                    ColumnSpec::WithContent(ColumnAlignment::LeftJustified, _lt) => {
-                        Some(StrJoiner::from_slice(&[
-                            MTD_OPEN_STYLE,
-                            LEFT_ALIGN,
-                            MTD_CLOSE_STYLE,
-                        ]))
-                    }
-                    ColumnSpec::WithContent(ColumnAlignment::Centered, line_type) => {
-                        if matches!(line_type, Some(LineType::Solid)) {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                BORDER_RIGHT,
-                                MTD_CLOSE_STYLE,
-                            ]))
-                        } else {
-                            Some(SIMPLE_CENTERED)
+                    ColumnSpec::WithContent(alignment, line_type) => {
+                        if matches!(alignment, ColumnAlignment::Centered)
+                            && line_type.is_none()
+                            && !array_spec.is_sub
+                        {
+                            write!(s, "{SIMPLE_CENTERED}")?;
+                            return Ok(());
                         }
-                    }
-                    ColumnSpec::WithContent(ColumnAlignment::RightJustified, _lt) => {
-                        Some(StrJoiner::from_slice(&[
-                            MTD_OPEN_STYLE,
-                            RIGHT_ALIGN,
-                            MTD_CLOSE_STYLE,
-                        ]))
-                    }
-                    ColumnSpec::OnlyLine(line_type) => {
-                        self.column_idx += 1;
-                        if matches!(line_type, LineType::Solid) {
-                            Some(StrJoiner::from_slice(&[
-                                MTD_OPEN_STYLE,
-                                BORDER_RIGHT,
-                                "padding-left: 0.2em;padding-right: 0.2em;",
-                                "\"></mtd><mtd>",
-                            ]))
-                        } else {
-                            Some(StrJoiner::from_slice(&["<mtd></mtd><mtd>"]))
+                        write!(s, "{MTD_OPEN_STYLE}")?;
+                        match alignment {
+                            ColumnAlignment::LeftJustified => {
+                                write!(s, "{LEFT_ALIGN}")?;
+                            }
+                            ColumnAlignment::Centered => {}
+                            ColumnAlignment::RightJustified => {
+                                write!(s, "{RIGHT_ALIGN}")?;
+                            }
                         }
+                        match line_type {
+                            Some(LineType::Solid) => {
+                                write!(s, "{BORDER_RIGHT_SOLID}")?;
+                            }
+                            Some(LineType::Dashed) => {
+                                write!(s, "{BORDER_RIGHT_DASHED}")?;
+                            }
+                            _ => {}
+                        }
+                        if array_spec.is_sub {
+                            write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
+                        }
+                        write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
+                    ColumnSpec::OnlyLine(_) => {}
                 }
             }
-        }
+        };
+        Ok(())
     }
 }
