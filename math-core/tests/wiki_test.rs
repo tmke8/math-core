@@ -107,7 +107,7 @@ fn wiki_test() {
             "<math><mrow><mi>∞</mi><mo>,</mo></mrow><mrow><mi>ℵ</mi><mo>,</mo></mrow><mrow><mi>∁</mi><mo>,</mo></mrow><mrow><mo>∍</mo></mrow><mrow><mo>,</mo></mrow><mrow><mi>ð</mi><mo>,</mo></mrow><mrow><mi>Ⅎ</mi><mo>,</mo></mrow><mrow><mi>ℏ</mi></mrow></math>",
         ),
         (
-            r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA",
+            r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \text\AA",
             "<math><mrow><mi>ℑ</mi><mo>,</mo></mrow><mrow><mi>ı</mi><mo>,</mo></mrow><mrow><mi>ȷ</mi><mo>,</mo></mrow><mrow><mi>𝕜</mi><mo>,</mo></mrow><mrow><mi>ℓ</mi><mo>,</mo></mrow><mrow><mi>℧</mi><mo>,</mo></mrow><mrow><mi>℘</mi><mo>,</mo></mrow><mrow><mi>ℜ</mi><mo>,</mo></mrow><mrow><mi>Ⓢ</mi><mo>,</mo></mrow><mrow><mi>§</mi><mo>,</mo></mrow><mrow><mi>¶</mi><mo>,</mo></mrow><mrow><mover><mi>A</mi><mo class=\"tml-capshift\" stretchy=\"false\" style=\"math-style:normal;math-depth:0;\">˚</mo></mover></mrow></math>",
         ),
         (
@@ -159,7 +159,7 @@ fn wiki_test() {
             "<math><mrow><mo movablelimits=\"false\">⨁</mo><mo>,</mo></mrow><mrow><mo movablelimits=\"false\">⨂</mo><mo>,</mo></mrow><mrow><mo movablelimits=\"false\">⨀</mo></mrow></math>",
         ),
         (
-            r"\{ \}, \O \empty \emptyset, \varnothing",
+            r"\{ \}, \text\O \empty \emptyset, \varnothing",
             "<math><mrow><mo form=\"prefix\" stretchy=\"false\">{</mo><mo form=\"postfix\" stretchy=\"false\">}</mo><mo>,</mo></mrow><mrow><mi>Ø</mi><mi>∅</mi><mi>∅</mi><mo>,</mo></mrow><mrow><mi>⌀</mi></mrow></math>",
         ),
         (
@@ -905,8 +905,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 181);
-    assert_eq!(n_fail, 27);
+    assert_eq!(n_diff, 183);
+    assert_eq!(n_fail, 25);
 }
 
 /// Prettify HTML input
@@ -982,7 +982,10 @@ fn test_nonfailing_wiki_tests() {
             24,
             r"\infty, \aleph, \complement,\backepsilon, \eth, \Finv, \hbar",
         ),
-        // (25, r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \AA"),
+        (
+            25,
+            r"\Im, \imath, \jmath, \Bbbk, \ell, \mho, \wp, \Re, \circledS, \S, \P, \text\AA",
+        ),
         (26, r"s_k \equiv 0 \pmod{m}"),
         (27, r"a \bmod b"),
         (28, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
@@ -995,7 +998,7 @@ fn test_nonfailing_wiki_tests() {
         (35, r"\oplus, \ominus, \otimes, \oslash, \odot"),
         (36, r"\circleddash, \circledcirc, \circledast"),
         (37, r"\bigoplus, \bigotimes, \bigodot"),
-        // (38, r"\{ \}, \O \empty \emptyset, \varnothing"),
+        (38, r"\{ \}, \text\O \empty \emptyset, \varnothing"),
         (39, r"\in, \notin \not\in, \ni, \not\ni"),
         (40, r"\cap, \Cap, \sqcap, \bigcap"),
         (
