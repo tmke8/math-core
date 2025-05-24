@@ -55,8 +55,8 @@ const RIGHT_ALIGN: &'static str = "text-align: -webkit-right;text-align: -moz-ri
 const PADDING_RIGHT_ZERO: &'static str = "padding-right: 0;";
 const PADDING_LEFT_ZERO: &'static str = "padding-left: 0;";
 const PADDING_TOP_BOTTOM_ZERO: &'static str = "padding-top: 0;padding-bottom: 0;";
-pub const BORDER_RIGHT_SOLID: &'static str = "border-right: 0.05em solid black;";
-pub const BORDER_RIGHT_DASHED: &'static str = "border-right: 0.05em dashed black;";
+pub const BORDER_RIGHT_SOLID: &'static str = "border-right: 0.05em solid currentcolor;";
+pub const BORDER_RIGHT_DASHED: &'static str = "border-right: 0.05em dashed currentcolor;";
 const SIMPLE_CENTERED: &'static str = "<mtd>";
 
 pub struct ColumnGenerator<'arena> {

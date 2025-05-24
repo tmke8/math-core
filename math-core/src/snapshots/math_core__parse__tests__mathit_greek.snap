@@ -5,6 +5,6 @@ expression: "\\mathit{\\Alpha\\Beta}"
 [
   TextTransform(
     tf: Transform(Italic),
-    content: CollectedLetters("ΑΒ"),
+    content: IdentifierStr("ΑΒ"),
   ),
 ]

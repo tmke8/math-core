@@ -4,7 +4,12 @@ expression: "f''"
 ---
 [
   Superscript(
-    target: SingleLetterIdent('f', false),
-    symbol: Operator(Op('″'), None),
+    target: IdentifierChar('f', Default),
+    symbol: Operator(
+      op: Op('″'),
+      attr: None,
+      left: None,
+      right: None,
+    ),
   ),
 ]

@@ -7,8 +7,8 @@ expression: "\\mathrm{\\sqrt xy}"
     tf: Normal,
     content: Row(
       nodes: [
-        Sqrt(SingleLetterIdent('x', false)),
-        SingleLetterIdent('y', false),
+        Sqrt(IdentifierChar('x', Default)),
+        IdentifierChar('y', Default),
       ],
       attr: None,
     ),

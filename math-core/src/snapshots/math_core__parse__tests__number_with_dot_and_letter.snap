@@ -4,6 +4,6 @@ expression: 4.x
 ---
 [
   Number("4"),
-  SingleLetterIdent('.', false),
-  SingleLetterIdent('x', false),
+  IdentifierChar('.', Default),
+  IdentifierChar('x', Default),
 ]

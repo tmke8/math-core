@@ -6,7 +6,7 @@ expression: "\\sqrt{4.}"
   Sqrt(Row(
     nodes: [
       Number("4"),
-      SingleLetterIdent('.', false),
+      IdentifierChar('.', Default),
     ],
     attr: None,
   )),

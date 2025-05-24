@@ -3,6 +3,6 @@ source: math-core/src/parse.rs
 expression: "\\operatorname123"
 ---
 [
-  SingleLetterIdent('1', true),
+  IdentifierChar('1', Upright),
   Number("23"),
 ]

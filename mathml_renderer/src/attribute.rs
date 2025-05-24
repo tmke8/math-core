@@ -26,13 +26,20 @@ impl MathVariant {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="false""#)]
-    StretchyFalse,
+    StretchyFalse = 1,
     #[strum(serialize = r#" movablelimits="false""#)]
     NoMovableLimits,
     #[strum(serialize = r#" movablelimits="true""#)]
     ForceMovableLimits,
     #[strum(serialize = r#" form="prefix""#)]
     FormPrefix,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum LetterAttr {
+    Default,
+    Upright,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]

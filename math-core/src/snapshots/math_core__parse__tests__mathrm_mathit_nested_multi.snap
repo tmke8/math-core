@@ -7,12 +7,12 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
     tf: Normal,
     content: Row(
       nodes: [
-        CollectedLetters("ab"),
+        IdentifierStr("ab"),
         TextTransform(
           tf: Transform(Italic),
-          content: CollectedLetters("cd"),
+          content: IdentifierStr("cd"),
         ),
-        CollectedLetters("ef"),
+        IdentifierStr("ef"),
       ],
       attr: None,
     ),

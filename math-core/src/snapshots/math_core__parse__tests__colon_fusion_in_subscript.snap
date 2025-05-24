@@ -4,29 +4,38 @@ expression: "x_:\\equiv, x_:="
 ---
 [
   Subscript(
-    target: SingleLetterIdent('x', false),
-    symbol: OperatorWithSpacing(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
       op: Op(':'),
+      attr: None,
       left: Some(FourMu),
       right: Some(FourMu),
     ),
   ),
-  OperatorWithSpacing(
+  Operator(
     op: Op('≡'),
+    attr: None,
     left: None,
     right: None,
   ),
-  Operator(Op(','), None),
+  Operator(
+    op: Op(','),
+    attr: None,
+    left: None,
+    right: None,
+  ),
   Subscript(
-    target: SingleLetterIdent('x', false),
-    symbol: OperatorWithSpacing(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
       op: Op(':'),
+      attr: None,
       left: Some(FourMu),
       right: Some(FourMu),
     ),
   ),
-  OperatorWithSpacing(
+  Operator(
     op: Op('='),
+    attr: None,
     left: None,
     right: None,
   ),

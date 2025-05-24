@@ -1,0 +1,29 @@
+---
+source: math-core/src/parse.rs
+expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
+---
+[
+  Table(
+    content: [
+      Operator(
+        op: Op('∑'),
+        attr: None,
+        left: None,
+        right: None,
+      ),
+      Row(
+        nodes: [
+          Operator(
+            op: Op('∑'),
+            attr: None,
+            left: None,
+            right: None,
+          ),
+        ],
+        attr: Style(DisplayStyle),
+      ),
+    ],
+    align: Centered,
+    attr: None,
+  ),
+]
