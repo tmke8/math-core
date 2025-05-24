@@ -1,7 +1,7 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\text{':,=}"
+expression: "\\text{':,=-}"
 ---
 <math>
-    <mtext>’:,=</mtext>
+    <mtext>’:,=−</mtext>
 </math>

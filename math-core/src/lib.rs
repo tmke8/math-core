@@ -172,7 +172,7 @@ mod tests {
             ("text_with_escape_brace", r"\text{a\}b}"),
             ("text_with_weird_o", r"\text{x\o y}"),
             ("text_with_group", r"\text{x{y}z{}p{}}"),
-            ("text_with_special_symbols", r"\text{':,=}"),
+            ("text_with_special_symbols", r"\text{':,=-}"),
             ("textbackslash", r"\text{\textbackslash}"),
             ("textit", r"\textit{x}"),
             ("textbf", r"\textbf{x}"),
