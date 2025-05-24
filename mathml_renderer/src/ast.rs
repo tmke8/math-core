@@ -18,8 +18,10 @@ use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType};
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Node<'arena> {
+    /// `<mn>...</mn>`
     Number(&'arena str),
-    SingleLetterIdent(char, bool),
+    /// `<mi>...</mi>` for a single character.
+    IdentifierChar(char, bool),
     Operator(Op, Option<OpAttr>),
     StretchableOp(&'static Fence, StretchMode),
     OpGreaterThan,
@@ -36,16 +38,21 @@ pub enum Node<'arena> {
         right: MathSpacing,
         name: &'arena str,
     },
-    CollectedLetters(&'arena str),
+    /// `<mi>...</mi>` for a string.
+    IdentifierStr(&'arena str),
+    /// `<mspace width="..."/>`
     Space(Length),
+    /// `<msub>...</msub>`
     Subscript {
         target: &'arena Node<'arena>,
         symbol: &'arena Node<'arena>,
     },
+    /// `<msup>...</msup>`
     Superscript {
         target: &'arena Node<'arena>,
         symbol: &'arena Node<'arena>,
     },
+    /// `<msubsup>...</msubsup>`
     SubSup {
         target: &'arena Node<'arena>,
         sub: &'arena Node<'arena>,
@@ -53,21 +60,27 @@ pub enum Node<'arena> {
     },
     OverOp(Op, Option<OpAttr>, &'arena Node<'arena>),
     UnderOp(Op, &'arena Node<'arena>),
+    /// `<mover>...</mover>`
     Overset {
         symbol: &'arena Node<'arena>,
         target: &'arena Node<'arena>,
     },
+    /// `<munder>...</munder>`
     Underset {
         symbol: &'arena Node<'arena>,
         target: &'arena Node<'arena>,
     },
+    /// `<munderover>...</munderover>`
     UnderOver {
         target: &'arena Node<'arena>,
         under: &'arena Node<'arena>,
         over: &'arena Node<'arena>,
     },
+    /// `<msqrt>...</msqrt>`
     Sqrt(&'arena Node<'arena>),
+    /// `<mroot>...</mroot>`
     Root(&'arena Node<'arena>, &'arena Node<'arena>),
+    /// `<mfrac>...</mfrac>`
     Frac {
         /// Numerator
         num: &'arena Node<'arena>,
@@ -78,6 +91,7 @@ pub enum Node<'arena> {
         lt_unit: LengthUnit,
         attr: Option<FracAttr>,
     },
+    /// `<mrow>...</mrow>`
     Row {
         nodes: &'arena [&'arena Node<'arena>],
         attr: RowAttr,
@@ -89,6 +103,7 @@ pub enum Node<'arena> {
         content: &'arena Node<'arena>,
     },
     SizedParen(Size, &'static Fence),
+    /// `<mtext>...</mtext>`
     Text(&'arena str),
     Table {
         content: &'arena [&'arena Node<'arena>],
@@ -196,7 +211,7 @@ impl<'arena> MathMLEmitter<'arena> {
                     write!(self.s, "<mn>{number}</mn>")?;
                 }
             }
-            Node::SingleLetterIdent(letter, is_upright) => {
+            Node::IdentifierChar(letter, is_upright) => {
                 // The identifier is "normal" if either `is_upright` is set,
                 // or the global `self.var` is set to `MathVariant::Normal`.
                 let is_normal = *is_upright || matches!(self.var, Some(MathVariant::Normal));
@@ -290,9 +305,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 write!(self.s, ">{text}</mo>")?;
             }
-            node @ (Node::CollectedLetters(letters) | Node::Text(letters)) => {
+            node @ (Node::IdentifierStr(letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
-                    Node::CollectedLetters(_) => ("<mi>", "</mi>"),
+                    Node::IdentifierStr(_) => ("<mi>", "</mi>"),
                     Node::Text(_) => ("<mtext>", "</mtext>"),
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
@@ -481,7 +496,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
-                Node::SingleLetterIdent(x, is_upright) => {
+                Node::IdentifierChar(x, is_upright) => {
                     if *is_upright || matches!(self.var, Some(MathVariant::Normal)) {
                         write!(self.s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
                     } else {
@@ -516,10 +531,10 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, "<mtable")?;
                 match array_spec.beginning_line {
                     Some(LineType::Solid) => {
-                        write!(self.s, " style=\"border-left: 0.05em solid black\"")?;
+                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor\"")?;
                     }
                     Some(LineType::Dashed) => {
-                        write!(self.s, " style=\"border-left: 0.05em dashed black\"")?;
+                        write!(self.s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
                     }
                     _ => (),
                 }
@@ -654,17 +669,15 @@ mod tests {
 
     #[test]
     fn render_single_letter_ident() {
-        assert_eq!(render(&Node::SingleLetterIdent('x', false)), "<mi>x</mi>");
+        assert_eq!(render(&Node::IdentifierChar('x', false)), "<mi>x</mi>");
         assert_eq!(
-            render(&Node::SingleLetterIdent('Γ', true)),
+            render(&Node::IdentifierChar('Γ', true)),
             "<mi mathvariant=\"normal\">Γ</mi>"
         );
 
         let mut emitter = MathMLEmitter::new();
         emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
-        emitter
-            .emit(&Node::SingleLetterIdent('L', false), 0)
-            .unwrap();
+        emitter.emit(&Node::IdentifierChar('L', false), 0).unwrap();
         assert_eq!(emitter.into_inner(), "<mi>ℒ︁</mi>");
     }
 
@@ -741,7 +754,7 @@ mod tests {
 
     #[test]
     fn render_collected_letters() {
-        assert_eq!(render(&Node::CollectedLetters("sin")), "<mi>sin</mi>");
+        assert_eq!(render(&Node::IdentifierStr("sin")), "<mi>sin</mi>");
     }
 
     #[test]
@@ -756,7 +769,7 @@ mod tests {
     fn render_subscript() {
         assert_eq!(
             render(&Node::Subscript {
-                target: &Node::SingleLetterIdent('x', false),
+                target: &Node::IdentifierChar('x', false),
                 symbol: &Node::Number("2"),
             }),
             "<msub><mi>x</mi><mn>2</mn></msub>"
@@ -767,7 +780,7 @@ mod tests {
     fn render_superscript() {
         assert_eq!(
             render(&Node::Superscript {
-                target: &Node::SingleLetterIdent('x', false),
+                target: &Node::IdentifierChar('x', false),
                 symbol: &Node::Number("2"),
             }),
             "<msup><mi>x</mi><mn>2</mn></msup>"
@@ -778,7 +791,7 @@ mod tests {
     fn render_sub_sup() {
         assert_eq!(
             render(&Node::SubSup {
-                target: &Node::SingleLetterIdent('x', false),
+                target: &Node::IdentifierChar('x', false),
                 sub: &Node::Number("1"),
                 sup: &Node::Number("2"),
             }),
@@ -792,7 +805,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::MACRON.into(),
                 Some(OpAttr::StretchyFalse),
-                &Node::SingleLetterIdent('x', false),
+                &Node::IdentifierChar('x', false),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
@@ -800,7 +813,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::OVERLINE.into(),
                 None,
-                &Node::SingleLetterIdent('x', false),
+                &Node::IdentifierChar('x', false),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
@@ -811,7 +824,7 @@ mod tests {
         assert_eq!(
             render(&Node::UnderOp(
                 symbol::LOW_LINE.into(),
-                &Node::SingleLetterIdent('x', false),
+                &Node::IdentifierChar('x', false),
             )),
             "<munder accent=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
@@ -832,7 +845,7 @@ mod tests {
     fn render_underset() {
         assert_eq!(
             render(&Node::Underset {
-                symbol: &Node::SingleLetterIdent('θ', false),
+                symbol: &Node::IdentifierChar('θ', false),
                 target: &Node::PseudoOp {
                     attr: Some(OpAttr::ForceMovableLimits),
                     left: MathSpacing::ThreeMu,
@@ -848,7 +861,7 @@ mod tests {
     fn render_under_over() {
         assert_eq!(
             render(&Node::UnderOver {
-                target: &Node::SingleLetterIdent('x', false),
+                target: &Node::IdentifierChar('x', false),
                 under: &Node::Number("1"),
                 over: &Node::Number("2"),
             }),
@@ -859,7 +872,7 @@ mod tests {
     #[test]
     fn render_sqrt() {
         assert_eq!(
-            render(&Node::Sqrt(&Node::SingleLetterIdent('x', false))),
+            render(&Node::Sqrt(&Node::IdentifierChar('x', false))),
             "<msqrt><mi>x</mi></msqrt>"
         );
     }
@@ -869,7 +882,7 @@ mod tests {
         assert_eq!(
             render(&Node::Root(
                 &Node::Number("3"),
-                &Node::SingleLetterIdent('x', false),
+                &Node::IdentifierChar('x', false),
             )),
             "<mroot><mi>x</mi><mn>3</mn></mroot>"
         );
@@ -968,7 +981,7 @@ mod tests {
     #[test]
     fn render_row() {
         let nodes = &[
-            &Node::SingleLetterIdent('x', false),
+            &Node::IdentifierChar('x', false),
             &Node::Operator(symbol::EQUALS_SIGN.into(), None),
             &Node::Number("1"),
         ];
@@ -1072,7 +1085,7 @@ mod tests {
     #[test]
     fn render_slashed() {
         assert_eq!(
-            render(&Node::Slashed(&Node::SingleLetterIdent('x', false))),
+            render(&Node::Slashed(&Node::IdentifierChar('x', false))),
             "<mi>x&#x0338;</mi>"
         );
     }
@@ -1081,7 +1094,7 @@ mod tests {
     fn render_multiscript() {
         assert_eq!(
             render(&Node::Multiscript {
-                base: &Node::SingleLetterIdent('x', false),
+                base: &Node::IdentifierChar('x', false),
                 sub: Some(&Node::Number("1")),
                 sup: None,
             }),
@@ -1094,21 +1107,21 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::SingleLetterIdent('a', true),
+                content: &Node::IdentifierChar('a', true),
             }),
             "<mi mathvariant=\"normal\">a</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::SingleLetterIdent('a', false),
+                content: &Node::IdentifierChar('a', false),
             }),
             "<mi mathvariant=\"normal\">a</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::CollectedLetters("abc"),
+                content: &Node::IdentifierStr("abc"),
             }),
             "<mi>abc</mi>"
         );
@@ -1127,21 +1140,21 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::SingleLetterIdent('a', true),
+                content: &Node::IdentifierChar('a', true),
             }),
             "<mi>𝐚</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::SingleLetterIdent('a', false),
+                content: &Node::IdentifierChar('a', false),
             }),
             "<mi>𝒂</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::CollectedLetters("abc"),
+                content: &Node::IdentifierStr("abc"),
             }),
             "<mi>𝒂𝒃𝒄</mi>"
         );

@@ -69,7 +69,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Psi" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_PSI),
     "RR" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Transform(TextTransform::DoubleStruck),
-        content: &Node::SingleLetterIdent('R', false),
+        content: &Node::IdentifierChar('R', false),
     }),
     "Re" => Token::Letter('ℜ'),
     "Rho" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_RHO),
@@ -235,7 +235,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curvearrowright" => Token::Relation(symbol::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "d" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Normal,
-        content: &Node::SingleLetterIdent('d', false),
+        content: &Node::IdentifierChar('d', false),
     }),
     "dag" => Token::Letter(symbol::DAGGER),
     "dagger" => Token::Letter(symbol::DAGGER),
@@ -275,8 +275,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dprime" => Token::Ord(symbol::DOUBLE_PRIME),
     "earth" => Token::Letter(symbol::EARTH),
     "ell" => Token::Letter('ℓ'),
-    "empty" => Token::CustomCmd(0, &Node::CollectedLetters("∅\u{FE00}")), // these are two unicode characters
-    "emptyset" => Token::CustomCmd(0, &Node::CollectedLetters("∅\u{FE00}")), // these are two unicode characters
+    "empty" => Token::CustomCmd(0, &Node::IdentifierStr("∅\u{FE00}")), // these are two unicode characters
+    "emptyset" => Token::CustomCmd(0, &Node::IdentifierStr("∅\u{FE00}")), // these are two unicode characters
     "end" => Token::End,
     "epsilon" => Token::Letter(symbol::GREEK_LUNATE_EPSILON_SYMBOL),
     "eqcirc" => Token::Relation(symbol::RING_IN_EQUAL_TO),

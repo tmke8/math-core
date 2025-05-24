@@ -36,7 +36,7 @@ pub static ODV: Node = Frac {
         nodes: &[
             &TextTransform {
                 tf: MathVariant::Normal,
-                content: &SingleLetterIdent('d', false),
+                content: &IdentifierChar('d', false),
             },
             &CustomCmdArg(0),
         ],
@@ -46,7 +46,7 @@ pub static ODV: Node = Frac {
         nodes: &[
             &TextTransform {
                 tf: MathVariant::Normal,
-                content: &SingleLetterIdent('d', false),
+                content: &IdentifierChar('d', false),
             },
             &CustomCmdArg(1),
         ],

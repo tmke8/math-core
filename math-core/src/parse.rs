@@ -37,6 +37,25 @@ struct SequenceState {
     is_punctuation: bool,
 }
 
+#[derive(Debug)]
+enum SequenceEnd {
+    Token(Token<'static>),
+    AnyEndToken,
+}
+
+impl SequenceEnd {
+    #[inline]
+    fn matches(&self, other: &Token<'_>) -> bool {
+        match self {
+            SequenceEnd::Token(token) => token.is_same_kind_as(other),
+            SequenceEnd::AnyEndToken => matches!(
+                other,
+                Token::EOF | Token::GroupEnd | Token::End | Token::Right
+            ),
+        }
+    }
+}
+
 impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
@@ -109,7 +128,7 @@ where
     }
 
     pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
-        let nodes = self.parse_sequence(Token::EOF, true)?;
+        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF))?;
         Ok(self.arena.push_slice(&nodes))
     }
 
@@ -122,20 +141,17 @@ where
     /// be used by the calling function to emit another node.
     fn parse_sequence(
         &mut self,
-        end_token: Token<'static>,
-        eof_as_end_token: bool,
+        sequence_end: SequenceEnd,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
         let mut sequence_state = SequenceState::default();
 
         // Because we don't want to consume the end token, we just peek here.
-        while !self.peek.token().is_same_kind_as(&end_token) {
+        while !sequence_end.matches(self.peek.token()) {
             let cur_tokloc = self.maybe_collect();
             if matches!(cur_tokloc.token(), Token::EOF) {
-                if eof_as_end_token {
-                    break;
-                } else {
-                    // When the input ends without the closing token.
+                // When the input ends without the closing token.
+                if let SequenceEnd::Token(end_token) = sequence_end {
                     return Err(LatexError(
                         cur_tokloc.location(),
                         LatexErrKind::UnclosedGroup(end_token),
@@ -223,8 +239,8 @@ where
                 }
                 Node::Number(builder.finish(self.arena))
             }
-            Token::Letter(x) => Node::SingleLetterIdent(x, false),
-            Token::UprightLetter(x) => Node::SingleLetterIdent(x, true),
+            Token::Letter(x) => Node::IdentifierChar(x, false),
+            Token::UprightLetter(x) => Node::IdentifierChar(x, true),
             Token::Relation(relation) => {
                 if let Some(state) = sequence_state {
                     state.is_relation = true;
@@ -279,7 +295,8 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
-                    let degree = self.parse_sequence(Token::SquareBracketClose, false)?;
+                    let degree =
+                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose))?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
                     Node::Root(self.node_vec_to_node(degree), content)
@@ -472,7 +489,7 @@ where
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Node::CollectedLetters(builder.finish(self.arena))
+                        Node::IdentifierStr(builder.finish(self.arena))
                     }
                     _ => {
                         return Err(LatexError(
@@ -542,7 +559,7 @@ where
                 },
             },
             Token::GroupBegin => {
-                let content = self.parse_sequence(Token::GroupEnd, false)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::GroupEnd))?;
                 self.next_token(); // Discard the closing token.
                 return Ok(self.node_vec_to_node(content));
             }
@@ -570,7 +587,7 @@ where
                         ));
                     }
                 };
-                let content = self.parse_sequence(Token::Right, false)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::Right))?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
@@ -645,7 +662,7 @@ where
                 } else {
                     None
                 };
-                let content = self.parse_sequence(Token::End, false)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::End))?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -745,7 +762,7 @@ where
                 // Discard the last token.
                 self.next_token();
                 if let Some(ch) = get_single_char(letters) {
-                    Node::SingleLetterIdent(ch, true)
+                    Node::IdentifierChar(ch, true)
                 } else {
                     return self.make_pseudo_operator(letters, &prev_state);
                 }
@@ -789,14 +806,14 @@ where
                 let Some(color) = get_color(color_name) else {
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
-                let content = self.parse_sequence(Token::GroupEnd, true)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
                 }
             }
             Token::Style(style) => {
-                let content = self.parse_sequence(Token::GroupEnd, true)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -867,11 +884,11 @@ where
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
-                    Node::SingleLetterIdent(collected_letter, false)
+                    Node::IdentifierChar(collected_letter, false)
                 }
                 LetterCollector::FinishedManyLetters { collected_letters } => {
                     self.collector = LetterCollector::Collecting;
-                    Node::CollectedLetters(collected_letters)
+                    Node::IdentifierStr(collected_letters)
                 }
                 _ => {
                     return Err(LatexError(
@@ -1296,6 +1313,14 @@ mod tests {
             ("colon_fusion_in_subscript", r"x_:\equiv, x_:="),
             ("colon_fusion_stop", r":2=:="),
             ("scriptstyle_without_braces", r"x\scriptstyle y"),
+            (
+                "displaystyle_ended_by_right",
+                r"\left(\displaystyle \int\right)\int",
+            ),
+            (
+                "displaystyle_ended_by_end",
+                r"\begin{matrix}\sum\displaystyle\sum\end{matrix}",
+            ),
             ("overset_digits", r"\overset12"),
             ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
             ("mspace", r"\mspace{1mu}"),
