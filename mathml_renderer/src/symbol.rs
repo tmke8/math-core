@@ -277,6 +277,13 @@ pub const GREEK_SMALL_LETTER_CHI: char = 'χ';
 pub const GREEK_SMALL_LETTER_PSI: char = 'ψ';
 pub const GREEK_SMALL_LETTER_OMEGA: char = 'ω';
 
+pub const GREEK_THETA_SYMBOL: char = 'ϑ';
+// pub const GREEK_UPSILON_WITH_HOOK_SYMBOL: char = 'ϒ';
+
+pub const GREEK_PHI_SYMBOL: char = 'ϕ';
+
+pub const GREEK_LUNATE_EPSILON_SYMBOL: char = 'ϵ';
+
 //
 // Unicode Block: General Punctuation
 //

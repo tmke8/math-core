@@ -7,6 +7,6 @@ expression: "S=dD\\sin\\alpha"
     <mo>=</mo>
     <mi>d</mi>
     <mi>D</mi>
-    <mi>sin</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">sin</mo>
     <mi>α</mi>
 </math>

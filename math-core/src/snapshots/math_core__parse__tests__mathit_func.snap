@@ -8,7 +8,12 @@ expression: "\\mathit{ab \\log cd}"
     content: Row(
       nodes: [
         CollectedLetters("ab"),
-        MultiLetterIdent("log"),
+        PseudoOp(
+          attr: None,
+          left: ThreeMu,
+          right: ThreeMu,
+          name: "log",
+        ),
         CollectedLetters("cd"),
       ],
       attr: None,

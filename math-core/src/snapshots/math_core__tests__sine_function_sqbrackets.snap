@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sin[x]"
+---
+<math>
+    <mo lspace="0.1667em" rspace="0">sin</mo>
+    <mo stretchy="false">[</mo>
+    <mi>x</mi>
+    <mo stretchy="false">]</mo>
+</math>

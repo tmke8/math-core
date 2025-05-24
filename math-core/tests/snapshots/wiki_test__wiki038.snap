@@ -1,0 +1,14 @@
+---
+source: math-core/tests/wiki_test.rs
+expression: "\\{ \\}, \\text\\O \\empty \\emptyset, \\varnothing"
+---
+<math>
+    <mo stretchy="false">{</mo>
+    <mo stretchy="false">}</mo>
+    <mo>,</mo>
+    <mtext>Ø</mtext>
+    <mi>∅︀</mi>
+    <mi>∅︀</mi>
+    <mo>,</mo>
+    <mi>∅</mi>
+</math>

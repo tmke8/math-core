@@ -3,6 +3,6 @@ source: math-core/src/lib.rs
 expression: "\\sin x"
 ---
 <math>
-    <mi>sin</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">sin</mo>
     <mi>x</mi>
 </math>

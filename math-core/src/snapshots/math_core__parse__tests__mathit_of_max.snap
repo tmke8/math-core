@@ -8,7 +8,12 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
     content: Row(
       nodes: [
         CollectedLetters("ab"),
-        MultiLetterIdent("max"),
+        PseudoOp(
+          attr: None,
+          left: ThreeMu,
+          right: ThreeMu,
+          name: "max",
+        ),
         CollectedLetters("αβ"),
       ],
       attr: None,

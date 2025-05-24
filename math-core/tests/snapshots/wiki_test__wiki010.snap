@@ -3,17 +3,17 @@ source: math-core/tests/wiki_test.rs
 expression: "\\ln c, \\lg d = \\log e, \\log_{10} f"
 ---
 <math>
-    <mi>ln</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">ln</mo>
     <mi>c</mi>
     <mo>,</mo>
-    <mi>lg</mi>
+    <mo lspace="0" rspace="0.1667em">lg</mo>
     <mi>d</mi>
     <mo>=</mo>
-    <mi>log</mi>
+    <mo lspace="0" rspace="0.1667em">log</mo>
     <mi>e</mi>
     <mo>,</mo>
     <msub>
-        <mi>log</mi>
+        <mo lspace="0" rspace="0.1667em">log</mo>
         <mn>10</mn>
     </msub>
     <mi>f</mi>

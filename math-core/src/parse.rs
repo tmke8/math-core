@@ -265,7 +265,9 @@ where
             Token::OpGreaterThan => Node::OpGreaterThan,
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
-            Token::Function(fun) => Node::MultiLetterIdent(fun),
+            Token::PseudoOperator(name) => {
+                return self.make_pseudo_operator(name, &prev_state);
+            }
             Token::Space(space) => Node::Space(space),
             Token::CustomSpace => {
                 let (loc, length) = self.parse_ascii_text_group()?;
@@ -426,9 +428,20 @@ where
                     Bounds(None, None) => return Ok(target),
                 }
             }
-            Token::Lim(lim) => {
+            Token::PseudoOperatorLimits(name) => {
+                let movablelimits = if matches!(self.peek.token(), Token::Limits) {
+                    self.next_token(); // Discard the limits token.
+                    Some(OpAttr::NoMovableLimits)
+                } else {
+                    Some(OpAttr::ForceMovableLimits)
+                };
                 if matches!(self.peek.token(), Token::Underscore) {
-                    let target = self.commit(Node::MultiLetterIdent(lim));
+                    let target = self.commit(Node::PseudoOp {
+                        name,
+                        attr: movablelimits,
+                        left: MathSpacing::ThreeMu,
+                        right: MathSpacing::ThreeMu,
+                    });
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_next(true)?;
                     Node::Underset {
@@ -436,7 +449,7 @@ where
                         symbol: under,
                     }
                 } else {
-                    Node::MultiLetterIdent(lim)
+                    return self.make_pseudo_operator(name, &prev_state);
                 }
             }
             Token::Slashed => {
@@ -459,7 +472,7 @@ where
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Node::MultiLetterIdent(builder.finish(self.arena))
+                        Node::CollectedLetters(builder.finish(self.arena))
                     }
                     _ => {
                         return Err(LatexError(
@@ -734,7 +747,7 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Node::SingleLetterIdent(ch, true)
                 } else {
-                    Node::MultiLetterIdent(letters)
+                    return self.make_pseudo_operator(letters, &prev_state);
                 }
             }
             Token::Text(transform) => {
@@ -1042,6 +1055,34 @@ where
             })
         }
     }
+
+    fn make_pseudo_operator(
+        &mut self,
+        name: &'arena str,
+        prev_state: &SequenceState,
+    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+        Ok(self.commit(Node::PseudoOp {
+            name,
+            attr: None,
+            left: if prev_state.is_relation || prev_state.is_punctuation {
+                MathSpacing::Zero
+            } else {
+                MathSpacing::ThreeMu
+            },
+            right: if matches!(
+                self.peek.token(),
+                Token::Punctuation(_)
+                    | Token::Relation(_)
+                    | Token::Delimiter(_)
+                    | Token::SquareBracketOpen
+                    | Token::SquareBracketClose
+            ) {
+                MathSpacing::Zero
+            } else {
+                MathSpacing::ThreeMu
+            },
+        }))
+    }
 }
 
 #[inline]
@@ -1104,7 +1145,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::Prime => '’',
             Token::Colon => ':',
             Token::Punctuation(op) => (*op).as_op().into(),
-            Token::Function(name) | Token::Lim(name) => {
+            Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => {
                 // We don't transform these strings.
                 self.builder.push_str(name);
                 return Ok(());
