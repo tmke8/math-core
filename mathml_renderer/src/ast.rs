@@ -263,27 +263,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 left,
                 right,
             } => {
-                match attr {
-                    Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
-                    None => write!(self.s, "<mo")?,
-                };
-                match (left, right) {
-                    (Some(left), Some(right)) => {
-                        write!(
-                            self.s,
-                            " lspace=\"{}\" rspace=\"{}\"",
-                            <&str>::from(left),
-                            <&str>::from(right)
-                        )?;
-                    }
-                    (Some(left), None) => {
-                        write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
-                    }
-                    (None, Some(right)) => {
-                        write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
-                    }
-                    _ => {}
-                }
+                self.emit_operator_attributes(*attr, *left, *right)?;
                 write!(self.s, ">{}</mo>", char::from(op))?;
             }
             Node::PseudoOp {
@@ -292,27 +272,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 right,
                 name: text,
             } => {
-                match attr {
-                    Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
-                    None => write!(self.s, "<mo")?,
-                };
-                match (left, right) {
-                    (Some(left), Some(right)) => {
-                        write!(
-                            self.s,
-                            " lspace=\"{}\" rspace=\"{}\"",
-                            <&str>::from(left),
-                            <&str>::from(right)
-                        )?;
-                    }
-                    (Some(left), None) => {
-                        write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
-                    }
-                    (None, Some(right)) => {
-                        write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
-                    }
-                    _ => {}
-                }
+                self.emit_operator_attributes(*attr, *left, *right)?;
                 write!(self.s, ">{text}</mo>")?;
             }
             node @ (Node::IdentifierStr(letters) | Node::Text(letters)) => {
@@ -576,6 +536,35 @@ impl<'arena> MathMLEmitter<'arena> {
             }
         };
         Ok(())
+    }
+
+    fn emit_operator_attributes(
+        &mut self,
+        attr: Option<OpAttr>,
+        left: Option<MathSpacing>,
+        right: Option<MathSpacing>,
+    ) -> std::fmt::Result {
+        match attr {
+            Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
+            None => write!(self.s, "<mo")?,
+        };
+        Ok(match (left, right) {
+            (Some(left), Some(right)) => {
+                write!(
+                    self.s,
+                    " lspace=\"{}\" rspace=\"{}\"",
+                    <&str>::from(left),
+                    <&str>::from(right)
+                )?;
+            }
+            (Some(left), None) => {
+                write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
+            }
+            (None, Some(right)) => {
+                write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
+            }
+            _ => {}
+        })
     }
 
     fn emit_table(
