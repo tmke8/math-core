@@ -33,7 +33,7 @@ expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
         <mi>n</mi>
     </msup>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">arg</mo>
+    <mo lspace="0" rspace="0">arg</mo>
     <mo stretchy="false">(</mo>
     <msup>
         <mi>z</mi>
@@ -42,7 +42,7 @@ expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
     <mo stretchy="false">)</mo>
     <mo>=</mo>
     <mi>n</mi>
-    <mo lspace="0.1667em" rspace="0.1667em">arg</mo>
+    <mo lspace="0.1667em" rspace="0">arg</mo>
     <mo stretchy="false">(</mo>
     <mi>z</mi>
     <mo stretchy="false">)</mo>

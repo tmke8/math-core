@@ -1071,7 +1071,11 @@ where
             },
             right: if matches!(
                 self.peek.token(),
-                Token::Punctuation(_) | Token::Relation(_)
+                Token::Punctuation(_)
+                    | Token::Relation(_)
+                    | Token::Delimiter(_)
+                    | Token::SquareBracketOpen
+                    | Token::SquareBracketClose
             ) {
                 MathSpacing::Zero
             } else {
