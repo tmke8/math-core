@@ -105,7 +105,8 @@ pub enum Node<'arena> {
     Slashed(&'arena Node<'arena>),
     Multiscript {
         base: &'arena Node<'arena>,
-        sub: &'arena Node<'arena>,
+        sub: Option<&'arena Node<'arena>>,
+        sup: Option<&'arena Node<'arena>>,
     },
     TextTransform {
         tf: MathVariant,
@@ -370,12 +371,20 @@ impl<'arena> MathMLEmitter<'arena> {
                 self.emit(third, child_indent)?;
                 writeln_indent!(&mut self.s, base_indent, "{close}");
             }
-            Node::Multiscript { base, sub } => {
+            Node::Multiscript { base, sub, sup } => {
                 write!(self.s, "<mmultiscripts>")?;
                 self.emit(base, child_indent)?;
                 writeln_indent!(&mut self.s, child_indent, "<mprescripts/>");
-                self.emit(sub, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
+                if let Some(sub) = sub {
+                    self.emit(sub, child_indent)?;
+                } else {
+                    writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
+                }
+                if let Some(sup) = sup {
+                    self.emit(sup, child_indent)?;
+                } else {
+                    writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
+                }
                 writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, attr, target) => {
@@ -1073,7 +1082,8 @@ mod tests {
         assert_eq!(
             render(&Node::Multiscript {
                 base: &Node::SingleLetterIdent('x', false),
-                sub: &Node::Number("1"),
+                sub: Some(&Node::Number("1")),
+                sup: None,
             }),
             "<mmultiscripts><mi>x</mi><mprescripts/><mn>1</mn><mrow></mrow></mmultiscripts>"
         );
