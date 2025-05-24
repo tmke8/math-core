@@ -266,7 +266,7 @@ where
             Token::OpLessThan => Node::OpLessThan,
             Token::OpAmpersand => Node::OpAmpersand,
             Token::PseudoOperator(name) => {
-                return self.make_pseudo_operator(name, prev_state);
+                return self.make_pseudo_operator(name, &prev_state);
             }
             Token::Space(space) => Node::Space(space),
             Token::CustomSpace => {
@@ -449,7 +449,7 @@ where
                         symbol: under,
                     }
                 } else {
-                    return self.make_pseudo_operator(name, prev_state);
+                    return self.make_pseudo_operator(name, &prev_state);
                 }
             }
             Token::Slashed => {
@@ -747,7 +747,7 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Node::SingleLetterIdent(ch, true)
                 } else {
-                    return self.make_pseudo_operator(letters, prev_state);
+                    return self.make_pseudo_operator(letters, &prev_state);
                 }
             }
             Token::Text(transform) => {
@@ -1059,7 +1059,7 @@ where
     fn make_pseudo_operator(
         &mut self,
         name: &'arena str,
-        prev_state: SequenceState,
+        prev_state: &SequenceState,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         Ok(self.commit(Node::PseudoOp {
             name,
