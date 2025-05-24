@@ -3,16 +3,16 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Pr j, \\hom l, \\lVert z \\rVert, \\arg z"
 ---
 <math>
-    <mi>Pr</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">Pr</mo>
     <mi>j</mi>
     <mo>,</mo>
-    <mi>hom</mi>
+    <mo lspace="0" rspace="0.1667em">hom</mo>
     <mi>l</mi>
     <mo>,</mo>
     <mi>‖</mi>
     <mi>z</mi>
     <mi>‖</mi>
     <mo>,</mo>
-    <mi>arg</mi>
+    <mo lspace="0" rspace="0.1667em">arg</mo>
     <mi>z</mi>
 </math>

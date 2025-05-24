@@ -29,6 +29,8 @@ pub enum OpAttr {
     StretchyFalse,
     #[strum(serialize = r#" movablelimits="false""#)]
     NoMovableLimits,
+    #[strum(serialize = r#" movablelimits="true""#)]
+    ForceMovableLimits,
     #[strum(serialize = r#" form="prefix""#)]
     FormPrefix,
 }
@@ -100,6 +102,8 @@ pub enum Style {
 pub enum MathSpacing {
     #[strum(serialize = "0")]
     Zero = 1,
+    #[strum(serialize = "0.1667em")]
+    ThreeMu, // 3/18 of an em/\quad
     #[strum(serialize = "0.2222em")]
     FourMu, // 4/18 of an em/\quad
 }

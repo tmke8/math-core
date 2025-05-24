@@ -3,21 +3,21 @@ source: math-core/tests/wiki_test.rs
 expression: "\\sin a, \\cos b, \\tan c, \\cot d, \\sec e, \\csc f"
 ---
 <math>
-    <mi>sin</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">sin</mo>
     <mi>a</mi>
     <mo>,</mo>
-    <mi>cos</mi>
+    <mo lspace="0" rspace="0.1667em">cos</mo>
     <mi>b</mi>
     <mo>,</mo>
-    <mi>tan</mi>
+    <mo lspace="0" rspace="0.1667em">tan</mo>
     <mi>c</mi>
     <mo>,</mo>
-    <mi>cot</mi>
+    <mo lspace="0" rspace="0.1667em">cot</mo>
     <mi>d</mi>
     <mo>,</mo>
-    <mi>sec</mi>
+    <mo lspace="0" rspace="0.1667em">sec</mo>
     <mi>e</mi>
     <mo>,</mo>
-    <mi>csc</mi>
+    <mo lspace="0" rspace="0.1667em">csc</mo>
     <mi>f</mi>
 </math>

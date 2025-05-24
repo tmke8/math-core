@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\det(\\mathsf{A}-\\lambda\\mathsf{I}) = 0"
 ---
 <math>
-    <mi>det</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">det</mo>
     <mo stretchy="false">(</mo>
     <mi>𝖠</mi>
     <mo>−</mo>

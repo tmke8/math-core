@@ -3,12 +3,12 @@ source: math-core/tests/wiki_test.rs
 expression: "\\lim u, \\liminf v, \\limsup w"
 ---
 <math>
-    <mi>lim</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">lim</mo>
     <mi>u</mi>
     <mo>,</mo>
-    <mi>lim inf</mi>
+    <mo lspace="0" rspace="0.1667em">lim inf</mo>
     <mi>v</mi>
     <mo>,</mo>
-    <mi>lim sup</mi>
+    <mo lspace="0" rspace="0.1667em">lim sup</mo>
     <mi>w</mi>
 </math>

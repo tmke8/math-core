@@ -58,7 +58,8 @@ pub enum Token<'source> {
     Integral(Big),
     #[strum(serialize = r"\limits")]
     Limits,
-    Lim(&'static str),
+    // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
+    PseudoOperatorLimits(&'static str),
     Space(Length),
     CustomSpace,
     #[strum(serialize = "~")]
@@ -86,7 +87,8 @@ pub enum Token<'source> {
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),
-    Function(&'static str),
+    // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
+    PseudoOperator(&'static str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,

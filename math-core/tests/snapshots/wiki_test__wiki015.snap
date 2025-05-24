@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\sgn r, \\left\\vert s \\right\\vert"
 ---
 <math>
-    <mi>sgn</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">sgn</mo>
     <mi>r</mi>
     <mo>,</mo>
     <mrow>

@@ -3,5 +3,5 @@ source: math-core/src/lib.rs
 expression: "\\operatorname{arg\\,max}"
 ---
 <math>
-    <mi>arg max</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">arg max</mo>
 </math>

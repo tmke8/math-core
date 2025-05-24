@@ -5,7 +5,7 @@ expression: "\\mathit{a\\operatorname{bc}d}"
 <math>
     <mrow>
         <mi>𝑎</mi>
-        <mi>bc</mi>
+        <mo lspace="0.1667em" rspace="0.1667em">bc</mo>
         <mi>𝑑</mi>
     </mrow>
 </math>

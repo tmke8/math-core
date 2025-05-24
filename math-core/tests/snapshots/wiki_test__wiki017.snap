@@ -3,15 +3,15 @@ source: math-core/tests/wiki_test.rs
 expression: "\\min x, \\max y, \\inf s, \\sup t"
 ---
 <math>
-    <mi>min</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">min</mo>
     <mi>x</mi>
     <mo>,</mo>
-    <mi>max</mi>
+    <mo lspace="0" rspace="0.1667em">max</mo>
     <mi>y</mi>
     <mo>,</mo>
-    <mi>inf</mi>
+    <mo lspace="0" rspace="0.1667em">inf</mo>
     <mi>s</mi>
     <mo>,</mo>
-    <mi>sup</mi>
+    <mo lspace="0" rspace="0.1667em">sup</mo>
     <mi>t</mi>
 </math>

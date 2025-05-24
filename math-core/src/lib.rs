@@ -234,6 +234,7 @@ mod tests {
             ("integral_with_upper_limit", r"\int\limits^1 dx"),
             ("integral_with_reversed_limits", r"\int\limits^1_0 dx"),
             ("integral_pointless_limits", r"\int\limits dx"),
+            ("max_with_limits", r"\max\limits_x"),
             ("bold_font", r"\bm{x}"),
             ("black_board_font", r"\mathbb{R}"),
             ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),

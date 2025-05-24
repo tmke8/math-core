@@ -5,7 +5,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
 <math>
     <mrow>
         <mi>𝑎𝑏</mi>
-        <mi>max</mi>
+        <mo lspace="0.1667em" rspace="0.1667em">max</mo>
         <mi>𝛼𝛽</mi>
     </mrow>
 </math>

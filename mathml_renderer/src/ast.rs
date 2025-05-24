@@ -30,7 +30,12 @@ pub enum Node<'arena> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    MultiLetterIdent(&'arena str),
+    PseudoOp {
+        attr: Option<OpAttr>,
+        left: MathSpacing,
+        right: MathSpacing,
+        name: &'arena str,
+    },
     CollectedLetters(&'arena str),
     Space(Length),
     Subscript {
@@ -267,8 +272,22 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 write!(self.s, ">{}</mo>", char::from(op))?;
             }
-            Node::MultiLetterIdent(letters) => {
-                write!(self.s, "<mi>{letters}</mi>")?;
+            Node::PseudoOp {
+                attr,
+                left,
+                right,
+                name: text,
+            } => {
+                write!(
+                    self.s,
+                    r#"<mo lspace="{}" rspace="{}""#,
+                    <&str>::from(left),
+                    <&str>::from(right)
+                )?;
+                if let Some(attr) = attr {
+                    write!(self.s, "{}", <&str>::from(attr))?;
+                }
+                write!(self.s, ">{text}</mo>")?;
             }
             node @ (Node::CollectedLetters(letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
@@ -608,6 +627,7 @@ mod tests {
     };
     use crate::length::{Length, LengthUnit, LengthValue};
     use crate::symbol;
+    use crate::table::{ArraySpec, ColumnAlignment, ColumnSpec};
 
     pub fn render<'a, 'b>(node: &'a Node<'b>) -> String
     where
@@ -698,8 +718,16 @@ mod tests {
     }
 
     #[test]
-    fn render_multi_letter_ident() {
-        assert_eq!(render(&Node::MultiLetterIdent("sin")), "<mi>sin</mi>");
+    fn render_pseudo_operator() {
+        assert_eq!(
+            render(&Node::PseudoOp {
+                attr: None,
+                left: MathSpacing::ThreeMu,
+                right: MathSpacing::ThreeMu,
+                name: "sin"
+            }),
+            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">sin</mo>"
+        );
     }
 
     #[test]
@@ -796,9 +824,14 @@ mod tests {
         assert_eq!(
             render(&Node::Underset {
                 symbol: &Node::SingleLetterIdent('θ', false),
-                target: &Node::MultiLetterIdent("min"),
+                target: &Node::PseudoOp {
+                    attr: None,
+                    left: MathSpacing::ThreeMu,
+                    right: MathSpacing::ThreeMu,
+                    name: "min",
+                },
             }),
-            "<munder><mi>min</mi><mi>θ</mi></munder>"
+            "<munder><mo lspace=\"0.166667em\" rspace=\"0.166667em\" movablelimits=\"true\">min</mo><mi>θ</mi></munder>"
         );
     }
 
@@ -999,6 +1032,35 @@ mod tests {
     }
 
     #[test]
+    fn render_array() {
+        let nodes = [
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator,
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
+        ];
+
+        assert_eq!(
+            render(&Node::Array {
+                style: None,
+                content: &nodes,
+                array_spec: &ArraySpec {
+                    beginning_line: None,
+                    is_sub: false,
+                    column_spec: &[
+                        ColumnSpec::WithContent(ColumnAlignment::LeftJustified, None),
+                        ColumnSpec::WithContent(ColumnAlignment::Centered, None),
+                    ],
+                },
+            }),
+            "<mtable><mtr><mtd style=\"text-align: -webkit-left;text-align: -moz-left;\"><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: -webkit-left;text-align: -moz-left;\"><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
     fn render_slashed() {
         assert_eq!(
             render(&Node::Slashed(&Node::SingleLetterIdent('x', false))),
@@ -1043,9 +1105,14 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::MultiLetterIdent("abc"),
+                content: &Node::PseudoOp {
+                    name: "abc",
+                    attr: None,
+                    left: MathSpacing::ThreeMu,
+                    right: MathSpacing::ThreeMu,
+                }
             }),
-            "<mi>abc</mi>"
+            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">abc</mo>"
         );
         assert_eq!(
             render(&Node::TextTransform {
@@ -1071,9 +1138,14 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::MultiLetterIdent("abc"),
+                content: &Node::PseudoOp {
+                    name: "abc",
+                    attr: None,
+                    left: MathSpacing::ThreeMu,
+                    right: MathSpacing::ThreeMu,
+                },
             }),
-            "<mi>abc</mi>"
+            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">abc</mo>"
         );
     }
 }
