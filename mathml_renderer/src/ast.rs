@@ -734,7 +734,7 @@ mod tests {
                 left: None,
                 right: None,
             }),
-            "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
+            "<mo form=\"prefix\">+</mo>"
         );
         assert_eq!(
             render(&Node::Operator {
@@ -743,7 +743,7 @@ mod tests {
                 left: None,
                 right: None,
             }),
-            "<mo movablelimits=\"LetterAttr::Default\">∑</mo>"
+            "<mo movablelimits=\"false\">∑</mo>"
         );
     }
 
@@ -871,7 +871,7 @@ mod tests {
                     name: "min",
                 },
             }),
-            "<munder><mo lspace=\"0.1667em\" rspace=\"0.1667em\" movablelimits=\"true\">min</mo><mi>θ</mi></munder>"
+            "<munder><mo movablelimits=\"true\" lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
         );
     }
 
