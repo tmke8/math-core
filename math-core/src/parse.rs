@@ -4,7 +4,8 @@ use mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
+        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
+        TextTransform,
     },
     length::{Length, LengthUnit},
     symbol,
@@ -212,7 +213,7 @@ where
                 builder.push_char(number as u8 as char);
                 if !wants_arg {
                     // Consume tokens as long as they are `Token::Number` or
-                    // `Token::Letter(symbol::FULL_STOP)` or `Token::Operator(symbol::COMMA)`,
+                    // `Token::Letter('.')` or `Token::Punctuation(symbol::COMMA)`,
                     // but only if the token *after that* is a digit.
                     loop {
                         let ch = if let Token::Number(number) = self.peek.token() {
@@ -239,8 +240,8 @@ where
                 }
                 Node::Number(builder.finish(self.arena))
             }
-            Token::Letter(x) => Node::IdentifierChar(x, false),
-            Token::UprightLetter(x) => Node::IdentifierChar(x, true),
+            Token::Letter(x) => Node::IdentifierChar(x, LetterAttr::Default),
+            Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
             Token::Relation(relation) => {
                 if let Some(state) = sequence_state {
                     state.is_relation = true;
@@ -257,8 +258,9 @@ where
                 } else {
                     None
                 };
-                Node::OperatorWithSpacing {
+                Node::Operator {
                     op: relation.into(),
+                    attr: None,
                     left,
                     right,
                 }
@@ -267,20 +269,47 @@ where
                 if let Some(state) = sequence_state {
                     state.is_punctuation = true;
                 };
-                Node::Operator(punc.into(), None)
+                Node::Operator {
+                    op: punc.into(),
+                    attr: None,
+                    left: None,
+                    right: None,
+                }
             }
-            Token::Ord(ord) => Node::Operator(ord, None),
-            Token::BinaryOp(binary_op) => Node::Operator(
-                binary_op.into(),
-                if prev_state.is_relation || prev_state.is_punctuation {
+            Token::Ord(ord) => Node::Operator {
+                op: ord,
+                attr: None,
+                left: None,
+                right: None,
+            },
+            Token::BinaryOp(binary_op) => Node::Operator {
+                op: binary_op.into(),
+                attr: if prev_state.is_relation || prev_state.is_punctuation {
                     Some(OpAttr::FormPrefix)
                 } else {
                     None
                 },
-            ),
-            Token::OpGreaterThan => Node::OpGreaterThan,
-            Token::OpLessThan => Node::OpLessThan,
-            Token::OpAmpersand => Node::OpAmpersand,
+                left: None,
+                right: None,
+            },
+            Token::OpGreaterThan => Node::PseudoOp {
+                name: "&gt;",
+                attr: None,
+                left: None,
+                right: None,
+            },
+            Token::OpLessThan => Node::PseudoOp {
+                name: "&lt;",
+                attr: None,
+                left: None,
+                right: None,
+            },
+            Token::OpAmpersand => Node::PseudoOp {
+                name: "&amp;",
+                attr: None,
+                left: None,
+                right: None,
+            },
             Token::PseudoOperator(name) => {
                 return self.make_pseudo_operator(name, &prev_state);
             }
@@ -400,7 +429,12 @@ where
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(true)?;
-                let symbol = self.commit(Node::Operator(x, None));
+                let symbol = self.commit(Node::Operator {
+                    op: x,
+                    attr: None,
+                    left: None,
+                    right: None,
+                });
                 let base = if is_over {
                     Node::Overset { symbol, target }
                 } else {
@@ -430,9 +464,19 @@ where
             Token::BigOp(op) => {
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    self.commit(Node::Operator(op.into(), Some(OpAttr::NoMovableLimits)))
+                    self.commit(Node::Operator {
+                        op: op.into(),
+                        attr: Some(OpAttr::NoMovableLimits),
+                        left: None,
+                        right: None,
+                    })
                 } else {
-                    self.commit(Node::Operator(op.into(), None))
+                    self.commit(Node::Operator {
+                        op: op.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    })
                 };
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
@@ -456,8 +500,8 @@ where
                     let target = self.commit(Node::PseudoOp {
                         name,
                         attr: movablelimits,
-                        left: MathSpacing::ThreeMu,
-                        right: MathSpacing::ThreeMu,
+                        left: Some(MathSpacing::ThreeMu),
+                        right: Some(MathSpacing::ThreeMu),
                     });
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_next(true)?;
@@ -478,13 +522,33 @@ where
                 match self.next_token().into_token() {
                     Token::Relation(op) => {
                         if let Some(negated) = get_negated_op(op) {
-                            Node::Operator(negated.into(), None)
+                            Node::Operator {
+                                op: negated.into(),
+                                attr: None,
+                                left: None,
+                                right: None,
+                            }
                         } else {
-                            Node::Operator(op.into(), None)
+                            Node::Operator {
+                                op: op.into(),
+                                attr: None,
+                                left: None,
+                                right: None,
+                            }
                         }
                     }
-                    Token::OpLessThan => Node::Operator(symbol::NOT_LESS_THAN.into(), None),
-                    Token::OpGreaterThan => Node::Operator(symbol::NOT_GREATER_THAN.into(), None),
+                    Token::OpLessThan => Node::Operator {
+                        op: symbol::NOT_LESS_THAN.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    },
+                    Token::OpGreaterThan => Node::Operator {
+                        op: symbol::NOT_GREATER_THAN.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    },
                     Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
@@ -516,7 +580,12 @@ where
             Token::Integral(int) => {
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
-                    let target = self.commit(Node::Operator(int.into(), None));
+                    let target = self.commit(Node::Operator {
+                        op: int.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    });
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
@@ -528,7 +597,12 @@ where
                         Bounds(None, None) => return Ok(target),
                     }
                 } else {
-                    let target = self.commit(Node::Operator(int.into(), None));
+                    let target = self.commit(Node::Operator {
+                        op: int.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    });
                     match self.get_bounds()? {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
@@ -540,20 +614,27 @@ where
             Token::Colon => match &self.peek.token() {
                 Token::Relation(symbol::EQUALS_SIGN) if !wants_arg => {
                     self.next_token(); // Discard the equals_sign token.
-                    Node::Operator(symbol::COLON_EQUALS.into(), None)
+                    Node::Operator {
+                        op: symbol::COLON_EQUALS.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    }
                 }
                 Token::Relation(symbol::IDENTICAL_TO) if !wants_arg => {
                     if let Some(state) = sequence_state {
                         state.is_colon = true;
                     };
-                    Node::OperatorWithSpacing {
+                    Node::Operator {
                         op: symbol::COLON.into(),
+                        attr: None,
                         left: Some(MathSpacing::FourMu),
                         right: Some(MathSpacing::Zero),
                     }
                 }
-                _ => Node::OperatorWithSpacing {
+                _ => Node::Operator {
                     op: symbol::COLON.into(),
+                    attr: None,
                     left: Some(MathSpacing::FourMu),
                     right: Some(MathSpacing::FourMu),
                 },
@@ -762,7 +843,7 @@ where
                 // Discard the last token.
                 self.next_token();
                 if let Some(ch) = get_single_char(letters) {
-                    Node::IdentifierChar(ch, true)
+                    Node::IdentifierChar(ch, LetterAttr::Upright)
                 } else {
                     return self.make_pseudo_operator(letters, &prev_state);
                 }
@@ -827,7 +908,12 @@ where
                     nodes: &[],
                     attr: RowAttr::None,
                 });
-                let symbol = self.commit(Node::Operator(symbol::PRIME, None));
+                let symbol = self.commit(Node::Operator {
+                    op: symbol::PRIME,
+                    attr: None,
+                    left: None,
+                    right: None,
+                });
                 Node::Superscript { target, symbol }
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
@@ -884,7 +970,7 @@ where
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
-                    Node::IdentifierChar(collected_letter, false)
+                    Node::IdentifierChar(collected_letter, LetterAttr::Default)
                 }
                 LetterCollector::FinishedManyLetters { collected_letters } => {
                     self.collector = LetterCollector::Collecting;
@@ -1024,10 +1110,20 @@ where
         if prime_count > 0 {
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
-                primes.push(self.commit(Node::Operator(*op, None)));
+                primes.push(self.commit(Node::Operator {
+                    op: *op,
+                    attr: None,
+                    left: None,
+                    right: None,
+                }));
             } else {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator(symbol::PRIME, None)));
+                    primes.push(self.commit(Node::Operator {
+                        op: symbol::PRIME,
+                        attr: None,
+                        left: None,
+                        right: None,
+                    }));
                 }
             }
         }
@@ -1095,9 +1191,9 @@ where
             name,
             attr: None,
             left: if prev_state.is_relation || prev_state.is_punctuation {
-                MathSpacing::Zero
+                Some(MathSpacing::Zero)
             } else {
-                MathSpacing::ThreeMu
+                Some(MathSpacing::ThreeMu)
             },
             right: if matches!(
                 self.peek.token(),
@@ -1107,9 +1203,9 @@ where
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
             ) {
-                MathSpacing::Zero
+                Some(MathSpacing::Zero)
             } else {
-                MathSpacing::ThreeMu
+                Some(MathSpacing::ThreeMu)
             },
         }))
     }

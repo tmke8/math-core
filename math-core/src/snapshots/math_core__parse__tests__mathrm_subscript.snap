@@ -8,12 +8,12 @@ expression: "\\mathrm{x_x y_y}"
     content: Row(
       nodes: [
         Subscript(
-          target: SingleLetterIdent('x', false),
-          symbol: SingleLetterIdent('x', false),
+          target: IdentifierChar('x', Default),
+          symbol: IdentifierChar('x', Default),
         ),
         Subscript(
-          target: SingleLetterIdent('y', false),
-          symbol: SingleLetterIdent('y', false),
+          target: IdentifierChar('y', Default),
+          symbol: IdentifierChar('y', Default),
         ),
       ],
       attr: None,

@@ -4,7 +4,7 @@ expression: "\\max\\limits_x"
 ---
 <math>
     <munder>
-        <mo lspace="0.1667em" rspace="0.1667em" movablelimits="false">max</mo>
+        <mo movablelimits="false" lspace="0.1667em" rspace="0.1667em">max</mo>
         <mi>x</mi>
     </munder>
 </math>

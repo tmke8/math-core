@@ -3,16 +3,23 @@ source: math-core/src/parse.rs
 expression: ":2=:="
 ---
 [
-  OperatorWithSpacing(
+  Operator(
     op: Op(':'),
+    attr: None,
     left: Some(FourMu),
     right: Some(FourMu),
   ),
   Number("2"),
-  OperatorWithSpacing(
+  Operator(
     op: Op('='),
+    attr: None,
     left: None,
     right: None,
   ),
-  Operator(Op('≔'), None),
+  Operator(
+    op: Op('≔'),
+    attr: None,
+    left: None,
+    right: None,
+  ),
 ]

@@ -1,6 +1,6 @@
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{
-    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
+    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
 };
 use mathml_renderer::symbol::{self, Rel};
 
@@ -69,7 +69,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Psi" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_PSI),
     "RR" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Transform(TextTransform::DoubleStruck),
-        content: &Node::IdentifierChar('R', false),
+        content: &Node::IdentifierChar('R', LetterAttr::Default),
     }),
     "Re" => Token::Letter('ℜ'),
     "Rho" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_RHO),
@@ -187,13 +187,24 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cdot" => Token::BinaryOp(symbol::MIDDLE_DOT),
     "cdots" => Token::CustomCmd(0, &Node::Row {
         nodes: &[
-            &Node::Operator(symbol::MIDDLE_DOT.as_op(), None),
-            &Node::OperatorWithSpacing {
+            &Node::Operator {
                 op:symbol::MIDDLE_DOT.as_op(),
+                attr: None,
+                left: None,
+                right: None,
+            },
+            &Node::Operator {
+                op:symbol::MIDDLE_DOT.as_op(),
+                attr: None,
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
-            &Node::Operator(symbol::MIDDLE_DOT.as_op(), None),
+            &Node::Operator {
+                op:symbol::MIDDLE_DOT.as_op(),
+                attr: None,
+                left: None,
+                right: None,
+            },
         ],
         attr: RowAttr::None
     }),
@@ -235,7 +246,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curvearrowright" => Token::Relation(symbol::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "d" => Token::CustomCmd(0, &Node::TextTransform {
         tf: MathVariant::Normal,
-        content: &Node::IdentifierChar('d', false),
+        content: &Node::IdentifierChar('d', LetterAttr::Default),
     }),
     "dag" => Token::Letter(symbol::DAGGER),
     "dagger" => Token::Letter(symbol::DAGGER),

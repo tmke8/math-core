@@ -9,9 +9,9 @@ expression: "\\mathrm{\\mathit{a}b}"
       nodes: [
         TextTransform(
           tf: Transform(Italic),
-          content: SingleLetterIdent('a', false),
+          content: IdentifierChar('a', Default),
         ),
-        SingleLetterIdent('b', false),
+        IdentifierChar('b', Default),
       ],
       attr: None,
     ),

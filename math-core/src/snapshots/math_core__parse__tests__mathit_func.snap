@@ -7,14 +7,14 @@ expression: "\\mathit{ab \\log cd}"
     tf: Transform(Italic),
     content: Row(
       nodes: [
-        CollectedLetters("ab"),
+        IdentifierStr("ab"),
         PseudoOp(
           attr: None,
-          left: ThreeMu,
-          right: ThreeMu,
+          left: Some(ThreeMu),
+          right: Some(ThreeMu),
           name: "log",
         ),
-        CollectedLetters("cd"),
+        IdentifierStr("cd"),
       ],
       attr: None,
     ),

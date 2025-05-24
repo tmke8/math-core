@@ -7,8 +7,8 @@ expression: "\\boldsymbol{\\Gamma\\varGamma}"
     tf: Transform(BoldItalic),
     content: Row(
       nodes: [
-        SingleLetterIdent('Γ', true),
-        SingleLetterIdent('Γ', false),
+        IdentifierChar('Γ', Upright),
+        IdentifierChar('Γ', Default),
       ],
       attr: None,
     ),

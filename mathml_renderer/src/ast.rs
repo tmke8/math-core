@@ -5,8 +5,8 @@ use std::mem;
 use serde::Serialize;
 
 use crate::attribute::{
-    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy, Style,
-    TextTransform,
+    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy,
+    Style, TextTransform,
 };
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
@@ -21,21 +21,20 @@ pub enum Node<'arena> {
     /// `<mn>...</mn>`
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
-    IdentifierChar(char, bool),
-    Operator(Op, Option<OpAttr>),
+    IdentifierChar(char, LetterAttr),
     StretchableOp(&'static Fence, StretchMode),
-    OpGreaterThan,
-    OpLessThan,
-    OpAmpersand,
-    OperatorWithSpacing {
+    /// `<mo>...</mo>` for a single character.
+    Operator {
         op: Op,
+        attr: Option<OpAttr>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
+    /// `<mo>...</mo>` for a string.
     PseudoOp {
         attr: Option<OpAttr>,
-        left: MathSpacing,
-        right: MathSpacing,
+        left: Option<MathSpacing>,
+        right: Option<MathSpacing>,
         name: &'arena str,
     },
     /// `<mi>...</mi>` for a string.
@@ -58,7 +57,9 @@ pub enum Node<'arena> {
         sub: &'arena Node<'arena>,
         sup: &'arena Node<'arena>,
     },
+    /// `<mover accent="true">...</mover>`
     OverOp(Op, Option<OpAttr>, &'arena Node<'arena>),
+    /// `<munder accent="true">...</munder>`
     UnderOp(Op, &'arena Node<'arena>),
     /// `<mover>...</mover>`
     Overset {
@@ -105,6 +106,7 @@ pub enum Node<'arena> {
     SizedParen(Size, &'static Fence),
     /// `<mtext>...</mtext>`
     Text(&'arena str),
+    /// `<mtable>...</mtable>`
     Table {
         content: &'arena [&'arena Node<'arena>],
         align: Alignment,
@@ -115,7 +117,9 @@ pub enum Node<'arena> {
         content: &'arena [&'arena Node<'arena>],
         array_spec: &'arena ArraySpec<'arena>,
     },
+    /// `<mtd>...</mtd>`
     ColumnSeparator,
+    /// `<mtr>...</mtr>`
     RowSeparator,
     Slashed(&'arena Node<'arena>),
     Multiscript {
@@ -211,10 +215,11 @@ impl<'arena> MathMLEmitter<'arena> {
                     write!(self.s, "<mn>{number}</mn>")?;
                 }
             }
-            Node::IdentifierChar(letter, is_upright) => {
+            Node::IdentifierChar(letter, attr) => {
                 // The identifier is "normal" if either `is_upright` is set,
                 // or the global `self.var` is set to `MathVariant::Normal`.
-                let is_normal = *is_upright || matches!(self.var, Some(MathVariant::Normal));
+                let is_normal = matches!(attr, LetterAttr::Upright)
+                    || matches!(self.var, Some(MathVariant::Normal));
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
                     write!(self.s, "<mi mathvariant=\"normal\">")?;
@@ -245,13 +250,6 @@ impl<'arena> MathMLEmitter<'arena> {
                 self.emit(content, base_indent)?;
                 self.var = old_var;
             }
-            Node::Operator(op, attributes) => {
-                match attributes {
-                    Some(attributes) => write!(self.s, "<mo{}>", <&str>::from(attributes))?,
-                    None => write!(self.s, "<mo>")?,
-                };
-                write!(self.s, "{}</mo>", op.as_char())?;
-            }
             Node::StretchableOp(op, stretch_mode) => {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     write!(self.s, "<mi>{}</mi>", char::from(*op))?;
@@ -259,32 +257,32 @@ impl<'arena> MathMLEmitter<'arena> {
                     self.emit_stretchy_op(*stretch_mode, op)?;
                 }
             }
-            node @ (Node::OpGreaterThan | Node::OpLessThan | Node::OpAmpersand) => {
-                let op = match node {
-                    Node::OpGreaterThan => "&gt;",
-                    Node::OpLessThan => "&lt;",
-                    Node::OpAmpersand => "&amp;",
-                    _ => unreachable!(),
+            Node::Operator {
+                op,
+                attr,
+                left,
+                right,
+            } => {
+                match attr {
+                    Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
+                    None => write!(self.s, "<mo")?,
                 };
-                write!(self.s, "<mo>{op}</mo>")?;
-            }
-            Node::OperatorWithSpacing { op, left, right } => {
                 match (left, right) {
                     (Some(left), Some(right)) => {
                         write!(
                             self.s,
-                            "<mo lspace=\"{}\" rspace=\"{}\"",
+                            " lspace=\"{}\" rspace=\"{}\"",
                             <&str>::from(left),
                             <&str>::from(right)
                         )?;
                     }
                     (Some(left), None) => {
-                        write!(self.s, "<mo lspace=\"{}\"", <&str>::from(left))?;
+                        write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
                     }
                     (None, Some(right)) => {
-                        write!(self.s, "<mo rspace=\"{}\"", <&str>::from(right))?;
+                        write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
                     }
-                    (None, None) => self.s.push_str("<mo"),
+                    _ => {}
                 }
                 write!(self.s, ">{}</mo>", char::from(op))?;
             }
@@ -294,14 +292,26 @@ impl<'arena> MathMLEmitter<'arena> {
                 right,
                 name: text,
             } => {
-                write!(
-                    self.s,
-                    r#"<mo lspace="{}" rspace="{}""#,
-                    <&str>::from(left),
-                    <&str>::from(right)
-                )?;
-                if let Some(attr) = attr {
-                    write!(self.s, "{}", <&str>::from(attr))?;
+                match attr {
+                    Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
+                    None => write!(self.s, "<mo")?,
+                };
+                match (left, right) {
+                    (Some(left), Some(right)) => {
+                        write!(
+                            self.s,
+                            " lspace=\"{}\" rspace=\"{}\"",
+                            <&str>::from(left),
+                            <&str>::from(right)
+                        )?;
+                    }
+                    (Some(left), None) => {
+                        write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
+                    }
+                    (None, Some(right)) => {
+                        write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
+                    }
+                    _ => {}
                 }
                 write!(self.s, ">{text}</mo>")?;
             }
@@ -496,15 +506,17 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
-                Node::IdentifierChar(x, is_upright) => {
-                    if *is_upright || matches!(self.var, Some(MathVariant::Normal)) {
+                Node::IdentifierChar(x, attr) => {
+                    if matches!(attr, LetterAttr::Upright)
+                        || matches!(self.var, Some(MathVariant::Normal))
+                    {
                         write!(self.s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
                     } else {
                         write!(self.s, "<mi>{x}&#x0338;</mi>")?;
                     }
                 }
-                Node::Operator(x, _) => {
-                    write!(self.s, "<mo>{}&#x0338;</mo>", char::from(x))?;
+                Node::Operator { op, .. } => {
+                    write!(self.s, "<mo>{}&#x0338;</mo>", char::from(op))?;
                 }
                 n => self.emit(n, base_indent)?,
             },
@@ -647,7 +659,7 @@ impl Default for MathMLEmitter<'static> {
 mod tests {
     use super::{MathMLEmitter, Node};
     use crate::attribute::{
-        FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Style, TextTransform,
+        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Style, TextTransform,
     };
     use crate::length::{Length, LengthUnit, LengthValue};
     use crate::symbol;
@@ -669,73 +681,69 @@ mod tests {
 
     #[test]
     fn render_single_letter_ident() {
-        assert_eq!(render(&Node::IdentifierChar('x', false)), "<mi>x</mi>");
         assert_eq!(
-            render(&Node::IdentifierChar('Γ', true)),
+            render(&Node::IdentifierChar('x', LetterAttr::Default)),
+            "<mi>x</mi>"
+        );
+        assert_eq!(
+            render(&Node::IdentifierChar('Γ', LetterAttr::Upright)),
             "<mi mathvariant=\"normal\">Γ</mi>"
         );
 
         let mut emitter = MathMLEmitter::new();
         emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
-        emitter.emit(&Node::IdentifierChar('L', false), 0).unwrap();
+        emitter
+            .emit(&Node::IdentifierChar('L', LetterAttr::Default), 0)
+            .unwrap();
         assert_eq!(emitter.into_inner(), "<mi>ℒ︁</mi>");
-    }
-
-    #[test]
-    fn render_operator() {
-        assert_eq!(
-            render(&Node::Operator(symbol::EQUALS_SIGN.into(), None)),
-            "<mo>=</mo>"
-        );
-        assert_eq!(
-            render(&Node::Operator(
-                symbol::N_ARY_SUMMATION.into(),
-                Some(OpAttr::NoMovableLimits)
-            )),
-            "<mo movablelimits=\"false\">∑</mo>"
-        );
-    }
-
-    #[test]
-    fn render_op_greater_than() {
-        assert_eq!(render(&Node::OpGreaterThan), "<mo>&gt;</mo>");
-    }
-
-    #[test]
-    fn render_op_less_than() {
-        assert_eq!(render(&Node::OpLessThan), "<mo>&lt;</mo>");
-    }
-
-    #[test]
-    fn render_op_ampersand() {
-        assert_eq!(render(&Node::OpAmpersand), "<mo>&amp;</mo>");
     }
 
     #[test]
     fn render_operator_with_spacing() {
         assert_eq!(
-            render(&Node::OperatorWithSpacing {
+            render(&Node::Operator {
                 op: symbol::COLON.into(),
+                attr: None,
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0.2222em\">:</mo>"
         );
         assert_eq!(
-            render(&Node::OperatorWithSpacing {
+            render(&Node::Operator {
                 op: symbol::COLON.into(),
+                attr: None,
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
         );
         assert_eq!(
-            render(&Node::OperatorWithSpacing {
+            render(&Node::Operator {
                 op: symbol::IDENTICAL_TO.into(),
+                attr: None,
                 left: Some(MathSpacing::Zero),
                 right: None,
             }),
             "<mo lspace=\"0\">≡</mo>"
+        );
+        assert_eq!(
+            render(&Node::Operator {
+                op: symbol::PLUS_SIGN.into(),
+                attr: Some(OpAttr::FormPrefix),
+                left: None,
+                right: None,
+            }),
+            "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
+        );
+        assert_eq!(
+            render(&Node::Operator {
+                op: symbol::N_ARY_SUMMATION.into(),
+                attr: Some(OpAttr::NoMovableLimits),
+                left: None,
+                right: None,
+            }),
+            "<mo movablelimits=\"LetterAttr::Default\">∑</mo>"
         );
     }
 
@@ -744,8 +752,8 @@ mod tests {
         assert_eq!(
             render(&Node::PseudoOp {
                 attr: None,
-                left: MathSpacing::ThreeMu,
-                right: MathSpacing::ThreeMu,
+                left: Some(MathSpacing::ThreeMu),
+                right: Some(MathSpacing::ThreeMu),
                 name: "sin"
             }),
             "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">sin</mo>"
@@ -769,7 +777,7 @@ mod tests {
     fn render_subscript() {
         assert_eq!(
             render(&Node::Subscript {
-                target: &Node::IdentifierChar('x', false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msub><mi>x</mi><mn>2</mn></msub>"
@@ -780,7 +788,7 @@ mod tests {
     fn render_superscript() {
         assert_eq!(
             render(&Node::Superscript {
-                target: &Node::IdentifierChar('x', false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msup><mi>x</mi><mn>2</mn></msup>"
@@ -791,7 +799,7 @@ mod tests {
     fn render_sub_sup() {
         assert_eq!(
             render(&Node::SubSup {
-                target: &Node::IdentifierChar('x', false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 sub: &Node::Number("1"),
                 sup: &Node::Number("2"),
             }),
@@ -805,7 +813,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::MACRON.into(),
                 Some(OpAttr::StretchyFalse),
-                &Node::IdentifierChar('x', false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
@@ -813,7 +821,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::OVERLINE.into(),
                 None,
-                &Node::IdentifierChar('x', false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
@@ -824,7 +832,7 @@ mod tests {
         assert_eq!(
             render(&Node::UnderOp(
                 symbol::LOW_LINE.into(),
-                &Node::IdentifierChar('x', false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<munder accent=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
@@ -834,8 +842,18 @@ mod tests {
     fn render_overset() {
         assert_eq!(
             render(&Node::Overset {
-                symbol: &Node::Operator(symbol::EXCLAMATION_MARK.into(), None),
-                target: &Node::Operator(symbol::EQUALS_SIGN.into(), None),
+                symbol: &Node::Operator {
+                    op: symbol::EXCLAMATION_MARK.into(),
+                    attr: None,
+                    left: None,
+                    right: None
+                },
+                target: &Node::Operator {
+                    op: symbol::EQUALS_SIGN.into(),
+                    attr: None,
+                    left: None,
+                    right: None
+                },
             }),
             "<mover><mo>=</mo><mo>!</mo></mover>"
         );
@@ -845,11 +863,11 @@ mod tests {
     fn render_underset() {
         assert_eq!(
             render(&Node::Underset {
-                symbol: &Node::IdentifierChar('θ', false),
+                symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
                 target: &Node::PseudoOp {
                     attr: Some(OpAttr::ForceMovableLimits),
-                    left: MathSpacing::ThreeMu,
-                    right: MathSpacing::ThreeMu,
+                    left: Some(MathSpacing::ThreeMu),
+                    right: Some(MathSpacing::ThreeMu),
                     name: "min",
                 },
             }),
@@ -861,7 +879,7 @@ mod tests {
     fn render_under_over() {
         assert_eq!(
             render(&Node::UnderOver {
-                target: &Node::IdentifierChar('x', false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 under: &Node::Number("1"),
                 over: &Node::Number("2"),
             }),
@@ -872,7 +890,7 @@ mod tests {
     #[test]
     fn render_sqrt() {
         assert_eq!(
-            render(&Node::Sqrt(&Node::IdentifierChar('x', false))),
+            render(&Node::Sqrt(&Node::IdentifierChar('x', LetterAttr::Default))),
             "<msqrt><mi>x</mi></msqrt>"
         );
     }
@@ -882,7 +900,7 @@ mod tests {
         assert_eq!(
             render(&Node::Root(
                 &Node::Number("3"),
-                &Node::IdentifierChar('x', false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mroot><mi>x</mi><mn>3</mn></mroot>"
         );
@@ -981,8 +999,13 @@ mod tests {
     #[test]
     fn render_row() {
         let nodes = &[
-            &Node::IdentifierChar('x', false),
-            &Node::Operator(symbol::EQUALS_SIGN.into(), None),
+            &Node::IdentifierChar('x', LetterAttr::Default),
+            &Node::Operator {
+                op: symbol::EQUALS_SIGN.into(),
+                attr: None,
+                left: None,
+                right: None,
+            },
             &Node::Number("1"),
         ];
 
@@ -1085,7 +1108,10 @@ mod tests {
     #[test]
     fn render_slashed() {
         assert_eq!(
-            render(&Node::Slashed(&Node::IdentifierChar('x', false))),
+            render(&Node::Slashed(&Node::IdentifierChar(
+                'x',
+                LetterAttr::Default
+            ))),
             "<mi>x&#x0338;</mi>"
         );
     }
@@ -1094,7 +1120,7 @@ mod tests {
     fn render_multiscript() {
         assert_eq!(
             render(&Node::Multiscript {
-                base: &Node::IdentifierChar('x', false),
+                base: &Node::IdentifierChar('x', LetterAttr::Default),
                 sub: Some(&Node::Number("1")),
                 sup: None,
             }),
@@ -1107,14 +1133,14 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::IdentifierChar('a', true),
+                content: &Node::IdentifierChar('a', LetterAttr::Upright),
             }),
             "<mi mathvariant=\"normal\">a</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
-                content: &Node::IdentifierChar('a', false),
+                content: &Node::IdentifierChar('a', LetterAttr::Default),
             }),
             "<mi mathvariant=\"normal\">a</mi>"
         );
@@ -1131,8 +1157,8 @@ mod tests {
                 content: &Node::PseudoOp {
                     name: "abc",
                     attr: None,
-                    left: MathSpacing::ThreeMu,
-                    right: MathSpacing::ThreeMu,
+                    left: Some(MathSpacing::ThreeMu),
+                    right: Some(MathSpacing::ThreeMu),
                 }
             }),
             "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
@@ -1140,14 +1166,14 @@ mod tests {
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::IdentifierChar('a', true),
+                content: &Node::IdentifierChar('a', LetterAttr::Upright),
             }),
             "<mi>𝐚</mi>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::IdentifierChar('a', false),
+                content: &Node::IdentifierChar('a', LetterAttr::Default),
             }),
             "<mi>𝒂</mi>"
         );
@@ -1164,8 +1190,8 @@ mod tests {
                 content: &Node::PseudoOp {
                     name: "abc",
                     attr: None,
-                    left: MathSpacing::ThreeMu,
-                    right: MathSpacing::ThreeMu,
+                    left: Some(MathSpacing::ThreeMu),
+                    right: Some(MathSpacing::ThreeMu),
                 },
             }),
             "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"

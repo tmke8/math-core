@@ -3,28 +3,28 @@ source: math-core/src/lib.rs
 expression: "\\begin{array}{ |l| |rc| } 10 & 20 & 30\\\\ 4 & 5 & 6 \\end{array}"
 ---
 <math>
-    <mtable style="border-left: 0.05em solid black">
+    <mtable style="border-left: 0.05em solid currentcolor">
         <mtr>
-            <mtd style="text-align: -webkit-left;text-align: -moz-left;border-right: 0.05em solid black;">
+            <mtd style="text-align: -webkit-left;text-align: -moz-left;border-right: 0.05em solid currentcolor;">
                 <mn>10</mn>
             </mtd>
-            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
             <mtd style="text-align: -webkit-right;text-align: -moz-right;">
                 <mn>20</mn>
             </mtd>
-            <mtd style="border-right: 0.05em solid black;">
+            <mtd style="border-right: 0.05em solid currentcolor;">
                 <mn>30</mn>
             </mtd>
         </mtr>
         <mtr>
-            <mtd style="text-align: -webkit-left;text-align: -moz-left;border-right: 0.05em solid black;">
+            <mtd style="text-align: -webkit-left;text-align: -moz-left;border-right: 0.05em solid currentcolor;">
                 <mn>4</mn>
             </mtd>
-            <mtd style="border-right: 0.05em solid black;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
             <mtd style="text-align: -webkit-right;text-align: -moz-right;">
                 <mn>5</mn>
             </mtd>
-            <mtd style="border-right: 0.05em solid black;">
+            <mtd style="border-right: 0.05em solid currentcolor;">
                 <mn>6</mn>
             </mtd>
         </mtr>

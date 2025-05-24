@@ -1,6 +1,6 @@
 use mathml_renderer::{
     ast::Node::{self, *},
-    attribute::{MathSpacing, MathVariant, RowAttr, StretchMode},
+    attribute::{LetterAttr, MathSpacing, MathVariant, RowAttr, StretchMode},
     length::{Length, LengthUnit, LengthValue},
     symbol,
 };
@@ -36,7 +36,7 @@ pub static ODV: Node = Frac {
         nodes: &[
             &TextTransform {
                 tf: MathVariant::Normal,
-                content: &IdentifierChar('d', false),
+                content: &IdentifierChar('d', LetterAttr::Default),
             },
             &CustomCmdArg(0),
         ],
@@ -46,7 +46,7 @@ pub static ODV: Node = Frac {
         nodes: &[
             &TextTransform {
                 tf: MathVariant::Normal,
-                content: &IdentifierChar('d', false),
+                content: &IdentifierChar('d', LetterAttr::Default),
             },
             &CustomCmdArg(1),
         ],
@@ -73,8 +73,9 @@ pub static XRIGHTARROW: Node = Row {
     nodes: &[
         &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
         &Overset {
-            target: &OperatorWithSpacing {
+            target: &Operator {
                 op: symbol::RIGHTWARDS_ARROW.as_op(),
+                attr: None,
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
@@ -89,8 +90,9 @@ pub static XLEFTARROW: Node = Row {
     nodes: &[
         &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
         &Overset {
-            target: &OperatorWithSpacing {
+            target: &Operator {
                 op: symbol::LEFTWARDS_ARROW.as_op(),
+                attr: None,
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),
             },
@@ -103,13 +105,24 @@ pub static XLEFTARROW: Node = Row {
 
 pub static DOTS: Node = Row {
     nodes: &[
-        &Operator(symbol::FULL_STOP, None),
-        &OperatorWithSpacing {
+        &Operator {
             op: symbol::FULL_STOP,
+            attr: None,
+            left: None,
+            right: None,
+        },
+        &Operator {
+            op: symbol::FULL_STOP,
+            attr: None,
             left: Some(MathSpacing::Zero),
             right: Some(MathSpacing::Zero),
         },
-        &Operator(symbol::FULL_STOP, None),
+        &Operator {
+            op: symbol::FULL_STOP,
+            attr: None,
+            left: None,
+            right: None,
+        },
     ],
     attr: RowAttr::None,
 };
