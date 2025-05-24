@@ -726,7 +726,7 @@ mod tests {
                 right: MathSpacing::ThreeMu,
                 name: "sin"
             }),
-            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">sin</mo>"
+            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">sin</mo>"
         );
     }
 
@@ -825,13 +825,13 @@ mod tests {
             render(&Node::Underset {
                 symbol: &Node::SingleLetterIdent('θ', false),
                 target: &Node::PseudoOp {
-                    attr: None,
+                    attr: Some(OpAttr::ForceMovableLimits),
                     left: MathSpacing::ThreeMu,
                     right: MathSpacing::ThreeMu,
                     name: "min",
                 },
             }),
-            "<munder><mo lspace=\"0.166667em\" rspace=\"0.166667em\" movablelimits=\"true\">min</mo><mi>θ</mi></munder>"
+            "<munder><mo lspace=\"0.1667em\" rspace=\"0.1667em\" movablelimits=\"true\">min</mo><mi>θ</mi></munder>"
         );
     }
 
@@ -1112,7 +1112,7 @@ mod tests {
                     right: MathSpacing::ThreeMu,
                 }
             }),
-            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">abc</mo>"
+            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
         );
         assert_eq!(
             render(&Node::TextTransform {
@@ -1145,7 +1145,7 @@ mod tests {
                     right: MathSpacing::ThreeMu,
                 },
             }),
-            "<mo lspace=\"0.166667em\" rspace=\"0.166667em\">abc</mo>"
+            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
         );
     }
 }
