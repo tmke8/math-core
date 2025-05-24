@@ -805,16 +805,6 @@ where
             Token::UnknownCommand(name) => {
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
             }
-            // Token::Underscore | Token::Circumflex => {
-            Token::Circumflex => {
-                return Err(LatexError(
-                    loc,
-                    LatexErrKind::CannotBeUsedHere {
-                        got: cur_token,
-                        correct_place: Place::AfterOpOrIdent,
-                    },
-                ));
-            }
             Token::Prime => {
                 let target = self.commit(Node::Row {
                     nodes: &[],
@@ -823,10 +813,35 @@ where
                 let symbol = self.commit(Node::Operator(symbol::PRIME, None));
                 Node::Superscript { target, symbol }
             }
-            Token::Underscore => {
-                let sub = self.parse_next(true)?;
-                let base = self.parse_next(false)?;
-                Node::Multiscript { base, sub }
+            tok @ (Token::Underscore | Token::Circumflex) => {
+                let symbol = self.parse_next(true)?;
+                if !matches!(self.peek.token(), Token::EOF | Token::GroupEnd | Token::End) {
+                    let base = self.parse_next(false)?;
+                    let (sub, sup) = if matches!(tok, Token::Underscore) {
+                        (Some(symbol), None)
+                    } else {
+                        (None, Some(symbol))
+                    };
+                    Node::Multiscript { base, sub, sup }
+                } else {
+                    if matches!(tok, Token::Underscore) {
+                        Node::Subscript {
+                            target: self.commit(Node::Row {
+                                nodes: &[],
+                                attr: RowAttr::None,
+                            }),
+                            symbol,
+                        }
+                    } else {
+                        Node::Superscript {
+                            symbol,
+                            target: self.commit(Node::Row {
+                                nodes: &[],
+                                attr: RowAttr::None,
+                            }),
+                        }
+                    }
+                }
             }
             Token::Limits => {
                 return Err(LatexError(
