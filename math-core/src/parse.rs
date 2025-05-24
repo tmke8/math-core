@@ -824,21 +824,19 @@ where
                     };
                     Node::Multiscript { base, sub, sup }
                 } else {
+                    let empty_row = self.commit(Node::Row {
+                        nodes: &[],
+                        attr: RowAttr::None,
+                    });
                     if matches!(tok, Token::Underscore) {
                         Node::Subscript {
-                            target: self.commit(Node::Row {
-                                nodes: &[],
-                                attr: RowAttr::None,
-                            }),
+                            target: empty_row,
                             symbol,
                         }
                     } else {
                         Node::Superscript {
+                            target: empty_row,
                             symbol,
-                            target: self.commit(Node::Row {
-                                nodes: &[],
-                                attr: RowAttr::None,
-                            }),
                         }
                     }
                 }
