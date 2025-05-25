@@ -35,10 +35,11 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{latex_to_mathml, Display};
+//! use math_core::{Config, Display, latex_to_mathml};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+//! let config = Config { pretty: true };
+//! let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -95,14 +96,15 @@ pub struct Config {
 /// The second argument specifies whether it is inline-equation or block-equation.
 ///
 /// ```rust
-/// use math_core::{latex_to_mathml, Display};
+/// use math_core::{Config, Display, latex_to_mathml};
 ///
 /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let mathml = latex_to_mathml(latex, Display::Inline, true).unwrap();
+/// let config = Config { pretty: true };
+/// let mathml = latex_to_mathml(latex, Display::Inline, &config).unwrap();
 /// println!("{}", mathml);
 ///
 /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
 /// println!("{}", mathml);
 /// ```
 ///
