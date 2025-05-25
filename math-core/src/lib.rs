@@ -35,10 +35,11 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{latex_to_mathml, Display};
+//! use math_core::{Config, Display, latex_to_mathml};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+//! let config = Config { pretty: true };
+//! let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -84,26 +85,33 @@ where
     Ok(nodes)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Config {
+    /// If true, the output will be pretty-printed with indentation and newlines.
+    pub pretty: bool,
+}
+
 /// Convert LaTeX text to MathML.
 ///
 /// The second argument specifies whether it is inline-equation or block-equation.
 ///
 /// ```rust
-/// use math_core::{latex_to_mathml, Display};
+/// use math_core::{Config, Display, latex_to_mathml};
 ///
 /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let mathml = latex_to_mathml(latex, Display::Inline, true).unwrap();
+/// let config = Config { pretty: true };
+/// let mathml = latex_to_mathml(latex, Display::Inline, &config).unwrap();
 /// println!("{}", mathml);
 ///
 /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block, true).unwrap();
+/// let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
 /// println!("{}", mathml);
 /// ```
 ///
 pub fn latex_to_mathml<'source, 'emitter>(
     latex: &'source str,
     display: Display,
-    pretty: bool,
+    config: &Config,
 ) -> Result<String, error::LatexError<'source>>
 where
     'source: 'emitter,
@@ -117,13 +125,13 @@ where
         Display::Inline => output.push_str("<math>"),
     };
 
-    let base_indent = if pretty { 1 } else { 0 };
+    let base_indent = if config.pretty { 1 } else { 0 };
     for node in nodes.iter() {
         output
             .emit(node, base_indent)
             .map_err(|_| error::LatexError(0, LatexErrKind::RenderError))?;
     }
-    if pretty {
+    if config.pretty {
         output.push('\n');
     }
     output.push_str("</math>");
@@ -374,8 +382,9 @@ mod tests {
             ),
         ];
 
+        let config = crate::Config { pretty: true };
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, true)
+            let mathml = latex_to_mathml(problem, crate::Display::Inline, &config)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }

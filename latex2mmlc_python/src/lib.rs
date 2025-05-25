@@ -1,20 +1,33 @@
-use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::PyString;
+use pyo3::types::{PyBool, PyString};
+use pyo3::{create_exception, intern};
 
-use math_core::{Display, latex_to_mathml};
+use math_core::{Config, Display, latex_to_mathml};
 
 create_exception!(_latex2mmlc_rust, LatexError, PyException);
 
 /// Convert LaTeX equation to MathML.
 #[pyfunction]
+#[pyo3(signature = (latex, block, config))]
 fn convert_latex<'a>(
     py: Python<'a>,
     latex: &str,
     block: bool,
-    pretty: bool,
+    config: Option<&Bound<'a, PyAny>>,
 ) -> PyResult<Bound<'a, PyString>> {
+    let config = if let Some(cfg) = config {
+        // We support duck-typing for the passed-in config object.
+        Config {
+            pretty: cfg
+                .getattr(intern!(py, "pretty"))?
+                .downcast_into::<PyBool>()?
+                .is_true(),
+            ..Default::default()
+        }
+    } else {
+        Default::default()
+    };
     let result = latex_to_mathml(
         latex,
         if block {
@@ -22,7 +35,7 @@ fn convert_latex<'a>(
         } else {
             Display::Inline
         },
-        pretty,
+        &config,
     )
     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
     Ok(PyString::new(py, &result))

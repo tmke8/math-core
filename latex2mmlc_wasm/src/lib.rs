@@ -9,7 +9,7 @@ use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
 static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
-use math_core::{Display, latex_to_mathml};
+use math_core::{Config, Display, latex_to_mathml};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -19,7 +19,21 @@ pub struct LatexError {
 }
 
 #[wasm_bindgen]
-pub fn convert(content: &str, block: bool, pretty: bool) -> Result<JsValue, LatexError> {
+extern "C" {
+    pub type JsConfig;
+
+    #[wasm_bindgen(method, getter)]
+    fn pretty(this: &JsConfig) -> bool;
+}
+
+#[wasm_bindgen]
+pub fn convert(content: &str, block: bool, js_config: JsConfig) -> Result<JsValue, LatexError> {
+    // This is the poor man's `serde_wasm_bindgen::from_value`.
+    let config = Config {
+        pretty: js_config.pretty(),
+        ..Default::default()
+    };
+
     match latex_to_mathml(
         content,
         if block {
@@ -27,7 +41,7 @@ pub fn convert(content: &str, block: bool, pretty: bool) -> Result<JsValue, Late
         } else {
             Display::Inline
         },
-        pretty,
+        &config,
     ) {
         Ok(result) => Ok(JsValue::from_str(&result)),
         Err(e) => Err(LatexError {
