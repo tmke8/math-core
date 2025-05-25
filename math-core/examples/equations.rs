@@ -1,4 +1,4 @@
-use math_core::{Display, latex_to_mathml};
+use math_core::{Config, Display, latex_to_mathml};
 
 fn main() {
     let inputs = vec![
@@ -63,13 +63,14 @@ fn main() {
         r"\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)",
     ];
 
+    let config = Config { pretty: true };
     let outputs = inputs
         .iter()
         .map(|input| {
             format!(
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
-                latex_to_mathml(input, Display::Block, true).unwrap()
+                latex_to_mathml(input, Display::Block, &config).unwrap()
             )
         })
         .collect::<Vec<_>>()
