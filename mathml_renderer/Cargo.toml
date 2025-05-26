@@ -13,7 +13,7 @@ keywords = ["latex", "mathml"]
 categories = ["science"]
 
 [dependencies]
-stable-arena = "0.1.1"
+stable-arena = { version = "0.2.0", default-features = false }
 strum_macros = "0.27.1"
 serde = { version = "1.0.218", features = ["derive"], optional = true }
 dtoa = { version = "1.0" }
