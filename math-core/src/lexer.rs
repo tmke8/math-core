@@ -143,7 +143,13 @@ impl<'source> Lexer<'source> {
             }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
             ',' => Token::Punctuation(symbol::COMMA),
-            '-' => Token::BinaryOp(symbol::MINUS_SIGN),
+            '-' => {
+                if self.text_mode {
+                    Token::Letter(ch)
+                } else {
+                    Token::BinaryOp(symbol::MINUS_SIGN)
+                }
+            }
             '/' => Token::Delimiter(symbol::SOLIDUS),
             ':' => Token::Colon,
             ';' => Token::Punctuation(symbol::SEMICOLON),
