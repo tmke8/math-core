@@ -101,6 +101,14 @@ struct Args {
     #[arg(short, long, conflicts_with = "formula")]
     recursive: bool,
 
+    /// Dry run: convert but don't write anything
+    #[arg(long, conflicts_with = "formula")]
+    dry_run: bool,
+
+    /// If true, delimiters are ignored that are preceded by a backslash
+    #[arg(long, conflicts_with = "formula")]
+    ignore_escaped_delim: bool,
+
     /// Specifies a single LaTeX formula
     #[arg(short, long, conflicts_with = "file")]
     formula: Option<String>,
@@ -128,19 +136,19 @@ fn main() {
         } else {
             (&args.block_del, &args.block_del)
         };
-        let mut replacer = Replacer::new(inline_delim, block_delim);
+        let mut replacer = Replacer::new(inline_delim, block_delim, args.ignore_escaped_delim);
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
             match replace(&mut replacer, &input, &config) {
                 Ok(mathml) => {
                     println!("{}", mathml);
                 }
-                Err(e) => exit_latex_error(e),
+                Err(e) => exit_latex_error(e, None),
             };
         } else if args.recursive {
-            convert_html_recursive(fpath, &mut replacer, &config);
+            convert_html_recursive(fpath, &mut replacer, &config, args.dry_run);
         } else {
-            convert_html(fpath, &mut replacer, &config);
+            convert_html(fpath, &mut replacer, &config, args.dry_run);
         };
     } else if let Some(ref formula) = args.formula {
         convert_and_exit(&args, formula, &config);
@@ -165,7 +173,7 @@ fn convert_and_exit(args: &Args, latex: &str, config: &Config) {
     };
     match latex_to_mathml(latex, display, config) {
         Ok(mathml) => println!("{}", mathml),
-        Err(e) => exit_latex_error(e),
+        Err(e) => exit_latex_error(e, None),
     }
 }
 
@@ -230,33 +238,43 @@ where
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive<P: AsRef<Path>>(path: P, replacer: &mut Replacer, config: &Config) {
+fn convert_html_recursive<P: AsRef<Path>>(
+    path: P,
+    replacer: &mut Replacer,
+    config: &Config,
+    dry_run: bool,
+) {
     if path.as_ref().is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(entry.path(), replacer, config)
+            convert_html_recursive(entry.path(), replacer, config, dry_run)
         }
     } else if path.as_ref().is_file() {
         if let Some(ext) = path.as_ref().extension() {
             if ext == "html" {
-                convert_html(&path, replacer, config);
+                convert_html(&path, replacer, config, dry_run);
             }
         }
     }
 }
 
-fn convert_html<P: AsRef<Path>>(fp: P, replacer: &mut Replacer, config: &Config) {
+fn convert_html<P: AsRef<Path>>(fp: P, replacer: &mut Replacer, config: &Config, dry_run: bool) {
     let original = fs::read_to_string(&fp).unwrap_or_else(|e| exit_io_error(e));
-    let converted = replace(replacer, &original, config).unwrap_or_else(|e| exit_latex_error(e));
-    if original != converted {
+    let converted = replace(replacer, &original, config)
+        .unwrap_or_else(|e| exit_latex_error(e, Some(fp.as_ref())));
+    if !dry_run && original != converted {
         let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
             .unwrap_or_else(|e| exit_io_error(e));
     }
 }
 
-fn exit_latex_error<E: std::error::Error>(e: E) -> ! {
-    eprintln!("LaTeX2MathML Error: {}", e);
+fn exit_latex_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
+    eprint!("Conversion error");
+    if let Some(fp) = fp {
+        eprint!(" in '{}'", fp.display());
+    }
+    eprintln!(": {}", e);
     std::process::exit(2);
 }
 
@@ -284,7 +302,7 @@ condition — when considered from the stationary system, the figure of a rotati
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
         let config = math_core::Config::default();
-        let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"));
+        let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let mathml = crate::replace(&mut replacer, text, &config).unwrap();
         println!("{}", mathml);
     }

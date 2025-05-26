@@ -43,12 +43,14 @@ pub struct Replacer<'config> {
     closing_identical: bool,
     /// A buffer for storing the result of replacing HTML entities.
     entity_buffer: String,
+    ignore_escaped_delim: bool,
 }
 
 impl<'config> Replacer<'config> {
     pub fn new(
         inline_delim: (&'config str, &'config str),
         block_delim: (&'config str, &'config str),
+        ignore_escaped_delim: bool,
     ) -> Self {
         let inline_opening = Finder::new(inline_delim.0);
         let inline_closing = Finder::new(inline_delim.1);
@@ -62,6 +64,7 @@ impl<'config> Replacer<'config> {
             closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
             closing_identical: inline_delim.1 == block_delim.1,
             entity_buffer: String::new(),
+            ignore_escaped_delim,
         }
     }
 
@@ -161,22 +164,79 @@ impl<'config> Replacer<'config> {
 
     /// Finds the next occurrence of either an inline or block delimiter.
     fn find_next_delimiter(&self, input: &str, opening: bool) -> Option<(Display, usize)> {
-        let (inline_finder, block_finder) = if opening {
-            (&self.opening_finders.0, &self.opening_finders.1)
-        } else {
-            (&self.closing_finders.0, &self.closing_finders.1)
-        };
+        let input = input.as_bytes();
 
-        let inline_pos = inline_finder.find(input.as_bytes());
-        let block_pos = block_finder.find(input.as_bytes());
+        // Find positions for both delimiter types
+        let inline_result = self.find_delimiter_position(
+            input,
+            if opening {
+                &self.opening_finders.0
+            } else {
+                &self.closing_finders.0
+            },
+            if opening {
+                self.opening_lengths.0
+            } else {
+                self.closing_lengths.0
+            },
+        );
 
-        match (inline_pos, block_pos) {
-            // If we have i == d, Display has priority
-            (Some(i), Some(d)) if i < d => Some((Display::Inline, i)),
-            (_, Some(d)) => Some((Display::Block, d)),
-            (Some(i), None) => Some((Display::Inline, i)),
-            _ => None,
+        let block_result = self.find_delimiter_position(
+            input,
+            if opening {
+                &self.opening_finders.1
+            } else {
+                &self.closing_finders.1
+            },
+            if opening {
+                self.opening_lengths.1
+            } else {
+                self.closing_lengths.1
+            },
+        );
+
+        // Return the closest delimiter, with display taking priority on ties
+        match (inline_result, block_result) {
+            (Some(inline_pos), Some(block_pos)) => {
+                if block_pos <= inline_pos {
+                    Some((Display::Block, block_pos))
+                } else {
+                    Some((Display::Inline, inline_pos))
+                }
+            }
+            (Some(pos), None) => Some((Display::Inline, pos)),
+            (None, Some(pos)) => Some((Display::Block, pos)),
+            (None, None) => None,
         }
+    }
+
+    /// Helper function to find the next unescaped delimiter position
+    fn find_delimiter_position(
+        &self,
+        input: &[u8],
+        finder: &Finder,
+        delimiter_len: usize,
+    ) -> Option<usize> {
+        if !self.ignore_escaped_delim {
+            return finder.find(input);
+        }
+
+        let mut offset = 0;
+
+        while let Some(relative_pos) = finder.find(&input[offset..]) {
+            let absolute_pos = offset + relative_pos;
+
+            // Check if this delimiter is escaped
+            if absolute_pos > 0 && input[absolute_pos - 1] == b'\\' {
+                // Skip past this escaped delimiter
+                offset = absolute_pos + delimiter_len;
+                continue;
+            }
+
+            return Some(absolute_pos);
+        }
+
+        None
     }
 }
 
@@ -203,8 +263,9 @@ mod tests {
         input: &'static str,
         inline_delim: (&str, &str),
         block_delim: (&str, &str),
+        ignore_escaped_delim: bool,
     ) -> Result<String, ConversionError<'static>> {
-        let mut replacer = Replacer::new(inline_delim, block_delim);
+        let mut replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim);
         match replacer.replace(input, mock_convert) {
             Ok(s) => Ok(s),
             Err(e) => match &e.1 {
@@ -227,14 +288,49 @@ mod tests {
     #[test]
     fn test_basic_replacement() {
         let input = "Hello $world$ and $$universe$$";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "Hello [T1:world] and [T2:universe]");
+    }
+
+    #[test]
+    fn test_escaping_single() {
+        let input = "Hello\\$ world and $$universe$$";
+        let result = replace(input, ("$", "$"), ("$$", "$$"), true).unwrap();
+        assert_eq!(result, "Hello\\$ world and [T2:universe]");
+    }
+
+    #[test]
+    fn test_escaping_single_inline_delim() {
+        let input = "Hello\\$ $world$ and $$universe$$";
+        let result = replace(input, ("$", "$"), ("$$", "$$"), true).unwrap();
+        assert_eq!(result, "Hello\\$ [T1:world] and [T2:universe]");
+    }
+
+    #[test]
+    fn test_escaping_double() {
+        let input = "Hello \\$world\\$ and $$universe$$";
+        let result = replace(input, ("$", "$"), ("$$", "$$"), true).unwrap();
+        assert_eq!(result, "Hello \\$world\\$ and [T2:universe]");
+    }
+
+    #[test]
+    fn test_escaping_block() {
+        let input = "Hello \\(world\\) and \\$$universe";
+        let result = replace(input, ("\\(", "\\)"), ("$$", "$$"), true).unwrap();
+        assert_eq!(result, "Hello [T1:world] and \\$$universe");
+    }
+
+    #[test]
+    fn test_escaping_block_double() {
+        let input = "Hello \\(world\\) and \\$$universe\\$$";
+        let result = replace(input, ("\\(", "\\)"), ("$$", "$$"), true).unwrap();
+        assert_eq!(result, "Hello [T1:world] and \\$$universe\\$$");
     }
 
     #[test]
     fn test_nested_delimiters() {
         let input = "Nested $$outer $inner$ delimiter$$";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -245,7 +341,7 @@ mod tests {
     #[test]
     fn test_nested_delimiters2() {
         let input = "Nested $outer $$inner$$ delimiter$";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -256,7 +352,7 @@ mod tests {
     #[test]
     fn test_mismatched_unclosed() {
         let input = "Unclosed $delimiter";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -267,35 +363,35 @@ mod tests {
     #[test]
     fn test_empty_input() {
         let input = "";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "");
     }
 
     #[test]
     fn test_no_delimiters() {
         let input = "Hello, world!";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "Hello, world!");
     }
 
     #[test]
     fn test_multiple_replacements() {
         let input = "$a$ then $$b$$ then $c$ and $$d$$";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "[T1:a] then [T2:b] then [T1:c] and [T2:d]");
     }
 
     #[test]
     fn test_complete_replacements() {
         let input = "$a then b then c and d$";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "[T1:a then b then c and d]");
     }
 
     #[test]
     fn test_mismatched_delimiters() {
         let input = "Mismatch $$ and $ signs";
-        let result = replace(input, ("$", "$"), ("$$", "$$")).unwrap_err();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -306,28 +402,28 @@ mod tests {
     #[test]
     fn test_identical_delimiters() {
         let input = "|a| and ||b||";
-        let result = replace(input, ("|", "|"), ("||", "||")).unwrap();
+        let result = replace(input, ("|", "|"), ("||", "||"), false).unwrap();
         assert_eq!(result, "[T1:a] and [T2:b]");
     }
 
     #[test]
     fn test_asymmetric_delimiters() {
         let input = r"let \(a=1\) and \[b=2\].";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap();
         assert_eq!(result, "let [T1:a=1] and [T2:b=2].");
     }
 
     #[test]
     fn test_asymmetric_delimiters_partial_delim() {
         let input = r"let\ \(a=1\) and \[b=2\].";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap();
         assert_eq!(result, "let\\ [T1:a=1] and [T2:b=2].");
     }
 
     #[test]
     fn test_asymmetric_delimiters_nested() {
         let input = r"let \(a=1 and \[b=2\]\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -338,7 +434,7 @@ mod tests {
     #[test]
     fn test_asymmetric_delimiters_nested2() {
         let input = r"let \(a=1 and \[b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -349,7 +445,7 @@ mod tests {
     #[test]
     fn test_asymmetric_delimiters_nested3() {
         let input = r"let \(a=1 and \(b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -360,7 +456,7 @@ mod tests {
     #[test]
     fn test_asymmetric_delimiters_unclosed() {
         let input = r"let \(a=1 and b=2.";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap_err();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
         assert!(matches!(
             result,
@@ -372,7 +468,7 @@ mod tests {
     fn test_asymmetric_delimiters_dangling() {
         // We could make this an error, but it's sometimes useful to allow this.
         let input = r"let a=1\) and \(b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap();
         assert_eq!(result, r"let a=1\) and [T1:b=2].");
     }
 
@@ -380,14 +476,14 @@ mod tests {
     fn test_asymmetric_delimiters_dangling2() {
         // We could make this an error, but it's sometimes useful to allow this.
         let input = r"let \(a=1\) and b=2\).";
-        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]")).unwrap();
+        let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap();
         assert_eq!(result, r"let [T1:a=1] and b=2\).");
     }
 
     #[test]
     fn test_multibyte_delimiters() {
         let input = "this is über ü(a=2ü).";
-        let result = replace(input, ("ü(", "ü)"), ("ü[", "ü]")).unwrap();
+        let result = replace(input, ("ü(", "ü)"), ("ü[", "ü]"), false).unwrap();
         assert_eq!(result, "this is über [T1:a=2].");
     }
 
@@ -402,6 +498,7 @@ mod tests {
             input,
             ("<span class=\"math inline\">", "</span>"),
             ("<span class=\"math block\">", "</span>"),
+            false,
         )
         .unwrap();
         assert_eq!(
@@ -412,7 +509,7 @@ mod tests {
 
     #[test]
     fn test_error() {
-        let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"));
+        let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"), false);
         let input = r"let \(&amp;=1\).";
         // This conversion function always returns an error.
         let err = replacer
