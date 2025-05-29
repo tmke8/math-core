@@ -22,3 +22,6 @@ manifest-path = "math-core-python/Cargo.toml"
 python-source = "python"
 module-name = "math_core._math_core_rust"
 features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
