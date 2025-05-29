@@ -384,10 +384,10 @@ where
                 };
                 let style = match self.parse_next(true)? {
                     Node::Number(num) => match num.as_bytes() {
-                        b"0" => Some(Style::DisplayStyle),
-                        b"1" => Some(Style::TextStyle),
-                        b"2" => Some(Style::ScriptStyle),
-                        b"3" => Some(Style::ScriptScriptStyle),
+                        b"0" => Some(Style::Display),
+                        b"1" => Some(Style::Text),
+                        b"2" => Some(Style::Script),
+                        b"3" => Some(Style::ScriptScript),
                         _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                     },
                     Node::Row { nodes: [], .. } => None,
@@ -778,7 +778,7 @@ where
                         let mut spec = unsafe { array_spec.unwrap_unchecked() };
                         let style = if array_variant == "subarray" {
                             spec.is_sub = true;
-                            Some(Style::ScriptStyle)
+                            Some(Style::Script)
                         } else {
                             None
                         };

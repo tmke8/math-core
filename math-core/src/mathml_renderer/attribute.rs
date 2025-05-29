@@ -95,13 +95,13 @@ pub enum FracAttr {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
-    DisplayStyle = 1,
+    Display = 1,
     #[strum(serialize = r#" displaystyle="false" scriptlevel="0""#)]
-    TextStyle,
+    Text,
     #[strum(serialize = r#" displaystyle="false" scriptlevel="1""#)]
-    ScriptStyle,
+    Script,
     #[strum(serialize = r#" displaystyle="false" scriptlevel="2""#)]
-    ScriptScriptStyle,
+    ScriptScript,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]

@@ -547,7 +547,7 @@ impl<'arena> MathMLEmitter<'arena> {
             Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
             None => write!(self.s, "<mo")?,
         };
-        Ok(match (left, right) {
+        match (left, right) {
             (Some(left), Some(right)) => {
                 write!(
                     self.s,
@@ -563,7 +563,8 @@ impl<'arena> MathMLEmitter<'arena> {
                 write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
             }
             _ => {}
-        })
+        };
+        Ok(())
     }
 
     fn emit_table(
@@ -1003,7 +1004,7 @@ mod tests {
         assert_eq!(
             render(&Node::Row {
                 nodes,
-                attr: RowAttr::Style(Style::DisplayStyle)
+                attr: RowAttr::Style(Style::Display)
             }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
