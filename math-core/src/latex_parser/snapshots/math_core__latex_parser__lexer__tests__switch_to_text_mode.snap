@@ -1,0 +1,6 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "\\text\\o"
+---
+0: Text(None)
+5: Letter('ø')

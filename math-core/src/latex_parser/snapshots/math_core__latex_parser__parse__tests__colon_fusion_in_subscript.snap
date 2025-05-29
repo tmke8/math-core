@@ -1,0 +1,42 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "x_:\\equiv, x_:="
+---
+[
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
+      op: Op(':'),
+      attr: None,
+      left: Some(FourMu),
+      right: Some(FourMu),
+    ),
+  ),
+  Operator(
+    op: Op('≡'),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+  Operator(
+    op: Op(','),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
+      op: Op(':'),
+      attr: None,
+      left: Some(FourMu),
+      right: Some(FourMu),
+    ),
+  ),
+  Operator(
+    op: Op('='),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+]

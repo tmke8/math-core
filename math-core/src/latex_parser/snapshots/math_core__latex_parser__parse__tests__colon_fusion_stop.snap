@@ -1,0 +1,25 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: ":2=:="
+---
+[
+  Operator(
+    op: Op(':'),
+    attr: None,
+    left: Some(FourMu),
+    right: Some(FourMu),
+  ),
+  Number("2"),
+  Operator(
+    op: Op('='),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+  Operator(
+    op: Op('≔'),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+]

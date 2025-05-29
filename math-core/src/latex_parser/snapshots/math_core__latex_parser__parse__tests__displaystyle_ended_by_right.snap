@@ -1,0 +1,28 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\left(\\displaystyle \\int\\right)\\int"
+---
+[
+  Fenced(
+    style: None,
+    open: Fence('(', false, Always),
+    close: Fence(')', false, Always),
+    content: Row(
+      nodes: [
+        Operator(
+          op: Op('∫'),
+          attr: None,
+          left: None,
+          right: None,
+        ),
+      ],
+      attr: Style(DisplayStyle),
+    ),
+  ),
+  Operator(
+    op: Op('∫'),
+    attr: None,
+    left: None,
+    right: None,
+  ),
+]

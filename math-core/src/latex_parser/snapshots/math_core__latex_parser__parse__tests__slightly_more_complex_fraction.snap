@@ -1,0 +1,14 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\frac123"
+---
+[
+  Frac(
+    num: Number("1"),
+    denom: Number("2"),
+    lt_value: NaN,
+    lt_unit: Rem,
+    attr: None,
+  ),
+  Number("3"),
+]

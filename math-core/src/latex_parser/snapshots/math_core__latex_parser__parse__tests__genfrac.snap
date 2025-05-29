@@ -1,0 +1,18 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\genfrac(){1pt}{0}{1}{2}"
+---
+[
+  Fenced(
+    style: Some(DisplayStyle),
+    open: Fence('(', false, Always),
+    close: Fence(')', false, Always),
+    content: Frac(
+      num: Number("1"),
+      denom: Number("2"),
+      lt_value: 0.1,
+      lt_unit: Rem,
+      attr: None,
+    ),
+  ),
+]

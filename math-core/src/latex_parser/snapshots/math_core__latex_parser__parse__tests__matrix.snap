@@ -1,0 +1,20 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
+---
+[
+  Fenced(
+    style: None,
+    open: Fence('(', false, Always),
+    close: Fence(')', false, Always),
+    content: Table(
+      content: [
+        IdentifierChar('x', Default),
+        RowSeparator,
+        IdentifierChar('y', Default),
+      ],
+      align: Centered,
+      attr: None,
+    ),
+  ),
+]

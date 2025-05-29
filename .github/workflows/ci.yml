@@ -50,19 +50,19 @@ jobs:
       - name: "Run wasm-pack test"
         working-directory: ./pr-branch
         run: |
-          wasm-pack test --node latex2mmlc_wasm
+          wasm-pack test --node math-core-wasm
       - name: "Get wasm size on PR"
         working-directory: ./pr-branch
         run: |
-          wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack latex2mmlc_wasm
-          SIZE_BYTES=$(stat -c %s playground/pkg/latex2mmlc_wasm_bg.wasm)
+          wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack math-core-wasm
+          SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on PR: $SIZE_BYTES bytes"
           echo "PR_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - name: "Get wasm size on base branch"
         working-directory: ./base-branch
         run: |
-          wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack latex2mmlc_wasm
-          SIZE_BYTES=$(stat -c %s playground/pkg/latex2mmlc_wasm_bg.wasm)
+          wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack math-core-wasm
+          SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on base: $SIZE_BYTES bytes"
           echo "BASE_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - name: "Comment on PR with WASM sizes"

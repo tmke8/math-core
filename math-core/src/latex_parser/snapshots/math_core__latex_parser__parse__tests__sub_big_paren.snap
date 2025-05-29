@@ -1,0 +1,10 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "x_\\big("
+---
+[
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: SizedParen(Scale1, Fence('(', false, Always)),
+  ),
+]

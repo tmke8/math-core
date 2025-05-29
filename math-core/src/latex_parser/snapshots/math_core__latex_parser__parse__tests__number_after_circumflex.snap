@@ -1,0 +1,11 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: x^12
+---
+[
+  Superscript(
+    target: IdentifierChar('x', Default),
+    symbol: Number("1"),
+  ),
+  Number("2"),
+]

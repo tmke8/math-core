@@ -7,6 +7,7 @@ authors = [
 ]
 edition = { workspace = true }
 rust-version = { workspace = true }
+resolver = "2"
 
 description = "Convert LaTeX equations to MathML Core"
 repository = "https://github.com/tmke8/math-core"
@@ -16,13 +17,17 @@ keywords = ["latex", "mathml"]
 categories = ["science"]
 
 [dependencies]
-mathml_renderer = { path = "../mathml_renderer" }
-
+stable-arena = { version = "0.2.0", default-features = false }
+serde = { version = "1.0.219", features = ["derive"], optional = true }
+dtoa = { version = "1.0" }
 phf = { version = "0.11.3", features = ["macros"] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
 
 [dev-dependencies]
-mathml_renderer = { path = "../mathml_renderer", features = ["serde"] }
 insta = { version = "1.41.1", features = ["default", "ron"] }
 regex = "1.11.1"
+math-core = { path = ".", features = ["serde"] }
+
+[features]
+serde = ["dep:serde"]

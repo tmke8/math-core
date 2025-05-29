@@ -1,0 +1,18 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\int\\limits^1_0 dx"
+---
+[
+  UnderOver(
+    target: Operator(
+      op: Op('∫'),
+      attr: None,
+      left: None,
+      right: None,
+    ),
+    under: Number("0"),
+    over: Number("1"),
+  ),
+  IdentifierChar('d', Default),
+  IdentifierChar('x', Default),
+]

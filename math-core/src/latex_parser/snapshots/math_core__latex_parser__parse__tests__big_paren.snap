@@ -1,0 +1,7 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\big("
+---
+[
+  SizedParen(Scale1, Fence('(', false, Always)),
+]

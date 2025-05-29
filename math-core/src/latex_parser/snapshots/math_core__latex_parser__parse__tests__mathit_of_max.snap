@@ -1,0 +1,22 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\mathit{ab \\max \\alpha\\beta}"
+---
+[
+  TextTransform(
+    tf: Transform(Italic),
+    content: Row(
+      nodes: [
+        IdentifierStr("ab"),
+        PseudoOp(
+          attr: None,
+          left: Some(ThreeMu),
+          right: Some(ThreeMu),
+          name: "max",
+        ),
+        IdentifierStr("αβ"),
+      ],
+      attr: None,
+    ),
+  ),
+]

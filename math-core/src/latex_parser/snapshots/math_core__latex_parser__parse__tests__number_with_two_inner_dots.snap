@@ -1,0 +1,10 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: 3..14
+---
+[
+  Number("3"),
+  IdentifierChar('.', Default),
+  IdentifierChar('.', Default),
+  Number("14"),
+]
