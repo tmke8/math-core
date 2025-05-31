@@ -49,6 +49,7 @@
 //!
 use mathml_renderer::arena::Arena;
 
+pub mod atof;
 mod color_defs;
 pub(crate) mod commands;
 mod error;
@@ -366,7 +367,7 @@ mod tests {
             ("color", r"{\color{Blue}x^2}"),
             ("hspace", r"\hspace{1cm}"),
             ("hspace_whitespace", r"\hspace{  4em }"),
-            // ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
+            ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
             ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
             (
                 "array_lines",
