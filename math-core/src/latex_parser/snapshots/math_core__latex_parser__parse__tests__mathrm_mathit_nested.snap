@@ -1,0 +1,19 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\mathrm{\\mathit{a}b}"
+---
+[
+  TextTransform(
+    tf: Normal,
+    content: Row(
+      nodes: [
+        TextTransform(
+          tf: Transform(Italic),
+          content: IdentifierChar('a', Default),
+        ),
+        IdentifierChar('b', Default),
+      ],
+      attr: None,
+    ),
+  ),
+]

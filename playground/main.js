@@ -1,4 +1,4 @@
-import { convert } from "./pkg/latex2mmlc_wasm.js";
+import { convert } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value

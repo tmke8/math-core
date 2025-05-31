@@ -3,7 +3,7 @@ requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "latex2mmlc"
+name = "math_core"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -18,7 +18,10 @@ tests = ["pytest"]
 dynamic = ["version"]
 
 [tool.maturin]
-manifest-path = "latex2mmlc_python/Cargo.toml"
+manifest-path = "math-core-python/Cargo.toml"
 python-source = "python"
-module-name = "latex2mmlc._latex2mmlc_rust"
+module-name = "math_core._math_core_rust"
 features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]

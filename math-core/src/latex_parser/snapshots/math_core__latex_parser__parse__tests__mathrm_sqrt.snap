@@ -1,0 +1,16 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\mathrm{\\sqrt xy}"
+---
+[
+  TextTransform(
+    tf: Normal,
+    content: Row(
+      nodes: [
+        Sqrt(IdentifierChar('x', Default)),
+        IdentifierChar('y', Default),
+      ],
+      attr: None,
+    ),
+  ),
+]

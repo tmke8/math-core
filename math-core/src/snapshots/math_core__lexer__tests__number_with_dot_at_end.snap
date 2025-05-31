@@ -1,9 +1,0 @@
----
-source: math-core/src/lexer.rs
-expression: 3.14.
----
-0: Number(Three)
-1: Letter('.')
-2: Number(One)
-3: Number(Four)
-4: Letter('.')

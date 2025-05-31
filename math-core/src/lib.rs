@@ -47,20 +47,12 @@
 //! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
 //! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
 //!
+mod latex_parser;
+mod mathml_renderer;
+
+pub use latex_parser::{LatexErrKind, LatexError, Token};
 use mathml_renderer::arena::Arena;
-
-pub mod atof;
-mod color_defs;
-pub(crate) mod commands;
-mod error;
-pub(crate) mod lexer;
-pub(crate) mod parse;
-pub(crate) mod predefined;
-pub(crate) mod specifications;
-pub mod token;
-
-pub use error::{LatexErrKind, LatexError};
-pub use mathml_renderer::ast::MathMLEmitter;
+pub use mathml_renderer::ast::{MathMLEmitter, Node};
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,7 +64,7 @@ pub enum Display {
 fn get_nodes<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], error::LatexError<'source>>
+) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
@@ -80,8 +72,8 @@ where
     // the string buffer.
     // let buffer = Buffer::new(latex.len());
 
-    let l = lexer::Lexer::new(latex);
-    let mut p = parse::Parser::new(l, arena);
+    let l = latex_parser::Lexer::new(latex);
+    let mut p = latex_parser::Parser::new(l, arena);
     let nodes = p.parse()?;
     Ok(nodes)
 }
@@ -113,7 +105,7 @@ pub fn latex_to_mathml<'source, 'emitter>(
     latex: &'source str,
     display: Display,
     config: &Config,
-) -> Result<String, error::LatexError<'source>>
+) -> Result<String, LatexError<'source>>
 where
     'source: 'emitter,
 {
@@ -130,7 +122,7 @@ where
     for node in nodes.iter() {
         output
             .emit(node, base_indent)
-            .map_err(|_| error::LatexError(0, LatexErrKind::RenderError))?;
+            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
     }
     if config.pretty {
         output.push('\n');
@@ -143,19 +135,19 @@ where
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::{LatexErrKind, LatexError, error, latex_to_mathml};
-    use mathml_renderer::ast::MathMLEmitter;
+    use crate::mathml_renderer::ast::MathMLEmitter;
+    use crate::{LatexErrKind, LatexError, latex_to_mathml};
 
     use super::{Arena, get_nodes};
 
-    fn convert_content(latex: &str) -> Result<String, error::LatexError> {
+    fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
         let nodes = get_nodes(latex, &arena)?;
         let mut emitter = MathMLEmitter::new();
         for node in nodes.iter() {
             emitter
                 .emit(node, 0)
-                .map_err(|_| error::LatexError(0, LatexErrKind::RenderError))?;
+                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
         }
         Ok(emitter.into_inner())
     }

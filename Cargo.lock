@@ -212,35 +212,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "latex2mmlc_cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "math-core",
- "memchr",
- "phf",
-]
-
-[[package]]
-name = "latex2mmlc_python"
-version = "0.1.0"
-dependencies = [
- "math-core",
- "pyo3",
-]
-
-[[package]]
-name = "latex2mmlc_wasm"
-version = "0.1.0"
-dependencies = [
- "lol_alloc",
- "math-core",
- "mathml_renderer",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -287,22 +258,43 @@ dependencies = [
 name = "math-core"
 version = "0.1.0"
 dependencies = [
+ "dtoa",
  "insta",
- "mathml_renderer",
+ "math-core",
  "phf",
  "regex",
+ "serde",
+ "stable-arena",
  "strum",
  "strum_macros",
 ]
 
 [[package]]
-name = "mathml_renderer"
+name = "math-core-cli"
 version = "0.1.0"
 dependencies = [
- "dtoa",
- "serde",
- "stable-arena",
- "strum_macros",
+ "clap",
+ "math-core",
+ "memchr",
+ "phf",
+]
+
+[[package]]
+name = "math-core-python"
+version = "0.1.0"
+dependencies = [
+ "math-core",
+ "pyo3",
+]
+
+[[package]]
+name = "math-core-wasm"
+version = "0.1.0"
+dependencies = [
+ "lol_alloc",
+ "math-core",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

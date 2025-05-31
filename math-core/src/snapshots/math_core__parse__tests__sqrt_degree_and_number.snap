@@ -1,8 +1,0 @@
----
-source: math-core/src/parse.rs
-expression: "\\sqrt[3]21"
----
-[
-  Root(Number("3"), Number("2")),
-  Number("1"),
-]

@@ -1,0 +1,8 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\operatorname123"
+---
+[
+  IdentifierChar('1', Upright),
+  Number("23"),
+]

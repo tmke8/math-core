@@ -1,0 +1,31 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\pmod{3}_4"
+---
+[
+  Subscript(
+    target: CustomCmd(
+      predefined: Row(
+        nodes: [
+          Space(Length(
+            value: 1.0,
+            unit: Em,
+          )),
+          StretchableOp(Fence('(', false, Always), NoStretch),
+          Text("mod"),
+          Space(Length(
+            value: 0.33333334,
+            unit: Em,
+          )),
+          CustomCmdArg(0),
+          StretchableOp(Fence(')', false, Always), NoStretch),
+        ],
+        attr: None,
+      ),
+      args: [
+        Number("3"),
+      ],
+    ),
+    symbol: Number("4"),
+  ),
+]

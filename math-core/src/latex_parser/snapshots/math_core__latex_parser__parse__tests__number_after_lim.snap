@@ -1,0 +1,16 @@
+---
+source: math-core/src/latex_parser/parse.rs
+expression: "\\sum\\limits_12"
+---
+[
+  Underset(
+    symbol: Number("1"),
+    target: Operator(
+      op: Op('∑'),
+      attr: Some(NoMovableLimits),
+      left: None,
+      right: None,
+    ),
+  ),
+  Number("2"),
+]

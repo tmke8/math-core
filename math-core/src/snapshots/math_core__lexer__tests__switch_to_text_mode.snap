@@ -1,6 +1,0 @@
----
-source: math-core/src/lexer.rs
-expression: "\\text\\o"
----
-0: Text(None)
-5: Letter('ø')

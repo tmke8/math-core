@@ -1,8 +1,0 @@
----
-source: math-core/src/parse.rs
-expression: "\\operatorname123"
----
-[
-  IdentifierChar('1', Upright),
-  Number("23"),
-]

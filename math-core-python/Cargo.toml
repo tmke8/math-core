@@ -1,0 +1,15 @@
+[package]
+name = "math-core-python"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "math_core_python"
+crate-type = ["cdylib"]
+
+[dependencies]
+math-core = { path = "../math-core" }
+pyo3 = "0.25.0"
