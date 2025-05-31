@@ -20,7 +20,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
             right: None,
           ),
         ],
-        attr: Style(DisplayStyle),
+        attr: Style(Display),
       ),
     ],
     align: Centered,

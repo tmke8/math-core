@@ -8,6 +8,6 @@ expression: "x\\scriptstyle y"
     nodes: [
       IdentifierChar('y', Default),
     ],
-    attr: Style(ScriptStyle),
+    attr: Style(Script),
   ),
 ]
