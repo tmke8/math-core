@@ -35,11 +35,11 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{Config, Display, latex_to_mathml};
+//! use math_core::{Config, Converter, Display};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let config = Config { pretty: true };
-//! let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
+//! let mut converter = Converter::new(Config { pretty: true });
+//! let mathml = converter.latex_to_mathml(latex, Display::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -61,74 +61,92 @@ pub enum Display {
     Inline,
 }
 
-fn get_nodes<'arena, 'source>(
-    latex: &'source str,
-    arena: &'arena Arena,
-) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], LatexError<'source>>
-where
-    'source: 'arena, // 'source outlives 'arena
-{
-    // The length of the input is an upper bound for the required length for
-    // the string buffer.
-    // let buffer = Buffer::new(latex.len());
-
-    let l = latex_parser::Lexer::new(latex);
-    let mut p = latex_parser::Parser::new(l, arena);
-    let nodes = p.parse()?;
-    Ok(nodes)
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty: bool,
 }
 
-/// Convert LaTeX text to MathML.
-///
-/// The second argument specifies whether it is inline-equation or block-equation.
-///
-/// ```rust
-/// use math_core::{Config, Display, latex_to_mathml};
-///
-/// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-/// let config = Config { pretty: true };
-/// let mathml = latex_to_mathml(latex, Display::Inline, &config).unwrap();
-/// println!("{}", mathml);
-///
-/// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-/// let mathml = latex_to_mathml(latex, Display::Block, &config).unwrap();
-/// println!("{}", mathml);
-/// ```
-///
-pub fn latex_to_mathml<'source, 'emitter>(
+pub struct Converter {
+    config: Config,
+    /// This is used for numbering equations in the document.
+    equation_count: usize,
+}
+
+impl Converter {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            equation_count: 0,
+        }
+    }
+
+    /// Convert LaTeX text to MathML.
+    ///
+    /// The second argument specifies whether it is inline-equation or block-equation.
+    ///
+    /// ```rust
+    /// use math_core::{Config, Converter, Display};
+    ///
+    /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
+    /// let mut converter = Converter::new(Config { pretty: true });
+    /// let mathml = converter.latex_to_mathml(latex, Display::Inline).unwrap();
+    /// println!("{}", mathml);
+    ///
+    /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
+    /// let mathml = converter.latex_to_mathml(latex, Display::Block).unwrap();
+    /// println!("{}", mathml);
+    /// ```
+    ///
+    pub fn latex_to_mathml<'source, 'emitter>(
+        &mut self,
+        latex: &'source str,
+        display: Display,
+    ) -> Result<String, LatexError<'source>>
+    where
+        'source: 'emitter,
+    {
+        let arena = Arena::new();
+        let ast = parse(latex, &arena)?;
+
+        let mut output = MathMLEmitter::new();
+        match display {
+            Display::Block => output.push_str("<math display=\"block\">"),
+            Display::Inline => output.push_str("<math>"),
+        };
+
+        let base_indent = if self.config.pretty { 1 } else { 0 };
+        for node in ast {
+            output
+                .emit(node, base_indent)
+                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+        }
+        if self.config.pretty {
+            output.push('\n');
+        }
+        output.push_str("</math>");
+        Ok(output.into_inner())
+    }
+
+    /// Reset the equation count to zero.
+    ///
+    /// This should normally be done at the beginning of a new document or section.
+    pub fn reset_equation_count(&mut self) {
+        self.equation_count = 0;
+    }
+}
+
+fn parse<'arena, 'source>(
     latex: &'source str,
-    display: Display,
-    config: &Config,
-) -> Result<String, LatexError<'source>>
+    arena: &'arena Arena,
+) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], LatexError<'source>>
 where
-    'source: 'emitter,
+    'source: 'arena, // 'source outlives 'arena
 {
-    let arena = Arena::new();
-    let nodes = get_nodes(latex, &arena)?;
-
-    let mut output = MathMLEmitter::new();
-    match display {
-        Display::Block => output.push_str("<math display=\"block\">"),
-        Display::Inline => output.push_str("<math>"),
-    };
-
-    let base_indent = if config.pretty { 1 } else { 0 };
-    for node in nodes.iter() {
-        output
-            .emit(node, base_indent)
-            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
-    }
-    if config.pretty {
-        output.push('\n');
-    }
-    output.push_str("</math>");
-    Ok(output.into_inner())
+    let lexer = latex_parser::Lexer::new(latex);
+    let mut p = latex_parser::Parser::new(lexer, arena);
+    let nodes = p.parse()?;
+    Ok(nodes)
 }
 
 #[cfg(test)]
@@ -136,13 +154,13 @@ mod tests {
     use insta::assert_snapshot;
 
     use crate::mathml_renderer::ast::MathMLEmitter;
-    use crate::{LatexErrKind, LatexError, latex_to_mathml};
+    use crate::{Converter, LatexErrKind, LatexError};
 
-    use super::{Arena, get_nodes};
+    use super::{Arena, parse};
 
     fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
-        let nodes = get_nodes(latex, &arena)?;
+        let nodes = parse(latex, &arena)?;
         let mut emitter = MathMLEmitter::new();
         for node in nodes.iter() {
             emitter
@@ -376,8 +394,10 @@ mod tests {
         ];
 
         let config = crate::Config { pretty: true };
+        let mut converter = Converter::new(config);
         for (name, problem) in problems.into_iter() {
-            let mathml = latex_to_mathml(problem, crate::Display::Inline, &config)
+            let mathml = converter
+                .latex_to_mathml(problem, crate::Display::Inline)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }

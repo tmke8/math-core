@@ -9,7 +9,7 @@ use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
 static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
-use math_core::{Config, Display, latex_to_mathml};
+use math_core::{Config, Converter, Display};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -33,15 +33,15 @@ pub fn convert(content: &str, block: bool, js_config: JsConfig) -> Result<JsValu
         pretty: js_config.pretty(),
         ..Default::default()
     };
+    let mut converter = Converter::new(config);
 
-    match latex_to_mathml(
+    match converter.latex_to_mathml(
         content,
         if block {
             Display::Block
         } else {
             Display::Inline
         },
-        &config,
     ) {
         Ok(result) => Ok(JsValue::from_str(&result)),
         Err(e) => Err(LatexError {

@@ -61,10 +61,10 @@ impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
 {
-    pub(crate) fn new(l: Lexer<'source>, arena: &'arena Arena) -> Self {
-        let input_length = l.input_length;
+    pub(crate) fn new(lexer: Lexer<'source>, arena: &'arena Arena) -> Self {
+        let input_length = lexer.input_length;
         let mut p = Parser {
-            l,
+            l: lexer,
             peek: TokLoc(0, Token::EOF),
             buffer: Buffer::new(input_length),
             arena,

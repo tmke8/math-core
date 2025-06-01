@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyString};
 use pyo3::{create_exception, intern};
 
-use math_core::{Config, Display, latex_to_mathml};
+use math_core::{Config, Converter, Display};
 
 create_exception!(_math_core_rust, LatexError, PyException);
 
@@ -28,16 +28,17 @@ fn convert_latex<'a>(
     } else {
         Default::default()
     };
-    let result = latex_to_mathml(
-        latex,
-        if block {
-            Display::Block
-        } else {
-            Display::Inline
-        },
-        &config,
-    )
-    .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
+    let mut converter = Converter::new(config);
+    let result = converter
+        .latex_to_mathml(
+            latex,
+            if block {
+                Display::Block
+            } else {
+                Display::Inline
+            },
+        )
+        .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
     Ok(PyString::new(py, &result))
 }
 

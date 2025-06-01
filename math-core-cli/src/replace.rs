@@ -113,10 +113,10 @@ impl<'config> Replacer<'config> {
     pub(crate) fn replace<'source, 'buf, F>(
         &'buf mut self,
         input: &'source str,
-        f: F,
+        mut f: F,
     ) -> Result<String, ConversionError<'source, 'buf>>
     where
-        F: for<'a> Fn(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
+        F: for<'a> FnMut(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
