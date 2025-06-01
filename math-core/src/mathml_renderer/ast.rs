@@ -110,6 +110,7 @@ pub enum Node<'arena> {
         content: &'arena [&'arena Node<'arena>],
         align: Alignment,
         attr: Option<FracAttr>,
+        with_numbering: bool,
     },
     Array {
         style: Option<Style>,
@@ -151,19 +152,21 @@ macro_rules! writeln_indent {
     };
 }
 
-pub struct MathMLEmitter<'arena> {
+pub struct MathMLEmitter<'converter, 'arena> {
     s: String,
     var: Option<MathVariant>,
     custom_cmd_args: Option<&'arena [&'arena Node<'arena>]>,
+    equation_counter: &'converter mut usize,
 }
 
-impl<'arena> MathMLEmitter<'arena> {
+impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
     #[inline]
-    pub fn new() -> Self {
+    pub fn new(equation_counter: &'converter mut usize) -> Self {
         Self {
             s: String::new(),
             var: None,
             custom_cmd_args: None,
+            equation_counter,
         }
     }
 
@@ -483,6 +486,7 @@ impl<'arena> MathMLEmitter<'arena> {
                 content,
                 align,
                 attr,
+                with_numbering,
             } => {
                 let mtd_opening = ColumnGenerator::new_predefined(*align);
 
@@ -491,7 +495,13 @@ impl<'arena> MathMLEmitter<'arena> {
                     write!(self.s, "{}", <&str>::from(attr))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
+                self.emit_table(
+                    base_indent,
+                    child_indent,
+                    content,
+                    mtd_opening,
+                    *with_numbering,
+                )?;
             }
             Node::Array {
                 style,
@@ -513,7 +523,7 @@ impl<'arena> MathMLEmitter<'arena> {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening)?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening, false)?;
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
             Node::CustomCmd { predefined, args } => {
@@ -573,6 +583,7 @@ impl<'arena> MathMLEmitter<'arena> {
         child_indent: usize,
         content: &'arena [&Node<'arena>],
         mut col_gen: ColumnGenerator,
+        with_numbering: bool,
     ) -> Result<(), std::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
@@ -595,6 +606,9 @@ impl<'arena> MathMLEmitter<'arena> {
                 }
                 Node::RowSeparator => {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    if with_numbering {
+                        self.write_equation_num(child_indent, child_indent2)?;
+                    }
                     writeln_indent!(&mut self.s, child_indent, "</mtr>");
                     writeln_indent!(&mut self.s, child_indent, "<mtr>");
                     col_gen.reset_columns();
@@ -606,8 +620,28 @@ impl<'arena> MathMLEmitter<'arena> {
             }
         }
         writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        if with_numbering {
+            self.write_equation_num(child_indent, child_indent2)?;
+        }
         writeln_indent!(&mut self.s, child_indent, "</mtr>");
         writeln_indent!(&mut self.s, base_indent, "</mtable>");
+        Ok(())
+    }
+
+    fn write_equation_num(
+        &mut self,
+        child_indent: usize,
+        child_indent2: usize,
+    ) -> Result<(), std::fmt::Error> {
+        *self.equation_counter += 1;
+        writeln_indent!(&mut self.s, child_indent, "<mtd>");
+        writeln_indent!(
+            &mut self.s,
+            child_indent2,
+            "<mtext>({})</mtext>",
+            self.equation_counter
+        );
+        writeln_indent!(&mut self.s, child_indent, "</mtd>");
         Ok(())
     }
 
@@ -638,11 +672,11 @@ impl<'arena> MathMLEmitter<'arena> {
     }
 }
 
-impl Default for MathMLEmitter<'static> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl Default for MathMLEmitter<'static> {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -661,7 +695,8 @@ mod tests {
     where
         'a: 'b,
     {
-        let mut emitter = MathMLEmitter::new();
+        let mut equation_counter = 0;
+        let mut emitter = MathMLEmitter::new(&mut equation_counter);
         emitter.emit(node, 0).unwrap();
         emitter.into_inner()
     }
@@ -682,7 +717,8 @@ mod tests {
             "<mi mathvariant=\"normal\">Γ</mi>"
         );
 
-        let mut emitter = MathMLEmitter::new();
+        let mut equation_counter = 0;
+        let mut emitter = MathMLEmitter::new(&mut equation_counter);
         emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
         emitter
             .emit(&Node::IdentifierChar('L', LetterAttr::Default), 0)
@@ -1057,6 +1093,7 @@ mod tests {
                 content: &nodes,
                 align: Alignment::Centered,
                 attr: None,
+                with_numbering: false,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );

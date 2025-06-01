@@ -751,6 +751,7 @@ where
                         content,
                         align: Alignment::Alternating,
                         attr: Some(FracAttr::DisplayStyleTrue),
+                        with_numbering: env_name == "align",
                     },
                     "cases" => {
                         let align = Alignment::Cases;
@@ -758,6 +759,7 @@ where
                             content,
                             align,
                             attr: None,
+                            with_numbering: false,
                         });
                         Node::Fenced {
                             open: symbol::LEFT_CURLY_BRACKET,
@@ -770,6 +772,7 @@ where
                         content,
                         align: Alignment::Centered,
                         attr: None,
+                        with_numbering: false,
                     },
                     array_variant @ ("array" | "subarray") => {
                         // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -812,6 +815,7 @@ where
                                 content,
                                 align,
                                 attr,
+                                with_numbering: false,
                             }),
                             style: None,
                         }

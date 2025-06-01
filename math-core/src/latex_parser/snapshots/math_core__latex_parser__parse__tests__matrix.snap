@@ -15,6 +15,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
       ],
       align: Centered,
       attr: None,
+      with_numbering: false,
     ),
   ),
 ]

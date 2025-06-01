@@ -23,6 +23,9 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                 <mo>+</mo>
                 <mn>1</mn>
             </mtd>
+        <mtd>
+            <mtext>(1)</mtext>
+        </mtd>
         </mtr>
         <mtr>
             <mtd style="text-align: -webkit-right;text-align: -moz-right;padding-right: 0;">
@@ -38,6 +41,9 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                     <mn>2</mn>
                 </msup>
             </mtd>
+        <mtd>
+            <mtext>(2)</mtext>
+        </mtd>
         </mtr>
     </mtable>
 </math>

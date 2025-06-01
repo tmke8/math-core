@@ -876,6 +876,7 @@ fn wiki_test() {
     let mut converter = Converter::new(Config::default());
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
+        converter.reset_equation_count();
         let mathml = converter.latex_to_mathml(&with_row, Display::Inline);
         match mathml {
             Ok(mathml) => {
