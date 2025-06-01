@@ -25,5 +25,6 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
     ],
     align: Centered,
     attr: None,
+    with_numbering: false,
   ),
 ]

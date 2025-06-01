@@ -109,7 +109,7 @@ impl Converter {
         let arena = Arena::new();
         let ast = parse(latex, &arena)?;
 
-        let mut output = MathMLEmitter::new();
+        let mut output = MathMLEmitter::new(&mut self.equation_count);
         match display {
             Display::Block => output.push_str("<math display=\"block\">"),
             Display::Inline => output.push_str("<math>"),
@@ -161,7 +161,8 @@ mod tests {
     fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
         let nodes = parse(latex, &arena)?;
-        let mut emitter = MathMLEmitter::new();
+        let mut equation_count = 0;
+        let mut emitter = MathMLEmitter::new(&mut equation_count);
         for node in nodes.iter() {
             emitter
                 .emit(node, 0)
@@ -396,6 +397,7 @@ mod tests {
         let config = crate::Config { pretty: true };
         let mut converter = Converter::new(config);
         for (name, problem) in problems.into_iter() {
+            converter.reset_equation_count();
             let mathml = converter
                 .latex_to_mathml(problem, crate::Display::Inline)
                 .expect(format!("failed to convert `{}`", problem).as_str());
