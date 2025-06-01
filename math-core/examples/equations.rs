@@ -6,23 +6,23 @@ fn main() {
         r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#,
         r#"\cos^2 \theta + \sin^2 \theta = 1"#,
         r#"\frac{ d }{ d x } \tan x = \frac{ 1 }{ \cos^2 x }"#,
-        r#"\angle \mathrm{OAB} = \arccos \left\{ \vec{\mathrm{OA}} \cdot \vec{\mathrm{OB}} \right\}"#,
+        r#"\angle \mathrm{OAB} = \arccos \left\{ \overrightarrow{\mathrm{OA}} \cdot \overrightarrow{\mathrm{OB}} \right\}"#,
         r#"p \perp q \; \text{and} \; r \perp q \ \Rightarrow \ p \parallel r"#,
         r#"f' ( x ) = \lim_{h \to 0} \frac{ f ( x + h ) - f ( x ) }{ h }"#,
         r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#,
         r#"\sum_{n = 1}^\infty \frac{ 1 }{ n^2 } = \frac{ \pi^2 }{ 6 }"#,
         r#"F_{n+1} = F_n + F_{n-1}"#,
         r#"x \in \mathbb{R}, \ \ z \in \mathbb{C}"#,
-        r#"\overset{(n)}{X}, \underset{(n)}{X}, \
-        \overbrace{x\times\cdots x}, \overbrace{x\times\cdots\times x}^{n}, \underbrace{x\times\cdots\times x}, \underbrace{x\times\cdots\times x}_{n}"#,
-        r#"\overparen{x\times\cdots x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} , \
-        \overbracket{x\times\cdots x}, \overbracket{x\times\cdots\times x}^{n}, \underbracket{x\times\cdots\times x}, \underbracket{x\times\cdots\times x}_{n}"#,
-        r#"X \overset{f}{\rightarrow} Y \underset{g}{\rightarrow} Z , \ h \overset{\text{def}}{=} g \circ f"#,
+        r#"\overset{(n)}{X}, \underset{(n)}{X},
+        \overbrace{x\times\cdots\times x}, \overbrace{x\times\cdots\times x}^{n}, \underbrace{x\times\cdots\times x}, \underbrace{x\times\cdots\times x}_{n}"#,
+        r#"\overparen{x\times\cdots\times x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} ,
+        \overbracket{x\times\cdots\times x}, \overbracket{x\times\cdots\times x}^{n}, \underbracket{x\times\cdots\times x}, \underbracket{x\times\cdots\times x}_{n}"#,
+        r#"X \overset{f}{\rightarrow} Y \underset{g}{\rightarrow} Z , \ h \eqdef g \circ f"#,
         r#"\overline{x + y} , \underline{x + y}, \widehat{x + y}, \widetilde{x + y} , \overrightarrow{A + B} , \overleftarrow{A + B}"#,
         r#"\left. \frac{\pi}{2} \right\} \, \left( x \right) \, \left\{ \frac12 \right."#,
         r#"\Biggl( \biggl( \Bigl( \bigl( ( ) \bigr) \Bigr) \biggr) \Biggr)"#,
         r#"\mu \left( \bigcup_i E_i \right) = \sum_i \mu ( E_i )"#,
-        r#"{}_n C_k , \ \binom{n}{k} , \ \binom12 , \ \tbinom{n}{k} , \ \dbinom{n}{k}"#,
+        r#"_nC_k , \ \binom{n}{k} , \ \binom12 , \ \tbinom{n}{k} , \ \dbinom{n}{k}"#,
         r#"\forall \epsilon > 0 \exists \delta > 0 \forall y \left[ | y - x | < \delta \Rightarrow | f ( y ) - f ( x ) | < \epsilon \right]"#,
         r#"\phi = 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ \ddots } } }"#,
         r#"G / \ker f \cong \mathrm{im}\,f"#,
@@ -70,7 +70,9 @@ fn main() {
             format!(
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
-                converter.latex_to_mathml(input, Display::Block).unwrap()
+                converter
+                    .latex_to_mathml(input, Display::Block)
+                    .expect(input)
             )
         })
         .collect::<Vec<_>>()
@@ -78,14 +80,15 @@ fn main() {
 
     println!(
         r#"<!DOCTYPE html><html lang="en">
+    <meta charset="UTF-8">
     <style>
         @font-face {{
-          font-family: Libertinus Math;
-          src: url('LibertinusMath-Regular.woff2');
+            font-family: NewComputerModernMath Book;
+            src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+            font-display: swap;
         }}
         math {{
-            font-family: 'Libertinus Math', 'Libertinus Serif', serif;
-            font-feature-settings: "ss08", 'ssty';
+          font-family: "NewComputerModernMath Book", math;
         }}
     </style>
 <body>
