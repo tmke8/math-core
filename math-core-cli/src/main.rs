@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 
-use math_core::{Config, Display, latex_to_mathml};
+use math_core::{Config, Converter, Display};
 
 mod html_entities;
 mod replace;
@@ -106,7 +106,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let latex_config = Config::default();
+    let mut converter = Converter::new(Config::default());
     if let Some(ref fpath) = args.file {
         let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {
             (open, &args.inline_close.unwrap())
@@ -126,21 +126,21 @@ fn main() {
         );
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
-            match replace(&mut replacer, &input, &latex_config) {
+            match replace(&mut replacer, &input, &mut converter) {
                 Ok(mathml) => {
                     println!("{}", mathml);
                 }
                 Err(e) => exit_latex_error(e, None),
             };
         } else if args.recursive {
-            convert_html_recursive(fpath, &mut replacer, &latex_config, args.dry_run);
+            convert_html_recursive(fpath, &mut replacer, &mut converter, args.dry_run);
         } else {
-            convert_html(fpath, &mut replacer, &latex_config, args.dry_run);
+            convert_html(fpath, &mut replacer, &mut converter, args.dry_run);
         };
     } else if let Some(ref formula) = args.formula {
-        convert_and_exit(&args, formula, &latex_config);
+        convert_and_exit(&args, formula, &mut converter);
     } else {
-        convert_and_exit(&args, &read_stdin(), &latex_config);
+        convert_and_exit(&args, &read_stdin(), &mut converter);
     }
 }
 
@@ -152,13 +152,13 @@ fn read_stdin() -> String {
     buffer
 }
 
-fn convert_and_exit(args: &Args, latex: &str, config: &Config) {
+fn convert_and_exit(args: &Args, latex: &str, converter: &mut Converter) {
     let display = if args.block {
         Display::Block
     } else {
         Display::Inline
     };
-    match latex_to_mathml(latex, display, config) {
+    match converter.latex_to_mathml(latex, display) {
         Ok(mathml) => println!("{}", mathml),
         Err(e) => exit_latex_error(e, None),
     }
@@ -188,13 +188,13 @@ fn convert_and_exit(args: &Args, latex: &str, config: &Config) {
 fn replace<'source, 'buf>(
     replacer: &'buf mut Replacer,
     input: &'source str,
-    config: &Config,
+    converter: &mut Converter,
 ) -> Result<String, ConversionError<'source, 'buf>>
 where
     'source: 'buf,
 {
     replacer.replace(input, |buf, latex, display| {
-        let result = latex_to_mathml(latex, display, config)?;
+        let result = converter.latex_to_mathml(latex, display)?;
         buf.push_str(result.as_str());
         Ok(())
     })
@@ -225,25 +225,30 @@ where
 /// Then all LaTeX equations in HTML files under the directory `./target/doc`
 /// will be converted into MathML.
 ///
-fn convert_html_recursive(path: &Path, replacer: &mut Replacer, config: &Config, dry_run: bool) {
+fn convert_html_recursive(
+    path: &Path,
+    replacer: &mut Replacer,
+    converter: &mut Converter,
+    dry_run: bool,
+) {
     if path.is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(entry.path().as_ref(), replacer, config, dry_run)
+            convert_html_recursive(entry.path().as_ref(), replacer, converter, dry_run)
         }
     } else if path.is_file() {
         if let Some(ext) = path.extension() {
             if ext == "html" {
-                convert_html(&path, replacer, config, dry_run);
+                convert_html(path, replacer, converter, dry_run);
             }
         }
     }
 }
 
-fn convert_html(fp: &Path, replacer: &mut Replacer, config: &Config, dry_run: bool) {
-    let original = fs::read_to_string(&fp).unwrap_or_else(|e| exit_io_error(e));
-    let converted = replace(replacer, &original, config)
-        .unwrap_or_else(|e| exit_latex_error(e, Some(fp.as_ref())));
+fn convert_html(fp: &Path, replacer: &mut Replacer, converter: &mut Converter, dry_run: bool) {
+    let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(e));
+    let converted =
+        replace(replacer, &original, converter).unwrap_or_else(|e| exit_latex_error(e, Some(fp)));
     if !dry_run && original != converted {
         let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
@@ -283,9 +288,9 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-        let config = math_core::Config::default();
+        let mut converter = math_core::Converter::new(math_core::Config::default());
         let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false, false);
-        let mathml = crate::replace(&mut replacer, text, &config).unwrap();
+        let mathml = crate::replace(&mut replacer, text, &mut converter).unwrap();
         println!("{}", mathml);
     }
 }
