@@ -25,3 +25,8 @@ features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
+
+[tool.pyright]
+include = ["python"]
+venvPath = "."
+venv = ".venv"
