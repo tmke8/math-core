@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Leftarrow, \\nLeftarrow, \\Longleftarrow"
 ---
 <math>
-    <mo>⇐</mo>
+    <mo lspace="0">⇐</mo>
     <mo>,</mo>
     <mo>⇍</mo>
     <mo>,</mo>

@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\amalg \\P \\S \\% \\dagger\\ddagger\\ldots\\cdots"
 ---
 <math>
-    <mo>⨿</mo>
+    <mo lspace="0">⨿</mo>
     <mi>¶</mi>
     <mi>§</mi>
     <mi>%</mi>

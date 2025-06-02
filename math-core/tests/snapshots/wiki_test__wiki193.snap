@@ -9,12 +9,12 @@ expression: "\\color{Blue}x^2\\color{Black}+\\color{Orange} 2x\\color{Black}-\\c
             <mn>2</mn>
         </msup>
         <mrow style="color:#2C2E35;">
-            <mo lspace="0" rspace="0">+</mo>
+            <mo>+</mo>
             <mrow style="color:#FF7C37;">
                 <mn>2</mn>
                 <mi>x</mi>
                 <mrow style="color:#2C2E35;">
-                    <mo lspace="0" rspace="0">−</mo>
+                    <mo>−</mo>
                     <mrow style="color:#88C946;">
                         <mn>1</mn>
                     </mrow>
