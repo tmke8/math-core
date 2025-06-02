@@ -131,7 +131,7 @@ where
     }
 
     pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
-        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF))?;
+        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), false)?;
         Ok(self.arena.push_slice(&nodes))
     }
 
@@ -145,10 +145,13 @@ where
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
+        ignore_boundaries: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
         let mut sequence_state = SequenceState::default();
-        sequence_state.is_first = true;
+        if !ignore_boundaries {
+            sequence_state.is_first = true;
+        }
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.peek.token()) {
@@ -251,6 +254,7 @@ where
                 };
                 let left = if (prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO))
                     || prev_state.is_relation
+                    || prev_state.is_first
                 {
                     Some(MathSpacing::Zero)
                 } else {
@@ -339,7 +343,7 @@ where
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose))?;
+                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
                     Node::Root(self.node_vec_to_node(degree), content)
@@ -654,7 +658,8 @@ where
                 },
             },
             Token::GroupBegin => {
-                let content = self.parse_sequence(SequenceEnd::Token(Token::GroupEnd))?;
+                let content =
+                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), wants_arg)?;
                 self.next_token(); // Discard the closing token.
                 return Ok(self.node_vec_to_node(content));
             }
@@ -682,7 +687,7 @@ where
                         ));
                     }
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::Right))?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), false)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
@@ -757,7 +762,7 @@ where
                 } else {
                     None
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::End))?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::End), false)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -905,14 +910,14 @@ where
                 let Some(color) = get_color(color_name) else {
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, true)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
                 }
             }
             Token::Style(style) => {
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, true)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
