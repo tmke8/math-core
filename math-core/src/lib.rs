@@ -50,9 +50,12 @@
 mod latex_parser;
 mod mathml_renderer;
 
+use std::{collections::HashMap, ptr::NonNull};
+
 pub use latex_parser::{LatexErrKind, LatexError, Token};
 use mathml_renderer::arena::Arena;
 pub use mathml_renderer::ast::{MathMLEmitter, Node};
+use mathml_renderer::attribute::RowAttr;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,24 +64,31 @@ pub enum Display {
     Inline,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty: bool,
+    pub macros: HashMap<String, String>,
 }
 
 pub struct Converter {
-    config: Config,
+    pretty: bool,
     /// This is used for numbering equations in the document.
     equation_count: usize,
+    custom_cmd_arena: Arena,
+    custom_cmd_map: HashMap<String, *const Node<'static>>,
 }
 
 impl Converter {
-    pub fn new(config: Config) -> Self {
-        Self {
-            config,
+    pub fn new<'source>(config: &'source Config) -> Result<Self, LatexError<'source>> {
+        let custom_cmd_arena = Arena::new();
+        let custom_cmd_map = parse_custom_commands(&custom_cmd_arena, &config.macros)?;
+        Ok(Self {
+            pretty: config.pretty,
             equation_count: 0,
-        }
+            custom_cmd_arena,
+            custom_cmd_map,
+        })
     }
 
     /// Convert LaTeX text to MathML.
@@ -107,7 +117,7 @@ impl Converter {
         'source: 'emitter,
     {
         let arena = Arena::new();
-        let ast = parse(latex, &arena)?;
+        let ast = parse(latex, &arena, false)?;
 
         let mut output = MathMLEmitter::new(&mut self.equation_count);
         match display {
@@ -115,13 +125,13 @@ impl Converter {
             Display::Inline => output.push_str("<math>"),
         };
 
-        let base_indent = if self.config.pretty { 1 } else { 0 };
+        let base_indent = if self.pretty { 1 } else { 0 };
         for node in ast {
             output
                 .emit(node, base_indent)
                 .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
         }
-        if self.config.pretty {
+        if self.pretty {
             output.push('\n');
         }
         output.push_str("</math>");
@@ -139,14 +149,34 @@ impl Converter {
 fn parse<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
+    parsing_custom_cmds: bool,
 ) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
-    let lexer = latex_parser::Lexer::new(latex);
+    let lexer = latex_parser::Lexer::new(latex, parsing_custom_cmds);
     let mut p = latex_parser::Parser::new(lexer, arena);
     let nodes = p.parse()?;
     Ok(nodes)
+}
+
+fn parse_custom_commands<'source>(
+    arena: &Arena,
+    macros: &'source HashMap<String, String>,
+) -> Result<HashMap<String, *const Node<'static>>, LatexError<'source>> {
+    let mut custom_cmd_map = HashMap::new();
+    for (name, definition) in macros.iter() {
+        let nodes = parse(definition, arena, true)?;
+        let node = Node::Row {
+            nodes,
+            attr: RowAttr::None,
+        };
+        let node_ref = arena.push(node);
+        // Get rid of the arena lifetime, so that we can have a self-referential struct.
+        let node_ref = unsafe { std::mem::transmute::<&Node<'_>, &Node<'static>>(node_ref) };
+        custom_cmd_map.insert(name.clone(), node_ref as *const Node<'static>);
+    }
+    Ok(custom_cmd_map)
 }
 
 #[cfg(test)]
@@ -160,7 +190,7 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
-        let nodes = parse(latex, &arena)?;
+        let nodes = parse(latex, &arena, false)?;
         let mut equation_count = 0;
         let mut emitter = MathMLEmitter::new(&mut equation_count);
         for node in nodes.iter() {
@@ -398,8 +428,11 @@ mod tests {
             ),
         ];
 
-        let config = crate::Config { pretty: true };
-        let mut converter = Converter::new(config);
+        let config = crate::Config {
+            pretty: true,
+            ..Default::default()
+        };
+        let mut converter = Converter::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
             converter.reset_equation_count();
             let mathml = converter

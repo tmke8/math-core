@@ -990,6 +990,7 @@ where
                 let args = self.arena.push_slice(&nodes);
                 Node::CustomCmd { predefined, args }
             }
+            Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
@@ -1446,7 +1447,7 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let l = Lexer::new(problem);
+            let l = Lexer::new(problem, false);
             let mut p = Parser::new(l, &arena);
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

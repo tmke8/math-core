@@ -63,7 +63,11 @@ fn main() {
         r"\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)",
     ];
 
-    let mut converter = Converter::new(Config { pretty: true });
+    let mut converter = Converter::new(&Config {
+        pretty: true,
+        ..Default::default()
+    })
+    .unwrap();
     let outputs = inputs
         .iter()
         .map(|input| {

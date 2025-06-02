@@ -11,7 +11,7 @@ create_exception!(_math_core_rust, LatexError, PyException);
 
 #[pyclass]
 struct Converter {
-    inner: Mutex<Box<math_core::Converter>>,
+    inner: Mutex<math_core::Converter>,
 }
 
 #[pymethods]
@@ -31,7 +31,7 @@ impl Converter {
             Default::default()
         };
         Ok(Converter {
-            inner: Mutex::new(Box::new(math_core::Converter::new(config))),
+            inner: Mutex::new(Box::new(math_core::Converter::new(&config).unwrap())),
         })
     }
 

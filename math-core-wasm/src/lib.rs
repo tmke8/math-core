@@ -33,7 +33,10 @@ pub fn convert(content: &str, block: bool, js_config: JsConfig) -> Result<JsValu
         pretty: js_config.pretty(),
         ..Default::default()
     };
-    let mut converter = Converter::new(config);
+    let mut converter = Converter::new(&config).map_err(|e| LatexError {
+        error_message: JsValue::from_str(&e.to_string()),
+        location: 0,
+    })?;
 
     match converter.latex_to_mathml(
         content,

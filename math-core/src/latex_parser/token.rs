@@ -102,6 +102,7 @@ pub enum Token<'source> {
     Style(Style),
     Color,
     CustomCmd(usize, &'static Node<'static>),
+    CustomCmdArg(usize),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),

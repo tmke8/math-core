@@ -15,17 +15,19 @@ pub(crate) struct Lexer<'source> {
     input_string: &'source str,
     pub input_length: usize,
     pub text_mode: bool,
+    parsing_custom_cmds: bool,
 }
 
 impl<'source> Lexer<'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(input: &'source str) -> Self {
+    pub(crate) fn new(input: &'source str, parsing_custom_cmds: bool) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
             text_mode: false,
+            parsing_custom_cmds,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -129,6 +131,16 @@ impl<'source> Lexer<'source> {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
+            '#' => {
+                if self.parsing_custom_cmds && self.peek.1.is_ascii_digit() {
+                    // In pre-defined commands, `#` is used to denote a parameter.
+                    let next = self.read_char().1;
+                    let param_num = (next as u32).wrapping_sub('0' as u32) as usize;
+                    Token::CustomCmdArg(param_num)
+                } else {
+                    Token::Letter('#')
+                }
+            }
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
             '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
@@ -221,7 +233,7 @@ mod tests {
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem);
+            let mut lexer = Lexer::new(problem, false);
             lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();

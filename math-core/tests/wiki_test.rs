@@ -873,7 +873,7 @@ fn wiki_test() {
     let mut n_match = 0usize;
     let mut n_diff = 0usize;
     let mut n_fail = 0usize;
-    let mut converter = Converter::new(Config::default());
+    let mut converter = Converter::new(&Config::default()).unwrap();
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
         converter.reset_equation_count();
@@ -1386,7 +1386,11 @@ fn test_nonfailing_wiki_tests() {
         ),
     ];
 
-    let mut converter = Converter::new(Config { pretty: true });
+    let mut converter = Converter::new(&Config {
+        pretty: true,
+        ..Default::default()
+    })
+    .unwrap();
     for (num, problem) in problems.into_iter() {
         let mathml = converter
             .latex_to_mathml(problem, crate::Display::Inline)
