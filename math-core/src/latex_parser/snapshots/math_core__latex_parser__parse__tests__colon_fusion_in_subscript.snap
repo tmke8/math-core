@@ -6,20 +6,20 @@ expression: "x_:\\equiv, x_:="
   Subscript(
     target: IdentifierChar('x', Default),
     symbol: Operator(
-      op: Op(':'),
+      op: ':',
       attr: None,
       left: Some(FourMu),
       right: Some(FourMu),
     ),
   ),
   Operator(
-    op: Op('≡'),
+    op: '≡',
     attr: None,
     left: None,
     right: None,
   ),
   Operator(
-    op: Op(','),
+    op: ',',
     attr: None,
     left: None,
     right: None,
@@ -27,14 +27,14 @@ expression: "x_:\\equiv, x_:="
   Subscript(
     target: IdentifierChar('x', Default),
     symbol: Operator(
-      op: Op(':'),
+      op: ':',
       attr: None,
       left: Some(FourMu),
       right: Some(FourMu),
     ),
   ),
   Operator(
-    op: Op('='),
+    op: '=',
     attr: None,
     left: None,
     right: None,

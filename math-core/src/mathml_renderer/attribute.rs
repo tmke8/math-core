@@ -148,20 +148,15 @@ pub enum TextTransform {
 }
 
 #[inline]
-fn add_offset(c: char, offset: u32) -> char {
-    debug_assert!(
-        char::from_u32(c as u32 + offset).is_some(),
-        "Invalid: char: {}, offset: {}",
-        c,
-        offset
-    );
+const fn add_offset(c: char, offset: u32) -> char {
+    debug_assert!(char::from_u32(c as u32 + offset).is_some());
     // SAFETY: the offsets are such that the resulting char should be valid.
     unsafe { char::from_u32_unchecked(c as u32 + offset) }
 }
 
 impl TextTransform {
     #[allow(clippy::manual_is_ascii_check)]
-    pub fn transform(&self, c: char, is_upright: bool) -> char {
+    pub const fn transform(&self, c: char, is_upright: bool) -> char {
         let tf = if is_upright && matches!(self, TextTransform::BoldItalic) {
             &TextTransform::Bold
         } else {

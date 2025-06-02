@@ -6,7 +6,7 @@ expression: "f''"
   Superscript(
     target: IdentifierChar('f', Default),
     symbol: Operator(
-      op: Op('″'),
+      op: '″',
       attr: None,
       left: None,
       right: None,

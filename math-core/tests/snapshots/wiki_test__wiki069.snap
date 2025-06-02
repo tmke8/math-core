@@ -9,7 +9,7 @@ expression: "\\Box, \\square, \\blacksquare, \\diamond, \\Diamond, \\lozenge, \\
     <mo>,</mo>
     <mi>■</mi>
     <mo>,</mo>
-    <mo>⋄</mo>
+    <mo lspace="0" rspace="0">⋄</mo>
     <mo>,</mo>
     <mi>◊</mi>
     <mo>,</mo>

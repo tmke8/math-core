@@ -10,7 +10,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
     content: Row(
       nodes: [
         Operator(
-          op: Op('∫'),
+          op: '∫',
           attr: None,
           left: None,
           right: None,
@@ -20,7 +20,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
     ),
   ),
   Operator(
-    op: Op('∫'),
+    op: '∫',
     attr: None,
     left: None,
     right: None,

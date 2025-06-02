@@ -7,5 +7,5 @@ expression: "\\setminus, \\smallsetminus, \\times"
     <mo>,</mo>
     <mo>﹨</mo>
     <mo>,</mo>
-    <mo form="prefix">×</mo>
+    <mo lspace="0" rspace="0">×</mo>
 </math>

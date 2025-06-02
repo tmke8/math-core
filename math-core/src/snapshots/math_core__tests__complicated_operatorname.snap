@@ -3,5 +3,5 @@ source: math-core/src/lib.rs
 expression: "\\operatorname {{\\pi} o \\Angstrom a}"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">πoÅa</mo>
+    <mo lspace="0.1667em" rspace="0.1667em">πoÅa</mo>
 </math>

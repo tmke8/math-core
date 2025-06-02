@@ -4,20 +4,20 @@ expression: ":2=:="
 ---
 [
   Operator(
-    op: Op(':'),
+    op: ':',
     attr: None,
     left: Some(FourMu),
     right: Some(FourMu),
   ),
   Number("2"),
   Operator(
-    op: Op('='),
+    op: '=',
     attr: None,
     left: None,
     right: None,
   ),
   Operator(
-    op: Op('≔'),
+    op: '≔',
     attr: None,
     left: None,
     right: None,

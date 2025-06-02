@@ -7,7 +7,7 @@ use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
-use crate::mathml_renderer::symbol::{Big, Bin, Fence, Op, Punct, Rel};
+use crate::mathml_renderer::symbol::{Bin, Fence, Op, Ord, Punct, Rel};
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
@@ -55,10 +55,10 @@ pub enum Token<'source> {
     Overset,
     #[strum(serialize = r"\underset")]
     Underset,
-    OverUnderBrace(Op, bool),
+    OverUnderBrace(Ord, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
-    Integral(Big),
+    Integral(Op),
     #[strum(serialize = r"\limits")]
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
@@ -70,9 +70,9 @@ pub enum Token<'source> {
     Whitespace,
     Transform(MathVariant),
     Big(Size),
-    OverUnder(Op, bool, Option<OpAttr>),
+    OverUnder(Rel, bool, Option<OpAttr>),
     Relation(Rel),
-    Ord(Op),
+    Ord(Ord),
     Punctuation(Punct),
     #[strum(serialize = "binary operator")]
     BinaryOp(Bin),
@@ -86,7 +86,7 @@ pub enum Token<'source> {
     OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
-    BigOp(Big),
+    BigOp(Op),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),

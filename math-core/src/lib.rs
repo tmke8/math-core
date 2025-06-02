@@ -371,6 +371,8 @@ mod tests {
             ("xrightarrow", r"\xrightarrow{x}"),
             ("slashed", r"\slashed{\partial}"),
             ("plus_after_equal", r"x = +4"),
+            ("equal_after_plus", r"x+ = 4"),
+            ("plus_in_braces", r"4{+}4"),
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
             ("equal_equal", r"4==4"),

@@ -8,6 +8,6 @@ expression: x =_2 +4
         <mo>=</mo>
         <mn>2</mn>
     </msub>
-    <mo form="prefix">+</mo>
+    <mo lspace="0" rspace="0">+</mo>
     <mn>4</mn>
 </math>

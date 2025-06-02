@@ -10,7 +10,7 @@ use super::attribute::{
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
-use super::symbol::{Fence, Op};
+use super::symbol::{Fence, MathMLOperator};
 use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType};
 
 /// AST node
@@ -24,7 +24,7 @@ pub enum Node<'arena> {
     StretchableOp(&'static Fence, StretchMode),
     /// `<mo>...</mo>` for a single character.
     Operator {
-        op: Op,
+        op: MathMLOperator,
         attr: Option<OpAttr>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
@@ -57,9 +57,9 @@ pub enum Node<'arena> {
         sup: &'arena Node<'arena>,
     },
     /// `<mover accent="true">...</mover>`
-    OverOp(Op, Option<OpAttr>, &'arena Node<'arena>),
+    OverOp(MathMLOperator, Option<OpAttr>, &'arena Node<'arena>),
     /// `<munder accent="true">...</munder>`
-    UnderOp(Op, &'arena Node<'arena>),
+    UnderOp(MathMLOperator, &'arena Node<'arena>),
     /// `<mover>...</mover>`
     Overset {
         symbol: &'arena Node<'arena>,
