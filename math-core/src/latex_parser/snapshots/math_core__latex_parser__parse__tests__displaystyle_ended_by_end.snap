@@ -6,7 +6,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
   Table(
     content: [
       Operator(
-        op: Op('∑'),
+        op: '∑',
         attr: None,
         left: None,
         right: None,
@@ -14,7 +14,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
       Row(
         nodes: [
           Operator(
-            op: Op('∑'),
+            op: '∑',
             attr: None,
             left: None,
             right: None,

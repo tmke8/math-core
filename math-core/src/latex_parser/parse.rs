@@ -33,9 +33,11 @@ pub(crate) struct Parser<'arena, 'source> {
 /// A struct for managing the state of the sequence parser.
 #[derive(Debug, Default)]
 struct SequenceState {
+    is_first: bool,
     is_colon: bool,
     is_relation: bool,
     is_punctuation: bool,
+    is_binary_op: bool,
 }
 
 #[derive(Debug)]
@@ -146,6 +148,7 @@ where
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
         let mut sequence_state = SequenceState::default();
+        sequence_state.is_first = true;
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.peek.token()) {
@@ -277,21 +280,32 @@ where
                 }
             }
             Token::Ord(ord) => Node::Operator {
-                op: ord,
+                op: ord.into(),
                 attr: None,
                 left: None,
                 right: None,
             },
-            Token::BinaryOp(binary_op) => Node::Operator {
-                op: binary_op.into(),
-                attr: if prev_state.is_relation || prev_state.is_punctuation {
-                    Some(OpAttr::FormPrefix)
+            Token::BinaryOp(binary_op) => {
+                if let Some(state) = sequence_state {
+                    state.is_binary_op = true;
+                };
+                let spacing = if prev_state.is_relation
+                    || prev_state.is_punctuation
+                    || prev_state.is_binary_op
+                    || prev_state.is_first
+                    || matches!(self.peek.token(), Token::Relation(_))
+                {
+                    Some(MathSpacing::Zero)
                 } else {
                     None
-                },
-                left: None,
-                right: None,
-            },
+                };
+                Node::Operator {
+                    op: binary_op.into(),
+                    attr: None,
+                    left: spacing,
+                    right: spacing,
+                }
+            }
             Token::OpGreaterThan => Node::PseudoOp {
                 name: "&gt;",
                 attr: None,
@@ -413,9 +427,9 @@ where
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_next(true)?;
                 if is_over {
-                    Node::OverOp(op, attr, target)
+                    Node::OverOp(op.into(), attr, target)
                 } else {
-                    Node::UnderOp(op, target)
+                    Node::UnderOp(op.into(), target)
                 }
             }
             Token::Overset | Token::Underset => {
@@ -430,7 +444,7 @@ where
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(true)?;
                 let symbol = self.commit(Node::Operator {
-                    op: x,
+                    op: x.into(),
                     attr: None,
                     left: None,
                     right: None,
@@ -913,7 +927,7 @@ where
                     attr: RowAttr::None,
                 });
                 let symbol = self.commit(Node::Operator {
-                    op: symbol::PRIME,
+                    op: symbol::PRIME.into(),
                     attr: None,
                     left: None,
                     right: None,
@@ -1105,7 +1119,7 @@ where
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
-        static PRIME_SELECTION: [symbol::Op; 4] = [
+        static PRIME_SELECTION: [symbol::Ord; 4] = [
             symbol::PRIME,
             symbol::DOUBLE_PRIME,
             symbol::TRIPLE_PRIME,
@@ -1115,7 +1129,7 @@ where
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
                 primes.push(self.commit(Node::Operator {
-                    op: *op,
+                    op: op.into(),
                     attr: None,
                     left: None,
                     right: None,
@@ -1123,7 +1137,7 @@ where
             } else {
                 for _ in 0..prime_count {
                     primes.push(self.commit(Node::Operator {
-                        op: symbol::PRIME,
+                        op: symbol::PRIME.into(),
                         attr: None,
                         left: None,
                         right: None,

@@ -106,19 +106,19 @@ pub static XLEFTARROW: Node = Row {
 pub static DOTS: Node = Row {
     nodes: &[
         &Operator {
-            op: symbol::FULL_STOP,
+            op: symbol::FULL_STOP.as_op(),
             attr: None,
             left: None,
             right: None,
         },
         &Operator {
-            op: symbol::FULL_STOP,
+            op: symbol::FULL_STOP.as_op(),
             attr: None,
             left: Some(MathSpacing::Zero),
             right: Some(MathSpacing::Zero),
         },
         &Operator {
-            op: symbol::FULL_STOP,
+            op: symbol::FULL_STOP.as_op(),
             attr: None,
             left: None,
             right: None,

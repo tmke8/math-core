@@ -5,7 +5,7 @@ expression: "\\int\\limits^1_0 dx"
 [
   UnderOver(
     target: Operator(
-      op: Op('∫'),
+      op: '∫',
       attr: None,
       left: None,
       right: None,

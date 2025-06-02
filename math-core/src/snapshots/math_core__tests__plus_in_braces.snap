@@ -1,10 +1,9 @@
 ---
 source: math-core/src/lib.rs
-expression: x = +4
+expression: "4{+}4"
 ---
 <math>
-    <mi>x</mi>
-    <mo>=</mo>
+    <mn>4</mn>
     <mo lspace="0" rspace="0">+</mo>
     <mn>4</mn>
 </math>
