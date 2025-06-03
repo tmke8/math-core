@@ -9,23 +9,26 @@ use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source> {
+pub(crate) struct Lexer<'source> {
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
     pub input_length: usize,
     pub text_mode: bool,
     parsing_custom_cmds: bool,
-    custom_cmds: Option<&'config CustomCmds>,
+    custom_cmds: Option<&'source CustomCmds>,
 }
 
-impl<'config, 'source> Lexer<'config, 'source> {
+impl<'source> Lexer<'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(
+    pub(crate) fn new<'config>(
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
-    ) -> Self {
+    ) -> Self
+    where
+        'config: 'source,
+    {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
@@ -118,10 +121,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     ///
     /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
     /// but rather immediately return a single digit as a number token.
-    pub(crate) fn next_token(&mut self) -> TokLoc<'source>
-    where
-        'config: 'source,
-    {
+    pub(crate) fn next_token(&mut self) -> TokLoc<'source> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return TokLoc(loc.get(), Token::Whitespace);

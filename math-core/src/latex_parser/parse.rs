@@ -21,8 +21,8 @@ use super::{
     token::{TokLoc, Token},
 };
 
-pub(crate) struct Parser<'config, 'arena, 'source> {
-    l: Lexer<'config, 'source>,
+pub(crate) struct Parser<'arena, 'source> {
+    l: Lexer<'source>,
     peek: TokLoc<'source>,
     buffer: Buffer,
     arena: &'arena Arena,
@@ -59,12 +59,11 @@ impl SequenceEnd {
     }
 }
 
-impl<'config, 'arena, 'source> Parser<'config, 'arena, 'source>
+impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
-    'config: 'source,
 {
-    pub(crate) fn new(lexer: Lexer<'config, 'source>, arena: &'arena Arena) -> Self {
+    pub(crate) fn new(lexer: Lexer<'source>, arena: &'arena Arena) -> Self {
         let input_length = lexer.input_length;
         let mut p = Parser {
             l: lexer,
@@ -1221,13 +1220,7 @@ where
 }
 
 #[inline]
-fn next_token<'config, 'source>(
-    peek: &mut TokLoc<'source>,
-    lexer: &mut Lexer<'config, 'source>,
-) -> TokLoc<'source>
-where
-    'config: 'source,
-{
+fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -> TokLoc<'source> {
     let peek_token = lexer.next_token();
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)
@@ -1262,21 +1255,18 @@ enum LetterCollector<'arena> {
     FinishedManyLetters { collected_letters: &'arena str },
 }
 
-struct TextModeParser<'config, 'builder, 'source, 'parser> {
+struct TextModeParser<'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
     peek: &'parser mut TokLoc<'source>,
-    lexer: &'parser mut Lexer<'config, 'source>,
+    lexer: &'parser mut Lexer<'source>,
     tf: Option<TextTransform>,
 }
 
-impl<'config, 'builder, 'source, 'parser> TextModeParser<'config, 'builder, 'source, 'parser>
-where
-    'config: 'source,
-{
+impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
     fn new(
         builder: &'builder mut StringBuilder<'parser>,
         peek: &'parser mut TokLoc<'source>,
-        lexer: &'parser mut Lexer<'config, 'source>,
+        lexer: &'parser mut Lexer<'source>,
     ) -> Self {
         Self {
             builder,

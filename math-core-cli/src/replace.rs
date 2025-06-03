@@ -70,9 +70,9 @@ fn line_and_col(loc: usize, input: &str) -> (usize, usize) {
     (line, col)
 }
 
-pub struct Replacer<'config> {
-    opening_finders: (Finder<'config>, Finder<'config>),
-    closing_finders: (Finder<'config>, Finder<'config>),
+pub struct Replacer<'args> {
+    opening_finders: (Finder<'args>, Finder<'args>),
+    closing_finders: (Finder<'args>, Finder<'args>),
     opening_lengths: (usize, usize),
     closing_lengths: (usize, usize),
     closing_identical: bool,
