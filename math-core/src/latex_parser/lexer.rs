@@ -145,7 +145,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     // In pre-defined commands, `#` is used to denote a parameter.
                     let next = self.read_char().1;
                     let param_num = (next as u32).wrapping_sub('0' as u32) as usize;
-                    Token::CustomCmdArg(param_num)
+                    Token::CustomCmdArg(param_num.saturating_sub(1))
                 } else {
                     Token::Letter('#')
                 }
@@ -261,5 +261,22 @@ mod tests {
             }
             assert_snapshot!(name, &tokens, problem);
         }
+    }
+
+    #[test]
+    fn test_parsing_custom_commands() {
+        let parsing_custom_cmds = true;
+        let problem = r"\frac{#1}{#2} + \sqrt{#3}";
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
+        let mut tokens = String::new();
+        loop {
+            let tokloc = lexer.next_token();
+            if matches!(tokloc.token(), Token::EOF) {
+                break;
+            }
+            let TokLoc(loc, tok) = tokloc;
+            write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
+        }
+        assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
 }
