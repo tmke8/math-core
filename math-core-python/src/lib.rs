@@ -31,7 +31,7 @@ impl Converter {
             Default::default()
         };
         Ok(Converter {
-            inner: Mutex::new(Box::new(math_core::Converter::new(config))),
+            inner: Mutex::new(Box::new(math_core::Converter::new(&config).unwrap())),
         })
     }
 

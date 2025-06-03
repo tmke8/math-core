@@ -38,7 +38,7 @@
 //! use math_core::{Config, Converter, Display};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mut converter = Converter::new(Config { pretty: true });
+//! let mut converter = Converter::new(&Config { pretty: true, ..Default::default() }).unwrap();
 //! let mathml = converter.latex_to_mathml(latex, Display::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
@@ -49,10 +49,15 @@
 //!
 mod latex_parser;
 mod mathml_renderer;
+mod raw_node_slice;
 
+use std::collections::HashMap;
+
+use latex_parser::node_vec_to_node;
 pub use latex_parser::{LatexErrKind, LatexError, Token};
 use mathml_renderer::arena::Arena;
 pub use mathml_renderer::ast::{MathMLEmitter, Node};
+use raw_node_slice::RawNodeSlice;
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,24 +66,48 @@ pub enum Display {
     Inline,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Default)]
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty: bool,
+    pub macros: HashMap<String, String>,
+}
+
+struct CustomCmds {
+    arena: Arena,
+    slice: RawNodeSlice,
+    map: HashMap<String, (usize, usize)>,
+}
+
+impl CustomCmds {
+    pub fn get_command<'config, 'source>(
+        &'config self,
+        command: &'source str,
+    ) -> Option<Token<'source>>
+    where
+        'config: 'source,
+    {
+        let (index, num_args) = *self.map.get(command)?;
+        let nodes = self.slice.lift(&self.arena)?;
+        let node = *nodes.get(index)?;
+        Some(Token::CustomCmd(num_args, node))
+    }
 }
 
 pub struct Converter {
-    config: Config,
+    pretty: bool,
     /// This is used for numbering equations in the document.
     equation_count: usize,
+    custom_cmds: CustomCmds,
 }
 
 impl Converter {
-    pub fn new(config: Config) -> Self {
-        Self {
-            config,
+    pub fn new(config: &Config) -> Result<Self, LatexError<'_>> {
+        Ok(Self {
+            pretty: config.pretty,
             equation_count: 0,
-        }
+            custom_cmds: parse_custom_commands(&config.macros)?,
+        })
     }
 
     /// Convert LaTeX text to MathML.
@@ -89,7 +118,7 @@ impl Converter {
     /// use math_core::{Config, Converter, Display};
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let mut converter = Converter::new(Config { pretty: true });
+    /// let mut converter = Converter::new(&Config { pretty: true, ..Default::default() }).unwrap();
     /// let mathml = converter.latex_to_mathml(latex, Display::Inline).unwrap();
     /// println!("{}", mathml);
     ///
@@ -98,16 +127,17 @@ impl Converter {
     /// println!("{}", mathml);
     /// ```
     ///
-    pub fn latex_to_mathml<'source, 'emitter>(
-        &mut self,
+    pub fn latex_to_mathml<'config, 'source, 'emitter>(
+        &'config mut self,
         latex: &'source str,
         display: Display,
     ) -> Result<String, LatexError<'source>>
     where
         'source: 'emitter,
+        'config: 'source,
     {
         let arena = Arena::new();
-        let ast = parse(latex, &arena)?;
+        let ast = parse(latex, &arena, false, Some(&self.custom_cmds))?;
 
         let mut output = MathMLEmitter::new(&mut self.equation_count);
         match display {
@@ -115,13 +145,13 @@ impl Converter {
             Display::Inline => output.push_str("<math>"),
         };
 
-        let base_indent = if self.config.pretty { 1 } else { 0 };
+        let base_indent = if self.pretty { 1 } else { 0 };
         for node in ast {
             output
                 .emit(node, base_indent)
                 .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
         }
-        if self.config.pretty {
+        if self.pretty {
             output.push('\n');
         }
         output.push_str("</math>");
@@ -136,17 +166,41 @@ impl Converter {
     }
 }
 
-fn parse<'arena, 'source>(
+fn parse<'config, 'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-) -> Result<&'arena [&'arena mathml_renderer::ast::Node<'arena>], LatexError<'source>>
+    parsing_custom_cmds: bool,
+    custom_cmds: Option<&'config CustomCmds>,
+) -> Result<Vec<&'arena mathml_renderer::ast::Node<'arena>>, LatexError<'source>>
 where
-    'source: 'arena, // 'source outlives 'arena
+    'source: 'arena,  // 'source outlives 'arena
+    'config: 'source, // 'config outlives 'source
 {
-    let lexer = latex_parser::Lexer::new(latex);
+    let lexer = latex_parser::Lexer::new(latex, parsing_custom_cmds, custom_cmds);
     let mut p = latex_parser::Parser::new(lexer, arena);
     let nodes = p.parse()?;
     Ok(nodes)
+}
+
+fn parse_custom_commands<'source>(
+    macros: &'source HashMap<String, String>,
+) -> Result<CustomCmds, LatexError<'source>> {
+    let arena = Arena::new();
+    let mut map = HashMap::with_capacity(macros.len());
+    let mut parsed_macros = Vec::with_capacity(macros.len());
+    for (name, definition) in macros.iter() {
+        let nodes = parse(definition, &arena, true, None)?;
+        // TODO: let `parse()` return the number of args
+        let num_args = 0;
+
+        let node_ref = node_vec_to_node(&arena, nodes);
+        let index = parsed_macros.len();
+        parsed_macros.push(node_ref);
+        // TODO: avoid cloning `name` here
+        map.insert(name.clone(), (index, num_args));
+    }
+    let slice = RawNodeSlice::from_slice(arena.push_slice(&parsed_macros));
+    Ok(CustomCmds { arena, slice, map })
 }
 
 #[cfg(test)]
@@ -160,7 +214,7 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
-        let nodes = parse(latex, &arena)?;
+        let nodes = parse(latex, &arena, false, None)?;
         let mut equation_count = 0;
         let mut emitter = MathMLEmitter::new(&mut equation_count);
         for node in nodes.iter() {
@@ -398,8 +452,11 @@ mod tests {
             ),
         ];
 
-        let config = crate::Config { pretty: true };
-        let mut converter = Converter::new(config);
+        let config = crate::Config {
+            pretty: true,
+            ..Default::default()
+        };
+        let mut converter = Converter::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
             converter.reset_equation_count();
             let mathml = converter
@@ -463,5 +520,29 @@ mod tests {
             let output = format!("Position: {}\n{:#?}", loc, error);
             assert_snapshot!(name, &output, problem);
         }
+    }
+
+    #[test]
+    fn test_custom_cmds() {
+        let macros = [
+            ("half".to_string(), r"\frac{1}{2}".to_string()),
+            ("mycmd2".to_string(), r"\sqrt{3}".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let config = crate::Config {
+            macros,
+            pretty: true,
+        };
+
+        let mut converter = Converter::new(&config).unwrap();
+
+        let latex = r"x = \half";
+        let mathml = converter
+            .latex_to_mathml(latex, crate::Display::Inline)
+            .unwrap();
+
+        assert_snapshot!(mathml);
     }
 }

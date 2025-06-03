@@ -2,7 +2,7 @@ import { convert } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value
-let cachedConfig = { pretty: true }; // default value
+let cachedConfig = { pretty: true, macros: new Map() }; // default value
 
 function initializeCachedValues() {
   // Initialize cached values based on current DOM state
@@ -14,7 +14,12 @@ function initializeCachedValues() {
   const prettyRadio = document.querySelector(
     '#prettyprint input[type="radio"]:checked',
   );
-  cachedConfig = { pretty: prettyRadio ? prettyRadio.value === "true" : true };
+  let macros = new Map();
+  macros.set("half", "\\frac{1}{2}");
+  cachedConfig = {
+    pretty: prettyRadio ? prettyRadio.value === "true" : true,
+    macros,
+  };
 }
 
 function updateIsBlockCache() {
@@ -30,6 +35,7 @@ function updateConfigCache() {
   );
   cachedConfig = {
     pretty: selectedRadio ? selectedRadio.value === "true" : true,
+    macros: new Map(),
   };
 }
 

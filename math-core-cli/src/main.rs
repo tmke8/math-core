@@ -106,7 +106,8 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let mut converter = Converter::new(Config::default());
+    let mut converter =
+        Converter::new(&Config::default()).unwrap_or_else(|err| exit_latex_error(err, None));
     if let Some(ref fpath) = args.file {
         let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {
             (open, &args.inline_close.unwrap())
@@ -188,12 +189,12 @@ fn convert_and_exit(args: &Args, latex: &str, converter: &mut Converter) {
 fn replace<'source, 'buf>(
     replacer: &'buf mut Replacer,
     input: &'source str,
-    converter: &mut Converter,
+    converter: &'buf mut Converter,
 ) -> Result<String, ConversionError<'source, 'buf>>
 where
     'source: 'buf,
 {
-    replacer.replace(input, |buf, latex, display| {
+    replacer.replace(input, converter, |converter, buf, latex, display| {
         let result = converter.latex_to_mathml(latex, display)?;
         buf.push_str(result.as_str());
         Ok(())
@@ -288,7 +289,7 @@ A rigid body which has the figure of a sphere when measured in the moving system
 condition — when considered from the stationary system, the figure of a rotational ellipsoid with semi-axes
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
-        let mut converter = math_core::Converter::new(math_core::Config::default());
+        let mut converter = math_core::Converter::new(&math_core::Config::default()).unwrap();
         let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false, false);
         let mathml = crate::replace(&mut replacer, text, &mut converter).unwrap();
         println!("{}", mathml);

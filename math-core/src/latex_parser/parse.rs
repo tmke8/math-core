@@ -130,9 +130,10 @@ where
         next_token(&mut self.peek, &mut self.l)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
+    #[inline]
+    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), false)?;
-        Ok(self.arena.push_slice(&nodes))
+        Ok(nodes)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
@@ -346,7 +347,7 @@ where
                         self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
-                    Node::Root(self.node_vec_to_node(degree), content)
+                    Node::Root(node_vec_to_node(self.arena, degree), content)
                 } else {
                     Node::Sqrt(self.parse_token(next, true, None)?)
                 }
@@ -661,7 +662,7 @@ where
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), wants_arg)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.node_vec_to_node(content));
+                return Ok(node_vec_to_node(self.arena, content));
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -708,7 +709,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.node_vec_to_node(content),
+                    content: node_vec_to_node(self.arena, content),
                     style: None,
                 }
             }
@@ -990,6 +991,7 @@ where
                 let args = self.arena.push_slice(&nodes);
                 Node::CustomCmd { predefined, args }
             }
+            Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
@@ -1108,7 +1110,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.node_vec_to_node(primes))
+            Some(node_vec_to_node(self.arena, primes))
         } else {
             sup
         };
@@ -1188,23 +1190,6 @@ where
         node
     }
 
-    // Turn a vector of nodes into a single node.
-    //
-    // This is done either by returning the single node if there is only one,
-    // or by creating a row node if there are multiple nodes.
-    fn node_vec_to_node(&self, list_builder: Vec<&'arena Node<'arena>>) -> &'arena Node<'arena> {
-        if list_builder.len() == 1 {
-            // Safety: We checked that there is an element.
-            unsafe { list_builder.into_iter().next().unwrap_unchecked() }
-        } else {
-            let nodes = self.arena.push_slice(&list_builder);
-            self.commit(Node::Row {
-                nodes,
-                attr: RowAttr::None,
-            })
-        }
-    }
-
     fn make_pseudo_operator(
         &mut self,
         name: &'arena str,
@@ -1239,6 +1224,26 @@ fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -
     let peek_token = lexer.next_token();
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)
+}
+
+// Turn a vector of nodes into a single node.
+//
+// This is done either by returning the single node if there is only one,
+// or by creating a row node if there are multiple nodes.
+pub(crate) fn node_vec_to_node<'arena>(
+    arena: &'arena Arena,
+    nodes: Vec<&'arena Node<'arena>>,
+) -> &'arena Node<'arena> {
+    if nodes.len() == 1 {
+        // Safety: We checked that there is an element.
+        unsafe { nodes.into_iter().next().unwrap_unchecked() }
+    } else {
+        let nodes = arena.push_slice(&nodes);
+        arena.push(Node::Row {
+            nodes,
+            attr: RowAttr::None,
+        })
+    }
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
@@ -1446,7 +1451,7 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let l = Lexer::new(problem);
+            let l = Lexer::new(problem, false, None);
             let mut p = Parser::new(l, &arena);
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

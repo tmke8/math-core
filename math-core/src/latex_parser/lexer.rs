@@ -5,27 +5,38 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::error::GetUnwrap;
 use super::token::{Digit, TokLoc, Token};
+use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-#[derive(Debug, Clone)]
 pub(crate) struct Lexer<'source> {
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
     pub input_length: usize,
     pub text_mode: bool,
+    parsing_custom_cmds: bool,
+    custom_cmds: Option<&'source CustomCmds>,
 }
 
 impl<'source> Lexer<'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(input: &'source str) -> Self {
+    pub(crate) fn new<'config>(
+        input: &'source str,
+        parsing_custom_cmds: bool,
+        custom_cmds: Option<&'config CustomCmds>,
+    ) -> Self
+    where
+        'config: 'source,
+    {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
             text_mode: false,
+            parsing_custom_cmds,
+            custom_cmds,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -129,6 +140,16 @@ impl<'source> Lexer<'source> {
             '\u{0}' => Token::EOF,
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
+            '#' => {
+                if self.parsing_custom_cmds && self.peek.1.is_ascii_digit() {
+                    // In pre-defined commands, `#` is used to denote a parameter.
+                    let next = self.read_char().1;
+                    let param_num = (next as u32).wrapping_sub('0' as u32) as usize;
+                    Token::CustomCmdArg(param_num.saturating_sub(1))
+                } else {
+                    Token::Letter('#')
+                }
+            }
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
             '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
@@ -170,7 +191,9 @@ impl<'source> Lexer<'source> {
                     self.skip_whitespace();
                     get_text_command(cmd_string)
                 } else {
-                    get_command(cmd_string)
+                    self.custom_cmds
+                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                        .unwrap_or_else(|| get_command(cmd_string))
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;
@@ -221,7 +244,7 @@ mod tests {
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem);
+            let mut lexer = Lexer::new(problem, false, None);
             lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
@@ -238,5 +261,22 @@ mod tests {
             }
             assert_snapshot!(name, &tokens, problem);
         }
+    }
+
+    #[test]
+    fn test_parsing_custom_commands() {
+        let parsing_custom_cmds = true;
+        let problem = r"\frac{#1}{#2} + \sqrt{#3}";
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
+        let mut tokens = String::new();
+        loop {
+            let tokloc = lexer.next_token();
+            if matches!(tokloc.token(), Token::EOF) {
+                break;
+            }
+            let TokLoc(loc, tok) = tokloc;
+            write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
+        }
+        assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
 }
