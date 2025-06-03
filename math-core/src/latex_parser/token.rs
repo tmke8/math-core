@@ -101,7 +101,7 @@ pub enum Token<'source> {
     Text(Option<TextTransform>),
     Style(Style),
     Color,
-    CustomCmd(usize, &'static Node<'static>),
+    CustomCmd(usize, &'source Node<'source>),
     CustomCmdArg(usize),
     GetCollectedLetters,
     HardcodedMathML(&'static str),

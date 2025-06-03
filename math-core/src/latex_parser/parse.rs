@@ -21,8 +21,8 @@ use super::{
     token::{TokLoc, Token},
 };
 
-pub(crate) struct Parser<'arena, 'source> {
-    l: Lexer<'source>,
+pub(crate) struct Parser<'config, 'arena, 'source> {
+    l: Lexer<'config, 'source>,
     peek: TokLoc<'source>,
     buffer: Buffer,
     arena: &'arena Arena,
@@ -59,11 +59,12 @@ impl SequenceEnd {
     }
 }
 
-impl<'arena, 'source> Parser<'arena, 'source>
+impl<'config, 'arena, 'source> Parser<'config, 'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
+    'config: 'source,
 {
-    pub(crate) fn new(lexer: Lexer<'source>, arena: &'arena Arena) -> Self {
+    pub(crate) fn new(lexer: Lexer<'config, 'source>, arena: &'arena Arena) -> Self {
         let input_length = lexer.input_length;
         let mut p = Parser {
             l: lexer,
@@ -130,9 +131,10 @@ where
         next_token(&mut self.peek, &mut self.l)
     }
 
-    pub(crate) fn parse(&mut self) -> Result<&'arena [&'arena Node<'arena>], LatexError<'source>> {
+    #[inline]
+    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), false)?;
-        Ok(self.arena.push_slice(&nodes))
+        Ok(nodes)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
@@ -346,7 +348,7 @@ where
                         self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
-                    Node::Root(self.node_vec_to_node(degree), content)
+                    Node::Root(node_vec_to_node(self.arena, degree), content)
                 } else {
                     Node::Sqrt(self.parse_token(next, true, None)?)
                 }
@@ -661,7 +663,7 @@ where
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), wants_arg)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(self.node_vec_to_node(content));
+                return Ok(node_vec_to_node(self.arena, content));
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -708,7 +710,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: self.node_vec_to_node(content),
+                    content: node_vec_to_node(self.arena, content),
                     style: None,
                 }
             }
@@ -1109,7 +1111,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(self.node_vec_to_node(primes))
+            Some(node_vec_to_node(self.arena, primes))
         } else {
             sup
         };
@@ -1189,23 +1191,6 @@ where
         node
     }
 
-    // Turn a vector of nodes into a single node.
-    //
-    // This is done either by returning the single node if there is only one,
-    // or by creating a row node if there are multiple nodes.
-    fn node_vec_to_node(&self, list_builder: Vec<&'arena Node<'arena>>) -> &'arena Node<'arena> {
-        if list_builder.len() == 1 {
-            // Safety: We checked that there is an element.
-            unsafe { list_builder.into_iter().next().unwrap_unchecked() }
-        } else {
-            let nodes = self.arena.push_slice(&list_builder);
-            self.commit(Node::Row {
-                nodes,
-                attr: RowAttr::None,
-            })
-        }
-    }
-
     fn make_pseudo_operator(
         &mut self,
         name: &'arena str,
@@ -1236,10 +1221,36 @@ where
 }
 
 #[inline]
-fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -> TokLoc<'source> {
+fn next_token<'config, 'source>(
+    peek: &mut TokLoc<'source>,
+    lexer: &mut Lexer<'config, 'source>,
+) -> TokLoc<'source>
+where
+    'config: 'source,
+{
     let peek_token = lexer.next_token();
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)
+}
+
+// Turn a vector of nodes into a single node.
+//
+// This is done either by returning the single node if there is only one,
+// or by creating a row node if there are multiple nodes.
+pub(crate) fn node_vec_to_node<'arena>(
+    arena: &'arena Arena,
+    nodes: Vec<&'arena Node<'arena>>,
+) -> &'arena Node<'arena> {
+    if nodes.len() == 1 {
+        // Safety: We checked that there is an element.
+        unsafe { nodes.into_iter().next().unwrap_unchecked() }
+    } else {
+        let nodes = arena.push_slice(&nodes);
+        arena.push(Node::Row {
+            nodes,
+            attr: RowAttr::None,
+        })
+    }
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
@@ -1251,18 +1262,21 @@ enum LetterCollector<'arena> {
     FinishedManyLetters { collected_letters: &'arena str },
 }
 
-struct TextModeParser<'builder, 'source, 'parser> {
+struct TextModeParser<'config, 'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
     peek: &'parser mut TokLoc<'source>,
-    lexer: &'parser mut Lexer<'source>,
+    lexer: &'parser mut Lexer<'config, 'source>,
     tf: Option<TextTransform>,
 }
 
-impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
+impl<'config, 'builder, 'source, 'parser> TextModeParser<'config, 'builder, 'source, 'parser>
+where
+    'config: 'source,
+{
     fn new(
         builder: &'builder mut StringBuilder<'parser>,
         peek: &'parser mut TokLoc<'source>,
-        lexer: &'parser mut Lexer<'source>,
+        lexer: &'parser mut Lexer<'config, 'source>,
     ) -> Self {
         Self {
             builder,
@@ -1447,7 +1461,7 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let l = Lexer::new(problem, false);
+            let l = Lexer::new(problem, false, None);
             let mut p = Parser::new(l, &arena);
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

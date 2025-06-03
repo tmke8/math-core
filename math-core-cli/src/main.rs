@@ -189,12 +189,12 @@ fn convert_and_exit(args: &Args, latex: &str, converter: &mut Converter) {
 fn replace<'source, 'buf>(
     replacer: &'buf mut Replacer,
     input: &'source str,
-    converter: &mut Converter,
+    converter: &'buf mut Converter,
 ) -> Result<String, ConversionError<'source, 'buf>>
 where
     'source: 'buf,
 {
-    replacer.replace(input, |buf, latex, display| {
+    replacer.replace(input, converter, |converter, buf, latex, display| {
         let result = converter.latex_to_mathml(latex, display)?;
         buf.push_str(result.as_str());
         Ok(())

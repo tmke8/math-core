@@ -132,15 +132,15 @@ pub enum Node<'arena> {
         content: &'arena Node<'arena>,
     },
     CustomCmd {
-        predefined: &'static Node<'static>,
+        predefined: &'arena Node<'arena>,
         args: &'arena [&'arena Node<'arena>],
     },
     CustomCmdArg(usize),
     HardcodedMathML(&'static str),
 }
 
-impl PartialEq for &'static Node<'static> {
-    fn eq(&self, other: &&'static Node<'static>) -> bool {
+impl PartialEq for &Node<'_> {
+    fn eq(&self, other: &&Node<'_>) -> bool {
         std::ptr::eq(*self, *other)
     }
 }

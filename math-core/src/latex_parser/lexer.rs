@@ -5,22 +5,27 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::error::GetUnwrap;
 use super::token::{Digit, TokLoc, Token};
+use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-#[derive(Debug, Clone)]
-pub(crate) struct Lexer<'source> {
+pub(crate) struct Lexer<'config, 'source> {
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
     pub input_length: usize,
     pub text_mode: bool,
     parsing_custom_cmds: bool,
+    custom_cmds: Option<&'config CustomCmds>,
 }
 
-impl<'source> Lexer<'source> {
+impl<'config, 'source> Lexer<'config, 'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(input: &'source str, parsing_custom_cmds: bool) -> Self {
+    pub(crate) fn new(
+        input: &'source str,
+        parsing_custom_cmds: bool,
+        custom_cmds: Option<&'config CustomCmds>,
+    ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
@@ -28,6 +33,7 @@ impl<'source> Lexer<'source> {
             input_length: input.len(),
             text_mode: false,
             parsing_custom_cmds,
+            custom_cmds,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -112,7 +118,10 @@ impl<'source> Lexer<'source> {
     ///
     /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
     /// but rather immediately return a single digit as a number token.
-    pub(crate) fn next_token(&mut self) -> TokLoc<'source> {
+    pub(crate) fn next_token(&mut self) -> TokLoc<'source>
+    where
+        'config: 'source,
+    {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return TokLoc(loc.get(), Token::Whitespace);
@@ -182,7 +191,9 @@ impl<'source> Lexer<'source> {
                     self.skip_whitespace();
                     get_text_command(cmd_string)
                 } else {
-                    get_command(cmd_string)
+                    self.custom_cmds
+                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                        .unwrap_or_else(|| get_command(cmd_string))
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;
@@ -233,7 +244,7 @@ mod tests {
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false);
+            let mut lexer = Lexer::new(problem, false, None);
             lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();

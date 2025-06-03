@@ -32,6 +32,15 @@ impl Arena {
         }
     }
 
+    pub fn contains_slice(&self, nodes: &[&Node<'_>]) -> bool {
+        if nodes.is_empty() {
+            // We consider an empty slice to be contained in the arena.
+            true
+        } else {
+            self.inner.contains_slice(nodes)
+        }
+    }
+
     fn alloc_str(&self, src: &str) -> &str {
         // `DroplessArena::alloc_str()` panics on empty strings.
         if src.is_empty() {

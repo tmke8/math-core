@@ -291,6 +291,7 @@ dependencies = [
 name = "math-core-wasm"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "lol_alloc",
  "math-core",
  "wasm-bindgen",

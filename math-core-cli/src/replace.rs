@@ -82,10 +82,10 @@ pub struct Replacer<'config> {
     continue_on_error: bool,
 }
 
-impl<'config> Replacer<'config> {
+impl<'args> Replacer<'args> {
     pub fn new(
-        inline_delim: (&'config str, &'config str),
-        block_delim: (&'config str, &'config str),
+        inline_delim: (&'args str, &'args str),
+        block_delim: (&'args str, &'args str),
         ignore_escaped_delim: bool,
         continue_on_error: bool,
     ) -> Self {
@@ -109,14 +109,15 @@ impl<'config> Replacer<'config> {
     /// Replaces the content of inline and block math delimiters in a LaTeX string.
     ///
     /// Any kind of nesting of delimiters is not allowed.
-    #[inline]
-    pub(crate) fn replace<'source, 'buf, F>(
+    #[inline(always)]
+    pub(crate) fn replace<'source, 'buf, F, S>(
         &'buf mut self,
         input: &'source str,
-        mut f: F,
+        state: &'buf mut S,
+        f: F,
     ) -> Result<String, ConversionError<'source, 'buf>>
     where
-        F: for<'a> FnMut(&mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
+        F: for<'a> Fn(&'a mut S, &mut String, &'a str, Display) -> Result<(), LatexError<'a>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
@@ -186,7 +187,8 @@ impl<'config> Replacer<'config> {
             // Replace HTML entities
             let replaced = replace_html_entities(&mut self.entity_buffer, content);
             // Convert the content and check for error.
-            if f(&mut result, replaced, open_typ).is_err() {
+            let is_error = { f(state, &mut result, replaced, open_typ).is_err() };
+            if is_error {
                 if self.continue_on_error {
                     // If we continue on error, we just skip the conversion and return the
                     // original content (including delimiters).
@@ -201,7 +203,7 @@ impl<'config> Replacer<'config> {
                     // This is quite unfortunate, but we only have to do this in the error case,
                     // which is hopefully not too common.
                     let replaced = replace_html_entities(&mut self.entity_buffer, content);
-                    let latex_error = f(&mut result, replaced, open_typ).unwrap_err();
+                    let latex_error = f(state, &mut result, replaced, open_typ).unwrap_err();
                     return Err(ConversionError(
                         start,
                         ConvErrKind::LatexError(latex_error, replaced),
@@ -302,6 +304,7 @@ mod tests {
 
     /// Mock convert function for testing
     fn mock_convert<'source>(
+        _state: &mut (),
         buf: &mut String,
         content: &'source str,
         typ: Display,
@@ -320,7 +323,7 @@ mod tests {
         ignore_escaped_delim: bool,
     ) -> Result<String, ConversionError<'static, 'static>> {
         let mut replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim, false);
-        match replacer.replace(input, mock_convert) {
+        match replacer.replace(input, &mut (), mock_convert) {
             Ok(s) => Ok(s),
             Err(e) => match &e.1 {
                 // The following is needed to do a kind of "lifetime laundering".
@@ -566,9 +569,10 @@ mod tests {
     fn test_error() {
         let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"), false, false);
         let input = r"let \(&amp;=1\).";
+        let mut unit = ();
         // This conversion function always returns an error.
         let err = replacer
-            .replace(input, |_buf, _content, _typ| {
+            .replace(input, &mut unit, |_state, _buf, _content, _typ| {
                 Err(LatexError(0, LatexErrKind::UnexpectedEOF))
             })
             .unwrap_err();
@@ -586,9 +590,10 @@ mod tests {
     fn test_error_multiline() {
         let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"), false, false);
         let input = "hello world\nlet\\(&amp;=1\\).";
+        let mut unit = ();
         // This conversion function always returns an error.
         let err = replacer
-            .replace(input, |_buf, _content, _typ| {
+            .replace(input, &mut unit, |_state, _buf, _content, _typ| {
                 Err(LatexError(0, LatexErrKind::UnexpectedEOF))
             })
             .unwrap_err();
