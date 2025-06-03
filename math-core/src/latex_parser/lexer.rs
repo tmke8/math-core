@@ -15,7 +15,7 @@ pub(crate) struct Lexer<'source> {
     input_string: &'source str,
     pub input_length: usize,
     pub text_mode: bool,
-    parsing_custom_cmds: bool,
+    pub parse_cmd_args: Option<usize>,
     custom_cmds: Option<&'source CustomCmds>,
 }
 
@@ -35,7 +35,11 @@ impl<'source> Lexer<'source> {
             input_string: input,
             input_length: input.len(),
             text_mode: false,
-            parsing_custom_cmds,
+            parse_cmd_args: if parsing_custom_cmds {
+                Some(0) // Start counting command arguments.
+            } else {
+                None
+            },
             custom_cmds,
         };
         lexer.read_char(); // Initialize `peek`.
@@ -141,10 +145,15 @@ impl<'source> Lexer<'source> {
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
             '#' => {
-                if self.parsing_custom_cmds && self.peek.1.is_ascii_digit() {
+                if self.parse_cmd_args.is_some() && self.peek.1.is_ascii_digit() {
                     // In pre-defined commands, `#` is used to denote a parameter.
                     let next = self.read_char().1;
                     let param_num = (next as u32).wrapping_sub('0' as u32) as usize;
+                    if let Some(num) = self.parse_cmd_args.as_mut() {
+                        if param_num > *num {
+                            *num = param_num;
+                        }
+                    }
                     Token::CustomCmdArg(param_num.saturating_sub(1))
                 } else {
                     Token::Letter('#')

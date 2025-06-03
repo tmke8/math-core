@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "x = \\mycmd{3}"
+---
+<math>
+    <mi>x</mi>
+    <mo>=</mo>
+    <msqrt>
+        <mn>3</mn>
+    </msqrt>
+</math>

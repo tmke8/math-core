@@ -16,6 +16,7 @@ function initializeCachedValues() {
   );
   let macros = new Map();
   macros.set("half", "\\frac{1}{2}");
+  macros.set("myfrac", "\\frac{#1}{#2}");
   cachedConfig = {
     pretty: prettyRadio ? prettyRadio.value === "true" : true,
     macros,

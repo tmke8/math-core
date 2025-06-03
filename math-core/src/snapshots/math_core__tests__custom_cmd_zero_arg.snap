@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: mathml
+expression: "x = \\half"
 ---
 <math>
     <mi>x</mi>
