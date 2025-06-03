@@ -102,7 +102,7 @@ pub struct Converter {
 }
 
 impl Converter {
-    pub fn new<'source>(config: &'source Config) -> Result<Self, LatexError<'source>> {
+    pub fn new(config: &Config) -> Result<Self, LatexError<'_>> {
         Ok(Self {
             pretty: config.pretty,
             equation_count: 0,
@@ -186,7 +186,7 @@ fn parse_custom_commands<'source>(
     macros: &'source HashMap<String, String>,
 ) -> Result<CustomCmds, LatexError<'source>> {
     let arena = Arena::new();
-    let mut map = HashMap::new();
+    let mut map = HashMap::with_capacity(macros.len());
     let mut parsed_macros = Vec::with_capacity(macros.len());
     for (name, definition) in macros.iter() {
         let nodes = parse(definition, &arena, true, None)?;

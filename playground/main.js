@@ -35,7 +35,7 @@ function updateConfigCache() {
   );
   cachedConfig = {
     pretty: selectedRadio ? selectedRadio.value === "true" : true,
-    macros: {},
+    macros: new Map(),
   };
 }
 
