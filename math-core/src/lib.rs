@@ -137,7 +137,7 @@ impl Converter {
         'config: 'source,
     {
         let arena = Arena::new();
-        let ast = parse(latex, &arena, false, Some(&self.custom_cmds))?;
+        let ast = parse(latex, &arena, Some(&self.custom_cmds))?;
 
         let mut output = MathMLEmitter::new(&mut self.equation_count);
         match display {
@@ -169,14 +169,13 @@ impl Converter {
 fn parse<'config, 'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-    parsing_custom_cmds: bool,
     custom_cmds: Option<&'config CustomCmds>,
 ) -> Result<Vec<&'arena mathml_renderer::ast::Node<'arena>>, LatexError<'source>>
 where
     'source: 'arena,  // 'source outlives 'arena
     'config: 'source, // 'config outlives 'source
 {
-    let lexer = latex_parser::Lexer::new(latex, parsing_custom_cmds, custom_cmds);
+    let lexer = latex_parser::Lexer::new(latex, false, custom_cmds);
     let mut p = latex_parser::Parser::new(lexer, arena);
     let nodes = p.parse()?;
     Ok(nodes)
@@ -189,9 +188,10 @@ fn parse_custom_commands<'source>(
     let mut map = HashMap::with_capacity(macros.len());
     let mut parsed_macros = Vec::with_capacity(macros.len());
     for (name, definition) in macros.iter() {
-        let nodes = parse(definition, &arena, true, None)?;
-        // TODO: let `parse()` return the number of args
-        let num_args = 0;
+        let lexer = latex_parser::Lexer::new(definition, true, None);
+        let mut p = latex_parser::Parser::new(lexer, &arena);
+        let nodes = p.parse()?;
+        let num_args = p.l.parse_cmd_args.unwrap_or(0);
 
         let node_ref = node_vec_to_node(&arena, nodes);
         let index = parsed_macros.len();
@@ -214,7 +214,7 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, LatexError> {
         let arena = Arena::new();
-        let nodes = parse(latex, &arena, false, None)?;
+        let nodes = parse(latex, &arena, None)?;
         let mut equation_count = 0;
         let mut emitter = MathMLEmitter::new(&mut equation_count);
         for node in nodes.iter() {
@@ -523,10 +523,10 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_cmds() {
+    fn test_custom_cmd_zero_arg() {
         let macros = [
             ("half".to_string(), r"\frac{1}{2}".to_string()),
-            ("mycmd2".to_string(), r"\sqrt{3}".to_string()),
+            ("mycmd".to_string(), r"\sqrt{3}".to_string()),
         ]
         .into_iter()
         .collect();
@@ -543,6 +543,29 @@ mod tests {
             .latex_to_mathml(latex, crate::Display::Inline)
             .unwrap();
 
-        assert_snapshot!(mathml);
+        assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
+    }
+    #[test]
+    fn test_custom_cmd_one_arg() {
+        let macros = [
+            ("half".to_string(), r"\frac{1}{2}".to_string()),
+            ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let config = crate::Config {
+            macros,
+            pretty: true,
+        };
+
+        let mut converter = Converter::new(&config).unwrap();
+
+        let latex = r"x = \mycmd{3}";
+        let mathml = converter
+            .latex_to_mathml(latex, crate::Display::Inline)
+            .unwrap();
+
+        assert_snapshot!("custom_cmd_one_arg", mathml, latex);
     }
 }

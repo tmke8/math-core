@@ -22,7 +22,7 @@ use super::{
 };
 
 pub(crate) struct Parser<'arena, 'source> {
-    l: Lexer<'source>,
+    pub(crate) l: Lexer<'source>,
     peek: TokLoc<'source>,
     buffer: Buffer,
     arena: &'arena Arena,
