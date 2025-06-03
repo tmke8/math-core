@@ -11,10 +11,11 @@ license = "MIT"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-math-core = { path = "../math-core" }
+math-core = { path = "../math-core", features = ["serde"] }
 lol_alloc = "0.4.1"
 wasm-bindgen = "0.2.100"
-js-sys = "0.3.77"
+serde = { version = "1.0.219", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.50"

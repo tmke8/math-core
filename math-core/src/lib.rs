@@ -53,6 +53,9 @@ mod raw_node_slice;
 
 use std::collections::HashMap;
 
+#[cfg(feature = "serde")]
+use serde::Deserialize;
+
 use latex_parser::node_vec_to_node;
 pub use latex_parser::{LatexErrKind, LatexError, Token};
 use mathml_renderer::arena::Arena;
@@ -67,6 +70,7 @@ pub enum Display {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty: bool,

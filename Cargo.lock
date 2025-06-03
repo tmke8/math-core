@@ -291,9 +291,10 @@ dependencies = [
 name = "math-core-wasm"
 version = "0.1.0"
 dependencies = [
- "js-sys",
  "lol_alloc",
  "math-core",
+ "serde",
+ "serde-wasm-bindgen",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -540,6 +541,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f0e2c6ed6606019b4e29e69dbaba95b11854410e5347d525002456dbbb786b6"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]
