@@ -38,7 +38,7 @@ function isBlock() {
 
 document.addEventListener("DOMContentLoaded", () => {
   // Initialize cached values on page load
-  // initializeCachedValues();
+  initializeCachedValues();
 
   const inputField = document.getElementById("inputField");
   const outputField = document.getElementById("outputField");
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .querySelectorAll('#prettyprint input[type="radio"]')
     .forEach((radio) => {
       radio.addEventListener("change", () => {
-        updateConfig(); // Update cache when radio button changes
+        updateConfig(); // Update config when radio button changes
         updateOutput();
       });
     });
