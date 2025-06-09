@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 #[cfg(target_arch = "wasm32")]
 use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
@@ -12,7 +13,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{Config, Converter, Display};
+use math_core::{Config, Display, LatexToMathML};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -32,8 +33,10 @@ extern "C" {
     fn macros(this: &JsConfig) -> Map;
 }
 
+static LATEX_TO_MATHML: RwLock<LatexToMathML> = RwLock::new(LatexToMathML::const_default());
+
 #[wasm_bindgen]
-pub fn convert(content: &str, block: bool, js_config: &JsConfig) -> Result<JsValue, LatexError> {
+pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
     // This is the poor man's `serde_wasm_bindgen::from_value`.
     let macro_map = js_config.macros();
     let mut macros = HashMap::with_capacity(macro_map.size() as usize);
@@ -61,15 +64,20 @@ pub fn convert(content: &str, block: bool, js_config: &JsConfig) -> Result<JsVal
         macros,
         ..Default::default()
     };
-    let mut converter = Converter::new(&config).map_err(|e| {
+    let converter = LatexToMathML::new(&config).map_err(|e| {
         let error = e.1.string() + "\n(This is an error from a custom macro.)";
         LatexError {
             error_message: JsValue::from_str(&error),
             location: e.0 as u32,
         }
     })?;
+    *LATEX_TO_MATHML.write().unwrap() = converter;
+    Ok(())
+}
 
-    match converter.latex_to_mathml(
+#[wasm_bindgen]
+pub fn convert(content: &str, block: bool) -> Result<JsValue, LatexError> {
+    match LATEX_TO_MATHML.read().unwrap().convert_with_local_counter(
         content,
         if block {
             Display::Block

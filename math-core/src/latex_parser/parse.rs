@@ -989,7 +989,10 @@ where
                     nodes.push(node);
                 }
                 let args = self.arena.push_slice(&nodes);
-                Node::CustomCmd { predefined, args }
+                Node::CustomCmd {
+                    predefined: predefined.into_ref(),
+                    args,
+                }
             }
             Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
             Token::GetCollectedLetters => match self.collector {

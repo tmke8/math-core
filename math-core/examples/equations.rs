@@ -1,4 +1,4 @@
-use math_core::{Config, Converter, Display};
+use math_core::{Config, Display, LatexToMathML};
 
 fn main() {
     let inputs = vec![
@@ -63,7 +63,7 @@ fn main() {
         r"\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)",
     ];
 
-    let mut converter = Converter::new(&Config {
+    let converter = LatexToMathML::new(&Config {
         pretty: true,
         ..Default::default()
     })
@@ -75,7 +75,7 @@ fn main() {
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
                 converter
-                    .latex_to_mathml(input, Display::Block)
+                    .convert_with_local_counter(input, Display::Block)
                     .expect(input)
             )
         })

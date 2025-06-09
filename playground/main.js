@@ -1,8 +1,7 @@
-import { convert } from "./pkg/math_core_wasm.js";
+import { convert, set_config } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value
-let cachedConfig = { pretty: true, macros: new Map() }; // default value
 
 function initializeCachedValues() {
   // Initialize cached values based on current DOM state
@@ -10,17 +9,6 @@ function initializeCachedValues() {
     '#displaystyle input[type="radio"]:checked',
   );
   cachedIsBlock = blockRadio ? blockRadio.value === "block" : true;
-
-  const prettyRadio = document.querySelector(
-    '#prettyprint input[type="radio"]:checked',
-  );
-  let macros = new Map();
-  macros.set("half", "\\frac{1}{2}");
-  macros.set("myfrac", "\\frac{#1}{#2}");
-  cachedConfig = {
-    pretty: prettyRadio ? prettyRadio.value === "true" : true,
-    macros,
-  };
 }
 
 function updateIsBlockCache() {
@@ -30,27 +18,27 @@ function updateIsBlockCache() {
   cachedIsBlock = selectedRadio ? selectedRadio.value === "block" : true;
 }
 
-function updateConfigCache() {
+function updateConfig() {
   const selectedRadio = document.querySelector(
     '#prettyprint input[type="radio"]:checked',
   );
-  cachedConfig = {
+  let macros = new Map();
+  macros.set("half", "\\frac{1}{2}");
+  macros.set("myfrac", "\\frac{#1}{#2}");
+  const config = {
     pretty: selectedRadio ? selectedRadio.value === "true" : true,
-    macros: new Map(),
+    macros,
   };
+  set_config(config);
 }
 
 function isBlock() {
   return cachedIsBlock;
 }
 
-function config() {
-  return cachedConfig;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   // Initialize cached values on page load
-  initializeCachedValues();
+  // initializeCachedValues();
 
   const inputField = document.getElementById("inputField");
   const outputField = document.getElementById("outputField");
@@ -59,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateOutput() {
     try {
       const input = inputField.value;
-      const output = convert(input, isBlock(), config());
+      const output = convert(input, isBlock());
       outputField.innerHTML = output;
       outputCode.textContent = output;
     } catch (error) {
@@ -85,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .querySelectorAll('#prettyprint input[type="radio"]')
     .forEach((radio) => {
       radio.addEventListener("change", () => {
-        updateConfigCache(); // Update cache when radio button changes
+        updateConfig(); // Update cache when radio button changes
         updateOutput();
       });
     });
