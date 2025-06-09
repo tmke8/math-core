@@ -6,7 +6,7 @@ use crate::mathml_renderer::symbol::{self, Rel};
 
 use super::predefined;
 use super::specifications::LaTeXUnit;
-use super::token::Token;
+use super::token::{NodeRef, Token};
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     " " => Token::NonBreakingSpace,
@@ -157,14 +157,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "blacktriangleleft" => Token::Letter(symbol::BLACK_LEFT_POINTING_TRIANGLE),
     "blacktriangleright" => Token::Letter(symbol::BLACK_RIGHT_POINTING_TRIANGLE),
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
-    "bmod" => Token::CustomCmd(0, &Node::Row {
+    "bmod" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
         nodes: &[
             &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
             &Node::Text("mod"),
             &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
         ],
         attr: RowAttr::None
-    }),
+    })),
     "boldsymbol" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Token::Letter(symbol::UP_TACK),
     "botdoteq" => Token::Relation(symbol::EQUALS_SIGN_WITH_DOT_BELOW),
@@ -180,7 +180,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "bumpeq" => Token::Relation(symbol::DIFFERENCE_BETWEEN),
     "cap" => Token::BinaryOp(symbol::INTERSECTION),
     "cdot" => Token::BinaryOp(symbol::MIDDLE_DOT),
-    "cdots" => Token::CustomCmd(0, &Node::Row {
+    "cdots" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
         nodes: &[
             &Node::Operator {
                 op:symbol::MIDDLE_DOT.as_op(),
@@ -202,7 +202,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
             },
         ],
         attr: RowAttr::None
-    }),
+    })),
     "centerdot" => Token::Relation(symbol::BULLET_OPERATOR),
     "cfrac" => Token::Frac(Some(FracAttr::CFracStyle)),
     "check" => Token::OverUnder(symbol::CARON, true, Some(OpAttr::StretchyFalse)),
@@ -239,10 +239,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curlywedge" => Token::BinaryOp(symbol::CURLY_LOGICAL_AND),
     "curvearrowleft" => Token::Relation(symbol::ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "curvearrowright" => Token::Relation(symbol::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
-    "d" => Token::CustomCmd(0, &Node::TextTransform {
+    "d" => Token::CustomCmd(0, NodeRef::new(&Node::TextTransform {
         tf: MathVariant::Normal,
         content: &Node::IdentifierChar('d', LetterAttr::Default),
-    }),
+    })),
     "dag" => Token::Letter(symbol::DAGGER),
     "dagger" => Token::Letter(symbol::DAGGER),
     "daleth" => Token::Letter(symbol::DALET_SYMBOL),
@@ -271,7 +271,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "doteq" => Token::Relation(symbol::APPROACHES_THE_LIMIT),
     "doteqdot" => Token::Relation(symbol::GEOMETRICALLY_EQUAL_TO),
     "dotplus" => Token::BinaryOp(symbol::DOT_PLUS),
-    "dots" => Token::CustomCmd(0, &predefined::DOTS),
+    "dots" => Token::CustomCmd(0, NodeRef::new(&predefined::DOTS)),
     "dotsminusdots" => Token::Relation(symbol::GEOMETRIC_PROPORTION),
     "doublebarwedge" => Token::Relation(symbol::LOGICAL_AND_WITH_DOUBLE_OVERBAR),
     "downarrow" => Token::Delimiter(symbol::DOWNWARDS_ARROW),
@@ -281,8 +281,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dprime" => Token::Ord(symbol::DOUBLE_PRIME),
     "earth" => Token::Letter(symbol::EARTH),
     "ell" => Token::Letter(symbol::SCRIPT_SMALL_L),
-    "empty" => Token::CustomCmd(0, &Node::IdentifierStr("∅\u{FE00}")), // with Unicode variation selector
-    "emptyset" => Token::CustomCmd(0, &Node::IdentifierStr("∅\u{FE00}")), // with Unicode variation selector
+    "empty" => Token::CustomCmd(0, NodeRef::new(&Node::IdentifierStr("∅\u{FE00}"))), // with Unicode variation selector
+    "emptyset" => Token::CustomCmd(0, NodeRef::new(&Node::IdentifierStr("∅\u{FE00}"))), // with Unicode variation selector
     "end" => Token::End,
     "epsilon" => Token::Letter(symbol::GREEK_LUNATE_EPSILON_SYMBOL),
     "eqcirc" => Token::Relation(symbol::RING_IN_EQUAL_TO),
@@ -365,7 +365,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lbrace" => Token::Delimiter(symbol::LEFT_CURLY_BRACKET),
     "lbrack" => Token::Delimiter(symbol::LEFT_SQUARE_BRACKET),
     "lceil" => Token::Delimiter(symbol::LEFT_CEILING),
-    "ldots" => Token::CustomCmd(0, &predefined::DOTS),
+    "ldots" => Token::CustomCmd(0, NodeRef::new(&predefined::DOTS)),
     "le" => Token::Relation(symbol::LESS_THAN_OR_EQUAL_TO),
     "left" => Token::Left,
     "leftarrow" => Token::Relation(symbol::LEFTWARDS_ARROW),
@@ -442,7 +442,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mid" => Token::Relation(symbol::DIVIDES),
     "middle" => Token::Middle,
     "min" => Token::PseudoOperatorLimits("min"),
-    "mod" => Token::CustomCmd(1, &predefined::MOD),
+    "mod" => Token::CustomCmd(1, NodeRef::new(&predefined::MOD)),
     "models" => Token::Relation(symbol::TRUE),
     "mp" => Token::BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
     "mspace" => Token::CustomSpace,
@@ -492,7 +492,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nvdash" => Token::Relation(symbol::DOES_NOT_PROVE),
     "nwarrow" => Token::Relation(symbol::NORTH_WEST_ARROW),
     "odot" => Token::BinaryOp(symbol::CIRCLED_DOT_OPERATOR),
-    "odv" => Token::CustomCmd(2, &predefined::ODV),
+    "odv" => Token::CustomCmd(2, NodeRef::new(&predefined::ODV)),
     "oiiint" => Token::Integral(symbol::VOLUME_INTEGRAL),
     "oiint" => Token::Integral(symbol::SURFACE_INTEGRAL),
     "oint" => Token::Integral(symbol::CONTOUR_INTEGRAL),
@@ -518,7 +518,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "pi" => Token::Letter(symbol::GREEK_SMALL_LETTER_PI),
     "pitchfork" => Token::Relation(symbol::PITCHFORK),
     "pm" => Token::BinaryOp(symbol::PLUS_MINUS_SIGN),
-    "pmod" => Token::CustomCmd(1, &predefined::PMOD),
+    "pmod" => Token::CustomCmd(1, NodeRef::new(&predefined::PMOD)),
     "pounds" => Token::Letter('£'),
     "prec" => Token::Relation(symbol::PRECEDES),
     "precapprox" => Token::Relation(symbol::PRECEDES_ABOVE_ALMOST_EQUAL_TO),
@@ -694,8 +694,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "wp" => Token::Letter(symbol::SCRIPT_CAPITAL_P),
     "wr" => Token::Relation(symbol::WREATH_PRODUCT),
     "xi" => Token::Letter(symbol::GREEK_SMALL_LETTER_XI),
-    "xleftarrow" => Token::CustomCmd(1, &predefined::XLEFTARROW),
-    "xrightarrow" => Token::CustomCmd(1, &predefined::XRIGHTARROW),
+    "xleftarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XLEFTARROW)),
+    "xrightarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XRIGHTARROW)),
     "zeta" => Token::Letter(symbol::GREEK_SMALL_LETTER_ZETA),
     "{" => Token::Delimiter(symbol::LEFT_CURLY_BRACKET),
     "|" => Token::Delimiter(symbol::DOUBLE_VERTICAL_LINE),

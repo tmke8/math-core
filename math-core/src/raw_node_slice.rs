@@ -1,4 +1,6 @@
-use super::{Arena, Node};
+use crate::mathml_renderer::arena::FrozenArena;
+
+use super::Node;
 
 pub struct RawNodeSlice {
     ptr: *const &'static Node<'static>,
@@ -17,7 +19,13 @@ impl RawNodeSlice {
         }
     }
 
-    pub fn lift<'arena>(&self, arena: &'arena Arena) -> Option<&'arena [&'arena Node<'arena>]> {
+    /// Turn the raw pointer within `RawNodeSlice` into a slice of references to nodes.
+    /// This method requires a reference to a `FrozenArena` to ensure the nodes are valid.
+    /// We check at runtime whether the slice is contained within the arena, ensuring safety.
+    pub fn lift<'arena>(
+        &self,
+        arena: &'arena FrozenArena,
+    ) -> Option<&'arena [&'arena Node<'arena>]> {
         let ptr = unsafe {
             std::mem::transmute::<*const &'static Node<'static>, *const &'arena Node<'arena>>(
                 self.ptr,
@@ -35,13 +43,17 @@ impl RawNodeSlice {
     }
 }
 
-// SAFETY: `RawNodeSlice` is a thin wrapper around a pointer and length, and does not
-// contain any interior mutability or unsafe operations that would violate thread safety.
+// Safety: While `RawNodeSlice` contains a raw pointer, it does not allow mutation of the underlying
+// data. In order to dereference the pointer, one requires a valid reference to a `FrozenArena`,
+// which contains the pointer.
 unsafe impl Send for RawNodeSlice {}
+unsafe impl Sync for RawNodeSlice {}
 
 #[cfg(test)]
 mod tests {
     use std::thread;
+
+    use crate::mathml_renderer::arena::Arena;
 
     use super::*;
 
@@ -53,6 +65,7 @@ mod tests {
         let slice = arena.push_slice(&[node1, node2]);
 
         let raw_slice = RawNodeSlice::from_slice(slice);
+        let arena = arena.freeze();
 
         thread::spawn(move || {
             let lifted = raw_slice.lift(&arena).unwrap();

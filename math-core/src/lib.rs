@@ -35,11 +35,11 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{Config, Converter, Display};
+//! use math_core::{Config, Display, LatexToMathML};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let mut converter = Converter::new(&Config { pretty: true, ..Default::default() }).unwrap();
-//! let mathml = converter.latex_to_mathml(latex, Display::Block).unwrap();
+//! let converter = LatexToMathML::new(&Config { pretty: true, ..Default::default() }).unwrap();
+//! let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -53,11 +53,12 @@ mod raw_node_slice;
 
 use std::collections::HashMap;
 
-use latex_parser::node_vec_to_node;
-pub use latex_parser::{LatexErrKind, LatexError, Token};
-use mathml_renderer::arena::Arena;
-pub use mathml_renderer::ast::{MathMLEmitter, Node};
-use raw_node_slice::RawNodeSlice;
+use self::latex_parser::{NodeRef, node_vec_to_node};
+use self::mathml_renderer::arena::{Arena, FrozenArena};
+use self::raw_node_slice::RawNodeSlice;
+
+pub use self::latex_parser::{LatexErrKind, LatexError, Token};
+pub use self::mathml_renderer::ast::{MathMLEmitter, Node};
 
 /// display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,7 +75,7 @@ pub struct Config {
 }
 
 struct CustomCmds {
-    arena: Arena,
+    arena: FrozenArena,
     slice: RawNodeSlice,
     map: HashMap<String, (usize, usize)>,
 }
@@ -90,44 +91,35 @@ impl CustomCmds {
         let (index, num_args) = *self.map.get(command)?;
         let nodes = self.slice.lift(&self.arena)?;
         let node = *nodes.get(index)?;
-        Some(Token::CustomCmd(num_args, node))
+        Some(Token::CustomCmd(num_args, NodeRef::new(node)))
     }
 }
 
-pub struct Converter {
+pub struct LatexToMathML {
     pretty: bool,
     /// This is used for numbering equations in the document.
     equation_count: usize,
-    custom_cmds: CustomCmds,
+    custom_cmds: Option<CustomCmds>,
 }
 
-impl Converter {
+impl LatexToMathML {
     pub fn new(config: &Config) -> Result<Self, LatexError<'_>> {
         Ok(Self {
             pretty: config.pretty,
             equation_count: 0,
-            custom_cmds: parse_custom_commands(&config.macros)?,
+            custom_cmds: Some(parse_custom_commands(&config.macros)?),
         })
     }
 
-    /// Convert LaTeX text to MathML.
-    ///
-    /// The second argument specifies whether it is inline-equation or block-equation.
-    ///
-    /// ```rust
-    /// use math_core::{Config, Converter, Display};
-    ///
-    /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let mut converter = Converter::new(&Config { pretty: true, ..Default::default() }).unwrap();
-    /// let mathml = converter.latex_to_mathml(latex, Display::Inline).unwrap();
-    /// println!("{}", mathml);
-    ///
-    /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-    /// let mathml = converter.latex_to_mathml(latex, Display::Block).unwrap();
-    /// println!("{}", mathml);
-    /// ```
-    ///
-    pub fn latex_to_mathml<'config, 'source, 'emitter>(
+    pub const fn const_default() -> Self {
+        Self {
+            pretty: false,
+            equation_count: 0,
+            custom_cmds: None,
+        }
+    }
+
+    pub fn convert_with_global_counter<'config, 'source, 'emitter>(
         &'config mut self,
         latex: &'source str,
         display: Display,
@@ -137,9 +129,58 @@ impl Converter {
         'config: 'source,
     {
         let arena = Arena::new();
-        let ast = parse(latex, &arena, Some(&self.custom_cmds))?;
+        let ast = parse(latex, &arena, self.custom_cmds.as_ref())?;
 
         let mut output = MathMLEmitter::new(&mut self.equation_count);
+        match display {
+            Display::Block => output.push_str("<math display=\"block\">"),
+            Display::Inline => output.push_str("<math>"),
+        };
+
+        let base_indent = if self.pretty { 1 } else { 0 };
+        for node in ast {
+            output
+                .emit(node, base_indent)
+                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+        }
+        if self.pretty {
+            output.push('\n');
+        }
+        output.push_str("</math>");
+        Ok(output.into_inner())
+    }
+
+    /// Convert LaTeX text to MathML.
+    ///
+    /// The second argument specifies whether it is inline-equation or block-equation.
+    ///
+    /// ```rust
+    /// use math_core::{Config, Display, LatexToMathML};
+    ///
+    /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
+    /// let converter = LatexToMathML::new(&Config { pretty: true, ..Default::default() }).unwrap();
+    /// let mathml = converter.convert_with_local_counter(latex, Display::Inline).unwrap();
+    /// println!("{}", mathml);
+    ///
+    /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
+    /// let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
+    /// println!("{}", mathml);
+    /// ```
+    ///
+    pub fn convert_with_local_counter<'config, 'source, 'emitter>(
+        &'config self,
+        latex: &'source str,
+        display: Display,
+    ) -> Result<String, LatexError<'source>>
+    where
+        'source: 'emitter,
+        'config: 'source,
+    {
+        let arena = Arena::new();
+        let ast = parse(latex, &arena, self.custom_cmds.as_ref())?;
+
+        let mut equation_count = 0;
+        let mut output = MathMLEmitter::new(&mut equation_count);
         match display {
             Display::Block => output.push_str("<math display=\"block\">"),
             Display::Inline => output.push_str("<math>"),
@@ -200,7 +241,11 @@ fn parse_custom_commands<'source>(
         map.insert(name.clone(), (index, num_args));
     }
     let slice = RawNodeSlice::from_slice(arena.push_slice(&parsed_macros));
-    Ok(CustomCmds { arena, slice, map })
+    Ok(CustomCmds {
+        arena: arena.freeze(),
+        slice,
+        map,
+    })
 }
 
 #[cfg(test)]
@@ -208,7 +253,7 @@ mod tests {
     use insta::assert_snapshot;
 
     use crate::mathml_renderer::ast::MathMLEmitter;
-    use crate::{Converter, LatexErrKind, LatexError};
+    use crate::{LatexErrKind, LatexError, LatexToMathML};
 
     use super::{Arena, parse};
 
@@ -456,11 +501,10 @@ mod tests {
             pretty: true,
             ..Default::default()
         };
-        let mut converter = Converter::new(&config).unwrap();
+        let converter = LatexToMathML::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
-            converter.reset_equation_count();
             let mathml = converter
-                .latex_to_mathml(problem, crate::Display::Inline)
+                .convert_with_local_counter(problem, crate::Display::Inline)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }
@@ -536,11 +580,11 @@ mod tests {
             pretty: true,
         };
 
-        let mut converter = Converter::new(&config).unwrap();
+        let converter = LatexToMathML::new(&config).unwrap();
 
         let latex = r"x = \half";
         let mathml = converter
-            .latex_to_mathml(latex, crate::Display::Inline)
+            .convert_with_local_counter(latex, crate::Display::Inline)
             .unwrap();
 
         assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
@@ -559,11 +603,11 @@ mod tests {
             pretty: true,
         };
 
-        let mut converter = Converter::new(&config).unwrap();
+        let converter = LatexToMathML::new(&config).unwrap();
 
         let latex = r"x = \mycmd{3}";
         let mathml = converter
-            .latex_to_mathml(latex, crate::Display::Inline)
+            .convert_with_local_counter(latex, crate::Display::Inline)
             .unwrap();
 
         assert_snapshot!("custom_cmd_one_arg", mathml, latex);

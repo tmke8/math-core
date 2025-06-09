@@ -32,15 +32,6 @@ impl Arena {
         }
     }
 
-    pub fn contains_slice(&self, nodes: &[&Node<'_>]) -> bool {
-        if nodes.is_empty() {
-            // We consider an empty slice to be contained in the arena.
-            true
-        } else {
-            self.inner.contains_slice(nodes)
-        }
-    }
-
     fn alloc_str(&self, src: &str) -> &str {
         // `DroplessArena::alloc_str()` panics on empty strings.
         if src.is_empty() {
@@ -68,6 +59,11 @@ impl Arena {
     ) -> &'arena ArraySpec<'arena> {
         self.inner.alloc(array_spec)
     }
+
+    #[inline]
+    pub fn freeze(self) -> FrozenArena {
+        FrozenArena { inner: self.inner }
+    }
 }
 
 impl Default for Arena {
@@ -75,6 +71,26 @@ impl Default for Arena {
         Self::new()
     }
 }
+
+/// A frozen arena is a version of the arena that does not allow new allocations.
+pub struct FrozenArena {
+    inner: DroplessArena,
+}
+
+impl FrozenArena {
+    pub fn contains_slice(&self, nodes: &[&Node<'_>]) -> bool {
+        if nodes.is_empty() {
+            // We consider an empty slice to be contained in the arena.
+            true
+        } else {
+            self.inner.contains_slice(nodes)
+        }
+    }
+}
+
+// Safety: `FrozenArena` does not allow new allocations and is therefore safe to share across
+// threads.
+unsafe impl Sync for FrozenArena {}
 
 #[derive(Debug)]
 #[repr(transparent)]

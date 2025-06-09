@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyString};
@@ -10,12 +8,12 @@ use math_core::{Config, Display};
 create_exception!(_math_core_rust, LatexError, PyException);
 
 #[pyclass]
-struct Converter {
-    inner: Mutex<Box<math_core::Converter>>,
+struct LatexToMathML {
+    inner: Box<math_core::LatexToMathML>,
 }
 
 #[pymethods]
-impl Converter {
+impl LatexToMathML {
     #[new]
     fn new<'a>(config: Option<&Bound<'a, PyAny>>, py: Python<'a>) -> PyResult<Self> {
         let config = if let Some(cfg) = config {
@@ -30,13 +28,13 @@ impl Converter {
         } else {
             Default::default()
         };
-        Ok(Converter {
-            inner: Mutex::new(Box::new(math_core::Converter::new(&config).unwrap())),
+        Ok(LatexToMathML {
+            inner: Box::new(math_core::LatexToMathML::new(&config).unwrap()),
         })
     }
 
     /// Convert LaTeX equation to MathML.
-    fn latex_to_mathml<'a>(
+    fn convert<'a>(
         &mut self,
         latex: &str,
         block: bool,
@@ -44,9 +42,7 @@ impl Converter {
     ) -> PyResult<Bound<'a, PyString>> {
         let result = self
             .inner
-            .lock()
-            .map_err(|_| LatexError::new_err("Failed to acquire lock on converter"))?
-            .latex_to_mathml(
+            .convert_with_global_counter(
                 latex,
                 if block {
                     Display::Block
@@ -63,6 +59,6 @@ impl Converter {
 #[pymodule]
 fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LatexError", m.py().get_type::<LatexError>())?;
-    m.add_class::<Converter>()?;
+    m.add_class::<LatexToMathML>()?;
     Ok(())
 }

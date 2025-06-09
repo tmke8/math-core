@@ -1,19 +1,18 @@
 from pytest import raises
-from math_core import Converter, Config, LatexError
+from math_core import Config, LatexError, LatexToMathML
 
 
 def test_identifier():
     config = Config(pretty=False)
-    converter = Converter(config)
-    assert converter.latex_to_mathml("x", block=False) == "<math><mi>x</mi></math>"
+    converter = LatexToMathML(config)
+    assert converter.convert("x", block=False) == "<math><mi>x</mi></math>"
     assert (
-        converter.latex_to_mathml("x", block=True)
-        == '<math display="block"><mi>x</mi></math>'
+        converter.convert("x", block=True) == '<math display="block"><mi>x</mi></math>'
     )
 
 
 def test_exception():
     config = Config(pretty=False)
-    converter = Converter(config)
+    converter = LatexToMathML(config)
     with raises(LatexError):
-        converter.latex_to_mathml(r"\nonexistentcommand", block=False)
+        converter.convert(r"\nonexistentcommand", block=False)
