@@ -8,4 +8,4 @@ __all__ = ["Config", "LatexError", "LatexToMathML"]
 
 @dataclass
 class Config:
-    pretty: bool = True
+    pretty_print: bool = True

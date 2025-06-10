@@ -1,6 +1,6 @@
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
-    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
+    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::symbol::{self, Rel};
 
@@ -239,10 +239,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curlywedge" => Token::BinaryOp(symbol::CURLY_LOGICAL_AND),
     "curvearrowleft" => Token::Relation(symbol::ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "curvearrowright" => Token::Relation(symbol::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
-    "d" => Token::CustomCmd(0, NodeRef::new(&Node::TextTransform {
-        tf: MathVariant::Normal,
-        content: &Node::IdentifierChar('d', LetterAttr::Default),
-    })),
     "dag" => Token::Letter(symbol::DAGGER),
     "dagger" => Token::Letter(symbol::DAGGER),
     "daleth" => Token::Letter(symbol::DALET_SYMBOL),

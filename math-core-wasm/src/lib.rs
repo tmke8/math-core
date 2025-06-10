@@ -18,7 +18,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
 pub struct LatexError {
-    pub error_message: JsValue,
+    pub message: JsValue,
     pub location: u32,
 }
 
@@ -27,7 +27,7 @@ extern "C" {
     pub type JsConfig;
 
     #[wasm_bindgen(method, getter)]
-    fn pretty(this: &JsConfig) -> bool;
+    fn prettyPrint(this: &JsConfig) -> bool;
 
     #[wasm_bindgen(method, getter)]
     fn macros(this: &JsConfig) -> Map;
@@ -60,16 +60,13 @@ pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
         macros.insert(key, value);
     }
     let config = Config {
-        pretty: js_config.pretty(),
+        pretty_print: js_config.prettyPrint(),
         macros,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(&config).map_err(|e| {
-        let error = e.1.string() + "\n(This is an error from a custom macro.)";
-        LatexError {
-            error_message: JsValue::from_str(&error),
-            location: e.0 as u32,
-        }
+    let converter = LatexToMathML::new(&config).map_err(|e| LatexError {
+        message: JsValue::from_str(&e.1.string()),
+        location: e.0 as u32,
     })?;
     *LATEX_TO_MATHML.write().unwrap() = converter;
     Ok(())
@@ -87,7 +84,7 @@ pub fn convert(content: &str, block: bool) -> Result<JsValue, LatexError> {
     ) {
         Ok(result) => Ok(JsValue::from_str(&result)),
         Err(e) => Err(LatexError {
-            error_message: JsValue::from_str(&e.1.string()),
+            message: JsValue::from_str(&e.1.string()),
             location: e.0 as u32,
         }),
     }

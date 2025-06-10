@@ -19,8 +19,8 @@ impl LatexToMathML {
         let config = if let Some(cfg) = config {
             // We support duck-typing for the passed-in config object.
             Config {
-                pretty: cfg
-                    .getattr(intern!(py, "pretty"))?
+                pretty_print: cfg
+                    .getattr(intern!(py, "pretty_print"))?
                     .downcast_into::<PyBool>()?
                     .is_true(),
                 ..Default::default()

@@ -38,7 +38,8 @@
 //! use math_core::{Config, Display, LatexToMathML};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let converter = LatexToMathML::new(&Config { pretty: true, ..Default::default() }).unwrap();
+//! let config = Config { pretty_print: true, ..Default::default() };
+//! let converter = LatexToMathML::new(&config).unwrap();
 //! let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
@@ -70,7 +71,7 @@ pub enum Display {
 #[derive(Debug, Default)]
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
-    pub pretty: bool,
+    pub pretty_print: bool,
     pub macros: HashMap<String, String>,
 }
 
@@ -96,7 +97,7 @@ impl CustomCmds {
 }
 
 pub struct LatexToMathML {
-    pretty: bool,
+    pretty_print: bool,
     /// This is used for numbering equations in the document.
     equation_count: usize,
     custom_cmds: Option<CustomCmds>,
@@ -105,7 +106,7 @@ pub struct LatexToMathML {
 impl LatexToMathML {
     pub fn new(config: &Config) -> Result<Self, LatexError<'_>> {
         Ok(Self {
-            pretty: config.pretty,
+            pretty_print: config.pretty_print,
             equation_count: 0,
             custom_cmds: Some(parse_custom_commands(&config.macros)?),
         })
@@ -113,41 +114,27 @@ impl LatexToMathML {
 
     pub const fn const_default() -> Self {
         Self {
-            pretty: false,
+            pretty_print: false,
             equation_count: 0,
             custom_cmds: None,
         }
     }
 
-    pub fn convert_with_global_counter<'config, 'source, 'emitter>(
+    pub fn convert_with_global_counter<'config, 'source>(
         &'config mut self,
         latex: &'source str,
         display: Display,
     ) -> Result<String, LatexError<'source>>
     where
-        'source: 'emitter,
         'config: 'source,
     {
-        let arena = Arena::new();
-        let ast = parse(latex, &arena, self.custom_cmds.as_ref())?;
-
-        let mut output = MathMLEmitter::new(&mut self.equation_count);
-        match display {
-            Display::Block => output.push_str("<math display=\"block\">"),
-            Display::Inline => output.push_str("<math>"),
-        };
-
-        let base_indent = if self.pretty { 1 } else { 0 };
-        for node in ast {
-            output
-                .emit(node, base_indent)
-                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
-        }
-        if self.pretty {
-            output.push('\n');
-        }
-        output.push_str("</math>");
-        Ok(output.into_inner())
+        convert(
+            latex,
+            display,
+            self.custom_cmds.as_ref(),
+            &mut self.equation_count,
+            self.pretty_print,
+        )
     }
 
     /// Convert LaTeX text to MathML.
@@ -158,7 +145,8 @@ impl LatexToMathML {
     /// use math_core::{Config, Display, LatexToMathML};
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let converter = LatexToMathML::new(&Config { pretty: true, ..Default::default() }).unwrap();
+    /// let config = Config { pretty_print: true, ..Default::default() };
+    /// let converter = LatexToMathML::new(&config).unwrap();
     /// let mathml = converter.convert_with_local_counter(latex, Display::Inline).unwrap();
     /// println!("{}", mathml);
     ///
@@ -167,36 +155,23 @@ impl LatexToMathML {
     /// println!("{}", mathml);
     /// ```
     ///
-    pub fn convert_with_local_counter<'config, 'source, 'emitter>(
+    #[inline]
+    pub fn convert_with_local_counter<'config, 'source>(
         &'config self,
         latex: &'source str,
         display: Display,
     ) -> Result<String, LatexError<'source>>
     where
-        'source: 'emitter,
         'config: 'source,
     {
-        let arena = Arena::new();
-        let ast = parse(latex, &arena, self.custom_cmds.as_ref())?;
-
         let mut equation_count = 0;
-        let mut output = MathMLEmitter::new(&mut equation_count);
-        match display {
-            Display::Block => output.push_str("<math display=\"block\">"),
-            Display::Inline => output.push_str("<math>"),
-        };
-
-        let base_indent = if self.pretty { 1 } else { 0 };
-        for node in ast {
-            output
-                .emit(node, base_indent)
-                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
-        }
-        if self.pretty {
-            output.push('\n');
-        }
-        output.push_str("</math>");
-        Ok(output.into_inner())
+        convert(
+            latex,
+            display,
+            self.custom_cmds.as_ref(),
+            &mut equation_count,
+            self.pretty_print,
+        )
     }
 
     /// Reset the equation count to zero.
@@ -205,6 +180,38 @@ impl LatexToMathML {
     pub fn reset_equation_count(&mut self) {
         self.equation_count = 0;
     }
+}
+
+fn convert<'config, 'source>(
+    latex: &'source str,
+    display: Display,
+    custom_cmds: Option<&'config CustomCmds>,
+    equation_count: &mut usize,
+    pretty_print: bool,
+) -> Result<String, LatexError<'source>>
+where
+    'config: 'source,
+{
+    let arena = Arena::new();
+    let ast = parse(latex, &arena, custom_cmds)?;
+
+    let mut output = MathMLEmitter::new(equation_count);
+    match display {
+        Display::Block => output.push_str("<math display=\"block\">"),
+        Display::Inline => output.push_str("<math>"),
+    };
+
+    let base_indent = if pretty_print { 1 } else { 0 };
+    for node in ast {
+        output
+            .emit(node, base_indent)
+            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+    }
+    if pretty_print {
+        output.push('\n');
+    }
+    output.push_str("</math>");
+    Ok(output.into_inner())
 }
 
 fn parse<'config, 'arena, 'source>(
@@ -464,8 +471,6 @@ mod tests {
             ),
             ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
             ("left_right_different_stretch", r"\left/\frac12\right)"),
-            ("d_command", r"\d"),
-            ("d_command_nested", r"\mathit{x\d x}"),
             ("RR_command", r"\RR"),
             ("odv", r"\odv{f}{x}"),
             ("xrightarrow", r"\xrightarrow{x}"),
@@ -498,7 +503,7 @@ mod tests {
         ];
 
         let config = crate::Config {
-            pretty: true,
+            pretty_print: true,
             ..Default::default()
         };
         let converter = LatexToMathML::new(&config).unwrap();
@@ -577,7 +582,7 @@ mod tests {
 
         let config = crate::Config {
             macros,
-            pretty: true,
+            pretty_print: true,
         };
 
         let converter = LatexToMathML::new(&config).unwrap();
@@ -600,7 +605,7 @@ mod tests {
 
         let config = crate::Config {
             macros,
-            pretty: true,
+            pretty_print: true,
         };
 
         let converter = LatexToMathML::new(&config).unwrap();
