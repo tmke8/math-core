@@ -64,7 +64,7 @@ fn main() {
     ];
 
     let converter = LatexToMathML::new(&Config {
-        pretty: true,
+        pretty_print: true,
         ..Default::default()
     })
     .unwrap();

@@ -3,7 +3,7 @@ from math_core import Config, LatexError, LatexToMathML
 
 
 def test_identifier():
-    config = Config(pretty=False)
+    config = Config(pretty_print=False)
     converter = LatexToMathML(config)
     assert converter.convert("x", block=False) == "<math><mi>x</mi></math>"
     assert (
@@ -12,7 +12,7 @@ def test_identifier():
 
 
 def test_exception():
-    config = Config(pretty=False)
+    config = Config(pretty_print=False)
     converter = LatexToMathML(config)
     with raises(LatexError):
         converter.convert(r"\nonexistentcommand", block=False)

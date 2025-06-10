@@ -1,4 +1,4 @@
-import { convert, set_config } from "./pkg/math_core_wasm.js";
+import init, { convert, set_config } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value
@@ -19,17 +19,29 @@ function updateIsBlockCache() {
 }
 
 function updateConfig() {
-  const selectedRadio = document.querySelector(
-    '#prettyprint input[type="radio"]:checked',
-  );
-  let macros = new Map();
-  macros.set("half", "\\frac{1}{2}");
-  macros.set("myfrac", "\\frac{#1}{#2}");
-  const config = {
-    pretty: selectedRadio ? selectedRadio.value === "true" : true,
-    macros,
-  };
-  set_config(config);
+  const configField = document.getElementById("configField");
+  
+  let parsed = {};
+  try {
+    const jsonString = configField.value.trim();
+    
+    // Parse JSON with custom reviver to convert macros to Map
+    parsed = JSON.parse(jsonString, (key, value) => {
+      if (key === 'macros') {
+        return new Map(Object.entries(value));
+      }
+      return value;
+    });
+    
+  } catch (error) {
+    const outputCode = document.getElementById("outputCode");
+    if (outputCode) {
+      outputCode.textContent = `Error parsing config: ${error.message}`;
+    }
+    return false; // Return false to indicate failure
+  }
+  set_config(parsed);
+  return true;
 }
 
 function isBlock() {
@@ -37,12 +49,18 @@ function isBlock() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  init().then(() => {
+    console.log("WASM module initialized");
+    updateConfig(); // Initial config setup
+  });
+
   // Initialize cached values on page load
   initializeCachedValues();
 
   const inputField = document.getElementById("inputField");
   const outputField = document.getElementById("outputField");
   const outputCode = document.getElementById("outputCode");
+  const configField = document.getElementById("configField");
 
   function updateOutput() {
     try {
@@ -52,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
       outputCode.textContent = output;
     } catch (error) {
       outputField.innerHTML = "";
-      outputCode.textContent = `Error at location ${error.location}: ${error.error_message}`;
+      outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
     }
   }
 
@@ -69,14 +87,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-  document
-    .querySelectorAll('#prettyprint input[type="radio"]')
-    .forEach((radio) => {
-      radio.addEventListener("change", () => {
-        updateConfig(); // Update config when radio button changes
-        updateOutput();
-      });
-    });
+  // Add listener for config field changes
+  configField.addEventListener("input", () => {
+    const success = updateConfig(); // Update config when textarea content changes
+    if (success) {
+      updateOutput(); // Re-render output with new config
+    } else {
+      outputField.innerHTML = "";
+    }
+  });
 
   const fontSelect = document.getElementById("math-font");
   const styleElement = document.getElementById("math-font-style");
@@ -84,19 +103,11 @@ document.addEventListener("DOMContentLoaded", () => {
     "Libertinus Math Regular": '"ss09"',
   };
 
-  /* const mathBBMap = {
-        'STIX Two Math Regular': 'TeX Gyre Pagella Math BB',
-        'Latin Modern Math': 'TeX Gyre Pagella Math BB',
-    }; */
-
   // Update the style rule when selection changes
   fontSelect.addEventListener("change", function () {
     const featureSettings = fontFeaturesMap[this.value]
       ? `font-feature-settings: ${fontFeaturesMap[this.value]};`
       : "";
-    /* const mathBB = mathBBMap[this.value]
-            ? `"${mathBBMap[this.value]}", `
-            : ''; */
     styleElement.textContent = `math { font-family: "${this.value}", math; ${featureSettings} }`;
   });
 });

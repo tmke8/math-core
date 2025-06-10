@@ -13,17 +13,13 @@
         </style>
     </head>
     <body>
-        <script type="module">
-            import init from "./pkg/math_core_wasm.js";
-            init();
-        </script>
         <div class="container">
             <h1>LaTeX to MathML</h1>
             <p class="explanation-link">
                 <a href="#what-is-this">What is this?</a> / <a href="https://github.com/tmke8/math-core">GitHub</a>
             </p>
             <div class="converter">
-                <div id="outputField" class="output-box"></div>
+                <div id="outputField"></div>
                 <div class="input-section">
                     <h3>LaTeX input:</h3>
                     <textarea
@@ -41,30 +37,6 @@
                                     <option value="Noto Sans Math Regular">Noto Sans Math</option>
                                     <!-- <option value="TeX Gyre Pagella Math Regular">TeX Gyre Pagella</option> -->
                                 </select>
-                            </div>
-                        </div>
-                        <div id="prettyprint" class="option-group">
-                            <h3>Pretty print:</h3>
-                            <div class="options">
-                                <label
-                                    ><input
-                                        type="radio"
-                                        id="pretty-true"
-                                        name="prettyprint"
-                                        value="true"
-                                        checked
-                                    />
-                                    True</label
-                                >
-                                <label
-                                    ><input
-                                        type="radio"
-                                        id="pretty-false"
-                                        name="prettyprint"
-                                        value="false"
-                                    />
-                                    False</label
-                                >
                             </div>
                         </div>
                         <div id="displaystyle" class="option-group">
@@ -93,6 +65,19 @@
                         </div>
                     </div>
                 </div>
+                <details>
+                    <summary><strong>JSON config</strong> (click to open)</summary>
+                    <div>
+                        <textarea rows="10" id="configField">{
+    "prettyPrint": true,
+    "macros": {
+        "d": "\\mathrm{d}",
+        "ceil": "\\lceil #1 \\rceil",
+        "floor": "\\lfloor #1 \\rfloor"
+    }
+}</textarea>
+                    </div>
+                </details>
                 <h3>MathML source code:</h3>
                 <pre
                     class="output-box copyable"

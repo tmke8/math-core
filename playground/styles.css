@@ -5,6 +5,8 @@
     --border-color: #ddd;
     --input-background: #fff;
     --output-background: #f9f9f9;
+    --math-background: #fff;
+    --math-border-color: #aaa;
     --shadow-color: rgba(0, 0, 0, 0.1);
     --link-color: #007bff;
     --hr-color: #777;
@@ -19,6 +21,8 @@
         --border-color: #444;
         --input-background: #333;
         --output-background: #383838;
+        --math-background: #383838;
+        --math-border-color: #444;
         --shadow-color: rgba(0, 0, 0, 0.3);
         --link-color: #488cd6;
         --hr-color: #999;
@@ -98,7 +102,7 @@ h1 {
     margin-bottom: 20px;
 }
 
-textarea#inputField {
+textarea#inputField, textarea#configField {
     box-sizing: border-box;
     width: 100%;
     padding: 10px;
@@ -163,6 +167,11 @@ h3 {
     text-align: center;
     overflow-x: auto;
     min-height: 3.25rem;
+    border: 1px solid var(--math-border-color);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: var(--math-background);
 }
 
 .copyable {
