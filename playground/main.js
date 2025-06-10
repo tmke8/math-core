@@ -21,17 +21,17 @@ function updateIsBlockCache() {
 function updateConfig() {
   const configField = document.getElementById("configField");
   
-  let parsed = {};
   try {
     const jsonString = configField.value.trim();
     
     // Parse JSON with custom reviver to convert macros to Map
-    parsed = JSON.parse(jsonString, (key, value) => {
+    const parsed = JSON.parse(jsonString, (key, value) => {
       if (key === 'macros') {
         return new Map(Object.entries(value));
       }
       return value;
     });
+    set_config(parsed);
     
   } catch (error) {
     const outputCode = document.getElementById("outputCode");
@@ -40,7 +40,6 @@ function updateConfig() {
     }
     return false; // Return false to indicate failure
   }
-  set_config(parsed);
   return true;
 }
 
