@@ -69,13 +69,20 @@ pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
         message: JsValue::from_str(&e.1.string()),
         location: e.0 as u32,
     })?;
-    *LATEX_TO_MATHML.write().unwrap() = converter;
+    let mut global_converter = LATEX_TO_MATHML.write().ok_or_else(||LatexError {
+            message: JsValue::from_str("couldn't get lock"),
+            location: 0,
+    })?;
+    *global_converter = converter;
     Ok(())
 }
 
 #[wasm_bindgen]
 pub fn convert(content: &str, block: bool) -> Result<JsValue, LatexError> {
-    match LATEX_TO_MATHML.read().unwrap().convert_with_local_counter(
+    match LATEX_TO_MATHML.read().ok_or_else(||LatexError {
+            message: JsValue::from_str("couldn't get lock"),
+            location: 0,
+    })?.convert_with_local_counter(
         content,
         if block {
             Display::Block
