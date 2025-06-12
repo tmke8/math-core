@@ -52,7 +52,7 @@ mod latex_parser;
 mod mathml_renderer;
 mod raw_node_slice;
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use self::latex_parser::{NodeRef, node_vec_to_node};
 use self::mathml_renderer::arena::{Arena, FrozenArena};
@@ -72,13 +72,13 @@ pub enum Display {
 pub struct Config {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty_print: bool,
-    pub macros: HashMap<String, String>,
+    pub macros: FxHashMap<String, String>,
 }
 
 struct CustomCmds {
     arena: FrozenArena,
     slice: RawNodeSlice,
-    map: HashMap<String, (usize, usize)>,
+    map: FxHashMap<String, (usize, usize)>,
 }
 
 impl CustomCmds {
@@ -230,10 +230,10 @@ where
 }
 
 fn parse_custom_commands<'source>(
-    macros: &'source HashMap<String, String>,
+    macros: &'source FxHashMap<String, String>,
 ) -> Result<CustomCmds, LatexError<'source>> {
     let arena = Arena::new();
-    let mut map = HashMap::with_capacity(macros.len());
+    let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut parsed_macros = Vec::with_capacity(macros.len());
     for (name, definition) in macros.iter() {
         let lexer = latex_parser::Lexer::new(definition, true, None);

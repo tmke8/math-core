@@ -1,6 +1,5 @@
 extern crate alloc;
 
-use std::collections::HashMap;
 use std::sync::RwLock;
 
 #[cfg(target_arch = "wasm32")]
@@ -14,6 +13,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
 
 use js_sys::{Array, Map};
 use math_core::{Config, Display, LatexToMathML};
+use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -39,7 +39,8 @@ static LATEX_TO_MATHML: RwLock<LatexToMathML> = RwLock::new(LatexToMathML::const
 pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
     // This is the poor man's `serde_wasm_bindgen::from_value`.
     let macro_map = js_config.macros();
-    let mut macros = HashMap::with_capacity(macro_map.size() as usize);
+    let mut macros =
+        FxHashMap::with_capacity_and_hasher(macro_map.size() as usize, Default::default());
     let macro_iter = macro_map.entries();
     loop {
         let Ok(entry) = macro_iter.next() else {
