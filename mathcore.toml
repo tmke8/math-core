@@ -1,0 +1,9 @@
+pretty-print = true
+
+[macros]
+d = "\\mathrm{d}"
+bb = "\\mathbb{#1}"
+foo = "x^2"
+
+# [colors]
+# sortaGreen = { format = "RGB", value = [ 128, 128, 0 ] }

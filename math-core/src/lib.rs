@@ -16,7 +16,6 @@
 //! - Big operators, e.g., `\sum`, `\prod`, `\bigcup_{i = 0}^\infty`, ...
 //! - Limits and overset/underset, e.g., `\lim`, `\overset{}{}`, `\overbrace{}{}`, ...
 //! - Font styles, e.g. `\mathrm`, `\mathbf`, `\bm`, `\mathit`, `\mathsf`, `\mathscr`, `\mathbb`, `\mathfrak`, `\texttt`.
-//!   - MathML lacks calligraphic mathvariant: https://github.com/mathml-refresh/mathml/issues/61
 //! - White spaces, e.g., `\!`, `\,`, `\:`, `\;`, `\ `, `\quad`, `\qquad`.
 //! - Matrix, e.g. `\begin{matrix}`, `\begin{pmatrix}`, `\begin{bmatrix}`, `\begin{vmatrix}`.
 //! - Multi-line equation `\begin{align}` (experimental).
@@ -53,6 +52,8 @@ mod mathml_renderer;
 mod raw_node_slice;
 
 use rustc_hash::FxHashMap;
+#[cfg(feature = "serde")]
+use serde::Deserialize;
 
 use self::latex_parser::{LatexErrKind, NodeRef, Token, node_vec_to_node};
 use self::mathml_renderer::arena::{Arena, FrozenArena};
@@ -70,6 +71,8 @@ pub enum MathDisplay {
 
 /// Configuration for the LaTeX to MathML conversion.
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty_print: bool,
