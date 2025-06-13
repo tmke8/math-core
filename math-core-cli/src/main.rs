@@ -8,10 +8,13 @@ use clap::Parser;
 
 use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 
+mod config_file;
 mod html_entities;
 mod replace;
 
 use replace::{ConversionError, Replacer};
+
+static DEFAULT_CONFIG_FILE: &str = "mathcore.toml";
 
 /// Converts LaTeX formulas to MathML
 #[derive(Parser, Debug)]
@@ -102,12 +105,51 @@ struct Args {
     /// Sets the display style for the formula to "block"
     #[arg(short, long, conflicts_with = "file", group = "mode")]
     block: bool,
+
+    /// Path to the configuration file
+    #[arg(short, long, value_name = "FILE")]
+    config_file: Option<PathBuf>,
 }
 
 fn main() {
     let args = Args::parse();
-    let mut converter = LatexToMathML::new(&MathCoreConfig::default())
-        .unwrap_or_else(|err| exit_latex_error(err, None));
+
+    // Determine which config file to use
+    let config_path = args
+        .config_file
+        .as_ref()
+        .map(|p| p.as_path())
+        .unwrap_or_else(|| Path::new(DEFAULT_CONFIG_FILE));
+
+    // Load configuration
+    let config = match config_file::load_config_file(config_path) {
+        Ok(config) => config,
+        Err(config_file::ConfigError::Io(ref io_err))
+            if io_err.kind() == std::io::ErrorKind::NotFound =>
+        {
+            // If no config file was explicitly specified and mathcore.toml doesn't exist, use default
+            if args.config_file.is_none() {
+                MathCoreConfig::default()
+            } else {
+                // If a config file was explicitly specified but doesn't exist, that's an error
+                eprintln!("Config file '{}' not found", config_path.display());
+                std::process::exit(3);
+            }
+        }
+        Err(err) => {
+            // Any other error (parsing, permission, etc.) is always an error
+            eprintln!(
+                "Failed to load config file '{}': {}",
+                config_path.display(),
+                err
+            );
+            std::process::exit(4);
+        }
+    };
+
+    let mut converter =
+        LatexToMathML::new(&config).unwrap_or_else(|err| exit_latex_error(err, None));
+
     if let Some(ref fpath) = args.file {
         let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {
             (open, &args.inline_close.unwrap())
