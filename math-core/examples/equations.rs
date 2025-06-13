@@ -1,4 +1,4 @@
-use math_core::{Config, Display, LatexToMathML};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 
 fn main() {
     let inputs = vec![
@@ -63,7 +63,7 @@ fn main() {
         r"\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)",
     ];
 
-    let converter = LatexToMathML::new(&Config {
+    let converter = LatexToMathML::new(&MathCoreConfig {
         pretty_print: true,
         ..Default::default()
     })
@@ -75,7 +75,7 @@ fn main() {
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
                 converter
-                    .convert_with_local_counter(input, Display::Block)
+                    .convert_with_local_counter(input, MathDisplay::Block)
                     .expect(input)
             )
         })

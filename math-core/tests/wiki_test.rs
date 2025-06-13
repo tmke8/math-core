@@ -4,7 +4,7 @@ use insta::assert_snapshot;
 use regex::Regex;
 // use similar::{ChangeTag, TextDiff};
 
-use math_core::{Config, Display, LatexToMathML};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 
 #[test]
 fn wiki_test() {
@@ -873,10 +873,10 @@ fn wiki_test() {
     let mut n_match = 0usize;
     let mut n_diff = 0usize;
     let mut n_fail = 0usize;
-    let converter = LatexToMathML::new(&Config::default()).unwrap();
+    let converter = LatexToMathML::new(&MathCoreConfig::default()).unwrap();
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
-        let mathml = converter.convert_with_local_counter(&with_row, Display::Inline);
+        let mathml = converter.convert_with_local_counter(&with_row, MathDisplay::Inline);
         match mathml {
             Ok(mathml) => {
                 if mathml != correct {
@@ -1385,14 +1385,14 @@ fn test_nonfailing_wiki_tests() {
         ),
     ];
 
-    let converter = LatexToMathML::new(&Config {
+    let converter = LatexToMathML::new(&MathCoreConfig {
         pretty_print: true,
         ..Default::default()
     })
     .unwrap();
     for (num, problem) in problems.into_iter() {
         let mathml = converter
-            .convert_with_local_counter(problem, crate::Display::Inline)
+            .convert_with_local_counter(problem, crate::MathDisplay::Inline)
             .expect(format!("failed to convert `{}`", problem).as_str());
         let name = format!("wiki{:03}", num);
         assert_snapshot!(name.as_str(), &mathml, problem);

@@ -35,12 +35,12 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{Config, Display, LatexToMathML};
+//! use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let config = Config { pretty_print: true, ..Default::default() };
+//! let config = MathCoreConfig { pretty_print: true, ..Default::default() };
 //! let converter = LatexToMathML::new(&config).unwrap();
-//! let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
+//! let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -54,24 +54,26 @@ mod raw_node_slice;
 
 use rustc_hash::FxHashMap;
 
-use self::latex_parser::{NodeRef, node_vec_to_node};
+use self::latex_parser::{LatexErrKind, NodeRef, Token, node_vec_to_node};
 use self::mathml_renderer::arena::{Arena, FrozenArena};
+use self::mathml_renderer::ast::{MathMLEmitter, Node};
 use self::raw_node_slice::RawNodeSlice;
 
-pub use self::latex_parser::{LatexErrKind, LatexError, Token};
-pub use self::mathml_renderer::ast::{MathMLEmitter, Node};
+pub use self::latex_parser::LatexError;
 
-/// display
+/// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Display {
+pub enum MathDisplay {
     Block,
     Inline,
 }
 
+/// Configuration for the LaTeX to MathML conversion.
 #[derive(Debug, Default)]
-pub struct Config {
+pub struct MathCoreConfig {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty_print: bool,
+    /// A map of LaTeX macros; the keys are macro names and the values are their definitions.
     pub macros: FxHashMap<String, String>,
 }
 
@@ -96,6 +98,7 @@ impl CustomCmds {
     }
 }
 
+/// A converter that transforms LaTeX math equations into MathML Core.
 pub struct LatexToMathML {
     pretty_print: bool,
     /// This is used for numbering equations in the document.
@@ -104,7 +107,8 @@ pub struct LatexToMathML {
 }
 
 impl LatexToMathML {
-    pub fn new(config: &Config) -> Result<Self, LatexError<'_>> {
+    /// Create a new `LatexToMathML` converter with the given configuration.
+    pub fn new(config: &MathCoreConfig) -> Result<Self, LatexError<'_>> {
         Ok(Self {
             pretty_print: config.pretty_print,
             equation_count: 0,
@@ -112,6 +116,7 @@ impl LatexToMathML {
         })
     }
 
+    /// Create a new `LatexToMathML` converter with default settings.
     pub const fn const_default() -> Self {
         Self {
             pretty_print: false,
@@ -123,7 +128,7 @@ impl LatexToMathML {
     pub fn convert_with_global_counter<'config, 'source>(
         &'config mut self,
         latex: &'source str,
-        display: Display,
+        display: MathDisplay,
     ) -> Result<String, LatexError<'source>>
     where
         'config: 'source,
@@ -142,16 +147,16 @@ impl LatexToMathML {
     /// The second argument specifies whether it is inline-equation or block-equation.
     ///
     /// ```rust
-    /// use math_core::{Config, Display, LatexToMathML};
+    /// use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let config = Config { pretty_print: true, ..Default::default() };
+    /// let config = MathCoreConfig { pretty_print: true, ..Default::default() };
     /// let converter = LatexToMathML::new(&config).unwrap();
-    /// let mathml = converter.convert_with_local_counter(latex, Display::Inline).unwrap();
+    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", mathml);
     ///
     /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-    /// let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
+    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
     /// println!("{}", mathml);
     /// ```
     ///
@@ -159,7 +164,7 @@ impl LatexToMathML {
     pub fn convert_with_local_counter<'config, 'source>(
         &'config self,
         latex: &'source str,
-        display: Display,
+        display: MathDisplay,
     ) -> Result<String, LatexError<'source>>
     where
         'config: 'source,
@@ -174,17 +179,17 @@ impl LatexToMathML {
         )
     }
 
-    /// Reset the equation count to zero.
+    /// Reset the equation counter to zero.
     ///
     /// This should normally be done at the beginning of a new document or section.
-    pub fn reset_equation_count(&mut self) {
+    pub fn reset_global_counter(&mut self) {
         self.equation_count = 0;
     }
 }
 
 fn convert<'config, 'source>(
     latex: &'source str,
-    display: Display,
+    display: MathDisplay,
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut usize,
     pretty_print: bool,
@@ -197,8 +202,8 @@ where
 
     let mut output = MathMLEmitter::new(equation_count);
     match display {
-        Display::Block => output.push_str("<math display=\"block\">"),
-        Display::Inline => output.push_str("<math>"),
+        MathDisplay::Block => output.push_str("<math display=\"block\">"),
+        MathDisplay::Inline => output.push_str("<math>"),
     };
 
     let base_indent = if pretty_print { 1 } else { 0 };
@@ -236,6 +241,9 @@ fn parse_custom_commands<'source>(
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut parsed_macros = Vec::with_capacity(macros.len());
     for (name, definition) in macros.iter() {
+        if !is_valid_macro_name(name) {
+            return Err(LatexError(0, LatexErrKind::InvalidMacroName(&name)));
+        }
         let lexer = latex_parser::Lexer::new(definition, true, None);
         let mut p = latex_parser::Parser::new(lexer, &arena);
         let nodes = p.parse()?;
@@ -253,6 +261,19 @@ fn parse_custom_commands<'source>(
         slice,
         map,
     })
+}
+
+fn is_valid_macro_name(s: &str) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    let mut chars = s.chars();
+    match (chars.next(), chars.next()) {
+        // If the name contains only one character, any character is valid.
+        (Some(_), None) => true,
+        // If the name contains more than one character, all characters must be ASCII alphabetic.
+        _ => s.bytes().all(|b| b.is_ascii_alphabetic()),
+    }
 }
 
 #[cfg(test)]
@@ -502,14 +523,14 @@ mod tests {
             ),
         ];
 
-        let config = crate::Config {
+        let config = crate::MathCoreConfig {
             pretty_print: true,
             ..Default::default()
         };
         let converter = LatexToMathML::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
             let mathml = converter
-                .convert_with_local_counter(problem, crate::Display::Inline)
+                .convert_with_local_counter(problem, crate::MathDisplay::Inline)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }
@@ -580,7 +601,7 @@ mod tests {
         .into_iter()
         .collect();
 
-        let config = crate::Config {
+        let config = crate::MathCoreConfig {
             macros,
             pretty_print: true,
         };
@@ -589,7 +610,7 @@ mod tests {
 
         let latex = r"x = \half";
         let mathml = converter
-            .convert_with_local_counter(latex, crate::Display::Inline)
+            .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();
 
         assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
@@ -603,7 +624,7 @@ mod tests {
         .into_iter()
         .collect();
 
-        let config = crate::Config {
+        let config = crate::MathCoreConfig {
             macros,
             pretty_print: true,
         };
@@ -612,7 +633,7 @@ mod tests {
 
         let latex = r"x = \mycmd{3}";
         let mathml = converter
-            .convert_with_local_counter(latex, crate::Display::Inline)
+            .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();
 
         assert_snapshot!("custom_cmd_one_arg", mathml, latex);
