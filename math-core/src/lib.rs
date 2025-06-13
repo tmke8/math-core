@@ -35,12 +35,12 @@
 //! [`replace`](./fn.replace.html).
 //!
 //! ```rust
-//! use math_core::{Config, Display, LatexToMathML};
+//! use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let config = Config { pretty_print: true, ..Default::default() };
+//! let config = MathCoreConfig { pretty_print: true, ..Default::default() };
 //! let converter = LatexToMathML::new(&config).unwrap();
-//! let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
+//! let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -147,16 +147,16 @@ impl LatexToMathML {
     /// The second argument specifies whether it is inline-equation or block-equation.
     ///
     /// ```rust
-    /// use math_core::{Config, Display, LatexToMathML};
+    /// use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let config = Config { pretty_print: true, ..Default::default() };
+    /// let config = MathCoreConfig { pretty_print: true, ..Default::default() };
     /// let converter = LatexToMathML::new(&config).unwrap();
-    /// let mathml = converter.convert_with_local_counter(latex, Display::Inline).unwrap();
+    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", mathml);
     ///
     /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-    /// let mathml = converter.convert_with_local_counter(latex, Display::Block).unwrap();
+    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
     /// println!("{}", mathml);
     /// ```
     ///
