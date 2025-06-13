@@ -6,6 +6,7 @@ use strum_macros::IntoStaticStr;
 
 use super::token::Token;
 
+/// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
@@ -39,6 +40,7 @@ pub enum LatexErrKind<'source> {
     ExpectedColSpec(&'source str),
     RenderError,
     NotValidInTextMode(Token<'source>),
+    InvalidMacroName(&'source str),
 }
 
 #[derive(Debug, IntoStaticStr)]
@@ -106,6 +108,9 @@ impl LatexErrKind<'_> {
             LatexErrKind::RenderError => "Render error".to_string(),
             LatexErrKind::NotValidInTextMode(got) => {
                 "Got \"".to_string() + <&str>::from(got) + "\", which is not valid in text mode."
+            }
+            LatexErrKind::InvalidMacroName(name) => {
+                "Invalid macro name: \"\\".to_string() + name + "\"."
             }
         }
     }
