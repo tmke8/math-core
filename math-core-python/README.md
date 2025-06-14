@@ -163,18 +163,18 @@ from math_core import LatexToMathML, PrettyPrint
 converter = LatexToMathML(pretty_print=PrettyPrint.AUTO)
 
 def process_math(content):
-    # Replace inline math $...$
+    # Replace display math $$...$$; do this first to avoid conflicts with inline math delimiters
     content = re.sub(
-        r'\$([^\$]+)\$',
-        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=False),
-        content
+        r"\$\$([^\$]+)\$\$",
+        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=True),
+        content,
     )
 
-    # Replace display math $$...$$
+    # Replace inline math $...$
     content = re.sub(
-        r'\$\$([^\$]+)\$\$',
-        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=True),
-        content
+        r"\$([^\$]+)\$",
+        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=False),
+        content,
     )
 
     return content
@@ -182,21 +182,22 @@ def process_math(content):
 
 ### Web Applications
 
-Generate MathML on the server side for better performance and SEO:
+Generate MathML on the server side:
 
 ```python
 from flask import Flask, render_template_string
-from math_core import LatexToMathML
+from math_core import LatexToMathML, LatexError
 
 app = Flask(__name__)
 converter = LatexToMathML()
 
-@app.route('/equation/<latex>')
+@app.route("/equation/<latex>")
 def render_equation(latex):
     try:
         mathml = converter.convert_with_local_counter(latex, displaystyle=True)
-        return render_template_string('<html><body>{{ mathml|safe }}</body></html>',
-                                    mathml=mathml)
+        return render_template_string(
+            "<html><body>{{ mathml|safe }}</body></html>", mathml=mathml
+        )
     except LatexError:
         return "Invalid equation", 400
 ```
@@ -222,7 +223,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-Built with the goal of making mathematical content more accessible on the web by leveraging modern browser capabilities and web standards.
