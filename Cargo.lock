@@ -300,6 +300,7 @@ dependencies = [
  "math-core",
  "memchr",
  "phf",
+ "serde",
  "toml",
 ]
 

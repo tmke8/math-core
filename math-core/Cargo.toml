@@ -18,7 +18,7 @@ categories = ["science"]
 
 [dependencies]
 stable-arena = { version = "0.2.0", default-features = false }
-serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde = { workspace = true, optional = true }
 dtoa = { version = "1.0" }
 phf = { version = "0.11.3", features = ["macros"] }
 strum = "0.27.1"

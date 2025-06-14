@@ -72,7 +72,7 @@ pub enum MathDisplay {
 /// Configuration for the LaTeX to MathML conversion.
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
     /// If true, the output will be pretty-printed with indentation and newlines.
     pub pretty_print: bool,
