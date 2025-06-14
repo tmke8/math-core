@@ -11,6 +11,7 @@ license = "MIT"
 
 [workspace.dependencies]
 rustc-hash = "2.1.1"
+serde = { version = "1.0.219", features = ["derive"] }
 
 [profile.dev.package]
 insta.opt-level = 3

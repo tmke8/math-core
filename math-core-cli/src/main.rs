@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
+use math_core::{LatexToMathML, MathDisplay};
 
 mod config_file;
 mod html_entities;
@@ -129,7 +129,7 @@ fn main() {
         {
             // If no config file was explicitly specified and mathcore.toml doesn't exist, use default
             if args.config_file.is_none() {
-                MathCoreConfig::default()
+                config_file::Config::default()
             } else {
                 // If a config file was explicitly specified but doesn't exist, that's an error
                 eprintln!("Config file '{}' not found", config_path.display());
@@ -148,7 +148,7 @@ fn main() {
     };
 
     let mut converter =
-        LatexToMathML::new(&config).unwrap_or_else(|err| exit_latex_error(err, None));
+        LatexToMathML::new(&config.math_core).unwrap_or_else(|err| exit_latex_error(err, None));
 
     if let Some(ref fpath) = args.file {
         let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {

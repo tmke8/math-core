@@ -15,11 +15,24 @@ struct LatexToMathML {
     inner: RwLock<math_core::LatexToMathML>,
 }
 
+#[pyclass(eq, eq_int, rename_all = "UPPERCASE")]
+#[derive(PartialEq)]
+enum PrettyPrint {
+    Never,
+    Always,
+    Auto,
+}
+
 #[pymethods]
 impl LatexToMathML {
     #[new]
-    #[pyo3(signature = (*, pretty_print=false, macros=None))]
-    fn new(pretty_print: bool, macros: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+    #[pyo3(signature = (*, pretty_print=&PrettyPrint::Never, macros=None))]
+    fn new(pretty_print: &PrettyPrint, macros: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+        let pretty_print = match pretty_print {
+            PrettyPrint::Never => math_core::PrettyPrint::Never,
+            PrettyPrint::Always => math_core::PrettyPrint::Always,
+            PrettyPrint::Auto => math_core::PrettyPrint::Auto,
+        };
         let config = MathCoreConfig {
             pretty_print,
             macros: if let Some(macros_dict) = macros {
@@ -39,10 +52,11 @@ impl LatexToMathML {
     }
 
     /// Convert LaTeX equation to MathML.
+    #[pyo3(signature = (latex, *, displaystyle))]
     fn convert_with_global_counter<'a>(
         &self,
         latex: &str,
-        block: bool,
+        displaystyle: bool,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyString>> {
         let result = self
@@ -51,7 +65,7 @@ impl LatexToMathML {
             .map_err(|_| LatexError::new_err("Failed to acquire write lock"))?
             .convert_with_global_counter(
                 latex,
-                if block {
+                if displaystyle {
                     MathDisplay::Block
                 } else {
                     MathDisplay::Inline
@@ -62,10 +76,11 @@ impl LatexToMathML {
     }
 
     /// Convert LaTeX equation to MathML.
+    #[pyo3(signature = (latex, *, displaystyle))]
     fn convert_with_local_counter<'a>(
         &self,
         latex: &str,
-        block: bool,
+        displaystyle: bool,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyString>> {
         let result = self
@@ -74,7 +89,7 @@ impl LatexToMathML {
             .map_err(|_| LatexError::new_err("Failed to acquire read lock"))?
             .convert_with_local_counter(
                 latex,
-                if block {
+                if displaystyle {
                     MathDisplay::Block
                 } else {
                     MathDisplay::Inline
@@ -98,6 +113,7 @@ impl LatexToMathML {
 fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LatexError", m.py().get_type::<LatexError>())?;
     m.add_class::<LatexToMathML>()?;
+    m.add_class::<PrettyPrint>()?;
     Ok(())
 }
 

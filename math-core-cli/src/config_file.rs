@@ -1,6 +1,14 @@
 use std::{fs, io, path::Path};
 
 use math_core::MathCoreConfig;
+use serde::Deserialize;
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct Config {
+    #[serde(flatten)]
+    pub math_core: MathCoreConfig,
+}
 
 /// Error type for configuration loading operations.
 #[derive(Debug)]
@@ -63,8 +71,54 @@ impl From<toml::de::Error> for ConfigError {
 ///     Err(e) => eprintln!("Failed to load config: {}", e),
 /// }
 /// ```
-pub fn load_config_file(path: &Path) -> Result<MathCoreConfig, ConfigError> {
+pub fn load_config_file(path: &Path) -> Result<Config, ConfigError> {
     let content = fs::read_to_string(path)?;
-    let config: MathCoreConfig = toml::from_str(&content)?;
+    let config = parse_config(&content)?;
     Ok(config)
+}
+
+#[inline]
+fn parse_config(s: &str) -> Result<Config, ConfigError> {
+    let config: Config = toml::from_str(s)?;
+    Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use math_core::PrettyPrint;
+
+    use super::*;
+
+    #[test]
+    fn test_full_config() {
+        let toml_content = r#"
+pretty-print = "always"
+
+[macros]
+R = "\\mathbb{R}"
+"é" = "\\acute{e}"
+        "#;
+        let config = parse_config(toml_content).unwrap();
+        assert!(matches!(config.math_core.pretty_print, PrettyPrint::Always));
+        assert_eq!(config.math_core.macros.get("R").unwrap(), "\\mathbb{R}");
+        assert_eq!(config.math_core.macros.get("é").unwrap(), "\\acute{e}");
+    }
+
+    #[test]
+    fn test_invalid_config() {
+        let invalid_toml = "invalid_toml";
+        let result = parse_config(invalid_toml);
+        assert!(matches!(result, Err(ConfigError::Parse(_))));
+    }
+
+    #[test]
+    fn test_partial_config() {
+        let toml_content = r#"
+[macros]
+R = "\\mathbb{R}"
+        "#;
+        let config = parse_config(toml_content).unwrap();
+        assert!(matches!(config.math_core.pretty_print, PrettyPrint::Never));
+        assert_eq!(config.math_core.macros.get("R").unwrap(), "\\mathbb{R}");
+    }
 }

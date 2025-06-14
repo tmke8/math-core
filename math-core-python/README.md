@@ -30,12 +30,12 @@ from math_core import LatexToMathML
 converter = LatexToMathML()
 
 # Convert inline math
-mathml = converter.convert_with_local_counter("x^2 + y^2 = z^2", block=False)
+mathml = converter.convert_with_local_counter("x^2 + y^2 = z^2", displaystyle=False)
 print(mathml)
 # Output: <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup></math>
 
 # Convert display math
-mathml = converter.convert_with_local_counter(r"\frac{1}{2}", block=True)
+mathml = converter.convert_with_local_counter(r"\frac{1}{2}", displaystyle=True)
 print(mathml)
 # Output: <math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
 ```
@@ -45,14 +45,14 @@ print(mathml)
 ### Basic Usage
 
 ```python
-from math_core import LatexToMathML, LatexError
+from math_core import LatexToMathML, LatexError, PrettyPrint
 
 # Initialize converter
-converter = LatexToMathML(pretty_print=True)
+converter = LatexToMathML(pretty_print=PrettyPrint.ALWAYS)
 
 # Convert LaTeX to MathML
 try:
-    mathml = converter.convert_with_local_counter(r"\sqrt{x^2 + 1}", block=False)
+    mathml = converter.convert_with_local_counter(r"\sqrt{x^2 + 1}", displaystyle=False)
     print(mathml)
 except LatexError as e:
     print(f"Conversion error: {e}")
@@ -71,7 +71,7 @@ macros = {
 }
 
 converter = LatexToMathML(macros=macros)
-mathml = converter.convert_with_local_counter(r"\d x", block=False)
+mathml = converter.convert_with_local_counter(r"\d x", displaystyle=False)
 ```
 
 ### Numbered Equations with Global Counter
@@ -84,13 +84,13 @@ converter = LatexToMathML()
 # First equation gets (1)
 eq1 = converter.convert_with_global_counter(
     r"\begin{align}E = mc^2\end{align}",
-    block=True
+    displaystyle=True
 )
 
 # Second equation gets (2)
 eq2 = converter.convert_with_global_counter(
     r"\begin{align}F = ma\end{align}",
-    block=True
+    displaystyle=True
 )
 
 # Reset counter when starting a new chapter/section
@@ -99,7 +99,7 @@ converter.reset_global_counter()
 # This equation gets (1) again
 eq3 = converter.convert_with_global_counter(
     r"\begin{align}p = mv\end{align}",
-    block=True
+    displaystyle=True
 )
 ```
 
@@ -113,12 +113,12 @@ converter = LatexToMathML()
 # Each conversion has independent numbering
 doc1 = converter.convert_with_local_counter(
     r"\begin{align}a &= b\\c &= d\end{align}",
-    block=True
+    displaystyle=True
 )  # Contains (1) and (2)
 
 doc2 = converter.convert_with_local_counter(
     r"\begin{align}x &= y\\z &= w\end{align}",
-    block=True
+    displaystyle=True
 )  # Also contains (1) and (2)
 ```
 
@@ -129,12 +129,12 @@ doc2 = converter.convert_with_local_counter(
 The main converter class.
 
 **Constructor Parameters:**
-- `pretty_print` (`bool`, optional): If `True`, formats output with indentation and newlines. Default: `False`.
+- `pretty_print` (`PrettyPrint`, optional): An enum value indicating whether to pretty print the MathML output. Options are `PrettyPrint.NEVER`, `PrettyPrint.ALWAYS`, or `PrettyPrint.AUTO`. `PrettyPrint.AUTO` means that all block equations will be pretty printed. Default: `PrettyPrint.NEVER`.
 - `macros` (`dict[str, str]`, optional): Dictionary of LaTeX macros for custom commands.
 
 **Methods:**
-- `convert_with_global_counter(latex: str, block: bool) -> str`: Convert LaTeX to MathML using a global equation counter.
-- `convert_with_local_counter(latex: str, block: bool) -> str`: Convert LaTeX to MathML using a local equation counter.
+- `convert_with_global_counter(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using a global equation counter.
+- `convert_with_local_counter(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using a local equation counter.
 - `reset_global_counter() -> None`: Reset the global equation counter to zero.
 
 ### LatexError
@@ -145,7 +145,7 @@ Exception raised when LaTeX parsing or conversion fails.
 from math_core import LatexError
 
 try:
-    result = converter.convert_with_local_counter(r"\invalid", block=False)
+    result = converter.convert_with_local_counter(r"\invalid", displaystyle=False)
 except LatexError as e:
     print(f"Invalid LaTeX: {e}")
 ```
@@ -158,22 +158,22 @@ Integrate `math-core` into your static site generator to convert LaTeX in Markdo
 
 ```python
 import re
-from math_core import LatexToMathML
+from math_core import LatexToMathML, PrettyPrint
 
-converter = LatexToMathML(pretty_print=True)
+converter = LatexToMathML(pretty_print=PrettyPrint.AUTO)
 
 def process_math(content):
     # Replace inline math $...$
     content = re.sub(
         r'\$([^\$]+)\$',
-        lambda m: converter.convert_with_local_counter(m.group(1), block=False),
+        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=False),
         content
     )
 
     # Replace display math $$...$$
     content = re.sub(
         r'\$\$([^\$]+)\$\$',
-        lambda m: converter.convert_with_local_counter(m.group(1), block=True),
+        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=True),
         content
     )
 
@@ -194,7 +194,7 @@ converter = LatexToMathML()
 @app.route('/equation/<latex>')
 def render_equation(latex):
     try:
-        mathml = converter.convert_with_local_counter(latex, block=True)
+        mathml = converter.convert_with_local_counter(latex, displaystyle=True)
         return render_template_string('<html><body>{{ mathml|safe }}</body></html>',
                                     mathml=mathml)
     except LatexError:
