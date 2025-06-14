@@ -37,7 +37,7 @@
 //! use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-//! let config = MathCoreConfig { pretty_print: true, ..Default::default() };
+//! let config = MathCoreConfig::default();
 //! let converter = LatexToMathML::new(&config).unwrap();
 //! let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
 //! println!("{}", mathml);
@@ -65,8 +65,22 @@ pub use self::latex_parser::LatexError;
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathDisplay {
-    Block,
     Inline,
+    Block,
+}
+
+/// Configuration for pretty-printing the MathML output.
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+pub enum PrettyPrint {
+    /// Never pretty print.
+    #[default]
+    Never,
+    /// Always pretty print.
+    Always,
+    /// Pretty print for block equations only.
+    Auto,
 }
 
 /// Configuration for the LaTeX to MathML conversion.
@@ -75,7 +89,7 @@ pub enum MathDisplay {
 #[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
     /// If true, the output will be pretty-printed with indentation and newlines.
-    pub pretty_print: bool,
+    pub pretty_print: PrettyPrint,
     /// A map of LaTeX macros; the keys are macro names and the values are their definitions.
     pub macros: FxHashMap<String, String>,
 }
@@ -103,7 +117,7 @@ impl CustomCmds {
 
 /// A converter that transforms LaTeX math equations into MathML Core.
 pub struct LatexToMathML {
-    pretty_print: bool,
+    pretty_print: PrettyPrint,
     /// This is used for numbering equations in the document.
     equation_count: usize,
     custom_cmds: Option<CustomCmds>,
@@ -122,7 +136,7 @@ impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with default settings.
     pub const fn const_default() -> Self {
         Self {
-            pretty_print: false,
+            pretty_print: PrettyPrint::Never,
             equation_count: 0,
             custom_cmds: None,
         }
@@ -153,7 +167,7 @@ impl LatexToMathML {
     /// use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
-    /// let config = MathCoreConfig { pretty_print: true, ..Default::default() };
+    /// let config = MathCoreConfig::default();
     /// let converter = LatexToMathML::new(&config).unwrap();
     /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", mathml);
@@ -195,7 +209,7 @@ fn convert<'config, 'source>(
     display: MathDisplay,
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut usize,
-    pretty_print: bool,
+    pretty_print: PrettyPrint,
 ) -> Result<String, LatexError<'source>>
 where
     'config: 'source,
@@ -208,6 +222,9 @@ where
         MathDisplay::Block => output.push_str("<math display=\"block\">"),
         MathDisplay::Inline => output.push_str("<math>"),
     };
+
+    let pretty_print = matches!(pretty_print, PrettyPrint::Always)
+        || (matches!(pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
@@ -527,7 +544,7 @@ mod tests {
         ];
 
         let config = crate::MathCoreConfig {
-            pretty_print: true,
+            pretty_print: crate::PrettyPrint::Always,
             ..Default::default()
         };
         let converter = LatexToMathML::new(&config).unwrap();
@@ -606,7 +623,7 @@ mod tests {
 
         let config = crate::MathCoreConfig {
             macros,
-            pretty_print: true,
+            pretty_print: crate::PrettyPrint::Always,
         };
 
         let converter = LatexToMathML::new(&config).unwrap();
@@ -629,7 +646,7 @@ mod tests {
 
         let config = crate::MathCoreConfig {
             macros,
-            pretty_print: true,
+            pretty_print: crate::PrettyPrint::Always,
         };
 
         let converter = LatexToMathML::new(&config).unwrap();

@@ -1,4 +1,4 @@
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
 fn main() {
     let inputs = vec![
@@ -64,7 +64,7 @@ fn main() {
     ];
 
     let converter = LatexToMathML::new(&MathCoreConfig {
-        pretty_print: true,
+        pretty_print: PrettyPrint::Always,
         ..Default::default()
     })
     .unwrap();

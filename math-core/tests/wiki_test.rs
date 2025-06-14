@@ -4,7 +4,7 @@ use insta::assert_snapshot;
 use regex::Regex;
 // use similar::{ChangeTag, TextDiff};
 
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
 #[test]
 fn wiki_test() {
@@ -1386,7 +1386,7 @@ fn test_nonfailing_wiki_tests() {
     ];
 
     let converter = LatexToMathML::new(&MathCoreConfig {
-        pretty_print: true,
+        pretty_print: PrettyPrint::Always,
         ..Default::default()
     })
     .unwrap();

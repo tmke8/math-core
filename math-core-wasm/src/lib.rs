@@ -12,7 +12,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
 
@@ -64,8 +64,13 @@ pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
         };
         macros.insert(key, value);
     }
+    let pretty_print = if js_config.prettyPrint() {
+        PrettyPrint::Always
+    } else {
+        PrettyPrint::Never
+    };
     let config = MathCoreConfig {
-        pretty_print: js_config.prettyPrint(),
+        pretty_print,
         macros,
         ..Default::default()
     };
@@ -82,7 +87,7 @@ pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
 }
 
 #[wasm_bindgen]
-pub fn convert(content: &str, block: bool) -> Result<JsValue, LatexError> {
+pub fn convert(content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
     match LATEX_TO_MATHML
         .read()
         .map_err(|_| LatexError {
@@ -91,7 +96,7 @@ pub fn convert(content: &str, block: bool) -> Result<JsValue, LatexError> {
         })?
         .convert_with_local_counter(
             content,
-            if block {
+            if displaystyle {
                 MathDisplay::Block
             } else {
                 MathDisplay::Inline
