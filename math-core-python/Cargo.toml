@@ -14,5 +14,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 math-core = { path = "../math-core" }
-pyo3 = "0.25.0"
+pyo3 = "0.25.1"
 rustc-hash = { workspace = true }
