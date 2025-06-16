@@ -113,6 +113,8 @@ pub enum MathSpacing {
     ThreeMu, // 3/18 of an em/\quad
     #[strum(serialize = "0.2222em")]
     FourMu, // 4/18 of an em/\quad
+    #[strum(serialize = "0.2778em")]
+    FiveMu, // 5/18 of an em/\quad
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]

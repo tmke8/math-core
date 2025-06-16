@@ -7,7 +7,8 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.
     <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo stretchy="false">)</mo>
-    <mo>≔</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
     <mrow>
         <mo>{</mo>
         <mtable>

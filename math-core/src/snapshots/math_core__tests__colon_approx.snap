@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "x:\\approx 2"
+---
+<math>
+    <mi>x</mi>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">≈</mo>
+    <mn>2</mn>
+</math>
