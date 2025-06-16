@@ -1,74 +1,168 @@
-# math-core – LaTeX to MathML Core
+# math-core – Convert LaTeX to MathML Core
 
-Forked from https://github.com/osanshouo/latex2mathml .
-<!-- [![Crate](https://img.shields.io/crates/v/latex2mathml.svg)](https://crates.io/crates/latex2mathml) -->
-<!-- [![docs.rs](https://docs.rs/latex2mathml/badge.svg)](https://docs.rs/latex2mathml/) -->
+[Playground](https://tmke8.github.io/math-core/)
 
-`math-core` provides a functionality to convert LaTeX math equations to MathML Core.
-This crate is implemented in pure Rust, so it works in any environments if Rust works (including WebAssembly).
+`math-core` allows you to convert LaTeX math to [MathML Core](https://www.w3.org/TR/mathml-core/), the MathML specification that is being implemented by web browsers. For example, this LaTeX code:
 
+```tex
+\sum_{i=0}^N x_i
+```
 
-## Supported LaTeX commands
+is converted to
 
-- Numbers, e.g. `0`, `3.14`, ...
-- ASCII and Greek (and more) letters, e.g. `x`, `\alpha`, `\pi`, `\aleph`, ...
-- Symbols, e.g., `\infty`, `\dagger`, `\angle`, `\Box`, `\partial`, ...
-- Binary relations, e.g. `=`, `>`, `<`, `\ll`, `:=`, ...
-- Binary operations, e.g. `+`. `-`, `*`, `/`, `\times`, `\otimes`, ...
-- Basic LaTeX commands, e.g. `\sqrt`, `\frac`, `\sin`, `\binom`, ...
-- Parentheses, e.g., `\left\{ .. \middle| .. \right]`, ...
-- Integrals, e.g., `\int_0^\infty`, `\iint`, `\oint`, ...
-- Big operators, e.g., `\sum`, `\prod`, `\bigcup_{i = 0}^\infty`, ...
-- Limits and overset/underset, e.g., `\lim`, `\overset{}{}`, `\overbrace{}{}`, ...
-- Font styles, e.g. `\mathrm`, `\mathbf`, `\bm`, `\mathit`, `\mathsf`, `\mathscr`, `\mathbb`, `\mathfrak`, `\texttt`, `\mathcal` (same as `\mathscr` because Unicode doesn’t distinguish the two)
-- White spaces, e.g., `\!`, `\,`, `\:`, `\;`, `\ `, `\quad`, `\qquad`.
-- Matrix, e.g. `\begin{matrix}`, `\begin{pmatrix}`, `\begin{bmatrix}`, `\begin{vmatrix}`.
-- Multi-line equation `\begin{align}`, `\begin{align*}`, `\begin{aligned}`.
-- Feynman slash notation: `\slashed{\partial}`.
+```html
+<math display="block">
+    <munderover>
+        <mo>∑</mo>
+        <mrow>
+            <mi>i</mi>
+            <mo>=</mo>
+            <mn>0</mn>
+        </mrow>
+        <mi>N</mi>
+    </munderover>
+    <msub>
+        <mi>x</mi>
+        <mi>i</mi>
+    </msub>
+</math>
+```
 
-See `examples/equations.rs` for examples. Note that all supported commands are defined in `src/token.rs`.
+which looks like this:
 
-## Unsupported LaTeX commands
+![rendered sum](https://tmke8.github.io/math-core/render_example.png)
+## Goals
+The goal of this project is to translate modern LaTeX math faithfully to the browser. More specifically, the goal is to…
 
-- New line `\\`, except for ones in a matrix or align environment.
-- Alignment `&`, except for ones in a matrix or align environment.
-- Complicated sub/superscripts (`<mmultiscripts>`).
+- Support all common LaTeX math commands, at least those that KaTeX supports
+- Produce concise, readable, and semantically correct MathML
+- Don’t rely on CSS hacks (and definitely don’t use JavaScript in any way)
+- Support many different math fonts
+- Try to keep the compiled WebAssembly code small
 
-Dollar sign `\$` is allowed for the `latex_to_mathml` function, but the `replace` function does not allow it.
-This is because the `replace` function assumes all dollar signs appear as boundaries of LaTeX equations.
-
-If a feature you need is lacked, feel free to open an issue.
-
+This project is still in development, so not all LaTeX math commands that KaTeX supports are supported yet. See *Development status* below.
 
 ## Usage
+There are 4 ways to use the code in this project:
 
-For a single LaTeX equation:
+1. As a CLI binary
+2. As a Python package
+3. As a Rust library
+4. As a WebAssembly module
 
-```rust
-use latex2mathml::{latex_to_mathml, Display};
+### CLI
+Right now, you have to compile binaries yourself with
 
-let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
-let mathml = latex_to_mathml(latex, Display::Block).unwrap();
-println!("{}", mathml);
+```sh
+cargo build --bin mathcore
 ```
 
-For a document that includes LaTeX equations:
+Eventually, we will provide precompiled binaries on the GitHub release page.
 
-```rust
-let text = r#"
-Let us consider a rigid sphere (i.e., one having a spherical
-figure when tested in the stationary system) of radius $R$
-which is at rest relative to the system ($K$), and whose centre
-coincides with the origin of $K$ then the equation of the
-surface of this sphere, which is moving with a velocity $v$
-relative to $K$, is
-$$\xi^2 + \eta^2 + \zeta^2 = R^2$$
-"#;
-let mathml = latex2mathml::replace(text).unwrap();
-println!("{}", mathml);
+You can see an explanation of the CLI interface with
+```sh
+mathcore --help
+```
+In the future, there may be more comprehensive documentation on a dedicated website. A config file can be used to define custom LaTeX macros. An example of such a file is contained in this repository: `mathcore.toml`.
+
+### Python package
+Install the package with
+
+```sh
+pip install math-core
 ```
 
-To convert HTML files in a directory recursively, use `latex2mathml::convert_html`.
-This function is for converting HTMLs generated by `cargo doc`.
+Basic documentation for the Python package can be found on pypi.org.
 
-See also `examples/equations.rs` and `examples/document.rs`.
+### Rust library
+Add to your project with
+
+```
+cargo add math-core
+```
+
+The documentation for the library can be found on docs.rs.
+
+### WebAssembly module
+The WebAssembly frontend is currently only used for the [playground](https://tmke8.github.io/math-core/). In the future, a package for this may be published to npm.
+
+## Specifying the math font
+The MathML code generated by this project is intended to be very portable and work without a CSS style sheet. However, in order to really get LaTeX-like rendering of the MathML, one unfortunately needs custom math fonts.
+
+To specify the font, include something like this in your CSS:
+
+```css
+@font-face {
+    font-family: Libertinus Math Regular;
+    src: url('./LibertinusMath-Regular.woff2') format('woff2');
+}
+
+math {
+    font-family: "Libertinus Math Regular", math;
+}
+```
+
+Some day, perhaps, any font with a MATH table will be supported, but right now fonts require some tweaks.
+
+The main problem is that Chromium does not look at `ssty` variants when deciding on a glyph for super- and subscript (resulting in incorrectly rendered primes) and the fact that Chromium does not vertically center large operators and does not horizontally center accents. These problems have been manually fixed for the three fonts included in this project:
+
+- *New Computer Modern Math Book* (original [repo](https://git.gnu.org.ua/newcm.git/about/)): a maintained continuation of LaTeX’s classic *Computer Modern Math*
+- *Libertinus Math* (original [repo](https://github.com/alerque/libertinus)): a maintained continuation of *Linux Libertine*
+- *Noto Sans Math* (original [repo](https://github.com/notofonts/math)): a sans-serif math font
+
+The fixes applied to the font files do not change the shape of any glyphs; they merely rearrange some glyphs or center them. The font files can be found in the `playground/` directory in this repository. To use them in your website, download them here and load them on the page from your server. No guarantees will be made that the fonts on the playground will remain available on the current URLs.
+
+### Font subsetting
+The math fonts all have quite large font files. Especially *New Computer Modern Math Book* is enormous with an almost 700kB `.woff2` file. Therefore, if possible, you should use *font subsetting* where the font file only includes those glyphs that are actually used on your website. Existing tools should work fine for this.
+
+## Development status
+There are two tracking issues:
+
+- Missing environments: https://github.com/tmke8/math-core/issues/154
+- Missing commands: https://github.com/tmke8/math-core/issues/155
+
+Other things that haven’t been implemented yet:
+
+- Nested math mode (math mode within `\text{...}`): https://github.com/tmke8/math-core/issues/431
+
+## Features that are not planned
+There are some things we will (most likely) never support.
+
+### Infix commands like `\over` and `\above`
+Supporting these would make the parser much more complicated, which does not seem worth it given that these commands are very rarely used and considered somewhat deprecated.
+
+Other commands in this category: `\choose`, `\brace`, `\brack`, `\atop`
+
+### Definition commands like `\def`, `\newcommand`, `\definecolor`
+Again, supporting these would make the code much more complicated and anyway, these commands need to be repeated in every document. It seems more convenient to users and to the development of this project if new commands can only be defined in the config file.
+
+### Explicit tagging of equations, `\tag`
+This one is a bit debatable. It is a bit annoying to support this (because it introduces new state into the parser at a place where it’s currently stateless), but if there is strong demand for it, we could reconsider.
+
+### Italic numbers, `\mathit{012}`
+There is no Unicode range for this, so the only way to implement this would be with a custom font and a CSS class, which we would prefer to avoid.
+
+## Tips for writing LaTeX intended to be converted with this library
+
+- Don’t use infix commands like `\over`, `\above`, `\choose`, `\brace`, `\brack`, `\atop`.
+- Don’t try to create your own symbols by overlapping or stacking existing symbols; instead, try to find a Unicode symbol that looks like what you want: https://ftp.tu-chemnitz.de/pub/tex/fonts/newcomputermodern/doc/newcm-unimath-symbols.pdf
+	- This also applies to things like `:=`. Consider using `\coloneqq` instead, which will result in the semantically correct Unicode symbol.
+- Don’t worry about having unnecessary curly braces, like, say, `x_{2}` vs `x_2`. Both result in the same MathML because unnecessary groups are stripped away by this library.
+- Try to avoid using absolute length units like `\hspace{1cm}`. It’s difficult to render them correctly. Instead, use relative length units like `\hspace{2.8em}`.
+
+## Alternatives to this library
+
+Note: at the time of this writing (June 2025), none of the following libraries render `\vec` and `\hat` correctly.
+
+- [pulldown-latex](https://github.com/carloskiki/pulldown-latex): The project most similar to this one. It is a Rust library for converting LaTeX math to MathML Core. The differences are:
+	- *pulldown-latex* only provides a Rust library; no Python package, no CLI
+	- *pulldown-latex* requires a CSS style sheet
+	- *pulldown-latex* can’t do certain simplifications of the MathML AST due to its architecture; for example, it can’t strip away the unnecessary grouping in `x_{2}`, resulting in an unnecessary `<mrow>` in the output
+	- At the time of this writing (June 2025), *pulldown-latex* doesn’t distinguish between `\mathcal` and `\mathscr`.
+- [Temml](https://github.com/ronkok/Temml): a fork of [KaTeX](https://katex.org/) which removed the HTML output of KaTeX and kept only on the MathML output. *Temml* produces much higher quality MathML output than KaTeX. The differences to this library are:
+	- *Temml* is written in JavaScript, with all the pros and cons that result from that
+	- *Temml* requires a CSS style sheet
+	- *Temml* is much more willing to work around browser bugs to get consistent rendering, with specific CSS hacks for each browser; *math-core* doesn’t do that yet and it’s not clear we’ll ever do that
+
+## Acknowledgments
+This code was originally forked from https://github.com/osanshouo/latex2mathml. The basic architecture of a lexer and a parser remains, but all the details have drastically changed and the supported portion of LaTeX commands has drastically increased.
