@@ -30,7 +30,8 @@ is converted to
 
 which looks like this:
 
-![rendered sum](https://tmke8.github.io/math-core/render_example.png)
+<img src="https://tmke8.github.io/math-core/render_example.png" width=95 height=97/>
+
 ## Goals
 The goal of this project is to translate modern LaTeX math faithfully to the browser. More specifically, the goal is to…
 
@@ -106,9 +107,9 @@ Some day, perhaps, any font with a MATH table will be supported, but right now f
 
 The main problem is that Chromium does not look at `ssty` variants when deciding on a glyph for super- and subscript (resulting in incorrectly rendered primes) and the fact that Chromium does not vertically center large operators and does not horizontally center accents. These problems have been manually fixed for the three fonts included in this project:
 
-- *New Computer Modern Math Book* (original [repo](https://git.gnu.org.ua/newcm.git/about/)): a maintained continuation of LaTeX’s classic *Computer Modern Math*
-- *Libertinus Math* (original [repo](https://github.com/alerque/libertinus)): a maintained continuation of *Linux Libertine*
-- *Noto Sans Math* (original [repo](https://github.com/notofonts/math)): a sans-serif math font
+- *New Computer Modern Math Book* ([original repo](https://git.gnu.org.ua/newcm.git/about/)): a maintained continuation of LaTeX’s classic *Computer Modern Math*
+- *Libertinus Math* ([original repo](https://github.com/alerque/libertinus)): a maintained continuation of *Linux Libertine*
+- *Noto Sans Math* ([original repo](https://github.com/notofonts/math)): a sans-serif math font
 
 The fixes applied to the font files do not change the shape of any glyphs; they merely rearrange some glyphs or center them. The font files can be found in the `playground/` directory in this repository. To use them in your website, download them here and load them on the page from your server. No guarantees will be made that the fonts on the playground will remain available on the current URLs.
 
