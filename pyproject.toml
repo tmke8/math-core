@@ -3,25 +3,36 @@ requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "math_core"
-readme = "README.md"
+name = "math-core"
+authors = [
+    {name = "Thomas MK", email = "tmke8@posteo.net"},
+]
+description = "Convert LaTeX math to MathML Core"
+readme = "math-core-python/README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: MIT License",
 ]
-version = "0.1.0"
+license = "MIT"
+dynamic = ["version"]
+
+[project.urls]
+repository = "https://github.com/tmke8/math-core.git"
 
 [project.optional-dependencies]
 tests = ["pytest"]
-dynamic = ["version"]
 
 [tool.maturin]
 manifest-path = "math-core-python/Cargo.toml"
 python-source = "python"
+python-packages = ["math_core"]
+include = ["python/math_core/py.typed", "python/math_core/_math_core_rust.pyi"]
 module-name = "math_core._math_core_rust"
 features = ["pyo3/extension-module"]
+bindings = "pyo3"
+# compatibility = "pypi"
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
