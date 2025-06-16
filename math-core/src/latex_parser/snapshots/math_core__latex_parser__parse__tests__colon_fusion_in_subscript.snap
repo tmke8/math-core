@@ -8,8 +8,8 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ':',
       attr: None,
-      left: Some(FiveMu),
-      right: Some(FiveMu),
+      left: None,
+      right: None,
     ),
   ),
   Operator(
@@ -29,8 +29,8 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ':',
       attr: None,
-      left: Some(FiveMu),
-      right: Some(FiveMu),
+      left: None,
+      right: None,
     ),
   ),
   Operator(

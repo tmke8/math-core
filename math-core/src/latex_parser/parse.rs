@@ -640,12 +640,16 @@ where
                 if let Some(state) = sequence_state {
                     *state = SequenceState::Relation;
                 };
-                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
+                let left = if wants_arg {
+                    None // Don't add spacing if we are in an argument.
+                } else if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
                 };
-                let right = if !wants_arg && matches!(self.peek.token(), Token::Relation(_)) {
+                let right = if wants_arg {
+                    None // Don't add spacing if we are in an argument.
+                } else if matches!(self.peek.token(), Token::Relation(_)) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
