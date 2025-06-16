@@ -73,7 +73,7 @@ Install the package with
 pip install math-core
 ```
 
-Basic documentation for the Python package can be found on pypi.org.
+Basic documentation for the Python package can be found on [pypi page](https://pypi.org/project/math-core/).
 
 ### Rust library
 Add to your project with
@@ -82,7 +82,7 @@ Add to your project with
 cargo add math-core
 ```
 
-The documentation for the library can be found on docs.rs.
+The documentation for the library can be found on docs.rs: https://docs.rs/math-core/latest/math_core/
 
 ### WebAssembly module
 The WebAssembly frontend is currently only used for the [playground](https://tmke8.github.io/math-core/). In the future, a package for this may be published to npm.
