@@ -1,18 +1,18 @@
 [package]
 name = "math-core"
-version = "0.1.0"
 authors = [
     "Hiromu Sugiura <h.sugiura0705@outlook.com>",
-    "Thomas Kehrenberg <tmke8@posteo.net>",
+    "Thomas MK <tmke8@posteo.net>",
 ]
+version = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
 resolver = "2"
 
 description = "Convert LaTeX equations to MathML Core"
-repository = "https://github.com/tmke8/math-core"
-readme = "README.md"
+readme = "../README.md"
 license = { workspace = true }
+repository = { workspace = true }
 keywords = ["latex", "mathml"]
 categories = ["science"]
 

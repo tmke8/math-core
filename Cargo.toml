@@ -8,6 +8,8 @@ resolver = "2"
 edition = "2024"
 rust-version = "1.87"
 license = "MIT"
+version = "0.1.0"
+repository = "https://github.com/tmke8/math-core"
 
 [workspace.dependencies]
 rustc-hash = "2.1.1"
