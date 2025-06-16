@@ -260,7 +260,9 @@ where
                 } else {
                     None
                 };
-                let right = if !wants_arg && matches!(self.peek.token(), Token::Relation(_)) {
+                let right = if !wants_arg
+                    && matches!(self.peek.token(), Token::Relation(_) | Token::Colon)
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     None

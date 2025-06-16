@@ -14,7 +14,7 @@ expression: ":2=:="
     op: '=',
     attr: None,
     left: None,
-    right: None,
+    right: Some(Zero),
   ),
   Operator(
     op: ':',
