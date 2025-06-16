@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sqrt :"
+---
+<math>
+    <msqrt>
+        <mo>:</mo>
+    </msqrt>
+</math>
