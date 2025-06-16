@@ -141,7 +141,7 @@ pub struct LatexToMathML {
 
 impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with the given configuration.
-    /// 
+    ///
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed.
     pub fn new(config: &MathCoreConfig) -> Result<Self, LatexError<'_>> {
@@ -452,6 +452,8 @@ mod tests {
                 r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
             ),
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
+            ("colon_first_group", r"x{:x}"),
+            ("colon_approx", r"x:\approx 2"),
             (
                 "cases",
                 r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",

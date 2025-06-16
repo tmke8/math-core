@@ -6,8 +6,8 @@ expression: ":2=:="
   Operator(
     op: ':',
     attr: None,
-    left: Some(FourMu),
-    right: Some(FourMu),
+    left: Some(Zero),
+    right: Some(FiveMu),
   ),
   Number("2"),
   Operator(
@@ -17,9 +17,15 @@ expression: ":2=:="
     right: None,
   ),
   Operator(
-    op: '≔',
+    op: ':',
     attr: None,
-    left: None,
+    left: Some(Zero),
+    right: Some(Zero),
+  ),
+  Operator(
+    op: '=',
+    attr: None,
+    left: Some(Zero),
     right: None,
   ),
 ]

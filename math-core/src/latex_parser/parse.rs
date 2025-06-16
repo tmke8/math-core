@@ -32,12 +32,13 @@ pub(crate) struct Parser<'arena, 'source> {
 
 /// A struct for managing the state of the sequence parser.
 #[derive(Debug, Default)]
-struct SequenceState {
-    is_first: bool,
-    is_colon: bool,
-    is_relation: bool,
-    is_punctuation: bool,
-    is_binary_op: bool,
+enum SequenceState {
+    Start,
+    Relation,
+    Punctuation,
+    BinaryOp,
+    #[default]
+    Other,
 }
 
 #[derive(Debug)]
@@ -149,10 +150,11 @@ where
         ignore_boundaries: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
-        let mut sequence_state = SequenceState::default();
-        if !ignore_boundaries {
-            sequence_state.is_first = true;
-        }
+        let mut sequence_state = if ignore_boundaries {
+            SequenceState::default()
+        } else {
+            SequenceState::Start
+        };
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.peek.token()) {
@@ -251,12 +253,9 @@ where
             Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
             Token::Relation(relation) => {
                 if let Some(state) = sequence_state {
-                    state.is_relation = true;
+                    *state = SequenceState::Relation;
                 };
-                let left = if (prev_state.is_colon && matches!(relation, symbol::IDENTICAL_TO))
-                    || prev_state.is_relation
-                    || prev_state.is_first
-                {
+                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -275,7 +274,7 @@ where
             }
             Token::Punctuation(punc) => {
                 if let Some(state) = sequence_state {
-                    state.is_punctuation = true;
+                    *state = SequenceState::Punctuation;
                 };
                 Node::Operator {
                     op: punc.into(),
@@ -292,13 +291,15 @@ where
             },
             Token::BinaryOp(binary_op) => {
                 if let Some(state) = sequence_state {
-                    state.is_binary_op = true;
+                    *state = SequenceState::BinaryOp;
                 };
-                let spacing = if prev_state.is_relation
-                    || prev_state.is_punctuation
-                    || prev_state.is_binary_op
-                    || prev_state.is_first
-                    || matches!(self.peek.token(), Token::Relation(_))
+                let spacing = if matches!(
+                    prev_state,
+                    SequenceState::Relation
+                        | SequenceState::Punctuation
+                        | SequenceState::BinaryOp
+                        | SequenceState::Start
+                ) || matches!(self.peek.token(), Token::Relation(_))
                 {
                     Some(MathSpacing::Zero)
                 } else {
@@ -630,34 +631,30 @@ where
                     }
                 }
             }
-            Token::Colon => match &self.peek.token() {
-                Token::Relation(symbol::EQUALS_SIGN) if !wants_arg => {
-                    self.next_token(); // Discard the equals_sign token.
-                    Node::Operator {
-                        op: symbol::COLON_EQUALS.into(),
-                        attr: None,
-                        left: None,
-                        right: None,
-                    }
-                }
-                Token::Relation(symbol::IDENTICAL_TO) if !wants_arg => {
-                    if let Some(state) = sequence_state {
-                        state.is_colon = true;
-                    };
-                    Node::Operator {
-                        op: symbol::COLON.into(),
-                        attr: None,
-                        left: Some(MathSpacing::FourMu),
-                        right: Some(MathSpacing::Zero),
-                    }
-                }
-                _ => Node::Operator {
+            Token::Colon => {
+                // A colon is actually just a relation, but by default, MathML Core gives it
+                // punctuation spacing (left: 0, right: 3mu), so we have to explicitly make it have
+                // relation spacing (left: 5mu, right: 5mu).
+                if let Some(state) = sequence_state {
+                    *state = SequenceState::Relation;
+                };
+                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
+                    Some(MathSpacing::Zero)
+                } else {
+                    Some(MathSpacing::FiveMu)
+                };
+                let right = if !wants_arg && matches!(self.peek.token(), Token::Relation(_)) {
+                    Some(MathSpacing::Zero)
+                } else {
+                    Some(MathSpacing::FiveMu)
+                };
+                Node::Operator {
                     op: symbol::COLON.into(),
                     attr: None,
-                    left: Some(MathSpacing::FourMu),
-                    right: Some(MathSpacing::FourMu),
-                },
-            },
+                    left,
+                    right,
+                }
+            }
             Token::GroupBegin => {
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), wants_arg)?;
@@ -1201,7 +1198,10 @@ where
         Ok(self.commit(Node::PseudoOp {
             name,
             attr: None,
-            left: if prev_state.is_relation || prev_state.is_punctuation {
+            left: if matches!(
+                prev_state,
+                SequenceState::Relation | SequenceState::Punctuation
+            ) {
                 Some(MathSpacing::Zero)
             } else {
                 Some(MathSpacing::ThreeMu)
