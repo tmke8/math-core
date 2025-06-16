@@ -16,6 +16,8 @@ repository = { workspace = true }
 keywords = ["latex", "mathml"]
 categories = ["science"]
 
+exclude=["/src/snapshots", "/src/latex_parser/snapshots", "/tests/snapshots"]
+
 [dependencies]
 stable-arena = { version = "0.2.0", default-features = false }
 serde = { workspace = true, optional = true }

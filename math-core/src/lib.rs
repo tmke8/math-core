@@ -1,37 +1,15 @@
-//! math_core
+//! Convert LaTeX math to MathML Core.
 //!
-//! Provides a functionality to convert LaTeX math equations to MathML representation.
-//! This crate is implemented in pure Rust, so it works for all platforms including WebAssembly.
-//!
-//! # Supported LaTeX commands
-//!
-//! - Numbers, e.g. `0`, `3.14`, ...
-//! - ASCII and Greek (and more) letters, e.g. `x`, `\alpha`, `\pi`, `\aleph`, ...
-//! - Symbols, e.g., `\infty`, `\dagger`, `\angle`, `\Box`, `\partial`, ...
-//! - Binary relations, e.g. `=`, `>`, `<`, `\ll`, `:=`, ...
-//! - Binary operations, e.g. `+`. `-`, `*`, `/`, `\times`, `\otimes`, ...
-//! - Basic LaTeX commands, e.g. `\sqrt`, `\frac`, `\sin`, `\binom`, ...
-//! - Parentheses, e.g., `\left\{ .. \middle| .. \right]`, ...
-//! - Integrals, e.g., `\int_0^\infty`, `\iint`, `\oint`, ...
-//! - Big operators, e.g., `\sum`, `\prod`, `\bigcup_{i = 0}^\infty`, ...
-//! - Limits and overset/underset, e.g., `\lim`, `\overset{}{}`, `\overbrace{}{}`, ...
-//! - Font styles, e.g. `\mathrm`, `\mathbf`, `\bm`, `\mathit`, `\mathsf`, `\mathscr`, `\mathbb`, `\mathfrak`, `\texttt`.
-//! - White spaces, e.g., `\!`, `\,`, `\:`, `\;`, `\ `, `\quad`, `\qquad`.
-//! - Matrix, e.g. `\begin{matrix}`, `\begin{pmatrix}`, `\begin{bmatrix}`, `\begin{vmatrix}`.
-//! - Multi-line equation `\begin{align}` (experimental).
-//! - Feynman slash notation: `\slashed{\partial}`.
-//!
-//! ## Unsupported LaTeX commands
-//!
-//! - New line `\\`, except for ones in a matrix or align environment.
-//! - Alignment `&`, except for ones in a matrix or align environment.
-//! - Complicated sub/superscripts (`<mmultiscripts>`).
-//!
+//! For more background on what that means and on what to do with the resulting MathML code,
+//! see the repo's README: https://github.com/tmke8/math-core
 //!
 //! # Usage
 //!
-//!  Main functions of this crate are  [`latex_to_mathml`](./fn.latex_to_mathml.html) and
-//! [`replace`](./fn.replace.html).
+//! The main struct of this library is [`LatexToMathML`]. In order to use the library, create an
+//! instance of this struct and then call one of the convert functions. The constructor of the
+//! struct expects a config object in the form of an instance of [`MathCoreConfig`].
+//!
+//! Basic use looks like this:
 //!
 //! ```rust
 //! use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
@@ -43,9 +21,9 @@
 //! println!("{}", mathml);
 //! ```
 //!
-//! For more examples and list of supported LaTeX commands, please check
-//! [`examples/equations.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/equations.rs)
-//! and [`examples/document.rs`](https://github.com/osanshouo/latex2mathml/blob/master/examples/document.rs).
+//! # Features
+//!
+//! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
 //!
 mod latex_parser;
 mod mathml_renderer;
@@ -65,11 +43,16 @@ pub use self::latex_parser::LatexError;
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathDisplay {
+    /// For inline equations, like those in `$...$` in LaTeX.
     Inline,
+    /// For block equations (or "display style" equations), like those in `$$...$$` in LaTeX.
     Block,
 }
 
 /// Configuration for pretty-printing the MathML output.
+///
+/// Pretty-printing means that newlines and indentation is added to the MathML output, to make it
+/// easier to read.
 #[derive(Debug, Clone, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
@@ -83,12 +66,45 @@ pub enum PrettyPrint {
     Auto,
 }
 
-/// Configuration for the LaTeX to MathML conversion.
+/// Configuration object for the LaTeX to MathML conversion.
+///
+/// # Example usage
+///
+/// ```rust
+/// use math_core::{MathCoreConfig, PrettyPrint};
+/// use rustc_hash::FxHashMap;
+///
+/// // Default values
+/// let config = MathCoreConfig::default();
+///
+/// // Specifying pretty-print behavior
+/// let config = MathCoreConfig {
+///     pretty_print: PrettyPrint::Always,
+///     ..Default::default()
+///  };
+///
+/// // Specifying pretty-print behavior and custom macros
+/// let mut macros: FxHashMap<String, String> = Default::default();
+/// macros.insert(
+///     "d".to_string(),
+///     r"\mathrm{d}".to_string(),
+/// );
+/// macros.insert(
+///     "bb".to_string(),
+///     r"\mathbb{#1}".to_string(), // with argument
+/// );
+/// let config = MathCoreConfig {
+///     pretty_print: PrettyPrint::Auto,
+///     macros,
+///     ..Default::default()
+/// };
+/// ```
+///
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
 #[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
-    /// If true, the output will be pretty-printed with indentation and newlines.
+    /// A configuration for pretty-printing the MathML output. See [`PrettyPrint`] for details.
     pub pretty_print: PrettyPrint,
     /// A map of LaTeX macros; the keys are macro names and the values are their definitions.
     pub macros: FxHashMap<String, String>,
@@ -125,6 +141,9 @@ pub struct LatexToMathML {
 
 impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with the given configuration.
+    /// 
+    /// This function returns an error if the custom macros in the given configuration could not
+    /// be parsed.
     pub fn new(config: &MathCoreConfig) -> Result<Self, LatexError<'_>> {
         Ok(Self {
             pretty_print: config.pretty_print,
@@ -142,6 +161,14 @@ impl LatexToMathML {
         }
     }
 
+    /// Convert LaTeX text to MathML with a global equation counter.
+    ///
+    /// For basic usage, see the documentation of [`convert_with_local_counter`].
+    ///
+    /// This conversion function maintains state, in order to count equations correctly across
+    /// different calls to this function.
+    ///
+    /// The counter can be reset with [`reset_global_counter`].
     pub fn convert_with_global_counter<'config, 'source>(
         &'config mut self,
         latex: &'source str,
