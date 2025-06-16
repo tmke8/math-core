@@ -33,12 +33,12 @@ pub(crate) struct Parser<'arena, 'source> {
 /// A struct for managing the state of the sequence parser.
 #[derive(Debug, Default)]
 enum SequenceState {
+    #[default]
+    Default,
     Start,
     Relation,
     Punctuation,
     BinaryOp,
-    #[default]
-    Other,
 }
 
 #[derive(Debug)]
