@@ -1,0 +1,160 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            arch: x86_64
+          - runner: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      
+      - name: Install cross-compilation tools
+        if: matrix.platform.arch == 'aarch64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+      
+      - name: Build
+        run: |
+          if [ "${{ matrix.platform.arch }}" == "aarch64" ]; then
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+            export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+            export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+          fi
+          cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
+      
+      - name: Package
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          tar czf ../../../mathcore-${{ matrix.platform.target }}.tar.gz mathcore
+          cd ../../..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathcore-${{ matrix.platform.target }}
+          path: mathcore-${{ matrix.platform.target }}.tar.gz
+
+  build-windows:
+    name: Build Windows ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      matrix:
+        platform:
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            arch: x64
+          - runner: windows-latest
+            target: i686-pc-windows-msvc
+            arch: x86
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      
+      - name: Build
+        run: cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
+      
+      - name: Package
+        shell: pwsh
+        run: |
+          cd target\${{ matrix.platform.target }}\release
+          Compress-Archive -Path mathcore.exe -DestinationPath ..\..\..\mathcore-${{ matrix.platform.target }}.zip
+          cd ..\..\..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathcore-${{ matrix.platform.target }}
+          path: mathcore-${{ matrix.platform.target }}.zip
+
+  build-macos:
+    name: Build macOS ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      matrix:
+        platform:
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            arch: x86_64
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      
+      - name: Build
+        run: cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
+      
+      - name: Package
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          tar czf ../../../mathcore-${{ matrix.platform.target }}.tar.gz mathcore
+          cd ../../..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathcore-${{ matrix.platform.target }}
+          path: mathcore-${{ matrix.platform.target }}.tar.gz
+
+  release:
+    name: Create or Update Release
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Display structure of downloaded files
+        run: ls -laR artifacts/
+      
+      - name: Add binaries to release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/mathcore-x86_64-unknown-linux-gnu/mathcore-x86_64-unknown-linux-gnu.tar.gz
+            artifacts/mathcore-aarch64-unknown-linux-gnu/mathcore-aarch64-unknown-linux-gnu.tar.gz
+            artifacts/mathcore-x86_64-pc-windows-msvc/mathcore-x86_64-pc-windows-msvc.zip
+            artifacts/mathcore-i686-pc-windows-msvc/mathcore-i686-pc-windows-msvc.zip
+            artifacts/mathcore-x86_64-apple-darwin/mathcore-x86_64-apple-darwin.tar.gz
+            artifacts/mathcore-aarch64-apple-darwin/mathcore-aarch64-apple-darwin.tar.gz
