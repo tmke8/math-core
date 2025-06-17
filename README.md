@@ -1,6 +1,6 @@
 # math-core – Convert LaTeX to MathML Core
 
-[Playground](https://tmke8.github.io/math-core/)
+[Try it out on the playground!](https://tmke8.github.io/math-core/)
 
 `math-core` allows you to convert LaTeX math to [MathML Core](https://www.w3.org/TR/mathml-core/), the MathML specification that is being implemented by web browsers. For example, this LaTeX code:
 
@@ -52,19 +52,19 @@ There are 4 ways to use the code in this project:
 4. As a WebAssembly module
 
 ### CLI
-Right now, you have to compile binaries yourself with
+You can download precompiled binaries from the GitHub Release page. Alternatively, you can build the CLI binary from source:
 
 ```sh
-cargo build --bin mathcore
+cargo build --bin mathcore --release
 ```
-
-Eventually, we will provide precompiled binaries on the GitHub release page.
 
 You can see an explanation of the CLI interface with
 ```sh
 mathcore --help
 ```
-In the future, there may be more comprehensive documentation on a dedicated website. A config file can be used to define custom LaTeX macros. An example of such a file is contained in this repository: `mathcore.toml`.
+A config file can be used to define custom LaTeX macros. An example of such a file is contained in this repository: `mathcore.toml`.
+
+In the future, there may be more comprehensive documentation on a dedicated website.
 
 ### Python package
 Install the package with
