@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Pr j, \\hom l, \\lVert z \\rVert, \\arg z"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">Pr</mo>
+    <mo lspace="0" rspace="0.1667em">Pr</mo>
     <mi>j</mi>
     <mo>,</mo>
     <mo lspace="0" rspace="0.1667em">hom</mo>

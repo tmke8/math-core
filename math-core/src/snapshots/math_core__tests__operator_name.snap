@@ -3,6 +3,6 @@ source: math-core/src/lib.rs
 expression: "\\operatorname{sn} x"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">sn</mo>
+    <mo lspace="0" rspace="0.1667em">sn</mo>
     <mi>x</mi>
 </math>

@@ -1,8 +1,9 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\sin x"
+expression: "\\sin\\sin x"
 ---
 <math>
+    <mo lspace="0" rspace="0.1667em">sin</mo>
     <mo lspace="0" rspace="0.1667em">sin</mo>
     <mi>x</mi>
 </math>

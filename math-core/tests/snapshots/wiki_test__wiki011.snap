@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\sin a, \\cos b, \\tan c, \\cot d, \\sec e, \\csc f"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">sin</mo>
+    <mo lspace="0" rspace="0.1667em">sin</mo>
     <mi>a</mi>
     <mo>,</mo>
     <mo lspace="0" rspace="0.1667em">cos</mo>

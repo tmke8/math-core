@@ -3,5 +3,5 @@ source: math-core/src/lib.rs
 expression: "\\operatorname{ hel lo }"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">hello</mo>
+    <mo lspace="0" rspace="0">hello</mo>
 </math>
