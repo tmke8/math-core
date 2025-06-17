@@ -559,10 +559,10 @@ pub const MINUS_SIGN: Bin = Bin('−');
 pub const MINUS_OR_PLUS_SIGN: Bin = Bin('∓');
 pub const DOT_PLUS: Bin = Bin('∔');
 // pub const DIVISION_SLASH: Op = Op('∕');
-pub const SET_MINUS: Rel = Rel('∖');
-pub const ASTERISK_OPERATOR: Rel = Rel('∗');
-pub const RING_OPERATOR: Rel = Rel('∘');
-pub const BULLET_OPERATOR: Rel = Rel('∙');
+pub const SET_MINUS: Bin = Bin('∖');
+pub const ASTERISK_OPERATOR: Bin = Bin('∗');
+pub const RING_OPERATOR: Bin = Bin('∘');
+pub const BULLET_OPERATOR: Bin = Bin('∙');
 // pub const SQUARE_ROOT: Op = Op('√');
 // pub const CUBE_ROOT: Op = Op('∛');
 // pub const FOURTH_ROOT: Op = Op('∜');
@@ -919,10 +919,12 @@ pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: &Fence = &Fence('⦈', false, Stretchy
 pub const Z_NOTATION_LEFT_BINDING_BRACKET: &Fence = &Fence('⦉', false, Stretchy::Always);
 pub const Z_NOTATION_RIGHT_BINDING_BRACKET: &Fence = &Fence('⦊', false, Stretchy::Always);
 
-pub const SQUARED_RISING_DIAGONAL_SLASH: Rel = Rel('⧄');
-pub const SQUARED_FALLING_DIAGONAL_SLASH: Rel = Rel('⧅');
-pub const SQUARED_SQUARE: Rel = Rel('⧈');
+pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin('⧄');
+pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin('⧅');
+pub const SQUARED_SQUARE: Bin = Bin('⧈');
 pub const BLACK_LOZENGE: char = '⧫';
+
+// pub const REVERSE_SOLIDUS_OPERATOR: Bin = Bin('⧵');
 
 //
 // Unicode Block: Supplemental Mathematical Operators
@@ -1136,4 +1138,4 @@ pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel('⫌');
 //
 // Unicode Block: Small Form Variants
 //
-pub const SMALL_REVERSE_SOLIDUS: Rel = Rel('﹨');
+// pub const SMALL_REVERSE_SOLIDUS: Rel = Rel('﹨');

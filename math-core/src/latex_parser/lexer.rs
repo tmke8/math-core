@@ -167,7 +167,7 @@ impl<'source> Lexer<'source> {
                 if self.text_mode {
                     Token::Letter(ch)
                 } else {
-                    Token::Relation(symbol::ASTERISK_OPERATOR)
+                    Token::BinaryOp(symbol::ASTERISK_OPERATOR)
                 }
             }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),

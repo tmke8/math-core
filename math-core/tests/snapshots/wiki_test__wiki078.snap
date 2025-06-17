@@ -4,11 +4,11 @@ expression: "\\vdash \\dashv, \\vDash, \\Vdash, \\models"
 ---
 <math>
     <mo lspace="0" rspace="0">⊢</mo>
-    <mo lspace="0">⊣</mo>
+    <mo lspace="0" rspace="0">⊣</mo>
     <mo>,</mo>
-    <mo>⊨</mo>
+    <mo lspace="0" rspace="0">⊨</mo>
     <mo>,</mo>
-    <mo>⊩</mo>
+    <mo lspace="0" rspace="0">⊩</mo>
     <mo>,</mo>
-    <mo>⊨</mo>
+    <mo lspace="0" rspace="0">⊨</mo>
 </math>

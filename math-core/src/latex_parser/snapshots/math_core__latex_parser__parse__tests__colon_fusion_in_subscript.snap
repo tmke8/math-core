@@ -16,7 +16,7 @@ expression: "x_:\\equiv, x_:="
     op: '≡',
     attr: None,
     left: None,
-    right: None,
+    right: Some(Zero),
   ),
   Operator(
     op: ',',
@@ -37,6 +37,6 @@ expression: "x_:\\equiv, x_:="
     op: '=',
     attr: None,
     left: None,
-    right: None,
+    right: Some(Zero),
   ),
 ]
