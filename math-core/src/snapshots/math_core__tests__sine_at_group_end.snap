@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "{x\\sin}x"
+---
+<math>
+    <mrow>
+        <mi>x</mi>
+        <mo lspace="0.1667em" rspace="0">sin</mo>
+    </mrow>
+    <mi>x</mi>
+</math>

@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\operatorname{sh}k, \\operatorname{ch}l, \\operatorname{th}m, \\operatorname{coth}n"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">sh</mo>
+    <mo lspace="0" rspace="0.1667em">sh</mo>
     <mi>k</mi>
     <mo>,</mo>
     <mo lspace="0" rspace="0.1667em">ch</mo>

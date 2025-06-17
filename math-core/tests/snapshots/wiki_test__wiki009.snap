@@ -4,7 +4,7 @@ expression: "\\exp_a b = a^b, \\exp b = e^b, 10^m"
 ---
 <math>
     <msub>
-        <mo lspace="0.1667em" rspace="0.1667em">exp</mo>
+        <mo lspace="0" rspace="0.1667em">exp</mo>
         <mi>a</mi>
     </msub>
     <mi>b</mi>

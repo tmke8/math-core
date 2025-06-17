@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\arcsin h, \\arccos i, \\arctan j"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">arcsin</mo>
+    <mo lspace="0" rspace="0.1667em">arcsin</mo>
     <mi>h</mi>
     <mo>,</mo>
     <mo lspace="0" rspace="0.1667em">arccos</mo>

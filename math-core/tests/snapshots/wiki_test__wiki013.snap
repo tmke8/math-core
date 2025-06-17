@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\sinh k, \\cosh l, \\tanh m, \\coth n"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0.1667em">sinh</mo>
+    <mo lspace="0" rspace="0.1667em">sinh</mo>
     <mi>k</mi>
     <mo>,</mo>
     <mo lspace="0" rspace="0.1667em">cosh</mo>

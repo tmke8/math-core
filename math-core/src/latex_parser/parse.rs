@@ -39,12 +39,19 @@ struct SequenceState {
 
 #[derive(Debug, Default)]
 enum Class {
+    /// `mathord`
     #[default]
     Default,
+    /// `mathopen`
     Open,
+    /// `mathrel`
     Relation,
+    /// `mathpunct`
     Punctuation,
+    /// `mathbin`
     BinaryOp,
+    /// `mathop`
+    Operator,
 }
 
 #[derive(Debug)]
@@ -355,6 +362,9 @@ where
                 right: None,
             },
             Token::PseudoOperator(name) => {
+                if let Some(state) = sequence_state {
+                    state.class = Class::Operator;
+                };
                 return self.make_pseudo_operator(name, &prev_state);
             }
             Token::Space(space) => {
@@ -900,6 +910,9 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Node::IdentifierChar(ch, LetterAttr::Upright)
                 } else {
+                    if let Some(state) = sequence_state {
+                        state.class = Class::Operator;
+                    };
                     return self.make_pseudo_operator(letters, &prev_state);
                 }
             }
@@ -1232,7 +1245,10 @@ where
         Ok(self.commit(Node::PseudoOp {
             name,
             attr: None,
-            left: if matches!(prev_state.class, Class::Relation | Class::Punctuation) {
+            left: if matches!(
+                prev_state.class,
+                Class::Relation | Class::Punctuation | Class::Operator | Class::Open
+            ) {
                 Some(MathSpacing::Zero)
             } else {
                 Some(MathSpacing::ThreeMu)
@@ -1244,7 +1260,11 @@ where
                     | Token::Delimiter(_)
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
-            ) {
+            ) || (prev_state.respect_boundaries
+                && matches!(
+                    self.peek.token(),
+                    Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                )) {
                 Some(MathSpacing::Zero)
             } else {
                 Some(MathSpacing::ThreeMu)

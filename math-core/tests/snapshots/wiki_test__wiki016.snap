@@ -3,7 +3,7 @@ source: math-core/tests/wiki_test.rs
 expression: "\\min(x,y), \\max(x,y)"
 ---
 <math>
-    <mo lspace="0.1667em" rspace="0">min</mo>
+    <mo lspace="0" rspace="0">min</mo>
     <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo>,</mo>
