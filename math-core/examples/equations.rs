@@ -60,7 +60,7 @@ fn main() {
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
         r"a := 2 \land b :\equiv 3 \land f : X\to Y",
         r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
-        r"\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)",
+        r"\oint_C \vec{B}\circ {\mathrm{d}\hspace{0em}}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{{\mathrm{d}\hspace{0em}} t} \int_S {\vec{E} \circ \hat{n}}\; {\mathrm{d}\hspace{0em}} a \right)",
     ];
 
     let converter = LatexToMathML::new(&MathCoreConfig {

@@ -17,7 +17,8 @@
     <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo stretchy="false">)</mo>
-    <mo>≔</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
     <mi>a</mi>
     <msup>
         <mi>x</mi>
@@ -62,7 +63,7 @@
 <div><code>\cos^2 \theta + \sin^2 \theta = 1</code><p>
 <math display="block">
     <msup>
-        <mo lspace="0.1667em" rspace="0.1667em">cos</mo>
+        <mo lspace="0" rspace="0.1667em">cos</mo>
         <mn>2</mn>
     </msup>
     <mi>θ</mi>
@@ -180,7 +181,7 @@
 </p></div>
 <div><code>\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt</code><p>
 <math display="block">
-    <mo lspace="0.1667em" rspace="0">erf</mo>
+    <mo lspace="0" rspace="0">erf</mo>
     <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo stretchy="false">)</mo>
@@ -984,7 +985,7 @@
 <div><code>f: \mathbb{C} \to \mathbb{R} , \ z \mapsto z \bar{z}</code><p>
 <math display="block">
     <mi>f</mi>
-    <mo lspace="0.2222em" rspace="0.2222em">:</mo>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
     <mi>ℂ</mi>
     <mo>→</mo>
     <mi>ℝ</mi>
@@ -1121,7 +1122,7 @@
 <div><code>よ: \mathscr{C} \rightarrow {\mathbf{Set}}^{{\mathscr{C}}^\mathrm{op}}</code><p>
 <math display="block">
     <mi>よ</mi>
-    <mo lspace="0.2222em" rspace="0.2222em">:</mo>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
     <mi>𝒞︁</mi>
     <mo>→</mo>
     <msup>
@@ -1135,7 +1136,7 @@
 </p></div>
 <div><code>\operatorname{sn} x , \ \vartheta ( z, \tau ) , \ \wp ( z ; \omega_1, \omega_2 )</code><p>
 <math display="block">
-    <mo lspace="0.1667em" rspace="0.1667em">sn</mo>
+    <mo lspace="0" rspace="0.1667em">sn</mo>
     <mi>x</mi>
     <mo>,</mo>
     <mtext> </mtext>
@@ -1706,16 +1707,17 @@
 <div><code>a := 2 \land b :\equiv 3 \land f : X\to Y</code><p>
 <math display="block">
     <mi>a</mi>
-    <mo>≔</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
     <mn>2</mn>
     <mo>∧</mo>
     <mi>b</mi>
-    <mo lspace="0.2222em" rspace="0">:</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
     <mo lspace="0">≡</mo>
     <mn>3</mn>
     <mo>∧</mo>
     <mi>f</mi>
-    <mo lspace="0.2222em" rspace="0.2222em">:</mo>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
     <mi>X</mi>
     <mo>→</mo>
     <mi>Y</mi>
@@ -1727,7 +1729,8 @@
     <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo stretchy="false">)</mo>
-    <mo>≔</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
     <mrow>
         <mo>{</mo>
         <mtable>
@@ -1755,20 +1758,21 @@
     </mrow>
 </math>
 </p></div>
-<div><code>\oint_C {\vec{B}\circ} \mathrm{d}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d} t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d} a \right)</code><p>
+<div><code>\oint_C \vec{B}\circ {\mathrm{d}\hspace{0em}}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{{\mathrm{d}\hspace{0em}} t} \int_S {\vec{E} \circ \hat{n}}\; {\mathrm{d}\hspace{0em}} a \right)</code><p>
 <math display="block">
     <msub>
         <mo>∮</mo>
         <mi>C</mi>
     </msub>
+    <mover accent="true">
+        <mi>B</mi>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+    <mo>∘</mo>
     <mrow>
-        <mover accent="true">
-            <mi>B</mi>
-            <mo stretchy="false">⃗</mo>
-        </mover>
-        <mo>∘</mo>
+        <mi mathvariant="normal">d</mi>
+        <mspace width="0"/>
     </mrow>
-    <mi mathvariant="normal">d</mi>
     <mover accent="true">
         <mi>l</mi>
         <mo stretchy="false">⃗</mo>
@@ -1793,7 +1797,10 @@
             <mfrac>
                 <mi mathvariant="normal">d</mi>
                 <mrow>
-                    <mi mathvariant="normal">d</mi>
+                    <mrow>
+                        <mi mathvariant="normal">d</mi>
+                        <mspace width="0"/>
+                    </mrow>
                     <mi>t</mi>
                 </mrow>
             </mfrac>
@@ -1813,7 +1820,10 @@
                 </mover>
             </mrow>
             <mspace width="0.2777778em"/>
-            <mi mathvariant="normal">d</mi>
+            <mrow>
+                <mi mathvariant="normal">d</mi>
+                <mspace width="0"/>
+            </mrow>
             <mi>a</mi>
         </mrow>
         <mo>)</mo>
