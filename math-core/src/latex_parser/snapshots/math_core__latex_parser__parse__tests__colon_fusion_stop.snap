@@ -26,6 +26,6 @@ expression: ":2=:="
     op: '=',
     attr: None,
     left: Some(Zero),
-    right: None,
+    right: Some(Zero),
   ),
 ]

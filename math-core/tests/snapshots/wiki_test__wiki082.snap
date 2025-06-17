@@ -3,11 +3,11 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Rightarrow, \\nRightarrow, \\Longrightarrow, \\implies"
 ---
 <math>
-    <mo lspace="0">⇒</mo>
+    <mo lspace="0" rspace="0">⇒</mo>
     <mo>,</mo>
-    <mo>⇏</mo>
+    <mo lspace="0" rspace="0">⇏</mo>
     <mo>,</mo>
-    <mo>⟹</mo>
+    <mo lspace="0" rspace="0">⟹</mo>
     <mo>,</mo>
     <mrow>
         <mspace width="0.2777778em"/>

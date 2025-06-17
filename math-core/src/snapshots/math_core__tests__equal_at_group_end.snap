@@ -1,0 +1,11 @@
+---
+source: math-core/src/lib.rs
+expression: "{x=}x"
+---
+<math>
+    <mrow>
+        <mi>x</mi>
+        <mo rspace="0">=</mo>
+    </mrow>
+    <mi>x</mi>
+</math>

@@ -32,7 +32,13 @@ pub(crate) struct Parser<'arena, 'source> {
 
 /// A struct for managing the state of the sequence parser.
 #[derive(Debug, Default)]
-enum SequenceState {
+struct SequenceState {
+    class: Class,
+    respect_boundaries: bool,
+}
+
+#[derive(Debug, Default)]
+enum Class {
     #[default]
     Default,
     Open,
@@ -133,27 +139,27 @@ where
 
     #[inline]
     pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
-        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), false)?;
+        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), true)?;
         Ok(nodes)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
-    ///
-    /// If `eof_as_end_token` is `false`, an error is returned if the input ends before the end
-    /// token.
     ///
     /// Note that this function does not consume the end token. That's because the end token might
     /// be used by the calling function to emit another node.
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
-        ignore_boundaries: bool,
+        respect_boundaries: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
-        let mut sequence_state = if ignore_boundaries {
-            SequenceState::default()
+        let mut sequence_state = if respect_boundaries {
+            SequenceState {
+                class: Class::Open,
+                respect_boundaries: true,
+            }
         } else {
-            SequenceState::Open
+            SequenceState::default()
         };
 
         // Because we don't want to consume the end token, we just peek here.
@@ -216,6 +222,9 @@ where
         let prev_state = sequence_state
             .as_mut()
             .map_or_else(SequenceState::default, |state| mem::take(state));
+        if let Some(ref mut state) = sequence_state {
+            state.respect_boundaries = prev_state.respect_boundaries;
+        };
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -253,16 +262,26 @@ where
             Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
             Token::Relation(relation) => {
                 if let Some(state) = sequence_state {
-                    *state = SequenceState::Relation;
+                    state.class = Class::Relation;
                 };
-                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Open) {
+                let left = if matches!(
+                    prev_state.class,
+                    Class::Relation | Class::Open | Class::Punctuation
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
                 };
-                let right = if !wants_arg
-                    && matches!(self.peek.token(), Token::Relation(_) | Token::Colon)
-                {
+                let right = if (!wants_arg
+                    && matches!(
+                        self.peek.token(),
+                        Token::Relation(_) | Token::Punctuation(_) | Token::Colon
+                    ))
+                    || (prev_state.respect_boundaries
+                        && matches!(
+                            self.peek.token(),
+                            Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                        )) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -276,7 +295,7 @@ where
             }
             Token::Punctuation(punc) => {
                 if let Some(state) = sequence_state {
-                    *state = SequenceState::Punctuation;
+                    state.class = Class::Punctuation;
                 };
                 Node::Operator {
                     op: punc.into(),
@@ -293,16 +312,19 @@ where
             },
             Token::BinaryOp(binary_op) => {
                 if let Some(state) = sequence_state {
-                    *state = SequenceState::BinaryOp;
+                    state.class = Class::BinaryOp;
                 };
                 let spacing = if matches!(
-                    prev_state,
-                    SequenceState::Relation
-                        | SequenceState::Punctuation
-                        | SequenceState::BinaryOp
-                        | SequenceState::Open
-                ) || matches!(self.peek.token(), Token::Relation(_))
-                {
+                    prev_state.class,
+                    Class::Relation | Class::Punctuation | Class::BinaryOp | Class::Open
+                ) || matches!(
+                    self.peek.token(),
+                    Token::Relation(_) | Token::Punctuation(_)
+                ) || (prev_state.respect_boundaries
+                    && matches!(
+                        self.peek.token(),
+                        Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                    )) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -353,7 +375,7 @@ where
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
+                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), false)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
                     Node::Root(node_vec_to_node(self.arena, degree), content)
@@ -644,11 +666,11 @@ where
                 // punctuation spacing (left: 0, right: 3mu), so we have to explicitly make it have
                 // relation spacing (left: 5mu, right: 5mu).
                 if let Some(state) = sequence_state {
-                    *state = SequenceState::Relation;
+                    state.class = Class::Relation;
                 };
                 let left = if wants_arg {
                     None // Don't add spacing if we are in an argument.
-                } else if matches!(prev_state, SequenceState::Relation | SequenceState::Open) {
+                } else if matches!(prev_state.class, Class::Relation | Class::Open) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
@@ -669,7 +691,7 @@ where
             }
             Token::GroupBegin => {
                 let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), wants_arg)?;
+                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), !wants_arg)?;
                 self.next_token(); // Discard the closing token.
                 return Ok(node_vec_to_node(self.arena, content));
             }
@@ -697,7 +719,7 @@ where
                         ));
                     }
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), false)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), true)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
@@ -772,7 +794,7 @@ where
                 } else {
                     None
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::End), false)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::End), true)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -920,14 +942,14 @@ where
                 let Some(color) = get_color(color_name) else {
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, true)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, false)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
                 }
             }
             Token::Style(style) => {
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, true)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, false)?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -1210,10 +1232,7 @@ where
         Ok(self.commit(Node::PseudoOp {
             name,
             attr: None,
-            left: if matches!(
-                prev_state,
-                SequenceState::Relation | SequenceState::Punctuation
-            ) {
+            left: if matches!(prev_state.class, Class::Relation | Class::Punctuation) {
                 Some(MathSpacing::Zero)
             } else {
                 Some(MathSpacing::ThreeMu)

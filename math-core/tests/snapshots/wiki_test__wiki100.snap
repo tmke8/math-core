@@ -10,5 +10,5 @@ expression: "\\eqcirc \\circeq \\triangleq \\bumpeq\\Bumpeq \\doteqdot \\risingd
     <mo lspace="0" rspace="0">≎</mo>
     <mo lspace="0" rspace="0">≑</mo>
     <mo lspace="0" rspace="0">≓</mo>
-    <mo lspace="0">≒</mo>
+    <mo lspace="0" rspace="0">≒</mo>
 </math>
