@@ -35,7 +35,7 @@ pub(crate) struct Parser<'arena, 'source> {
 enum SequenceState {
     #[default]
     Default,
-    Start,
+    Open,
     Relation,
     Punctuation,
     BinaryOp,
@@ -153,7 +153,7 @@ where
         let mut sequence_state = if ignore_boundaries {
             SequenceState::default()
         } else {
-            SequenceState::Start
+            SequenceState::Open
         };
 
         // Because we don't want to consume the end token, we just peek here.
@@ -255,7 +255,7 @@ where
                 if let Some(state) = sequence_state {
                     *state = SequenceState::Relation;
                 };
-                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
+                let left = if matches!(prev_state, SequenceState::Relation | SequenceState::Open) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -300,7 +300,7 @@ where
                     SequenceState::Relation
                         | SequenceState::Punctuation
                         | SequenceState::BinaryOp
-                        | SequenceState::Start
+                        | SequenceState::Open
                 ) || matches!(self.peek.token(), Token::Relation(_))
                 {
                     Some(MathSpacing::Zero)
@@ -335,7 +335,13 @@ where
             Token::PseudoOperator(name) => {
                 return self.make_pseudo_operator(name, &prev_state);
             }
-            Token::Space(space) => Node::Space(space),
+            Token::Space(space) => {
+                // Spaces pass through the sequence state.
+                if let Some(state) = sequence_state {
+                    *state = prev_state;
+                };
+                Node::Space(space)
+            }
             Token::CustomSpace => {
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let space = parse_length_specification(length.trim())
@@ -642,7 +648,7 @@ where
                 };
                 let left = if wants_arg {
                     None // Don't add spacing if we are in an argument.
-                } else if matches!(prev_state, SequenceState::Relation | SequenceState::Start) {
+                } else if matches!(prev_state, SequenceState::Relation | SequenceState::Open) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)

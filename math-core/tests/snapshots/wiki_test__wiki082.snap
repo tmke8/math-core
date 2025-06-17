@@ -9,5 +9,9 @@ expression: "\\Rightarrow, \\nRightarrow, \\Longrightarrow, \\implies"
     <mo>,</mo>
     <mo>⟹</mo>
     <mo>,</mo>
-    <mo>⟹</mo>
+    <mrow>
+        <mspace width="0.2777778em"/>
+        <mo>⟹</mo>
+        <mspace width="0.2777778em"/>
+    </mrow>
 </math>

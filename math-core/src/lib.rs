@@ -547,6 +547,7 @@ mod tests {
             ("xrightarrow", r"\xrightarrow{x}"),
             ("slashed", r"\slashed{\partial}"),
             ("plus_after_equal", r"x = +4"),
+            ("plus_after_equal_with_space", r"x =\, +4"),
             ("equal_after_plus", r"x+ = 4"),
             ("plus_in_braces", r"4{+}4"),
             ("equal_at_group_begin", r"x{=x}"),
@@ -571,6 +572,7 @@ mod tests {
                 "subarray",
                 r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
             ),
+            ("spacing_with_spaces", r"x\;\Longrightarrow\; ="),
         ];
 
         let config = crate::MathCoreConfig {
