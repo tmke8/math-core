@@ -572,6 +572,7 @@ mod tests {
                 "subarray",
                 r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
             ),
+            ("spacing_with_spaces", r"x\;\Longrightarrow\; ="),
         ];
 
         let config = crate::MathCoreConfig {
