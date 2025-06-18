@@ -17,7 +17,7 @@ use super::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{LaTeXUnit, parse_column_specification, parse_length_specification},
+    specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
 };
 
@@ -1363,11 +1363,11 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 let length = *length;
                 if length == Length::new(1.0, LengthUnit::Em) {
                     '\u{2003}'
-                } else if length == LaTeXUnit::Mu.length_with_unit(5.0) {
+                } else if length == LatexUnit::Mu.length_with_unit(5.0) {
                     '\u{2004}'
-                } else if length == LaTeXUnit::Mu.length_with_unit(4.0) {
+                } else if length == LatexUnit::Mu.length_with_unit(4.0) {
                     '\u{205F}'
-                } else if length == LaTeXUnit::Mu.length_with_unit(3.0) {
+                } else if length == LatexUnit::Mu.length_with_unit(3.0) {
                     '\u{2009}'
                 } else {
                     return Ok(());

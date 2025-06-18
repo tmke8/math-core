@@ -5,13 +5,13 @@ use crate::mathml_renderer::{
     symbol,
 };
 
-use super::specifications::LaTeXUnit;
+use super::specifications::LatexUnit;
 
 pub static MOD: Node = Row {
     nodes: &[
-        &Space(LaTeXUnit::Em.length_with_unit(1.0)),
+        &Space(LatexUnit::Em.length_with_unit(1.0)),
         &Text("mod"),
-        &Space(LaTeXUnit::Mu.length_with_unit(6.0)),
+        &Space(LatexUnit::Mu.length_with_unit(6.0)),
         &CustomCmdArg(0),
     ],
     attr: RowAttr::None,
@@ -19,10 +19,10 @@ pub static MOD: Node = Row {
 
 pub static PMOD: Node = Row {
     nodes: &[
-        &Space(LaTeXUnit::Em.length_with_unit(1.0)),
+        &Space(LatexUnit::Em.length_with_unit(1.0)),
         &StretchableOp(symbol::LEFT_PARENTHESIS, StretchMode::NoStretch),
         &Text("mod"),
-        &Space(LaTeXUnit::Mu.length_with_unit(6.0)),
+        &Space(LatexUnit::Mu.length_with_unit(6.0)),
         &CustomCmdArg(0),
         &StretchableOp(symbol::RIGHT_PARENTHESIS, StretchMode::NoStretch),
     ],
@@ -60,18 +60,18 @@ pub static ODV: Node = Frac {
 static XARROW_SPACING_HACK: Node = Overset {
     target: &Row {
         nodes: &[
-            &Space(LaTeXUnit::Em.length_with_unit(0.4286)),
+            &Space(LatexUnit::Em.length_with_unit(0.4286)),
             &CustomCmdArg(0),
-            &Space(LaTeXUnit::Em.length_with_unit(0.4286)),
+            &Space(LatexUnit::Em.length_with_unit(0.4286)),
         ],
         attr: RowAttr::None,
     },
-    symbol: &Space(LaTeXUnit::Em.length_with_unit(3.5)),
+    symbol: &Space(LatexUnit::Em.length_with_unit(3.5)),
 };
 
 pub static XRIGHTARROW: Node = Row {
     nodes: &[
-        &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+        &Space(LatexUnit::Mu.length_with_unit(5.0)),
         &Overset {
             target: &Operator {
                 op: symbol::RIGHTWARDS_ARROW.as_op(),
@@ -81,14 +81,14 @@ pub static XRIGHTARROW: Node = Row {
             },
             symbol: &XARROW_SPACING_HACK,
         },
-        &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+        &Space(LatexUnit::Mu.length_with_unit(5.0)),
     ],
     attr: RowAttr::None,
 };
 
 pub static XLEFTARROW: Node = Row {
     nodes: &[
-        &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+        &Space(LatexUnit::Mu.length_with_unit(5.0)),
         &Overset {
             target: &Operator {
                 op: symbol::LEFTWARDS_ARROW.as_op(),
@@ -98,7 +98,7 @@ pub static XLEFTARROW: Node = Row {
             },
             symbol: &XARROW_SPACING_HACK,
         },
-        &Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+        &Space(LatexUnit::Mu.length_with_unit(5.0)),
     ],
     attr: RowAttr::None,
 };
