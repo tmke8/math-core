@@ -5,33 +5,40 @@ use crate::mathml_renderer::attribute::{
 use crate::mathml_renderer::symbol::{self, Rel};
 
 use super::predefined;
-use super::specifications::LaTeXUnit;
+use super::specifications::LatexUnit;
 use super::token::{NodeRef, Token};
+
+// These function names are essentially just passed-through, wrapped in a token.
+static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
+    "Pr", "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "deg", "det",
+    "dim", "erf", "erfc", "exp", "gcd", "hom", "ker", "lg", "ln", "log", "sec", "sgn", "sin",
+    "sinh", "tan", "tanh"
+);
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     " " => Token::NonBreakingSpace,
-    "!" => Token::Space(LaTeXUnit::Mu.length_with_unit(-3.0)),
+    "!" => Token::Space(LatexUnit::Mu.length_with_unit(-3.0)),
     "#" => Token::Letter(symbol::NUMBER_SIGN),
     "$" => Token::Letter(symbol::DOLLAR_SIGN),
     "%" => Token::Letter(symbol::PERCENT_SIGN),
     "&" => Token::OpAmpersand,
-    "," => Token::Space(LaTeXUnit::Mu.length_with_unit(3.0)),
-    ":" => Token::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
-    ";" => Token::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
-    ">" => Token::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+    "," => Token::Space(LatexUnit::Mu.length_with_unit(3.0)),
+    ":" => Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
+    ";" => Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    ">" => Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
     "Alpha" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_ALPHA),
     "And" => Token::CustomCmd(
         0,
         NodeRef::new(&Node::Row {
             nodes: &[
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
                 &Node::PseudoOp {
                     name: "&amp;",
                     attr: None,
                     left: None,
                     right: None,
                 },
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
             ],
             attr: RowAttr::None
         })
@@ -80,7 +87,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "P" => Token::Letter(symbol::PILCROW_SIGN),
     "Phi" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_PHI),
     "Pi" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_PI),
-    "Pr" => Token::PseudoOperator("Pr"),
     "Psi" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_PSI),
     "RR" => Token::Letter(symbol::DOUBLE_STRUCK_CAPITAL_R),
     "Re" => Token::Letter(symbol::BLACK_LETTER_CAPITAL_R),
@@ -114,11 +120,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "angle" => Token::Letter(symbol::ANGLE),
     "approx" => Token::Relation(symbol::ALMOST_EQUAL_TO),
     "approxeq" => Token::Relation(symbol::ALMOST_EQUAL_OR_EQUAL_TO),
-    "arccos" => Token::PseudoOperator("arccos"),
     "arceq" => Token::Relation(symbol::CORRESPONDS_TO), // from "stix"
-    "arcsin" => Token::PseudoOperator("arcsin"),
-    "arctan" => Token::PseudoOperator("arctan"),
-    "arg" => Token::PseudoOperator("arg"),
     "argmax" => Token::PseudoOperatorLimits("arg\u{2009}max"),
     "argmin" => Token::PseudoOperatorLimits("arg\u{2009}min"),
     "ascnode" => Token::Letter(symbol::ASCENDING_NODE),
@@ -174,9 +176,9 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bmod" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
         nodes: &[
-            &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+            &Node::Space(LatexUnit::Mu.length_with_unit(4.0)),
             &Node::Text("mod"),
-            &Node::Space(LaTeXUnit::Mu.length_with_unit(4.0)),
+            &Node::Space(LatexUnit::Mu.length_with_unit(4.0)),
         ],
         attr: RowAttr::None
     })),
@@ -242,11 +244,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cong" => Token::Relation(symbol::APPROXIMATELY_EQUAL_TO),
     "coprod" => Token::BigOp(symbol::N_ARY_COPRODUCT),
     "copyright" => Token::Letter(symbol::COPYRIGHT_SIGN),
-    "cos" => Token::PseudoOperator("cos"),
-    "cosh" => Token::PseudoOperator("cosh"),
-    "cot" => Token::PseudoOperator("cot"),
-    "coth" => Token::PseudoOperator("coth"),
-    "csc" => Token::PseudoOperator("csc"),
     "cup" => Token::BinaryOp(symbol::UNION),
     "curlyeqprec" => Token::Relation(symbol::EQUAL_TO_OR_PRECEDES),
     "curlyeqsucc" => Token::Relation(symbol::EQUAL_TO_OR_SUCCEEDS),
@@ -267,14 +264,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dddot" => Token::OverUnder(symbol::COMBINING_THREE_DOTS_ABOVE, true, Some(OpAttr::StretchyFalse)),
     "ddot" => Token::OverUnder(symbol::DIAERESIS, true, Some(OpAttr::StretchyFalse)),
     "ddots" => Token::Relation(symbol::DOWN_RIGHT_DIAGONAL_ELLIPSIS),
-    "deg" => Token::PseudoOperator("deg"),
     "delta" => Token::Letter(symbol::GREEK_SMALL_LETTER_DELTA),
-    "det" => Token::PseudoOperator("det"),
     "dfrac" => Token::Frac(Some(FracAttr::DisplayStyleTrue)),
     "diamond" => Token::BinaryOp(symbol::DIAMOND_OPERATOR),
     "diamondsuit" => Token::Letter(symbol::WHITE_DIAMOND_SUIT),
     "digamma" => Token::Letter(symbol::GREEK_SMALL_LETTER_DIGAMMA),
-    "dim" => Token::PseudoOperator("dim"),
     "displaystyle" => Token::Style(Style::Display),
     "div" => Token::BinaryOp(symbol::DIVISION_SIGN),
     "divideontimes" => Token::BinaryOp(symbol::DIVISION_TIMES),
@@ -304,13 +298,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "eqslantgtr" => Token::Relation(symbol::SLANTED_EQUAL_TO_OR_GREATER_THAN),
     "eqslantless" => Token::Relation(symbol::SLANTED_EQUAL_TO_OR_LESS_THAN),
     "equiv" => Token::Relation(symbol::IDENTICAL_TO),
-    "erf" => Token::PseudoOperator("erf"),
-    "erfc" => Token::PseudoOperator("erfc"),
     "eta" => Token::Letter(symbol::GREEK_SMALL_LETTER_ETA),
     "eth" => Token::Letter(symbol::LATIN_SMALL_LETTER_ETH),
     "euro" => Token::Letter('€'),
     "exists" => Token::Ord(symbol::THERE_EXISTS),
-    "exp" => Token::PseudoOperator("exp"),
     "fallingdotseq" => Token::Relation(symbol::APPROXIMATELY_EQUAL_TO_OR_THE_IMAGE_OF),
     "fcmp" => Token::Relation(symbol::Z_NOTATION_SCHEMA_COMPOSITION),
     "fint" => Token::Integral(symbol::INTEGRAL_AVERAGE_WITH_SLASH),
@@ -319,7 +310,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "frac" => Token::Frac(None),
     "frown" => Token::Relation(symbol::FROWN),
     "gamma" => Token::Letter(symbol::GREEK_SMALL_LETTER_GAMMA),
-    "gcd" => Token::PseudoOperator("gcd"),
     "ge" => Token::Relation(symbol::GREATER_THAN_OR_EQUAL_TO),
     "genfrac" => Token::Genfrac,
     "geq" => Token::Relation(symbol::GREATER_THAN_OR_EQUAL_TO),
@@ -342,7 +332,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hat" => Token::OverUnder(symbol::COMBINING_CIRCUMFLEX_ACCENT, true, Some(OpAttr::StretchyFalse)),
     "hbar" => Token::Letter(symbol::PLANCK_CONSTANT_OVER_TWO_PI),
     "heartsuit" => Token::Letter(symbol::WHITE_HEART_SUIT),
-    "hom" => Token::PseudoOperator("hom"),
     "hookleftarrow" => Token::Relation(symbol::LEFTWARDS_ARROW_WITH_HOOK),
     "hookrightarrow" => Token::Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hslash" => Token::Letter(symbol::PLANCK_CONSTANT_OVER_TWO_PI),
@@ -351,14 +340,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
         0,
         NodeRef::new(&Node::Row {
             nodes: &[
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
                 &Node::Operator{
                     op: symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW.as_op(),
                     attr: None,
                     left: None,
                     right: None
                 },
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
             ],
             attr: RowAttr::None
         })
@@ -371,14 +360,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
         0,
         NodeRef::new(&Node::Row {
             nodes: &[
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
                 &Node::Operator{
                     op: symbol::LONG_LEFTWARDS_DOUBLE_ARROW.as_op(),
                     attr: None,
                     left: None,
                     right: None
                 },
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
             ],
             attr: RowAttr::None
         })
@@ -387,14 +376,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
         0,
         NodeRef::new(&Node::Row {
             nodes: &[
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
                 &Node::Operator{
                     op: symbol::LONG_RIGHTWARDS_DOUBLE_ARROW.as_op(),
                     attr: None,
                     left: None,
                     right: None
                 },
-                &Node::Space(LaTeXUnit::Mu.length_with_unit(5.0)),
+                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
             ],
             attr: RowAttr::None
         })
@@ -411,7 +400,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "jmath" => Token::Letter(symbol::LATIN_SMALL_LETTER_DOTLESS_J),
     "jupiter" => Token::Letter(symbol::JUPITER),
     "kappa" => Token::Letter(symbol::GREEK_SMALL_LETTER_KAPPA),
-    "ker" => Token::PseudoOperator("ker"),
     "kernelcontraction" => Token::Relation(symbol::HOMOTHETIC),
     "lBrace" => Token::Delimiter(symbol::LEFT_WHITE_CURLY_BRACKET),
     "lVert" => Token::Delimiter(symbol::DOUBLE_VERTICAL_LINE),
@@ -444,7 +432,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lessgtr" => Token::Relation(symbol::LESS_THAN_OR_GREATER_THAN),
     "lesssim" => Token::Relation(symbol::LESS_THAN_OR_EQUIVALENT_TO),
     "lfloor" => Token::Delimiter(symbol::LEFT_FLOOR),
-    "lg" => Token::PseudoOperator("lg"),
     "lgroup" => Token::Delimiter(symbol::MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS),
     "lhd" => Token::Relation(symbol::NORMAL_SUBGROUP_OF),
     "lightning" => Token::Relation(symbol::DOWNWARDS_ZIGZAG_ARROW),
@@ -458,13 +445,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "llcorner" => Token::Letter(symbol::BOTTOM_LEFT_CORNER),
     "lll" => Token::Relation(symbol::VERY_MUCH_LESS_THAN),
     "llparenthesis" => Token::Delimiter(symbol::Z_NOTATION_LEFT_IMAGE_BRACKET),
-    "ln" => Token::PseudoOperator("ln"),
     "lnapprox" => Token::Relation(symbol::LESS_THAN_AND_NOT_APPROXIMATE),
     "lneq" => Token::Relation(symbol::LESS_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO),
     "lneqq" => Token::Relation(symbol::LESS_THAN_BUT_NOT_EQUAL_TO),
     "lnot" => Token::Ord(symbol::NOT_SIGN),
     "lnsim" => Token::Relation(symbol::LESS_THAN_BUT_NOT_EQUIVALENT_TO),
-    "log" => Token::PseudoOperator("log"),
     "longleftarrow" => Token::Relation(symbol::LONG_LEFTWARDS_ARROW),
     "longleftrightarrow" => Token::Relation(symbol::LONG_LEFT_RIGHT_ARROW),
     "longmapsto" => Token::Relation(symbol::LONG_RIGHTWARDS_ARROW_FROM_BAR),
@@ -589,8 +574,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "propto" => Token::Relation(symbol::PROPORTIONAL_TO),
     "psi" => Token::Letter(symbol::GREEK_SMALL_LETTER_PSI),
     "qprime" => Token::Ord(symbol::QUADRUPLE_PRIME),
-    "qquad" => Token::Space(LaTeXUnit::Em.length_with_unit(2.0)),
-    "quad" => Token::Space(LaTeXUnit::Em.length_with_unit(1.0)),
+    "qquad" => Token::Space(LatexUnit::Em.length_with_unit(2.0)),
+    "quad" => Token::Space(LatexUnit::Em.length_with_unit(1.0)),
     "questeq" => Token::Relation(symbol::QUESTIONED_EQUAL_TO), // from "stix"
     "rBrace" => Token::Delimiter(symbol::RIGHT_WHITE_CURLY_BRACKET),
     "rVert" => Token::Delimiter(symbol::DOUBLE_VERTICAL_LINE),
@@ -624,15 +609,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "scriptscriptstyle" => Token::Style(Style::ScriptScript),
     "scriptstyle" => Token::Style(Style::Script),
     "searrow" => Token::Relation(symbol::SOUTH_EAST_ARROW),
-    "sec" => Token::PseudoOperator("sec"),
     "setminus" => Token::BinaryOp(symbol::SET_MINUS),
-    "sgn" => Token::PseudoOperator("sgn"),
     "sharp" => Token::Letter('♯'),
     "sigma" => Token::Letter(symbol::GREEK_SMALL_LETTER_SIGMA),
     "sim" => Token::Relation(symbol::TILDE_OPERATOR),
     "simeq" => Token::Relation(symbol::ASYMPTOTICALLY_EQUAL_TO),
-    "sin" => Token::PseudoOperator("sin"),
-    "sinh" => Token::PseudoOperator("sinh"),
     "slashed" => Token::Slashed,
     "smile" => Token::Relation(symbol::SMILE),
     "spadesuit" => Token::Letter(symbol::BLACK_SPADE_SUIT),
@@ -670,8 +651,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "supsetneqq" => Token::Relation(symbol::SUPERSET_OF_ABOVE_NOT_EQUAL_TO),
     "swarrow" => Token::Relation(symbol::SOUTH_WEST_ARROW),
     "symbf" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
-    "tan" => Token::PseudoOperator("tan"),
-    "tanh" => Token::PseudoOperator("tanh"),
     "tau" => Token::Letter(symbol::GREEK_SMALL_LETTER_TAU),
     "tbinom" => Token::Binom(Some(FracAttr::DisplayStyleFalse)),
     "text" => Token::Text(None),
@@ -760,7 +739,12 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 pub fn get_command(command: &str) -> Token<'_> {
     match COMMANDS.get(command) {
         Some(token) => *token,
-        None => Token::UnknownCommand(command),
+        None => {
+            if FUNCTIONS.contains(command) {
+                return Token::PseudoOperator(command);
+            }
+            Token::UnknownCommand(command)
+        }
     }
 }
 

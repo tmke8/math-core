@@ -9,7 +9,7 @@ use crate::mathml_renderer::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, EnumString)]
-pub enum LaTeXUnit {
+pub enum LatexUnit {
     /// Point
     #[strum(ascii_case_insensitive)]
     Pt,
@@ -36,20 +36,20 @@ pub enum LaTeXUnit {
     Sp,
 }
 
-impl LaTeXUnit {
+impl LatexUnit {
     pub const fn length_with_unit(self, value: f32) -> Length {
         use LengthUnit::*;
         // The conversions are based on the assumption that 1Rem=10pt,
         // which means that we assume the LaTeX document had the font size set to 10pt.
         match self {
-            LaTeXUnit::Pt => Length::new(0.1 * value, Rem),
-            LaTeXUnit::Mm => Length::new(0.28453 * value, Rem),
-            LaTeXUnit::Cm => Length::new(2.8453 * value, Rem),
-            LaTeXUnit::In => Length::new(7.2 * value, Rem),
-            LaTeXUnit::Ex => Length::new(value, Ex),
-            LaTeXUnit::Em => Length::new(value, Em),
-            LaTeXUnit::Mu => Length::new(0.055555556 * value, Em),
-            LaTeXUnit::Sp => Length::new(1.525879e-6 * value, Rem),
+            LatexUnit::Pt => Length::new(0.1 * value, Rem),
+            LatexUnit::Mm => Length::new(0.28453 * value, Rem),
+            LatexUnit::Cm => Length::new(2.8453 * value, Rem),
+            LatexUnit::In => Length::new(7.2 * value, Rem),
+            LatexUnit::Ex => Length::new(value, Ex),
+            LatexUnit::Em => Length::new(value, Em),
+            LatexUnit::Mu => Length::new(0.055555556 * value, Em),
+            LatexUnit::Sp => Length::new(1.525879e-6 * value, Rem),
         }
     }
 }
@@ -64,7 +64,7 @@ pub(crate) fn parse_length_specification(s: &str) -> Option<Length> {
 
     let value = super::atof::limited_float_parse(digits.trim_end())?;
 
-    let parsed_unit = LaTeXUnit::try_from(unit).ok()?;
+    let parsed_unit = LatexUnit::try_from(unit).ok()?;
     Some(parsed_unit.length_with_unit(value))
 }
 
@@ -253,8 +253,8 @@ mod tests {
 
     #[test]
     fn latex_unit() {
-        assert_eq!(LaTeXUnit::try_from("CM").unwrap(), LaTeXUnit::Cm);
-        assert_eq!(LaTeXUnit::try_from("mM").unwrap(), LaTeXUnit::Mm);
+        assert_eq!(LatexUnit::try_from("CM").unwrap(), LatexUnit::Cm);
+        assert_eq!(LatexUnit::try_from("mM").unwrap(), LatexUnit::Mm);
     }
 
     #[test]

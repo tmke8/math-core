@@ -91,7 +91,7 @@ pub enum Token<'source> {
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
-    PseudoOperator(&'static str),
+    PseudoOperator(&'source str),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,
