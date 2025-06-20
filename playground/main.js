@@ -60,7 +60,7 @@ async function generateLink() {
   const compressedContent = await compressText(content, 'gzip')
   
   // Encode content to base64
-  const encodedContent = compressedContent.toBase64({ alphabet: "base64url" });
+  const encodedContent = uint8ArrayToBase64Url(compressedContent);
   
   // Generate the URL
   const currentUrl = window.location.origin + window.location.pathname;
@@ -79,7 +79,7 @@ async function loadFromUrl() {
     const encodedContent = hash.substring(7); // Remove '#input:' prefix
     
     try {
-      const compressedContent = Uint8Array.fromBase64(encodedContent, { alphabet: "base64url" });
+      const compressedContent = base64UrlToUint8Array(encodedContent);
       const decodedContent = await decompressText(compressedContent);
       const inputField = document.getElementById('inputField');
       inputField.value = decodedContent;
@@ -147,6 +147,63 @@ async function decompressText(compressedData) {
   const arrayBuffer = await response.arrayBuffer();
   const decoder = new TextDecoder();
   return decoder.decode(arrayBuffer);
+}
+
+// Reference: https://phuoc.ng/collection/this-vs-that/concat-vs-push/
+const MAX_BLOCK_SIZE = 65_535;
+
+/**
+ * Convert a Uint8Array to a base64url string
+ * Uses native toBase64() when available, falls back to manual implementation otherwise
+ * @param {Uint8Array} array - The array to convert
+ * @returns {string} The base64url encoded string
+ */
+export function uint8ArrayToBase64Url(array) {
+  if (!(value instanceof Uint8Array)) {
+    throw new TypeError('Expected Uint8Array');
+  }
+  
+  // Check if native method exists
+  if (typeof array.toBase64 === 'function') {
+    return array.toBase64({ alphabet: 'base64url' });
+  }
+  
+  // Fallback implementation
+  let base64;
+  
+  if (array.length < MAX_BLOCK_SIZE) {
+    // Required as `btoa` and `atob` don't properly support Unicode: https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
+    base64 = globalThis.btoa(String.fromCodePoint.apply(this, array));
+  } else {
+    base64 = '';
+    for (const value of array) {
+      base64 += String.fromCodePoint(value);
+    }
+    base64 = globalThis.btoa(base64);
+  }
+  
+  return base64.replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+/**
+ * Convert a base64url string to a Uint8Array
+ * Uses native fromBase64() when available, falls back to manual implementation
+ * @param {string} base64String - The base64url string to convert
+ * @returns {Uint8Array} The decoded array
+ */
+export function base64UrlToUint8Array(base64String) {
+  if (typeof value !== 'string') {
+    throw new TypeError('Expected string');
+  }
+  
+  // Check if native method exists
+  if (typeof Uint8Array.fromBase64 === 'function') {
+    return Uint8Array.fromBase64(base64String, { alphabet: 'base64url' });
+  }
+  
+  // Fallback implementation - convert base64url to base64 first
+  const base64 = base64String.replaceAll('-', '+').replaceAll('_', '/');
+  return Uint8Array.from(globalThis.atob(base64), x => x.codePointAt(0));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
