@@ -60,7 +60,7 @@ async function generateLink() {
   const compressedContent = await compressText(content, 'gzip')
   
   // Encode content to base64
-  const encodedContent = compressedContent.toBase64();
+  const encodedContent = compressedContent.toBase64({ alphabet: "base64url" });
   
   // Generate the URL
   const currentUrl = window.location.origin + window.location.pathname;
@@ -79,7 +79,7 @@ async function loadFromUrl() {
     const encodedContent = hash.substring(7); // Remove '#input:' prefix
     
     try {
-      const compressedContent = Uint8Array.fromBase64(encodedContent);
+      const compressedContent = Uint8Array.fromBase64(encodedContent, { alphabet: "base64url" });
       const decodedContent = await decompressText(compressedContent);
       const inputField = document.getElementById('inputField');
       inputField.value = decodedContent;
