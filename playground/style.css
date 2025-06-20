@@ -231,6 +231,29 @@ pre {
     background-color: var(--output-background);
 }
 
+.url-display {
+    background-color: var(--output-background);
+    color: var(--text-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ddd;
+    /* font-family: 'Courier New', Courier, monospace; */
+    /* font-size: 1rem; */
+    overflow-x: auto;
+    white-space: nowrap;
+    display: inline-flex;
+    width: 20rem;
+    cursor: text;
+    user-select: all; /* Makes it easier to select all text */
+}
+
+.generalBtn {
+    background-color: var(--button-color);
+    color: var(--text-color);
+    border: ridge 1px var(--border-color);
+    border-radius: 5px;
+}
+
 @media (max-width: 600px) {
     .container {
         width: 95%;

@@ -47,10 +47,113 @@ function isBlock() {
   return cachedIsBlock;
 }
 
+async function generateLink() {
+  const inputField = document.getElementById('inputField');
+  const content = inputField.value;
+  
+  if (content.trim() === '') {
+    alert('Please enter some text first!');
+    return;
+  }
+
+  // Compress the content
+  const compressedContent = await compressText(content, 'gzip')
+  
+  // Encode content to base64
+  const encodedContent = compressedContent.toBase64();
+  
+  // Generate the URL
+  const currentUrl = window.location.origin + window.location.pathname;
+  const generatedUrl = `${currentUrl}#input:${encodedContent}`;
+  
+  // Display the link
+  document.getElementById('generatedLink').innerText = generatedUrl;
+  document.getElementById('linkContainer').classList.remove('hidden');
+}
+
+// Function to load content from URL hash
+async function loadFromUrl() {
+  const hash = window.location.hash;
+  
+  if (hash.startsWith('#input:')) {
+    const encodedContent = hash.substring(7); // Remove '#input:' prefix
+    
+    try {
+      const compressedContent = Uint8Array.fromBase64(encodedContent);
+      const decodedContent = await decompressText(compressedContent);
+      const inputField = document.getElementById('inputField');
+      inputField.value = decodedContent;
+      // Trigger input event to update output
+      inputField.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Clear the hash from URL without page reload
+      history.replaceState(null, null, window.location.pathname + window.location.search);
+    } catch (err) {
+      console.error('Failed to decode content from URL:', err);
+      // Silently fail - invalid base64 in URL
+    }
+  }
+}
+
+/**
+ * Compresses text using the Compression Streams API
+ * @param {string} text - The text to compress
+ * @returns {Promise<Uint8Array>} The compressed data
+ */
+async function compressText(text) {
+  const format = 'gzip';
+  // Validate input
+  if (typeof text !== 'string') {
+    throw new TypeError('Input must be a string');
+  }
+  
+  // Convert text to Uint8Array
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  
+  // Create a blob stream (more efficient than manual ReadableStream)
+  const blob = new Blob([data]);
+  const stream = blob.stream();
+  
+  // Compress the stream
+  const compressedStream = stream.pipeThrough(new CompressionStream(format));
+  
+  // Use Response API for efficient reading (simpler than manual reader)
+  const response = new Response(compressedStream);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+/**
+ * Decompresses data using the Compression Streams API
+ * @param {Uint8Array} compressedData - The compressed data
+ * @returns {Promise<string>} The decompressed text
+ */
+async function decompressText(compressedData) {
+  const format = 'gzip';
+  // Validate input
+  if (!(compressedData instanceof Uint8Array)) {
+    throw new TypeError('Input must be a Uint8Array');
+  }
+
+  // Create a stream from compressed data
+  const blob = new Blob([compressedData]);
+  const stream = blob.stream();
+  
+  // Decompress the stream
+  const decompressedStream = stream.pipeThrough(new DecompressionStream(format));
+  
+  // Read and decode the result
+  const response = new Response(decompressedStream);
+  const arrayBuffer = await response.arrayBuffer();
+  const decoder = new TextDecoder();
+  return decoder.decode(arrayBuffer);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  init().then(() => {
+  init().then(async () => {
     console.log("WASM module initialized");
     updateConfig(); // Initial config setup
+    await loadFromUrl(); // Load content from URL hash if available
   });
 
   // Initialize cached values on page load
@@ -109,4 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
       : "";
     styleElement.textContent = `math { font-family: "${this.value}", math; ${featureSettings} }`;
   });
+
+  document.getElementById('generateBtn').addEventListener('click', generateLink);
 });

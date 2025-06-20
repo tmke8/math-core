@@ -10,6 +10,7 @@
         <!-- This style tag is updated by the JS code -->
         <style id="math-font-style">
             math { font-family: "NewComputerModernMath Book", math; }
+            .hidden { display: none; }
         </style>
     </head>
     <body>
@@ -84,6 +85,12 @@
                     class="output-box copyable"
                 ><code id="outputCode">&lt;math display="block"&gt;
 &lt;/math&gt;</code></pre>
+                <button id="generateBtn" class="generalBtn">Generate Link</button>
+                <div id="linkContainer" class="hidden">
+                    <h3>Generated Link:</h3>
+                    <code class="url-display" id="generatedLink">&nbsp;</code>
+                    <button id="copyBtn" class="generalBtn">Copy to Clipboard</button>
+                </div>
 
                 <hr />
 
@@ -104,12 +111,13 @@
                 <p>
                     The conversion runs entirely in your browser, using
                     WebAssembly and a tiny bit of JavaScript. Your LaTeX math is
-                    never sent to a server. The compiled WebAssembly is under
-                    100kB; less than many images on the web. Additionally, this
-                    webpage needs a patched version of the
-                    <em>Latin Modern Math</em>
+                    never sent to a server. The compiled WebAssembly is about
+                    100kB (half that with gzip compression);
+                    less than many images on the web. However, this
+                    webpage also needs a patched version of the
+                    <em>New Computer Modern Math</em>
                     font, to render primes correctly on Chromium-based browsers.
-                    The font file for that is 375kB.
+                    The font file for that is 679kB.
                 </p>
                 <p>
                     Not all features of LaTeX math are supported. Some of them

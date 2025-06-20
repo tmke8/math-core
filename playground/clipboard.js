@@ -27,14 +27,21 @@ docReady(function () {
       button.innerText = copyButtonLabel;
       block.appendChild(button);
 
+      let code = block.querySelector("code");
+
       button.addEventListener("click", async () => {
-        await copyCode(block, button);
+        await copyCode(code, button);
       });
     }
   });
 
-  async function copyCode(block, button) {
-    let code = block.querySelector("code");
+  const linkButton = document.getElementById('copyBtn')
+  const linkField = document.getElementById('generatedLink');
+  linkButton.addEventListener('click', async () => {
+    await copyCode(linkField, linkButton);
+  });
+
+  async function copyCode(code, button) {
     let text = code.innerText;
 
     await navigator.clipboard.writeText(text);
