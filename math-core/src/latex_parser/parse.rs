@@ -145,7 +145,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena mut Node<'arena>>, LatexError<'source>> {
         let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), true)?;
         Ok(nodes)
     }
@@ -158,7 +158,7 @@ where
         &mut self,
         sequence_end: SequenceEnd,
         respect_boundaries: bool,
-    ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
+    ) -> Result<Vec<&'arena mut Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
         let mut sequence_state = if respect_boundaries {
             SequenceState {
@@ -210,7 +210,7 @@ where
     ///
     /// Ideally, the node is constructed directly on the heap, so try to avoid
     /// constructing it on the stack and then moving it.
-    fn commit(&self, node: Node<'arena>) -> &'arena Node<'arena> {
+    fn commit(&self, node: Node<'arena>) -> &'arena mut Node<'arena> {
         self.arena.push(node)
     }
 
@@ -223,7 +223,7 @@ where
         cur_tokloc: TokLoc<'source>,
         wants_arg: bool,
         mut sequence_state: Option<&mut SequenceState>,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    ) -> Result<&'arena mut Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         // Move out the sequence state if it exists, and replace it with the default state.
         let prev_state = sequence_state
@@ -700,8 +700,7 @@ where
                 }
             }
             Token::GroupBegin => {
-                let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), !wants_arg)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), true)?;
                 self.next_token(); // Discard the closing token.
                 return Ok(node_vec_to_node(self.arena, content));
             }
@@ -989,9 +988,9 @@ where
                 if !matches!(self.peek.token(), Token::EOF | Token::GroupEnd | Token::End) {
                     let base = self.parse_next(false)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
-                        (Some(symbol), None)
+                        (Some(&*symbol), None)
                     } else {
-                        (None, Some(symbol))
+                        (None, Some(&*symbol))
                     };
                     Node::Multiscript { base, sub, sup }
                 } else {
@@ -1076,7 +1075,10 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, wants_arg: bool) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    fn parse_next(
+        &mut self,
+        wants_arg: bool,
+    ) -> Result<&'arena mut Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
         self.parse_token(token, wants_arg, None)
     }
@@ -1162,11 +1164,11 @@ where
             sup
         };
 
-        Ok(Bounds(sub, sup))
+        Ok(Bounds(sub.map(|s| &*s), sup.map(|s| &*s)))
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> Vec<&'arena Node<'arena>> {
+    fn prime_check(&mut self) -> Vec<&'arena mut Node<'arena>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.peek.token(), Token::Prime) {
@@ -1206,7 +1208,7 @@ where
     fn get_sub_or_sub(
         &mut self,
         is_sup: bool,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    ) -> Result<&'arena mut Node<'arena>, LatexError<'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next = self.next_token();
         if matches!(
@@ -1241,7 +1243,7 @@ where
         &mut self,
         name: &'arena str,
         prev_state: &SequenceState,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    ) -> Result<&'arena mut Node<'arena>, LatexError<'source>> {
         Ok(self.commit(Node::PseudoOp {
             name,
             attr: None,
@@ -1286,8 +1288,8 @@ fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -
 // or by creating a row node if there are multiple nodes.
 pub(crate) fn node_vec_to_node<'arena>(
     arena: &'arena Arena,
-    nodes: Vec<&'arena Node<'arena>>,
-) -> &'arena Node<'arena> {
+    nodes: Vec<&'arena mut Node<'arena>>,
+) -> &'arena mut Node<'arena> {
     if nodes.len() == 1 {
         // Safety: We checked that there is an element.
         unsafe { nodes.into_iter().next().unwrap_unchecked() }
