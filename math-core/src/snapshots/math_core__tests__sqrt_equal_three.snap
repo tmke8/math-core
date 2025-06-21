@@ -1,0 +1,12 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sqrt{=3}"
+---
+<math>
+    <msqrt>
+        <mrow>
+            <mo lspace="0">=</mo>
+            <mn>3</mn>
+        </mrow>
+    </msqrt>
+</math>

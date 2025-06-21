@@ -20,7 +20,7 @@ expression: "\\phi_n(\\kappa) = 0.033C_n^2\\kappa^{-11/3}, \\quad\\frac{1}{L_0}\
     <msup>
         <mi>κ</mi>
         <mrow>
-            <mo>−</mo>
+            <mo lspace="0" rspace="0">−</mo>
             <mn>11</mn>
             <mi>/</mi>
             <mn>3</mn>

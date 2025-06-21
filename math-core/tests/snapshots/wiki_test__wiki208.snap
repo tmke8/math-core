@@ -7,7 +7,7 @@ expression: "x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}"
     <mo>=</mo>
     <mfrac>
         <mrow>
-            <mo>−</mo>
+            <mo lspace="0" rspace="0">−</mo>
             <mi>b</mi>
             <mo>±</mo>
             <msqrt>
