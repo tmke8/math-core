@@ -34,7 +34,9 @@ pub(crate) struct Parser<'arena, 'source> {
 #[derive(Debug, Default)]
 struct SequenceState {
     class: Class,
-    respect_boundaries: bool,
+    /// `true` if the boundaries of the sequence are real boundaries;
+    /// this is not the case for style-only rows.
+    real_boundaries: bool,
 }
 
 #[derive(Debug, Default)]
@@ -154,16 +156,19 @@ where
     ///
     /// Note that this function does not consume the end token. That's because the end token might
     /// be used by the calling function to emit another node.
+    ///
+    /// If `real_boundaries` is `true`, the parser will treat the boundaries of the sequence as real.
+    /// This is used for sequences that are *not* just style-only rows.
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
-        respect_boundaries: bool,
+        real_boundaries: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
-        let mut sequence_state = if respect_boundaries {
+        let mut sequence_state = if real_boundaries {
             SequenceState {
                 class: Class::Open,
-                respect_boundaries: true,
+                real_boundaries: true,
             }
         } else {
             SequenceState::default()
@@ -230,7 +235,7 @@ where
             .as_mut()
             .map_or_else(SequenceState::default, |state| mem::take(state));
         if let Some(ref mut state) = sequence_state {
-            state.respect_boundaries = prev_state.respect_boundaries;
+            state.real_boundaries = prev_state.real_boundaries;
         };
         let node = match cur_token {
             Token::Number(number) => {
@@ -284,7 +289,7 @@ where
                         self.peek.token(),
                         Token::Relation(_) | Token::Punctuation(_) | Token::Colon
                     ))
-                    || (prev_state.respect_boundaries
+                    || (prev_state.real_boundaries
                         && matches!(
                             self.peek.token(),
                             Token::EOF | Token::GroupEnd | Token::End | Token::Right
@@ -327,7 +332,7 @@ where
                 ) || matches!(
                     self.peek.token(),
                     Token::Relation(_) | Token::Punctuation(_)
-                ) || (prev_state.respect_boundaries
+                ) || (prev_state.real_boundaries
                     && matches!(
                         self.peek.token(),
                         Token::EOF | Token::GroupEnd | Token::End | Token::Right
@@ -385,10 +390,10 @@ where
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), false)?;
+                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(true)?;
-                    Node::Root(node_vec_to_node(self.arena, degree), content)
+                    Node::Root(node_vec_to_node(self.arena, degree, true), content)
                 } else {
                     Node::Sqrt(self.parse_token(next, true, None)?)
                 }
@@ -700,10 +705,9 @@ where
                 }
             }
             Token::GroupBegin => {
-                let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), !wants_arg)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), true)?;
                 self.next_token(); // Discard the closing token.
-                return Ok(node_vec_to_node(self.arena, content));
+                return Ok(node_vec_to_node(self.arena, content, wants_arg));
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -750,7 +754,7 @@ where
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: node_vec_to_node(self.arena, content),
+                    content: node_vec_to_node(self.arena, content, false),
                     style: None,
                 }
             }
@@ -1157,7 +1161,7 @@ where
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(node_vec_to_node(self.arena, primes))
+            Some(node_vec_to_node(self.arena, primes, false))
         } else {
             sup
         };
@@ -1260,7 +1264,7 @@ where
                     | Token::Delimiter(_)
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
-            ) || (prev_state.respect_boundaries
+            ) || (prev_state.real_boundaries
                 && matches!(
                     self.peek.token(),
                     Token::EOF | Token::GroupEnd | Token::End | Token::Right
@@ -1287,10 +1291,31 @@ fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -
 pub(crate) fn node_vec_to_node<'arena>(
     arena: &'arena Arena,
     nodes: Vec<&'arena Node<'arena>>,
+    reset_spacing: bool,
 ) -> &'arena Node<'arena> {
     if nodes.len() == 1 {
         // Safety: We checked that there is an element.
-        unsafe { nodes.into_iter().next().unwrap_unchecked() }
+        let single = unsafe { nodes.into_iter().next().unwrap_unchecked() };
+        if reset_spacing {
+            if let Node::Operator {
+                op,
+                attr,
+                left: _,
+                right: _,
+            } = single
+            {
+                arena.push(Node::Operator {
+                    op: *op,
+                    attr: *attr,
+                    left: None,
+                    right: None,
+                })
+            } else {
+                single
+            }
+        } else {
+            single
+        }
     } else {
         let nodes = arena.push_slice(&nodes);
         arena.push(Node::Row {

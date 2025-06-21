@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sqrt[+]{x}"
+---
+<math>
+    <mroot>
+        <mi>x</mi>
+        <mo>+</mo>
+    </mroot>
+</math>

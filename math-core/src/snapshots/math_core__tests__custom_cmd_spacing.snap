@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: "x \\eq 3"
+---
+<math>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mn>3</mn>
+</math>

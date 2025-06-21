@@ -296,7 +296,7 @@ fn parse_custom_commands<'source>(
         let nodes = p.parse()?;
         let num_args = p.l.parse_cmd_args.unwrap_or(0);
 
-        let node_ref = node_vec_to_node(&arena, nodes);
+        let node_ref = node_vec_to_node(&arena, nodes, true);
         let index = parsed_macros.len();
         parsed_macros.push(node_ref);
         // TODO: avoid cloning `name` here
@@ -527,6 +527,7 @@ mod tests {
             ("sum_prime", r"\sum'"),
             ("int_prime", r"\int'"),
             ("vec_prime", r"\vec{x}'"),
+            ("overset_spacing", r"x\overset{!}{=} 3"),
             ("overset_with_prime", r"\overset{!}{=}'"),
             ("overset_prime", r"\overset{'}{=}"),
             ("overset_plus", r"\overset{!}{+}"),
@@ -562,6 +563,11 @@ mod tests {
             ("equal_at_group_end", r"{x=}x"),
             ("equal_at_start_of_pseudo_row", r"x \displaystyle = x"),
             ("equal_before_right", r"\left(x=\right)x"),
+            ("sqrt_equal_three", r"\sqrt{=3}"),
+            ("sqrt_log", r"\sqrt\log"),
+            ("sqrt_log_braces", r"\sqrt{\log}"),
+            ("root_op", r"\sqrt[+]{x}"),
+            ("root_log", r"\sqrt[\log]{x}"),
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
             ("equal_equal", r"4==4"),
@@ -699,5 +705,23 @@ mod tests {
             .unwrap();
 
         assert_snapshot!("custom_cmd_one_arg", mathml, latex);
+    }
+    #[test]
+    fn test_custom_cmd_spacing() {
+        let macros = [("eq".to_string(), r"=".to_string())].into_iter().collect();
+
+        let config = crate::MathCoreConfig {
+            macros,
+            pretty_print: crate::PrettyPrint::Always,
+        };
+
+        let converter = LatexToMathML::new(&config).unwrap();
+
+        let latex = r"x \eq 3";
+        let mathml = converter
+            .convert_with_local_counter(latex, crate::MathDisplay::Inline)
+            .unwrap();
+
+        assert_snapshot!("custom_cmd_spacing", mathml, latex);
     }
 }

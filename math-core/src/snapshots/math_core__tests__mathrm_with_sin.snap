@@ -5,6 +5,6 @@ expression: "\\mathrm{x\\sin}"
 <math>
     <mrow>
         <mi mathvariant="normal">x</mi>
-        <mo lspace="0.1667em" rspace="0.1667em">sin</mo>
+        <mo lspace="0.1667em" rspace="0">sin</mo>
     </mrow>
 </math>
