@@ -159,7 +159,7 @@ const MAX_BLOCK_SIZE = 65_535;
  * @returns {string} The base64url encoded string
  */
 export function uint8ArrayToBase64Url(array) {
-  if (!(value instanceof Uint8Array)) {
+  if (!(array instanceof Uint8Array)) {
     throw new TypeError('Expected Uint8Array');
   }
   
@@ -192,7 +192,7 @@ export function uint8ArrayToBase64Url(array) {
  * @returns {Uint8Array} The decoded array
  */
 export function base64UrlToUint8Array(base64String) {
-  if (typeof value !== 'string') {
+  if (typeof base64String !== 'string') {
     throw new TypeError('Expected string');
   }
   
