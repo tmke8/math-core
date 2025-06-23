@@ -5,7 +5,7 @@ expression: "\\overset{!}{=}'"
 <math>
     <msup>
         <mover>
-            <mo>=</mo>
+            <mo lspace="0" rspace="0">=</mo>
             <mo>!</mo>
         </mover>
         <mo>′</mo>

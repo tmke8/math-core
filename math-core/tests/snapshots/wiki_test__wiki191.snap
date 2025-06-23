@@ -11,7 +11,7 @@ expression: "x_{1,2}=\\frac{{\\color{Blue}-b}\\pm \\sqrt{\\color{Red}b^2-4ac}}{\
     <mfrac>
         <mrow>
             <mrow style="color:#102694;">
-                <mo>−</mo>
+                <mo lspace="0" rspace="0">−</mo>
                 <mi>b</mi>
             </mrow>
             <mo>±</mo>

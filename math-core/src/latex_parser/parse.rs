@@ -17,7 +17,7 @@ use super::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{LatexUnit, parse_column_specification, parse_length_specification},
+    specifications::{parse_column_specification, parse_length_specification, LatexUnit},
     token::{TokLoc, Token},
 };
 
@@ -73,6 +73,14 @@ impl SequenceEnd {
             ),
         }
     }
+}
+
+#[derive(Debug)]
+enum ParseAs {
+    Sequence,
+    ContinueSequence,
+    Arg,
+    ArgWithSpace,
 }
 
 impl<'arena, 'source> Parser<'arena, 'source>
@@ -148,7 +156,7 @@ where
 
     #[inline]
     pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
-        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), true)?;
+        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), None)?;
         Ok(nodes)
     }
 
@@ -162,16 +170,16 @@ where
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
-        real_boundaries: bool,
+        sequence_state: Option<&mut SequenceState>,
     ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
         let mut nodes = Vec::new();
-        let mut sequence_state = if real_boundaries {
-            SequenceState {
+        let sequence_state = if let Some(seq_state) = sequence_state {
+            seq_state
+        } else {
+            &mut SequenceState {
                 class: Class::Open,
                 real_boundaries: true,
             }
-        } else {
-            SequenceState::default()
         };
 
         // Because we don't want to consume the end token, we just peek here.
@@ -187,7 +195,7 @@ where
                 }
             }
             // Parse the token.
-            let target = self.parse_token(cur_tokloc, false, Some(&mut sequence_state))?;
+            let target = self.parse_token(cur_tokloc, ParseAs::Sequence, Some(sequence_state))?;
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds()?;
@@ -220,18 +228,15 @@ where
     }
 
     /// Parse the given token into a node.
-    ///
-    /// If `wants_arg` is `true`, the parser will not collect digits into a number node,
-    /// and will not apply any fusing of nodes.
     fn parse_token(
         &mut self,
         cur_tokloc: TokLoc<'source>,
-        wants_arg: bool,
+        parse_as: ParseAs,
         mut sequence_state: Option<&mut SequenceState>,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
         // Move out the sequence state if it exists, and replace it with the default state.
-        let prev_state = sequence_state
+        let mut prev_state = sequence_state
             .as_mut()
             .map_or_else(SequenceState::default, |state| mem::take(state));
         if let Some(ref mut state) = sequence_state {
@@ -241,7 +246,7 @@ where
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
                 builder.push_char(number as u8 as char);
-                if !wants_arg {
+                if matches!(parse_as, ParseAs::Sequence) {
                     // Consume tokens as long as they are `Token::Number` or
                     // `Token::Letter('.')` or `Token::Punctuation(symbol::COMMA)`,
                     // but only if the token *after that* is a digit.
@@ -284,7 +289,7 @@ where
                 } else {
                     None
                 };
-                let right = if (!wants_arg
+                let right = if (matches!(parse_as, ParseAs::Sequence)
                     && matches!(
                         self.peek.token(),
                         Token::Relation(_) | Token::Punctuation(_) | Token::Colon
@@ -390,17 +395,17 @@ where
                 let next = self.next_token();
                 if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), true)?;
+                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), None)?;
                     self.next_token(); // Discard the closing token.
-                    let content = self.parse_next(true)?;
+                    let content = self.parse_next(ParseAs::Arg)?;
                     Node::Root(node_vec_to_node(self.arena, degree, true), content)
                 } else {
-                    Node::Sqrt(self.parse_token(next, true, None)?)
+                    Node::Sqrt(self.parse_token(next, ParseAs::Arg, None)?)
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
-                let num = self.parse_next(true)?;
-                let denom = self.parse_next(true)?;
+                let num = self.parse_next(ParseAs::Arg)?;
+                let denom = self.parse_next(ParseAs::Arg)?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
                     Node::Fenced {
@@ -431,12 +436,12 @@ where
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
-                let open = match self.parse_next(true)? {
+                let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes: [], .. } => symbol::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let close = match self.parse_next(true)? {
+                let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => *op,
                     Node::Row { nodes: [], .. } => symbol::NULL,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
@@ -447,7 +452,7 @@ where
                     decimal => parse_length_specification(decimal)
                         .ok_or(LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
                 };
-                let style = match self.parse_next(true)? {
+                let style = match self.parse_next(ParseAs::Arg)? {
                     Node::Number(num) => match num.as_bytes() {
                         b"0" => Some(Style::Display),
                         b"1" => Some(Style::Text),
@@ -458,8 +463,8 @@ where
                     Node::Row { nodes: [], .. } => None,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let num = self.parse_next(true)?;
-                let denom = self.parse_next(true)?;
+                let num = self.parse_next(ParseAs::Arg)?;
+                let denom = self.parse_next(ParseAs::Arg)?;
                 let attr = None;
                 let (lt_value, lt_unit) = lt.into_parts();
                 Node::Fenced {
@@ -476,7 +481,7 @@ where
                 }
             }
             Token::OverUnder(op, is_over, attr) => {
-                let target = self.parse_next(true)?;
+                let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
                     Node::OverOp(op.into(), attr, target)
                 } else {
@@ -484,8 +489,10 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
-                let symbol = self.parse_next(true)?;
-                let target = self.parse_next(true)?;
+                let symbol = self.parse_next(ParseAs::Arg)?;
+                let token = self.next_token();
+                let target =
+                    self.parse_token(token, ParseAs::ContinueSequence, Some(&mut prev_state))?;
                 if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
@@ -493,7 +500,7 @@ where
                 }
             }
             Token::OverUnderBrace(x, is_over) => {
-                let target = self.parse_next(true)?;
+                let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 let symbol = self.commit(Node::Operator {
                     op: x.into(),
                     attr: None,
@@ -510,7 +517,7 @@ where
                 {
                     let target = self.commit(base);
                     self.next_token(); // Discard the circumflex or underscore token.
-                    let expl = self.parse_next(true)?;
+                    let expl = self.parse_next(ParseAs::Arg)?;
                     if is_over {
                         Node::Overset {
                             symbol: expl,
@@ -569,7 +576,7 @@ where
                         right: Some(MathSpacing::ThreeMu),
                     });
                     self.next_token(); // Discard the underscore token.
-                    let under = self.parse_next(true)?;
+                    let under = self.parse_next(ParseAs::Arg)?;
                     Node::Underset {
                         target,
                         symbol: under,
@@ -579,7 +586,7 @@ where
                 }
             }
             Token::Slashed => {
-                let node = self.parse_next(true)?;
+                let node = self.parse_next(ParseAs::Arg)?;
                 Node::Slashed(node)
             }
             Token::Not => {
@@ -637,7 +644,7 @@ where
                     &mut self.tf_differs_on_upright_letters,
                     tf.differs_on_upright_letters(),
                 );
-                let content = self.parse_next(true)?;
+                let content = self.parse_next(ParseAs::Arg)?;
                 self.collector = old_collector;
                 self.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
                 Node::TextTransform { content, tf }
@@ -683,16 +690,22 @@ where
                 if let Some(state) = sequence_state {
                     state.class = Class::Relation;
                 };
-                let left = if wants_arg {
+                let left = if !matches!(parse_as, ParseAs::Sequence) {
                     None // Don't add spacing if we are in an argument.
-                } else if matches!(prev_state.class, Class::Relation | Class::Open) {
+                } else if matches!(
+                    prev_state.class,
+                    Class::Relation | Class::Open | Class::Punctuation
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
                 };
-                let right = if wants_arg {
+                let right = if !matches!(parse_as, ParseAs::Sequence) {
                     None // Don't add spacing if we are in an argument.
-                } else if matches!(self.peek.token(), Token::Relation(_)) {
+                } else if matches!(
+                    self.peek.token(),
+                    Token::Relation(_) | Token::Punctuation(_) | Token::Colon
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
@@ -705,9 +718,20 @@ where
                 }
             }
             Token::GroupBegin => {
-                let content = self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), true)?;
+                let content = self.parse_sequence(
+                    SequenceEnd::Token(Token::GroupEnd),
+                    if matches!(parse_as, ParseAs::ContinueSequence) {
+                        Some(&mut prev_state)
+                    } else {
+                        None
+                    },
+                )?;
                 self.next_token(); // Discard the closing token.
-                return Ok(node_vec_to_node(self.arena, content, wants_arg));
+                return Ok(node_vec_to_node(
+                    self.arena,
+                    content,
+                    matches!(parse_as, ParseAs::Arg),
+                ));
             }
             Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
             Token::SquareBracketOpen => {
@@ -733,7 +757,7 @@ where
                         ));
                     }
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), true)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None)?;
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
@@ -808,7 +832,7 @@ where
                 } else {
                     None
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::End), true)?;
+                let content = self.parse_sequence(SequenceEnd::Token(Token::End), None)?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -959,14 +983,16 @@ where
                 let Some(color) = get_color(color_name) else {
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, false)?;
+                let content =
+                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(&mut prev_state))?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
                 }
             }
             Token::Style(style) => {
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, false)?;
+                let content =
+                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(&mut prev_state))?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -989,9 +1015,9 @@ where
                 Node::Superscript { target, symbol }
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
-                let symbol = self.parse_next(true)?;
+                let symbol = self.parse_next(ParseAs::Arg)?;
                 if !matches!(self.peek.token(), Token::EOF | Token::GroupEnd | Token::End) {
-                    let base = self.parse_next(false)?;
+                    let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
                         (Some(symbol), None)
                     } else {
@@ -1033,7 +1059,7 @@ where
                 let mut nodes = Vec::with_capacity(num_args);
                 for _ in 0..num_args {
                     let token = self.next_token();
-                    let node = self.parse_token(token, true, None)?;
+                    let node = self.parse_token(token, ParseAs::Arg, None)?;
                     nodes.push(node);
                 }
                 let args = self.arena.push_slice(&nodes);
@@ -1080,9 +1106,12 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, wants_arg: bool) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    fn parse_next(
+        &mut self,
+        parse_as: ParseAs,
+    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let token = self.next_token();
-        self.parse_token(token, wants_arg, None)
+        self.parse_token(token, parse_as, None)
     }
 
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
@@ -1225,7 +1254,7 @@ where
                 },
             ));
         }
-        let node = self.parse_token(next, true, None);
+        let node = self.parse_token(next, ParseAs::Arg, None);
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.peek.token(), Token::Prime) {
