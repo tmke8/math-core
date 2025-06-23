@@ -4,7 +4,7 @@ expression: "\\overset{!}{+}"
 ---
 <math>
     <mover>
-        <mo>+</mo>
+        <mo lspace="0" rspace="0">+</mo>
         <mo>!</mo>
     </mover>
 </math>

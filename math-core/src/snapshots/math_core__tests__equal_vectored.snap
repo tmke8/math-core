@@ -1,0 +1,12 @@
+---
+source: math-core/src/lib.rs
+expression: "=\\vec{=}x"
+---
+<math>
+    <mo lspace="0">=</mo>
+    <mover accent="true">
+        <mo lspace="0" rspace="0">=</mo>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+    <mi>x</mi>
+</math>

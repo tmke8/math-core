@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: "a :: b"
+---
+<math>
+    <mi>a</mi>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0" rspace="0.2778em">:</mo>
+    <mi>b</mi>
+</math>
