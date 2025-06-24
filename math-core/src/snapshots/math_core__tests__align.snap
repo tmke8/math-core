@@ -3,8 +3,9 @@ source: math-core/src/lib.rs
 expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{align}"
 ---
 <math>
-    <mtable displaystyle="true">
+    <mtable displaystyle="true" style="width: 100%">
         <mtr>
+            <mtd style="width: 50%"></mtd>
             <mtd style="text-align: -webkit-right;text-align: -moz-right;padding-right: 0;">
                 <mi>f</mi>
                 <mo stretchy="false">(</mo>
@@ -23,11 +24,12 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                 <mo>+</mo>
                 <mn>1</mn>
             </mtd>
-        <mtd>
+        <mtd style="width: 50%;text-align: -webkit-right;text-align: -moz-right;">
             <mtext>(1)</mtext>
         </mtd>
         </mtr>
         <mtr>
+            <mtd style="width: 50%"></mtd>
             <mtd style="text-align: -webkit-right;text-align: -moz-right;padding-right: 0;">
             </mtd>
             <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-left: 0;">
@@ -41,9 +43,9 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                     <mn>2</mn>
                 </msup>
             </mtd>
-        <mtd>
-            <mtext>(2)</mtext>
-        </mtd>
+            <mtd style="width: 50%;text-align: -webkit-right;text-align: -moz-right;">
+                <mtext>(2)</mtext>
+            </mtd>
         </mtr>
     </mtable>
 </math>
