@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use stable_arena::DroplessArena;
 
 use super::{
@@ -85,6 +87,12 @@ impl FrozenArena {
         } else {
             self.inner.contains_slice(nodes)
         }
+    }
+}
+
+impl Debug for FrozenArena {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FrozenArena").finish()
     }
 }
 

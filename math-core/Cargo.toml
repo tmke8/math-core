@@ -16,7 +16,7 @@ repository = { workspace = true }
 keywords = ["latex", "mathml"]
 categories = ["science"]
 
-exclude=["/src/snapshots", "/src/latex_parser/snapshots", "/tests/snapshots"]
+exclude = ["/src/snapshots", "/src/latex_parser/snapshots", "/tests/snapshots"]
 
 [dependencies]
 stable-arena = { version = "0.2.0", default-features = false }
@@ -31,6 +31,7 @@ rustc-hash = { workspace = true }
 insta = { version = "1.41.1", features = ["default", "ron"] }
 regex = "1.11.1"
 math-core = { path = ".", features = ["serde"] }
+minijinja = "2.10.2"
 
 [features]
 serde = ["dep:serde"]

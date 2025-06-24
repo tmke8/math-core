@@ -289,6 +289,7 @@ dependencies = [
  "dtoa",
  "insta",
  "math-core",
+ "minijinja",
  "phf",
  "regex",
  "rustc-hash",
@@ -354,6 +355,15 @@ checksum = "f27fe9f1cc3c22e1687f9446c2083c4c5fc7f0bcf1c7a86bdbded14985895b4b"
 dependencies = [
  "cc",
  "walkdir",
+]
+
+[[package]]
+name = "minijinja"
+version = "2.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd72e8b4e42274540edabec853f607c015c73436159b06c39c7af85a20433155"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

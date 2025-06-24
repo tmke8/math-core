@@ -2,6 +2,7 @@ use crate::mathml_renderer::arena::FrozenArena;
 
 use super::Node;
 
+#[derive(Debug)]
 pub struct RawNodeSlice {
     ptr: *const &'static Node<'static>,
     len: usize,

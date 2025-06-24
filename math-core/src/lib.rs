@@ -31,7 +31,7 @@ mod raw_node_slice;
 
 use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use self::latex_parser::{LatexErrKind, NodeRef, Token, node_vec_to_node};
 use self::mathml_renderer::arena::{Arena, FrozenArena};
@@ -54,7 +54,7 @@ pub enum MathDisplay {
 /// Pretty-printing means that newlines and indentation is added to the MathML output, to make it
 /// easier to read.
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum PrettyPrint {
     /// Never pretty print.
@@ -101,7 +101,7 @@ pub enum PrettyPrint {
 /// ```
 ///
 #[derive(Debug, Default)]
-#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
     /// A configuration for pretty-printing the MathML output. See [`PrettyPrint`] for details.
@@ -110,6 +110,7 @@ pub struct MathCoreConfig {
     pub macros: FxHashMap<String, String>,
 }
 
+#[derive(Debug)]
 struct CustomCmds {
     arena: FrozenArena,
     slice: RawNodeSlice,
@@ -132,6 +133,7 @@ impl CustomCmds {
 }
 
 /// A converter that transforms LaTeX math equations into MathML Core.
+#[derive(Debug)]
 pub struct LatexToMathML {
     pretty_print: PrettyPrint,
     /// This is used for numbering equations in the document.
