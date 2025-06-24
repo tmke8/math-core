@@ -11,7 +11,7 @@ use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
 use super::symbol::{Fence, MathMLOperator};
-use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType};
+use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
 #[derive(Debug)]
@@ -489,10 +489,14 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 with_numbering,
             } => {
                 let mtd_opening = ColumnGenerator::new_predefined(*align);
+                let with_numbering = *with_numbering;
 
                 write!(self.s, "<mtable")?;
                 if let Some(attr) = attr {
                     write!(self.s, "{}", <&str>::from(attr))?;
+                }
+                if with_numbering {
+                    write!(self.s, r#" style="width: 100%""#)?;
                 }
                 write!(self.s, ">")?;
                 self.emit_table(
@@ -500,7 +504,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     child_indent,
                     content,
                     mtd_opening,
-                    *with_numbering,
+                    with_numbering,
                 )?;
             }
             Node::Array {
@@ -597,6 +601,14 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
         };
         col_gen.reset_columns();
         writeln_indent!(&mut self.s, child_indent, "<mtr>");
+        if with_numbering {
+            // Add a dummy column to help keep everything centered.
+            writeln_indent!(
+                &mut self.s,
+                child_indent2,
+                r#"<mtd style="width: 50%"></mtd>"#
+            );
+        }
         col_gen.write_next_mtd(&mut self.s, child_indent2)?;
         for node in content.iter() {
             match node {
@@ -612,6 +624,14 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     writeln_indent!(&mut self.s, child_indent, "</mtr>");
                     writeln_indent!(&mut self.s, child_indent, "<mtr>");
                     col_gen.reset_columns();
+                    if with_numbering {
+                        // Add a dummy column to help keep everything centered.
+                        writeln_indent!(
+                            &mut self.s,
+                            child_indent2,
+                            r#"<mtd style="width: 50%"></mtd>"#
+                        );
+                    }
                     col_gen.write_next_mtd(&mut self.s, child_indent2)?;
                 }
                 node => {
@@ -621,7 +641,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
         }
         writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         if with_numbering {
-            self.write_equation_num(child_indent, child_indent2)?;
+            self.write_equation_num(child_indent2, child_indent3)?;
         }
         writeln_indent!(&mut self.s, child_indent, "</mtr>");
         writeln_indent!(&mut self.s, base_indent, "</mtable>");
@@ -630,18 +650,23 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn write_equation_num(
         &mut self,
-        child_indent: usize,
         child_indent2: usize,
+        child_indent3: usize,
     ) -> Result<(), std::fmt::Error> {
         *self.equation_counter += 1;
-        writeln_indent!(&mut self.s, child_indent, "<mtd>");
         writeln_indent!(
             &mut self.s,
             child_indent2,
+            r#"<mtd style="width: 50%;{}">"#,
+            RIGHT_ALIGN
+        );
+        writeln_indent!(
+            &mut self.s,
+            child_indent3,
             "<mtext>({})</mtext>",
             self.equation_counter
         );
-        writeln_indent!(&mut self.s, child_indent, "</mtd>");
+        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         Ok(())
     }
 
