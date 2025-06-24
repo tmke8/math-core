@@ -17,7 +17,7 @@ use super::{
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{parse_column_specification, parse_length_specification, LatexUnit},
+    specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
 };
 
