@@ -1,0 +1,21 @@
+# settings for auto-generated release notes
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+  categories:
+    - title: Breaking Changes 🛠
+      labels:
+        - breaking
+    - title: Enhancements 🎉
+      labels:
+        - enhancement
+    - title: Documentation improvements ✍️
+      labels:
+        - documentation
+    - title: Other Changes
+      labels:
+        - "*"
