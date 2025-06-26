@@ -117,8 +117,7 @@ fn main() {
     // Determine which config file to use
     let config_path = args
         .config_file
-        .as_ref()
-        .map(|p| p.as_path())
+        .as_deref()
         .unwrap_or_else(|| Path::new(DEFAULT_CONFIG_FILE));
 
     // Load configuration

@@ -13,7 +13,7 @@ use crate::mathml_renderer::symbol::{Bin, Fence, Op, Ord, Punct, Rel};
 #[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]
-    EOF,
+    Eof,
     #[strum(serialize = r"\begin{...}")]
     Begin,
     #[strum(serialize = r"\end{...}")]

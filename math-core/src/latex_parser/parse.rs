@@ -69,7 +69,7 @@ impl SequenceEnd {
             SequenceEnd::Token(token) => token.is_same_kind_as(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
-                Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                Token::Eof | Token::GroupEnd | Token::End | Token::Right
             ),
         }
     }
@@ -91,7 +91,7 @@ where
         let input_length = lexer.input_length;
         let mut p = Parser {
             l: lexer,
-            peek: TokLoc(0, Token::EOF),
+            peek: TokLoc(0, Token::Eof),
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
@@ -156,7 +156,7 @@ where
 
     #[inline]
     pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
-        let nodes = self.parse_sequence(SequenceEnd::Token(Token::EOF), None)?;
+        let nodes = self.parse_sequence(SequenceEnd::Token(Token::Eof), None)?;
         Ok(nodes)
     }
 
@@ -185,7 +185,7 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.peek.token()) {
             let cur_tokloc = self.maybe_collect();
-            if matches!(cur_tokloc.token(), Token::EOF) {
+            if matches!(cur_tokloc.token(), Token::Eof) {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
                     return Err(LatexError(
@@ -297,7 +297,7 @@ where
                     || (prev_state.real_boundaries
                         && matches!(
                             self.peek.token(),
-                            Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                            Token::Eof | Token::GroupEnd | Token::End | Token::Right
                         )) {
                     Some(MathSpacing::Zero)
                 } else {
@@ -340,7 +340,7 @@ where
                 ) || (prev_state.real_boundaries
                     && matches!(
                         self.peek.token(),
-                        Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
                     )) {
                     Some(MathSpacing::Zero)
                 } else {
@@ -1016,7 +1016,7 @@ where
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                if !matches!(self.peek.token(), Token::EOF | Token::GroupEnd | Token::End) {
+                if !matches!(self.peek.token(), Token::Eof | Token::GroupEnd | Token::End) {
                     let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
                         (Some(symbol), None)
@@ -1051,7 +1051,7 @@ where
                     },
                 ));
             }
-            Token::EOF => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
+            Token::Eof => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
             Token::End | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
             }
@@ -1296,7 +1296,7 @@ where
             ) || (prev_state.real_boundaries
                 && matches!(
                     self.peek.token(),
-                    Token::EOF | Token::GroupEnd | Token::End | Token::Right
+                    Token::Eof | Token::GroupEnd | Token::End | Token::Right
                 )) {
                 Some(MathSpacing::Zero)
             } else {
@@ -1457,7 +1457,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 }
                 return Ok(());
             }
-            Token::EOF => {
+            Token::Eof => {
                 return Err(LatexError(
                     tokloc.location(),
                     LatexErrKind::UnclosedGroup(Token::GroupEnd),

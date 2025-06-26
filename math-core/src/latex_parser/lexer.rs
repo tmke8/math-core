@@ -141,7 +141,7 @@ impl<'source> Lexer<'source> {
             return self.next_token();
         }
         let tok = match ch {
-            '\u{0}' => Token::EOF,
+            '\u{0}' => Token::Eof,
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
             '#' => {
@@ -262,7 +262,7 @@ mod tests {
             }
             loop {
                 let tokloc = lexer.next_token();
-                if matches!(tokloc.token(), Token::EOF) {
+                if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
                 let TokLoc(loc, tok) = tokloc;
@@ -280,7 +280,7 @@ mod tests {
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token();
-            if matches!(tokloc.token(), Token::EOF) {
+            if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
             let TokLoc(loc, tok) = tokloc;

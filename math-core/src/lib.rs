@@ -291,7 +291,7 @@ fn parse_custom_commands<'source>(
     let mut parsed_macros = Vec::with_capacity(macros.len());
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
-            return Err(LatexError(0, LatexErrKind::InvalidMacroName(&name)));
+            return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
         let lexer = latex_parser::Lexer::new(definition, true, None);
         let mut p = latex_parser::Parser::new(lexer, &arena);
