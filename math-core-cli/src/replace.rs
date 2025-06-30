@@ -39,11 +39,7 @@ impl fmt::Display for ConversionError<'_, '_> {
             }
             ConvErrKind::LatexError(e, input) => {
                 // write!(f, "Error at {} in '{}':\n{}", idx, input, e)
-                write!(
-                    f,
-                    "Error at line {line}, column {col} in '{}':\n{}",
-                    input, e
-                )
+                write!(f, "Error at line {line}, column {col} in '{input}':\n{e}")
             }
         }
     }
