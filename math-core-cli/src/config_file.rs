@@ -22,8 +22,8 @@ pub enum ConfigError {
 impl std::fmt::Display for ConfigError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConfigError::Io(err) => write!(f, "I/O error: {}", err),
-            ConfigError::Parse(err) => write!(f, "TOML parsing error: {}", err),
+            ConfigError::Io(err) => write!(f, "I/O error: {err}"),
+            ConfigError::Parse(err) => write!(f, "TOML parsing error: {err}"),
         }
     }
 }

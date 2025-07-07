@@ -170,7 +170,7 @@ fn main() {
             let input = read_stdin();
             match replace(&mut replacer, &input, &mut converter) {
                 Ok(mathml) => {
-                    println!("{}", mathml);
+                    println!("{mathml}");
                 }
                 Err(e) => exit_latex_error(e, None),
             };
@@ -201,7 +201,7 @@ fn convert_and_exit(args: &Args, latex: &str, converter: &mut LatexToMathML) {
         MathDisplay::Inline
     };
     match converter.convert_with_global_counter(latex, display) {
-        Ok(mathml) => println!("{}", mathml),
+        Ok(mathml) => println!("{mathml}"),
         Err(e) => exit_latex_error(e, None),
     }
 }
@@ -303,12 +303,12 @@ fn exit_latex_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
     if let Some(fp) = fp {
         eprint!(" in '{}'", fp.display());
     }
-    eprintln!(": {}", e);
+    eprintln!(": {e}");
     std::process::exit(2);
 }
 
 fn exit_io_error(e: std::io::Error) -> ! {
-    eprintln!("IO Error: {}", e);
+    eprintln!("IO Error: {e}");
     std::process::exit(1);
 }
 
