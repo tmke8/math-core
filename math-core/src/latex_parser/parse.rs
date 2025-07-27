@@ -1322,7 +1322,7 @@ pub(crate) fn node_vec_to_node<'arena>(
     nodes: Vec<&'arena Node<'arena>>,
     reset_spacing: bool,
 ) -> &'arena Node<'arena> {
-    if let [single] = &mut nodes {
+    if let [single] = &mut nodes[..] {
         if reset_spacing {
             if let Node::Operator {
                 op,
