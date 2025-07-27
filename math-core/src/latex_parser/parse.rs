@@ -1322,9 +1322,7 @@ pub(crate) fn node_vec_to_node<'arena>(
     nodes: Vec<&'arena Node<'arena>>,
     reset_spacing: bool,
 ) -> &'arena Node<'arena> {
-    if nodes.len() == 1 {
-        // Safety: We checked that there is an element.
-        let single = unsafe { nodes.into_iter().next().unwrap_unchecked() };
+    if let [single] = &mut nodes {
         if reset_spacing {
             if let Node::Operator {
                 op,
