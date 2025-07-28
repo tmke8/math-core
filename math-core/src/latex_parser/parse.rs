@@ -1319,7 +1319,7 @@ fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -
 // or by creating a row node if there are multiple nodes.
 pub(crate) fn node_vec_to_node<'arena>(
     arena: &'arena Arena,
-    nodes: Vec<&'arena Node<'arena>>,
+    mut nodes: Vec<&'arena Node<'arena>>,
     reset_spacing: bool,
 ) -> &'arena Node<'arena> {
     if let [single] = &mut nodes[..] {
