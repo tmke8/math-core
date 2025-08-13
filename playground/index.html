@@ -41,6 +41,30 @@
                                 </select>
                             </div>
                         </div>
+                        <div id="prettyprint" class="option-group">
+                            <h3>Pretty print:</h3>
+                            <div class="options">
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="pretty-true"
+                                        name="prettyprint"
+                                        value="true"
+                                        checked
+                                    />
+                                    True</label
+                                >
+                                <label
+                                    ><input
+                                        type="radio"
+                                        id="pretty-false"
+                                        name="prettyprint"
+                                        value="false"
+                                    />
+                                    False</label
+                                >
+                            </div>
+                        </div>
                         <div id="displaystyle" class="option-group">
                             <h3>Display style:</h3>
                             <div class="options">
@@ -71,7 +95,6 @@
                     <summary><strong>JSON config</strong> (click to open)</summary>
                     <div>
                         <textarea rows="10" id="configField" spellcheck="false">{
-    "prettyPrint": true,
     "macros": {
         "d": "\\mathrm{d}\\mspace{0mu}",
         "ceil": "\\lceil #1 \\rceil",

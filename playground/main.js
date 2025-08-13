@@ -19,18 +19,25 @@ function updateIsBlockCache() {
 }
 
 function updateConfig() {
+  const prettyRadio = document.querySelector(
+    '#prettyprint input[type="radio"]:checked',
+  );
+  const isPrettyPrint = prettyRadio ? prettyRadio.value === "true" : true;
+
   const configField = document.getElementById("configField");
   
   try {
     const jsonString = configField.value.trim();
     
     // Parse JSON with custom reviver to convert macros to Map
-    const parsed = JSON.parse(jsonString, (key, value) => {
+    let parsed = JSON.parse(jsonString, (key, value) => {
       if (key === 'macros') {
         return new Map(Object.entries(value));
       }
       return value;
     });
+    // Set the prettyPrint property from the radio selection
+    parsed["prettyPrint"] = isPrettyPrint;
     set_config(parsed);
     
   } catch (error) {
@@ -242,6 +249,15 @@ document.addEventListener("DOMContentLoaded", () => {
     .forEach((radio) => {
       radio.addEventListener("change", () => {
         updateIsBlockCache(); // Update cache when radio button changes
+        updateOutput();
+      });
+    });
+
+  document
+    .querySelectorAll('#prettyprint input[type="radio"]')
+    .forEach((radio) => {
+      radio.addEventListener("change", () => {
+        updateConfig(); // Update config when radio button changes
         updateOutput();
       });
     });
