@@ -461,6 +461,8 @@ mod tests {
             ("colon_fusion", r"a := 2 \land b :\equiv 3"),
             ("double_colon", r"a :: b"),
             ("colon_first_group", r"x{:x}"),
+            ("colon_last_group", r"{x:}x"),
+            ("colon_alone_group", r"x{:}x"),
             ("colon_approx", r"x:\approx 2"),
             ("colon_sqrt", r"\sqrt :"),
             (

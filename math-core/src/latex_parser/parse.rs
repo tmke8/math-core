@@ -705,7 +705,12 @@ where
                 } else if matches!(
                     self.peek.token(),
                     Token::Relation(_) | Token::Punctuation(_) | Token::Colon
-                ) {
+                ) || (prev_state.real_boundaries
+                    && matches!(
+                        self.peek.token(),
+                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
+                    ))
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
