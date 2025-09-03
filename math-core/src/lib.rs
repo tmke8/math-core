@@ -383,7 +383,7 @@ mod tests {
             ("mathbf_with_digit_decimal", r"\mathbf{1234.5}"),
             ("integer", r"0"),
             ("rational_number", r"3.14"),
-            ("long_number", r"3,453,435.3453"),
+            ("long_number", r"3{,}453{,}435.3453"),
             ("number_with_dot", r"4.x"),
             ("long_sub_super", r"x_{92}^{31415}"),
             ("single_variable", r"x"),

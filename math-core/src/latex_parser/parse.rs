@@ -325,11 +325,20 @@ where
                 if let Some(state) = sequence_state {
                     state.class = Class::Punctuation;
                 };
+                let right = if prev_state.real_boundaries
+                    && matches!(
+                        self.peek.token(),
+                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
+                    ) {
+                    Some(MathSpacing::Zero)
+                } else {
+                    None
+                };
                 Node::Operator {
                     op: punc.into(),
                     attr: None,
                     left: None,
-                    right: None,
+                    right,
                 }
             }
             Token::Ord(ord) => Node::Operator {

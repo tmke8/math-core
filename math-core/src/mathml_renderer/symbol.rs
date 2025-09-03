@@ -190,7 +190,7 @@ impl From<&Punct> for MathMLOperator {
 // Unicode Block: Basic Latin
 //
 pub const NULL: &Fence = &Fence('\u{0}', false, Stretchy::Always);
-pub const EXCLAMATION_MARK: Punct = Punct('!');
+pub const EXCLAMATION_MARK: Ord = Ord('!');
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';
