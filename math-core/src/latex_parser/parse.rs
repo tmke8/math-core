@@ -397,6 +397,10 @@ where
                 };
                 return self.make_pseudo_operator(name, &prev_state);
             }
+            Token::Enclose(notation) => {
+                let content = self.parse_next(ParseAs::ArgWithSpace)?;
+                Node::Enclose { content, notation }
+            }
             Token::Space(space) => {
                 // Spaces pass through the sequence state.
                 if let Some(state) = sequence_state {
@@ -1584,6 +1588,7 @@ mod tests {
             ("overset_digits", r"\overset12"),
             ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
             ("mspace", r"\mspace{1mu}"),
+            ("sout", r"\sout{abc}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
@@ -123,6 +124,17 @@ pub enum RowAttr {
     None,
     Style(Style),
     Color(u8, u8, u8),
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[cfg_attr(feature = "serde", derive(Serialize))]
+    pub struct Notation: u8 {
+        const HORIZONTAL = 1;
+        const UP_DIAGONAL = 1 << 1;
+        const DOWN_DIAGONAL = 1 << 2;
+    }
 }
 
 // Transform of unicode characters.
