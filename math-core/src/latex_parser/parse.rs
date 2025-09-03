@@ -77,9 +77,15 @@ impl SequenceEnd {
 
 #[derive(Debug)]
 enum ParseAs {
+    /// A sequence starts with a fresh sequence state.
     Sequence,
+    /// A continued sequence keeps the previous sequence state even if a new group is
+    /// started.
     ContinueSequence,
+    /// For an `Arg`, all spacing is ignored, so we may as well strip it away.
     Arg,
+    /// For an `ArgWithSpace`, operator spacing is significant, so we have to be
+    /// careful to set it correctly.
     ArgWithSpace,
 }
 
@@ -103,50 +109,50 @@ where
         p
     }
 
-    fn maybe_collect(&mut self) -> TokLoc<'source> {
-        if matches!(self.collector, LetterCollector::Collecting) {
-            let first_loc = self.peek.location();
-            let mut builder = self.buffer.get_builder();
-            let mut num_chars = 0usize;
-            let mut first_char: Option<char> = None;
+    fn collect_letters(&mut self) -> Option<TokLoc<'source>> {
+        let first_loc = self.peek.location();
+        let mut builder = self.buffer.get_builder();
+        let mut num_chars = 0usize;
+        // We store the first character separately, because if we only collect
+        // one character, we need it as a `char` and not as a `String`.
+        let mut first_char: Option<char> = None;
 
-            // Loop until we find a non-letter token.
-            while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
-                // We stop collecting if we encounter an upright letter while the transformation is
-                // different on upright letters. Handling upright letters differently wouldn't be
-                // possible anymore if we merged these letters // here together with the non-upright
-                // letters.
-                if matches!(tok, Token::UprightLetter(_)) && self.tf_differs_on_upright_letters {
-                    break;
-                }
-                builder.push_char(*ch);
-                if first_char.is_none() {
-                    first_char = Some(*ch);
-                }
-                num_chars += 1;
-                // Get the next token for the next iteration.
-                self.peek = self.l.next_token();
+        // Loop until we find a non-letter token.
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
+            // We stop collecting if we encounter an upright letter while the transformation is
+            // different on upright letters. Handling upright letters differently wouldn't be
+            // possible anymore if we merged these letters // here together with the non-upright
+            // letters.
+            if matches!(tok, Token::UprightLetter(_)) && self.tf_differs_on_upright_letters {
+                break;
             }
-            // If we collected at least one letter, commit it to the arena and signal with a token
-            // that we are done.
-            if let Some(ch) = first_char {
-                match num_chars.cmp(&1) {
-                    std::cmp::Ordering::Equal => {
-                        self.collector = LetterCollector::FinishedOneLetter {
-                            collected_letter: ch,
-                        };
-                    }
-                    std::cmp::Ordering::Greater => {
-                        self.collector = LetterCollector::FinishedManyLetters {
-                            collected_letters: builder.finish(self.arena),
-                        };
-                    }
-                    _ => {}
-                }
-                return TokLoc(first_loc, Token::GetCollectedLetters);
+            builder.push_char(*ch);
+            if first_char.is_none() {
+                first_char = Some(*ch);
             }
+            num_chars += 1;
+            // Get the next token for the next iteration.
+            next_token(&mut self.peek, &mut self.l);
         }
-        self.next_token()
+        // If we collected at least one letter, commit it to the arena and signal with a token
+        // that we are done.
+        if let Some(ch) = first_char {
+            match num_chars.cmp(&1) {
+                std::cmp::Ordering::Equal => {
+                    self.collector = LetterCollector::FinishedOneLetter {
+                        collected_letter: ch,
+                    };
+                }
+                std::cmp::Ordering::Greater => {
+                    self.collector = LetterCollector::FinishedManyLetters {
+                        collected_letters: builder.finish(self.arena),
+                    };
+                }
+                _ => {}
+            }
+            return Some(TokLoc(first_loc, Token::GetCollectedLetters));
+        }
+        None
     }
 
     #[inline(never)]
@@ -184,7 +190,12 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.peek.token()) {
-            let cur_tokloc = self.maybe_collect();
+            let cur_tokloc = if matches!(self.collector, LetterCollector::Collecting) {
+                self.collect_letters()
+            } else {
+                None
+            };
+            let cur_tokloc = cur_tokloc.unwrap_or_else(|| self.next_token());
             if matches!(cur_tokloc.token(), Token::Eof) {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
@@ -248,16 +259,16 @@ where
                 builder.push_char(number as u8 as char);
                 if matches!(parse_as, ParseAs::Sequence) {
                     // Consume tokens as long as they are `Token::Number` or
-                    // `Token::Letter('.')` or `Token::Punctuation(symbol::COMMA)`,
-                    // but only if the token *after that* is a digit.
+                    // `Token::Letter('.')`,
+                    // but the latter only if the token *after that* is a digit.
                     loop {
                         let ch = if let Token::Number(number) = self.peek.token() {
                             *number as u8 as char
                         } else {
-                            let ch = match self.peek.token() {
-                                Token::Letter('.') => Some('.'),
-                                Token::Punctuation(symbol::COMMA) => Some(','),
-                                _ => None,
+                            let ch = if matches!(self.peek.token(), Token::Letter('.')) {
+                                Some('.')
+                            } else {
+                                None
                             };
                             if let Some(ch) = ch {
                                 if self.l.is_next_digit() {
@@ -1311,6 +1322,11 @@ where
     }
 }
 
+/// Get the next token from the lexer, replacing the current peek token.
+///
+/// This function is often necessary due to limitations in Rust's borrow checker.
+/// With this function, we can explicitly say which fields of the parser are borrowed
+/// mutably.
 #[inline]
 fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -> TokLoc<'source> {
     let peek_token = lexer.next_token();

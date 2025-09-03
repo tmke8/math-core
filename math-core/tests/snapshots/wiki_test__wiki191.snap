@@ -5,7 +5,11 @@ expression: "x_{1,2}=\\frac{{\\color{Blue}-b}\\pm \\sqrt{\\color{Red}b^2-4ac}}{\
 <math>
     <msub>
         <mi>x</mi>
-        <mn>1,2</mn>
+        <mrow>
+            <mn>1</mn>
+            <mo>,</mo>
+            <mn>2</mn>
+        </mrow>
     </msub>
     <mo>=</mo>
     <mfrac>
