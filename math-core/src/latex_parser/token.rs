@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
-    FracAttr, MathVariant, OpAttr, Size, Style, TextTransform,
+    FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{Bin, Fence, Op, Ord, Punct, Rel};
@@ -92,6 +92,7 @@ pub enum Token<'source> {
     Number(Digit),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
     PseudoOperator(&'source str),
+    Enclose(Notation),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
     Slashed,

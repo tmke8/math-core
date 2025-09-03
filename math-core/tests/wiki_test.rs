@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 182);
-    assert_eq!(n_fail, 26);
+    assert_eq!(n_diff, 184);
+    assert_eq!(n_fail, 24);
 }
 
 /// Prettify HTML input
@@ -1134,7 +1134,10 @@ fn test_nonfailing_wiki_tests() {
             118,
             r"\dfrac{2}{4} = 0.5 \qquad \dfrac{2}{c + \dfrac{2}{d + \dfrac{2}{4}}} = a",
         ),
-        // (119, r"\cfrac{x}{1 + \cfrac{\cancel{y}} {\cancel{y}}} = \cfrac{x}{2}"),
+        (
+            119,
+            r"\cfrac{x}{1 + \cfrac{\cancel{y}} {\cancel{y}}} = \cfrac{x}{2}",
+        ),
         (120, r"\binom{n}{k}"),
         (121, r"\dbinom{n}{k}"),
         (122, r"\begin{matrix} x & y \\ z & v \end{matrix}"),
@@ -1353,7 +1356,7 @@ fn test_nonfailing_wiki_tests() {
         // (200, r"| \mathord\uparrow \rangle"),
         (201, r"\wideparen{AB}"),
         (202, r"\dddot{x}"),
-        // (203, r"\sout{q}"),
+        (203, r"\sout{q}"),
         // (204, r"\mathrlap{\,/}{=}"),
         // (205, r"\text{\textsf{textual description}}"),
         (206, r"α π"),

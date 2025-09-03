@@ -1,6 +1,6 @@
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
-    FracAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, Style, TextTransform,
+    FracAttr, MathSpacing, MathVariant, Notation, OpAttr, RowAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::symbol::{self, Rel};
 
@@ -137,6 +137,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "backtrprime" => Token::Ord(symbol::REVERSED_TRIPLE_PRIME),
     "bar" => Token::OverUnder(symbol::MACRON, true, Some(OpAttr::StretchyFalse)),
     "barwedge" => Token::BinaryOp(symbol::NAND),
+    "bcancel" => Token::Enclose(Notation::DOWN_DIAGONAL),
     "because" => Token::Relation(symbol::BECAUSE),
     "begin" => Token::Begin,
     "beta" => Token::Letter(symbol::GREEK_SMALL_LETTER_BETA),
@@ -195,6 +196,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "breve" => Token::OverUnder(symbol::BREVE, true, None),
     "bullet" => Token::BinaryOp(symbol::BULLET_OPERATOR),
     "bumpeq" => Token::Relation(symbol::DIFFERENCE_BETWEEN),
+    "cancel" => Token::Enclose(Notation::UP_DIAGONAL),
     "cap" => Token::BinaryOp(symbol::INTERSECTION),
     "cdot" => Token::BinaryOp(symbol::MIDDLE_DOT),
     "cdots" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
@@ -616,6 +618,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "simeq" => Token::Relation(symbol::ASYMPTOTICALLY_EQUAL_TO),
     "slashed" => Token::Slashed,
     "smile" => Token::Relation(symbol::SMILE),
+    "sout" => Token::Enclose(Notation::HORIZONTAL),
     "spadesuit" => Token::Letter(symbol::BLACK_SPADE_SUIT),
     "sphericalangle" => Token::Letter(symbol::SPHERICAL_ANGLE),
     "sqcap" => Token::BinaryOp(symbol::SQUARE_CAP),
@@ -727,6 +730,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "widetilde" => Token::OverUnder(symbol::TILDE, true, None),
     "wp" => Token::Letter(symbol::SCRIPT_CAPITAL_P),
     "wr" => Token::Relation(symbol::WREATH_PRODUCT),
+    "xcancel" => Token::Enclose(Notation::UP_DIAGONAL.union(Notation::DOWN_DIAGONAL)),
     "xi" => Token::Letter(symbol::GREEK_SMALL_LETTER_XI),
     "xleftarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XLEFTARROW)),
     "xrightarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XRIGHTARROW)),

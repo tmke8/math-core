@@ -3,6 +3,8 @@ use std::fmt::Write;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
+use crate::mathml_renderer::attribute::Notation;
+
 use super::attribute::{
     FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy,
     Style, TextTransform,
@@ -121,6 +123,11 @@ pub enum Node<'arena> {
     ColumnSeparator,
     /// `<mtr>...</mtr>`
     RowSeparator,
+    /// <menclose>...</menclose>
+    Enclose {
+        content: &'arena Node<'arena>,
+        notation: Notation,
+    },
     Slashed(&'arena Node<'arena>),
     Multiscript {
         base: &'arena Node<'arena>,
@@ -530,6 +537,51 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 self.emit_table(base_indent, child_indent, content, mtd_opening, false)?;
             }
             Node::ColumnSeparator | Node::RowSeparator => (),
+            Node::Enclose { content, notation } => {
+                let notation = *notation;
+                write!(self.s, "<menclose notation=\"")?;
+                let mut first = true;
+                if notation.contains(Notation::UP_DIAGONAL) {
+                    write!(self.s, "updiagonalstrike")?;
+                    first = false;
+                }
+                if notation.contains(Notation::DOWN_DIAGONAL) {
+                    if !first {
+                        write!(self.s, " ")?;
+                    }
+                    write!(self.s, "downdiagonalstrike")?;
+                }
+                if notation.contains(Notation::HORIZONTAL) {
+                    if !first {
+                        write!(self.s, " ")?;
+                    }
+                    write!(self.s, "horizontalstrike")?;
+                }
+                write!(self.s, "\">")?;
+                self.emit(content, child_indent)?;
+                if notation.contains(Notation::UP_DIAGONAL) {
+                    writeln_indent!(
+                        &mut self.s,
+                        child_indent,
+                        "<mrow class=\"menclose-updiagonalstrike\"></mrow>"
+                    );
+                }
+                if notation.contains(Notation::DOWN_DIAGONAL) {
+                    writeln_indent!(
+                        &mut self.s,
+                        child_indent,
+                        "<mrow class=\"menclose-downdiagonalstrike\"></mrow>"
+                    );
+                }
+                if notation.contains(Notation::HORIZONTAL) {
+                    writeln_indent!(
+                        &mut self.s,
+                        child_indent,
+                        "<mrow class=\"menclose-horizontalstrike\"></mrow>"
+                    );
+                }
+                writeln_indent!(&mut self.s, base_indent, "</menclose>");
+            }
             Node::CustomCmd { predefined, args } => {
                 let old_args = self.custom_cmd_args.replace(args);
                 self.emit(predefined, base_indent)?;
@@ -1243,6 +1295,26 @@ mod tests {
                 },
             }),
             "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
+        );
+    }
+
+    #[test]
+    fn render_enclose() {
+        let content = Node::Row {
+            nodes: &[
+                &Node::IdentifierChar('a', LetterAttr::Default),
+                &Node::IdentifierChar('b', LetterAttr::Default),
+                &Node::IdentifierChar('c', LetterAttr::Default),
+            ],
+            attr: RowAttr::None,
+        };
+
+        assert_eq!(
+            render(&Node::Enclose {
+                content: &content,
+                notation: Notation::UP_DIAGONAL | Notation::DOWN_DIAGONAL
+            }),
+            "<menclose notation=\"updiagonalstrike downdiagonalstrike\"><mrow><mi>a</mi><mi>b</mi><mi>c</mi></mrow><mrow class=\"menclose-updiagonalstrike\"></mrow><mrow class=\"menclose-downdiagonalstrike\"></mrow></menclose>"
         );
     }
 }

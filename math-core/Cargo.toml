@@ -26,12 +26,14 @@ phf = { version = "0.12.1", features = ["macros"] }
 strum = "0.27.1"
 strum_macros = "0.27.2"
 rustc-hash = { workspace = true }
+bitflags = "2.9.3"
 
 [dev-dependencies]
 insta = { version = "1.41.1", features = ["default", "ron"] }
 regex = "1.11.1"
 math-core = { path = ".", features = ["serde"] }
 minijinja = "2.11.0"
+bitflags = { version = "2.9.3", features = ["serde"] }
 
 [features]
 serde = ["dep:serde"]
