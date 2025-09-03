@@ -143,7 +143,7 @@ impl<'source> Lexer<'source> {
         let tok = match ch {
             '\u{0}' => Token::Eof,
             ' ' => Token::Letter('\u{A0}'),
-            '!' => Token::Punctuation(symbol::EXCLAMATION_MARK),
+            '!' => Token::Ord(symbol::EXCLAMATION_MARK),
             '#' => {
                 if self.parse_cmd_args.is_some() && self.peek.1.is_ascii_digit() {
                     // In pre-defined commands, `#` is used to denote a parameter.

@@ -5,7 +5,11 @@ expression: "\\left [ 0,1 \\right ) \\left \\langle \\psi \\right |"
 <math>
     <mrow>
         <mo>[</mo>
-        <mn>0,1</mn>
+        <mrow>
+            <mn>0</mn>
+            <mo>,</mo>
+            <mn>1</mn>
+        </mrow>
         <mo>)</mo>
     </mrow>
     <mrow>

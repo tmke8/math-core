@@ -1,7 +1,11 @@
 ---
 source: math-core/src/lib.rs
-expression: "3,453,435.3453"
+expression: "3{,}453{,}435.3453"
 ---
 <math>
-    <mn>3,453,435.3453</mn>
+    <mn>3</mn>
+    <mo rspace="0">,</mo>
+    <mn>453</mn>
+    <mo rspace="0">,</mo>
+    <mn>435.3453</mn>
 </math>
