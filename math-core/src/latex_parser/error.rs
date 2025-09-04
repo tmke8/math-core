@@ -52,6 +52,8 @@ pub enum Place {
     BeforeSomeOps,
     #[strum(serialize = r"after an identifier or operator")]
     AfterOpOrIdent,
+    #[strum(serialize = r"in a table-like environment")]
+    TableEnv,
 }
 
 impl LatexErrKind<'_> {

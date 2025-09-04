@@ -8,7 +8,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
       Operator(
         op: '∑',
         attr: None,
-        left: None,
+        left: Some(Zero),
         right: None,
       ),
       Row(
@@ -16,8 +16,8 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
           Operator(
             op: '∑',
             attr: None,
-            left: None,
-            right: None,
+            left: Some(Zero),
+            right: Some(Zero),
           ),
         ],
         attr: Style(Display),

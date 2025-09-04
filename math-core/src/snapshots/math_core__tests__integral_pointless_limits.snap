@@ -3,7 +3,7 @@ source: math-core/src/lib.rs
 expression: "\\int\\limits dx"
 ---
 <math>
-    <mo>∫</mo>
+    <mo lspace="0">∫</mo>
     <mi>d</mi>
     <mi>x</mi>
 </math>

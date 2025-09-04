@@ -49,7 +49,7 @@ expression: "{}_pF_q(a_1,\\dots,a_p;c_1,\\dots,c_q;z) = \\sum_{n=0}^\\infty \\fr
     <mo stretchy="false">)</mo>
     <mo>=</mo>
     <munderover>
-        <mo>∑</mo>
+        <mo lspace="0">∑</mo>
         <mrow>
             <mi>n</mi>
             <mo>=</mo>

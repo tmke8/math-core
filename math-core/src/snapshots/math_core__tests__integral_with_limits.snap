@@ -4,7 +4,7 @@ expression: "\\int\\limits_0^1 dx"
 ---
 <math>
     <munderover>
-        <mo>∫</mo>
+        <mo lspace="0">∫</mo>
         <mn>0</mn>
         <mn>1</mn>
     </munderover>
