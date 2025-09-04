@@ -37,9 +37,11 @@ struct SequenceState {
     /// `true` if the boundaries of the sequence are real boundaries;
     /// this is not the case for style-only rows.
     real_boundaries: bool,
+    /// `true` if we are inside an environment that allows columns (`&`).
+    allow_columns: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 enum Class {
     /// `mathord`
     #[default]
@@ -185,6 +187,7 @@ where
             &mut SequenceState {
                 class: Class::Open,
                 real_boundaries: true,
+                allow_columns: false,
             }
         };
 
@@ -243,16 +246,15 @@ where
         &mut self,
         cur_tokloc: TokLoc<'source>,
         parse_as: ParseAs,
-        mut sequence_state: Option<&mut SequenceState>,
+        sequence_state: Option<&mut SequenceState>,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc;
-        // Move out the sequence state if it exists, and replace it with the default state.
-        let mut prev_state = sequence_state
-            .as_mut()
-            .map_or_else(SequenceState::default, |state| mem::take(state));
-        if let Some(ref mut state) = sequence_state {
-            state.real_boundaries = prev_state.real_boundaries;
+        let sequence_state = if let Some(seq_state) = sequence_state {
+            seq_state
+        } else {
+            &mut Default::default()
         };
+        let mut new_class: Class = Default::default();
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -289,11 +291,9 @@ where
             Token::Letter(x) => Node::IdentifierChar(x, LetterAttr::Default),
             Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
             Token::Relation(relation) => {
-                if let Some(state) = sequence_state {
-                    state.class = Class::Relation;
-                };
+                new_class = Class::Relation;
                 let left = if matches!(
-                    prev_state.class,
+                    sequence_state.class,
                     Class::Relation | Class::Open | Class::Punctuation
                 ) {
                     Some(MathSpacing::Zero)
@@ -305,7 +305,7 @@ where
                         self.peek.token(),
                         Token::Relation(_) | Token::Punctuation(_) | Token::Colon
                     ))
-                    || (prev_state.real_boundaries
+                    || (sequence_state.real_boundaries
                         && matches!(
                             self.peek.token(),
                             Token::Eof | Token::GroupEnd | Token::End | Token::Right
@@ -322,10 +322,8 @@ where
                 }
             }
             Token::Punctuation(punc) => {
-                if let Some(state) = sequence_state {
-                    state.class = Class::Punctuation;
-                };
-                let right = if prev_state.real_boundaries
+                new_class = Class::Punctuation;
+                let right = if sequence_state.real_boundaries
                     && matches!(
                         self.peek.token(),
                         Token::Eof | Token::GroupEnd | Token::End | Token::Right
@@ -348,16 +346,18 @@ where
                 right: None,
             },
             Token::BinaryOp(binary_op) => {
-                if let Some(state) = sequence_state {
-                    state.class = Class::BinaryOp;
-                };
+                new_class = Class::BinaryOp;
                 let spacing = if matches!(
-                    prev_state.class,
-                    Class::Relation | Class::Punctuation | Class::BinaryOp | Class::Open
+                    sequence_state.class,
+                    Class::Relation
+                        | Class::Punctuation
+                        | Class::BinaryOp
+                        | Class::Open
+                        | Class::Operator
                 ) || matches!(
                     self.peek.token(),
                     Token::Relation(_) | Token::Punctuation(_)
-                ) || (prev_state.real_boundaries
+                ) || (sequence_state.real_boundaries
                     && matches!(
                         self.peek.token(),
                         Token::Eof | Token::GroupEnd | Token::End | Token::Right
@@ -392,10 +392,14 @@ where
                 right: None,
             },
             Token::PseudoOperator(name) => {
-                if let Some(state) = sequence_state {
-                    state.class = Class::Operator;
-                };
-                return self.make_pseudo_operator(name, &prev_state);
+                let (left, right) = self.big_operator_spacing(sequence_state, true);
+                new_class = Class::Operator;
+                Node::PseudoOp {
+                    attr: None,
+                    left,
+                    right,
+                    name,
+                }
             }
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
@@ -403,9 +407,7 @@ where
             }
             Token::Space(space) => {
                 // Spaces pass through the sequence state.
-                if let Some(state) = sequence_state {
-                    *state = prev_state;
-                };
+                new_class = sequence_state.class;
                 Node::Space(space)
             }
             Token::CustomSpace => {
@@ -516,7 +518,7 @@ where
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
                 let target =
-                    self.parse_token(token, ParseAs::ContinueSequence, Some(&mut prev_state))?;
+                    self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
                 if matches!(cur_token, Token::Overset) {
                     Node::Overset { symbol, target }
                 } else {
@@ -558,20 +560,22 @@ where
                 }
             }
             Token::BigOp(op) => {
+                new_class = Class::Operator;
+                let (left, right) = self.big_operator_spacing(sequence_state, false);
                 let target = if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     self.commit(Node::Operator {
                         op: op.into(),
                         attr: Some(OpAttr::NoMovableLimits),
-                        left: None,
-                        right: None,
+                        left,
+                        right,
                     })
                 } else {
                     self.commit(Node::Operator {
                         op: op.into(),
                         attr: None,
-                        left: None,
-                        right: None,
+                        left,
+                        right,
                     })
                 };
                 match self.get_bounds()? {
@@ -582,7 +586,10 @@ where
                     },
                     Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                     Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                    Bounds(None, None) => return Ok(target),
+                    Bounds(None, None) => {
+                        sequence_state.class = new_class;
+                        return Ok(target);
+                    }
                 }
             }
             Token::PseudoOperatorLimits(name) => {
@@ -606,7 +613,14 @@ where
                         symbol: under,
                     }
                 } else {
-                    return self.make_pseudo_operator(name, &prev_state);
+                    let (left, right) = self.big_operator_spacing(sequence_state, true);
+                    new_class = Class::Operator;
+                    Node::PseudoOp {
+                        attr: None,
+                        left,
+                        right,
+                        name,
+                    }
                 }
             }
             Token::Slashed => {
@@ -674,13 +688,15 @@ where
                 Node::TextTransform { content, tf }
             }
             Token::Integral(int) => {
+                new_class = Class::Operator;
+                let (left, right) = self.big_operator_spacing(sequence_state, false);
                 if matches!(self.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     let target = self.commit(Node::Operator {
                         op: int.into(),
                         attr: None,
-                        left: None,
-                        right: None,
+                        left,
+                        right,
                     });
                     match self.get_bounds()? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
@@ -690,7 +706,10 @@ where
                         },
                         Bounds(Some(symbol), None) => Node::Underset { target, symbol },
                         Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
-                        Bounds(None, None) => return Ok(target),
+                        Bounds(None, None) => {
+                            sequence_state.class = new_class;
+                            return Ok(target);
+                        }
                     }
                 } else {
                     let target = self.commit(Node::Operator {
@@ -703,7 +722,10 @@ where
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
                         Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
-                        Bounds(None, None) => return Ok(target),
+                        Bounds(None, None) => {
+                            sequence_state.class = new_class;
+                            return Ok(target);
+                        }
                     }
                 }
             }
@@ -711,13 +733,11 @@ where
                 // A colon is actually just a relation, but by default, MathML Core gives it
                 // punctuation spacing (left: 0, right: 3mu), so we have to explicitly make it have
                 // relation spacing (left: 5mu, right: 5mu).
-                if let Some(state) = sequence_state {
-                    state.class = Class::Relation;
-                };
+                new_class = Class::Relation;
                 let left = if !matches!(parse_as, ParseAs::Sequence) {
                     None // Don't add spacing if we are in an argument.
                 } else if matches!(
-                    prev_state.class,
+                    sequence_state.class,
                     Class::Relation | Class::Open | Class::Punctuation
                 ) {
                     Some(MathSpacing::Zero)
@@ -729,7 +749,7 @@ where
                 } else if matches!(
                     self.peek.token(),
                     Token::Relation(_) | Token::Punctuation(_) | Token::Colon
-                ) || (prev_state.real_boundaries
+                ) || (sequence_state.real_boundaries
                     && matches!(
                         self.peek.token(),
                         Token::Eof | Token::GroupEnd | Token::End | Token::Right
@@ -750,12 +770,13 @@ where
                 let content = self.parse_sequence(
                     SequenceEnd::Token(Token::GroupEnd),
                     if matches!(parse_as, ParseAs::ContinueSequence) {
-                        Some(&mut prev_state)
+                        Some(sequence_state)
                     } else {
                         None
                     },
                 )?;
                 self.next_token(); // Discard the closing token.
+                sequence_state.class = Class::Default;
                 return Ok(node_vec_to_node(
                     self.arena,
                     content,
@@ -861,7 +882,13 @@ where
                 } else {
                     None
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::End), None)?;
+                let mut state = SequenceState {
+                    class: Class::Open,
+                    real_boundaries: true,
+                    allow_columns: true,
+                };
+                let content =
+                    self.parse_sequence(SequenceEnd::Token(Token::End), Some(&mut state))?;
                 let content = self.arena.push_slice(&content);
                 let end_token_loc = self.next_token().location();
                 let node = match env_name {
@@ -967,10 +994,14 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Node::IdentifierChar(ch, LetterAttr::Upright)
                 } else {
-                    if let Some(state) = sequence_state {
-                        state.class = Class::Operator;
-                    };
-                    return self.make_pseudo_operator(letters, &prev_state);
+                    let (left, right) = self.big_operator_spacing(sequence_state, true);
+                    new_class = Class::Operator;
+                    Node::PseudoOp {
+                        attr: None,
+                        left,
+                        right,
+                        name: letters,
+                    }
                 }
             }
             Token::Text(transform) => {
@@ -1005,7 +1036,19 @@ where
                     Node::Text(text)
                 }
             }
-            Token::Ampersand => Node::ColumnSeparator,
+            Token::Ampersand => {
+                if sequence_state.allow_columns {
+                    Node::ColumnSeparator
+                } else {
+                    return Err(LatexError(
+                        loc,
+                        LatexErrKind::CannotBeUsedHere {
+                            got: cur_token,
+                            correct_place: Place::TableEnv,
+                        },
+                    ));
+                }
+            }
             Token::NewLine => Node::RowSeparator,
             Token::Color => {
                 let (loc, color_name) = self.parse_ascii_text_group()?;
@@ -1013,7 +1056,7 @@ where
                     return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
                 let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(&mut prev_state))?;
+                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
@@ -1021,7 +1064,7 @@ where
             }
             Token::Style(style) => {
                 let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(&mut prev_state))?;
+                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -1130,6 +1173,7 @@ where
                 ));
             }
         };
+        sequence_state.class = new_class;
         Ok(self.commit(node))
     }
 
@@ -1299,39 +1343,46 @@ where
         node
     }
 
-    fn make_pseudo_operator(
-        &mut self,
-        name: &'arena str,
-        prev_state: &SequenceState,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
-        Ok(self.commit(Node::PseudoOp {
-            name,
-            attr: None,
-            left: if matches!(
-                prev_state.class,
+    fn big_operator_spacing(
+        &self,
+        sequence_state: &mut SequenceState,
+        explicit: bool,
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        (
+            if matches!(
+                sequence_state.class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
             ) {
                 Some(MathSpacing::Zero)
             } else {
-                Some(MathSpacing::ThreeMu)
+                if explicit {
+                    Some(MathSpacing::ThreeMu)
+                } else {
+                    None
+                }
             },
-            right: if matches!(
+            if matches!(
                 self.peek.token(),
                 Token::Punctuation(_)
                     | Token::Relation(_)
                     | Token::Delimiter(_)
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
-            ) || (prev_state.real_boundaries
+            ) || (sequence_state.real_boundaries
                 && matches!(
                     self.peek.token(),
                     Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                )) {
+                ))
+            {
                 Some(MathSpacing::Zero)
             } else {
-                Some(MathSpacing::ThreeMu)
+                if explicit {
+                    Some(MathSpacing::ThreeMu)
+                } else {
+                    None
+                }
             },
-        }))
+        )
     }
 }
 
@@ -1589,6 +1640,9 @@ mod tests {
             ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
             ("mspace", r"\mspace{1mu}"),
             ("sout", r"\sout{abc}"),
+            ("sum_relation", r"{\sum = 4}"),
+            ("int_relation", r"{\int = 4}"),
+            ("int_bounds_relation", r"{\int_0^\infty = 4}"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();

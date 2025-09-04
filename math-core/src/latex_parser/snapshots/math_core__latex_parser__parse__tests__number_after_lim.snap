@@ -8,7 +8,7 @@ expression: "\\sum\\limits_12"
     target: Operator(
       op: '∑',
       attr: Some(NoMovableLimits),
-      left: None,
+      left: Some(Zero),
       right: None,
     ),
   ),

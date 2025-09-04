@@ -444,6 +444,7 @@ mod tests {
             ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
             ("sum_with_limit", r"\sum\limits_{i=1}^N"),
             ("sum_pointless_limits", r"\sum\limits n"),
+            ("sum_log", r"\sum\log n"),
             ("product", r"\prod_n n"),
             ("underscore", r"x\ y"),
             ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),
@@ -576,6 +577,7 @@ mod tests {
             ("sqrt_log_braces", r"\sqrt{\log}"),
             ("root_op", r"\sqrt[+]{x}"),
             ("root_log", r"\sqrt[\log]{x}"),
+            ("plus_after_sum", r"\sum + 4"),
             ("plus_after_equal_subscript", r"x =_+4"),
             ("plus_after_equal_subscript2", r"x =_2 +4"),
             ("equal_equal", r"4==4"),
@@ -659,6 +661,7 @@ mod tests {
             ("hspace_unknown_unit", r"\hspace{2ly}"),
             ("hspace_non_digits", r"\hspace{2b2cm}"),
             ("hspace_non_ascii", r"\hspace{22öm}"),
+            ("ampersand_outside_array", r"x & y"),
         ];
 
         for (name, problem) in problems.into_iter() {

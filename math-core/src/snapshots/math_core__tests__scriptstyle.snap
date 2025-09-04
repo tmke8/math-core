@@ -4,7 +4,7 @@ expression: "\\sum_{\\genfrac{}{}{0pt}{}{\\scriptstyle 0 \\le i \\le m}{\\script
 ---
 <math>
     <munder>
-        <mo>∑</mo>
+        <mo lspace="0">∑</mo>
         <mrow>
             <mo></mo>
             <mfrac linethickness="0">

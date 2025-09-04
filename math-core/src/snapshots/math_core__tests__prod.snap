@@ -4,20 +4,20 @@ expression: "\\prod_i \\prod^n \\prod^n_i \\prod_i^n"
 ---
 <math>
     <munder>
-        <mo>∏</mo>
+        <mo lspace="0">∏</mo>
         <mi>i</mi>
     </munder>
     <mover>
-        <mo>∏</mo>
+        <mo lspace="0">∏</mo>
         <mi>n</mi>
     </mover>
     <munderover>
-        <mo>∏</mo>
+        <mo lspace="0">∏</mo>
         <mi>i</mi>
         <mi>n</mi>
     </munderover>
     <munderover>
-        <mo>∏</mo>
+        <mo lspace="0">∏</mo>
         <mi>i</mi>
         <mi>n</mi>
     </munderover>

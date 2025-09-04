@@ -1,0 +1,9 @@
+---
+source: math-core/src/lib.rs
+expression: x & y
+---
+Position: 2
+CannotBeUsedHere {
+    got: Ampersand,
+    correct_place: TableEnv,
+}
