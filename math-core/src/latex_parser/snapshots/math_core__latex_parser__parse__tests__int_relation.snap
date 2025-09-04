@@ -8,8 +8,8 @@ expression: "{\\int = 4}"
       Operator(
         op: '∫',
         attr: None,
-        left: None,
-        right: None,
+        left: Some(Zero),
+        right: Some(Zero),
       ),
       Operator(
         op: '=',

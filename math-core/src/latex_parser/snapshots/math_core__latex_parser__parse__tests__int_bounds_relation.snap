@@ -9,8 +9,8 @@ expression: "{\\int_0^\\infty = 4}"
         target: Operator(
           op: '∫',
           attr: None,
-          left: None,
-          right: None,
+          left: Some(Zero),
+          right: Some(Zero),
         ),
         sub: Number("0"),
         sup: IdentifierChar('∞', Default),

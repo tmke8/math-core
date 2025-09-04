@@ -4,7 +4,7 @@ expression: "\\int_0^1 dx"
 ---
 <math>
     <msubsup>
-        <mo>∫</mo>
+        <mo lspace="0">∫</mo>
         <mn>0</mn>
         <mn>1</mn>
     </msubsup>

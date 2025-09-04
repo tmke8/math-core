@@ -689,16 +689,20 @@ where
             }
             Token::Integral(int) => {
                 new_class = Class::Operator;
-                let (left, right) = self.big_operator_spacing(sequence_state, false);
-                if matches!(self.peek.token(), Token::Limits) {
+                let limits = matches!(self.peek.token(), Token::Limits);
+                if limits {
                     self.next_token(); // Discard the limits token.
-                    let target = self.commit(Node::Operator {
-                        op: int.into(),
-                        attr: None,
-                        left,
-                        right,
-                    });
-                    match self.get_bounds()? {
+                };
+                let bounds = self.get_bounds()?;
+                let (left, right) = self.big_operator_spacing(sequence_state, false);
+                let target = self.commit(Node::Operator {
+                    op: int.into(),
+                    attr: None,
+                    left,
+                    right,
+                });
+                if limits {
+                    match bounds {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target,
                             under,
@@ -712,13 +716,7 @@ where
                         }
                     }
                 } else {
-                    let target = self.commit(Node::Operator {
-                        op: int.into(),
-                        attr: None,
-                        left: None,
-                        right: None,
-                    });
-                    match self.get_bounds()? {
+                    match bounds {
                         Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
                         Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
                         Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
