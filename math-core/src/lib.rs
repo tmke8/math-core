@@ -108,6 +108,8 @@ pub struct MathCoreConfig {
     pub pretty_print: PrettyPrint,
     /// A map of LaTeX macros; the keys are macro names and the values are their definitions.
     pub macros: FxHashMap<String, String>,
+    /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
+    pub xml_namespace: bool,
 }
 
 #[derive(Debug)]
@@ -132,10 +134,27 @@ impl CustomCmds {
     }
 }
 
+/// This struct contains those fields from `MathCoreConfig` that are simple flags.
+#[derive(Debug)]
+struct Flags {
+    pretty_print: PrettyPrint,
+    xml_namespace: bool,
+}
+
+impl From<&MathCoreConfig> for Flags {
+    fn from(config: &MathCoreConfig) -> Self {
+        // TODO: can we use a macro here to avoid repeating the field names?
+        Self {
+            pretty_print: config.pretty_print,
+            xml_namespace: config.xml_namespace,
+        }
+    }
+}
+
 /// A converter that transforms LaTeX math equations into MathML Core.
 #[derive(Debug)]
 pub struct LatexToMathML {
-    pretty_print: PrettyPrint,
+    flags: Flags,
     /// This is used for numbering equations in the document.
     equation_count: usize,
     custom_cmds: Option<CustomCmds>,
@@ -148,7 +167,7 @@ impl LatexToMathML {
     /// be parsed.
     pub fn new(config: &MathCoreConfig) -> Result<Self, LatexError<'_>> {
         Ok(Self {
-            pretty_print: config.pretty_print,
+            flags: Flags::from(config),
             equation_count: 0,
             custom_cmds: Some(parse_custom_commands(&config.macros)?),
         })
@@ -157,7 +176,10 @@ impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with default settings.
     pub const fn const_default() -> Self {
         Self {
-            pretty_print: PrettyPrint::Never,
+            flags: Flags {
+                pretty_print: PrettyPrint::Never,
+                xml_namespace: false,
+            },
             equation_count: 0,
             custom_cmds: None,
         }
@@ -184,7 +206,7 @@ impl LatexToMathML {
             display,
             self.custom_cmds.as_ref(),
             &mut self.equation_count,
-            self.pretty_print,
+            &self.flags,
         )
     }
 
@@ -221,7 +243,7 @@ impl LatexToMathML {
             display,
             self.custom_cmds.as_ref(),
             &mut equation_count,
-            self.pretty_print,
+            &self.flags,
         )
     }
 
@@ -238,7 +260,7 @@ fn convert<'config, 'source>(
     display: MathDisplay,
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut usize,
-    pretty_print: PrettyPrint,
+    flags: &Flags,
 ) -> Result<String, LatexError<'source>>
 where
     'config: 'source,
@@ -247,13 +269,17 @@ where
     let ast = parse(latex, &arena, custom_cmds)?;
 
     let mut output = MathMLEmitter::new(equation_count);
-    match display {
-        MathDisplay::Block => output.push_str("<math display=\"block\">"),
-        MathDisplay::Inline => output.push_str("<math>"),
+    output.push_str("<math");
+    if flags.xml_namespace {
+        output.push_str(" xmlns=\"http://www.w3.org/1998/Math/MathML\"");
+    }
+    if matches!(display, MathDisplay::Block) {
+        output.push_str(" display=\"block\"");
     };
+    output.push_str(">");
 
-    let pretty_print = matches!(pretty_print, PrettyPrint::Always)
-        || (matches!(pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
+    let pretty_print = matches!(flags.pretty_print, PrettyPrint::Always)
+        || (matches!(flags.pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
@@ -683,6 +709,7 @@ mod tests {
         let config = crate::MathCoreConfig {
             macros,
             pretty_print: crate::PrettyPrint::Always,
+            ..Default::default()
         };
 
         let converter = LatexToMathML::new(&config).unwrap();
@@ -706,6 +733,7 @@ mod tests {
         let config = crate::MathCoreConfig {
             macros,
             pretty_print: crate::PrettyPrint::Always,
+            ..Default::default()
         };
 
         let converter = LatexToMathML::new(&config).unwrap();
@@ -724,6 +752,7 @@ mod tests {
         let config = crate::MathCoreConfig {
             macros,
             pretty_print: crate::PrettyPrint::Always,
+            ..Default::default()
         };
 
         let converter = LatexToMathML::new(&config).unwrap();

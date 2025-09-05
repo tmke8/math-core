@@ -313,6 +313,7 @@ dependencies = [
 name = "math-core-cli"
 version = "0.1.1"
 dependencies = [
+ "bitflags 2.9.4",
  "clap",
  "math-core",
  "memchr",

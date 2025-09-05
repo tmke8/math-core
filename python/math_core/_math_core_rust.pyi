@@ -25,6 +25,7 @@ class LatexToMathML:
         *,
         pretty_print: PrettyPrint = PrettyPrint.NEVER,
         macros: dict[str, str] | None = None,
+        xml_namespace: bool = False,
     ) -> None: ...
     def convert_with_global_counter(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a global counter for environments like `align`."""

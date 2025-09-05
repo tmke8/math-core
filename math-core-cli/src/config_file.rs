@@ -93,6 +93,7 @@ mod tests {
     fn test_full_config() {
         let toml_content = r#"
 pretty-print = "always"
+xml-namespace = true
 
 [macros]
 R = "\\mathbb{R}"
@@ -100,6 +101,7 @@ R = "\\mathbb{R}"
         "#;
         let config = parse_config(toml_content).unwrap();
         assert!(matches!(config.math_core.pretty_print, PrettyPrint::Always));
+        assert!(config.math_core.xml_namespace);
         assert_eq!(config.math_core.macros.get("R").unwrap(), "\\mathbb{R}");
         assert_eq!(config.math_core.macros.get("é").unwrap(), "\\acute{e}");
     }

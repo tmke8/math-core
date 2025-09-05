@@ -27,10 +27,13 @@ extern "C" {
     pub type JsConfig;
 
     #[wasm_bindgen(method, getter)]
-    fn prettyPrint(this: &JsConfig) -> bool;
+    fn prettyPrint(this: &JsConfig) -> String;
 
     #[wasm_bindgen(method, getter)]
     fn macros(this: &JsConfig) -> Map;
+
+    #[wasm_bindgen(method, getter)]
+    fn xmlNamespace(this: &JsConfig) -> bool;
 }
 
 thread_local! {
@@ -64,14 +67,22 @@ pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
         };
         macros.insert(key, value);
     }
-    let pretty_print = if js_config.prettyPrint() {
-        PrettyPrint::Always
-    } else {
-        PrettyPrint::Never
+    let pretty_print = match js_config.prettyPrint().as_str() {
+        "always" => PrettyPrint::Always,
+        "never" => PrettyPrint::Never,
+        "auto" => PrettyPrint::Auto,
+        _ => {
+            return Err(LatexError {
+                message: JsValue::from_str("Invalid value for prettyPrint"),
+                location: 0,
+            });
+        }
     };
+    let xml_namespace = js_config.xmlNamespace();
     let config = MathCoreConfig {
         pretty_print,
         macros,
+        xml_namespace,
         ..Default::default()
     };
     let converter = LatexToMathML::new(&config).map_err(|e| LatexError {
