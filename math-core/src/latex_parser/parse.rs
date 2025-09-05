@@ -48,6 +48,12 @@ enum Class {
     Default,
     /// `mathopen`
     Open,
+    /// `mathclose`
+    Close,
+    /// `mathopen` or `mathclose`
+    /// This is a temporary variant that we use because we don't always know yet
+    /// if we are parsing an opening or closing symbol.
+    OpenOrClose,
     /// `mathrel`
     Relation,
     /// `mathpunct`
@@ -77,7 +83,7 @@ impl SequenceEnd {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum ParseAs {
     /// A sequence starts with a fresh sequence state.
     Sequence,
@@ -255,6 +261,7 @@ where
             &mut Default::default()
         };
         let mut new_class: Class = Default::default();
+        let next_class = self.next_class(parse_as, sequence_state);
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -300,16 +307,10 @@ where
                 } else {
                     None
                 };
-                let right = if (matches!(parse_as, ParseAs::Sequence)
-                    && matches!(
-                        self.peek.token(),
-                        Token::Relation(_) | Token::Punctuation(_) | Token::Colon
-                    ))
-                    || (sequence_state.real_boundaries
-                        && matches!(
-                            self.peek.token(),
-                            Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                        )) {
+                let right = if matches!(
+                    next_class,
+                    Class::Relation | Class::Punctuation | Class::Close
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -323,11 +324,7 @@ where
             }
             Token::Punctuation(punc) => {
                 new_class = Class::Punctuation;
-                let right = if sequence_state.real_boundaries
-                    && matches!(
-                        self.peek.token(),
-                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                    ) {
+                let right = if matches!(next_class, Class::Close) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -355,13 +352,9 @@ where
                         | Class::Open
                         | Class::Operator
                 ) || matches!(
-                    self.peek.token(),
-                    Token::Relation(_) | Token::Punctuation(_)
-                ) || (sequence_state.real_boundaries
-                    && matches!(
-                        self.peek.token(),
-                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                    )) {
+                    next_class,
+                    Class::Relation | Class::Punctuation | Class::Close
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -392,7 +385,7 @@ where
                 right: None,
             },
             Token::PseudoOperator(name) => {
-                let (left, right) = self.big_operator_spacing(sequence_state, true);
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                 new_class = Class::Operator;
                 Node::PseudoOp {
                     attr: None,
@@ -561,23 +554,22 @@ where
             }
             Token::BigOp(op) => {
                 new_class = Class::Operator;
-                let (left, right) = self.big_operator_spacing(sequence_state, false);
-                let target = if matches!(self.peek.token(), Token::Limits) {
+                let limits = matches!(self.peek.token(), Token::Limits);
+                if limits {
                     self.next_token(); // Discard the limits token.
-                    self.commit(Node::Operator {
-                        op: op.into(),
-                        attr: Some(OpAttr::NoMovableLimits),
-                        left,
-                        right,
-                    })
-                } else {
-                    self.commit(Node::Operator {
-                        op: op.into(),
-                        attr: None,
-                        left,
-                        right,
-                    })
                 };
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
+                let attr = if limits {
+                    Some(OpAttr::NoMovableLimits)
+                } else {
+                    None
+                };
+                let target = self.commit(Node::Operator {
+                    op: op.into(),
+                    attr,
+                    left,
+                    right,
+                });
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Node::UnderOver {
                         target,
@@ -613,7 +605,7 @@ where
                         symbol: under,
                     }
                 } else {
-                    let (left, right) = self.big_operator_spacing(sequence_state, true);
+                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
                     Node::PseudoOp {
                         attr: None,
@@ -694,7 +686,7 @@ where
                     self.next_token(); // Discard the limits token.
                 };
                 let bounds = self.get_bounds()?;
-                let (left, right) = self.big_operator_spacing(sequence_state, false);
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let target = self.commit(Node::Operator {
                     op: int.into(),
                     attr: None,
@@ -745,14 +737,9 @@ where
                 let right = if !matches!(parse_as, ParseAs::Sequence) {
                     None // Don't add spacing if we are in an argument.
                 } else if matches!(
-                    self.peek.token(),
-                    Token::Relation(_) | Token::Punctuation(_) | Token::Colon
-                ) || (sequence_state.real_boundaries
-                    && matches!(
-                        self.peek.token(),
-                        Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                    ))
-                {
+                    next_class,
+                    Class::Relation | Class::Close | Class::Punctuation
+                ) {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::FiveMu)
@@ -781,11 +768,16 @@ where
                     matches!(parse_as, ParseAs::Arg),
                 ));
             }
-            Token::Delimiter(paren) => Node::StretchableOp(paren, StretchMode::NoStretch),
+            Token::Delimiter(paren) => {
+                new_class = Class::OpenOrClose;
+                Node::StretchableOp(paren, StretchMode::NoStretch)
+            }
             Token::SquareBracketOpen => {
+                new_class = Class::Open;
                 Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::SquareBracketClose => {
+                new_class = Class::Close;
                 Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::Left => {
@@ -823,6 +815,7 @@ where
                         ));
                     }
                 };
+                new_class = Class::Close;
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
@@ -849,6 +842,7 @@ where
                 Node::StretchableOp(op, StretchMode::Middle)
             }
             Token::Big(size) => {
+                new_class = Class::OpenOrClose;
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
                     Token::Delimiter(paren) => paren,
@@ -992,7 +986,7 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Node::IdentifierChar(ch, LetterAttr::Upright)
                 } else {
-                    let (left, right) = self.big_operator_spacing(sequence_state, true);
+                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
                     Node::PseudoOp {
                         attr: None,
@@ -1343,9 +1337,13 @@ where
 
     fn big_operator_spacing(
         &self,
-        sequence_state: &mut SequenceState,
+        parse_as: ParseAs,
+        sequence_state: &SequenceState,
         explicit: bool,
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        // We re-determine the next class here, because the next token may have changed
+        // because we discarded bounds or limits tokens.
+        let next_class = self.next_class(parse_as, sequence_state);
         (
             if matches!(
                 sequence_state.class,
@@ -1360,18 +1358,13 @@ where
                 }
             },
             if matches!(
-                self.peek.token(),
-                Token::Punctuation(_)
-                    | Token::Relation(_)
-                    | Token::Delimiter(_)
-                    | Token::SquareBracketOpen
-                    | Token::SquareBracketClose
-            ) || (sequence_state.real_boundaries
-                && matches!(
-                    self.peek.token(),
-                    Token::Eof | Token::GroupEnd | Token::End | Token::Right
-                ))
-            {
+                next_class,
+                Class::Punctuation
+                    | Class::Relation
+                    | Class::OpenOrClose
+                    | Class::Open
+                    | Class::Close
+            ) {
                 Some(MathSpacing::Zero)
             } else {
                 if explicit {
@@ -1381,6 +1374,27 @@ where
                 }
             },
         )
+    }
+
+    fn next_class(&self, parse_as: ParseAs, sequence_state: &SequenceState) -> Class {
+        if !matches!(parse_as, ParseAs::Sequence | ParseAs::ContinueSequence) {
+            return Class::Default;
+        }
+        match self.peek.token() {
+            Token::Relation(_) | Token::Colon => Class::Relation,
+            Token::Punctuation(_) => Class::Punctuation,
+            Token::Left | Token::SquareBracketOpen => Class::Open,
+            Token::SquareBracketClose => Class::Close,
+            Token::BinaryOp(_) => Class::BinaryOp,
+            Token::BigOp(_) | Token::Integral(_) => Class::Operator,
+            Token::End | Token::Right | Token::GroupEnd | Token::Eof
+                if sequence_state.real_boundaries =>
+            {
+                Class::Close
+            }
+            Token::Delimiter(_) | Token::Big(_) => Class::OpenOrClose,
+            _ => Class::Default,
+        }
     }
 }
 

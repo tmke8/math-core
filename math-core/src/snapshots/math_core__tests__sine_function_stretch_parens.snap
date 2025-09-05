@@ -1,0 +1,12 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sin\\left(x\\right)"
+---
+<math>
+    <mo lspace="0" rspace="0">sin</mo>
+    <mrow>
+        <mo>(</mo>
+        <mi>x</mi>
+        <mo>)</mo>
+    </mrow>
+</math>

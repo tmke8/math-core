@@ -423,6 +423,7 @@ mod tests {
             ("simple_expression", r"x = 3+\alpha"),
             ("sine_function", r"\sin x"),
             ("sine_function_parens", r"\sin(x)"),
+            ("sine_function_stretch_parens", r"\sin\left(x\right)"),
             ("sine_function_sqbrackets", r"\sin[x]"),
             ("sine_function_brackets", r"\sin\{x\}"),
             ("sine_sine", r"\sin\sin x"),
