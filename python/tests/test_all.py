@@ -57,3 +57,11 @@ def test_signature():
         str(inspect.signature(converter.convert_with_local_counter))
         == "(latex, *, displaystyle)"
     )
+
+
+def test_xml():
+    converter = LatexToMathML(xml_namespace=True)
+    assert (
+        converter.convert_with_local_counter("x", displaystyle=False)
+        == '<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'
+    )

@@ -26,8 +26,12 @@ enum PrettyPrint {
 #[pymethods]
 impl LatexToMathML {
     #[new]
-    #[pyo3(signature = (*, pretty_print=&PrettyPrint::Never, macros=None))]
-    fn new(pretty_print: &PrettyPrint, macros: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+    #[pyo3(signature = (*, pretty_print=&PrettyPrint::Never, macros=None, xml_namespace=false))]
+    fn new(
+        pretty_print: &PrettyPrint,
+        macros: Option<&Bound<'_, PyDict>>,
+        xml_namespace: bool,
+    ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             PrettyPrint::Never => math_core::PrettyPrint::Never,
             PrettyPrint::Always => math_core::PrettyPrint::Always,
@@ -40,6 +44,7 @@ impl LatexToMathML {
             } else {
                 Default::default()
             },
+            xml_namespace,
             ..Default::default()
         };
 
