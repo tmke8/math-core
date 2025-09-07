@@ -1,4 +1,5 @@
 mod atof;
+mod character_class;
 mod color_defs;
 mod commands;
 mod error;

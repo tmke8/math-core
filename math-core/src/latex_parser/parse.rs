@@ -13,6 +13,7 @@ use crate::mathml_renderer::{
 };
 
 use super::{
+    character_class::Class,
     color_defs::get_color,
     commands::get_negated_op,
     error::{LatexErrKind, LatexError, Place},
@@ -39,29 +40,6 @@ struct SequenceState {
     real_boundaries: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-enum Class {
-    /// `mathord`
-    #[default]
-    Default,
-    /// `mathopen`
-    Open,
-    /// `mathclose`
-    Close,
-    /// `mathopen` or `mathclose`
-    /// This is a temporary variant that we use because we don't always know yet
-    /// if we are parsing an opening or closing symbol.
-    OpenOrClose,
-    /// `mathrel`
-    Relation,
-    /// `mathpunct`
-    Punctuation,
-    /// `mathbin`
-    BinaryOp,
-    /// `mathop`
-    Operator,
 }
 
 #[derive(Debug)]
@@ -777,7 +755,6 @@ where
                 Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::SquareBracketClose => {
-                new_class = Class::Close;
                 Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
             }
             Token::Left => {
@@ -815,7 +792,6 @@ where
                         ));
                     }
                 };
-                new_class = Class::Close;
                 Node::Fenced {
                     open: open_paren,
                     close: close_paren,
@@ -841,8 +817,8 @@ where
                 };
                 Node::StretchableOp(op, StretchMode::Middle)
             }
-            Token::Big(size) => {
-                new_class = Class::OpenOrClose;
+            Token::Big(size, class) => {
+                new_class = class.unwrap_or(Class::OpenOrClose);
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
                     Token::Delimiter(paren) => paren,
@@ -1030,6 +1006,7 @@ where
             }
             Token::Ampersand => {
                 if sequence_state.allow_columns {
+                    new_class = Class::Close;
                     Node::ColumnSeparator
                 } else {
                     return Err(LatexError(
@@ -1384,7 +1361,7 @@ where
             Token::Relation(_) | Token::Colon => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::SquareBracketClose => Class::Close,
+            Token::SquareBracketClose | Token::Ampersand => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
             Token::End | Token::Right | Token::GroupEnd | Token::Eof
@@ -1392,7 +1369,8 @@ where
             {
                 Class::Close
             }
-            Token::Delimiter(_) | Token::Big(_) => Class::OpenOrClose,
+            Token::Delimiter(_) | Token::Big(_, None) => Class::OpenOrClose,
+            Token::Big(_, Some(class)) => *class,
             _ => Class::Default,
         }
     }
