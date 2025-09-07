@@ -16,7 +16,7 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
                     <mi>n</mi>
                     <mi>/</mi>
                     <mn>2</mn>
-                    <mo>,</mo>
+                    <mo rspace="0">,</mo>
                 </mtd>
                 <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>if </mtext>
@@ -30,7 +30,7 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
                     <mi>n</mi>
                     <mo>+</mo>
                     <mn>1</mn>
-                    <mo>,</mo>
+                    <mo rspace="0">,</mo>
                 </mtd>
                 <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-right: 0;padding-left:1em;">
                     <mtext>if </mtext>

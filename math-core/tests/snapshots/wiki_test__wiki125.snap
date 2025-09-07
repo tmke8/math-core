@@ -23,10 +23,10 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
             </mtr>
             <mtr>
                 <mtd>
-                    <mo>⋮</mo>
+                    <mo rspace="0">⋮</mo>
                 </mtd>
                 <mtd>
-                    <mo>⋱</mo>
+                    <mo rspace="0">⋱</mo>
                 </mtd>
                 <mtd>
                     <mo>⋮</mo>

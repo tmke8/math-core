@@ -587,6 +587,8 @@ mod tests {
             ("slashed", r"\slashed{\partial}"),
             ("plus_after_equal", r"x = +4"),
             ("plus_after_equal_with_space", r"x =\, +4"),
+            ("plus_after_bigl", r"\bigl)+ x"),
+            ("plus_after_bigr", r"\bigr(+ x"),
             ("equal_after_plus", r"x+ = 4"),
             ("plus_in_braces", r"4{+}4"),
             ("plus_before_punctuation", r"4+,"),

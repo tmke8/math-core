@@ -2,6 +2,7 @@ use std::mem::discriminant;
 
 use strum_macros::IntoStaticStr;
 
+use crate::latex_parser::character_class::Class;
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -69,7 +70,7 @@ pub enum Token<'source> {
     NonBreakingSpace,
     Whitespace,
     Transform(MathVariant),
-    Big(Size),
+    Big(Size, Option<Class>),
     OverUnder(Rel, bool, Option<OpAttr>),
     Relation(Rel),
     Ord(Ord),
