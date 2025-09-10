@@ -730,7 +730,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &Fence) -> std::fmt::Result {
         match (stretch_mode, op.stretchy()) {
-            (StretchMode::Fence, Stretchy::Never | Stretchy::AlwaysAsymmetric)
+            (StretchMode::Fence, Stretchy::Never)
             | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
                 write!(self.s, "<mo stretchy=\"true\">")?;
             }

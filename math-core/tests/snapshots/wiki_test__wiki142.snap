@@ -4,29 +4,29 @@ expression: "\\left\\uparrow\\frac{a}{b}\\right\\downarrow\\; \\left\\Uparrow\\f
 ---
 <math>
     <mrow>
-        <mo stretchy="true">↑</mo>
+        <mo>↑</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mo stretchy="true">↓</mo>
+        <mo>↓</mo>
     </mrow>
     <mspace width="0.2777778em"/>
     <mrow>
-        <mo stretchy="true">⇑</mo>
+        <mo>⇑</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mo stretchy="true">⇓</mo>
+        <mo>⇓</mo>
     </mrow>
     <mspace width="0.2777778em"/>
     <mrow>
-        <mo stretchy="true">↕</mo>
+        <mo>↕</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mo stretchy="true">⇕</mo>
+        <mo>⇕</mo>
     </mrow>
 </math>
