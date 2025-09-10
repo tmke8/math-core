@@ -1,8 +1,6 @@
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use super::attribute::Stretchy;
-
 /// A character for use in MathML `<mo>` elements.
 ///
 /// LaTeX's operator classes cannot be mapped cleanly to MathML's `<mo>` vs `<mi>` distinction.
@@ -184,6 +182,24 @@ impl From<&Punct> for MathMLOperator {
     fn from(op: &Punct) -> Self {
         MathMLOperator(op.0)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum Stretchy {
+    /// The operator is always stretchy (e.g. `(`, `)`).
+    // `(` is only in prefix F
+    // `)` is only in postfix G
+    Always = 1,
+    /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
+    // `|` is in: infix ForceDefault, prefix F, postfix G
+    PrePostfix,
+    /// The operator is never stretchy (e.g. `/`).
+    // `/` is only in infix K
+    Never,
+    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
+    // `↑` is only in infix A
+    AlwaysAsymmetric,
 }
 
 //

@@ -6,13 +6,13 @@ use serde::Serialize;
 use crate::mathml_renderer::attribute::Notation;
 
 use super::attribute::{
-    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Stretchy,
-    Style, TextTransform,
+    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Style,
+    TextTransform,
 };
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
-use super::symbol::{Fence, MathMLOperator};
+use super::symbol::{Fence, MathMLOperator, Stretchy};
 use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
