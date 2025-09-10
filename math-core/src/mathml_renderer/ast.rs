@@ -469,8 +469,14 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     <&str>::from(size),
                     <&str>::from(size)
                 )?;
-                if !matches!(paren.stretchy(), Stretchy::Always) {
-                    write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
+                match paren.stretchy() {
+                    Stretchy::PrePostfix | Stretchy::Never => {
+                        write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
+                    }
+                    Stretchy::AlwaysAsymmetric => {
+                        write!(self.s, " symmetric=\"true\"")?;
+                    }
+                    _ => {}
                 }
                 write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
@@ -724,18 +730,19 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &Fence) -> std::fmt::Result {
         match (stretch_mode, op.stretchy()) {
-            (StretchMode::Fence, Stretchy::Never | Stretchy::Inconsistent)
-            | (
-                StretchMode::Middle,
-                Stretchy::PrePostfix | Stretchy::Inconsistent | Stretchy::Never,
-            ) => {
+            (StretchMode::Fence, Stretchy::Never | Stretchy::AlwaysAsymmetric)
+            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
                 write!(self.s, "<mo stretchy=\"true\">")?;
             }
             (
                 StretchMode::NoStretch,
-                Stretchy::Always | Stretchy::PrePostfix | Stretchy::Inconsistent,
+                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
             ) => {
                 write!(self.s, "<mo stretchy=\"false\">")?;
+            }
+
+            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
+                write!(self.s, "<mo symmetric=\"true\">")?;
             }
             _ => {
                 write!(self.s, "<mo>")?;
