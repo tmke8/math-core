@@ -64,18 +64,18 @@ impl From<&Ord> for MathMLOperator {
 /// A type corresponding to LaTeX's "mathop" character class (class 1).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
-pub struct Op(char);
+pub struct BigOp(char);
 
-impl From<Op> for MathMLOperator {
+impl From<BigOp> for MathMLOperator {
     #[inline]
-    fn from(op: Op) -> Self {
+    fn from(op: BigOp) -> Self {
         MathMLOperator(op.0)
     }
 }
 
-impl From<&Op> for MathMLOperator {
+impl From<&BigOp> for MathMLOperator {
     #[inline]
-    fn from(op: &Op) -> Self {
+    fn from(op: &BigOp) -> Self {
         MathMLOperator(op.0)
     }
 }
@@ -132,29 +132,50 @@ impl From<&Rel> for MathMLOperator {
     }
 }
 
-/// A type corresponding to LaTeX's "mathopen" and "mathclose" character classes
-/// (class 4 and 5).
+/// An operator
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct Fence(char, Category);
+pub struct Op {
+    char: u16,
+    pub cat: OpCategory,
+}
 
-impl Fence {
+#[cfg(feature = "serde")]
+impl Serialize for Op {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeTupleStruct;
+
+        let mut state = serializer.serialize_tuple_struct("Op", 2)?;
+        state.serialize_field(&char::from(*self))?;
+        state.serialize_field(&self.cat)?;
+        state.end()
+    }
+}
+
+impl Op {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)
     #[inline]
     pub fn ordinary_spacing(&self) -> bool {
-        matches!(self.1, Category::OnlyK | Category::ForceDefaultFG)
-    }
-    #[inline]
-    pub fn stretchy(&self) -> Category {
-        self.1
+        matches!(self.cat, OpCategory::OnlyK | OpCategory::ForceDefaultFG)
     }
 }
 
-impl From<&Fence> for char {
+impl From<Op> for char {
     #[inline]
-    fn from(op: &Fence) -> Self {
-        op.0
+    fn from(op: Op) -> Self {
+        debug_assert!(char::from_u32(op.char as u32).is_some());
+        unsafe { char::from_u32_unchecked(op.char as u32) }
+    }
+}
+
+const fn op(ch: char, cat: OpCategory) -> Op {
+    assert!(ch as u32 <= u16::MAX as u32);
+    Op {
+        char: ch as u16,
+        cat,
     }
 }
 
@@ -186,29 +207,25 @@ impl From<&Punct> for MathMLOperator {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum Category {
+pub enum OpCategory {
     NoCategory = 0,
-    /// The operator is always stretchy (e.g. `(`, `)`).
-    // `(` is only in prefix F
-    OnlyF = 1,
-    /// The operator is always stretchy (e.g. `(`, `)`).
-    // `)` is only in postfix G
+    /// Category F: Prefix, zero spacing, stretchy, symmetric (e.g. `(`).
+    OnlyF,
+    /// Category G: Postfix, zero spacing, stretchy, symmetric (e.g. `)`).
     OnlyG,
     /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
     // `|` is in: infix ForceDefault, prefix F, postfix G
     ForceDefaultFG,
-    /// The operator is never stretchy (e.g. `/`).
-    // `/` is only in infix K
+    /// Category K: Infix, zero spacing (e.g. `/`).
     OnlyK,
-    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
-    // `↑` is only in infix A
+    /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
     OnlyA,
 }
 
 //
 // Unicode Block: Basic Latin
 //
-pub const NULL: &Fence = &Fence('\u{0}', Category::OnlyF);
+pub const NULL: Op = op('\u{0}', OpCategory::OnlyF);
 pub const EXCLAMATION_MARK: Ord = Ord('!');
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
@@ -216,13 +233,13 @@ pub const DOLLAR_SIGN: char = '$';
 pub const PERCENT_SIGN: char = '%';
 // pub const AMPERSAND: char = '&';
 // pub const APOSTROPHE: char = '\'';
-pub const LEFT_PARENTHESIS: &Fence = &Fence('(', Category::OnlyF);
-pub const RIGHT_PARENTHESIS: &Fence = &Fence(')', Category::OnlyG);
+pub const LEFT_PARENTHESIS: Op = op('(', OpCategory::OnlyF);
+pub const RIGHT_PARENTHESIS: Op = op(')', OpCategory::OnlyG);
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = Bin('+');
 pub const COMMA: Punct = Punct(',');
 pub const FULL_STOP: Ord = Ord('.');
-pub const SOLIDUS: &Fence = &Fence('/', Category::OnlyK);
+pub const SOLIDUS: Op = op('/', OpCategory::OnlyK);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -232,16 +249,16 @@ pub const EQUALS_SIGN: Rel = Rel('=');
 // pub const QUESTION_MARK: Op = Op('?');
 // pub const COMMERCIAL_AT: char = '@';
 
-pub const LEFT_SQUARE_BRACKET: &Fence = &Fence('[', Category::OnlyF);
-pub const REVERSE_SOLIDUS: &Fence = &Fence('\\', Category::OnlyK);
-pub const RIGHT_SQUARE_BRACKET: &Fence = &Fence(']', Category::OnlyG);
+pub const LEFT_SQUARE_BRACKET: Op = op('[', OpCategory::OnlyF);
+pub const REVERSE_SOLIDUS: Op = op('\\', OpCategory::OnlyK);
+pub const RIGHT_SQUARE_BRACKET: Op = op(']', OpCategory::OnlyG);
 pub const CIRCUMFLEX_ACCENT: Rel = Rel('^');
 pub const LOW_LINE: Rel = Rel('_');
 pub const GRAVE_ACCENT: Rel = Rel('`');
 
-pub const LEFT_CURLY_BRACKET: &Fence = &Fence('{', Category::OnlyF);
-pub const VERTICAL_LINE: &Fence = &Fence('|', Category::ForceDefaultFG);
-pub const RIGHT_CURLY_BRACKET: &Fence = &Fence('}', Category::OnlyG);
+pub const LEFT_CURLY_BRACKET: Op = op('{', OpCategory::OnlyF);
+pub const VERTICAL_LINE: Op = op('|', OpCategory::ForceDefaultFG);
+pub const RIGHT_CURLY_BRACKET: Op = op('}', OpCategory::OnlyG);
 pub const TILDE: Rel = Rel('~');
 
 //
@@ -380,7 +397,7 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
-pub const DOUBLE_VERTICAL_LINE: &Fence = &Fence('‖', Category::ForceDefaultFG);
+pub const DOUBLE_VERTICAL_LINE: Op = op('‖', OpCategory::ForceDefaultFG);
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
@@ -441,11 +458,11 @@ pub const TURNED_SANS_SERIF_CAPITAL_G: char = '⅁';
 // Unicode Block: Arrows
 //
 pub const LEFTWARDS_ARROW: Rel = Rel('←');
-pub const UPWARDS_ARROW: &Fence = &Fence('↑', Category::OnlyA);
+pub const UPWARDS_ARROW: Op = op('↑', OpCategory::OnlyA);
 pub const RIGHTWARDS_ARROW: Rel = Rel('→');
-pub const DOWNWARDS_ARROW: &Fence = &Fence('↓', Category::OnlyA);
+pub const DOWNWARDS_ARROW: Op = op('↓', OpCategory::OnlyA);
 pub const LEFT_RIGHT_ARROW: Rel = Rel('↔');
-pub const UP_DOWN_ARROW: &Fence = &Fence('↕', Category::OnlyA);
+pub const UP_DOWN_ARROW: Op = op('↕', OpCategory::OnlyA);
 pub const NORTH_WEST_ARROW: Rel = Rel('↖');
 pub const NORTH_EAST_ARROW: Rel = Rel('↗');
 pub const SOUTH_EAST_ARROW: Rel = Rel('↘');
@@ -505,11 +522,11 @@ pub const LEFTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇍');
 pub const LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇎');
 pub const RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇏');
 pub const LEFTWARDS_DOUBLE_ARROW: Rel = Rel('⇐');
-pub const UPWARDS_DOUBLE_ARROW: &Fence = &Fence('⇑', Category::OnlyA);
+pub const UPWARDS_DOUBLE_ARROW: Op = op('⇑', OpCategory::OnlyA);
 pub const RIGHTWARDS_DOUBLE_ARROW: Rel = Rel('⇒');
-pub const DOWNWARDS_DOUBLE_ARROW: &Fence = &Fence('⇓', Category::OnlyA);
+pub const DOWNWARDS_DOUBLE_ARROW: Op = op('⇓', OpCategory::OnlyA);
 pub const LEFT_RIGHT_DOUBLE_ARROW: Rel = Rel('⇔');
-pub const UP_DOWN_DOUBLE_ARROW: &Fence = &Fence('⇕', Category::OnlyA);
+pub const UP_DOWN_DOUBLE_ARROW: Op = op('⇕', OpCategory::OnlyA);
 // pub const NORTH_WEST_DOUBLE_ARROW: Rel = Rel('⇖');
 // pub const NORTH_EAST_DOUBLE_ARROW: Rel = Rel('⇗');
 // pub const SOUTH_EAST_DOUBLE_ARROW: Rel = Rel('⇘');
@@ -571,9 +588,9 @@ pub const CONTAINS_AS_MEMBER: Rel = Rel('∋');
 // pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = Rel('∌');
 // pub const SMALL_CONTAINS_AS_MEMBER: Rel = Rel('∍');
 // pub const END_OF_PROOF: Ord = Ord('∎');
-pub const N_ARY_PRODUCT: Op = Op('∏');
-pub const N_ARY_COPRODUCT: Op = Op('∐');
-pub const N_ARY_SUMMATION: Op = Op('∑');
+pub const N_ARY_PRODUCT: BigOp = BigOp('∏');
+pub const N_ARY_COPRODUCT: BigOp = BigOp('∐');
+pub const N_ARY_SUMMATION: BigOp = BigOp('∑');
 pub const MINUS_SIGN: Bin = Bin('−');
 pub const MINUS_OR_PLUS_SIGN: Bin = Bin('∓');
 pub const DOT_PLUS: Bin = Bin('∔');
@@ -599,15 +616,15 @@ pub const LOGICAL_AND: Bin = Bin('∧');
 pub const LOGICAL_OR: Bin = Bin('∨');
 pub const INTERSECTION: Bin = Bin('∩');
 pub const UNION: Bin = Bin('∪');
-pub const INTEGRAL: Op = Op('∫');
-pub const DOUBLE_INTEGRAL: Op = Op('∬');
-pub const TRIPLE_INTEGRAL: Op = Op('∭');
-pub const CONTOUR_INTEGRAL: Op = Op('∮');
-pub const SURFACE_INTEGRAL: Op = Op('∯');
-pub const VOLUME_INTEGRAL: Op = Op('∰');
-pub const CLOCKWISE_INTEGRAL: Op = Op('∱');
-pub const CLOCKWISE_CONTOUR_INTEGRAL: Op = Op('∲');
-pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: Op = Op('∳');
+pub const INTEGRAL: BigOp = BigOp('∫');
+pub const DOUBLE_INTEGRAL: BigOp = BigOp('∬');
+pub const TRIPLE_INTEGRAL: BigOp = BigOp('∭');
+pub const CONTOUR_INTEGRAL: BigOp = BigOp('∮');
+pub const SURFACE_INTEGRAL: BigOp = BigOp('∯');
+pub const VOLUME_INTEGRAL: BigOp = BigOp('∰');
+pub const CLOCKWISE_INTEGRAL: BigOp = BigOp('∱');
+pub const CLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∲');
+pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∳');
 pub const THEREFORE: Rel = Rel('∴');
 pub const BECAUSE: Rel = Rel('∵');
 // pub const RATIO: Op = Op('∶');
@@ -748,10 +765,10 @@ pub const NAND: Bin = Bin('⊼');
 // pub const NOR: Op = Op('⊽');
 // pub const RIGHT_ANGLE_WITH_ARC: Op = Op('⊾');
 // pub const RIGHT_TRIANGLE: Op = Op('⊿');
-pub const N_ARY_LOGICAL_AND: Op = Op('⋀');
-pub const N_ARY_LOGICAL_OR: Op = Op('⋁');
-pub const N_ARY_INTERSECTION: Op = Op('⋂');
-pub const N_ARY_UNION: Op = Op('⋃');
+pub const N_ARY_LOGICAL_AND: BigOp = BigOp('⋀');
+pub const N_ARY_LOGICAL_OR: BigOp = BigOp('⋁');
+pub const N_ARY_INTERSECTION: BigOp = BigOp('⋂');
+pub const N_ARY_UNION: BigOp = BigOp('⋃');
 pub const DIAMOND_OPERATOR: Bin = Bin('⋄');
 // pub const DOT_OPERATOR: Bin = Bin('⋅');
 pub const STAR_OPERATOR: Bin = Bin('⋆');
@@ -816,10 +833,10 @@ pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = Rel('⋱');
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub const LEFT_CEILING: &Fence = &Fence('⌈', Category::OnlyF);
-pub const RIGHT_CEILING: &Fence = &Fence('⌉', Category::OnlyG);
-pub const LEFT_FLOOR: &Fence = &Fence('⌊', Category::OnlyF);
-pub const RIGHT_FLOOR: &Fence = &Fence('⌋', Category::OnlyG);
+pub const LEFT_CEILING: Op = op('⌈', OpCategory::OnlyF);
+pub const RIGHT_CEILING: Op = op('⌉', OpCategory::OnlyG);
+pub const LEFT_FLOOR: Op = op('⌊', OpCategory::OnlyF);
+pub const RIGHT_FLOOR: Op = op('⌋', OpCategory::OnlyG);
 pub const TOP_LEFT_CORNER: char = '⌜';
 pub const TOP_RIGHT_CORNER: char = '⌝';
 pub const BOTTOM_LEFT_CORNER: char = '⌞';
@@ -901,12 +918,12 @@ pub const MALTESE_CROSS: char = '✠';
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
 pub const PERPENDICULAR: Rel = Rel('⟂');
-pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟦', Category::OnlyF);
-pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟧', Category::OnlyG);
-pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: &Fence = &Fence('⟨', Category::OnlyF);
-pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: &Fence = &Fence('⟩', Category::OnlyG);
-pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟮', Category::OnlyF);
-pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟯', Category::OnlyG);
+pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Op = op('⟦', OpCategory::OnlyF);
+pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Op = op('⟧', OpCategory::OnlyG);
+pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Op = op('⟨', OpCategory::OnlyF);
+pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Op = op('⟩', OpCategory::OnlyG);
+pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Op = op('⟮', OpCategory::OnlyF);
+pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Op = op('⟯', OpCategory::OnlyG);
 
 //
 // Unicode Block: Supplemental Arrows-A
@@ -929,14 +946,14 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel('⤚');
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
-pub const LEFT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦃', Category::OnlyF);
-pub const RIGHT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦄', Category::OnlyG);
-// pub const LEFT_WHITE_PARENTHESIS: &Fence = &Fence('⦅', Stretchy::Always);
-// pub const RIGHT_WHITE_PARENTHESIS: &Fence = &Fence('⦆', false, Stretchy::Always);
-pub const Z_NOTATION_LEFT_IMAGE_BRACKET: &Fence = &Fence('⦇', Category::OnlyF);
-pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: &Fence = &Fence('⦈', Category::OnlyG);
-pub const Z_NOTATION_LEFT_BINDING_BRACKET: &Fence = &Fence('⦉', Category::OnlyF);
-pub const Z_NOTATION_RIGHT_BINDING_BRACKET: &Fence = &Fence('⦊', Category::OnlyG);
+pub const LEFT_WHITE_CURLY_BRACKET: Op = op('⦃', OpCategory::OnlyF);
+pub const RIGHT_WHITE_CURLY_BRACKET: Op = op('⦄', OpCategory::OnlyG);
+// pub const LEFT_WHITE_PARENTHESIS: Fence = fence('⦅', Stretchy::Always);
+// pub const RIGHT_WHITE_PARENTHESIS: Fence = fence('⦆', false, Stretchy::Always);
+pub const Z_NOTATION_LEFT_IMAGE_BRACKET: Op = op('⦇', OpCategory::OnlyF);
+pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: Op = op('⦈', OpCategory::OnlyG);
+pub const Z_NOTATION_LEFT_BINDING_BRACKET: Op = op('⦉', OpCategory::OnlyF);
+pub const Z_NOTATION_RIGHT_BINDING_BRACKET: Op = op('⦊', OpCategory::OnlyG);
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin('⧄');
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin('⧅');
@@ -948,24 +965,24 @@ pub const BLACK_LOZENGE: char = '⧫';
 //
 // Unicode Block: Supplemental Mathematical Operators
 //
-pub const N_ARY_CIRCLED_DOT_OPERATOR: Op = Op('⨀');
-pub const N_ARY_CIRCLED_PLUS_OPERATOR: Op = Op('⨁');
-pub const N_ARY_CIRCLED_TIMES_OPERATOR: Op = Op('⨂');
-pub const N_ARY_UNION_OPERATOR_WITH_DOT: Op = Op('⨃');
-pub const N_ARY_UNION_OPERATOR_WITH_PLUS: Op = Op('⨄');
-pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: Op = Op('⨅');
-pub const N_ARY_SQUARE_UNION_OPERATOR: Op = Op('⨆');
-pub const TWO_LOGICAL_AND_OPERATOR: Op = Op('⨇');
-pub const TWO_LOGICAL_OR_OPERATOR: Op = Op('⨈');
-pub const N_ARY_TIMES_OPERATOR: Op = Op('⨉');
+pub const N_ARY_CIRCLED_DOT_OPERATOR: BigOp = BigOp('⨀');
+pub const N_ARY_CIRCLED_PLUS_OPERATOR: BigOp = BigOp('⨁');
+pub const N_ARY_CIRCLED_TIMES_OPERATOR: BigOp = BigOp('⨂');
+pub const N_ARY_UNION_OPERATOR_WITH_DOT: BigOp = BigOp('⨃');
+pub const N_ARY_UNION_OPERATOR_WITH_PLUS: BigOp = BigOp('⨄');
+pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: BigOp = BigOp('⨅');
+pub const N_ARY_SQUARE_UNION_OPERATOR: BigOp = BigOp('⨆');
+pub const TWO_LOGICAL_AND_OPERATOR: BigOp = BigOp('⨇');
+pub const TWO_LOGICAL_OR_OPERATOR: BigOp = BigOp('⨈');
+pub const N_ARY_TIMES_OPERATOR: BigOp = BigOp('⨉');
 // pub const MODULO_TWO_SUM: Op = Op('⨊');
-pub const SUMMATION_WITH_INTEGRAL: Op = Op('⨋');
-pub const QUADRUPLE_INTEGRAL_OPERATOR: Op = Op('⨌');
-pub const FINITE_PARTL_INTEGRAL: Op = Op('⨍');
-pub const INTEGRAL_WITH_DOUBLE_STROKE: Op = Op('⨎');
-pub const INTEGRAL_AVERAGE_WITH_SLASH: Op = Op('⨏');
-pub const CIRCULATION_FUNCTION: Op = Op('⨐');
-pub const ANTICLOCKWISE_INTEGRATION: Op = Op('⨑');
+pub const SUMMATION_WITH_INTEGRAL: BigOp = BigOp('⨋');
+pub const QUADRUPLE_INTEGRAL_OPERATOR: BigOp = BigOp('⨌');
+pub const FINITE_PARTL_INTEGRAL: BigOp = BigOp('⨍');
+pub const INTEGRAL_WITH_DOUBLE_STROKE: BigOp = BigOp('⨎');
+pub const INTEGRAL_AVERAGE_WITH_SLASH: BigOp = BigOp('⨏');
+pub const CIRCULATION_FUNCTION: BigOp = BigOp('⨐');
+pub const ANTICLOCKWISE_INTEGRATION: BigOp = BigOp('⨑');
 // pub const LINE_INTEGRATION_WITH_RECTANGULAR_PATH_AROUND_POLE: Op = Op('⨒');
 // pub const LINE_INTEGRATION_WITH_SEMICIRCULAR_PATH_AROUND_POLE: Op = Op('⨓');
 // pub const LINE_INTEGRATION_NOT_INCLUDING_THE_POLE: Op = Op('⨔');

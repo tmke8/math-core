@@ -8,7 +8,7 @@ use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
-use crate::mathml_renderer::symbol::{Bin, Fence, Op, Ord, Punct, Rel};
+use crate::mathml_renderer::symbol::{BigOp, Bin, Op, Ord, Punct, Rel};
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
@@ -30,7 +30,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\middle")]
     Middle,
     #[strum(serialize = "parenthesis")]
-    Delimiter(&'static Fence),
+    Delimiter(Op),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]
@@ -59,7 +59,7 @@ pub enum Token<'source> {
     OverUnderBrace(Ord, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
-    Integral(Op),
+    Integral(BigOp),
     #[strum(serialize = r"\limits")]
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
@@ -87,7 +87,7 @@ pub enum Token<'source> {
     OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
-    BigOp(Op),
+    BigOp(BigOp),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),

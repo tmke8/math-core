@@ -5,6 +5,6 @@ expression: "x_\\big("
 [
   Subscript(
     target: IdentifierChar('x', Default),
-    symbol: SizedParen(Scale1, Fence('(', OnlyF)),
+    symbol: SizedParen(Scale1, Op('(', OnlyF)),
   ),
 ]
