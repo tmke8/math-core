@@ -8,7 +8,7 @@ use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
-use crate::mathml_renderer::symbol::{BigOp, Bin, Op, Ord, Punct, Rel};
+use crate::mathml_renderer::symbol::{BigOp, Op, Ord, Punct, Rel};
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
@@ -72,11 +72,15 @@ pub enum Token<'source> {
     Transform(MathVariant),
     Big(Size, Option<Class>),
     OverUnder(Rel, bool, Option<OpAttr>),
+    /// A token corresponding to LaTeX's "mathrel" character class (class 3).
     Relation(Rel),
+    /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(Ord),
+    /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
     Punctuation(Punct),
     #[strum(serialize = "binary operator")]
-    BinaryOp(Bin),
+    /// A token corresponding to LaTeX's "mathbin" character class (class 2).
+    BinaryOp(Op),
     #[strum(serialize = "'")]
     Prime,
     #[strum(serialize = ">")]
@@ -87,6 +91,7 @@ pub enum Token<'source> {
     OpAmpersand,
     #[strum(serialize = ":")]
     Colon,
+    /// A token corresponding to LaTeX's "mathop" character class (class 1).
     BigOp(BigOp),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`

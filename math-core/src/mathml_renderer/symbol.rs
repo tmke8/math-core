@@ -80,32 +80,6 @@ impl From<&BigOp> for MathMLOperator {
     }
 }
 
-/// A type corresponding to LaTeX's "mathbin" character class (class 2).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-#[repr(transparent)]
-pub struct Bin(char);
-
-impl Bin {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
-    }
-}
-
-impl From<Bin> for MathMLOperator {
-    #[inline]
-    fn from(op: Bin) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-impl From<&Bin> for MathMLOperator {
-    #[inline]
-    fn from(op: &Bin) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
 /// A type corresponding to LaTeX's "mathrel" character class (class 3).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
@@ -129,53 +103,6 @@ impl From<&Rel> for MathMLOperator {
     #[inline(always)]
     fn from(op: &Rel) -> Self {
         MathMLOperator(op.0)
-    }
-}
-
-/// An operator
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Op {
-    char: u16,
-    pub cat: OpCategory,
-}
-
-#[cfg(feature = "serde")]
-impl Serialize for Op {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeTupleStruct;
-
-        let mut state = serializer.serialize_tuple_struct("Op", 2)?;
-        state.serialize_field(&char::from(*self))?;
-        state.serialize_field(&self.cat)?;
-        state.end()
-    }
-}
-
-impl Op {
-    /// The parenthesis behaves like a normal identifier
-    /// (which is different from an operator with reduced spacing!)
-    #[inline]
-    pub fn ordinary_spacing(&self) -> bool {
-        matches!(self.cat, OpCategory::OnlyK | OpCategory::ForceDefaultFG)
-    }
-}
-
-impl From<Op> for char {
-    #[inline]
-    fn from(op: Op) -> Self {
-        debug_assert!(char::from_u32(op.char as u32).is_some());
-        unsafe { char::from_u32_unchecked(op.char as u32) }
-    }
-}
-
-const fn op(ch: char, cat: OpCategory) -> Op {
-    assert!(ch as u32 <= u16::MAX as u32);
-    Op {
-        char: ch as u16,
-        cat,
     }
 }
 
@@ -205,6 +132,81 @@ impl From<&Punct> for MathMLOperator {
     }
 }
 
+/// A character for use in MathML `<mo>` elements.
+///
+/// LaTeX's operator classes cannot be mapped cleanly to MathML's `<mo>` vs `<mi>` distinction.
+/// Some characters that are in class 0 in LaTeX are nevertheless rendered as `<mo>` in MathML.
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub struct Op {
+    char: u16,
+    pub cat: OpCategory,
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Op {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeTupleStruct;
+
+        let mut state = serializer.serialize_tuple_struct("Op", 2)?;
+        state.serialize_field(&char::from(*self))?;
+        state.serialize_field(&self.cat)?;
+        state.end()
+    }
+}
+
+impl Op {
+    /// The parenthesis behaves like a normal identifier
+    /// (which is different from an operator with reduced spacing!)
+    #[inline]
+    pub fn ordinary_spacing(&self) -> bool {
+        matches!(self.cat, OpCategory::OnlyK | OpCategory::ForceDefaultFG)
+    }
+
+    #[inline(always)]
+    pub const fn as_char(&self) -> char {
+        let ch = self.char as u32;
+        debug_assert!(char::from_u32(ch).is_some());
+        unsafe { char::from_u32_unchecked(ch) }
+    }
+
+    #[inline(always)]
+    pub const fn as_op(&self) -> MathMLOperator {
+        MathMLOperator(self.as_char())
+    }
+}
+
+impl From<Op> for char {
+    #[inline]
+    fn from(op: Op) -> Self {
+        op.as_char()
+    }
+}
+
+impl From<&Op> for char {
+    #[inline]
+    fn from(op: &Op) -> Self {
+        char::from(*op)
+    }
+}
+
+impl From<Op> for MathMLOperator {
+    #[inline(always)]
+    fn from(op: Op) -> Self {
+        MathMLOperator(op.as_char())
+    }
+}
+
+const fn op(ch: char, cat: OpCategory) -> Op {
+    assert!(ch as u32 <= u16::MAX as u32);
+    Op {
+        char: ch as u16,
+        cat,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OpCategory {
@@ -220,6 +222,13 @@ pub enum OpCategory {
     OnlyK,
     /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
     OnlyA,
+    /// Category B: Infix, binary spacing (e.g. `+`).
+    /// Category D: Prefix, zero spacing (e.g. `+`).
+    BD,
+    /// Category J: Prefix, op spacing, symmetric, largeop, movablelimits (e.g. `∑`).
+    OnlyJ,
+    /// Category M: Infix, punctuation spacing (e.g. `,`).
+    OnlyM,
 }
 
 //
@@ -236,7 +245,7 @@ pub const PERCENT_SIGN: char = '%';
 pub const LEFT_PARENTHESIS: Op = op('(', OpCategory::OnlyF);
 pub const RIGHT_PARENTHESIS: Op = op(')', OpCategory::OnlyG);
 // pub const ASTERISK: Op = Op('*');
-pub const PLUS_SIGN: Bin = Bin('+');
+pub const PLUS_SIGN: Op = op('+', OpCategory::BD);
 pub const COMMA: Punct = Punct(',');
 pub const FULL_STOP: Ord = Ord('.');
 pub const SOLIDUS: Op = op('/', OpCategory::OnlyK);
@@ -272,18 +281,18 @@ pub const NOT_SIGN: Ord = Ord('¬');
 
 pub const MACRON: Rel = Rel('¯');
 
-pub const PLUS_MINUS_SIGN: Bin = Bin('±');
+pub const PLUS_MINUS_SIGN: Op = op('±', OpCategory::BD);
 
 pub const ACUTE_ACCENT: Rel = Rel('´');
 
 pub const PILCROW_SIGN: char = '¶';
-pub const MIDDLE_DOT: Bin = Bin('·');
+pub const MIDDLE_DOT: Op = op('·', OpCategory::BD);
 
-pub const MULTIPLICATION_SIGN: Bin = Bin('×');
+pub const MULTIPLICATION_SIGN: Op = op('×', OpCategory::BD);
 
 pub const LATIN_SMALL_LETTER_ETH: char = 'ð';
 
-pub const DIVISION_SIGN: Bin = Bin('÷');
+pub const DIVISION_SIGN: Op = op('÷', OpCategory::BD);
 
 pub const LATIN_SMALL_LETTER_THORN: char = 'þ';
 
@@ -591,14 +600,14 @@ pub const CONTAINS_AS_MEMBER: Rel = Rel('∋');
 pub const N_ARY_PRODUCT: BigOp = BigOp('∏');
 pub const N_ARY_COPRODUCT: BigOp = BigOp('∐');
 pub const N_ARY_SUMMATION: BigOp = BigOp('∑');
-pub const MINUS_SIGN: Bin = Bin('−');
-pub const MINUS_OR_PLUS_SIGN: Bin = Bin('∓');
-pub const DOT_PLUS: Bin = Bin('∔');
+pub const MINUS_SIGN: Op = op('−', OpCategory::BD);
+pub const MINUS_OR_PLUS_SIGN: Op = op('∓', OpCategory::BD);
+pub const DOT_PLUS: Op = op('∔', OpCategory::BD);
 // pub const DIVISION_SLASH: Op = Op('∕');
-pub const SET_MINUS: Bin = Bin('∖');
-pub const ASTERISK_OPERATOR: Bin = Bin('∗');
-pub const RING_OPERATOR: Bin = Bin('∘');
-pub const BULLET_OPERATOR: Bin = Bin('∙');
+pub const SET_MINUS: Op = op('∖', OpCategory::BD);
+pub const ASTERISK_OPERATOR: Op = op('∗', OpCategory::BD);
+pub const RING_OPERATOR: Op = op('∘', OpCategory::BD);
+pub const BULLET_OPERATOR: Op = op('∙', OpCategory::BD);
 // pub const SQUARE_ROOT: Op = Op('√');
 // pub const CUBE_ROOT: Op = Op('∛');
 // pub const FOURTH_ROOT: Op = Op('∜');
@@ -612,10 +621,10 @@ pub const DIVIDES: Rel = Rel('∣');
 pub const DOES_NOT_DIVIDE: Rel = Rel('∤');
 pub const PARALLEL_TO: Rel = Rel('∥');
 pub const NOT_PARALLEL_TO: Rel = Rel('∦');
-pub const LOGICAL_AND: Bin = Bin('∧');
-pub const LOGICAL_OR: Bin = Bin('∨');
-pub const INTERSECTION: Bin = Bin('∩');
-pub const UNION: Bin = Bin('∪');
+pub const LOGICAL_AND: Op = op('∧', OpCategory::BD);
+pub const LOGICAL_OR: Op = op('∨', OpCategory::BD);
+pub const INTERSECTION: Op = op('∩', OpCategory::BD);
+pub const UNION: Op = op('∪', OpCategory::BD);
 pub const INTEGRAL: BigOp = BigOp('∫');
 pub const DOUBLE_INTEGRAL: BigOp = BigOp('∬');
 pub const TRIPLE_INTEGRAL: BigOp = BigOp('∭');
@@ -713,28 +722,28 @@ pub const NEITHER_A_SUBSET_OF_NOR_EQUAL_TO: Rel = Rel('⊈');
 pub const NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO: Rel = Rel('⊉');
 pub const SUBSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel('⊊');
 pub const SUPERSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel('⊋');
-// pub const MULTISET: Bin = Bin('⊌');
-// pub const MULTISET_MULTIPLICATION: Bin = Bin('⊍');
-pub const MULTISET_UNION: Bin = Bin('⊎');
+// pub const MULTISET: Op = op('⊌', OpCategory::BD);
+// pub const MULTISET_MULTIPLICATION: Op = op('⊍', OpCategory::BD);
+pub const MULTISET_UNION: Op = op('⊎', OpCategory::BD);
 pub const SQUARE_IMAGE_OF: Rel = Rel('⊏');
 pub const SQUARE_ORIGINAL_OF: Rel = Rel('⊐');
 pub const SQUARE_IMAGE_OF_OR_EQUAL_TO: Rel = Rel('⊑');
 pub const SQUARE_ORIGINAL_OF_OR_EQUAL_TO: Rel = Rel('⊒');
-pub const SQUARE_CAP: Bin = Bin('⊓');
-pub const SQUARE_CUP: Bin = Bin('⊔');
-pub const CIRCLED_PLUS: Bin = Bin('⊕');
-pub const CIRCLED_MINUS: Bin = Bin('⊖');
-pub const CIRCLED_TIMES: Bin = Bin('⊗');
-pub const CIRCLED_DIVISION_SLASH: Bin = Bin('⊘');
-pub const CIRCLED_DOT_OPERATOR: Bin = Bin('⊙');
-pub const CIRCLED_RING_OPERATOR: Bin = Bin('⊚');
-pub const CIRCLED_ASTERISK_OPERATOR: Bin = Bin('⊛');
+pub const SQUARE_CAP: Op = op('⊓', OpCategory::BD);
+pub const SQUARE_CUP: Op = op('⊔', OpCategory::BD);
+pub const CIRCLED_PLUS: Op = op('⊕', OpCategory::BD);
+pub const CIRCLED_MINUS: Op = op('⊖', OpCategory::BD);
+pub const CIRCLED_TIMES: Op = op('⊗', OpCategory::BD);
+pub const CIRCLED_DIVISION_SLASH: Op = op('⊘', OpCategory::BD);
+pub const CIRCLED_DOT_OPERATOR: Op = op('⊙', OpCategory::BD);
+pub const CIRCLED_RING_OPERATOR: Op = op('⊚', OpCategory::BD);
+pub const CIRCLED_ASTERISK_OPERATOR: Op = op('⊛', OpCategory::BD);
 // pub const CIRCLED_EQUALS: Op = Op('⊜');
-pub const CIRCLED_DASH: Bin = Bin('⊝');
-pub const SQUARED_PLUS: Bin = Bin('⊞');
-pub const SQUARED_MINUS: Bin = Bin('⊟');
-pub const SQUARED_TIMES: Bin = Bin('⊠');
-pub const SQUARED_DOT_OPERATOR: Bin = Bin('⊡');
+pub const CIRCLED_DASH: Op = op('⊝', OpCategory::BD);
+pub const SQUARED_PLUS: Op = op('⊞', OpCategory::BD);
+pub const SQUARED_MINUS: Op = op('⊟', OpCategory::BD);
+pub const SQUARED_TIMES: Op = op('⊠', OpCategory::BD);
+pub const SQUARED_DOT_OPERATOR: Op = op('⊡', OpCategory::BD);
 pub const RIGHT_TACK: Rel = Rel('⊢');
 pub const LEFT_TACK: Rel = Rel('⊣');
 pub const DOWN_TACK: char = '⊤';
@@ -760,8 +769,8 @@ pub const CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO: Rel = Rel('⊵');
 pub const MULTIMAP: Rel = Rel('⊸');
 // pub const HERMITIAN_CONJUGATE_MATRIX: Op = Op('⊹');
 pub const INTERCALATE: Rel = Rel('⊺');
-pub const XOR: Bin = Bin('⊻');
-pub const NAND: Bin = Bin('⊼');
+pub const XOR: Op = op('⊻', OpCategory::BD);
+pub const NAND: Op = op('⊼', OpCategory::BD);
 // pub const NOR: Op = Op('⊽');
 // pub const RIGHT_ANGLE_WITH_ARC: Op = Op('⊾');
 // pub const RIGHT_TRIANGLE: Op = Op('⊿');
@@ -769,22 +778,22 @@ pub const N_ARY_LOGICAL_AND: BigOp = BigOp('⋀');
 pub const N_ARY_LOGICAL_OR: BigOp = BigOp('⋁');
 pub const N_ARY_INTERSECTION: BigOp = BigOp('⋂');
 pub const N_ARY_UNION: BigOp = BigOp('⋃');
-pub const DIAMOND_OPERATOR: Bin = Bin('⋄');
-// pub const DOT_OPERATOR: Bin = Bin('⋅');
-pub const STAR_OPERATOR: Bin = Bin('⋆');
-pub const DIVISION_TIMES: Bin = Bin('⋇');
+pub const DIAMOND_OPERATOR: Op = op('⋄', OpCategory::BD);
+// pub const DOT_OPERATOR: Op = op('⋅', OpCategory::BD);
+pub const STAR_OPERATOR: Op = op('⋆', OpCategory::BD);
+pub const DIVISION_TIMES: Op = op('⋇', OpCategory::BD);
 pub const BOWTIE: Rel = Rel('⋈');
 pub const LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = Rel('⋉');
 pub const RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = Rel('⋊');
 pub const LEFT_SEMIDIRECT_PRODUCT: Rel = Rel('⋋');
 pub const RIGHT_SEMIDIRECT_PRODUCT: Rel = Rel('⋌');
 pub const REVERSED_TILDE_EQUALS: Rel = Rel('⋍');
-pub const CURLY_LOGICAL_OR: Bin = Bin('⋎');
-pub const CURLY_LOGICAL_AND: Bin = Bin('⋏');
+pub const CURLY_LOGICAL_OR: Op = op('⋎', OpCategory::BD);
+pub const CURLY_LOGICAL_AND: Op = op('⋏', OpCategory::BD);
 pub const DOUBLE_SUBSET: Rel = Rel('⋐');
 pub const DOUBLE_SUPERSET: Rel = Rel('⋑');
-pub const DOUBLE_INTERSECTION: Bin = Bin('⋒');
-pub const DOUBLE_UNION: Bin = Bin('⋓');
+pub const DOUBLE_INTERSECTION: Op = op('⋒', OpCategory::BD);
+pub const DOUBLE_UNION: Op = op('⋓', OpCategory::BD);
 pub const PITCHFORK: Rel = Rel('⋔');
 // pub const EQUAL_AND_PARALLEL_TO: Op = Op('⋕');
 pub const LESS_THAN_WITH_DOT: Rel = Rel('⋖');
@@ -955,12 +964,12 @@ pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: Op = op('⦈', OpCategory::OnlyG);
 pub const Z_NOTATION_LEFT_BINDING_BRACKET: Op = op('⦉', OpCategory::OnlyF);
 pub const Z_NOTATION_RIGHT_BINDING_BRACKET: Op = op('⦊', OpCategory::OnlyG);
 
-pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin('⧄');
-pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin('⧅');
-pub const SQUARED_SQUARE: Bin = Bin('⧈');
+pub const SQUARED_RISING_DIAGONAL_SLASH: Op = op('⧄', OpCategory::BD);
+pub const SQUARED_FALLING_DIAGONAL_SLASH: Op = op('⧅', OpCategory::BD);
+pub const SQUARED_SQUARE: Op = op('⧈', OpCategory::BD);
 pub const BLACK_LOZENGE: char = '⧫';
 
-// pub const REVERSE_SOLIDUS_OPERATOR: Bin = Bin('⧵');
+// pub const REVERSE_SOLIDUS_OPERATOR: Op = op('⧵', OpCategory::BD);
 
 //
 // Unicode Block: Supplemental Mathematical Operators
@@ -999,26 +1008,26 @@ pub const ANTICLOCKWISE_INTEGRATION: BigOp = BigOp('⨑');
 pub const Z_NOTATION_SCHEMA_COMPOSITION: Rel = Rel('⨟');
 // pub const Z_NOTATION_SCHEMA_PIPING: Op = Op('⨠');
 // pub const Z_NOTATION_SCHEMA_PROJECTION: Op = Op('⨡');
-// pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Bin = Bin('⨢');
-// pub const PLUS_SIGN_WITH_CIRCUMFLEX_ACCENT_ABOVE: Bin = Bin('⨣');
-// pub const PLUS_SIGN_WITH_TILDE_ABOVE: Bin = Bin('⨤');
-// pub const PLUS_SIGN_WITH_DOT_BELOW: Bin = Bin('⨥');
-// pub const PLUS_SIGN_WITH_TILDE_BELOW: Bin = Bin('⨦');
-// pub const PLUS_SIGN_WITH_SUBSCRIPT_TWO: Bin = Bin('⨧');
-// pub const PLUS_SIGN_WITH_BLACK_TRIANGLE: Bin = Bin('⨨');
-// pub const MINUS_SIGN_WITH_COMMA_ABOVE: Bin = Bin('⨩');
-// pub const MINUS_SIGN_WITH_DOT_BELOW: Bin = Bin('⨪');
-// pub const MINUS_SIGN_WITH_FALLING_DOTS: Bin = Bin('⨫');
-// pub const MINUS_SIGN_WITH_RISING_DOTS: Bin = Bin('⨬');
-// pub const PLUS_SIGN_IN_LEFT_HALF_CIRCLE: Bin = Bin('⨭');
-// pub const PLUS_SIGN_IN_RIGHT_HALF_CIRCLE: Bin = Bin('⨮');
-// pub const VECTOR_OR_CROSS_PRODUCT: Bin = Bin('⨯');
-// pub const MULTIPLICATION_SIGN_WITH_DOT_ABOVE: Bin = Bin('⨰');
-// pub const MULTIPLICATION_SIGN_WITH_UNDERBAR: Bin = Bin('⨱');
-// pub const SEMIDIRECT_PRODUCT_WITH_BOTTOM_CLOSED: Bin = Bin('⨲');
-// pub const SMASH_PRODUCT: Bin = Bin('⨳');
-// pub const MULTIPLICATION_SIGN_IN_LEFT_HALF_CIRCLE: Bin = Bin('⨴');
-// pub const MULTIPLICATION_SIGN_IN_RIGHT_HALF_CIRCLE: Bin = Bin('⨵');
+// pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Op = op('⨢', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_CIRCUMFLEX_ACCENT_ABOVE: Op = op('⨣', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_TILDE_ABOVE: Op = op('⨤', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_DOT_BELOW: Op = op('⨥', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_TILDE_BELOW: Op = op('⨦', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_SUBSCRIPT_TWO: Op = op('⨧', OpCategory::BD);
+// pub const PLUS_SIGN_WITH_BLACK_TRIANGLE: Op = op('⨨', OpCategory::BD);
+// pub const MINUS_SIGN_WITH_COMMA_ABOVE: Op = op('⨩', OpCategory::BD);
+// pub const MINUS_SIGN_WITH_DOT_BELOW: Op = op('⨪', OpCategory::BD);
+// pub const MINUS_SIGN_WITH_FALLING_DOTS: Op = op('⨫', OpCategory::BD);
+// pub const MINUS_SIGN_WITH_RISING_DOTS: Op = op('⨬', OpCategory::BD);
+// pub const PLUS_SIGN_IN_LEFT_HALF_CIRCLE: Op = op('⨭', OpCategory::BD);
+// pub const PLUS_SIGN_IN_RIGHT_HALF_CIRCLE: Op = op('⨮', OpCategory::BD);
+// pub const VECTOR_OR_CROSS_PRODUCT: Op = op('⨯', OpCategory::BD);
+// pub const MULTIPLICATION_SIGN_WITH_DOT_ABOVE: Op = op('⨰', OpCategory::BD);
+// pub const MULTIPLICATION_SIGN_WITH_UNDERBAR: Op = op('⨱', OpCategory::BD);
+// pub const SEMIDIRECT_PRODUCT_WITH_BOTTOM_CLOSED: Op = op('⨲', OpCategory::BD);
+// pub const SMASH_PRODUCT: Op = op('⨳', OpCategory::BD);
+// pub const MULTIPLICATION_SIGN_IN_LEFT_HALF_CIRCLE: Op = op('⨴', OpCategory::BD);
+// pub const MULTIPLICATION_SIGN_IN_RIGHT_HALF_CIRCLE: Op = op('⨵', OpCategory::BD);
 // pub const CIRCLED_MULTIPLICATION_SIGN_WITH_CIRCUMFLEX_ACCENT: Op = Op('⨶');
 // pub const MULTIPLICATION_SIGN_IN_DOUBLE_CIRCLE: Op = Op('⨷');
 // pub const CIRCLED_DIVISION_SIGN: Op = Op('⨸');
