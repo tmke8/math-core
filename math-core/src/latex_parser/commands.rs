@@ -2,7 +2,7 @@ use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
     FracAttr, MathSpacing, MathVariant, Notation, OpAttr, RowAttr, Size, Style, TextTransform,
 };
-use crate::mathml_renderer::symbol::{self, Rel};
+use crate::mathml_renderer::symbol::{self, Op};
 
 use super::character_class::Class;
 use super::predefined;
@@ -753,7 +753,7 @@ pub fn get_command(command: &str) -> Token<'_> {
     }
 }
 
-pub fn get_negated_op(op: Rel) -> Option<Rel> {
+pub fn get_negated_op(op: Op) -> Option<Op> {
     match op {
         symbol::ALMOST_EQUAL_TO => Some(symbol::NOT_ALMOST_EQUAL_TO),
         symbol::APPROXIMATELY_EQUAL_TO => Some(symbol::NOT_ASYMPTOTICALLY_EQUAL_TO),

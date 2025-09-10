@@ -3,7 +3,7 @@ source: math-core/src/latex_parser/lexer.rs
 expression: x = 3.14
 ---
 0: Letter('x')
-2: Relation(Rel('='))
+2: Relation(Op { char: 61, cat: Default })
 4: Number(Three)
 5: Letter('.')
 6: Number(One)
