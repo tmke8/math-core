@@ -67,6 +67,19 @@ pub enum StretchMode {
     Middle,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum Stretchy {
+    /// The operator is always stretchy (e.g. `(`, `)`).
+    Always = 1,
+    /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
+    PrePostfix,
+    /// The operator is never stretchy (e.g. `/`).
+    Never,
+    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
+    AlwaysAsymmetric,
+}
+
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]

@@ -4,8 +4,8 @@ use crate::mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-        TextTransform,
+        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Stretchy,
+        Style, TextTransform,
     },
     length::{Length, LengthUnit},
     symbol,
@@ -746,24 +746,34 @@ where
                     matches!(parse_as, ParseAs::Arg),
                 ));
             }
-            Token::Delimiter(paren) => {
-                new_class = Class::OpenOrClose;
-                Node::StretchableOp(paren, StretchMode::NoStretch)
+            Token::Open(paren) => {
+                new_class = Class::Open;
+                Node::StretchableOp(paren.into(), Stretchy::Always, StretchMode::NoStretch)
+            }
+            Token::Close(paren) => {
+                Node::StretchableOp(paren.into(), Stretchy::Always, StretchMode::NoStretch)
             }
             Token::SquareBracketOpen => {
                 new_class = Class::Open;
-                Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET, StretchMode::NoStretch)
+                Node::StretchableOp(
+                    symbol::LEFT_SQUARE_BRACKET.into(),
+                    Stretchy::Always,
+                    StretchMode::NoStretch,
+                )
             }
-            Token::SquareBracketClose => {
-                Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET, StretchMode::NoStretch)
-            }
+            Token::SquareBracketClose => Node::StretchableOp(
+                symbol::RIGHT_SQUARE_BRACKET.into(),
+                Stretchy::Always,
+                StretchMode::NoStretch,
+            ),
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
-                    Token::Delimiter(open) => open,
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
-                    Token::Letter('.') => symbol::NULL,
+                    Token::Open(open) => open.as_op(),
+                    Token::Close(close) => close.into(),
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.into(),
+                    // Token::Letter('.') => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -778,10 +788,11 @@ where
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
-                    Token::Delimiter(close) => close,
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
-                    Token::Letter('.') => symbol::NULL,
+                    Token::Open(open) => open.as_op(),
+                    Token::Close(close) => close.into(),
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.into(),
+                    // Token::Letter('.') => symbol::NULL,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -802,14 +813,14 @@ where
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let op = match next_token {
-                    Token::Delimiter(op) => op,
+                    Token::Open(op) => op,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Delimiter(symbol::NULL),
+                                expected: &Token::Open(symbol::NULL),
                                 got: next_token,
                             },
                         ));
@@ -821,14 +832,14 @@ where
                 new_class = class.unwrap_or(Class::OpenOrClose);
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
-                    Token::Delimiter(paren) => paren,
+                    Token::Open(paren) => paren,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Delimiter(symbol::NULL),
+                                expected: &Token::Open(symbol::NULL),
                                 got: next_token,
                             },
                         ));
@@ -1369,7 +1380,7 @@ where
             {
                 Class::Close
             }
-            Token::Delimiter(_) | Token::Big(_, None) => Class::OpenOrClose,
+            Token::Open(_) | Token::Big(_, None) => Class::OpenOrClose,
             Token::Big(_, Some(class)) => *class,
             _ => Class::Default,
         }
@@ -1473,7 +1484,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         let c: char = match tokloc.token() {
             Token::Letter(c) | Token::UprightLetter(c) => *c,
             Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
-            Token::Delimiter(op) => (*op).into(),
+            Token::Open(op) => (*op).into(),
             Token::BinaryOp(op) => op.as_op().into(),
             Token::Relation(op) => op.as_op().into(),
             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),

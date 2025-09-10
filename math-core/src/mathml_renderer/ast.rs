@@ -3,7 +3,7 @@ use std::fmt::Write;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::mathml_renderer::attribute::Notation;
+use crate::mathml_renderer::attribute::{Notation, Stretchy};
 
 use super::attribute::{
     FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Style,
@@ -12,7 +12,7 @@ use super::attribute::{
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
-use super::symbol::{MathMLOperator, Op, OpCategory};
+use super::symbol::{MathMLOperator, Open, RelCategory};
 use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
@@ -23,7 +23,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
     IdentifierChar(char, LetterAttr),
-    StretchableOp(Op, StretchMode),
+    StretchableOp(MathMLOperator, Stretchy, StretchMode),
     /// `<mo>...</mo>` for a single character.
     Operator {
         op: MathMLOperator,
@@ -100,11 +100,11 @@ pub enum Node<'arena> {
     },
     Fenced {
         style: Option<Style>,
-        open: Op,
-        close: Op,
+        open: MathMLOperator,
+        close: MathMLOperator,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, Op),
+    SizedParen(Size, MathMLOperator, Stretchy),
     /// `<mtext>...</mtext>`
     Text(&'arena str),
     /// `<mtable>...</mtable>`
@@ -259,11 +259,13 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 self.emit(content, base_indent)?;
                 self.var = old_var;
             }
-            Node::StretchableOp(op, stretch_mode) => {
-                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
+            Node::StretchableOp(op, stretchy, stretch_mode) => {
+                if matches!(stretchy, Stretchy::Never | Stretchy::PrePostfix)
+                    && matches!(stretch_mode, StretchMode::NoStretch)
+                {
                     write!(self.s, "<mi>{}</mi>", char::from(*op))?;
                 } else {
-                    self.emit_stretchy_op(*stretch_mode, *op)?;
+                    self.emit_stretchy_op(*stretchy, *stretch_mode, *op)?;
                 }
             }
             Node::Operator {
@@ -462,18 +464,18 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 self.emit_stretchy_op(StretchMode::Fence, *close)?;
                 writeln_indent!(&mut self.s, base_indent, "</mrow>");
             }
-            Node::SizedParen(size, paren) => {
+            Node::SizedParen(size, paren, stretchy) => {
                 write!(
                     self.s,
                     "<mo maxsize=\"{}\" minsize=\"{}\"",
                     <&str>::from(size),
                     <&str>::from(size)
                 )?;
-                match paren.cat {
-                    OpCategory::ForceDefaultFG | OpCategory::OnlyK => {
+                match stretchy {
+                    Stretchy::PrePostfix | Stretchy::Never => {
                         write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
                     }
-                    OpCategory::OnlyA => {
+                    Stretchy::AlwaysAsymmetric => {
                         write!(self.s, " symmetric=\"true\"")?;
                     }
                     _ => {}
@@ -728,23 +730,25 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
         Ok(())
     }
 
-    fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: Op) -> std::fmt::Result {
-        match (stretch_mode, op.cat) {
-            (StretchMode::Fence, OpCategory::OnlyK)
-            | (StretchMode::Middle, OpCategory::ForceDefaultFG | OpCategory::OnlyK) => {
+    fn emit_stretchy_op(
+        &mut self,
+        stretchy: Stretchy,
+        stretch_mode: StretchMode,
+        op: MathMLOperator,
+    ) -> std::fmt::Result {
+        match (stretch_mode, stretchy) {
+            (StretchMode::Fence, Stretchy::Never)
+            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
                 write!(self.s, "<mo stretchy=\"true\">")?;
             }
             (
                 StretchMode::NoStretch,
-                OpCategory::OnlyF
-                | OpCategory::OnlyG
-                | OpCategory::ForceDefaultFG
-                | OpCategory::OnlyA,
+                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
             ) => {
                 write!(self.s, "<mo stretchy=\"false\">")?;
             }
 
-            (StretchMode::Middle, OpCategory::OnlyA) => {
+            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
                 write!(self.s, "<mo symmetric=\"true\">")?;
             }
             _ => {
@@ -1149,11 +1153,19 @@ mod tests {
     #[test]
     fn render_sized_paren() {
         assert_eq!(
-            render(&Node::SizedParen(Size::Scale1, symbol::LEFT_PARENTHESIS,)),
+            render(&Node::SizedParen(
+                Size::Scale1,
+                symbol::LEFT_PARENTHESIS,
+                Stretchy::Always
+            )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen(Size::Scale3, symbol::SOLIDUS,)),
+            render(&Node::SizedParen(
+                Size::Scale3,
+                symbol::SOLIDUS,
+                Stretchy::Never
+            )),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }
