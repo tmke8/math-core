@@ -136,18 +136,18 @@ impl From<&Rel> for MathMLOperator {
 /// (class 4 and 5).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct Fence(char, bool, Stretchy);
+pub struct Fence(char, Stretchy);
 
 impl Fence {
     /// The parenthesis behaves like a normal identifier
     /// (which is different from an operator with reduced spacing!)
     #[inline]
     pub fn ordinary_spacing(&self) -> bool {
-        self.1
+        matches!(self.1, Stretchy::Never | Stretchy::PrePostfix)
     }
     #[inline]
     pub fn stretchy(&self) -> Stretchy {
-        self.2
+        self.1
     }
 }
 
@@ -184,6 +184,17 @@ impl From<&Punct> for MathMLOperator {
     }
 }
 
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// #[cfg_attr(feature = "serde", derive(Serialize))]
+// pub enum Category {
+//     NoCategory,
+//     OnlyA,
+//     OnlyF,
+//     OnlyG,
+//     OnlyK,
+//     ForceDefaultFG,
+// }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Stretchy {
@@ -205,7 +216,7 @@ pub enum Stretchy {
 //
 // Unicode Block: Basic Latin
 //
-pub const NULL: &Fence = &Fence('\u{0}', false, Stretchy::Always);
+pub const NULL: &Fence = &Fence('\u{0}', Stretchy::Always);
 pub const EXCLAMATION_MARK: Ord = Ord('!');
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
@@ -213,13 +224,13 @@ pub const DOLLAR_SIGN: char = '$';
 pub const PERCENT_SIGN: char = '%';
 // pub const AMPERSAND: char = '&';
 // pub const APOSTROPHE: char = '\'';
-pub const LEFT_PARENTHESIS: &Fence = &Fence('(', false, Stretchy::Always);
-pub const RIGHT_PARENTHESIS: &Fence = &Fence(')', false, Stretchy::Always);
+pub const LEFT_PARENTHESIS: &Fence = &Fence('(', Stretchy::Always);
+pub const RIGHT_PARENTHESIS: &Fence = &Fence(')', Stretchy::Always);
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = Bin('+');
 pub const COMMA: Punct = Punct(',');
 pub const FULL_STOP: Ord = Ord('.');
-pub const SOLIDUS: &Fence = &Fence('/', true, Stretchy::Never);
+pub const SOLIDUS: &Fence = &Fence('/', Stretchy::Never);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -229,16 +240,16 @@ pub const EQUALS_SIGN: Rel = Rel('=');
 // pub const QUESTION_MARK: Op = Op('?');
 // pub const COMMERCIAL_AT: char = '@';
 
-pub const LEFT_SQUARE_BRACKET: &Fence = &Fence('[', false, Stretchy::Always);
-pub const REVERSE_SOLIDUS: &Fence = &Fence('\\', true, Stretchy::Never);
-pub const RIGHT_SQUARE_BRACKET: &Fence = &Fence(']', false, Stretchy::Always);
+pub const LEFT_SQUARE_BRACKET: &Fence = &Fence('[', Stretchy::Always);
+pub const REVERSE_SOLIDUS: &Fence = &Fence('\\', Stretchy::Never);
+pub const RIGHT_SQUARE_BRACKET: &Fence = &Fence(']', Stretchy::Always);
 pub const CIRCUMFLEX_ACCENT: Rel = Rel('^');
 pub const LOW_LINE: Rel = Rel('_');
 pub const GRAVE_ACCENT: Rel = Rel('`');
 
-pub const LEFT_CURLY_BRACKET: &Fence = &Fence('{', false, Stretchy::Always);
-pub const VERTICAL_LINE: &Fence = &Fence('|', true, Stretchy::PrePostfix);
-pub const RIGHT_CURLY_BRACKET: &Fence = &Fence('}', false, Stretchy::Always);
+pub const LEFT_CURLY_BRACKET: &Fence = &Fence('{', Stretchy::Always);
+pub const VERTICAL_LINE: &Fence = &Fence('|', Stretchy::PrePostfix);
+pub const RIGHT_CURLY_BRACKET: &Fence = &Fence('}', Stretchy::Always);
 pub const TILDE: Rel = Rel('~');
 
 //
@@ -377,7 +388,7 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
-pub const DOUBLE_VERTICAL_LINE: &Fence = &Fence('‖', true, Stretchy::PrePostfix);
+pub const DOUBLE_VERTICAL_LINE: &Fence = &Fence('‖', Stretchy::PrePostfix);
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
@@ -438,11 +449,11 @@ pub const TURNED_SANS_SERIF_CAPITAL_G: char = '⅁';
 // Unicode Block: Arrows
 //
 pub const LEFTWARDS_ARROW: Rel = Rel('←');
-pub const UPWARDS_ARROW: &Fence = &Fence('↑', false, Stretchy::AlwaysAsymmetric);
+pub const UPWARDS_ARROW: &Fence = &Fence('↑', Stretchy::AlwaysAsymmetric);
 pub const RIGHTWARDS_ARROW: Rel = Rel('→');
-pub const DOWNWARDS_ARROW: &Fence = &Fence('↓', false, Stretchy::AlwaysAsymmetric);
+pub const DOWNWARDS_ARROW: &Fence = &Fence('↓', Stretchy::AlwaysAsymmetric);
 pub const LEFT_RIGHT_ARROW: Rel = Rel('↔');
-pub const UP_DOWN_ARROW: &Fence = &Fence('↕', false, Stretchy::AlwaysAsymmetric);
+pub const UP_DOWN_ARROW: &Fence = &Fence('↕', Stretchy::AlwaysAsymmetric);
 pub const NORTH_WEST_ARROW: Rel = Rel('↖');
 pub const NORTH_EAST_ARROW: Rel = Rel('↗');
 pub const SOUTH_EAST_ARROW: Rel = Rel('↘');
@@ -502,11 +513,11 @@ pub const LEFTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇍');
 pub const LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇎');
 pub const RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇏');
 pub const LEFTWARDS_DOUBLE_ARROW: Rel = Rel('⇐');
-pub const UPWARDS_DOUBLE_ARROW: &Fence = &Fence('⇑', false, Stretchy::AlwaysAsymmetric);
+pub const UPWARDS_DOUBLE_ARROW: &Fence = &Fence('⇑', Stretchy::AlwaysAsymmetric);
 pub const RIGHTWARDS_DOUBLE_ARROW: Rel = Rel('⇒');
-pub const DOWNWARDS_DOUBLE_ARROW: &Fence = &Fence('⇓', false, Stretchy::AlwaysAsymmetric);
+pub const DOWNWARDS_DOUBLE_ARROW: &Fence = &Fence('⇓', Stretchy::AlwaysAsymmetric);
 pub const LEFT_RIGHT_DOUBLE_ARROW: Rel = Rel('⇔');
-pub const UP_DOWN_DOUBLE_ARROW: &Fence = &Fence('⇕', false, Stretchy::AlwaysAsymmetric);
+pub const UP_DOWN_DOUBLE_ARROW: &Fence = &Fence('⇕', Stretchy::AlwaysAsymmetric);
 // pub const NORTH_WEST_DOUBLE_ARROW: Rel = Rel('⇖');
 // pub const NORTH_EAST_DOUBLE_ARROW: Rel = Rel('⇗');
 // pub const SOUTH_EAST_DOUBLE_ARROW: Rel = Rel('⇘');
@@ -813,10 +824,10 @@ pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = Rel('⋱');
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub const LEFT_CEILING: &Fence = &Fence('⌈', false, Stretchy::Always);
-pub const RIGHT_CEILING: &Fence = &Fence('⌉', false, Stretchy::Always);
-pub const LEFT_FLOOR: &Fence = &Fence('⌊', false, Stretchy::Always);
-pub const RIGHT_FLOOR: &Fence = &Fence('⌋', false, Stretchy::Always);
+pub const LEFT_CEILING: &Fence = &Fence('⌈', Stretchy::Always);
+pub const RIGHT_CEILING: &Fence = &Fence('⌉', Stretchy::Always);
+pub const LEFT_FLOOR: &Fence = &Fence('⌊', Stretchy::Always);
+pub const RIGHT_FLOOR: &Fence = &Fence('⌋', Stretchy::Always);
 pub const TOP_LEFT_CORNER: char = '⌜';
 pub const TOP_RIGHT_CORNER: char = '⌝';
 pub const BOTTOM_LEFT_CORNER: char = '⌞';
@@ -898,12 +909,12 @@ pub const MALTESE_CROSS: char = '✠';
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
 pub const PERPENDICULAR: Rel = Rel('⟂');
-pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟦', false, Stretchy::Always);
-pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟧', false, Stretchy::Always);
-pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: &Fence = &Fence('⟨', false, Stretchy::Always);
-pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: &Fence = &Fence('⟩', false, Stretchy::Always);
-pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟮', false, Stretchy::Always);
-pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟯', false, Stretchy::Always);
+pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟦', Stretchy::Always);
+pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: &Fence = &Fence('⟧', Stretchy::Always);
+pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: &Fence = &Fence('⟨', Stretchy::Always);
+pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: &Fence = &Fence('⟩', Stretchy::Always);
+pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟮', Stretchy::Always);
+pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: &Fence = &Fence('⟯', Stretchy::Always);
 
 //
 // Unicode Block: Supplemental Arrows-A
@@ -926,14 +937,14 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel('⤚');
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
-pub const LEFT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦃', false, Stretchy::Always);
-pub const RIGHT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦄', false, Stretchy::Always);
-// pub const LEFT_WHITE_PARENTHESIS: &Fence = &Fence('⦅', false, Stretchy::Always);
+pub const LEFT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦃', Stretchy::Always);
+pub const RIGHT_WHITE_CURLY_BRACKET: &Fence = &Fence('⦄', Stretchy::Always);
+// pub const LEFT_WHITE_PARENTHESIS: &Fence = &Fence('⦅', Stretchy::Always);
 // pub const RIGHT_WHITE_PARENTHESIS: &Fence = &Fence('⦆', false, Stretchy::Always);
-pub const Z_NOTATION_LEFT_IMAGE_BRACKET: &Fence = &Fence('⦇', false, Stretchy::Always);
-pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: &Fence = &Fence('⦈', false, Stretchy::Always);
-pub const Z_NOTATION_LEFT_BINDING_BRACKET: &Fence = &Fence('⦉', false, Stretchy::Always);
-pub const Z_NOTATION_RIGHT_BINDING_BRACKET: &Fence = &Fence('⦊', false, Stretchy::Always);
+pub const Z_NOTATION_LEFT_IMAGE_BRACKET: &Fence = &Fence('⦇', Stretchy::Always);
+pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: &Fence = &Fence('⦈', Stretchy::Always);
+pub const Z_NOTATION_LEFT_BINDING_BRACKET: &Fence = &Fence('⦉', Stretchy::Always);
+pub const Z_NOTATION_RIGHT_BINDING_BRACKET: &Fence = &Fence('⦊', Stretchy::Always);
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin('⧄');
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin('⧅');

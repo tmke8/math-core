@@ -5,8 +5,8 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
 [
   Fenced(
     style: None,
-    open: Fence('(', false, Always),
-    close: Fence(')', false, Always),
+    open: Fence('(', Always),
+    close: Fence(')', Always),
     content: Row(
       nodes: [
         Operator(
