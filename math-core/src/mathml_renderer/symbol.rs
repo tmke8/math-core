@@ -132,6 +132,32 @@ impl From<&Rel> for MathMLOperator {
     }
 }
 
+/// A type corresponding to LaTeX's "mathpunct" character class (class 6).
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[repr(transparent)]
+pub struct Punct(char);
+
+impl Punct {
+    #[inline(always)]
+    pub const fn as_op(&self) -> MathMLOperator {
+        MathMLOperator(self.0)
+    }
+}
+
+impl From<Punct> for MathMLOperator {
+    #[inline(always)]
+    fn from(op: Punct) -> Self {
+        MathMLOperator(op.0)
+    }
+}
+
+impl From<&Punct> for MathMLOperator {
+    #[inline(always)]
+    fn from(op: &Punct) -> Self {
+        MathMLOperator(op.0)
+    }
+}
+
 /// An operator
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Op {
@@ -176,32 +202,6 @@ const fn op(ch: char, cat: OpCategory) -> Op {
     Op {
         char: ch as u16,
         cat,
-    }
-}
-
-/// A type corresponding to LaTeX's "mathpunct" character class (class 6).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-#[repr(transparent)]
-pub struct Punct(char);
-
-impl Punct {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
-    }
-}
-
-impl From<Punct> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: Punct) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-impl From<&Punct> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: &Punct) -> Self {
-        MathMLOperator(op.0)
     }
 }
 
