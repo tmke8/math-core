@@ -12,7 +12,7 @@ use super::attribute::{
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
-use super::symbol::{Fence, MathMLOperator, Stretchy};
+use super::symbol::{Category, Fence, MathMLOperator};
 use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
@@ -470,10 +470,10 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     <&str>::from(size)
                 )?;
                 match paren.stretchy() {
-                    Stretchy::PrePostfix | Stretchy::Never => {
+                    Category::ForceDefaultFG | Category::OnlyK => {
                         write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
                     }
-                    Stretchy::AlwaysAsymmetric => {
+                    Category::OnlyA => {
                         write!(self.s, " symmetric=\"true\"")?;
                     }
                     _ => {}
@@ -730,18 +730,18 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn emit_stretchy_op(&mut self, stretch_mode: StretchMode, op: &Fence) -> std::fmt::Result {
         match (stretch_mode, op.stretchy()) {
-            (StretchMode::Fence, Stretchy::Never)
-            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
+            (StretchMode::Fence, Category::OnlyK)
+            | (StretchMode::Middle, Category::ForceDefaultFG | Category::OnlyK) => {
                 write!(self.s, "<mo stretchy=\"true\">")?;
             }
             (
                 StretchMode::NoStretch,
-                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
+                Category::OnlyF | Category::OnlyG | Category::ForceDefaultFG | Category::OnlyA,
             ) => {
                 write!(self.s, "<mo stretchy=\"false\">")?;
             }
 
-            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
+            (StretchMode::Middle, Category::OnlyA) => {
                 write!(self.s, "<mo symmetric=\"true\">")?;
             }
             _ => {

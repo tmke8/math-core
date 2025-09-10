@@ -5,8 +5,8 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 [
   Fenced(
     style: None,
-    open: Fence('(', Always),
-    close: Fence(')', Always),
+    open: Fence('(', OnlyF),
+    close: Fence(')', OnlyG),
     content: Table(
       content: [
         IdentifierChar('x', Default),
