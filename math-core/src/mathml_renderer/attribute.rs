@@ -76,8 +76,8 @@ pub enum Stretchy {
     PrePostfix,
     /// The operator is never stretchy (e.g. `/`).
     Never,
-    /// There don't seem to be any rules for this operator (e.g. `↑` on Chrome).
-    Inconsistent,
+    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
+    AlwaysAsymmetric,
 }
 
 /// display style
