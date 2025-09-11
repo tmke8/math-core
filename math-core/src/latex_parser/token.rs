@@ -8,7 +8,7 @@ use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
-use crate::mathml_renderer::symbol::{Bin, Fence, Op, Ord, Punct, Rel};
+use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
@@ -29,8 +29,6 @@ pub enum Token<'source> {
     Right,
     #[strum(serialize = r"\middle")]
     Middle,
-    #[strum(serialize = "parenthesis")]
-    Delimiter(&'static Fence),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]
@@ -56,10 +54,10 @@ pub enum Token<'source> {
     Overset,
     #[strum(serialize = r"\underset")]
     Underset,
-    OverUnderBrace(Ord, bool),
+    OverUnderBrace(OrdLike, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
-    Integral(Op),
+    Integral(BigOp),
     #[strum(serialize = r"\limits")]
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
@@ -72,11 +70,21 @@ pub enum Token<'source> {
     Transform(MathVariant),
     Big(Size, Option<Class>),
     OverUnder(Rel, bool, Option<OpAttr>),
-    Relation(Rel),
-    Ord(Ord),
-    Punctuation(Punct),
+    /// A token corresponding to LaTeX's "mathord" character class (class 0).
+    Ord(OrdLike),
+    /// A token corresponding to LaTeX's "mathop" character class (class 1).
+    BigOp(BigOp),
+    /// A token corresponding to LaTeX's "mathbin" character class (class 2).
     #[strum(serialize = "binary operator")]
     BinaryOp(Bin),
+    /// A token corresponding to LaTeX's "mathrel" character class (class 3).
+    Relation(Rel),
+    /// A token corresponding to LaTeX's "mathopen" character class (class 4).
+    Open(Fence),
+    /// A token corresponding to LaTeX's "mathclose" character class (class 5).
+    Close(Fence),
+    /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
+    Punctuation(Punct),
     #[strum(serialize = "'")]
     Prime,
     #[strum(serialize = ">")]
@@ -86,8 +94,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\&")]
     OpAmpersand,
     #[strum(serialize = ":")]
-    Colon,
-    BigOp(Op),
+    ForceRelation(MathMLOperator),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),

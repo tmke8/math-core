@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+expression: (+x)
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+</math>

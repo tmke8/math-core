@@ -161,8 +161,8 @@ impl<'source> Lexer<'source> {
             }
             '&' => Token::Ampersand,
             '\'' => Token::Prime,
-            '(' => Token::Delimiter(symbol::LEFT_PARENTHESIS),
-            ')' => Token::Delimiter(symbol::RIGHT_PARENTHESIS),
+            '(' => Token::Open(symbol::LEFT_PARENTHESIS),
+            ')' => Token::Close(symbol::RIGHT_PARENTHESIS),
             '*' => {
                 if self.text_mode {
                     Token::Letter(ch)
@@ -179,8 +179,8 @@ impl<'source> Lexer<'source> {
                     Token::BinaryOp(symbol::MINUS_SIGN)
                 }
             }
-            '/' => Token::Delimiter(symbol::SOLIDUS),
-            ':' => Token::Colon,
+            '/' => Token::Ord(symbol::SOLIDUS),
+            ':' => Token::ForceRelation(symbol::COLON.as_op()),
             ';' => Token::Punctuation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
             '=' => Token::Relation(symbol::EQUALS_SIGN),
@@ -190,7 +190,7 @@ impl<'source> Lexer<'source> {
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => Token::GroupBegin,
-            '|' => Token::Delimiter(symbol::VERTICAL_LINE),
+            '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
