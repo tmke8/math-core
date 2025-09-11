@@ -312,7 +312,7 @@ where
                     None
                 };
                 Node::Operator {
-                    op: punc.into(),
+                    op: punc.as_op(),
                     attr: None,
                     left: None,
                     right,
@@ -709,7 +709,7 @@ where
                     }
                 }
             }
-            Token::Colon => {
+            Token::ForceRelation(op) => {
                 // A colon is actually just a relation, but by default, MathML Core gives it
                 // punctuation spacing (left: 0, right: 3mu), so we have to explicitly make it have
                 // relation spacing (left: 5mu, right: 5mu).
@@ -735,7 +735,7 @@ where
                     Some(MathSpacing::FiveMu)
                 };
                 Node::Operator {
-                    op: symbol::COLON.into(),
+                    op,
                     attr: None,
                     left,
                     right,
@@ -758,11 +758,12 @@ where
                     matches!(parse_as, ParseAs::Arg),
                 ));
             }
-            Token::Open(paren) => {
-                new_class = Class::Open;
+            tok @ (Token::Open(paren) | Token::Close(paren)) => {
+                if matches!(tok, Token::Open(_)) {
+                    new_class = Class::Open;
+                }
                 Node::StretchableOp(paren.as_op(), StretchMode::NoStretch)
             }
-            Token::Close(paren) => Node::StretchableOp(paren.as_op(), StretchMode::NoStretch),
             Token::SquareBracketOpen => {
                 new_class = Class::Open;
                 Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
@@ -1228,7 +1229,7 @@ where
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
-        static PRIME_SELECTION: [symbol::Ord; 4] = [
+        static PRIME_SELECTION: [symbol::OrdLike; 4] = [
             symbol::PRIME,
             symbol::DOUBLE_PRIME,
             symbol::TRIPLE_PRIME,
@@ -1334,7 +1335,7 @@ where
             return Class::Default;
         }
         match self.peek.token() {
-            Token::Relation(_) | Token::Colon => Class::Relation,
+            Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
             Token::Close(_) | Token::SquareBracketClose | Token::Ampersand => Class::Close,
@@ -1472,14 +1473,13 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         let c: char = match tokloc.token() {
             Token::Letter(c) | Token::UprightLetter(c) => *c,
             Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
-            Token::Open(op) => (*op).as_op().into(),
-            Token::Close(op) => (*op).as_op().into(),
+            Token::Open(op) | Token::Close(op) => (*op).as_op().into(),
             Token::BinaryOp(op) => op.as_op().into(),
             Token::Relation(op) => op.as_op().into(),
             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op().into(),
             Token::Number(digit) => *digit as u8 as char,
             Token::Prime => '’',
-            Token::Colon => ':',
+            Token::ForceRelation(op) => op.as_char(),
             Token::Punctuation(op) => (*op).as_op().into(),
             Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => {
                 // We don't transform these strings.

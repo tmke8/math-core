@@ -32,25 +32,22 @@ impl From<&MathMLOperator> for char {
     }
 }
 
-/// A type corresponding to LaTeX's "mathord" character class (class 0).
-///
-/// However, we do not render these as `<mi>` in MathML, but rather as `<mo>`. Visually, this makes
-/// no difference, but we do it like this for semantic reasons.
+/// An operator with zero spacing, categories D, E, F, G, I, K.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Ord {
+pub struct OrdLike {
     char: u16,
     cat: OrdCategory,
 }
 
-const fn ord(ch: char, cat: OrdCategory) -> Ord {
+const fn ord(ch: char, cat: OrdCategory) -> OrdLike {
     assert!(ch as u32 <= u16::MAX as u32);
-    Ord {
+    OrdLike {
         char: ch as u16,
         cat,
     }
 }
 
-impl Ord {
+impl OrdLike {
     #[inline(always)]
     pub const fn as_op(&self) -> MathMLOperator {
         debug_assert!(char::from_u32(self.char as u32).is_some());
@@ -77,6 +74,7 @@ impl Ord {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 enum OrdCategory {
     FG,
+    /// Category D: Prefix, zero spacing (e.g. `¬`).
     OnlyD,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     OnlyE,
@@ -86,7 +84,7 @@ enum OrdCategory {
     OnlyK,
 }
 
-/// A type corresponding to LaTeX's "mathop" character class (class 1).
+/// An operator with operator spacing (category C, H, J).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct BigOp {
     char: u16,
@@ -120,7 +118,7 @@ enum BigOpCategory {
     OnlyJ,
 }
 
-/// A type corresponding to LaTeX's "mathbin" character class (class 2).
+/// An operator with binary operator spacing (category B).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
 pub struct Bin(char);
@@ -139,7 +137,7 @@ impl From<Bin> for MathMLOperator {
     }
 }
 
-/// A type for operators with relation spacing.
+/// A operator with relation spacing.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Rel {
     char: u16,
@@ -177,11 +175,6 @@ impl Rel {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 enum RelCategory {
     Default,
-    // /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
-    // // `|` is in: infix ForceDefault, prefix F, postfix G
-    // ForceDefaultFG,
-    // /// Category K: Infix, zero spacing (e.g. `/`).
-    // OnlyK,
     /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
     OnlyA,
 }
@@ -195,20 +188,6 @@ impl Punct {
     #[inline(always)]
     pub const fn as_op(&self) -> MathMLOperator {
         MathMLOperator(self.0)
-    }
-}
-
-impl From<Punct> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: Punct) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-impl From<&Punct> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: &Punct) -> Self {
-        MathMLOperator(op.0)
     }
 }
 
@@ -283,7 +262,7 @@ impl From<StretchableOp> for char {
 //
 // Unicode Block: Basic Latin
 //
-pub const EXCLAMATION_MARK: Ord = ord('!', OrdCategory::DE);
+pub const EXCLAMATION_MARK: OrdLike = ord('!', OrdCategory::DE);
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';
@@ -296,7 +275,7 @@ pub const RIGHT_PARENTHESIS: Fence = Fence(')');
 pub const PLUS_SIGN: Bin = Bin('+');
 pub const COMMA: Punct = Punct(',');
 pub const FULL_STOP: BigOp = big_op('.', BigOpCategory::OnlyC);
-pub const SOLIDUS: Ord = ord('/', OrdCategory::OnlyK);
+pub const SOLIDUS: OrdLike = ord('/', OrdCategory::OnlyK);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -307,14 +286,14 @@ pub const EQUALS_SIGN: Rel = rel('=', RelCategory::Default);
 // pub const COMMERCIAL_AT: char = '@';
 
 pub const LEFT_SQUARE_BRACKET: Fence = Fence('[');
-pub const REVERSE_SOLIDUS: Ord = ord('\\', OrdCategory::OnlyK);
+pub const REVERSE_SOLIDUS: OrdLike = ord('\\', OrdCategory::OnlyK);
 pub const RIGHT_SQUARE_BRACKET: Fence = Fence(']');
 pub const CIRCUMFLEX_ACCENT: Rel = rel('^', RelCategory::Default);
 pub const LOW_LINE: Rel = rel('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = rel('`', RelCategory::Default);
 
 pub const LEFT_CURLY_BRACKET: Fence = Fence('{');
-pub const VERTICAL_LINE: Ord = ord('|', OrdCategory::FG);
+pub const VERTICAL_LINE: OrdLike = ord('|', OrdCategory::FG);
 pub const RIGHT_CURLY_BRACKET: Fence = Fence('}');
 pub const TILDE: Rel = rel('~', RelCategory::Default);
 
@@ -325,7 +304,7 @@ pub const SECTION_SIGN: char = '§';
 pub const DIAERESIS: Rel = rel('¨', RelCategory::Default);
 pub const COPYRIGHT_SIGN: char = '©';
 
-pub const NOT_SIGN: Ord = ord('¬', OrdCategory::OnlyD);
+pub const NOT_SIGN: OrdLike = ord('¬', OrdCategory::OnlyD);
 
 pub const MACRON: Rel = rel('¯', RelCategory::Default);
 
@@ -454,18 +433,18 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
-pub const DOUBLE_VERTICAL_LINE: Ord = ord('‖', OrdCategory::FG);
+pub const DOUBLE_VERTICAL_LINE: OrdLike = ord('‖', OrdCategory::FG);
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
 
 pub const HORIZONTAL_ELLIPSIS: char = '…';
-pub const PRIME: Ord = ord('′', OrdCategory::OnlyE);
-pub const DOUBLE_PRIME: Ord = ord('″', OrdCategory::OnlyE);
-pub const TRIPLE_PRIME: Ord = ord('‴', OrdCategory::OnlyE);
-pub const REVERSED_PRIME: Ord = ord('‵', OrdCategory::OnlyE);
-pub const REVERSED_DOUBLE_PRIME: Ord = ord('‶', OrdCategory::OnlyE);
-pub const REVERSED_TRIPLE_PRIME: Ord = ord('‷', OrdCategory::OnlyE);
+pub const PRIME: OrdLike = ord('′', OrdCategory::OnlyE);
+pub const DOUBLE_PRIME: OrdLike = ord('″', OrdCategory::OnlyE);
+pub const TRIPLE_PRIME: OrdLike = ord('‴', OrdCategory::OnlyE);
+pub const REVERSED_PRIME: OrdLike = ord('‵', OrdCategory::OnlyE);
+pub const REVERSED_DOUBLE_PRIME: OrdLike = ord('‶', OrdCategory::OnlyE);
+pub const REVERSED_TRIPLE_PRIME: OrdLike = ord('‷', OrdCategory::OnlyE);
 // pub const CARET: Ord = ord('‸');
 // pub const SINGLE_LEFT_POINTING_ANGLE_QUOTATION_MARK: Ord = ord('‹');
 // pub const SINGLE_RIGHT_POINTING_ANGLE_QUOTATION_MARK: Ord = ord('›');
@@ -474,7 +453,7 @@ pub const REVERSED_TRIPLE_PRIME: Ord = ord('‷', OrdCategory::OnlyE);
 // pub const INTERROBANG: Ord = ord('‽');
 pub const OVERLINE: Rel = rel('‾', RelCategory::Default);
 
-pub const QUADRUPLE_PRIME: Ord = ord('⁗', OrdCategory::OnlyE);
+pub const QUADRUPLE_PRIME: OrdLike = ord('⁗', OrdCategory::OnlyE);
 
 //
 // Unicode Block: Combining Diacritical Marks for Symbols
@@ -630,11 +609,11 @@ pub const RIGHTWARDS_SQUIGGLE_ARROW: Rel = rel('⇝', RelCategory::Default);
 //
 // Unicode Block: Mathematical Operators
 //
-pub const FOR_ALL: Ord = ord('∀', OrdCategory::OnlyD);
-pub const COMPLEMENT: Ord = ord('∁', OrdCategory::OnlyD);
+pub const FOR_ALL: OrdLike = ord('∀', OrdCategory::OnlyD);
+pub const COMPLEMENT: OrdLike = ord('∁', OrdCategory::OnlyD);
 pub const PARTIAL_DIFFERENTIAL: char = '∂'; // char so that it can be transformed
-pub const THERE_EXISTS: Ord = ord('∃', OrdCategory::OnlyD);
-pub const THERE_DOES_NOT_EXIST: Ord = ord('∄', OrdCategory::OnlyD);
+pub const THERE_EXISTS: OrdLike = ord('∃', OrdCategory::OnlyD);
+pub const THERE_DOES_NOT_EXIST: OrdLike = ord('∄', OrdCategory::OnlyD);
 pub const EMPTY_SET: char = '∅';
 // pub const INCREMENT: Ord = ord('∆');
 pub const NABLA: char = '∇'; // char so that it can be transformed
@@ -900,12 +879,12 @@ pub const BOTTOM_LEFT_CORNER: char = '⌞';
 pub const BOTTOM_RIGHT_CORNER: char = '⌟';
 pub const FROWN: Rel = rel('⌢', RelCategory::Default);
 pub const SMILE: Rel = rel('⌣', RelCategory::Default);
-pub const TOP_SQUARE_BRACKET: Ord = ord('⎴', OrdCategory::OnlyI);
-pub const BOTTOM_SQUARE_BRACKET: Ord = ord('⎵', OrdCategory::OnlyI);
-pub const TOP_PARENTHESIS: Ord = ord('⏜', OrdCategory::OnlyI);
-pub const BOTTOM_PARENTHESIS: Ord = ord('⏝', OrdCategory::OnlyI);
-pub const TOP_CURLY_BRACKET: Ord = ord('⏞', OrdCategory::OnlyI);
-pub const BOTTOM_CURLY_BRACKET: Ord = ord('⏟', OrdCategory::OnlyI);
+pub const TOP_SQUARE_BRACKET: OrdLike = ord('⎴', OrdCategory::OnlyI);
+pub const BOTTOM_SQUARE_BRACKET: OrdLike = ord('⎵', OrdCategory::OnlyI);
+pub const TOP_PARENTHESIS: OrdLike = ord('⏜', OrdCategory::OnlyI);
+pub const BOTTOM_PARENTHESIS: OrdLike = ord('⏝', OrdCategory::OnlyI);
+pub const TOP_CURLY_BRACKET: OrdLike = ord('⏞', OrdCategory::OnlyI);
+pub const BOTTOM_CURLY_BRACKET: OrdLike = ord('⏟', OrdCategory::OnlyI);
 
 //
 // Unicode Block: Enclosed Alphanumerics

@@ -180,7 +180,7 @@ impl<'source> Lexer<'source> {
                 }
             }
             '/' => Token::Ord(symbol::SOLIDUS),
-            ':' => Token::Colon,
+            ':' => Token::ForceRelation(symbol::COLON.as_op()),
             ';' => Token::Punctuation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
             '=' => Token::Relation(symbol::EQUALS_SIGN),

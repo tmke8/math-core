@@ -2,17 +2,17 @@
 pub enum Class {
     /// `mathord`
     #[default]
-    Default,
+    Default = 0,
+    /// `mathop`
+    Operator,
+    /// `mathbin`
+    BinaryOp,
+    /// `mathrel`
+    Relation,
     /// `mathopen`
     Open,
     /// `mathclose`
     Close,
-    /// `mathrel`
-    Relation,
     /// `mathpunct`
     Punctuation,
-    /// `mathbin`
-    BinaryOp,
-    /// `mathop`
-    Operator,
 }

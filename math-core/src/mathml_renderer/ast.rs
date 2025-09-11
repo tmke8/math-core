@@ -261,7 +261,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     write!(self.s, "<mi>{}</mi>", char::from(*op))?;
                 } else {
-                    self.emit_stretchy_op(Some(*op), *stretch_mode)?;
+                    self.emit_stretchy_op(*stretch_mode, Some(*op))?;
                 }
             }
             Node::Operator {
@@ -454,10 +454,10 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     None => write!(self.s, "<mrow>")?,
                 };
                 new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(*open, StretchMode::Fence)?;
+                self.emit_stretchy_op(StretchMode::Fence, *open)?;
                 self.emit(content, child_indent)?;
                 new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(*close, StretchMode::Fence)?;
+                self.emit_stretchy_op(StretchMode::Fence, *close)?;
                 writeln_indent!(&mut self.s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
@@ -728,8 +728,8 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn emit_stretchy_op(
         &mut self,
-        op: Option<StretchableOp>,
         stretch_mode: StretchMode,
+        op: Option<StretchableOp>,
     ) -> std::fmt::Result {
         if let Some(op) = op {
             match (stretch_mode, op.stretchy) {
@@ -818,7 +818,7 @@ mod tests {
     fn render_operator_with_spacing() {
         assert_eq!(
             render(&Node::Operator {
-                op: symbol::COLON.into(),
+                op: symbol::COLON.as_op(),
                 attr: None,
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
@@ -827,7 +827,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::Operator {
-                op: symbol::COLON.into(),
+                op: symbol::COLON.as_op(),
                 attr: None,
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
