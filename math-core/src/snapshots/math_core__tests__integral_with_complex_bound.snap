@@ -7,7 +7,7 @@ expression: "\\int_{0+1}^\\infty"
         <mo lspace="0" rspace="0">∫</mo>
         <mrow>
             <mn>0</mn>
-            <mo>+</mo>
+            <mo lspace="0" rspace="0">+</mo>
             <mn>1</mn>
         </mrow>
         <mi>∞</mi>

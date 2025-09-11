@@ -7,7 +7,7 @@ expression: "x_{1,2}=\\frac{{\\color{Blue}-b}\\pm \\sqrt{\\color{Red}b^2-4ac}}{\
         <mi>x</mi>
         <mrow>
             <mn>1</mn>
-            <mo>,</mo>
+            <mo rspace="0">,</mo>
             <mn>2</mn>
         </mrow>
     </msub>

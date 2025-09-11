@@ -7,7 +7,7 @@ expression: "\\sum\\limits_{i=1}^N"
         <mo movablelimits="false" lspace="0">∑</mo>
         <mrow>
             <mi>i</mi>
-            <mo>=</mo>
+            <mo lspace="0" rspace="0">=</mo>
             <mn>1</mn>
         </mrow>
         <mi>N</mi>

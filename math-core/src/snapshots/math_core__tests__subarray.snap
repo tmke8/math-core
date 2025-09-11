@@ -9,18 +9,18 @@ expression: "\\sum_{\\begin{subarray}{c} 0 \\le i \\le m\\\\ 0 < j < n \\end{sub
             <mtr>
                 <mtd style="padding-top: 0;padding-bottom: 0;">
                     <mn>0</mn>
-                    <mo>≤</mo>
+                    <mo lspace="0" rspace="0">≤</mo>
                     <mi>i</mi>
-                    <mo>≤</mo>
+                    <mo lspace="0" rspace="0">≤</mo>
                     <mi>m</mi>
                 </mtd>
             </mtr>
             <mtr>
                 <mtd style="padding-top: 0;padding-bottom: 0;">
                     <mn>0</mn>
-                    <mo>&lt;</mo>
+                    <mo lspace="0" rspace="0">&lt;</mo>
                     <mi>j</mi>
-                    <mo>&lt;</mo>
+                    <mo lspace="0" rspace="0">&lt;</mo>
                     <mi>n</mi>
                 </mtd>
             </mtr>

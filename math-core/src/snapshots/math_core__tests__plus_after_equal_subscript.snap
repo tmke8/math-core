@@ -6,7 +6,7 @@ expression: x =_+4
     <mi>x</mi>
     <msub>
         <mo>=</mo>
-        <mo>+</mo>
+        <mo lspace="0" rspace="0">+</mo>
     </msub>
     <mn>4</mn>
 </math>
