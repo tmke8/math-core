@@ -77,6 +77,13 @@ pub enum OrdCategory {
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct BigOp(char, BigOpCategory);
 
+impl BigOp {
+    #[inline(always)]
+    pub const fn as_op(&self) -> MathMLOperator {
+        MathMLOperator(self.0)
+    }
+}
+
 impl From<BigOp> for MathMLOperator {
     #[inline]
     fn from(op: BigOp) -> Self {
@@ -186,8 +193,12 @@ pub struct Open(char);
 
 impl Open {
     #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
+    pub const fn as_op(&self) -> StretchableOp {
+        assert!(self.0 as u32 <= u16::MAX as u32);
+        StretchableOp {
+            char: self.0 as u16,
+            stretchy: Stretchy::Always,
+        }
     }
 }
 
@@ -212,8 +223,12 @@ pub struct Close(char);
 
 impl Close {
     #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
+    pub const fn as_op(&self) -> StretchableOp {
+        assert!(self.0 as u32 <= u16::MAX as u32);
+        StretchableOp {
+            char: self.0 as u16,
+            stretchy: Stretchy::Always,
+        }
     }
 }
 
@@ -231,51 +246,68 @@ impl From<&Close> for MathMLOperator {
     }
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-// pub struct Open {
-//     char: u16,
-//     pub cat: OpCategory,
-// }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum Stretchy {
+    /// The operator is always stretchy (e.g. `(`, `)`).
+    Always = 1,
+    /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
+    PrePostfix,
+    /// The operator is never stretchy (e.g. `/`).
+    Never,
+    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
+    AlwaysAsymmetric,
+}
 
-// #[cfg(feature = "serde")]
-// impl Serialize for Open {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer,
-//     {
-//         use serde::ser::SerializeTupleStruct;
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub struct StretchableOp {
+    char: u16,
+    pub stretchy: Stretchy,
+}
 
-//         let mut state = serializer.serialize_tuple_struct("Op", 2)?;
-//         state.serialize_field(&char::from(*self))?;
-//         state.serialize_field(&self.cat)?;
-//         state.end()
-//     }
-// }
+#[cfg(feature = "serde")]
+impl Serialize for StretchableOp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeTupleStruct;
 
-// impl Open {
-//     /// The parenthesis behaves like a normal identifier
-//     /// (which is different from an operator with reduced spacing!)
-//     #[inline]
-//     pub fn ordinary_spacing(&self) -> bool {
-//         matches!(self.cat, OpCategory::OnlyK | OpCategory::ForceDefaultFG)
-//     }
-// }
+        let mut state = serializer.serialize_tuple_struct("StretchableOp", 2)?;
+        state.serialize_field(&char::from(*self))?;
+        state.serialize_field(&self.stretchy)?;
+        state.end()
+    }
+}
 
-// impl From<Open> for char {
-//     #[inline]
-//     fn from(op: Open) -> Self {
-//         debug_assert!(char::from_u32(op.char as u32).is_some());
-//         unsafe { char::from_u32_unchecked(op.char as u32) }
-//     }
-// }
+impl StretchableOp {
+    /// The parenthesis behaves like a normal identifier
+    /// (which is different from an operator with reduced spacing!)
+    #[inline]
+    pub fn ordinary_spacing(&self) -> bool {
+        matches!(self.stretchy, Stretchy::Never | Stretchy::PrePostfix)
+    }
+}
 
-// const fn op(ch: char, cat: OpCategory) -> Open {
-//     assert!(ch as u32 <= u16::MAX as u32);
-//     Open {
-//         char: ch as u16,
-//         cat,
-//     }
-// }
+impl From<Ord> for StretchableOp {
+    #[inline]
+    fn from(op: Ord) -> Self {
+        let ch = op.as_op().as_char();
+        assert!(ch as u32 <= u16::MAX as u32);
+        StretchableOp {
+            char: ch as u16,
+            stretchy: Stretchy::Never,
+        }
+    }
+}
+
+impl From<StretchableOp> for char {
+    #[inline]
+    fn from(op: StretchableOp) -> Self {
+        debug_assert!(char::from_u32(op.char as u32).is_some());
+        unsafe { char::from_u32_unchecked(op.char as u32) }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -293,7 +325,6 @@ pub enum RelCategory {
 //
 // Unicode Block: Basic Latin
 //
-pub const NULL: Open = op('\u{0}', RelCategory::OnlyF);
 pub const EXCLAMATION_MARK: Ord = Ord('!', OrdCategory::DE);
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
@@ -325,7 +356,7 @@ pub const LOW_LINE: Rel = Rel('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = Rel('`', RelCategory::Default);
 
 pub const LEFT_CURLY_BRACKET: Open = Open('{');
-pub const VERTICAL_LINE: Open = op('|', RelCategory::ForceDefaultFG);
+pub const VERTICAL_LINE: Ord = Ord('|', OrdCategory::FG);
 pub const RIGHT_CURLY_BRACKET: Close = Close('}');
 pub const TILDE: Rel = Rel('~', RelCategory::Default);
 

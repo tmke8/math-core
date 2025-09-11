@@ -20,11 +20,11 @@ pub static MOD: Node = Row {
 pub static PMOD: Node = Row {
     nodes: &[
         &Space(LatexUnit::Em.length_with_unit(1.0)),
-        &StretchableOp(symbol::LEFT_PARENTHESIS, StretchMode::NoStretch),
+        &StretchableOp(symbol::LEFT_PARENTHESIS.as_op(), StretchMode::NoStretch),
         &Text("mod"),
         &Space(LatexUnit::Mu.length_with_unit(6.0)),
         &CustomCmdArg(0),
-        &StretchableOp(symbol::RIGHT_PARENTHESIS, StretchMode::NoStretch),
+        &StretchableOp(symbol::RIGHT_PARENTHESIS.as_op(), StretchMode::NoStretch),
     ],
     attr: RowAttr::None,
 };

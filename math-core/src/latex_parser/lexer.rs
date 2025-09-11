@@ -190,7 +190,7 @@ impl<'source> Lexer<'source> {
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => Token::GroupBegin,
-            '|' => Token::Open(symbol::VERTICAL_LINE),
+            '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {

@@ -4,8 +4,8 @@ use crate::mathml_renderer::{
     arena::{Arena, Buffer, StringBuilder},
     ast::Node,
     attribute::{
-        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Stretchy,
-        Style, TextTransform,
+        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
+        TextTransform,
     },
     length::{Length, LengthUnit},
     symbol,
@@ -406,8 +406,8 @@ where
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
                     Node::Fenced {
-                        open: symbol::LEFT_PARENTHESIS,
-                        close: symbol::RIGHT_PARENTHESIS,
+                        open: Some(symbol::LEFT_PARENTHESIS.as_op()),
+                        close: Some(symbol::RIGHT_PARENTHESIS.as_op()),
                         content: self.commit(Node::Frac {
                             num,
                             denom,
@@ -434,13 +434,13 @@ where
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes: [], .. } => symbol::NULL,
+                    Node::StretchableOp(op, _) => Some(*op),
+                    Node::Row { nodes: [], .. } => None,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _) => *op,
-                    Node::Row { nodes: [], .. } => symbol::NULL,
+                    Node::StretchableOp(op, _) => Some(*op),
+                    Node::Row { nodes: [], .. } => None,
                     _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let (loc, length) = self.parse_ascii_text_group()?;
@@ -748,32 +748,24 @@ where
             }
             Token::Open(paren) => {
                 new_class = Class::Open;
-                Node::StretchableOp(paren.into(), Stretchy::Always, StretchMode::NoStretch)
+                Node::StretchableOp(paren.as_op(), StretchMode::NoStretch)
             }
-            Token::Close(paren) => {
-                Node::StretchableOp(paren.into(), Stretchy::Always, StretchMode::NoStretch)
-            }
+            Token::Close(paren) => Node::StretchableOp(paren.as_op(), StretchMode::NoStretch),
             Token::SquareBracketOpen => {
                 new_class = Class::Open;
-                Node::StretchableOp(
-                    symbol::LEFT_SQUARE_BRACKET.into(),
-                    Stretchy::Always,
-                    StretchMode::NoStretch,
-                )
+                Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
             }
-            Token::SquareBracketClose => Node::StretchableOp(
-                symbol::RIGHT_SQUARE_BRACKET.into(),
-                Stretchy::Always,
-                StretchMode::NoStretch,
-            ),
+            Token::SquareBracketClose => {
+                Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
+            }
             Token::Left => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let open_paren = match next_token {
-                    Token::Open(open) => open.as_op(),
-                    Token::Close(close) => close.into(),
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.into(),
-                    // Token::Letter('.') => symbol::NULL,
+                    Token::Open(open) => Some(open.as_op()),
+                    Token::Close(close) => Some(close.as_op()),
+                    Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
+                    Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+                    Token::Letter('.') => None,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -788,11 +780,11 @@ where
                 self.next_token(); // Discard the closing token.
                 let TokLoc(loc, next_token) = self.next_token();
                 let close_paren = match next_token {
-                    Token::Open(open) => open.as_op(),
-                    Token::Close(close) => close.into(),
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.into(),
-                    // Token::Letter('.') => symbol::NULL,
+                    Token::Open(open) => Some(open.as_op()),
+                    Token::Close(close) => Some(close.as_op()),
+                    Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
+                    Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+                    Token::Letter('.') => None,
                     _ => {
                         return Err(LatexError(
                             loc,
@@ -813,14 +805,14 @@ where
             Token::Middle => {
                 let TokLoc(loc, next_token) = self.next_token();
                 let op = match next_token {
-                    Token::Open(op) => op,
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
+                    Token::Open(op) => op.as_op(),
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Open(symbol::NULL),
+                                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
                                 got: next_token,
                             },
                         ));
@@ -832,14 +824,14 @@ where
                 new_class = class.unwrap_or(Class::OpenOrClose);
                 let TokLoc(loc, next_token) = self.next_token();
                 let paren = match next_token {
-                    Token::Open(paren) => paren,
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET,
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET,
+                    Token::Open(paren) => paren.as_op(),
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
                         return Err(LatexError(
                             loc,
                             LatexErrKind::UnexpectedToken {
-                                expected: &Token::Open(symbol::NULL),
+                                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
                                 got: next_token,
                             },
                         ));
@@ -886,8 +878,8 @@ where
                             with_numbering: false,
                         });
                         Node::Fenced {
-                            open: symbol::LEFT_CURLY_BRACKET,
-                            close: symbol::NULL,
+                            open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
+                            close: None,
                             content,
                             style: None,
                         }
@@ -919,22 +911,32 @@ where
                     @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
                         let align = Alignment::Centered;
                         let (open, close) = match matrix_variant {
-                            "pmatrix" => (symbol::LEFT_PARENTHESIS, symbol::RIGHT_PARENTHESIS),
-                            "bmatrix" => {
-                                (symbol::LEFT_SQUARE_BRACKET, symbol::RIGHT_SQUARE_BRACKET)
+                            "pmatrix" => (
+                                symbol::LEFT_PARENTHESIS.as_op(),
+                                symbol::RIGHT_PARENTHESIS.as_op(),
+                            ),
+                            "bmatrix" => (
+                                symbol::LEFT_SQUARE_BRACKET.as_op(),
+                                symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                            ),
+                            "Bmatrix" => (
+                                symbol::LEFT_CURLY_BRACKET.as_op(),
+                                symbol::RIGHT_CURLY_BRACKET.as_op(),
+                            ),
+                            "vmatrix" => {
+                                (symbol::VERTICAL_LINE.into(), symbol::VERTICAL_LINE.into())
                             }
-                            "Bmatrix" => (symbol::LEFT_CURLY_BRACKET, symbol::RIGHT_CURLY_BRACKET),
-                            "vmatrix" => (symbol::VERTICAL_LINE, symbol::VERTICAL_LINE),
-                            "Vmatrix" => {
-                                (symbol::DOUBLE_VERTICAL_LINE, symbol::DOUBLE_VERTICAL_LINE)
-                            }
+                            "Vmatrix" => (
+                                symbol::DOUBLE_VERTICAL_LINE.into(),
+                                symbol::DOUBLE_VERTICAL_LINE.into(),
+                            ),
                             // SAFETY: `matrix_variant` is one of the strings above.
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
                         let attr = None;
                         Node::Fenced {
-                            open,
-                            close,
+                            open: Some(open),
+                            close: Some(close),
                             content: self.commit(Node::Table {
                                 content,
                                 align,
@@ -1484,10 +1486,10 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         let c: char = match tokloc.token() {
             Token::Letter(c) | Token::UprightLetter(c) => *c,
             Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
-            Token::Open(op) => (*op).into(),
+            Token::Open(op) => (*op).as_op().into(),
             Token::BinaryOp(op) => op.as_op().into(),
             Token::Relation(op) => op.as_op().into(),
-            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.into(),
+            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op().into(),
             Token::Number(digit) => *digit as u8 as char,
             Token::Prime => '’',
             Token::Colon => ':',

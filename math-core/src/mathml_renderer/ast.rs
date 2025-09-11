@@ -3,16 +3,14 @@ use std::fmt::Write;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::mathml_renderer::attribute::{Notation, Stretchy};
-
 use super::attribute::{
-    FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, Size, StretchMode, Style,
-    TextTransform,
+    FracAttr, LetterAttr, MathSpacing, MathVariant, Notation, OpAttr, RowAttr, Size, StretchMode,
+    Style, TextTransform,
 };
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
 use super::length::{Length, LengthUnit, LengthValue};
-use super::symbol::{MathMLOperator, Open, RelCategory};
+use super::symbol::{MathMLOperator, StretchableOp, Stretchy};
 use super::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
@@ -23,7 +21,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
     IdentifierChar(char, LetterAttr),
-    StretchableOp(MathMLOperator, Stretchy, StretchMode),
+    StretchableOp(StretchableOp, StretchMode),
     /// `<mo>...</mo>` for a single character.
     Operator {
         op: MathMLOperator,
@@ -100,11 +98,11 @@ pub enum Node<'arena> {
     },
     Fenced {
         style: Option<Style>,
-        open: MathMLOperator,
-        close: MathMLOperator,
+        open: Option<StretchableOp>,
+        close: Option<StretchableOp>,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, MathMLOperator, Stretchy),
+    SizedParen(Size, StretchableOp),
     /// `<mtext>...</mtext>`
     Text(&'arena str),
     /// `<mtable>...</mtable>`
@@ -259,13 +257,11 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 self.emit(content, base_indent)?;
                 self.var = old_var;
             }
-            Node::StretchableOp(op, stretchy, stretch_mode) => {
-                if matches!(stretchy, Stretchy::Never | Stretchy::PrePostfix)
-                    && matches!(stretch_mode, StretchMode::NoStretch)
-                {
+            Node::StretchableOp(op, stretch_mode) => {
+                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
                     write!(self.s, "<mi>{}</mi>", char::from(*op))?;
                 } else {
-                    self.emit_stretchy_op(*stretchy, *stretch_mode, *op)?;
+                    self.emit_stretchy_op(Some(*op), *stretch_mode)?;
                 }
             }
             Node::Operator {
@@ -458,20 +454,20 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                     None => write!(self.s, "<mrow>")?,
                 };
                 new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(StretchMode::Fence, *open)?;
+                self.emit_stretchy_op(*open, StretchMode::Fence)?;
                 self.emit(content, child_indent)?;
                 new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(StretchMode::Fence, *close)?;
+                self.emit_stretchy_op(*close, StretchMode::Fence)?;
                 writeln_indent!(&mut self.s, base_indent, "</mrow>");
             }
-            Node::SizedParen(size, paren, stretchy) => {
+            Node::SizedParen(size, paren) => {
                 write!(
                     self.s,
                     "<mo maxsize=\"{}\" minsize=\"{}\"",
                     <&str>::from(size),
                     <&str>::from(size)
                 )?;
-                match stretchy {
+                match paren.stretchy {
                     Stretchy::PrePostfix | Stretchy::Never => {
                         write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
                     }
@@ -732,31 +728,32 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
     fn emit_stretchy_op(
         &mut self,
-        stretchy: Stretchy,
+        op: Option<StretchableOp>,
         stretch_mode: StretchMode,
-        op: MathMLOperator,
     ) -> std::fmt::Result {
-        match (stretch_mode, stretchy) {
-            (StretchMode::Fence, Stretchy::Never)
-            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
-                write!(self.s, "<mo stretchy=\"true\">")?;
-            }
-            (
-                StretchMode::NoStretch,
-                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
-            ) => {
-                write!(self.s, "<mo stretchy=\"false\">")?;
-            }
+        if let Some(op) = op {
+            match (stretch_mode, op.stretchy) {
+                (StretchMode::Fence, Stretchy::Never)
+                | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
+                    write!(self.s, "<mo stretchy=\"true\">")?;
+                }
+                (
+                    StretchMode::NoStretch,
+                    Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
+                ) => {
+                    write!(self.s, "<mo stretchy=\"false\">")?;
+                }
 
-            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
-                write!(self.s, "<mo symmetric=\"true\">")?;
+                (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
+                    write!(self.s, "<mo symmetric=\"true\">")?;
+                }
+                _ => {
+                    write!(self.s, "<mo>")?;
+                }
             }
-            _ => {
-                write!(self.s, "<mo>")?;
-            }
-        }
-        if char::from(op) != '\0' {
             write!(self.s, "{}", char::from(op))?;
+        } else {
+            write!(self.s, "<mo>")?;
         }
         write!(self.s, "</mo>")?;
         Ok(())
@@ -1155,17 +1152,12 @@ mod tests {
         assert_eq!(
             render(&Node::SizedParen(
                 Size::Scale1,
-                symbol::LEFT_PARENTHESIS,
-                Stretchy::Always
+                symbol::LEFT_PARENTHESIS.as_op(),
             )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen(
-                Size::Scale3,
-                symbol::SOLIDUS,
-                Stretchy::Never
-            )),
+            render(&Node::SizedParen(Size::Scale3, symbol::SOLIDUS.into())),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }
