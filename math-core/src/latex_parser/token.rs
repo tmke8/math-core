@@ -8,7 +8,7 @@ use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::length::Length;
-use crate::mathml_renderer::symbol::{BigOp, Bin, Close, Open, Ord, Punct, Rel};
+use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, Ord, Punct, Rel};
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
@@ -29,9 +29,11 @@ pub enum Token<'source> {
     Right,
     #[strum(serialize = r"\middle")]
     Middle,
+    /// A token corresponding to LaTeX's "mathopen" character class (class 4).
     #[strum(serialize = "parenthesis")]
-    Open(Open),
-    Close(Close),
+    Open(Fence),
+    /// A token corresponding to LaTeX's "mathclose" character class (class 5).
+    Close(Fence),
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
     #[strum(serialize = "[")]

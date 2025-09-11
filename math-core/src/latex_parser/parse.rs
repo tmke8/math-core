@@ -297,7 +297,7 @@ where
                         None
                     };
                     Node::Operator {
-                        op: relation.into(),
+                        op: relation.as_op(),
                         attr: None,
                         left,
                         right,
@@ -325,7 +325,7 @@ where
                     Node::IdentifierChar(op.into(), LetterAttr::Default)
                 } else {
                     Node::Operator {
-                        op: ord.into(),
+                        op: ord.as_op(),
                         attr: None,
                         left: None,
                         right: None,
@@ -492,9 +492,9 @@ where
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
-                    Node::OverOp(op.into(), attr, target)
+                    Node::OverOp(op.as_op(), attr, target)
                 } else {
-                    Node::UnderOp(op.into(), target)
+                    Node::UnderOp(op.as_op(), target)
                 }
             }
             Token::Overset | Token::Underset => {
@@ -511,7 +511,7 @@ where
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 let symbol = self.commit(Node::Operator {
-                    op: x.into(),
+                    op: x.as_op(),
                     attr: None,
                     left: None,
                     right: None,
@@ -555,7 +555,7 @@ where
                     None
                 };
                 let target = self.commit(Node::Operator {
-                    op: op.into(),
+                    op: op.as_op(),
                     attr,
                     left,
                     right,
@@ -615,14 +615,14 @@ where
                     Token::Relation(op) => {
                         if let Some(negated) = get_negated_op(op) {
                             Node::Operator {
-                                op: negated.into(),
+                                op: negated.as_op(),
                                 attr: None,
                                 left: None,
                                 right: None,
                             }
                         } else {
                             Node::Operator {
-                                op: op.into(),
+                                op: op.as_op(),
                                 attr: None,
                                 left: None,
                                 right: None,
@@ -630,13 +630,13 @@ where
                         }
                     }
                     Token::OpLessThan => Node::Operator {
-                        op: symbol::NOT_LESS_THAN.into(),
+                        op: symbol::NOT_LESS_THAN.as_op(),
                         attr: None,
                         left: None,
                         right: None,
                     },
                     Token::OpGreaterThan => Node::Operator {
-                        op: symbol::NOT_GREATER_THAN.into(),
+                        op: symbol::NOT_GREATER_THAN.as_op(),
                         attr: None,
                         left: None,
                         right: None,
@@ -678,7 +678,7 @@ where
                 let bounds = self.get_bounds()?;
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let target = self.commit(Node::Operator {
-                    op: int.into(),
+                    op: int.as_op(),
                     attr: None,
                     left,
                     right,
@@ -775,7 +775,7 @@ where
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(extract_delimiter(tok_loc)?)
+                    Some(extract_delimiter(tok_loc)?.0)
                 };
                 let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None)?;
                 self.next_token(); // Discard the closing token.
@@ -783,7 +783,7 @@ where
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(extract_delimiter(tok_loc)?)
+                    Some(extract_delimiter(tok_loc)?.0)
                 };
                 Node::Fenced {
                     open: open_paren,
@@ -794,13 +794,13 @@ where
             }
             Token::Middle => {
                 let tok_loc = self.next_token();
-                let op = extract_delimiter(tok_loc)?;
+                let op = extract_delimiter(tok_loc)?.0;
                 Node::StretchableOp(op, StretchMode::Middle)
             }
             Token::Big(size, class) => {
-                new_class = class.unwrap_or(Class::OpenOrClose);
                 let tok_loc = self.next_token();
-                let paren = extract_delimiter(tok_loc)?;
+                let (paren, symbol_class) = extract_delimiter(tok_loc)?;
+                new_class = class.unwrap_or(symbol_class);
                 Node::SizedParen(size, paren)
             }
             Token::Begin => {
@@ -1028,7 +1028,7 @@ where
                     attr: RowAttr::None,
                 });
                 let symbol = self.commit(Node::Operator {
-                    op: symbol::PRIME.into(),
+                    op: symbol::PRIME.as_op(),
                     attr: None,
                     left: None,
                     right: None,
@@ -1246,7 +1246,7 @@ where
             } else {
                 for _ in 0..prime_count {
                     primes.push(self.commit(Node::Operator {
-                        op: symbol::PRIME.into(),
+                        op: symbol::PRIME.as_op(),
                         attr: None,
                         left: None,
                         right: None,
@@ -1316,11 +1316,7 @@ where
             },
             if matches!(
                 next_class,
-                Class::Punctuation
-                    | Class::Relation
-                    | Class::OpenOrClose
-                    | Class::Open
-                    | Class::Close
+                Class::Punctuation | Class::Relation | Class::Open | Class::Close
             ) {
                 Some(MathSpacing::Zero)
             } else {
@@ -1340,8 +1336,8 @@ where
         match self.peek.token() {
             Token::Relation(_) | Token::Colon => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
-            Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::SquareBracketClose | Token::Ampersand => Class::Close,
+            Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
+            Token::Close(_) | Token::SquareBracketClose | Token::Ampersand => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
             Token::End | Token::Right | Token::GroupEnd | Token::Eof
@@ -1349,7 +1345,7 @@ where
             {
                 Class::Close
             }
-            Token::Open(_) | Token::Big(_, None) => Class::OpenOrClose,
+            Token::Big(_, None) => Class::Default,
             Token::Big(_, Some(class)) => *class,
             _ => Class::Default,
         }
@@ -1407,15 +1403,15 @@ pub(crate) fn node_vec_to_node<'arena>(
     }
 }
 
-fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<StretchableOp, LatexError<'_>> {
-    let delim = match tok_loc.token() {
-        Token::Open(paren) => Some(paren.as_op()),
-        Token::Close(paren) => Some(paren.as_op()),
-        Token::Ord(ord) => ord.as_stretchable_op(),
-        Token::Relation(rel) => rel.as_stretchable_op(),
-        Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
-        Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
-        _ => None,
+fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<(StretchableOp, Class), LatexError<'_>> {
+    let (delim, class) = match tok_loc.token() {
+        Token::Open(paren) => (Some(paren.as_op()), Class::Open),
+        Token::Close(paren) => (Some(paren.as_op()), Class::Close),
+        Token::Ord(ord) => (ord.as_stretchable_op(), Class::Default),
+        Token::Relation(rel) => (rel.as_stretchable_op(), Class::Relation),
+        Token::SquareBracketOpen => (Some(symbol::LEFT_SQUARE_BRACKET.as_op()), Class::Open),
+        Token::SquareBracketClose => (Some(symbol::RIGHT_SQUARE_BRACKET.as_op()), Class::Close),
+        _ => (None, Class::Default),
     };
     let Some(delim) = delim else {
         let loc = tok_loc.location();
@@ -1427,7 +1423,7 @@ fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<StretchableOp, LatexError<'_
             },
         ));
     };
-    Ok(delim)
+    Ok((delim, class))
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);

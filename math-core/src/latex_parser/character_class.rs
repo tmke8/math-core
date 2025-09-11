@@ -7,10 +7,6 @@ pub enum Class {
     Open,
     /// `mathclose`
     Close,
-    /// `mathopen` or `mathclose`
-    /// This is a temporary variant that we use because we don't always know yet
-    /// if we are parsing an opening or closing symbol.
-    OpenOrClose,
     /// `mathrel`
     Relation,
     /// `mathpunct`

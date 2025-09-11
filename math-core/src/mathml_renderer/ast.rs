@@ -836,7 +836,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::Operator {
-                op: symbol::IDENTICAL_TO.into(),
+                op: symbol::IDENTICAL_TO.as_op(),
                 attr: None,
                 left: Some(MathSpacing::Zero),
                 right: None,
@@ -854,7 +854,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::Operator {
-                op: symbol::N_ARY_SUMMATION.into(),
+                op: symbol::N_ARY_SUMMATION.as_op(),
                 attr: Some(OpAttr::NoMovableLimits),
                 left: None,
                 right: None,
@@ -927,7 +927,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverOp(
-                symbol::MACRON.into(),
+                symbol::MACRON.as_op(),
                 Some(OpAttr::StretchyFalse),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
@@ -935,7 +935,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OverOp(
-                symbol::OVERLINE.into(),
+                symbol::OVERLINE.as_op(),
                 None,
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
@@ -947,7 +947,7 @@ mod tests {
     fn render_under_op() {
         assert_eq!(
             render(&Node::UnderOp(
-                symbol::LOW_LINE.into(),
+                symbol::LOW_LINE.as_op(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<munder accent=\"true\"><mi>x</mi><mo>_</mo></munder>"
@@ -959,13 +959,13 @@ mod tests {
         assert_eq!(
             render(&Node::Overset {
                 symbol: &Node::Operator {
-                    op: symbol::EXCLAMATION_MARK.into(),
+                    op: symbol::EXCLAMATION_MARK.as_op(),
                     attr: None,
                     left: None,
                     right: None
                 },
                 target: &Node::Operator {
-                    op: symbol::EQUALS_SIGN.into(),
+                    op: symbol::EQUALS_SIGN.as_op(),
                     attr: None,
                     left: None,
                     right: None
@@ -1117,7 +1117,7 @@ mod tests {
         let nodes = &[
             &Node::IdentifierChar('x', LetterAttr::Default),
             &Node::Operator {
-                op: symbol::EQUALS_SIGN.into(),
+                op: symbol::EQUALS_SIGN.as_op(),
                 attr: None,
                 left: None,
                 right: None,

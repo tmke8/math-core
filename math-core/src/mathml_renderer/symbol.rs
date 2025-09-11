@@ -37,46 +37,45 @@ impl From<&MathMLOperator> for char {
 /// However, we do not render these as `<mi>` in MathML, but rather as `<mo>`. Visually, this makes
 /// no difference, but we do it like this for semantic reasons.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Ord(char, OrdCategory);
+pub struct Ord {
+    char: u16,
+    cat: OrdCategory,
+}
+
+const fn ord(ch: char, cat: OrdCategory) -> Ord {
+    assert!(ch as u32 <= u16::MAX as u32);
+    Ord {
+        char: ch as u16,
+        cat,
+    }
+}
 
 impl Ord {
     #[inline(always)]
     pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
+        debug_assert!(char::from_u32(self.char as u32).is_some());
+        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
     }
 
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
-        match self.1 {
-            OrdCategory::FG => {
-                assert!(self.0 as u32 <= u16::MAX as u32);
-                Some(StretchableOp {
-                    char: self.0 as u16,
-                    stretchy: Stretchy::PrePostfix,
-                })
-            }
-            OrdCategory::OnlyK => {
-                assert!(self.0 as u32 <= u16::MAX as u32);
-                Some(StretchableOp {
-                    char: self.0 as u16,
-                    stretchy: Stretchy::Never,
-                })
-            }
+        match self.cat {
+            OrdCategory::FG => Some(StretchableOp {
+                char: self.char,
+                stretchy: Stretchy::PrePostfix,
+            }),
+            OrdCategory::OnlyK => Some(StretchableOp {
+                char: self.char,
+                stretchy: Stretchy::Never,
+            }),
             _ => None,
         }
     }
 }
 
-impl From<Ord> for MathMLOperator {
-    #[inline]
-    fn from(op: Ord) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum OrdCategory {
+enum OrdCategory {
     FG,
     OnlyD,
     /// Category E: Postfix, zero spacing (e.g. `′`).
@@ -89,25 +88,30 @@ pub enum OrdCategory {
 
 /// A type corresponding to LaTeX's "mathop" character class (class 1).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct BigOp(char, BigOpCategory);
+pub struct BigOp {
+    char: u16,
+    cat: BigOpCategory,
+}
+
+const fn big_op(ch: char, cat: BigOpCategory) -> BigOp {
+    assert!(ch as u32 <= u16::MAX as u32);
+    BigOp {
+        char: ch as u16,
+        cat,
+    }
+}
 
 impl BigOp {
     #[inline(always)]
     pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
-    }
-}
-
-impl From<BigOp> for MathMLOperator {
-    #[inline]
-    fn from(op: BigOp) -> Self {
-        MathMLOperator(op.0)
+        debug_assert!(char::from_u32(self.char as u32).is_some());
+        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum BigOpCategory {
+enum BigOpCategory {
     /// Category C: Infix, op spacing (e.g. `×`).
     OnlyC,
     /// Category J: Prefix, op spacing, symmetric, largeop (e.g. `∫`).
@@ -169,13 +173,6 @@ impl Rel {
     }
 }
 
-impl From<Rel> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: Rel) -> Self {
-        op.as_op()
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 enum RelCategory {
@@ -189,7 +186,7 @@ enum RelCategory {
     OnlyA,
 }
 
-/// A type corresponding to LaTeX's "mathpunct" character class (class 6).
+/// An operator with punctuation spacing (category M).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
 pub struct Punct(char);
@@ -215,12 +212,13 @@ impl From<&Punct> for MathMLOperator {
     }
 }
 
-/// A type corresponding to LaTeX's "mathopen" character class (class 4).
+/// An operator that has zero spacing and is stretchy and symmetric
+/// (category G and F).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
-pub struct Open(char);
+pub struct Fence(char);
 
-impl Open {
+impl Fence {
     #[inline(always)]
     pub const fn as_op(&self) -> StretchableOp {
         assert!(self.0 as u32 <= u16::MAX as u32);
@@ -228,43 +226,6 @@ impl Open {
             char: self.0 as u16,
             stretchy: Stretchy::Always,
         }
-    }
-}
-
-impl From<Open> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: Open) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-impl From<&Open> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: &Open) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-/// A type corresponding to LaTeX's "mathclose" character class (class 5).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-#[repr(transparent)]
-pub struct Close(char);
-
-impl Close {
-    #[inline(always)]
-    pub const fn as_op(&self) -> StretchableOp {
-        assert!(self.0 as u32 <= u16::MAX as u32);
-        StretchableOp {
-            char: self.0 as u16,
-            stretchy: Stretchy::Always,
-        }
-    }
-}
-
-impl From<Close> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: Close) -> Self {
-        MathMLOperator(op.0)
     }
 }
 
@@ -322,20 +283,20 @@ impl From<StretchableOp> for char {
 //
 // Unicode Block: Basic Latin
 //
-pub const EXCLAMATION_MARK: Ord = Ord('!', OrdCategory::DE);
+pub const EXCLAMATION_MARK: Ord = ord('!', OrdCategory::DE);
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';
 pub const PERCENT_SIGN: char = '%';
 // pub const AMPERSAND: char = '&';
 // pub const APOSTROPHE: char = '\'';
-pub const LEFT_PARENTHESIS: Open = Open('(');
-pub const RIGHT_PARENTHESIS: Close = Close(')');
+pub const LEFT_PARENTHESIS: Fence = Fence('(');
+pub const RIGHT_PARENTHESIS: Fence = Fence(')');
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = Bin('+');
 pub const COMMA: Punct = Punct(',');
-pub const FULL_STOP: BigOp = BigOp('.', BigOpCategory::OnlyC);
-pub const SOLIDUS: Ord = Ord('/', OrdCategory::OnlyK);
+pub const FULL_STOP: BigOp = big_op('.', BigOpCategory::OnlyC);
+pub const SOLIDUS: Ord = ord('/', OrdCategory::OnlyK);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -345,16 +306,16 @@ pub const EQUALS_SIGN: Rel = rel('=', RelCategory::Default);
 // pub const QUESTION_MARK: Op = Op('?');
 // pub const COMMERCIAL_AT: char = '@';
 
-pub const LEFT_SQUARE_BRACKET: Open = Open('[');
-pub const REVERSE_SOLIDUS: Ord = Ord('\\', OrdCategory::OnlyK);
-pub const RIGHT_SQUARE_BRACKET: Close = Close(']');
+pub const LEFT_SQUARE_BRACKET: Fence = Fence('[');
+pub const REVERSE_SOLIDUS: Ord = ord('\\', OrdCategory::OnlyK);
+pub const RIGHT_SQUARE_BRACKET: Fence = Fence(']');
 pub const CIRCUMFLEX_ACCENT: Rel = rel('^', RelCategory::Default);
 pub const LOW_LINE: Rel = rel('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = rel('`', RelCategory::Default);
 
-pub const LEFT_CURLY_BRACKET: Open = Open('{');
-pub const VERTICAL_LINE: Ord = Ord('|', OrdCategory::FG);
-pub const RIGHT_CURLY_BRACKET: Close = Close('}');
+pub const LEFT_CURLY_BRACKET: Fence = Fence('{');
+pub const VERTICAL_LINE: Ord = ord('|', OrdCategory::FG);
+pub const RIGHT_CURLY_BRACKET: Fence = Fence('}');
 pub const TILDE: Rel = rel('~', RelCategory::Default);
 
 //
@@ -364,7 +325,7 @@ pub const SECTION_SIGN: char = '§';
 pub const DIAERESIS: Rel = rel('¨', RelCategory::Default);
 pub const COPYRIGHT_SIGN: char = '©';
 
-pub const NOT_SIGN: Ord = Ord('¬', OrdCategory::OnlyD);
+pub const NOT_SIGN: Ord = ord('¬', OrdCategory::OnlyD);
 
 pub const MACRON: Rel = rel('¯', RelCategory::Default);
 
@@ -375,7 +336,7 @@ pub const ACUTE_ACCENT: Rel = rel('´', RelCategory::Default);
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Bin = Bin('·');
 
-pub const MULTIPLICATION_SIGN: BigOp = BigOp('×', BigOpCategory::OnlyC);
+pub const MULTIPLICATION_SIGN: BigOp = big_op('×', BigOpCategory::OnlyC);
 
 pub const LATIN_SMALL_LETTER_ETH: char = 'ð';
 
@@ -493,27 +454,27 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
-pub const DOUBLE_VERTICAL_LINE: Ord = Ord('‖', OrdCategory::FG);
+pub const DOUBLE_VERTICAL_LINE: Ord = ord('‖', OrdCategory::FG);
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
 
 pub const HORIZONTAL_ELLIPSIS: char = '…';
-pub const PRIME: Ord = Ord('′', OrdCategory::OnlyE);
-pub const DOUBLE_PRIME: Ord = Ord('″', OrdCategory::OnlyE);
-pub const TRIPLE_PRIME: Ord = Ord('‴', OrdCategory::OnlyE);
-pub const REVERSED_PRIME: Ord = Ord('‵', OrdCategory::OnlyE);
-pub const REVERSED_DOUBLE_PRIME: Ord = Ord('‶', OrdCategory::OnlyE);
-pub const REVERSED_TRIPLE_PRIME: Ord = Ord('‷', OrdCategory::OnlyE);
-// pub const CARET: Ord = Ord('‸');
-// pub const SINGLE_LEFT_POINTING_ANGLE_QUOTATION_MARK: Ord = Ord('‹');
-// pub const SINGLE_RIGHT_POINTING_ANGLE_QUOTATION_MARK: Ord = Ord('›');
-// pub const REFERENCE_MARK: Ord = Ord('※');
-// pub const DOUBLE_EXCLAMATION_MARK: Ord = Ord('‼');
-// pub const INTERROBANG: Ord = Ord('‽');
+pub const PRIME: Ord = ord('′', OrdCategory::OnlyE);
+pub const DOUBLE_PRIME: Ord = ord('″', OrdCategory::OnlyE);
+pub const TRIPLE_PRIME: Ord = ord('‴', OrdCategory::OnlyE);
+pub const REVERSED_PRIME: Ord = ord('‵', OrdCategory::OnlyE);
+pub const REVERSED_DOUBLE_PRIME: Ord = ord('‶', OrdCategory::OnlyE);
+pub const REVERSED_TRIPLE_PRIME: Ord = ord('‷', OrdCategory::OnlyE);
+// pub const CARET: Ord = ord('‸');
+// pub const SINGLE_LEFT_POINTING_ANGLE_QUOTATION_MARK: Ord = ord('‹');
+// pub const SINGLE_RIGHT_POINTING_ANGLE_QUOTATION_MARK: Ord = ord('›');
+// pub const REFERENCE_MARK: Ord = ord('※');
+// pub const DOUBLE_EXCLAMATION_MARK: Ord = ord('‼');
+// pub const INTERROBANG: Ord = ord('‽');
 pub const OVERLINE: Rel = rel('‾', RelCategory::Default);
 
-pub const QUADRUPLE_PRIME: Ord = Ord('⁗', OrdCategory::OnlyE);
+pub const QUADRUPLE_PRIME: Ord = ord('⁗', OrdCategory::OnlyE);
 
 //
 // Unicode Block: Combining Diacritical Marks for Symbols
@@ -669,13 +630,13 @@ pub const RIGHTWARDS_SQUIGGLE_ARROW: Rel = rel('⇝', RelCategory::Default);
 //
 // Unicode Block: Mathematical Operators
 //
-pub const FOR_ALL: Ord = Ord('∀', OrdCategory::OnlyD);
-pub const COMPLEMENT: Ord = Ord('∁', OrdCategory::OnlyD);
+pub const FOR_ALL: Ord = ord('∀', OrdCategory::OnlyD);
+pub const COMPLEMENT: Ord = ord('∁', OrdCategory::OnlyD);
 pub const PARTIAL_DIFFERENTIAL: char = '∂'; // char so that it can be transformed
-pub const THERE_EXISTS: Ord = Ord('∃', OrdCategory::OnlyD);
-pub const THERE_DOES_NOT_EXIST: Ord = Ord('∄', OrdCategory::OnlyD);
+pub const THERE_EXISTS: Ord = ord('∃', OrdCategory::OnlyD);
+pub const THERE_DOES_NOT_EXIST: Ord = ord('∄', OrdCategory::OnlyD);
 pub const EMPTY_SET: char = '∅';
-// pub const INCREMENT: Ord = Ord('∆');
+// pub const INCREMENT: Ord = ord('∆');
 pub const NABLA: char = '∇'; // char so that it can be transformed
 pub const ELEMENT_OF: Rel = rel('∈', RelCategory::Default);
 pub const NOT_AN_ELEMENT_OF: Rel = rel('∉', RelCategory::Default);
@@ -683,10 +644,10 @@ pub const NOT_AN_ELEMENT_OF: Rel = rel('∉', RelCategory::Default);
 pub const CONTAINS_AS_MEMBER: Rel = rel('∋', RelCategory::Default);
 // pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = rel('∌', RelCategory::Default);
 // pub const SMALL_CONTAINS_AS_MEMBER: Rel = rel('∍', RelCategory::Default);
-// pub const END_OF_PROOF: Ord = Ord('∎');
-pub const N_ARY_PRODUCT: BigOp = BigOp('∏', BigOpCategory::OnlyJ);
-pub const N_ARY_COPRODUCT: BigOp = BigOp('∐', BigOpCategory::OnlyJ);
-pub const N_ARY_SUMMATION: BigOp = BigOp('∑', BigOpCategory::OnlyJ);
+// pub const END_OF_PROOF: Ord = ord('∎');
+pub const N_ARY_PRODUCT: BigOp = big_op('∏', BigOpCategory::OnlyJ);
+pub const N_ARY_COPRODUCT: BigOp = big_op('∐', BigOpCategory::OnlyJ);
+pub const N_ARY_SUMMATION: BigOp = big_op('∑', BigOpCategory::OnlyJ);
 pub const MINUS_SIGN: Bin = Bin('−');
 pub const MINUS_OR_PLUS_SIGN: Bin = Bin('∓');
 pub const DOT_PLUS: Bin = Bin('∔');
@@ -712,15 +673,15 @@ pub const LOGICAL_AND: Bin = Bin('∧');
 pub const LOGICAL_OR: Bin = Bin('∨');
 pub const INTERSECTION: Bin = Bin('∩');
 pub const UNION: Bin = Bin('∪');
-pub const INTEGRAL: BigOp = BigOp('∫', BigOpCategory::OnlyH);
-pub const DOUBLE_INTEGRAL: BigOp = BigOp('∬', BigOpCategory::OnlyH);
-pub const TRIPLE_INTEGRAL: BigOp = BigOp('∭', BigOpCategory::OnlyH);
-pub const CONTOUR_INTEGRAL: BigOp = BigOp('∮', BigOpCategory::OnlyH);
-pub const SURFACE_INTEGRAL: BigOp = BigOp('∯', BigOpCategory::OnlyH);
-pub const VOLUME_INTEGRAL: BigOp = BigOp('∰', BigOpCategory::OnlyH);
-pub const CLOCKWISE_INTEGRAL: BigOp = BigOp('∱', BigOpCategory::OnlyH);
-pub const CLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∲', BigOpCategory::OnlyH);
-pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∳', BigOpCategory::OnlyH);
+pub const INTEGRAL: BigOp = big_op('∫', BigOpCategory::OnlyH);
+pub const DOUBLE_INTEGRAL: BigOp = big_op('∬', BigOpCategory::OnlyH);
+pub const TRIPLE_INTEGRAL: BigOp = big_op('∭', BigOpCategory::OnlyH);
+pub const CONTOUR_INTEGRAL: BigOp = big_op('∮', BigOpCategory::OnlyH);
+pub const SURFACE_INTEGRAL: BigOp = big_op('∯', BigOpCategory::OnlyH);
+pub const VOLUME_INTEGRAL: BigOp = big_op('∰', BigOpCategory::OnlyH);
+pub const CLOCKWISE_INTEGRAL: BigOp = big_op('∱', BigOpCategory::OnlyH);
+pub const CLOCKWISE_CONTOUR_INTEGRAL: BigOp = big_op('∲', BigOpCategory::OnlyH);
+pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: BigOp = big_op('∳', BigOpCategory::OnlyH);
 pub const THEREFORE: Rel = rel('∴', RelCategory::Default);
 pub const BECAUSE: Rel = rel('∵', RelCategory::Default);
 // pub const RATIO: Op = Op('∶');
@@ -861,10 +822,10 @@ pub const NAND: Bin = Bin('⊼');
 // pub const NOR: Op = Op('⊽');
 // pub const RIGHT_ANGLE_WITH_ARC: Op = Op('⊾');
 // pub const RIGHT_TRIANGLE: Op = Op('⊿');
-pub const N_ARY_LOGICAL_AND: BigOp = BigOp('⋀', BigOpCategory::OnlyJ);
-pub const N_ARY_LOGICAL_OR: BigOp = BigOp('⋁', BigOpCategory::OnlyJ);
-pub const N_ARY_INTERSECTION: BigOp = BigOp('⋂', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION: BigOp = BigOp('⋃', BigOpCategory::OnlyJ);
+pub const N_ARY_LOGICAL_AND: BigOp = big_op('⋀', BigOpCategory::OnlyJ);
+pub const N_ARY_LOGICAL_OR: BigOp = big_op('⋁', BigOpCategory::OnlyJ);
+pub const N_ARY_INTERSECTION: BigOp = big_op('⋂', BigOpCategory::OnlyJ);
+pub const N_ARY_UNION: BigOp = big_op('⋃', BigOpCategory::OnlyJ);
 pub const DIAMOND_OPERATOR: Bin = Bin('⋄');
 // pub const DOT_OPERATOR: Bin = Bin('⋅');
 pub const STAR_OPERATOR: Bin = Bin('⋆');
@@ -929,22 +890,22 @@ pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = rel('⋱', RelCategory::Default);
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub const LEFT_CEILING: Open = Open('⌈');
-pub const RIGHT_CEILING: Close = Close('⌉');
-pub const LEFT_FLOOR: Open = Open('⌊');
-pub const RIGHT_FLOOR: Close = Close('⌋');
+pub const LEFT_CEILING: Fence = Fence('⌈');
+pub const RIGHT_CEILING: Fence = Fence('⌉');
+pub const LEFT_FLOOR: Fence = Fence('⌊');
+pub const RIGHT_FLOOR: Fence = Fence('⌋');
 pub const TOP_LEFT_CORNER: char = '⌜';
 pub const TOP_RIGHT_CORNER: char = '⌝';
 pub const BOTTOM_LEFT_CORNER: char = '⌞';
 pub const BOTTOM_RIGHT_CORNER: char = '⌟';
 pub const FROWN: Rel = rel('⌢', RelCategory::Default);
 pub const SMILE: Rel = rel('⌣', RelCategory::Default);
-pub const TOP_SQUARE_BRACKET: Ord = Ord('⎴', OrdCategory::OnlyI);
-pub const BOTTOM_SQUARE_BRACKET: Ord = Ord('⎵', OrdCategory::OnlyI);
-pub const TOP_PARENTHESIS: Ord = Ord('⏜', OrdCategory::OnlyI);
-pub const BOTTOM_PARENTHESIS: Ord = Ord('⏝', OrdCategory::OnlyI);
-pub const TOP_CURLY_BRACKET: Ord = Ord('⏞', OrdCategory::OnlyI);
-pub const BOTTOM_CURLY_BRACKET: Ord = Ord('⏟', OrdCategory::OnlyI);
+pub const TOP_SQUARE_BRACKET: Ord = ord('⎴', OrdCategory::OnlyI);
+pub const BOTTOM_SQUARE_BRACKET: Ord = ord('⎵', OrdCategory::OnlyI);
+pub const TOP_PARENTHESIS: Ord = ord('⏜', OrdCategory::OnlyI);
+pub const BOTTOM_PARENTHESIS: Ord = ord('⏝', OrdCategory::OnlyI);
+pub const TOP_CURLY_BRACKET: Ord = ord('⏞', OrdCategory::OnlyI);
+pub const BOTTOM_CURLY_BRACKET: Ord = ord('⏟', OrdCategory::OnlyI);
 
 //
 // Unicode Block: Enclosed Alphanumerics
@@ -1014,12 +975,12 @@ pub const MALTESE_CROSS: char = '✠';
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
 pub const PERPENDICULAR: Rel = rel('⟂', RelCategory::Default);
-pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Open = Open('⟦');
-pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Close = Close('⟧');
-pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Open = Open('⟨');
-pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Close = Close('⟩');
-pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Open = Open('⟮');
-pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Close = Close('⟯');
+pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Fence = Fence('⟦');
+pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Fence = Fence('⟧');
+pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Fence = Fence('⟨');
+pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Fence = Fence('⟩');
+pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Fence = Fence('⟮');
+pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Fence = Fence('⟯');
 
 //
 // Unicode Block: Supplemental Arrows-A
@@ -1042,14 +1003,14 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = rel('⤚', RelCategory::Default);
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
-pub const LEFT_WHITE_CURLY_BRACKET: Open = Open('⦃');
-pub const RIGHT_WHITE_CURLY_BRACKET: Close = Close('⦄');
+pub const LEFT_WHITE_CURLY_BRACKET: Fence = Fence('⦃');
+pub const RIGHT_WHITE_CURLY_BRACKET: Fence = Fence('⦄');
 // pub const LEFT_WHITE_PARENTHESIS: Fence = fence('⦅', Stretchy::Always);
 // pub const RIGHT_WHITE_PARENTHESIS: Fence = fence('⦆', false, Stretchy::Always);
-pub const Z_NOTATION_LEFT_IMAGE_BRACKET: Open = Open('⦇');
-pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: Close = Close('⦈');
-pub const Z_NOTATION_LEFT_BINDING_BRACKET: Open = Open('⦉');
-pub const Z_NOTATION_RIGHT_BINDING_BRACKET: Close = Close('⦊');
+pub const Z_NOTATION_LEFT_IMAGE_BRACKET: Fence = Fence('⦇');
+pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: Fence = Fence('⦈');
+pub const Z_NOTATION_LEFT_BINDING_BRACKET: Fence = Fence('⦉');
+pub const Z_NOTATION_RIGHT_BINDING_BRACKET: Fence = Fence('⦊');
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin('⧄');
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin('⧅');
@@ -1061,24 +1022,24 @@ pub const BLACK_LOZENGE: char = '⧫';
 //
 // Unicode Block: Supplemental Mathematical Operators
 //
-pub const N_ARY_CIRCLED_DOT_OPERATOR: BigOp = BigOp('⨀', BigOpCategory::OnlyJ);
-pub const N_ARY_CIRCLED_PLUS_OPERATOR: BigOp = BigOp('⨁', BigOpCategory::OnlyJ);
-pub const N_ARY_CIRCLED_TIMES_OPERATOR: BigOp = BigOp('⨂', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION_OPERATOR_WITH_DOT: BigOp = BigOp('⨃', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION_OPERATOR_WITH_PLUS: BigOp = BigOp('⨄', BigOpCategory::OnlyJ);
-pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: BigOp = BigOp('⨅', BigOpCategory::OnlyJ);
-pub const N_ARY_SQUARE_UNION_OPERATOR: BigOp = BigOp('⨆', BigOpCategory::OnlyJ);
-pub const TWO_LOGICAL_AND_OPERATOR: BigOp = BigOp('⨇', BigOpCategory::OnlyJ);
-pub const TWO_LOGICAL_OR_OPERATOR: BigOp = BigOp('⨈', BigOpCategory::OnlyJ);
-pub const N_ARY_TIMES_OPERATOR: BigOp = BigOp('⨉', BigOpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_DOT_OPERATOR: BigOp = big_op('⨀', BigOpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_PLUS_OPERATOR: BigOp = big_op('⨁', BigOpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_TIMES_OPERATOR: BigOp = big_op('⨂', BigOpCategory::OnlyJ);
+pub const N_ARY_UNION_OPERATOR_WITH_DOT: BigOp = big_op('⨃', BigOpCategory::OnlyJ);
+pub const N_ARY_UNION_OPERATOR_WITH_PLUS: BigOp = big_op('⨄', BigOpCategory::OnlyJ);
+pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: BigOp = big_op('⨅', BigOpCategory::OnlyJ);
+pub const N_ARY_SQUARE_UNION_OPERATOR: BigOp = big_op('⨆', BigOpCategory::OnlyJ);
+pub const TWO_LOGICAL_AND_OPERATOR: BigOp = big_op('⨇', BigOpCategory::OnlyJ);
+pub const TWO_LOGICAL_OR_OPERATOR: BigOp = big_op('⨈', BigOpCategory::OnlyJ);
+pub const N_ARY_TIMES_OPERATOR: BigOp = big_op('⨉', BigOpCategory::OnlyJ);
 // pub const MODULO_TWO_SUM: Op = Op('⨊');
-pub const SUMMATION_WITH_INTEGRAL: BigOp = BigOp('⨋', BigOpCategory::OnlyH);
-pub const QUADRUPLE_INTEGRAL_OPERATOR: BigOp = BigOp('⨌', BigOpCategory::OnlyH);
-pub const FINITE_PARTL_INTEGRAL: BigOp = BigOp('⨍', BigOpCategory::OnlyH);
-pub const INTEGRAL_WITH_DOUBLE_STROKE: BigOp = BigOp('⨎', BigOpCategory::OnlyH);
-pub const INTEGRAL_AVERAGE_WITH_SLASH: BigOp = BigOp('⨏', BigOpCategory::OnlyH);
-pub const CIRCULATION_FUNCTION: BigOp = BigOp('⨐', BigOpCategory::OnlyH);
-pub const ANTICLOCKWISE_INTEGRATION: BigOp = BigOp('⨑', BigOpCategory::OnlyH);
+pub const SUMMATION_WITH_INTEGRAL: BigOp = big_op('⨋', BigOpCategory::OnlyH);
+pub const QUADRUPLE_INTEGRAL_OPERATOR: BigOp = big_op('⨌', BigOpCategory::OnlyH);
+pub const FINITE_PARTL_INTEGRAL: BigOp = big_op('⨍', BigOpCategory::OnlyH);
+pub const INTEGRAL_WITH_DOUBLE_STROKE: BigOp = big_op('⨎', BigOpCategory::OnlyH);
+pub const INTEGRAL_AVERAGE_WITH_SLASH: BigOp = big_op('⨏', BigOpCategory::OnlyH);
+pub const CIRCULATION_FUNCTION: BigOp = big_op('⨐', BigOpCategory::OnlyH);
+pub const ANTICLOCKWISE_INTEGRATION: BigOp = big_op('⨑', BigOpCategory::OnlyH);
 // pub const LINE_INTEGRATION_WITH_RECTANGULAR_PATH_AROUND_POLE: Op = Op('⨒');
 // pub const LINE_INTEGRATION_WITH_SEMICIRCULAR_PATH_AROUND_POLE: Op = Op('⨓');
 // pub const LINE_INTEGRATION_NOT_INCLUDING_THE_POLE: Op = Op('⨔');
