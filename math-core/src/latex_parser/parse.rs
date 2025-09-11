@@ -1271,7 +1271,7 @@ where
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
                 primes.push(self.commit(Node::Operator {
-                    op: op.into(),
+                    op: op.as_op(),
                     attr: None,
                     left: None,
                     right: None,

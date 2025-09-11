@@ -53,13 +53,6 @@ impl From<Ord> for MathMLOperator {
     }
 }
 
-impl From<&Ord> for MathMLOperator {
-    #[inline]
-    fn from(op: &Ord) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum OrdCategory {
@@ -87,13 +80,6 @@ impl BigOp {
 impl From<BigOp> for MathMLOperator {
     #[inline]
     fn from(op: BigOp) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
-impl From<&BigOp> for MathMLOperator {
-    #[inline]
-    fn from(op: &BigOp) -> Self {
         MathMLOperator(op.0)
     }
 }
@@ -128,13 +114,6 @@ impl From<Bin> for MathMLOperator {
     }
 }
 
-impl From<&Bin> for MathMLOperator {
-    #[inline]
-    fn from(op: &Bin) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
 /// A type corresponding to LaTeX's "mathrel" character class (class 3).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Rel(char, RelCategory);
@@ -153,11 +132,17 @@ impl From<Rel> for MathMLOperator {
     }
 }
 
-impl From<&Rel> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: &Rel) -> Self {
-        MathMLOperator(op.0)
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum RelCategory {
+    Default,
+    // /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
+    // // `|` is in: infix ForceDefault, prefix F, postfix G
+    // ForceDefaultFG,
+    // /// Category K: Infix, zero spacing (e.g. `/`).
+    // OnlyK,
+    /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
+    OnlyA,
 }
 
 /// A type corresponding to LaTeX's "mathpunct" character class (class 6).
@@ -239,13 +224,6 @@ impl From<Close> for MathMLOperator {
     }
 }
 
-impl From<&Close> for MathMLOperator {
-    #[inline(always)]
-    fn from(op: &Close) -> Self {
-        MathMLOperator(op.0)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Stretchy {
@@ -307,19 +285,6 @@ impl From<StretchableOp> for char {
         debug_assert!(char::from_u32(op.char as u32).is_some());
         unsafe { char::from_u32_unchecked(op.char as u32) }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum RelCategory {
-    Default,
-    // /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
-    // // `|` is in: infix ForceDefault, prefix F, postfix G
-    // ForceDefaultFG,
-    // /// Category K: Infix, zero spacing (e.g. `/`).
-    // OnlyK,
-    /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
-    OnlyA,
 }
 
 //
