@@ -40,6 +40,8 @@ struct SequenceState {
     real_boundaries: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
+    /// `true` if we are within a group where the style is `\scriptstyle` or smaller
+    script_style: bool,
 }
 
 #[derive(Debug)]
@@ -172,6 +174,7 @@ where
                 class: Class::Open,
                 real_boundaries: true,
                 allow_columns: false,
+                script_style: false,
             }
         };
 
@@ -280,22 +283,7 @@ where
                 if let Some(op) = relation.as_stretchable_op() {
                     Node::StretchableOp(op, StretchMode::NoStretch)
                 } else {
-                    let left = if matches!(
-                        sequence_state.class,
-                        Class::Relation | Class::Open | Class::Punctuation
-                    ) {
-                        Some(MathSpacing::Zero)
-                    } else {
-                        None
-                    };
-                    let right = if matches!(
-                        next_class,
-                        Class::Relation | Class::Punctuation | Class::Close
-                    ) {
-                        Some(MathSpacing::Zero)
-                    } else {
-                        None
-                    };
+                    let (left, right) = relation_spacing(next_class, sequence_state);
                     Node::Operator {
                         op: relation.as_op(),
                         attr: None,
@@ -306,7 +294,7 @@ where
             }
             Token::Punctuation(punc) => {
                 new_class = Class::Punctuation;
-                let right = if matches!(next_class, Class::Close) {
+                let right = if matches!(next_class, Class::Close) || sequence_state.script_style {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -344,7 +332,8 @@ where
                 ) || matches!(
                     next_class,
                     Class::Relation | Class::Punctuation | Class::Close
-                ) {
+                ) || sequence_state.script_style
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -356,18 +345,24 @@ where
                     right: spacing,
                 }
             }
-            Token::OpGreaterThan => Node::PseudoOp {
-                name: "&gt;",
-                attr: None,
-                left: None,
-                right: None,
-            },
-            Token::OpLessThan => Node::PseudoOp {
-                name: "&lt;",
-                attr: None,
-                left: None,
-                right: None,
-            },
+            Token::OpGreaterThan => {
+                let (left, right) = relation_spacing(next_class, sequence_state);
+                Node::PseudoOp {
+                    name: "&gt;",
+                    attr: None,
+                    left,
+                    right,
+                }
+            }
+            Token::OpLessThan => {
+                let (left, right) = relation_spacing(next_class, sequence_state);
+                Node::PseudoOp {
+                    name: "&lt;",
+                    attr: None,
+                    left,
+                    right,
+                }
+            }
             Token::OpAmpersand => Node::PseudoOp {
                 name: "&amp;",
                 attr: None,
@@ -742,14 +737,17 @@ where
                 }
             }
             Token::GroupBegin => {
-                let content = self.parse_sequence(
-                    SequenceEnd::Token(Token::GroupEnd),
-                    if matches!(parse_as, ParseAs::ContinueSequence) {
-                        Some(sequence_state)
-                    } else {
-                        None
-                    },
-                )?;
+                let content = if matches!(parse_as, ParseAs::ContinueSequence) {
+                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(sequence_state))?
+                } else {
+                    let mut s = SequenceState {
+                        class: Class::Open,
+                        real_boundaries: true,
+                        script_style: sequence_state.script_style,
+                        ..Default::default()
+                    };
+                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&mut s))?
+                };
                 self.next_token(); // Discard the closing token.
                 sequence_state.class = Class::Default;
                 return Ok(node_vec_to_node(
@@ -822,6 +820,7 @@ where
                     class: Class::Open,
                     real_boundaries: true,
                     allow_columns: true,
+                    script_style: env_name == "subarray",
                 };
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::End), Some(&mut state))?;
@@ -1013,8 +1012,13 @@ where
                 }
             }
             Token::Style(style) => {
+                let old_style = mem::replace(
+                    &mut sequence_state.script_style,
+                    matches!(style, Style::Script | Style::ScriptScript),
+                );
                 let content =
                     self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
+                sequence_state.script_style = old_style;
                 Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -1168,7 +1172,7 @@ where
         let first_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
         let (sub, sup) = if first_underscore || first_circumflex {
-            let first_bound = Some(self.get_sub_or_sub(first_circumflex)?);
+            let first_bound = Some(self.get_sub_or_sup(first_circumflex)?);
 
             // If the first bound was a subscript *and* we didn't encounter primes yet,
             // we check once more for primes.
@@ -1192,7 +1196,7 @@ where
             }
 
             if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
-                let second_bound = Some(self.get_sub_or_sub(second_circumflex)?);
+                let second_bound = Some(self.get_sub_or_sup(second_circumflex)?);
                 // Depending on whether the underscore or the circumflex came first,
                 // we have to swap the bounds.
                 if first_underscore {
@@ -1259,7 +1263,7 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sub(
+    fn get_sub_or_sup(
         &mut self,
         is_sup: bool,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
@@ -1277,7 +1281,11 @@ where
                 },
             ));
         }
-        let node = self.parse_token(next, ParseAs::Arg, None);
+        let mut sequence_state = SequenceState {
+            script_style: true,
+            ..Default::default()
+        };
+        let node = self.parse_token(next, ParseAs::Arg, Some(&mut sequence_state));
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.peek.token(), Token::Prime) {
@@ -1425,6 +1433,32 @@ fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<(StretchableOp, Class), Late
         ));
     };
     Ok((delim, class))
+}
+
+fn relation_spacing(
+    next_class: Class,
+    sequence_state: &SequenceState,
+) -> (Option<MathSpacing>, Option<MathSpacing>) {
+    (
+        if matches!(
+            sequence_state.class,
+            Class::Relation | Class::Open | Class::Punctuation
+        ) || sequence_state.script_style
+        {
+            Some(MathSpacing::Zero)
+        } else {
+            None
+        },
+        if matches!(
+            next_class,
+            Class::Relation | Class::Punctuation | Class::Close
+        ) || sequence_state.script_style
+        {
+            Some(MathSpacing::Zero)
+        } else {
+            None
+        },
+    )
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);

@@ -444,6 +444,7 @@ mod tests {
             ("sub_superscript", r"x^2_3"),
             ("super_subscript", r"x_3^2"),
             ("double_subscript", r"g_{\mu\nu}"),
+            ("subscript_relation", r"g_{1=1}"),
             ("simple_accent", r"\dot{x}"),
             ("operator_name", r"\operatorname{sn} x"),
             ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
@@ -507,6 +508,7 @@ mod tests {
                 "scriptstyle",
                 r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
             ),
+            ("scriptstyle_relation", r"{\scriptstyle 1=1}"),
             ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
             ("genfrac_1pt", r"\genfrac(]{1pt}{2}{a+b}{c+d}"),
             (

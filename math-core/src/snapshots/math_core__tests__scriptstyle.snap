@@ -10,16 +10,16 @@ expression: "\\sum_{\\genfrac{}{}{0pt}{}{\\scriptstyle 0 \\le i \\le m}{\\script
             <mfrac linethickness="0">
                 <mrow displaystyle="false" scriptlevel="1">
                     <mn>0</mn>
-                    <mo>≤</mo>
+                    <mo lspace="0" rspace="0">≤</mo>
                     <mi>i</mi>
-                    <mo>≤</mo>
+                    <mo lspace="0" rspace="0">≤</mo>
                     <mi>m</mi>
                 </mrow>
                 <mrow displaystyle="false" scriptlevel="1">
                     <mn>0</mn>
-                    <mo>&lt;</mo>
+                    <mo lspace="0" rspace="0">&lt;</mo>
                     <mi>j</mi>
-                    <mo>&lt;</mo>
+                    <mo lspace="0" rspace="0">&lt;</mo>
                     <mi>n</mi>
                 </mrow>
             </mfrac>

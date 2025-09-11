@@ -13,6 +13,6 @@ expression: "\\perp, \\angle, \\sphericalangle, \\measuredangle, 45^\\circ"
     <mo>,</mo>
     <msup>
         <mn>45</mn>
-        <mo>∘</mo>
+        <mo lspace="0" rspace="0">∘</mo>
     </msup>
 </math>

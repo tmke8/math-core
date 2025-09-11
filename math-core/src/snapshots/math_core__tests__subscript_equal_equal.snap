@@ -5,7 +5,7 @@ expression: x_==4
 <math>
     <msub>
         <mi>x</mi>
-        <mo>=</mo>
+        <mo lspace="0" rspace="0">=</mo>
     </msub>
     <mo>=</mo>
     <mn>4</mn>
