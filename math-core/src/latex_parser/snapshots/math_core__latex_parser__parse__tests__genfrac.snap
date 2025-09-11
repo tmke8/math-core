@@ -5,8 +5,8 @@ expression: "\\genfrac(){1pt}{0}{1}{2}"
 [
   Fenced(
     style: Some(Display),
-    open: Op('(', OnlyF),
-    close: Op(')', OnlyG),
+    open: Some(StretchableOp('(', Always)),
+    close: Some(StretchableOp(')', Always)),
     content: Frac(
       num: Number("1"),
       denom: Number("2"),

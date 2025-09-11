@@ -44,6 +44,27 @@ impl Ord {
     pub const fn as_op(&self) -> MathMLOperator {
         MathMLOperator(self.0)
     }
+
+    #[inline(always)]
+    pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
+        match self.1 {
+            OrdCategory::FG => {
+                assert!(self.0 as u32 <= u16::MAX as u32);
+                Some(StretchableOp {
+                    char: self.0 as u16,
+                    stretchy: Stretchy::PrePostfix,
+                })
+            }
+            OrdCategory::OnlyK => {
+                assert!(self.0 as u32 <= u16::MAX as u32);
+                Some(StretchableOp {
+                    char: self.0 as u16,
+                    stretchy: Stretchy::Never,
+                })
+            }
+            _ => None,
+        }
+    }
 }
 
 impl From<Ord> for MathMLOperator {
@@ -114,27 +135,50 @@ impl From<Bin> for MathMLOperator {
     }
 }
 
-/// A type corresponding to LaTeX's "mathrel" character class (class 3).
+/// A type for operators with relation spacing.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Rel(char, RelCategory);
+pub struct Rel {
+    char: u16,
+    cat: RelCategory,
+}
+
+const fn rel(ch: char, cat: RelCategory) -> Rel {
+    assert!(ch as u32 <= u16::MAX as u32);
+    Rel {
+        char: ch as u16,
+        cat,
+    }
+}
 
 impl Rel {
     #[inline(always)]
     pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
+        debug_assert!(char::from_u32(self.char as u32).is_some());
+        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
+    }
+
+    #[inline(always)]
+    pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
+        match self.cat {
+            RelCategory::OnlyA => Some(StretchableOp {
+                char: self.char,
+                stretchy: Stretchy::AlwaysAsymmetric,
+            }),
+            _ => None,
+        }
     }
 }
 
 impl From<Rel> for MathMLOperator {
     #[inline(always)]
     fn from(op: Rel) -> Self {
-        MathMLOperator(op.0)
+        op.as_op()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum RelCategory {
+enum RelCategory {
     Default,
     // /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
     // // `|` is in: infix ForceDefault, prefix F, postfix G
@@ -267,18 +311,6 @@ impl StretchableOp {
     }
 }
 
-impl From<Ord> for StretchableOp {
-    #[inline]
-    fn from(op: Ord) -> Self {
-        let ch = op.as_op().as_char();
-        assert!(ch as u32 <= u16::MAX as u32);
-        StretchableOp {
-            char: ch as u16,
-            stretchy: Stretchy::Never,
-        }
-    }
-}
-
 impl From<StretchableOp> for char {
     #[inline]
     fn from(op: StretchableOp) -> Self {
@@ -308,7 +340,7 @@ pub const SOLIDUS: Ord = Ord('/', OrdCategory::OnlyK);
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
 // pub const LESS_THAN_SIGN: Op = Op('<');
-pub const EQUALS_SIGN: Rel = Rel('=', RelCategory::Default);
+pub const EQUALS_SIGN: Rel = rel('=', RelCategory::Default);
 // pub const GREATER_THAN_SIGN: Op = Op('>');
 // pub const QUESTION_MARK: Op = Op('?');
 // pub const COMMERCIAL_AT: char = '@';
@@ -316,29 +348,29 @@ pub const EQUALS_SIGN: Rel = Rel('=', RelCategory::Default);
 pub const LEFT_SQUARE_BRACKET: Open = Open('[');
 pub const REVERSE_SOLIDUS: Ord = Ord('\\', OrdCategory::OnlyK);
 pub const RIGHT_SQUARE_BRACKET: Close = Close(']');
-pub const CIRCUMFLEX_ACCENT: Rel = Rel('^', RelCategory::Default);
-pub const LOW_LINE: Rel = Rel('_', RelCategory::Default);
-pub const GRAVE_ACCENT: Rel = Rel('`', RelCategory::Default);
+pub const CIRCUMFLEX_ACCENT: Rel = rel('^', RelCategory::Default);
+pub const LOW_LINE: Rel = rel('_', RelCategory::Default);
+pub const GRAVE_ACCENT: Rel = rel('`', RelCategory::Default);
 
 pub const LEFT_CURLY_BRACKET: Open = Open('{');
 pub const VERTICAL_LINE: Ord = Ord('|', OrdCategory::FG);
 pub const RIGHT_CURLY_BRACKET: Close = Close('}');
-pub const TILDE: Rel = Rel('~', RelCategory::Default);
+pub const TILDE: Rel = rel('~', RelCategory::Default);
 
 //
 // Unicode Block: Latin-1 Supplement
 //
 pub const SECTION_SIGN: char = '§';
-pub const DIAERESIS: Rel = Rel('¨', RelCategory::Default);
+pub const DIAERESIS: Rel = rel('¨', RelCategory::Default);
 pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: Ord = Ord('¬', OrdCategory::OnlyD);
 
-pub const MACRON: Rel = Rel('¯', RelCategory::Default);
+pub const MACRON: Rel = rel('¯', RelCategory::Default);
 
 pub const PLUS_MINUS_SIGN: Bin = Bin('±');
 
-pub const ACUTE_ACCENT: Rel = Rel('´', RelCategory::Default);
+pub const ACUTE_ACCENT: Rel = rel('´', RelCategory::Default);
 
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Bin = Bin('·');
@@ -364,17 +396,17 @@ pub const LATIN_SMALL_LETTER_DOTLESS_J: char = 'ȷ';
 //
 // Unicode Block: Spacing Modifier Letters
 //
-pub const CARON: Rel = Rel('ˇ', RelCategory::Default);
-pub const BREVE: Rel = Rel('˘', RelCategory::Default);
-pub const DOT_ABOVE: Rel = Rel('˙', RelCategory::Default);
+pub const CARON: Rel = rel('ˇ', RelCategory::Default);
+pub const BREVE: Rel = rel('˘', RelCategory::Default);
+pub const DOT_ABOVE: Rel = rel('˙', RelCategory::Default);
 
 //
 // Unicode Block: Combining Diacritical Marks
 //
 pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
 pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
-pub const COMBINING_CIRCUMFLEX_ACCENT: Rel = Rel('\u{302}', RelCategory::Default);
-pub const COMBINING_TILDE: Rel = Rel('\u{303}', RelCategory::Default);
+pub const COMBINING_CIRCUMFLEX_ACCENT: Rel = rel('\u{302}', RelCategory::Default);
+pub const COMBINING_TILDE: Rel = rel('\u{303}', RelCategory::Default);
 // pub const COMBINING_MACRON: char = '\u{304}';
 pub const COMBINING_OVERLINE: char = '\u{305}';
 pub const COMBINING_BREVE: char = '\u{306}';
@@ -383,7 +415,7 @@ pub const COMBINING_DIAERESIS: char = '\u{308}';
 // pub const COMBINING_HOOK_ABOVE: char = '\u{309}';
 pub const COMBINING_RING_ABOVE: char = '\u{30A}';
 pub const COMBINING_DOUBLE_ACUTE_ACCENT: char = '\u{30B}';
-pub const COMBINING_CARON: Rel = Rel('\u{30C}', RelCategory::Default);
+pub const COMBINING_CARON: Rel = rel('\u{30C}', RelCategory::Default);
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
@@ -479,17 +511,17 @@ pub const REVERSED_TRIPLE_PRIME: Ord = Ord('‷', OrdCategory::OnlyE);
 // pub const REFERENCE_MARK: Ord = Ord('※');
 // pub const DOUBLE_EXCLAMATION_MARK: Ord = Ord('‼');
 // pub const INTERROBANG: Ord = Ord('‽');
-pub const OVERLINE: Rel = Rel('‾', RelCategory::Default);
+pub const OVERLINE: Rel = rel('‾', RelCategory::Default);
 
 pub const QUADRUPLE_PRIME: Ord = Ord('⁗', OrdCategory::OnlyE);
 
 //
 // Unicode Block: Combining Diacritical Marks for Symbols
 //
-pub const COMBINING_RIGHT_ARROW_ABOVE: Rel = Rel('\u{20D7}', RelCategory::Default);
+pub const COMBINING_RIGHT_ARROW_ABOVE: Rel = rel('\u{20D7}', RelCategory::Default);
 
-pub const COMBINING_THREE_DOTS_ABOVE: Rel = Rel('\u{20DB}', RelCategory::Default);
-pub const COMBINING_FOUR_DOTS_ABOVE: Rel = Rel('\u{20DC}', RelCategory::Default);
+pub const COMBINING_THREE_DOTS_ABOVE: Rel = rel('\u{20DB}', RelCategory::Default);
+pub const COMBINING_FOUR_DOTS_ABOVE: Rel = rel('\u{20DC}', RelCategory::Default);
 
 //
 // Unicode Block: Letterlike Symbols
@@ -521,118 +553,118 @@ pub const TURNED_SANS_SERIF_CAPITAL_G: char = '⅁';
 //
 // Unicode Block: Arrows
 //
-pub const LEFTWARDS_ARROW: Rel = Rel('←', RelCategory::Default);
-pub const UPWARDS_ARROW: Rel = Rel('↑', RelCategory::OnlyA);
-pub const RIGHTWARDS_ARROW: Rel = Rel('→', RelCategory::Default);
-pub const DOWNWARDS_ARROW: Rel = Rel('↓', RelCategory::OnlyA);
-pub const LEFT_RIGHT_ARROW: Rel = Rel('↔', RelCategory::Default);
-pub const UP_DOWN_ARROW: Rel = Rel('↕', RelCategory::OnlyA);
-pub const NORTH_WEST_ARROW: Rel = Rel('↖', RelCategory::Default);
-pub const NORTH_EAST_ARROW: Rel = Rel('↗', RelCategory::Default);
-pub const SOUTH_EAST_ARROW: Rel = Rel('↘', RelCategory::Default);
-pub const SOUTH_WEST_ARROW: Rel = Rel('↙', RelCategory::Default);
-pub const LEFTWARDS_ARROW_WITH_STROKE: Rel = Rel('↚', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_WITH_STROKE: Rel = Rel('↛', RelCategory::Default);
-// pub const LEFTWARDS_WAVE_ARROW: Rel = Rel('↜', RelCategory::Default);
-// pub const RIGHTWARDS_WAVE_ARROW: Rel = Rel('↝', RelCategory::Default);
-pub const LEFTWARDS_TWO_HEADED_ARROW: Rel = Rel('↞', RelCategory::Default);
-// pub const UPWARDS_TWO_HEADED_ARROW: Rel = Rel('↟', RelCategory::Default);
-pub const RIGHTWARDS_TWO_HEADED_ARROW: Rel = Rel('↠', RelCategory::Default);
-// pub const DOWNWARDS_TWO_HEADED_ARROW: Rel = Rel('↡', RelCategory::Default);
-pub const LEFTWARDS_ARROW_WITH_TAIL: Rel = Rel('↢', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_WITH_TAIL: Rel = Rel('↣', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_FROM_BAR: Rel = Rel('↤', RelCategory::Default);
-// pub const UPWARDS_ARROW_FROM_BAR: Rel = Rel('↥', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_FROM_BAR: Rel = Rel('↦', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_FROM_BAR: Rel = Rel('↧', RelCategory::Default);
-// pub const UP_DOWN_ARROW_WITH_BASE: Rel = Rel('↨', RelCategory::Default);
-pub const LEFTWARDS_ARROW_WITH_HOOK: Rel = Rel('↩', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_WITH_HOOK: Rel = Rel('↪', RelCategory::Default);
-pub const LEFTWARDS_ARROW_WITH_LOOP: Rel = Rel('↫', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_WITH_LOOP: Rel = Rel('↬', RelCategory::Default);
-pub const LEFT_RIGHT_WAVE_ARROW: Rel = Rel('↭', RelCategory::Default);
-pub const LEFT_RIGHT_ARROW_WITH_STROKE: Rel = Rel('↮', RelCategory::Default);
-pub const DOWNWARDS_ZIGZAG_ARROW: Rel = Rel('↯', RelCategory::Default);
-pub const UPWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = Rel('↰', RelCategory::Default);
-pub const UPWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = Rel('↱', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = Rel('↲', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = Rel('↳', RelCategory::Default);
-// pub const RIGHTWARDS_ARROW_WITH_CORNER_DOWNWARDS: Rel = Rel('↴', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS: Rel = Rel('↵', RelCategory::Default);
-pub const ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = Rel('↶', RelCategory::Default);
-pub const CLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = Rel('↷', RelCategory::Default);
-// pub const NORTH_WEST_ARROW_TO_LONG_BAR: Rel = Rel('↸', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_TO_BAR_OVER_RIGHTWARDS_ARROW_TO_BAR: Rel = Rel('↹', RelCategory::Default);
-pub const ANTICLOCKWISE_OPEN_CIRCLE_ARROW: Rel = Rel('↺', RelCategory::Default);
-pub const CLOCKWISE_OPEN_CIRCLE_ARROW: Rel = Rel('↻', RelCategory::Default);
-pub const LEFTWARDS_HARPOON_WITH_BARB_UPWARDS: Rel = Rel('↼', RelCategory::Default);
-pub const LEFTWARDS_HARPOON_WITH_BARB_DOWNWARDS: Rel = Rel('↽', RelCategory::Default);
-pub const UPWARDS_HARPOON_WITH_BARB_RIGHTWARDS: Rel = Rel('↾', RelCategory::Default);
-pub const UPWARDS_HARPOON_WITH_BARB_LEFTWARDS: Rel = Rel('↿', RelCategory::Default);
-pub const RIGHTWARDS_HARPOON_WITH_BARB_UPWARDS: Rel = Rel('⇀', RelCategory::Default);
-pub const RIGHTWARDS_HARPOON_WITH_BARB_DOWNWARDS: Rel = Rel('⇁', RelCategory::Default);
-pub const DOWNWARDS_HARPOON_WITH_BARB_RIGHTWARDS: Rel = Rel('⇂', RelCategory::Default);
-pub const DOWNWARDS_HARPOON_WITH_BARB_LEFTWARDS: Rel = Rel('⇃', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_OVER_LEFTWARDS_ARROW: Rel = Rel('⇄', RelCategory::Default);
-// pub const UPWARDS_ARROW_LEFTWARDS_OF_DOWNWARDS_ARROW: Rel = Rel('⇅', RelCategory::Default);
-pub const LEFTWARDS_ARROW_OVER_RIGHTWARDS_ARROW: Rel = Rel('⇆', RelCategory::Default);
-pub const LEFTWARDS_PAIRED_ARROWS: Rel = Rel('⇇', RelCategory::Default);
-pub const UPWARDS_PAIRED_ARROWS: Rel = Rel('⇈', RelCategory::Default);
-pub const RIGHTWARDS_PAIRED_ARROWS: Rel = Rel('⇉', RelCategory::Default);
-pub const DOWNWARDS_PAIRED_ARROWS: Rel = Rel('⇊', RelCategory::Default);
-pub const LEFTWARDS_HARPOON_OVER_RIGHTWARDS_HARPOON: Rel = Rel('⇋', RelCategory::Default);
-pub const RIGHTWARDS_HARPOON_OVER_LEFTWARDS_HARPOON: Rel = Rel('⇌', RelCategory::Default);
-pub const LEFTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇍', RelCategory::Default);
-pub const LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇎', RelCategory::Default);
-pub const RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = Rel('⇏', RelCategory::Default);
-pub const LEFTWARDS_DOUBLE_ARROW: Rel = Rel('⇐', RelCategory::Default);
-pub const UPWARDS_DOUBLE_ARROW: Rel = Rel('⇑', RelCategory::OnlyA);
-pub const RIGHTWARDS_DOUBLE_ARROW: Rel = Rel('⇒', RelCategory::Default);
-pub const DOWNWARDS_DOUBLE_ARROW: Rel = Rel('⇓', RelCategory::OnlyA);
-pub const LEFT_RIGHT_DOUBLE_ARROW: Rel = Rel('⇔', RelCategory::Default);
-pub const UP_DOWN_DOUBLE_ARROW: Rel = Rel('⇕', RelCategory::OnlyA);
-// pub const NORTH_WEST_DOUBLE_ARROW: Rel = Rel('⇖', RelCategory::Default);
-// pub const NORTH_EAST_DOUBLE_ARROW: Rel = Rel('⇗', RelCategory::Default);
-// pub const SOUTH_EAST_DOUBLE_ARROW: Rel = Rel('⇘', RelCategory::Default);
-// pub const SOUTH_WEST_DOUBLE_ARROW: Rel = Rel('⇙', RelCategory::Default);
-pub const LEFTWARDS_TRIPLE_ARROW: Rel = Rel('⇚', RelCategory::Default);
-pub const RIGHTWARDS_TRIPLE_ARROW: Rel = Rel('⇛', RelCategory::Default);
-// pub const LEFTWARDS_SQUIGGLE_ARROW: Rel = Rel('⇜', RelCategory::Default);
-pub const RIGHTWARDS_SQUIGGLE_ARROW: Rel = Rel('⇝', RelCategory::Default);
-// pub const UPWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel('⇞', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel('⇟', RelCategory::Default);
-// pub const LEFTWARDS_DASHED_ARROW: Rel = Rel('⇠', RelCategory::Default);
-// pub const UPWARDS_DASHED_ARROW: Rel = Rel('⇡', RelCategory::Default);
-// pub const RIGHTWARDS_DASHED_ARROW: Rel = Rel('⇢', RelCategory::Default);
-// pub const DOWNWARDS_DASHED_ARROW: Rel = Rel('⇣', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_TO_BAR: Rel = Rel('⇤', RelCategory::Default);
-// pub const RIGHTWARDS_ARROW_TO_BAR: Rel = Rel('⇥', RelCategory::Default);
-// pub const LEFTWARDS_WHITE_ARROW: Rel = Rel('⇦', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW: Rel = Rel('⇧', RelCategory::Default);
-// pub const RIGHTWARDS_WHITE_ARROW: Rel = Rel('⇨', RelCategory::Default);
-// pub const DOWNWARDS_WHITE_ARROW: Rel = Rel('⇩', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW_FROM_BAR: Rel = Rel('⇪', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL: Rel = Rel('⇫', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_HORIZONTAL_BAR: Rel = Rel('⇬', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_VERTICAL_BAR: Rel = Rel('⇭', RelCategory::Default);
-// pub const UPWARDS_WHITE_DOUBLE_ARROW: Rel = Rel('⇮', RelCategory::Default);
-// pub const UPWARDS_WHITE_DOUBLE_ARROW_ON_PEDESTAL: Rel = Rel('⇯', RelCategory::Default);
-// pub const RIGHTWARDS_WHITE_ARROW_FROM_WALL: Rel = Rel('⇰', RelCategory::Default);
-// pub const NORTH_WEST_ARROW_TO_CORNER: Rel = Rel('⇱', RelCategory::Default);
-// pub const SOUTH_EAST_ARROW_TO_CORNER: Rel = Rel('⇲', RelCategory::Default);
-// pub const UP_DOWN_WHITE_ARROW: Rel = Rel('⇳', RelCategory::Default);
-// pub const RIGHT_ARROW_WITH_SMALL_CIRCLE: Rel = Rel('⇴', RelCategory::Default);
-// pub const DOWNWARDS_ARROW_LEFTWARDS_OF_UPWARDS_ARROW: Rel = Rel('⇵', RelCategory::Default);
-// pub const THREE_RIGHTWARDS_ARROWS: Rel = Rel('⇶', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_WITH_VERTICAL_STROKE: Rel = Rel('⇷', RelCategory::Default);
-// pub const RIGHTWARDS_ARROW_WITH_VERTICAL_STROKE: Rel = Rel('⇸', RelCategory::Default);
-// pub const LEFT_RIGHT_ARROW_WITH_VERTICAL_STROKE: Rel = Rel('⇹', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = Rel('⇺', RelCategory::Default);
-// pub const RIGHTWARDS_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = Rel('⇻', RelCategory::Default);
-// pub const LEFT_RIGHT_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = Rel('⇼', RelCategory::Default);
-// pub const LEFTWARDS_OPEN_HEADED_ARROW: Rel = Rel('⇽', RelCategory::Default);
-// pub const RIGHTWARDS_OPEN_HEADED_ARROW: Rel = Rel('⇾', RelCategory::Default);
-// pub const LEFT_RIGHT_OPEN_HEADED_ARROW: Rel = Rel('⇿', RelCategory::Default);
+pub const LEFTWARDS_ARROW: Rel = rel('←', RelCategory::Default);
+pub const UPWARDS_ARROW: Rel = rel('↑', RelCategory::OnlyA);
+pub const RIGHTWARDS_ARROW: Rel = rel('→', RelCategory::Default);
+pub const DOWNWARDS_ARROW: Rel = rel('↓', RelCategory::OnlyA);
+pub const LEFT_RIGHT_ARROW: Rel = rel('↔', RelCategory::Default);
+pub const UP_DOWN_ARROW: Rel = rel('↕', RelCategory::OnlyA);
+pub const NORTH_WEST_ARROW: Rel = rel('↖', RelCategory::Default);
+pub const NORTH_EAST_ARROW: Rel = rel('↗', RelCategory::Default);
+pub const SOUTH_EAST_ARROW: Rel = rel('↘', RelCategory::Default);
+pub const SOUTH_WEST_ARROW: Rel = rel('↙', RelCategory::Default);
+pub const LEFTWARDS_ARROW_WITH_STROKE: Rel = rel('↚', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_WITH_STROKE: Rel = rel('↛', RelCategory::Default);
+// pub const LEFTWARDS_WAVE_ARROW: Rel = rel('↜', RelCategory::Default);
+// pub const RIGHTWARDS_WAVE_ARROW: Rel = rel('↝', RelCategory::Default);
+pub const LEFTWARDS_TWO_HEADED_ARROW: Rel = rel('↞', RelCategory::Default);
+// pub const UPWARDS_TWO_HEADED_ARROW: Rel = rel('↟', RelCategory::Default);
+pub const RIGHTWARDS_TWO_HEADED_ARROW: Rel = rel('↠', RelCategory::Default);
+// pub const DOWNWARDS_TWO_HEADED_ARROW: Rel = rel('↡', RelCategory::Default);
+pub const LEFTWARDS_ARROW_WITH_TAIL: Rel = rel('↢', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_WITH_TAIL: Rel = rel('↣', RelCategory::Default);
+// pub const LEFTWARDS_ARROW_FROM_BAR: Rel = rel('↤', RelCategory::Default);
+// pub const UPWARDS_ARROW_FROM_BAR: Rel = rel('↥', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_FROM_BAR: Rel = rel('↦', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_FROM_BAR: Rel = rel('↧', RelCategory::Default);
+// pub const UP_DOWN_ARROW_WITH_BASE: Rel = rel('↨', RelCategory::Default);
+pub const LEFTWARDS_ARROW_WITH_HOOK: Rel = rel('↩', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_WITH_HOOK: Rel = rel('↪', RelCategory::Default);
+pub const LEFTWARDS_ARROW_WITH_LOOP: Rel = rel('↫', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_WITH_LOOP: Rel = rel('↬', RelCategory::Default);
+pub const LEFT_RIGHT_WAVE_ARROW: Rel = rel('↭', RelCategory::Default);
+pub const LEFT_RIGHT_ARROW_WITH_STROKE: Rel = rel('↮', RelCategory::Default);
+pub const DOWNWARDS_ZIGZAG_ARROW: Rel = rel('↯', RelCategory::Default);
+pub const UPWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = rel('↰', RelCategory::Default);
+pub const UPWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = rel('↱', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = rel('↲', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = rel('↳', RelCategory::Default);
+// pub const RIGHTWARDS_ARROW_WITH_CORNER_DOWNWARDS: Rel = rel('↴', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS: Rel = rel('↵', RelCategory::Default);
+pub const ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = rel('↶', RelCategory::Default);
+pub const CLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = rel('↷', RelCategory::Default);
+// pub const NORTH_WEST_ARROW_TO_LONG_BAR: Rel = rel('↸', RelCategory::Default);
+// pub const LEFTWARDS_ARROW_TO_BAR_OVER_RIGHTWARDS_ARROW_TO_BAR: Rel = rel('↹', RelCategory::Default);
+pub const ANTICLOCKWISE_OPEN_CIRCLE_ARROW: Rel = rel('↺', RelCategory::Default);
+pub const CLOCKWISE_OPEN_CIRCLE_ARROW: Rel = rel('↻', RelCategory::Default);
+pub const LEFTWARDS_HARPOON_WITH_BARB_UPWARDS: Rel = rel('↼', RelCategory::Default);
+pub const LEFTWARDS_HARPOON_WITH_BARB_DOWNWARDS: Rel = rel('↽', RelCategory::Default);
+pub const UPWARDS_HARPOON_WITH_BARB_RIGHTWARDS: Rel = rel('↾', RelCategory::Default);
+pub const UPWARDS_HARPOON_WITH_BARB_LEFTWARDS: Rel = rel('↿', RelCategory::Default);
+pub const RIGHTWARDS_HARPOON_WITH_BARB_UPWARDS: Rel = rel('⇀', RelCategory::Default);
+pub const RIGHTWARDS_HARPOON_WITH_BARB_DOWNWARDS: Rel = rel('⇁', RelCategory::Default);
+pub const DOWNWARDS_HARPOON_WITH_BARB_RIGHTWARDS: Rel = rel('⇂', RelCategory::Default);
+pub const DOWNWARDS_HARPOON_WITH_BARB_LEFTWARDS: Rel = rel('⇃', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_OVER_LEFTWARDS_ARROW: Rel = rel('⇄', RelCategory::Default);
+// pub const UPWARDS_ARROW_LEFTWARDS_OF_DOWNWARDS_ARROW: Rel = rel('⇅', RelCategory::Default);
+pub const LEFTWARDS_ARROW_OVER_RIGHTWARDS_ARROW: Rel = rel('⇆', RelCategory::Default);
+pub const LEFTWARDS_PAIRED_ARROWS: Rel = rel('⇇', RelCategory::Default);
+pub const UPWARDS_PAIRED_ARROWS: Rel = rel('⇈', RelCategory::Default);
+pub const RIGHTWARDS_PAIRED_ARROWS: Rel = rel('⇉', RelCategory::Default);
+pub const DOWNWARDS_PAIRED_ARROWS: Rel = rel('⇊', RelCategory::Default);
+pub const LEFTWARDS_HARPOON_OVER_RIGHTWARDS_HARPOON: Rel = rel('⇋', RelCategory::Default);
+pub const RIGHTWARDS_HARPOON_OVER_LEFTWARDS_HARPOON: Rel = rel('⇌', RelCategory::Default);
+pub const LEFTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = rel('⇍', RelCategory::Default);
+pub const LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE: Rel = rel('⇎', RelCategory::Default);
+pub const RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE: Rel = rel('⇏', RelCategory::Default);
+pub const LEFTWARDS_DOUBLE_ARROW: Rel = rel('⇐', RelCategory::Default);
+pub const UPWARDS_DOUBLE_ARROW: Rel = rel('⇑', RelCategory::OnlyA);
+pub const RIGHTWARDS_DOUBLE_ARROW: Rel = rel('⇒', RelCategory::Default);
+pub const DOWNWARDS_DOUBLE_ARROW: Rel = rel('⇓', RelCategory::OnlyA);
+pub const LEFT_RIGHT_DOUBLE_ARROW: Rel = rel('⇔', RelCategory::Default);
+pub const UP_DOWN_DOUBLE_ARROW: Rel = rel('⇕', RelCategory::OnlyA);
+// pub const NORTH_WEST_DOUBLE_ARROW: Rel = rel('⇖', RelCategory::Default);
+// pub const NORTH_EAST_DOUBLE_ARROW: Rel = rel('⇗', RelCategory::Default);
+// pub const SOUTH_EAST_DOUBLE_ARROW: Rel = rel('⇘', RelCategory::Default);
+// pub const SOUTH_WEST_DOUBLE_ARROW: Rel = rel('⇙', RelCategory::Default);
+pub const LEFTWARDS_TRIPLE_ARROW: Rel = rel('⇚', RelCategory::Default);
+pub const RIGHTWARDS_TRIPLE_ARROW: Rel = rel('⇛', RelCategory::Default);
+// pub const LEFTWARDS_SQUIGGLE_ARROW: Rel = rel('⇜', RelCategory::Default);
+pub const RIGHTWARDS_SQUIGGLE_ARROW: Rel = rel('⇝', RelCategory::Default);
+// pub const UPWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = rel('⇞', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = rel('⇟', RelCategory::Default);
+// pub const LEFTWARDS_DASHED_ARROW: Rel = rel('⇠', RelCategory::Default);
+// pub const UPWARDS_DASHED_ARROW: Rel = rel('⇡', RelCategory::Default);
+// pub const RIGHTWARDS_DASHED_ARROW: Rel = rel('⇢', RelCategory::Default);
+// pub const DOWNWARDS_DASHED_ARROW: Rel = rel('⇣', RelCategory::Default);
+// pub const LEFTWARDS_ARROW_TO_BAR: Rel = rel('⇤', RelCategory::Default);
+// pub const RIGHTWARDS_ARROW_TO_BAR: Rel = rel('⇥', RelCategory::Default);
+// pub const LEFTWARDS_WHITE_ARROW: Rel = rel('⇦', RelCategory::Default);
+// pub const UPWARDS_WHITE_ARROW: Rel = rel('⇧', RelCategory::Default);
+// pub const RIGHTWARDS_WHITE_ARROW: Rel = rel('⇨', RelCategory::Default);
+// pub const DOWNWARDS_WHITE_ARROW: Rel = rel('⇩', RelCategory::Default);
+// pub const UPWARDS_WHITE_ARROW_FROM_BAR: Rel = rel('⇪', RelCategory::Default);
+// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL: Rel = rel('⇫', RelCategory::Default);
+// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_HORIZONTAL_BAR: Rel = rel('⇬', RelCategory::Default);
+// pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_VERTICAL_BAR: Rel = rel('⇭', RelCategory::Default);
+// pub const UPWARDS_WHITE_DOUBLE_ARROW: Rel = rel('⇮', RelCategory::Default);
+// pub const UPWARDS_WHITE_DOUBLE_ARROW_ON_PEDESTAL: Rel = rel('⇯', RelCategory::Default);
+// pub const RIGHTWARDS_WHITE_ARROW_FROM_WALL: Rel = rel('⇰', RelCategory::Default);
+// pub const NORTH_WEST_ARROW_TO_CORNER: Rel = rel('⇱', RelCategory::Default);
+// pub const SOUTH_EAST_ARROW_TO_CORNER: Rel = rel('⇲', RelCategory::Default);
+// pub const UP_DOWN_WHITE_ARROW: Rel = rel('⇳', RelCategory::Default);
+// pub const RIGHT_ARROW_WITH_SMALL_CIRCLE: Rel = rel('⇴', RelCategory::Default);
+// pub const DOWNWARDS_ARROW_LEFTWARDS_OF_UPWARDS_ARROW: Rel = rel('⇵', RelCategory::Default);
+// pub const THREE_RIGHTWARDS_ARROWS: Rel = rel('⇶', RelCategory::Default);
+// pub const LEFTWARDS_ARROW_WITH_VERTICAL_STROKE: Rel = rel('⇷', RelCategory::Default);
+// pub const RIGHTWARDS_ARROW_WITH_VERTICAL_STROKE: Rel = rel('⇸', RelCategory::Default);
+// pub const LEFT_RIGHT_ARROW_WITH_VERTICAL_STROKE: Rel = rel('⇹', RelCategory::Default);
+// pub const LEFTWARDS_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = rel('⇺', RelCategory::Default);
+// pub const RIGHTWARDS_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = rel('⇻', RelCategory::Default);
+// pub const LEFT_RIGHT_ARROW_WITH_DOUBLE_VERTICAL_STROKE: Rel = rel('⇼', RelCategory::Default);
+// pub const LEFTWARDS_OPEN_HEADED_ARROW: Rel = rel('⇽', RelCategory::Default);
+// pub const RIGHTWARDS_OPEN_HEADED_ARROW: Rel = rel('⇾', RelCategory::Default);
+// pub const LEFT_RIGHT_OPEN_HEADED_ARROW: Rel = rel('⇿', RelCategory::Default);
 
 //
 // Unicode Block: Mathematical Operators
@@ -645,12 +677,12 @@ pub const THERE_DOES_NOT_EXIST: Ord = Ord('∄', OrdCategory::OnlyD);
 pub const EMPTY_SET: char = '∅';
 // pub const INCREMENT: Ord = Ord('∆');
 pub const NABLA: char = '∇'; // char so that it can be transformed
-pub const ELEMENT_OF: Rel = Rel('∈', RelCategory::Default);
-pub const NOT_AN_ELEMENT_OF: Rel = Rel('∉', RelCategory::Default);
-// pub const SMALL_ELEMENT_OF: Rel = Rel('∊', RelCategory::Default);
-pub const CONTAINS_AS_MEMBER: Rel = Rel('∋', RelCategory::Default);
-// pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = Rel('∌', RelCategory::Default);
-// pub const SMALL_CONTAINS_AS_MEMBER: Rel = Rel('∍', RelCategory::Default);
+pub const ELEMENT_OF: Rel = rel('∈', RelCategory::Default);
+pub const NOT_AN_ELEMENT_OF: Rel = rel('∉', RelCategory::Default);
+// pub const SMALL_ELEMENT_OF: Rel = rel('∊', RelCategory::Default);
+pub const CONTAINS_AS_MEMBER: Rel = rel('∋', RelCategory::Default);
+// pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = rel('∌', RelCategory::Default);
+// pub const SMALL_CONTAINS_AS_MEMBER: Rel = rel('∍', RelCategory::Default);
 // pub const END_OF_PROOF: Ord = Ord('∎');
 pub const N_ARY_PRODUCT: BigOp = BigOp('∏', BigOpCategory::OnlyJ);
 pub const N_ARY_COPRODUCT: BigOp = BigOp('∐', BigOpCategory::OnlyJ);
@@ -666,16 +698,16 @@ pub const BULLET_OPERATOR: Bin = Bin('∙');
 // pub const SQUARE_ROOT: Op = Op('√');
 // pub const CUBE_ROOT: Op = Op('∛');
 // pub const FOURTH_ROOT: Op = Op('∜');
-pub const PROPORTIONAL_TO: Rel = Rel('∝', RelCategory::Default);
+pub const PROPORTIONAL_TO: Rel = rel('∝', RelCategory::Default);
 pub const INFINITY: char = '∞';
 // pub const RIGHT_ANGLE: Op = Op('∟');
 pub const ANGLE: char = '∠';
 pub const MEASURED_ANGLE: char = '∡';
 pub const SPHERICAL_ANGLE: char = '∢';
-pub const DIVIDES: Rel = Rel('∣', RelCategory::Default);
-pub const DOES_NOT_DIVIDE: Rel = Rel('∤', RelCategory::Default);
-pub const PARALLEL_TO: Rel = Rel('∥', RelCategory::Default);
-pub const NOT_PARALLEL_TO: Rel = Rel('∦', RelCategory::Default);
+pub const DIVIDES: Rel = rel('∣', RelCategory::Default);
+pub const DOES_NOT_DIVIDE: Rel = rel('∤', RelCategory::Default);
+pub const PARALLEL_TO: Rel = rel('∥', RelCategory::Default);
+pub const NOT_PARALLEL_TO: Rel = rel('∦', RelCategory::Default);
 pub const LOGICAL_AND: Bin = Bin('∧');
 pub const LOGICAL_OR: Bin = Bin('∨');
 pub const INTERSECTION: Bin = Bin('∩');
@@ -689,101 +721,101 @@ pub const VOLUME_INTEGRAL: BigOp = BigOp('∰', BigOpCategory::OnlyH);
 pub const CLOCKWISE_INTEGRAL: BigOp = BigOp('∱', BigOpCategory::OnlyH);
 pub const CLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∲', BigOpCategory::OnlyH);
 pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: BigOp = BigOp('∳', BigOpCategory::OnlyH);
-pub const THEREFORE: Rel = Rel('∴', RelCategory::Default);
-pub const BECAUSE: Rel = Rel('∵', RelCategory::Default);
+pub const THEREFORE: Rel = rel('∴', RelCategory::Default);
+pub const BECAUSE: Rel = rel('∵', RelCategory::Default);
 // pub const RATIO: Op = Op('∶');
-pub const PROPORTION: Rel = Rel('∷', RelCategory::Default);
+pub const PROPORTION: Rel = rel('∷', RelCategory::Default);
 // pub const DOT_MINUS: Op = Op('∸');
-pub const EXCESS: Rel = Rel('∹', RelCategory::Default);
-pub const GEOMETRIC_PROPORTION: Rel = Rel('∺', RelCategory::Default);
-pub const HOMOTHETIC: Rel = Rel('∻', RelCategory::Default);
-pub const TILDE_OPERATOR: Rel = Rel('∼', RelCategory::Default);
-pub const REVERSED_TILDE: Rel = Rel('∽', RelCategory::Default);
+pub const EXCESS: Rel = rel('∹', RelCategory::Default);
+pub const GEOMETRIC_PROPORTION: Rel = rel('∺', RelCategory::Default);
+pub const HOMOTHETIC: Rel = rel('∻', RelCategory::Default);
+pub const TILDE_OPERATOR: Rel = rel('∼', RelCategory::Default);
+pub const REVERSED_TILDE: Rel = rel('∽', RelCategory::Default);
 // pub const INVERTED_LAZY_S: Op = Op('∾');
 // pub const SINE_WAVE: Op = Op('∿');
-pub const WREATH_PRODUCT: Rel = Rel('≀', RelCategory::Default);
-pub const NOT_TILDE: Rel = Rel('≁', RelCategory::Default);
-pub const MINUS_TILDE: Rel = Rel('≂', RelCategory::Default);
-pub const ASYMPTOTICALLY_EQUAL_TO: Rel = Rel('≃', RelCategory::Default);
-pub const NOT_ASYMPTOTICALLY_EQUAL_TO: Rel = Rel('≄', RelCategory::Default);
-pub const APPROXIMATELY_EQUAL_TO: Rel = Rel('≅', RelCategory::Default);
-// pub const APPROXIMATELY_BUT_NOT_ACTUALLY_EQUAL_TO: Rel = Rel('≆', RelCategory::Default);
-// pub const NEITHER_APPROXIMATELY_NOR_ACTUALLY_EQUAL_TO: Rel = Rel('≇', RelCategory::Default);
-pub const ALMOST_EQUAL_TO: Rel = Rel('≈', RelCategory::Default);
-pub const NOT_ALMOST_EQUAL_TO: Rel = Rel('≉', RelCategory::Default);
-pub const ALMOST_EQUAL_OR_EQUAL_TO: Rel = Rel('≊', RelCategory::Default);
-// pub const TRIPLE_TILDE: Rel = Rel('≋', RelCategory::Default);
-// pub const ALL_EQUAL_TO: Rel = Rel('≌', RelCategory::Default);
-pub const EQUIVALENT_TO: Rel = Rel('≍', RelCategory::Default);
-pub const GEOMETRICALLY_EQUIVALENT_TO: Rel = Rel('≎', RelCategory::Default);
-pub const DIFFERENCE_BETWEEN: Rel = Rel('≏', RelCategory::Default);
-pub const APPROACHES_THE_LIMIT: Rel = Rel('≐', RelCategory::Default);
-pub const GEOMETRICALLY_EQUAL_TO: Rel = Rel('≑', RelCategory::Default);
-pub const APPROXIMATELY_EQUAL_TO_OR_THE_IMAGE_OF: Rel = Rel('≒', RelCategory::Default);
-pub const IMAGE_OF_OR_APPROXIMATELY_EQUAL_TO: Rel = Rel('≓', RelCategory::Default);
-pub const COLON_EQUALS: Rel = Rel('≔', RelCategory::Default);
-pub const EQUALS_COLON: Rel = Rel('≕', RelCategory::Default);
-pub const RING_IN_EQUAL_TO: Rel = Rel('≖', RelCategory::Default);
-pub const RING_EQUAL_TO: Rel = Rel('≗', RelCategory::Default);
-pub const CORRESPONDS_TO: Rel = Rel('≘', RelCategory::Default);
-pub const ESTIMATES: Rel = Rel('≙', RelCategory::Default);
-pub const EQUIANGULAR_TO: Rel = Rel('≚', RelCategory::Default);
-pub const STAR_EQUALS: Rel = Rel('≛', RelCategory::Default);
-pub const DELTA_EQUAL_TO: Rel = Rel('≜', RelCategory::Default);
-pub const EQUAL_TO_BY_DEFINITION: Rel = Rel('≝', RelCategory::Default);
-pub const MEASURED_BY: Rel = Rel('≞', RelCategory::Default);
-pub const QUESTIONED_EQUAL_TO: Rel = Rel('≟', RelCategory::Default);
-pub const NOT_EQUAL_TO: Rel = Rel('≠', RelCategory::Default);
-pub const IDENTICAL_TO: Rel = Rel('≡', RelCategory::Default);
-pub const NOT_IDENTICAL_TO: Rel = Rel('≢', RelCategory::Default);
-// pub const STRICTLY_EQUIVALENT_TO: Rel = Rel('≣', RelCategory::Default);
-pub const LESS_THAN_OR_EQUAL_TO: Rel = Rel('≤', RelCategory::Default);
-pub const GREATER_THAN_OR_EQUAL_TO: Rel = Rel('≥', RelCategory::Default);
-pub const LESS_THAN_OVER_EQUAL_TO: Rel = Rel('≦', RelCategory::Default);
-pub const GREATER_THAN_OVER_EQUAL_TO: Rel = Rel('≧', RelCategory::Default);
-pub const LESS_THAN_BUT_NOT_EQUAL_TO: Rel = Rel('≨', RelCategory::Default);
-pub const GREATER_THAN_BUT_NOT_EQUAL_TO: Rel = Rel('≩', RelCategory::Default);
-pub const MUCH_LESS_THAN: Rel = Rel('≪', RelCategory::Default);
-pub const MUCH_GREATER_THAN: Rel = Rel('≫', RelCategory::Default);
-pub const BETWEEN: Rel = Rel('≬', RelCategory::Default);
-// pub const NOT_EQUIVALENT_TO: Rel = Rel('≭', RelCategory::Default);
-pub const NOT_LESS_THAN: Rel = Rel('≮', RelCategory::Default);
-pub const NOT_GREATER_THAN: Rel = Rel('≯', RelCategory::Default);
-pub const NEITHER_LESS_THAN_NOR_EQUAL_TO: Rel = Rel('≰', RelCategory::Default);
-pub const NEITHER_GREATER_THAN_NOR_EQUAL_TO: Rel = Rel('≱', RelCategory::Default);
-pub const LESS_THAN_OR_EQUIVALENT_TO: Rel = Rel('≲', RelCategory::Default);
-pub const GREATER_THAN_OR_EQUIVALENT_TO: Rel = Rel('≳', RelCategory::Default);
-pub const NEITHER_LESS_THAN_NOR_EQUIVALENT_TO: Rel = Rel('≴', RelCategory::Default);
-pub const NEITHER_GREATER_THAN_NOR_EQUIVALENT_TO: Rel = Rel('≵', RelCategory::Default);
-pub const LESS_THAN_OR_GREATER_THAN: Rel = Rel('≶', RelCategory::Default);
-pub const GREATER_THAN_OR_LESS_THAN: Rel = Rel('≷', RelCategory::Default);
-pub const NEITHER_LESS_THAN_NOR_GREATER_THAN: Rel = Rel('≸', RelCategory::Default);
-pub const NEITHER_GREATER_THAN_NOR_LESS_THAN: Rel = Rel('≹', RelCategory::Default);
-pub const PRECEDES: Rel = Rel('≺', RelCategory::Default);
-pub const SUCCEEDS: Rel = Rel('≻', RelCategory::Default);
-pub const PRECEDES_OR_EQUAL_TO: Rel = Rel('≼', RelCategory::Default);
-pub const SUCCEEDS_OR_EQUAL_TO: Rel = Rel('≽', RelCategory::Default);
-pub const PRECEDES_OR_EQUIVALENT_TO: Rel = Rel('≾', RelCategory::Default);
-pub const SUCCEEDS_OR_EQUIVALENT_TO: Rel = Rel('≿', RelCategory::Default);
-pub const DOES_NOT_PRECEDE: Rel = Rel('⊀', RelCategory::Default);
-pub const DOES_NOT_SUCCEED: Rel = Rel('⊁', RelCategory::Default);
-pub const SUBSET_OF: Rel = Rel('⊂', RelCategory::Default);
-pub const SUPERSET_OF: Rel = Rel('⊃', RelCategory::Default);
-pub const NOT_A_SUBSET_OF: Rel = Rel('⊄', RelCategory::Default);
-pub const NOT_A_SUPERSET_OF: Rel = Rel('⊅', RelCategory::Default);
-pub const SUBSET_OF_OR_EQUAL_TO: Rel = Rel('⊆', RelCategory::Default);
-pub const SUPERSET_OF_OR_EQUAL_TO: Rel = Rel('⊇', RelCategory::Default);
-pub const NEITHER_A_SUBSET_OF_NOR_EQUAL_TO: Rel = Rel('⊈', RelCategory::Default);
-pub const NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO: Rel = Rel('⊉', RelCategory::Default);
-pub const SUBSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel('⊊', RelCategory::Default);
-pub const SUPERSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel('⊋', RelCategory::Default);
+pub const WREATH_PRODUCT: Rel = rel('≀', RelCategory::Default);
+pub const NOT_TILDE: Rel = rel('≁', RelCategory::Default);
+pub const MINUS_TILDE: Rel = rel('≂', RelCategory::Default);
+pub const ASYMPTOTICALLY_EQUAL_TO: Rel = rel('≃', RelCategory::Default);
+pub const NOT_ASYMPTOTICALLY_EQUAL_TO: Rel = rel('≄', RelCategory::Default);
+pub const APPROXIMATELY_EQUAL_TO: Rel = rel('≅', RelCategory::Default);
+// pub const APPROXIMATELY_BUT_NOT_ACTUALLY_EQUAL_TO: Rel = rel('≆', RelCategory::Default);
+// pub const NEITHER_APPROXIMATELY_NOR_ACTUALLY_EQUAL_TO: Rel = rel('≇', RelCategory::Default);
+pub const ALMOST_EQUAL_TO: Rel = rel('≈', RelCategory::Default);
+pub const NOT_ALMOST_EQUAL_TO: Rel = rel('≉', RelCategory::Default);
+pub const ALMOST_EQUAL_OR_EQUAL_TO: Rel = rel('≊', RelCategory::Default);
+// pub const TRIPLE_TILDE: Rel = rel('≋', RelCategory::Default);
+// pub const ALL_EQUAL_TO: Rel = rel('≌', RelCategory::Default);
+pub const EQUIVALENT_TO: Rel = rel('≍', RelCategory::Default);
+pub const GEOMETRICALLY_EQUIVALENT_TO: Rel = rel('≎', RelCategory::Default);
+pub const DIFFERENCE_BETWEEN: Rel = rel('≏', RelCategory::Default);
+pub const APPROACHES_THE_LIMIT: Rel = rel('≐', RelCategory::Default);
+pub const GEOMETRICALLY_EQUAL_TO: Rel = rel('≑', RelCategory::Default);
+pub const APPROXIMATELY_EQUAL_TO_OR_THE_IMAGE_OF: Rel = rel('≒', RelCategory::Default);
+pub const IMAGE_OF_OR_APPROXIMATELY_EQUAL_TO: Rel = rel('≓', RelCategory::Default);
+pub const COLON_EQUALS: Rel = rel('≔', RelCategory::Default);
+pub const EQUALS_COLON: Rel = rel('≕', RelCategory::Default);
+pub const RING_IN_EQUAL_TO: Rel = rel('≖', RelCategory::Default);
+pub const RING_EQUAL_TO: Rel = rel('≗', RelCategory::Default);
+pub const CORRESPONDS_TO: Rel = rel('≘', RelCategory::Default);
+pub const ESTIMATES: Rel = rel('≙', RelCategory::Default);
+pub const EQUIANGULAR_TO: Rel = rel('≚', RelCategory::Default);
+pub const STAR_EQUALS: Rel = rel('≛', RelCategory::Default);
+pub const DELTA_EQUAL_TO: Rel = rel('≜', RelCategory::Default);
+pub const EQUAL_TO_BY_DEFINITION: Rel = rel('≝', RelCategory::Default);
+pub const MEASURED_BY: Rel = rel('≞', RelCategory::Default);
+pub const QUESTIONED_EQUAL_TO: Rel = rel('≟', RelCategory::Default);
+pub const NOT_EQUAL_TO: Rel = rel('≠', RelCategory::Default);
+pub const IDENTICAL_TO: Rel = rel('≡', RelCategory::Default);
+pub const NOT_IDENTICAL_TO: Rel = rel('≢', RelCategory::Default);
+// pub const STRICTLY_EQUIVALENT_TO: Rel = rel('≣', RelCategory::Default);
+pub const LESS_THAN_OR_EQUAL_TO: Rel = rel('≤', RelCategory::Default);
+pub const GREATER_THAN_OR_EQUAL_TO: Rel = rel('≥', RelCategory::Default);
+pub const LESS_THAN_OVER_EQUAL_TO: Rel = rel('≦', RelCategory::Default);
+pub const GREATER_THAN_OVER_EQUAL_TO: Rel = rel('≧', RelCategory::Default);
+pub const LESS_THAN_BUT_NOT_EQUAL_TO: Rel = rel('≨', RelCategory::Default);
+pub const GREATER_THAN_BUT_NOT_EQUAL_TO: Rel = rel('≩', RelCategory::Default);
+pub const MUCH_LESS_THAN: Rel = rel('≪', RelCategory::Default);
+pub const MUCH_GREATER_THAN: Rel = rel('≫', RelCategory::Default);
+pub const BETWEEN: Rel = rel('≬', RelCategory::Default);
+// pub const NOT_EQUIVALENT_TO: Rel = rel('≭', RelCategory::Default);
+pub const NOT_LESS_THAN: Rel = rel('≮', RelCategory::Default);
+pub const NOT_GREATER_THAN: Rel = rel('≯', RelCategory::Default);
+pub const NEITHER_LESS_THAN_NOR_EQUAL_TO: Rel = rel('≰', RelCategory::Default);
+pub const NEITHER_GREATER_THAN_NOR_EQUAL_TO: Rel = rel('≱', RelCategory::Default);
+pub const LESS_THAN_OR_EQUIVALENT_TO: Rel = rel('≲', RelCategory::Default);
+pub const GREATER_THAN_OR_EQUIVALENT_TO: Rel = rel('≳', RelCategory::Default);
+pub const NEITHER_LESS_THAN_NOR_EQUIVALENT_TO: Rel = rel('≴', RelCategory::Default);
+pub const NEITHER_GREATER_THAN_NOR_EQUIVALENT_TO: Rel = rel('≵', RelCategory::Default);
+pub const LESS_THAN_OR_GREATER_THAN: Rel = rel('≶', RelCategory::Default);
+pub const GREATER_THAN_OR_LESS_THAN: Rel = rel('≷', RelCategory::Default);
+pub const NEITHER_LESS_THAN_NOR_GREATER_THAN: Rel = rel('≸', RelCategory::Default);
+pub const NEITHER_GREATER_THAN_NOR_LESS_THAN: Rel = rel('≹', RelCategory::Default);
+pub const PRECEDES: Rel = rel('≺', RelCategory::Default);
+pub const SUCCEEDS: Rel = rel('≻', RelCategory::Default);
+pub const PRECEDES_OR_EQUAL_TO: Rel = rel('≼', RelCategory::Default);
+pub const SUCCEEDS_OR_EQUAL_TO: Rel = rel('≽', RelCategory::Default);
+pub const PRECEDES_OR_EQUIVALENT_TO: Rel = rel('≾', RelCategory::Default);
+pub const SUCCEEDS_OR_EQUIVALENT_TO: Rel = rel('≿', RelCategory::Default);
+pub const DOES_NOT_PRECEDE: Rel = rel('⊀', RelCategory::Default);
+pub const DOES_NOT_SUCCEED: Rel = rel('⊁', RelCategory::Default);
+pub const SUBSET_OF: Rel = rel('⊂', RelCategory::Default);
+pub const SUPERSET_OF: Rel = rel('⊃', RelCategory::Default);
+pub const NOT_A_SUBSET_OF: Rel = rel('⊄', RelCategory::Default);
+pub const NOT_A_SUPERSET_OF: Rel = rel('⊅', RelCategory::Default);
+pub const SUBSET_OF_OR_EQUAL_TO: Rel = rel('⊆', RelCategory::Default);
+pub const SUPERSET_OF_OR_EQUAL_TO: Rel = rel('⊇', RelCategory::Default);
+pub const NEITHER_A_SUBSET_OF_NOR_EQUAL_TO: Rel = rel('⊈', RelCategory::Default);
+pub const NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO: Rel = rel('⊉', RelCategory::Default);
+pub const SUBSET_OF_WITH_NOT_EQUAL_TO: Rel = rel('⊊', RelCategory::Default);
+pub const SUPERSET_OF_WITH_NOT_EQUAL_TO: Rel = rel('⊋', RelCategory::Default);
 // pub const MULTISET: Bin = Bin('⊌');
 // pub const MULTISET_MULTIPLICATION: Bin = Bin('⊍');
 pub const MULTISET_UNION: Bin = Bin('⊎');
-pub const SQUARE_IMAGE_OF: Rel = Rel('⊏', RelCategory::Default);
-pub const SQUARE_ORIGINAL_OF: Rel = Rel('⊐', RelCategory::Default);
-pub const SQUARE_IMAGE_OF_OR_EQUAL_TO: Rel = Rel('⊑', RelCategory::Default);
-pub const SQUARE_ORIGINAL_OF_OR_EQUAL_TO: Rel = Rel('⊒', RelCategory::Default);
+pub const SQUARE_IMAGE_OF: Rel = rel('⊏', RelCategory::Default);
+pub const SQUARE_ORIGINAL_OF: Rel = rel('⊐', RelCategory::Default);
+pub const SQUARE_IMAGE_OF_OR_EQUAL_TO: Rel = rel('⊑', RelCategory::Default);
+pub const SQUARE_ORIGINAL_OF_OR_EQUAL_TO: Rel = rel('⊒', RelCategory::Default);
 pub const SQUARE_CAP: Bin = Bin('⊓');
 pub const SQUARE_CUP: Bin = Bin('⊔');
 pub const CIRCLED_PLUS: Bin = Bin('⊕');
@@ -799,31 +831,31 @@ pub const SQUARED_PLUS: Bin = Bin('⊞');
 pub const SQUARED_MINUS: Bin = Bin('⊟');
 pub const SQUARED_TIMES: Bin = Bin('⊠');
 pub const SQUARED_DOT_OPERATOR: Bin = Bin('⊡');
-pub const RIGHT_TACK: Rel = Rel('⊢', RelCategory::Default);
-pub const LEFT_TACK: Rel = Rel('⊣', RelCategory::Default);
+pub const RIGHT_TACK: Rel = rel('⊢', RelCategory::Default);
+pub const LEFT_TACK: Rel = rel('⊣', RelCategory::Default);
 pub const DOWN_TACK: char = '⊤';
 pub const UP_TACK: char = '⊥';
 // pub const ASSERTION: Op = Op('⊦');
 // pub const MODELS: Op = Op('⊧');
-pub const TRUE: Rel = Rel('⊨', RelCategory::Default);
-pub const FORCES: Rel = Rel('⊩', RelCategory::Default);
-pub const TRIPLE_VERTICAL_BAR_RIGHT_TURNSTILE: Rel = Rel('⊪', RelCategory::Default);
-pub const DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Rel = Rel('⊫', RelCategory::Default);
-pub const DOES_NOT_PROVE: Rel = Rel('⊬', RelCategory::Default);
-pub const NOT_TRUE: Rel = Rel('⊭', RelCategory::Default);
-pub const DOES_NOT_FORCE: Rel = Rel('⊮', RelCategory::Default);
-pub const NEGATED_DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Rel = Rel('⊯', RelCategory::Default);
+pub const TRUE: Rel = rel('⊨', RelCategory::Default);
+pub const FORCES: Rel = rel('⊩', RelCategory::Default);
+pub const TRIPLE_VERTICAL_BAR_RIGHT_TURNSTILE: Rel = rel('⊪', RelCategory::Default);
+pub const DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Rel = rel('⊫', RelCategory::Default);
+pub const DOES_NOT_PROVE: Rel = rel('⊬', RelCategory::Default);
+pub const NOT_TRUE: Rel = rel('⊭', RelCategory::Default);
+pub const DOES_NOT_FORCE: Rel = rel('⊮', RelCategory::Default);
+pub const NEGATED_DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE: Rel = rel('⊯', RelCategory::Default);
 // pub const PRECEDES_UNDER_RELATION: Op = Op('⊰');
 // pub const SUCCEEDS_UNDER_RELATION: Op = Op('⊱');
-pub const NORMAL_SUBGROUP_OF: Rel = Rel('⊲', RelCategory::Default);
-pub const CONTAINS_AS_NORMAL_SUBGROUP: Rel = Rel('⊳', RelCategory::Default);
-pub const NORMAL_SUBGROUP_OF_OR_EQUAL_TO: Rel = Rel('⊴', RelCategory::Default);
-pub const CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO: Rel = Rel('⊵', RelCategory::Default);
+pub const NORMAL_SUBGROUP_OF: Rel = rel('⊲', RelCategory::Default);
+pub const CONTAINS_AS_NORMAL_SUBGROUP: Rel = rel('⊳', RelCategory::Default);
+pub const NORMAL_SUBGROUP_OF_OR_EQUAL_TO: Rel = rel('⊴', RelCategory::Default);
+pub const CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO: Rel = rel('⊵', RelCategory::Default);
 // pub const ORIGINAL_OF: Op = Op('⊶');
 // pub const IMAGE_OF: Op = Op('⊷');
-pub const MULTIMAP: Rel = Rel('⊸', RelCategory::Default);
+pub const MULTIMAP: Rel = rel('⊸', RelCategory::Default);
 // pub const HERMITIAN_CONJUGATE_MATRIX: Op = Op('⊹');
-pub const INTERCALATE: Rel = Rel('⊺', RelCategory::Default);
+pub const INTERCALATE: Rel = rel('⊺', RelCategory::Default);
 pub const XOR: Bin = Bin('⊻');
 pub const NAND: Bin = Bin('⊼');
 // pub const NOR: Op = Op('⊽');
@@ -837,48 +869,48 @@ pub const DIAMOND_OPERATOR: Bin = Bin('⋄');
 // pub const DOT_OPERATOR: Bin = Bin('⋅');
 pub const STAR_OPERATOR: Bin = Bin('⋆');
 pub const DIVISION_TIMES: Bin = Bin('⋇');
-pub const BOWTIE: Rel = Rel('⋈', RelCategory::Default);
-pub const LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = Rel('⋉', RelCategory::Default);
-pub const RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = Rel('⋊', RelCategory::Default);
-pub const LEFT_SEMIDIRECT_PRODUCT: Rel = Rel('⋋', RelCategory::Default);
-pub const RIGHT_SEMIDIRECT_PRODUCT: Rel = Rel('⋌', RelCategory::Default);
-pub const REVERSED_TILDE_EQUALS: Rel = Rel('⋍', RelCategory::Default);
+pub const BOWTIE: Rel = rel('⋈', RelCategory::Default);
+pub const LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = rel('⋉', RelCategory::Default);
+pub const RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Rel = rel('⋊', RelCategory::Default);
+pub const LEFT_SEMIDIRECT_PRODUCT: Rel = rel('⋋', RelCategory::Default);
+pub const RIGHT_SEMIDIRECT_PRODUCT: Rel = rel('⋌', RelCategory::Default);
+pub const REVERSED_TILDE_EQUALS: Rel = rel('⋍', RelCategory::Default);
 pub const CURLY_LOGICAL_OR: Bin = Bin('⋎');
 pub const CURLY_LOGICAL_AND: Bin = Bin('⋏');
-pub const DOUBLE_SUBSET: Rel = Rel('⋐', RelCategory::Default);
-pub const DOUBLE_SUPERSET: Rel = Rel('⋑', RelCategory::Default);
+pub const DOUBLE_SUBSET: Rel = rel('⋐', RelCategory::Default);
+pub const DOUBLE_SUPERSET: Rel = rel('⋑', RelCategory::Default);
 pub const DOUBLE_INTERSECTION: Bin = Bin('⋒');
 pub const DOUBLE_UNION: Bin = Bin('⋓');
-pub const PITCHFORK: Rel = Rel('⋔', RelCategory::Default);
+pub const PITCHFORK: Rel = rel('⋔', RelCategory::Default);
 // pub const EQUAL_AND_PARALLEL_TO: Op = Op('⋕');
-pub const LESS_THAN_WITH_DOT: Rel = Rel('⋖', RelCategory::Default);
-// pub const GREATER_THAN_WITH_DOT: Rel = Rel('⋗', RelCategory::Default);
-pub const VERY_MUCH_LESS_THAN: Rel = Rel('⋘', RelCategory::Default);
-// pub const VERY_MUCH_GREATER_THAN: Rel = Rel('⋙', RelCategory::Default);
-pub const LESS_THAN_EQUAL_TO_OR_GREATER_THAN: Rel = Rel('⋚', RelCategory::Default);
-pub const GREATER_THAN_EQUAL_TO_OR_LESS_THAN: Rel = Rel('⋛', RelCategory::Default);
-// pub const EQUAL_TO_OR_LESS_THAN: Rel = Rel('⋜', RelCategory::Default);
-// pub const EQUAL_TO_OR_GREATER_THAN: Rel = Rel('⋝', RelCategory::Default);
-pub const EQUAL_TO_OR_PRECEDES: Rel = Rel('⋞', RelCategory::Default);
-pub const EQUAL_TO_OR_SUCCEEDS: Rel = Rel('⋟', RelCategory::Default);
-pub const DOES_NOT_PRECEDE_OR_EQUAL: Rel = Rel('⋠', RelCategory::Default);
-pub const DOES_NOT_SUCCEED_OR_EQUAL: Rel = Rel('⋡', RelCategory::Default);
-// pub const NOT_SQUARE_IMAGE_OF_OR_EQUAL_TO: Rel = Rel('⋢', RelCategory::Default);
-// pub const NOT_SQUARE_ORIGINAL_OF_OR_EQUAL_TO: Rel = Rel('⋣', RelCategory::Default);
-// pub const SQUARE_IMAGE_OF_OR_NOT_EQUAL_TO: Rel = Rel('⋤', RelCategory::Default);
-// pub const SQUARE_ORIGINAL_OF_OR_NOT_EQUAL_TO: Rel = Rel('⋥', RelCategory::Default);
-pub const LESS_THAN_BUT_NOT_EQUIVALENT_TO: Rel = Rel('⋦', RelCategory::Default);
-pub const GREATER_THAN_BUT_NOT_EQUIVALENT_TO: Rel = Rel('⋧', RelCategory::Default);
-pub const PRECEDES_BUT_NOT_EQUIVALENT_TO: Rel = Rel('⋨', RelCategory::Default);
-pub const SUCCEEDS_BUT_NOT_EQUIVALENT_TO: Rel = Rel('⋩', RelCategory::Default);
-// pub const NOT_NORMAL_SUBGROUP_OF: Rel = Rel('⋪', RelCategory::Default);
-// pub const DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP: Rel = Rel('⋫', RelCategory::Default);
-// pub const NOT_NORMAL_SUBGROUP_OF_OR_EQUAL_TO: Rel = Rel('⋬', RelCategory::Default);
-// pub const DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP_OR_EQUAL: Rel = Rel('⋭', RelCategory::Default);
-pub const VERTICAL_ELLIPSIS: Rel = Rel('⋮', RelCategory::Default);
-// pub const MIDLINE_HORIZONTAL_ELLIPSIS: Rel = Rel('⋯', RelCategory::Default);
+pub const LESS_THAN_WITH_DOT: Rel = rel('⋖', RelCategory::Default);
+// pub const GREATER_THAN_WITH_DOT: Rel = rel('⋗', RelCategory::Default);
+pub const VERY_MUCH_LESS_THAN: Rel = rel('⋘', RelCategory::Default);
+// pub const VERY_MUCH_GREATER_THAN: Rel = rel('⋙', RelCategory::Default);
+pub const LESS_THAN_EQUAL_TO_OR_GREATER_THAN: Rel = rel('⋚', RelCategory::Default);
+pub const GREATER_THAN_EQUAL_TO_OR_LESS_THAN: Rel = rel('⋛', RelCategory::Default);
+// pub const EQUAL_TO_OR_LESS_THAN: Rel = rel('⋜', RelCategory::Default);
+// pub const EQUAL_TO_OR_GREATER_THAN: Rel = rel('⋝', RelCategory::Default);
+pub const EQUAL_TO_OR_PRECEDES: Rel = rel('⋞', RelCategory::Default);
+pub const EQUAL_TO_OR_SUCCEEDS: Rel = rel('⋟', RelCategory::Default);
+pub const DOES_NOT_PRECEDE_OR_EQUAL: Rel = rel('⋠', RelCategory::Default);
+pub const DOES_NOT_SUCCEED_OR_EQUAL: Rel = rel('⋡', RelCategory::Default);
+// pub const NOT_SQUARE_IMAGE_OF_OR_EQUAL_TO: Rel = rel('⋢', RelCategory::Default);
+// pub const NOT_SQUARE_ORIGINAL_OF_OR_EQUAL_TO: Rel = rel('⋣', RelCategory::Default);
+// pub const SQUARE_IMAGE_OF_OR_NOT_EQUAL_TO: Rel = rel('⋤', RelCategory::Default);
+// pub const SQUARE_ORIGINAL_OF_OR_NOT_EQUAL_TO: Rel = rel('⋥', RelCategory::Default);
+pub const LESS_THAN_BUT_NOT_EQUIVALENT_TO: Rel = rel('⋦', RelCategory::Default);
+pub const GREATER_THAN_BUT_NOT_EQUIVALENT_TO: Rel = rel('⋧', RelCategory::Default);
+pub const PRECEDES_BUT_NOT_EQUIVALENT_TO: Rel = rel('⋨', RelCategory::Default);
+pub const SUCCEEDS_BUT_NOT_EQUIVALENT_TO: Rel = rel('⋩', RelCategory::Default);
+// pub const NOT_NORMAL_SUBGROUP_OF: Rel = rel('⋪', RelCategory::Default);
+// pub const DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP: Rel = rel('⋫', RelCategory::Default);
+// pub const NOT_NORMAL_SUBGROUP_OF_OR_EQUAL_TO: Rel = rel('⋬', RelCategory::Default);
+// pub const DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP_OR_EQUAL: Rel = rel('⋭', RelCategory::Default);
+pub const VERTICAL_ELLIPSIS: Rel = rel('⋮', RelCategory::Default);
+// pub const MIDLINE_HORIZONTAL_ELLIPSIS: Rel = rel('⋯', RelCategory::Default);
 // pub const UP_RIGHT_DIAGONAL_ELLIPSIS: Op = Op('⋰');
-pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = Rel('⋱', RelCategory::Default);
+pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = rel('⋱', RelCategory::Default);
 // pub const ELEMENT_OF_WITH_LONG_HORIZONTAL_STROKE: Op = Op('⋲');
 // pub const ELEMENT_OF_WITH_VERTICAL_BAR_AT_END_OF_HORIZONTAL_STROKE: Op = Op('⋳');
 // pub const SMALL_ELEMENT_OF_WITH_VERTICAL_BAR_AT_END_OF_HORIZONTAL_STROKE: Op = Op('⋴');
@@ -905,8 +937,8 @@ pub const TOP_LEFT_CORNER: char = '⌜';
 pub const TOP_RIGHT_CORNER: char = '⌝';
 pub const BOTTOM_LEFT_CORNER: char = '⌞';
 pub const BOTTOM_RIGHT_CORNER: char = '⌟';
-pub const FROWN: Rel = Rel('⌢', RelCategory::Default);
-pub const SMILE: Rel = Rel('⌣', RelCategory::Default);
+pub const FROWN: Rel = rel('⌢', RelCategory::Default);
+pub const SMILE: Rel = rel('⌣', RelCategory::Default);
 pub const TOP_SQUARE_BRACKET: Ord = Ord('⎴', OrdCategory::OnlyI);
 pub const BOTTOM_SQUARE_BRACKET: Ord = Ord('⎵', OrdCategory::OnlyI);
 pub const TOP_PARENTHESIS: Ord = Ord('⏜', OrdCategory::OnlyI);
@@ -981,7 +1013,7 @@ pub const MALTESE_CROSS: char = '✠';
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
-pub const PERPENDICULAR: Rel = Rel('⟂', RelCategory::Default);
+pub const PERPENDICULAR: Rel = rel('⟂', RelCategory::Default);
 pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Open = Open('⟦');
 pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Close = Close('⟧');
 pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Open = Open('⟨');
@@ -992,20 +1024,20 @@ pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Close = Close('⟯');
 //
 // Unicode Block: Supplemental Arrows-A
 //
-pub const LONG_LEFTWARDS_ARROW: Rel = Rel('⟵', RelCategory::Default);
-pub const LONG_RIGHTWARDS_ARROW: Rel = Rel('⟶', RelCategory::Default);
-pub const LONG_LEFT_RIGHT_ARROW: Rel = Rel('⟷', RelCategory::Default);
-pub const LONG_LEFTWARDS_DOUBLE_ARROW: Rel = Rel('⟸', RelCategory::Default);
-pub const LONG_RIGHTWARDS_DOUBLE_ARROW: Rel = Rel('⟹', RelCategory::Default);
-pub const LONG_LEFT_RIGHT_DOUBLE_ARROW: Rel = Rel('⟺', RelCategory::Default);
+pub const LONG_LEFTWARDS_ARROW: Rel = rel('⟵', RelCategory::Default);
+pub const LONG_RIGHTWARDS_ARROW: Rel = rel('⟶', RelCategory::Default);
+pub const LONG_LEFT_RIGHT_ARROW: Rel = rel('⟷', RelCategory::Default);
+pub const LONG_LEFTWARDS_DOUBLE_ARROW: Rel = rel('⟸', RelCategory::Default);
+pub const LONG_RIGHTWARDS_DOUBLE_ARROW: Rel = rel('⟹', RelCategory::Default);
+pub const LONG_LEFT_RIGHT_DOUBLE_ARROW: Rel = rel('⟺', RelCategory::Default);
 // pub const LONG_LEFTWARDS_ARROW_FROM_BAR: Op = Op('⟻');
-pub const LONG_RIGHTWARDS_ARROW_FROM_BAR: Rel = Rel('⟼', RelCategory::Default);
+pub const LONG_RIGHTWARDS_ARROW_FROM_BAR: Rel = rel('⟼', RelCategory::Default);
 
 //
 // Unicode Block: Supplemental Arrows-B
 //
-pub const LEFTWARDS_ARROW_TAIL: Rel = Rel('⤙', RelCategory::Default);
-pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel('⤚', RelCategory::Default);
+pub const LEFTWARDS_ARROW_TAIL: Rel = rel('⤙', RelCategory::Default);
+pub const RIGHTWARDS_ARROW_TAIL: Rel = rel('⤚', RelCategory::Default);
 
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
@@ -1060,7 +1092,7 @@ pub const ANTICLOCKWISE_INTEGRATION: BigOp = BigOp('⨑', BigOpCategory::OnlyH);
 // pub const INTEGRAL_WITH_UNDERBAR: Op = Op('⨜');
 // pub const JOIN: Op = Op('⨝');
 // pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op('⨞');
-pub const Z_NOTATION_SCHEMA_COMPOSITION: Rel = Rel('⨟', RelCategory::Default);
+pub const Z_NOTATION_SCHEMA_COMPOSITION: Rel = rel('⨟', RelCategory::Default);
 // pub const Z_NOTATION_SCHEMA_PIPING: Op = Op('⨠');
 // pub const Z_NOTATION_SCHEMA_PROJECTION: Op = Op('⨡');
 // pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Bin = Bin('⨢');
@@ -1092,7 +1124,7 @@ pub const Z_NOTATION_SCHEMA_COMPOSITION: Rel = Rel('⨟', RelCategory::Default);
 // pub const INTERIOR_PRODUCT: Op = Op('⨼');
 // pub const RIGHTHAND_INTERIOR_PRODUCT: Op = Op('⨽');
 // pub const Z_NOTATION_RELATIONAL_COMPOSITION: Op = Op('⨾');
-pub const AMALGAMATION_OR_COPRODUCT: Rel = Rel('⨿', RelCategory::Default);
+pub const AMALGAMATION_OR_COPRODUCT: Rel = rel('⨿', RelCategory::Default);
 // pub const INTERSECTION_WITH_DOT: Op = Op('⩀');
 // pub const UNION_WITH_MINUS_SIGN: Op = Op('⩁');
 // pub const UNION_WITH_OVERBAR: Op = Op('⩂');
@@ -1123,7 +1155,7 @@ pub const AMALGAMATION_OR_COPRODUCT: Rel = Rel('⨿', RelCategory::Default);
 // pub const LOGICAL_OR_WITH_MIDDLE_STEM: Op = Op('⩛');
 // pub const LOGICAL_AND_WITH_HORIZONTAL_DASH: Op = Op('⩜');
 // pub const LOGICAL_OR_WITH_HORIZONTAL_DASH: Op = Op('⩝');
-pub const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Rel = Rel('⩞', RelCategory::Default);
+pub const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Rel = rel('⩞', RelCategory::Default);
 // pub const LOGICAL_AND_WITH_UNDERBAR: Op = Op('⩟');
 // pub const LOGICAL_AND_WITH_DOUBLE_UNDERBAR: Op = Op('⩠');
 // pub const SMALL_VEE_WITH_UNDERBAR: Op = Op('⩡');
@@ -1131,7 +1163,7 @@ pub const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Rel = Rel('⩞', RelCategory::Default
 // pub const LOGICAL_OR_WITH_DOUBLE_UNDERBAR: Op = Op('⩣');
 // pub const Z_NOTATION_DOMAIN_ANTIRESTRICTION: Op = Op('⩤');
 // pub const Z_NOTATION_RANGE_ANTIRESTRICTION: Op = Op('⩥');
-pub const EQUALS_SIGN_WITH_DOT_BELOW: Rel = Rel('⩦', RelCategory::Default);
+pub const EQUALS_SIGN_WITH_DOT_BELOW: Rel = rel('⩦', RelCategory::Default);
 // pub const IDENTICAL_WITH_DOT_ABOVE: Op = Op('⩧');
 // pub const TRIPLE_HORIZONTAL_BAR_WITH_DOUBLE_VERTICAL_STROKE: Op = Op('⩨');
 // pub const TRIPLE_HORIZONTAL_BAR_WITH_TRIPLE_VERTICAL_STROKE: Op = Op('⩩');
@@ -1154,90 +1186,90 @@ pub const EQUALS_SIGN_WITH_DOT_BELOW: Rel = Rel('⩦', RelCategory::Default);
 // pub const GREATER_THAN_WITH_CIRCLE_INSIDE: Op = Op('⩺');
 // pub const LESS_THAN_WITH_QUESTION_MARK_ABOVE: Op = Op('⩻');
 // pub const GREATER_THAN_WITH_QUESTION_MARK_ABOVE: Op = Op('⩼');
-pub const LESS_THAN_OR_SLANTED_EQUAL_TO: Rel = Rel('⩽', RelCategory::Default);
-pub const GREATER_THAN_OR_SLANTED_EQUAL_TO: Rel = Rel('⩾', RelCategory::Default);
+pub const LESS_THAN_OR_SLANTED_EQUAL_TO: Rel = rel('⩽', RelCategory::Default);
+pub const GREATER_THAN_OR_SLANTED_EQUAL_TO: Rel = rel('⩾', RelCategory::Default);
 // pub const LESS_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_INSIDE: Op = Op('⩿');
 // pub const GREATER_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_INSIDE: Op = Op('⪀');
 // pub const LESS_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_ABOVE: Op = Op('⪁');
 // pub const GREATER_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_ABOVE: Op = Op('⪂');
 // pub const LESS_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_ABOVE_RIGHT: Op = Op('⪃');
 // pub const GREATER_THAN_OR_SLANTED_EQUAL_TO_WITH_DOT_ABOVE_LEFT: Op = Op('⪄');
-pub const LESS_THAN_OR_APPROXIMATE: Rel = Rel('⪅', RelCategory::Default);
-pub const GREATER_THAN_OR_APPROXIMATE: Rel = Rel('⪆', RelCategory::Default);
-pub const LESS_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO: Rel = Rel('⪇', RelCategory::Default);
-pub const GREATER_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO: Rel = Rel('⪈', RelCategory::Default);
-pub const LESS_THAN_AND_NOT_APPROXIMATE: Rel = Rel('⪉', RelCategory::Default);
-pub const GREATER_THAN_AND_NOT_APPROXIMATE: Rel = Rel('⪊', RelCategory::Default);
+pub const LESS_THAN_OR_APPROXIMATE: Rel = rel('⪅', RelCategory::Default);
+pub const GREATER_THAN_OR_APPROXIMATE: Rel = rel('⪆', RelCategory::Default);
+pub const LESS_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO: Rel = rel('⪇', RelCategory::Default);
+pub const GREATER_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO: Rel = rel('⪈', RelCategory::Default);
+pub const LESS_THAN_AND_NOT_APPROXIMATE: Rel = rel('⪉', RelCategory::Default);
+pub const GREATER_THAN_AND_NOT_APPROXIMATE: Rel = rel('⪊', RelCategory::Default);
 pub const LESS_THAN_ABOVE_DOUBLE_LINE_EQUAL_ABOVE_GREATER_THAN: Rel =
-    Rel('⪋', RelCategory::Default);
+    rel('⪋', RelCategory::Default);
 pub const GREATER_THAN_ABOVE_DOUBLE_LINE_EQUAL_ABOVE_LESS_THAN: Rel =
-    Rel('⪌', RelCategory::Default);
-// pub const LESS_THAN_ABOVE_SIMILAR_OR_EQUAL: Rel = Rel('⪍', RelCategory::Default);
-// pub const GREATER_THAN_ABOVE_SIMILAR_OR_EQUAL: Rel = Rel('⪎', RelCategory::Default);
-// pub const LESS_THAN_ABOVE_SIMILAR_ABOVE_GREATER_THAN: Rel = Rel('⪏', RelCategory::Default);
-// pub const GREATER_THAN_ABOVE_SIMILAR_ABOVE_LESS_THAN: Rel = Rel('⪐', RelCategory::Default);
-// pub const LESS_THAN_ABOVE_GREATER_THAN_ABOVE_DOUBLE_LINE_EQUAL: Rel = Rel('⪑', RelCategory::Default);
-// pub const GREATER_THAN_ABOVE_LESS_THAN_ABOVE_DOUBLE_LINE_EQUAL: Rel = Rel('⪒', RelCategory::Default);
-// pub const LESS_THAN_ABOVE_SLANTED_EQUAL_ABOVE_GREATER_THAN_ABOVE_SLANTED_EQUAL: Rel = Rel('⪓', RelCategory::Default);
-// pub const GREATER_THAN_ABOVE_SLANTED_EQUAL_ABOVE_LESS_THAN_ABOVE_SLANTED_EQUAL: Rel = Rel('⪔', RelCategory::Default);
-pub const SLANTED_EQUAL_TO_OR_LESS_THAN: Rel = Rel('⪕', RelCategory::Default);
-pub const SLANTED_EQUAL_TO_OR_GREATER_THAN: Rel = Rel('⪖', RelCategory::Default);
-// pub const SLANTED_EQUAL_TO_OR_LESS_THAN_WITH_DOT_INSIDE: Rel = Rel('⪗', RelCategory::Default);
-// pub const SLANTED_EQUAL_TO_OR_GREATER_THAN_WITH_DOT_INSIDE: Rel = Rel('⪘', RelCategory::Default);
-// pub const DOUBLE_LINE_EQUAL_TO_OR_LESS_THAN: Rel = Rel('⪙', RelCategory::Default);
-// pub const DOUBLE_LINE_EQUAL_TO_OR_GREATER_THAN: Rel = Rel('⪚', RelCategory::Default);
-// pub const DOUBLE_LINE_SLANTED_EQUAL_TO_OR_LESS_THAN: Rel = Rel('⪛', RelCategory::Default);
-// pub const DOUBLE_LINE_SLANTED_EQUAL_TO_OR_GREATER_THAN: Rel = Rel('⪜', RelCategory::Default);
-// pub const SIMILAR_OR_LESS_THAN: Rel = Rel('⪝', RelCategory::Default);
-// pub const SIMILAR_OR_GREATER_THAN: Rel = Rel('⪞', RelCategory::Default);
-// pub const SIMILAR_ABOVE_LESS_THAN_ABOVE_EQUALS_SIGN: Rel = Rel('⪟', RelCategory::Default);
-// pub const SIMILAR_ABOVE_GREATER_THAN_ABOVE_EQUALS_SIGN: Rel = Rel('⪠', RelCategory::Default);
-// pub const DOUBLE_NESTED_LESS_THAN: Rel = Rel('⪡', RelCategory::Default);
-// pub const DOUBLE_NESTED_GREATER_THAN: Rel = Rel('⪢', RelCategory::Default);
-// pub const DOUBLE_NESTED_LESS_THAN_WITH_UNDERBAR: Rel = Rel('⪣', RelCategory::Default);
-// pub const GREATER_THAN_OVERLAPPING_LESS_THAN: Rel = Rel('⪤', RelCategory::Default);
-// pub const GREATER_THAN_BESIDE_LESS_THAN: Rel = Rel('⪥', RelCategory::Default);
-// pub const LESS_THAN_CLOSED_BY_CURVE: Rel = Rel('⪦', RelCategory::Default);
-// pub const GREATER_THAN_CLOSED_BY_CURVE: Rel = Rel('⪧', RelCategory::Default);
-// pub const LESS_THAN_CLOSED_BY_CURVE_ABOVE_SLANTED_EQUAL: Rel = Rel('⪨', RelCategory::Default);
-// pub const GREATER_THAN_CLOSED_BY_CURVE_ABOVE_SLANTED_EQUAL: Rel = Rel('⪩', RelCategory::Default);
-// pub const SMALLER_THAN: Rel = Rel('⪪', RelCategory::Default);
-// pub const LARGER_THAN: Rel = Rel('⪫', RelCategory::Default);
-// pub const SMALLER_THAN_OR_EQUAL_TO: Rel = Rel('⪬', RelCategory::Default);
-// pub const LARGER_THAN_OR_EQUAL_TO: Rel = Rel('⪭', RelCategory::Default);
-// pub const EQUALS_SIGN_WITH_BUMPY_ABOVE: Rel = Rel('⪮', RelCategory::Default);
-pub const PRECEDES_ABOVE_SINGLE_LINE_EQUALS_SIGN: Rel = Rel('⪯', RelCategory::Default);
-pub const SUCCEEDS_ABOVE_SINGLE_LINE_EQUALS_SIGN: Rel = Rel('⪰', RelCategory::Default);
-// pub const PRECEDES_ABOVE_SINGLE_LINE_NOT_EQUAL_TO: Rel = Rel('⪱', RelCategory::Default);
-// pub const SUCCEEDS_ABOVE_SINGLE_LINE_NOT_EQUAL_TO: Rel = Rel('⪲', RelCategory::Default);
-// pub const PRECEDES_ABOVE_EQUALS_SIGN: Rel = Rel('⪳', RelCategory::Default);
-// pub const SUCCEEDS_ABOVE_EQUALS_SIGN: Rel = Rel('⪴', RelCategory::Default);
-pub const PRECEDES_ABOVE_NOT_EQUAL_TO: Rel = Rel('⪵', RelCategory::Default);
-pub const SUCCEEDS_ABOVE_NOT_EQUAL_TO: Rel = Rel('⪶', RelCategory::Default);
-pub const PRECEDES_ABOVE_ALMOST_EQUAL_TO: Rel = Rel('⪷', RelCategory::Default);
-pub const SUCCEEDS_ABOVE_ALMOST_EQUAL_TO: Rel = Rel('⪸', RelCategory::Default);
-pub const PRECEDES_ABOVE_NOT_ALMOST_EQUAL_TO: Rel = Rel('⪹', RelCategory::Default);
-pub const SUCCEEDS_ABOVE_NOT_ALMOST_EQUAL_TO: Rel = Rel('⪺', RelCategory::Default);
-// pub const DOUBLE_PRECEDES: Rel = Rel('⪻', RelCategory::Default);
-// pub const DOUBLE_SUCCEEDS: Rel = Rel('⪼', RelCategory::Default);
-// pub const SUBSET_WITH_DOT: Rel = Rel('⪽', RelCategory::Default);
-// pub const SUPERSET_WITH_DOT: Rel = Rel('⪾', RelCategory::Default);
-// pub const SUBSET_WITH_PLUS_SIGN_BELOW: Rel = Rel('⪿', RelCategory::Default);
-// pub const SUPERSET_WITH_PLUS_SIGN_BELOW: Rel = Rel('⫀', RelCategory::Default);
-// pub const SUBSET_WITH_MULTIPLICATION_SIGN_BELOW: Rel = Rel('⫁', RelCategory::Default);
-// pub const SUPERSET_WITH_MULTIPLICATION_SIGN_BELOW: Rel = Rel('⫂', RelCategory::Default);
-// pub const SUBSET_OF_OR_EQUAL_TO_WITH_DOT_ABOVE: Rel = Rel('⫃', RelCategory::Default);
-// pub const SUPERSET_OF_OR_EQUAL_TO_WITH_DOT_ABOVE: Rel = Rel('⫄', RelCategory::Default);
-// pub const SUBSET_OF_ABOVE_EQUALS_SIGN: Rel = Rel('⫅', RelCategory::Default);
-// pub const SUPERSET_OF_ABOVE_EQUALS_SIGN: Rel = Rel('⫆', RelCategory::Default);
-// pub const SUBSET_OF_ABOVE_TILDE_OPERATOR: Rel = Rel('⫇', RelCategory::Default);
-// pub const SUPERSET_OF_ABOVE_TILDE_OPERATOR: Rel = Rel('⫈', RelCategory::Default);
-// pub const SUBSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = Rel('⫉', RelCategory::Default);
-// pub const SUPERSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = Rel('⫊', RelCategory::Default);
-pub const SUBSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel('⫋', RelCategory::Default);
-pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel('⫌', RelCategory::Default);
+    rel('⪌', RelCategory::Default);
+// pub const LESS_THAN_ABOVE_SIMILAR_OR_EQUAL: Rel = rel('⪍', RelCategory::Default);
+// pub const GREATER_THAN_ABOVE_SIMILAR_OR_EQUAL: Rel = rel('⪎', RelCategory::Default);
+// pub const LESS_THAN_ABOVE_SIMILAR_ABOVE_GREATER_THAN: Rel = rel('⪏', RelCategory::Default);
+// pub const GREATER_THAN_ABOVE_SIMILAR_ABOVE_LESS_THAN: Rel = rel('⪐', RelCategory::Default);
+// pub const LESS_THAN_ABOVE_GREATER_THAN_ABOVE_DOUBLE_LINE_EQUAL: Rel = rel('⪑', RelCategory::Default);
+// pub const GREATER_THAN_ABOVE_LESS_THAN_ABOVE_DOUBLE_LINE_EQUAL: Rel = rel('⪒', RelCategory::Default);
+// pub const LESS_THAN_ABOVE_SLANTED_EQUAL_ABOVE_GREATER_THAN_ABOVE_SLANTED_EQUAL: Rel = rel('⪓', RelCategory::Default);
+// pub const GREATER_THAN_ABOVE_SLANTED_EQUAL_ABOVE_LESS_THAN_ABOVE_SLANTED_EQUAL: Rel = rel('⪔', RelCategory::Default);
+pub const SLANTED_EQUAL_TO_OR_LESS_THAN: Rel = rel('⪕', RelCategory::Default);
+pub const SLANTED_EQUAL_TO_OR_GREATER_THAN: Rel = rel('⪖', RelCategory::Default);
+// pub const SLANTED_EQUAL_TO_OR_LESS_THAN_WITH_DOT_INSIDE: Rel = rel('⪗', RelCategory::Default);
+// pub const SLANTED_EQUAL_TO_OR_GREATER_THAN_WITH_DOT_INSIDE: Rel = rel('⪘', RelCategory::Default);
+// pub const DOUBLE_LINE_EQUAL_TO_OR_LESS_THAN: Rel = rel('⪙', RelCategory::Default);
+// pub const DOUBLE_LINE_EQUAL_TO_OR_GREATER_THAN: Rel = rel('⪚', RelCategory::Default);
+// pub const DOUBLE_LINE_SLANTED_EQUAL_TO_OR_LESS_THAN: Rel = rel('⪛', RelCategory::Default);
+// pub const DOUBLE_LINE_SLANTED_EQUAL_TO_OR_GREATER_THAN: Rel = rel('⪜', RelCategory::Default);
+// pub const SIMILAR_OR_LESS_THAN: Rel = rel('⪝', RelCategory::Default);
+// pub const SIMILAR_OR_GREATER_THAN: Rel = rel('⪞', RelCategory::Default);
+// pub const SIMILAR_ABOVE_LESS_THAN_ABOVE_EQUALS_SIGN: Rel = rel('⪟', RelCategory::Default);
+// pub const SIMILAR_ABOVE_GREATER_THAN_ABOVE_EQUALS_SIGN: Rel = rel('⪠', RelCategory::Default);
+// pub const DOUBLE_NESTED_LESS_THAN: Rel = rel('⪡', RelCategory::Default);
+// pub const DOUBLE_NESTED_GREATER_THAN: Rel = rel('⪢', RelCategory::Default);
+// pub const DOUBLE_NESTED_LESS_THAN_WITH_UNDERBAR: Rel = rel('⪣', RelCategory::Default);
+// pub const GREATER_THAN_OVERLAPPING_LESS_THAN: Rel = rel('⪤', RelCategory::Default);
+// pub const GREATER_THAN_BESIDE_LESS_THAN: Rel = rel('⪥', RelCategory::Default);
+// pub const LESS_THAN_CLOSED_BY_CURVE: Rel = rel('⪦', RelCategory::Default);
+// pub const GREATER_THAN_CLOSED_BY_CURVE: Rel = rel('⪧', RelCategory::Default);
+// pub const LESS_THAN_CLOSED_BY_CURVE_ABOVE_SLANTED_EQUAL: Rel = rel('⪨', RelCategory::Default);
+// pub const GREATER_THAN_CLOSED_BY_CURVE_ABOVE_SLANTED_EQUAL: Rel = rel('⪩', RelCategory::Default);
+// pub const SMALLER_THAN: Rel = rel('⪪', RelCategory::Default);
+// pub const LARGER_THAN: Rel = rel('⪫', RelCategory::Default);
+// pub const SMALLER_THAN_OR_EQUAL_TO: Rel = rel('⪬', RelCategory::Default);
+// pub const LARGER_THAN_OR_EQUAL_TO: Rel = rel('⪭', RelCategory::Default);
+// pub const EQUALS_SIGN_WITH_BUMPY_ABOVE: Rel = rel('⪮', RelCategory::Default);
+pub const PRECEDES_ABOVE_SINGLE_LINE_EQUALS_SIGN: Rel = rel('⪯', RelCategory::Default);
+pub const SUCCEEDS_ABOVE_SINGLE_LINE_EQUALS_SIGN: Rel = rel('⪰', RelCategory::Default);
+// pub const PRECEDES_ABOVE_SINGLE_LINE_NOT_EQUAL_TO: Rel = rel('⪱', RelCategory::Default);
+// pub const SUCCEEDS_ABOVE_SINGLE_LINE_NOT_EQUAL_TO: Rel = rel('⪲', RelCategory::Default);
+// pub const PRECEDES_ABOVE_EQUALS_SIGN: Rel = rel('⪳', RelCategory::Default);
+// pub const SUCCEEDS_ABOVE_EQUALS_SIGN: Rel = rel('⪴', RelCategory::Default);
+pub const PRECEDES_ABOVE_NOT_EQUAL_TO: Rel = rel('⪵', RelCategory::Default);
+pub const SUCCEEDS_ABOVE_NOT_EQUAL_TO: Rel = rel('⪶', RelCategory::Default);
+pub const PRECEDES_ABOVE_ALMOST_EQUAL_TO: Rel = rel('⪷', RelCategory::Default);
+pub const SUCCEEDS_ABOVE_ALMOST_EQUAL_TO: Rel = rel('⪸', RelCategory::Default);
+pub const PRECEDES_ABOVE_NOT_ALMOST_EQUAL_TO: Rel = rel('⪹', RelCategory::Default);
+pub const SUCCEEDS_ABOVE_NOT_ALMOST_EQUAL_TO: Rel = rel('⪺', RelCategory::Default);
+// pub const DOUBLE_PRECEDES: Rel = rel('⪻', RelCategory::Default);
+// pub const DOUBLE_SUCCEEDS: Rel = rel('⪼', RelCategory::Default);
+// pub const SUBSET_WITH_DOT: Rel = rel('⪽', RelCategory::Default);
+// pub const SUPERSET_WITH_DOT: Rel = rel('⪾', RelCategory::Default);
+// pub const SUBSET_WITH_PLUS_SIGN_BELOW: Rel = rel('⪿', RelCategory::Default);
+// pub const SUPERSET_WITH_PLUS_SIGN_BELOW: Rel = rel('⫀', RelCategory::Default);
+// pub const SUBSET_WITH_MULTIPLICATION_SIGN_BELOW: Rel = rel('⫁', RelCategory::Default);
+// pub const SUPERSET_WITH_MULTIPLICATION_SIGN_BELOW: Rel = rel('⫂', RelCategory::Default);
+// pub const SUBSET_OF_OR_EQUAL_TO_WITH_DOT_ABOVE: Rel = rel('⫃', RelCategory::Default);
+// pub const SUPERSET_OF_OR_EQUAL_TO_WITH_DOT_ABOVE: Rel = rel('⫄', RelCategory::Default);
+// pub const SUBSET_OF_ABOVE_EQUALS_SIGN: Rel = rel('⫅', RelCategory::Default);
+// pub const SUPERSET_OF_ABOVE_EQUALS_SIGN: Rel = rel('⫆', RelCategory::Default);
+// pub const SUBSET_OF_ABOVE_TILDE_OPERATOR: Rel = rel('⫇', RelCategory::Default);
+// pub const SUPERSET_OF_ABOVE_TILDE_OPERATOR: Rel = rel('⫈', RelCategory::Default);
+// pub const SUBSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = rel('⫉', RelCategory::Default);
+// pub const SUPERSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = rel('⫊', RelCategory::Default);
+pub const SUBSET_OF_ABOVE_NOT_EQUAL_TO: Rel = rel('⫋', RelCategory::Default);
+pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO: Rel = rel('⫌', RelCategory::Default);
 
 //
 // Unicode Block: Small Form Variants
 //
-// pub const SMALL_REVERSE_SOLIDUS: Rel = Rel('﹨', RelCategory::Default);
+// pub const SMALL_REVERSE_SOLIDUS: Rel = rel('﹨', RelCategory::Default);

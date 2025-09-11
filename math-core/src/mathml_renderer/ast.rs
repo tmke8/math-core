@@ -1157,7 +1157,10 @@ mod tests {
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen(Size::Scale3, symbol::SOLIDUS.into())),
+            render(&Node::SizedParen(
+                Size::Scale3,
+                symbol::SOLIDUS.as_stretchable_op().unwrap()
+            )),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
         );
     }

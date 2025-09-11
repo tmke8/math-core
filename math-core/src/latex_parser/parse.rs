@@ -8,7 +8,7 @@ use crate::mathml_renderer::{
         TextTransform,
     },
     length::{Length, LengthUnit},
-    symbol,
+    symbol::{self, StretchableOp},
     table::Alignment,
 };
 
@@ -277,27 +277,31 @@ where
             Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
             Token::Relation(relation) => {
                 new_class = Class::Relation;
-                let left = if matches!(
-                    sequence_state.class,
-                    Class::Relation | Class::Open | Class::Punctuation
-                ) {
-                    Some(MathSpacing::Zero)
+                if let Some(op) = relation.as_stretchable_op() {
+                    Node::StretchableOp(op, StretchMode::NoStretch)
                 } else {
-                    None
-                };
-                let right = if matches!(
-                    next_class,
-                    Class::Relation | Class::Punctuation | Class::Close
-                ) {
-                    Some(MathSpacing::Zero)
-                } else {
-                    None
-                };
-                Node::Operator {
-                    op: relation.into(),
-                    attr: None,
-                    left,
-                    right,
+                    let left = if matches!(
+                        sequence_state.class,
+                        Class::Relation | Class::Open | Class::Punctuation
+                    ) {
+                        Some(MathSpacing::Zero)
+                    } else {
+                        None
+                    };
+                    let right = if matches!(
+                        next_class,
+                        Class::Relation | Class::Punctuation | Class::Close
+                    ) {
+                        Some(MathSpacing::Zero)
+                    } else {
+                        None
+                    };
+                    Node::Operator {
+                        op: relation.into(),
+                        attr: None,
+                        left,
+                        right,
+                    }
                 }
             }
             Token::Punctuation(punc) => {
@@ -314,12 +318,20 @@ where
                     right,
                 }
             }
-            Token::Ord(ord) => Node::Operator {
-                op: ord.into(),
-                attr: None,
-                left: None,
-                right: None,
-            },
+            Token::Ord(ord) => {
+                if let Some(op) = ord.as_stretchable_op() {
+                    // If the operator can stretch, we prevent that by rendering it
+                    // as a normal identifier.
+                    Node::IdentifierChar(op.into(), LetterAttr::Default)
+                } else {
+                    Node::Operator {
+                        op: ord.into(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    }
+                }
+            }
             Token::BinaryOp(binary_op) => {
                 new_class = Class::BinaryOp;
                 let spacing = if matches!(
@@ -759,41 +771,19 @@ where
                 Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
             }
             Token::Left => {
-                let TokLoc(loc, next_token) = self.next_token();
-                let open_paren = match next_token {
-                    Token::Open(open) => Some(open.as_op()),
-                    Token::Close(close) => Some(close.as_op()),
-                    Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
-                    Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
-                    Token::Letter('.') => None,
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::MissingParenthesis {
-                                location: &Token::Left,
-                                got: next_token,
-                            },
-                        ));
-                    }
+                let tok_loc = self.next_token();
+                let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                    None
+                } else {
+                    Some(extract_delimiter(tok_loc)?)
                 };
                 let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None)?;
                 self.next_token(); // Discard the closing token.
-                let TokLoc(loc, next_token) = self.next_token();
-                let close_paren = match next_token {
-                    Token::Open(open) => Some(open.as_op()),
-                    Token::Close(close) => Some(close.as_op()),
-                    Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
-                    Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
-                    Token::Letter('.') => None,
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::MissingParenthesis {
-                                location: &Token::Right,
-                                got: next_token,
-                            },
-                        ));
-                    }
+                let tok_loc = self.next_token();
+                let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                    None
+                } else {
+                    Some(extract_delimiter(tok_loc)?)
                 };
                 Node::Fenced {
                     open: open_paren,
@@ -803,40 +793,14 @@ where
                 }
             }
             Token::Middle => {
-                let TokLoc(loc, next_token) = self.next_token();
-                let op = match next_token {
-                    Token::Open(op) => op.as_op(),
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::UnexpectedToken {
-                                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
-                                got: next_token,
-                            },
-                        ));
-                    }
-                };
+                let tok_loc = self.next_token();
+                let op = extract_delimiter(tok_loc)?;
                 Node::StretchableOp(op, StretchMode::Middle)
             }
             Token::Big(size, class) => {
                 new_class = class.unwrap_or(Class::OpenOrClose);
-                let TokLoc(loc, next_token) = self.next_token();
-                let paren = match next_token {
-                    Token::Open(paren) => paren.as_op(),
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::UnexpectedToken {
-                                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
-                                got: next_token,
-                            },
-                        ));
-                    }
-                };
+                let tok_loc = self.next_token();
+                let paren = extract_delimiter(tok_loc)?;
                 Node::SizedParen(size, paren)
             }
             Token::Begin => {
@@ -924,12 +888,15 @@ where
                                 symbol::RIGHT_CURLY_BRACKET.as_op(),
                             ),
                             "vmatrix" => {
-                                (symbol::VERTICAL_LINE.into(), symbol::VERTICAL_LINE.into())
+                                const LINE: StretchableOp =
+                                    symbol::VERTICAL_LINE.as_stretchable_op().unwrap();
+                                (LINE, LINE)
                             }
-                            "Vmatrix" => (
-                                symbol::DOUBLE_VERTICAL_LINE.into(),
-                                symbol::DOUBLE_VERTICAL_LINE.into(),
-                            ),
+                            "Vmatrix" => {
+                                const DOUBLE_LINE: StretchableOp =
+                                    symbol::DOUBLE_VERTICAL_LINE.as_stretchable_op().unwrap();
+                                (DOUBLE_LINE, DOUBLE_LINE)
+                            }
                             // SAFETY: `matrix_variant` is one of the strings above.
                             _ => unsafe { std::hint::unreachable_unchecked() },
                         };
@@ -1440,6 +1407,29 @@ pub(crate) fn node_vec_to_node<'arena>(
     }
 }
 
+fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<StretchableOp, LatexError<'_>> {
+    let delim = match tok_loc.token() {
+        Token::Open(paren) => Some(paren.as_op()),
+        Token::Close(paren) => Some(paren.as_op()),
+        Token::Ord(ord) => ord.as_stretchable_op(),
+        Token::Relation(rel) => rel.as_stretchable_op(),
+        Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
+        Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+        _ => None,
+    };
+    let Some(delim) = delim else {
+        let loc = tok_loc.location();
+        return Err(LatexError(
+            loc,
+            LatexErrKind::UnexpectedToken {
+                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
+                got: tok_loc.into_token(),
+            },
+        ));
+    };
+    Ok(delim)
+}
+
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
 enum LetterCollector<'arena> {
@@ -1487,6 +1477,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::Letter(c) | Token::UprightLetter(c) => *c,
             Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
             Token::Open(op) => (*op).as_op().into(),
+            Token::Close(op) => (*op).as_op().into(),
             Token::BinaryOp(op) => op.as_op().into(),
             Token::Relation(op) => op.as_op().into(),
             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op().into(),
