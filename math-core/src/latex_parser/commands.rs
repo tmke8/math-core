@@ -745,8 +745,8 @@ pub fn get_command(command: &str) -> Token<'_> {
     match COMMANDS.get(command) {
         Some(token) => *token,
         None => {
-            if FUNCTIONS.contains(command) {
-                return Token::PseudoOperator(command);
+            if let Some(function) = FUNCTIONS.get_key(command) {
+                return Token::PseudoOperator(*function);
             }
             Token::UnknownCommand(command)
         }
