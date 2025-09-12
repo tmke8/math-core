@@ -28,22 +28,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     ";" => Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
     ">" => Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
     "Alpha" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_ALPHA),
-    "And" => Token::CustomCmd(
-        0,
-        NodeRef::new(&Node::Row {
-            nodes: &[
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-                &Node::PseudoOp {
-                    name: "&amp;",
-                    attr: None,
-                    left: None,
-                    right: None,
-                },
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-            ],
-            attr: RowAttr::None
-        })
-    ),
+    "And" => Token::TokenStream(0, &predefined::AND),
     "Angstrom" => Token::Letter(symbol::ANGSTROM_SIGN),
     "Bbbk" => Token::Letter(TextTransform::DoubleStruck.transform('k', false)),
     "Beta" => Token::UprightLetter(symbol::GREEK_CAPITAL_LETTER_BETA),
@@ -176,14 +161,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "blacktriangleleft" => Token::Letter(symbol::BLACK_LEFT_POINTING_TRIANGLE),
     "blacktriangleright" => Token::Letter(symbol::BLACK_RIGHT_POINTING_TRIANGLE),
     "bm" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
-    "bmod" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
-        nodes: &[
-            &Node::Space(LatexUnit::Mu.length_with_unit(4.0)),
-            &Node::Text("mod"),
-            &Node::Space(LatexUnit::Mu.length_with_unit(4.0)),
-        ],
-        attr: RowAttr::None
-    })),
+    "bmod" => Token::TokenStream(0, &predefined::BMOD),
     "boldsymbol" => Token::Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Token::Letter(symbol::UP_TACK),
     "botdoteq" => Token::Relation(symbol::EQUALS_SIGN_WITH_DOT_BELOW),
@@ -339,58 +317,13 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hookrightarrow" => Token::Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hslash" => Token::Letter(symbol::PLANCK_CONSTANT_OVER_TWO_PI),
     "hspace" => Token::CustomSpace,
-    "iff" => Token::CustomCmd(
-        0,
-        NodeRef::new(&Node::Row {
-            nodes: &[
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-                &Node::Operator{
-                    op: symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW.as_op(),
-                    attr: None,
-                    left: None,
-                    right: None
-                },
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-            ],
-            attr: RowAttr::None
-        })
-    ),
+    "iff" => Token::TokenStream(0, &predefined::IFF),
     "iiiint" => Token::Integral(symbol::QUADRUPLE_INTEGRAL_OPERATOR),
     "iiint" => Token::Integral(symbol::TRIPLE_INTEGRAL),
     "iint" => Token::Integral(symbol::DOUBLE_INTEGRAL),
     "imath" => Token::Letter(symbol::LATIN_SMALL_LETTER_DOTLESS_I),
-    "impliedby" => Token::CustomCmd(
-        0,
-        NodeRef::new(&Node::Row {
-            nodes: &[
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-                &Node::Operator{
-                    op: symbol::LONG_LEFTWARDS_DOUBLE_ARROW.as_op(),
-                    attr: None,
-                    left: None,
-                    right: None
-                },
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-            ],
-            attr: RowAttr::None
-        })
-    ),
-    "implies" => Token::CustomCmd(
-        0,
-        NodeRef::new(&Node::Row {
-            nodes: &[
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-                &Node::Operator{
-                    op: symbol::LONG_RIGHTWARDS_DOUBLE_ARROW.as_op(),
-                    attr: None,
-                    left: None,
-                    right: None
-                },
-                &Node::Space(LatexUnit::Mu.length_with_unit(5.0)),
-            ],
-            attr: RowAttr::None
-        })
-    ),
+    "impliedby" => Token::TokenStream(0, &predefined::IMPLIEDBY),
+    "implies" => Token::TokenStream(0, &predefined::IMPLIES),
     "in" => Token::Relation(symbol::ELEMENT_OF),
     "inf" => Token::PseudoOperatorLimits("inf"),
     "infty" => Token::Letter(symbol::INFINITY),
@@ -746,7 +679,7 @@ pub fn get_command(command: &str) -> Token<'_> {
         Some(token) => *token,
         None => {
             if let Some(function) = FUNCTIONS.get_key(command) {
-                return Token::PseudoOperator(*function);
+                return Token::PseudoOperator(function);
             }
             Token::UnknownCommand(command)
         }
