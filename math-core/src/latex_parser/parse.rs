@@ -93,7 +93,7 @@ where
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
-        p.next_token();
+        p.next_token().ok();
         p
     }
 
@@ -120,7 +120,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            next_token(&mut self.peek, &mut self.l);
+            next_token(&mut self.peek, &mut self.l).ok();
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -144,7 +144,7 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> TokLoc<'source> {
+    fn next_token(&mut self) -> Result<TokLoc<'source>, LatexError<'source>> {
         next_token(&mut self.peek, &mut self.l)
     }
 
@@ -185,7 +185,11 @@ where
             } else {
                 None
             };
-            let cur_tokloc = cur_tokloc.unwrap_or_else(|| self.next_token());
+            let cur_tokloc = if let Some(tokloc) = cur_tokloc {
+                tokloc
+            } else {
+                self.next_token()?
+            };
             if matches!(cur_tokloc.token(), Token::Eof) {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
@@ -271,7 +275,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        next_token(&mut self.peek, &mut self.l);
+                        next_token(&mut self.peek, &mut self.l).ok();
                     }
                 }
                 Node::Number(builder.finish(self.arena))
@@ -396,11 +400,11 @@ where
             }
             Token::NonBreakingSpace => Node::Text("\u{A0}"),
             Token::Sqrt => {
-                let next = self.next_token();
+                let next = self.next_token()?;
                 if matches!(next.token(), Token::SquareBracketOpen) {
                     let degree =
                         self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), None)?;
-                    self.next_token(); // Discard the closing token.
+                    self.next_token().ok(); // Discard the closing token.
                     let content = self.parse_next(ParseAs::Arg)?;
                     Node::Root(node_vec_to_node(self.arena, degree, true), content)
                 } else {
@@ -494,7 +498,7 @@ where
             }
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                let token = self.next_token();
+                let token = self.next_token()?;
                 let target =
                     self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
                 if matches!(cur_token, Token::Overset) {
@@ -520,7 +524,7 @@ where
                     || (!is_over && matches!(self.peek.token(), Token::Underscore))
                 {
                     let target = self.commit(base);
-                    self.next_token(); // Discard the circumflex or underscore token.
+                    self.next_token().ok(); // Discard the circumflex or underscore token.
                     let expl = self.parse_next(ParseAs::Arg)?;
                     if is_over {
                         Node::Overset {
@@ -541,7 +545,7 @@ where
                 new_class = Class::Operator;
                 let limits = matches!(self.peek.token(), Token::Limits);
                 if limits {
-                    self.next_token(); // Discard the limits token.
+                    self.next_token().ok(); // Discard the limits token.
                 };
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let attr = if limits {
@@ -571,7 +575,7 @@ where
             }
             Token::PseudoOperatorLimits(name) => {
                 let movablelimits = if matches!(self.peek.token(), Token::Limits) {
-                    self.next_token(); // Discard the limits token.
+                    self.next_token().ok(); // Discard the limits token.
                     Some(OpAttr::NoMovableLimits)
                 } else {
                     Some(OpAttr::ForceMovableLimits)
@@ -583,7 +587,7 @@ where
                         left: Some(MathSpacing::ThreeMu),
                         right: Some(MathSpacing::ThreeMu),
                     });
-                    self.next_token(); // Discard the underscore token.
+                    self.next_token().ok(); // Discard the underscore token.
                     let under = self.parse_next(ParseAs::Arg)?;
                     Node::Underset {
                         target,
@@ -606,7 +610,7 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                match self.next_token().into_token() {
+                match self.next_token()?.into_token() {
                     Token::Relation(op) => {
                         if let Some(negated) = get_negated_op(op) {
                             Node::Operator {
@@ -668,7 +672,7 @@ where
                 new_class = Class::Operator;
                 let limits = matches!(self.peek.token(), Token::Limits);
                 if limits {
-                    self.next_token(); // Discard the limits token.
+                    self.next_token().ok(); // Discard the limits token.
                 };
                 let bounds = self.get_bounds()?;
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
@@ -748,7 +752,7 @@ where
                     };
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&mut s))?
                 };
-                self.next_token(); // Discard the closing token.
+                self.next_token().ok(); // Discard the closing token.
                 sequence_state.class = Class::Default;
                 return Ok(node_vec_to_node(
                     self.arena,
@@ -770,15 +774,15 @@ where
                 Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
             }
             Token::Left => {
-                let tok_loc = self.next_token();
+                let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
                     Some(extract_delimiter(tok_loc)?.0)
                 };
                 let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None)?;
-                self.next_token(); // Discard the closing token.
-                let tok_loc = self.next_token();
+                self.next_token().ok(); // Discard the closing token.
+                let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
@@ -792,12 +796,12 @@ where
                 }
             }
             Token::Middle => {
-                let tok_loc = self.next_token();
+                let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc)?.0;
                 Node::StretchableOp(op, StretchMode::Middle)
             }
             Token::Big(size, class) => {
-                let tok_loc = self.next_token();
+                let tok_loc = self.next_token()?;
                 let (paren, symbol_class) = extract_delimiter(tok_loc)?;
                 new_class = class.unwrap_or(symbol_class);
                 Node::SizedParen(size, paren)
@@ -825,7 +829,7 @@ where
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::End), Some(&mut state))?;
                 let content = self.arena.push_slice(&content);
-                let end_token_loc = self.next_token().location();
+                let end_token_loc = self.next_token()?.location();
                 let node = match env_name {
                     "align" | "align*" | "aligned" => Node::Table {
                         content,
@@ -937,8 +941,7 @@ where
                     TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
-                // Discard the last token.
-                self.next_token();
+                self.next_token().ok(); // Discard the last token.
                 if let Some(ch) = get_single_char(letters) {
                     Node::IdentifierChar(ch, LetterAttr::Upright)
                 } else {
@@ -955,7 +958,7 @@ where
             Token::Text(transform) => {
                 // Discard any whitespace that immediately follows the `Text` token.
                 if matches!(self.peek.token(), Token::Whitespace) {
-                    self.next_token();
+                    self.next_token().ok();
                 }
                 // Copy the token out of the peek variable.
                 // We do this because we need to turn off text mode while there is still a peek
@@ -970,10 +973,10 @@ where
                 self.l.text_mode = false;
                 // Discard the last token that we already processed but we kept it in `peek`,
                 // so that we can turn off text mode before new tokens are read.
-                self.next_token();
+                self.next_token().ok();
                 // Discard any whitespace tokens that are still stored in self.peek_token.
                 if matches!(self.peek.token(), Token::Whitespace) {
-                    self.next_token();
+                    self.next_token().ok();
                 }
                 if let Some(transform) = transform {
                     Node::TextTransform {
@@ -1023,9 +1026,6 @@ where
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
                 }
-            }
-            Token::UnknownCommand(name) => {
-                return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
             }
             Token::Prime => {
                 let target = self.commit(Node::Row {
@@ -1084,7 +1084,7 @@ where
             Token::CustomCmd(num_args, predefined) => {
                 let mut nodes = Vec::with_capacity(num_args);
                 for _ in 0..num_args {
-                    let token = self.next_token();
+                    let token = self.next_token()?;
                     let node = self.parse_token(token, ParseAs::Arg, None)?;
                     nodes.push(node);
                 }
@@ -1137,7 +1137,7 @@ where
         &mut self,
         parse_as: ParseAs,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
-        let token = self.next_token();
+        let token = self.next_token()?;
         self.parse_token(token, parse_as, None)
     }
 
@@ -1145,7 +1145,7 @@ where
     fn parse_ascii_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
         // First check whether there is an opening `{` token.
         if !matches!(self.peek.token(), Token::GroupBegin) {
-            let TokLoc(loc, token) = self.next_token();
+            let TokLoc(loc, token) = self.next_token()?;
             return Err(LatexError(
                 loc,
                 LatexErrKind::UnexpectedToken {
@@ -1157,7 +1157,7 @@ where
         // Read the text.
         let result = self.l.read_ascii_text_group();
         // Discard the opening `{` token (which is still stored as `peek`).
-        let opening_loc = self.next_token().location();
+        let opening_loc = self.next_token()?.location();
         result
             .map(|r| (opening_loc, r))
             .ok_or(LatexError(opening_loc, LatexErrKind::DisallowedChars))
@@ -1185,7 +1185,7 @@ where
             let second_circumflex = matches!(self.peek.token(), Token::Circumflex);
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
-                let TokLoc(loc, token) = self.next_token();
+                let TokLoc(loc, token) = self.next_token()?;
                 return Err(LatexError(
                     loc,
                     LatexErrKind::CannotBeUsedHere {
@@ -1230,7 +1230,7 @@ where
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.peek.token(), Token::Prime) {
-            self.next_token(); // Discard the prime token.
+            self.next_token().ok(); // Discard the prime token.
             prime_count += 1;
         }
         static PRIME_SELECTION: [symbol::OrdLike; 4] = [
@@ -1267,8 +1267,8 @@ where
         &mut self,
         is_sup: bool,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
-        self.next_token(); // Discard the underscore or circumflex token.
-        let next = self.next_token();
+        self.next_token().ok(); // Discard the underscore or circumflex token.
+        let next = self.next_token()?;
         if matches!(
             next.token(),
             Token::Underscore | Token::Circumflex | Token::Prime
@@ -1367,10 +1367,13 @@ where
 /// With this function, we can explicitly say which fields of the parser are borrowed
 /// mutably.
 #[inline]
-fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -> TokLoc<'source> {
-    let peek_token = lexer.next_token();
+fn next_token<'source>(
+    peek: &mut TokLoc<'source>,
+    lexer: &mut Lexer<'source>,
+) -> Result<TokLoc<'source>, LatexError<'source>> {
+    let peek_token = lexer.next_token()?;
     // Return the previous peek token and store the new peek token.
-    mem::replace(peek, peek_token)
+    Ok(mem::replace(peek, peek_token))
 }
 
 // Turn a vector of nodes into a single node.
@@ -1491,7 +1494,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         }
     }
 
-    fn next_token(&mut self) -> TokLoc<'source> {
+    fn next_token(&mut self) -> Result<TokLoc<'source>, LatexError<'source>> {
         next_token(self.peek, self.lexer)
     }
 
@@ -1536,7 +1539,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
-                self.next_token();
+                self.next_token().ok();
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(*accent);
@@ -1544,7 +1547,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::Text(tf) => {
                 // Discard `Text` token.
-                self.next_token();
+                self.next_token().ok();
                 let old_tf = mem::replace(&mut self.tf, *tf);
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 self.parse_token_in_text_mode(tokloc)?;
@@ -1553,14 +1556,14 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             }
             Token::GroupBegin => {
                 // Discard opening token.
-                self.next_token();
+                self.next_token().ok();
                 while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
                     let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
                     // last token in `peek`, but we want to continue here, so we need to discard it.
-                    self.next_token();
+                    self.next_token().ok();
                 }
                 return Ok(());
             }
@@ -1574,12 +1577,6 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 return Err(LatexError(
                     tokloc.location(),
                     LatexErrKind::UnexpectedClose(tokloc.into_token()),
-                ));
-            }
-            Token::UnknownCommand(command) => {
-                return Err(LatexError(
-                    tokloc.location(),
-                    LatexErrKind::UnknownCommand(command),
                 ));
             }
             _ => {

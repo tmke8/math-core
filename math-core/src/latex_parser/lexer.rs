@@ -3,7 +3,7 @@ use std::num::NonZero;
 use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
-use super::error::GetUnwrap;
+use super::error::{GetUnwrap, LatexErrKind, LatexError};
 use super::token::{Digit, TokLoc, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
@@ -125,10 +125,10 @@ impl<'source> Lexer<'source> {
     ///
     /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
     /// but rather immediately return a single digit as a number token.
-    pub(crate) fn next_token(&mut self) -> TokLoc<'source> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'source>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return TokLoc(loc.get(), Token::Whitespace);
+                return Ok(TokLoc(loc.get(), Token::Whitespace));
             }
         }
 
@@ -199,10 +199,18 @@ impl<'source> Lexer<'source> {
                     // After a command, all whitespace is skipped, even in text mode.
                     self.skip_whitespace();
                     get_text_command(cmd_string)
+                        .ok_or_else(|| LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))?
                 } else {
-                    self.custom_cmds
+                    if let Some(tok) = self
+                        .custom_cmds
                         .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .unwrap_or_else(|| get_command(cmd_string))
+                    {
+                        tok
+                    } else {
+                        get_command(cmd_string).ok_or_else(|| {
+                            LatexError(loc, LatexErrKind::UnknownCommand(cmd_string))
+                        })?
+                    }
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;
@@ -221,7 +229,7 @@ impl<'source> Lexer<'source> {
                 }
             }
         };
-        TokLoc(loc, tok)
+        Ok(TokLoc(loc, tok))
     }
 }
 
@@ -261,7 +269,7 @@ mod tests {
                 write!(tokens, "(text mode)\n").unwrap();
             }
             loop {
-                let tokloc = lexer.next_token();
+                let tokloc = lexer.next_token().unwrap();
                 if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
@@ -279,7 +287,7 @@ mod tests {
         let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
         let mut tokens = String::new();
         loop {
-            let tokloc = lexer.next_token();
+            let tokloc = lexer.next_token().unwrap();
             if matches!(tokloc.token(), Token::Eof) {
                 break;
             }

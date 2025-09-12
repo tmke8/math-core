@@ -123,7 +123,7 @@ impl CustomCmds {
     pub fn get_command<'config, 'source>(
         &'config self,
         command: &'source str,
-    ) -> Option<Token<'source>>
+    ) -> Option<Token<'config>>
     where
         'config: 'source,
     {
@@ -700,7 +700,9 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let LatexError(loc, error) = convert_content(problem).unwrap_err();
+            let Err(LatexError(loc, error)) = convert_content(problem) else {
+                panic!("problem `{}` did not error", problem);
+            };
             let output = format!("Position: {}\n{:#?}", loc, error);
             assert_snapshot!(name, &output, problem);
         }

@@ -16,7 +16,7 @@ pub enum LatexErrKind<'source> {
         expected: &'static Token<'static>,
         got: Token<'source>,
     },
-    UnclosedGroup(Token<'source>),
+    UnclosedGroup(Token<'static>),
     UnexpectedClose(Token<'source>),
     UnexpectedEOF,
     MissingParenthesis {
