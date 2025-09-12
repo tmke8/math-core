@@ -7,9 +7,7 @@ expression: "\\therefore, \\because, \\And"
     <mo>,</mo>
     <mo lspace="0" rspace="0">∵</mo>
     <mo>,</mo>
-    <mrow>
-        <mspace width="0.2777778em"/>
-        <mo>&amp;</mo>
-        <mspace width="0.2777778em"/>
-    </mrow>
+    <mspace width="0.2777778em"/>
+    <mo lspace="0" rspace="0.2778em">&</mo>
+    <mspace width="0.2777778em"/>
 </math>

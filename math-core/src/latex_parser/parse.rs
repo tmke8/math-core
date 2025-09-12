@@ -25,6 +25,7 @@ use super::{
 pub(crate) struct Parser<'arena, 'source> {
     pub(crate) l: Lexer<'source>,
     peek: TokLoc<'source>,
+    token_stack: Vec<Token<'source>>,
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
@@ -86,6 +87,7 @@ where
         let mut p = Parser {
             l: lexer,
             peek: TokLoc(0, Token::Eof),
+            token_stack: Vec::new(),
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
@@ -120,7 +122,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            next_token(&mut self.peek, &mut self.l);
+            next_token(&mut self.peek, &mut self.token_stack, &mut self.l);
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -145,7 +147,7 @@ where
 
     #[inline(never)]
     fn next_token(&mut self) -> TokLoc<'source> {
-        next_token(&mut self.peek, &mut self.l)
+        next_token(&mut self.peek, &mut self.token_stack, &mut self.l)
     }
 
     #[inline]
@@ -271,7 +273,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        next_token(&mut self.peek, &mut self.l);
+                        next_token(&mut self.peek, &mut self.token_stack, &mut self.l);
                     }
                 }
                 Node::Number(builder.finish(self.arena))
@@ -933,8 +935,12 @@ where
             Token::OperatorName => {
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
+                let mut text_parser = TextModeParser::new(
+                    &mut builder,
+                    &mut self.peek,
+                    &mut self.token_stack,
+                    &mut self.l,
+                );
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
@@ -962,8 +968,12 @@ where
                 // token that is consumed by the `Text` command.
                 let tokloc = TokLoc(self.peek.location(), *self.peek.token());
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.peek, &mut self.l);
+                let mut text_parser = TextModeParser::new(
+                    &mut builder,
+                    &mut self.peek,
+                    &mut self.token_stack,
+                    &mut self.l,
+                );
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
@@ -1095,6 +1105,20 @@ where
                 }
             }
             Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
+            Token::TokenStream(_, token_stream) => {
+                if let [head, tail @ ..] = token_stream {
+                    // Replace the peek token with the first token of the token stream.
+                    let old_peek = mem::replace(&mut self.peek, TokLoc(0, *head));
+                    // Put the old peek token onto the token stack.
+                    self.token_stack.push(old_peek.into_token());
+                    // Put the rest of the token stream onto the token stack in reverse order.
+                    for &tok in tail.iter().rev() {
+                        self.token_stack.push(tok);
+                    }
+                }
+                let token = self.next_token();
+                return Ok(self.parse_token(token, parse_as, Some(sequence_state))?);
+            }
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
@@ -1367,8 +1391,16 @@ where
 /// With this function, we can explicitly say which fields of the parser are borrowed
 /// mutably.
 #[inline]
-fn next_token<'source>(peek: &mut TokLoc<'source>, lexer: &mut Lexer<'source>) -> TokLoc<'source> {
-    let peek_token = lexer.next_token();
+fn next_token<'source>(
+    peek: &mut TokLoc<'source>,
+    token_stack: &mut Vec<Token<'source>>,
+    lexer: &mut Lexer<'source>,
+) -> TokLoc<'source> {
+    let peek_token = if let Some(tok) = token_stack.pop() {
+        TokLoc(0, tok)
+    } else {
+        lexer.next_token()
+    };
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)
 }
@@ -1473,6 +1505,7 @@ enum LetterCollector<'arena> {
 struct TextModeParser<'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
     peek: &'parser mut TokLoc<'source>,
+    token_stack: &'parser mut Vec<Token<'source>>,
     lexer: &'parser mut Lexer<'source>,
     tf: Option<TextTransform>,
 }
@@ -1481,18 +1514,20 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
     fn new(
         builder: &'builder mut StringBuilder<'parser>,
         peek: &'parser mut TokLoc<'source>,
+        token_stack: &'parser mut Vec<Token<'source>>,
         lexer: &'parser mut Lexer<'source>,
     ) -> Self {
         Self {
             builder,
             peek,
+            token_stack,
             lexer,
             tf: None,
         }
     }
 
     fn next_token(&mut self) -> TokLoc<'source> {
-        next_token(self.peek, self.lexer)
+        next_token(self.peek, self.token_stack, self.lexer)
     }
 
     /// Parse the given token in text mode.

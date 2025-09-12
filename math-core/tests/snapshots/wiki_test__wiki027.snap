@@ -4,10 +4,8 @@ expression: "a \\bmod b"
 ---
 <math>
     <mi>a</mi>
-    <mrow>
-        <mspace width="0.22222222em"/>
-        <mtext>mod</mtext>
-        <mspace width="0.22222222em"/>
-    </mrow>
+    <mspace width="0.22222222em"/>
+    <mtext>mod</mtext>
+    <mspace width="0.22222222em"/>
     <mi>b</mi>
 </math>

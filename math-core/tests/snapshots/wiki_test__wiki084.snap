@@ -9,9 +9,7 @@ expression: "\\Leftrightarrow, \\nLeftrightarrow, \\Longleftrightarrow, \\iff"
     <mo>,</mo>
     <mo lspace="0" rspace="0">⟺</mo>
     <mo>,</mo>
-    <mrow>
-        <mspace width="0.2777778em"/>
-        <mo>⟺</mo>
-        <mspace width="0.2777778em"/>
-    </mrow>
+    <mspace width="0.2777778em"/>
+    <mo lspace="0">⟺</mo>
+    <mspace width="0.2777778em"/>
 </math>

@@ -6,6 +6,7 @@ use crate::mathml_renderer::{
 };
 
 use super::specifications::LatexUnit;
+use super::token::Token;
 
 pub static MOD: Node = Row {
     nodes: &[
@@ -126,3 +127,38 @@ pub static DOTS: Node = Row {
     ],
     attr: RowAttr::None,
 };
+
+pub static AND: [Token<'static>; 3] = [
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Token::ForceRelation(symbol::AMPERSAND.as_op()),
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static IFF: [Token<'static>; 3] = [
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Token::Relation(symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW),
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static IMPLIEDBY: [Token<'static>; 3] = [
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Token::Relation(symbol::LONG_LEFTWARDS_DOUBLE_ARROW),
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static IMPLIES: [Token<'static>; 3] = [
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Token::Relation(symbol::LONG_RIGHTWARDS_DOUBLE_ARROW),
+    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static BMOD: [Token<'static>; 8] = [
+    Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
+    Token::Text(None),
+    Token::GroupBegin,
+    Token::Letter('m'),
+    Token::Letter('o'),
+    Token::Letter('d'),
+    Token::GroupEnd,
+    Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
+];
