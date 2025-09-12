@@ -143,8 +143,6 @@ impl<'source> Lexer<'source> {
             TokenOrCommandName::Token(tok) => TokLoc(loc, tok),
             TokenOrCommandName::CommandName(cmd_string) => {
                 let tok = if self.text_mode {
-                    // After a command, all whitespace is skipped, even in text mode.
-                    self.skip_whitespace();
                     get_text_command(cmd_string)
                 } else {
                     self.custom_cmds
@@ -228,7 +226,14 @@ impl<'source> Lexer<'source> {
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
-                return (loc, TokenOrCommandName::CommandName(self.read_command()));
+                let cmd_string = self.read_command();
+                if self.text_mode {
+                    // After a command, all whitespace is skipped, even in text mode.
+                    // This is done automatically in non-text-mode, but for text
+                    // mode we need to do it manually.
+                    self.skip_whitespace();
+                }
+                return (loc, TokenOrCommandName::CommandName(cmd_string));
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
