@@ -360,7 +360,7 @@ mod tests {
 
     use super::{Arena, parse};
 
-    fn convert_content(latex: &str) -> Result<String, LatexError> {
+    fn convert_content(latex: &str) -> Result<String, LatexError<'_>> {
         let arena = Arena::new();
         let nodes = parse(latex, &arena, None)?;
         let mut equation_count = 0;
