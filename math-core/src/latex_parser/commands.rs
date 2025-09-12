@@ -679,7 +679,7 @@ pub fn get_command(command: &str) -> Token<'_> {
         Some(token) => *token,
         None => {
             if let Some(function) = FUNCTIONS.get_key(command) {
-                return Token::PseudoOperator(*function);
+                return Token::PseudoOperator(function);
             }
             Token::UnknownCommand(command)
         }

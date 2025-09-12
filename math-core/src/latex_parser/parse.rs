@@ -1117,7 +1117,7 @@ where
                     }
                 }
                 let token = self.next_token();
-                return Ok(self.parse_token(token, parse_as, Some(sequence_state))?);
+                return self.parse_token(token, parse_as, Some(sequence_state));
             }
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
@@ -1340,24 +1340,20 @@ where
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
             ) {
                 Some(MathSpacing::Zero)
+            } else if explicit {
+                Some(MathSpacing::ThreeMu)
             } else {
-                if explicit {
-                    Some(MathSpacing::ThreeMu)
-                } else {
-                    None
-                }
+                None
             },
             if matches!(
                 next_class,
                 Class::Punctuation | Class::Relation | Class::Open | Class::Close
             ) {
                 Some(MathSpacing::Zero)
+            } else if explicit {
+                Some(MathSpacing::ThreeMu)
             } else {
-                if explicit {
-                    Some(MathSpacing::ThreeMu)
-                } else {
-                    None
-                }
+                None
             },
         )
     }
