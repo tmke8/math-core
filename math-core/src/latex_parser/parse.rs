@@ -82,7 +82,7 @@ where
     'source: 'arena, // The reference to the source string will live as long as the arena.
 {
     pub(crate) fn new(lexer: Lexer<'source>, arena: &'arena Arena) -> Self {
-        let input_length = lexer.input_length;
+        let input_length = lexer.input_length();
         let mut p = Parser {
             l: lexer,
             peek: TokLoc(0, Token::Eof),
@@ -967,7 +967,7 @@ where
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
-                self.l.text_mode = false;
+                self.l.turn_off_text_mode();
                 // Discard the last token that we already processed but we kept it in `peek`,
                 // so that we can turn off text mode before new tokens are read.
                 self.next_token();

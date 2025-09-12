@@ -322,7 +322,7 @@ fn parse_custom_commands<'source>(
         let lexer = latex_parser::Lexer::new(definition, true, None);
         let mut p = latex_parser::Parser::new(lexer, &arena);
         let nodes = p.parse()?;
-        let num_args = p.l.parse_cmd_args.unwrap_or(0);
+        let num_args = p.l.parse_cmd_args().unwrap_or(0);
 
         let node_ref = node_vec_to_node(&arena, nodes, true);
         let index = parsed_macros.len();
