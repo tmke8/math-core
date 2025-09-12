@@ -13,9 +13,9 @@ pub(crate) struct Lexer<'source> {
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
-    pub input_length: usize,
-    pub text_mode: bool,
-    pub parse_cmd_args: Option<usize>,
+    input_length: usize,
+    text_mode: bool,
+    parse_cmd_args: Option<usize>,
     custom_cmds: Option<&'source CustomCmds>,
 }
 
@@ -44,6 +44,21 @@ impl<'source> Lexer<'source> {
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
+    }
+
+    #[inline]
+    pub(super) fn turn_off_text_mode(&mut self) {
+        self.text_mode = false;
+    }
+
+    #[inline]
+    pub(super) fn input_length(&self) -> usize {
+        self.input_length
+    }
+
+    #[inline]
+    pub(crate) fn parse_cmd_args(&self) -> Option<usize> {
+        self.parse_cmd_args
     }
 
     /// One character progresses.
@@ -92,7 +107,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Returns `None` if there are any non-alphanumeric characters before the `}`.
     #[inline]
-    pub(crate) fn read_ascii_text_group(&mut self) -> Option<&'source str> {
+    pub(super) fn read_ascii_text_group(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
 
         while self.peek.1.is_ascii_alphanumeric()
@@ -114,7 +129,7 @@ impl<'source> Lexer<'source> {
     }
 
     /// Check if the next character is a digit.
-    pub(crate) fn is_next_digit(&mut self) -> bool {
+    pub(super) fn is_next_digit(&mut self) -> bool {
         if !self.text_mode {
             self.skip_whitespace();
         }
@@ -122,13 +137,30 @@ impl<'source> Lexer<'source> {
     }
 
     /// Generate the next token.
-    ///
-    /// If `wants_arg` is `true`, the lexer will not collect digits into a number token,
-    /// but rather immediately return a single digit as a number token.
-    pub(crate) fn next_token(&mut self) -> TokLoc<'source> {
+    pub(super) fn next_token(&mut self) -> TokLoc<'source> {
+        let (loc, tok) = self.next_token_or_command();
+        match tok {
+            TokenOrCommandName::Token(tok) => TokLoc(loc, tok),
+            TokenOrCommandName::CommandName(cmd_string) => {
+                let tok = if self.text_mode {
+                    get_text_command(cmd_string)
+                } else {
+                    self.custom_cmds
+                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                        .unwrap_or_else(|| get_command(cmd_string))
+                };
+                if matches!(tok, Token::Text(_)) {
+                    self.text_mode = true;
+                }
+                TokLoc(loc, tok)
+            }
+        }
+    }
+
+    fn next_token_or_command(&mut self) -> (usize, TokenOrCommandName<'source>) {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return TokLoc(loc.get(), Token::Whitespace);
+                return (loc.get(), TokenOrCommandName::Token(Token::Whitespace));
             }
         }
 
@@ -138,7 +170,7 @@ impl<'source> Lexer<'source> {
             while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
                 self.read_char();
             }
-            return self.next_token();
+            return self.next_token_or_command();
         }
         let tok = match ch {
             '\u{0}' => Token::Eof,
@@ -195,19 +227,13 @@ impl<'source> Lexer<'source> {
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let cmd_string = self.read_command();
-                let tok = if self.text_mode {
+                if self.text_mode {
                     // After a command, all whitespace is skipped, even in text mode.
+                    // This is done automatically in non-text-mode, but for text
+                    // mode we need to do it manually.
                     self.skip_whitespace();
-                    get_text_command(cmd_string)
-                } else {
-                    self.custom_cmds
-                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .unwrap_or_else(|| get_command(cmd_string))
-                };
-                if matches!(tok, Token::Text(_)) {
-                    self.text_mode = true;
                 }
-                tok
+                return (loc, TokenOrCommandName::CommandName(cmd_string));
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
@@ -221,8 +247,13 @@ impl<'source> Lexer<'source> {
                 }
             }
         };
-        TokLoc(loc, tok)
+        (loc, TokenOrCommandName::Token(tok))
     }
+}
+
+enum TokenOrCommandName<'source> {
+    Token(Token<'static>),
+    CommandName(&'source str),
 }
 
 #[cfg(test)]
