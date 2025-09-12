@@ -199,10 +199,18 @@ impl<'source> Lexer<'source> {
                     // After a command, all whitespace is skipped, even in text mode.
                     self.skip_whitespace();
                     get_text_command(cmd_string)
+                        .ok_or_else(|| LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))?
                 } else {
-                    self.custom_cmds
+                    if let Some(tok) = self
+                        .custom_cmds
                         .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .unwrap_or_else(|| get_command(cmd_string))
+                    {
+                        tok
+                    } else {
+                        get_command(cmd_string).ok_or_else(|| {
+                            LatexError(loc, LatexErrKind::UnknownCommand(cmd_string))
+                        })?
+                    }
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;
@@ -221,7 +229,7 @@ impl<'source> Lexer<'source> {
                 }
             }
         };
-        TokLoc(loc, tok)
+        Ok(TokLoc(loc, tok))
     }
 }
 
@@ -261,7 +269,7 @@ mod tests {
                 write!(tokens, "(text mode)\n").unwrap();
             }
             loop {
-                let tokloc = lexer.next_token();
+                let tokloc = lexer.next_token().unwrap();
                 if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
@@ -279,7 +287,7 @@ mod tests {
         let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
         let mut tokens = String::new();
         loop {
-            let tokloc = lexer.next_token();
+            let tokloc = lexer.next_token().unwrap();
             if matches!(tokloc.token(), Token::Eof) {
                 break;
             }

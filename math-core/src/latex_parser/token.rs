@@ -12,7 +12,7 @@ use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike,
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'source> {
+pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin{...}")]
@@ -99,7 +99,7 @@ pub enum Token<'source> {
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Number(Digit),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
-    PseudoOperator(&'source str),
+    PseudoOperator(&'static str),
     Enclose(Notation),
     #[strum(serialize = r"\operatorname")]
     OperatorName,
@@ -110,12 +110,12 @@ pub enum Token<'source> {
     Text(Option<TextTransform>),
     Style(Style),
     Color,
-    CustomCmd(usize, NodeRef<'source>),
+    CustomCmd(usize, NodeRef<'config>),
     CustomCmdArg(usize),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    UnknownCommand(&'source str),
+    UnknownCommand(Box<str>),
 }
 
 impl Token<'_> {
@@ -128,15 +128,15 @@ impl Token<'_> {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct NodeRef<'source>(&'source Node<'source>);
+pub struct NodeRef<'config>(&'config Node<'config>);
 
-impl<'source> NodeRef<'source> {
+impl<'config> NodeRef<'config> {
     /// Creates a new `NodeRef` from a reference to a `Node`.
-    pub(crate) const fn new(node: &'source Node<'source>) -> Self {
+    pub(crate) const fn new(node: &'config Node<'config>) -> Self {
         NodeRef(node)
     }
 
-    pub(crate) fn into_ref(self) -> &'source Node<'source> {
+    pub(crate) fn into_ref(self) -> &'config Node<'config> {
         self.0
     }
 }
@@ -182,21 +182,21 @@ impl TryFrom<char> for Digit {
 }
 
 #[derive(Debug)]
-pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+pub struct TokLoc<'config>(pub usize, pub Token<'config>);
 
-impl<'source> TokLoc<'source> {
+impl<'config> TokLoc<'config> {
     #[inline]
-    pub fn token(&self) -> &Token<'source> {
+    pub fn token(&self) -> &Token<'config> {
         &self.1
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'source> {
+    pub fn into_token(self) -> Token<'config> {
         self.1
     }
 
     // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'source> {
+    // pub fn token_mut(&mut self) -> &mut Token<'config> {
     //     &mut self.1
     // }
 

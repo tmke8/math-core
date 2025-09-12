@@ -1,0 +1,10 @@
+---
+source: math-core/src/lib.rs
+assertion_line: 707
+expression: "x\\asdf"
+snapshot_kind: text
+---
+Position: 1
+UnknownCommand(
+    "asdf",
+)
