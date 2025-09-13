@@ -4,5 +4,7 @@ expression: "\\operatorname{\\begin{matrix}}"
 ---
 Position: 14
 NotValidInTextMode(
-    Begin,
+    Begin(
+        Matrix,
+    ),
 )

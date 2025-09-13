@@ -2,7 +2,9 @@ use std::mem::discriminant;
 
 use strum_macros::IntoStaticStr;
 
-use crate::latex_parser::character_class::Class;
+use super::character_class::Class;
+use super::environments::Env;
+
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -16,9 +18,9 @@ pub enum Token<'source> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin{...}")]
-    Begin,
+    Begin(Env),
     #[strum(serialize = r"\end{...}")]
-    End,
+    End(Env),
     #[strum(serialize = "&")]
     Ampersand,
     #[strum(serialize = r"\\")]
@@ -130,6 +132,9 @@ impl Token<'_> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenError<'source> {
     UnknownCommand(&'source str),
+    UnknownEnvironment(&'source str),
+    MissingBrace(char),
+    DisallowedChars,
 }
 
 #[derive(Debug, Clone, Copy)]

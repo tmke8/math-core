@@ -3,6 +3,7 @@ use std::num::NonZero;
 use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
+use super::environments::Env;
 use super::error::GetUnwrap;
 use super::token::{Digit, TokLoc, Token, TokenError};
 use crate::CustomCmds;
@@ -146,10 +147,42 @@ impl<'source> Lexer<'source> {
                     get_text_command(cmd_string)
                         .unwrap_or_else(|| Token::Error(TokenError::UnknownCommand(cmd_string)))
                 } else {
-                    self.custom_cmds
-                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .or_else(|| get_command(cmd_string))
-                        .unwrap_or_else(|| Token::Error(TokenError::UnknownCommand(cmd_string)))
+                    let begin_or_end = if cmd_string == "begin" {
+                        Some(BeginOrEnd::Begin)
+                    } else if cmd_string == "end" {
+                        Some(BeginOrEnd::End)
+                    } else {
+                        None
+                    };
+                    if let Some(begin_or_end) = begin_or_end {
+                        // Read the environment name.
+                        self.skip_whitespace();
+                        let (new_loc, next_char) = self.read_char();
+                        if next_char != '{' {
+                            return TokLoc(
+                                new_loc,
+                                Token::Error(TokenError::MissingBrace(next_char)),
+                            );
+                        }
+                        let Some(env_name) = self.read_ascii_text_group() else {
+                            return TokLoc(new_loc, Token::Error(TokenError::DisallowedChars));
+                        };
+                        let Some(env) = Env::from_str(env_name) else {
+                            return TokLoc(
+                                new_loc,
+                                Token::Error(TokenError::UnknownEnvironment(env_name)),
+                            );
+                        };
+                        match begin_or_end {
+                            BeginOrEnd::Begin => Token::Begin(env),
+                            BeginOrEnd::End => Token::End(env),
+                        }
+                    } else {
+                        self.custom_cmds
+                            .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                            .or_else(|| get_command(cmd_string))
+                            .unwrap_or_else(|| Token::Error(TokenError::UnknownCommand(cmd_string)))
+                    }
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;
@@ -256,6 +289,11 @@ impl<'source> Lexer<'source> {
 enum TokenOrCommandName<'source> {
     Token(Token<'static>),
     CommandName(&'source str),
+}
+
+enum BeginOrEnd {
+    Begin = 1,
+    End = 2,
 }
 
 #[cfg(test)]
