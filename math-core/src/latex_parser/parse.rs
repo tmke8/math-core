@@ -19,7 +19,7 @@ use super::{
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
-    token::{TokLoc, Token},
+    token::{TokLoc, Token, TokenError},
 };
 
 pub(crate) struct Parser<'arena, 'source> {
@@ -1034,7 +1034,7 @@ where
                     attr: RowAttr::Style(style),
                 }
             }
-            Token::UnknownCommand(name) => {
+            Token::Error(TokenError::UnknownCommand(name)) => {
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
             }
             Token::Prime => {
@@ -1607,7 +1607,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                     LatexErrKind::UnexpectedClose(tokloc.into_token()),
                 ));
             }
-            Token::UnknownCommand(command) => {
+            Token::Error(TokenError::UnknownCommand(command)) => {
                 return Err(LatexError(
                     tokloc.location(),
                     LatexErrKind::UnknownCommand(command),

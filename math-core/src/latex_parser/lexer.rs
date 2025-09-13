@@ -4,7 +4,7 @@ use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
 use super::error::GetUnwrap;
-use super::token::{Digit, TokLoc, Token};
+use super::token::{Digit, TokLoc, Token, TokenError};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
@@ -144,10 +144,12 @@ impl<'source> Lexer<'source> {
             TokenOrCommandName::CommandName(cmd_string) => {
                 let tok = if self.text_mode {
                     get_text_command(cmd_string)
+                        .unwrap_or_else(|| Token::Error(TokenError::UnknownCommand(cmd_string)))
                 } else {
                     self.custom_cmds
                         .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .unwrap_or_else(|| get_command(cmd_string))
+                        .or_else(|| get_command(cmd_string))
+                        .unwrap_or_else(|| Token::Error(TokenError::UnknownCommand(cmd_string)))
                 };
                 if matches!(tok, Token::Text(_)) {
                     self.text_mode = true;

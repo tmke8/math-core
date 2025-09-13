@@ -116,7 +116,7 @@ pub enum Token<'source> {
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    UnknownCommand(&'source str),
+    Error(TokenError<'source>),
 }
 
 impl Token<'_> {
@@ -125,6 +125,11 @@ impl Token<'_> {
     pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TokenError<'source> {
+    UnknownCommand(&'source str),
 }
 
 #[derive(Debug, Clone, Copy)]
