@@ -3,32 +3,32 @@ use std::num::NonZero;
 use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
-use super::error::GetUnwrap;
+use super::error::{GetUnwrap, LatexErrKind, LatexError};
 use super::token::{Digit, TokLoc, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-pub(crate) struct Lexer<'source> {
+pub(crate) struct Lexer<'config, 'source>
+where
+    'config: 'source,
+{
     input: CharIndices<'source>,
     peek: (usize, char),
     input_string: &'source str,
     input_length: usize,
     text_mode: bool,
     parse_cmd_args: Option<usize>,
-    custom_cmds: Option<&'source CustomCmds>,
+    custom_cmds: Option<&'config CustomCmds>,
 }
 
-impl<'source> Lexer<'source> {
+impl<'config, 'source> Lexer<'config, 'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new<'config>(
+    pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
-    ) -> Self
-    where
-        'config: 'source,
-    {
+    ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, '\u{0}'),
@@ -138,29 +138,16 @@ impl<'source> Lexer<'source> {
 
     /// Generate the next token.
     pub(super) fn next_token(&mut self) -> TokLoc<'source> {
-        let (loc, tok) = self.next_token_or_command();
-        match tok {
-            TokenOrCommandName::Token(tok) => TokLoc(loc, tok),
-            TokenOrCommandName::CommandName(cmd_string) => {
-                let tok = if self.text_mode {
-                    get_text_command(cmd_string)
-                } else {
-                    self.custom_cmds
-                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .unwrap_or_else(|| get_command(cmd_string))
-                };
-                if matches!(tok, Token::Text(_)) {
-                    self.text_mode = true;
-                }
-                TokLoc(loc, tok)
-            }
+        match self.next_token_or_error() {
+            Ok(tokloc) => tokloc,
+            Err(err) => TokLoc(err.0, Token::Error(Box::new(err.1))),
         }
     }
 
-    fn next_token_or_command(&mut self) -> (usize, TokenOrCommandName<'source>) {
+    fn next_token_or_error(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return (loc.get(), TokenOrCommandName::Token(Token::Whitespace));
+                return Ok(TokLoc(loc.get(), Token::Whitespace));
             }
         }
 
@@ -170,7 +157,7 @@ impl<'source> Lexer<'source> {
             while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
                 self.read_char();
             }
-            return self.next_token_or_command();
+            return self.next_token_or_error();
         }
         let tok = match ch {
             '\u{0}' => Token::Eof,
@@ -233,7 +220,7 @@ impl<'source> Lexer<'source> {
                     // mode we need to do it manually.
                     self.skip_whitespace();
                 }
-                return (loc, TokenOrCommandName::CommandName(cmd_string));
+                return self.parse_command(loc, cmd_string);
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
@@ -247,13 +234,34 @@ impl<'source> Lexer<'source> {
                 }
             }
         };
-        (loc, TokenOrCommandName::Token(tok))
+        Ok(TokLoc(loc, tok))
     }
-}
 
-enum TokenOrCommandName<'source> {
-    Token(Token<'static>),
-    CommandName(&'source str),
+    fn parse_command(
+        &mut self,
+        loc: usize,
+        cmd_string: &'source str,
+    ) -> Result<TokLoc<'config>, LatexError<'source>> {
+        let tok = if self.text_mode {
+            let Some(tok) = get_text_command(cmd_string) else {
+                return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
+            };
+            tok
+        } else {
+            let Some(tok) = self
+                .custom_cmds
+                .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                .or_else(|| get_command(cmd_string))
+            else {
+                return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
+            };
+            tok
+        };
+        if matches!(tok, Token::Text(_)) {
+            self.text_mode = true;
+        }
+        Ok(TokLoc(loc, tok))
+    }
 }
 
 #[cfg(test)]
