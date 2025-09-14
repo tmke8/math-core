@@ -4,6 +4,7 @@ use strum_macros::IntoStaticStr;
 
 // use no_panic::no_panic;
 
+use super::environments::Env;
 use super::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
@@ -23,13 +24,14 @@ pub enum LatexErrKind<'source> {
         location: &'static Token<'static>,
         got: Token<'source>,
     },
+    MissingBrace(char),
     DisallowedChars,
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
     UnknownColor(&'source str),
     MismatchedEnvironment {
-        expected: &'source str,
-        got: &'source str,
+        expected: Env,
+        got: Env,
     },
     CannotBeUsedHere {
         got: Token<'source>,
@@ -84,6 +86,12 @@ impl LatexErrKind<'_> {
                     + <&str>::from(got)
                     + "\" was found."
             }
+            LatexErrKind::MissingBrace(got) => {
+                let mut text = "Expected '{' but found '".to_string();
+                text.push(*got);
+                text += "'.";
+                text
+            }
             LatexErrKind::DisallowedChars => "Disallowed characters in text group.".to_string(),
             LatexErrKind::UnknownEnvironment(environment) => {
                 "Unknown environment \"".to_string() + environment + "\"."
@@ -91,7 +99,11 @@ impl LatexErrKind<'_> {
             LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
             LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
             LatexErrKind::MismatchedEnvironment { expected, got } => {
-                "Expected \"\\end{".to_string() + expected + "}\", but got \"\\end{" + got + "}\"."
+                "Expected \"\\end{".to_string()
+                    + <&str>::from(expected)
+                    + "}\", but got \"\\end{"
+                    + <&str>::from(got)
+                    + "}\"."
             }
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
                 "Got \"".to_string()

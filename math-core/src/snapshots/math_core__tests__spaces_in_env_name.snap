@@ -2,7 +2,7 @@
 source: math-core/src/lib.rs
 expression: "\\begin{  pmatrix   } x \\\\ y \\end{pmatrix}"
 ---
-Position: 0
+Position: 6
 UnknownEnvironment(
     "  pmatrix   ",
 )

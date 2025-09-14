@@ -16,6 +16,7 @@ use super::{
     character_class::Class,
     color_defs::get_color,
     commands::get_negated_op,
+    environments::Env,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
@@ -58,7 +59,7 @@ impl SequenceEnd {
             SequenceEnd::Token(token) => token.is_same_kind_as(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
-                Token::Eof | Token::GroupEnd | Token::End | Token::Right
+                Token::Eof | Token::GroupEnd | Token::End(_) | Token::Right
             ),
         }
     }
@@ -804,10 +805,8 @@ where
                 new_class = class.unwrap_or(symbol_class);
                 Node::SizedParen(size, paren)
             }
-            Token::Begin => {
-                // Read the environment name.
-                let env_name = self.parse_ascii_text_group()?.1;
-                let array_spec = if env_name == "array" || env_name == "subarray" {
+            Token::Begin(env) => {
+                let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
                     Some(
@@ -822,20 +821,32 @@ where
                     class: Class::Open,
                     real_boundaries: true,
                     allow_columns: true,
-                    script_style: env_name == "subarray",
+                    script_style: matches!(env, Env::Subarray),
                 };
                 let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::End), Some(&mut state))?;
+                    self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state))?;
+                let end_token = self.next_token();
+                let end_token_loc = end_token.location();
+                let end_token = end_token.into_token();
+                let Token::End(end_env) = end_token else {
+                    // This should never happen because we specified the end token above.
+                    return Err(LatexError(
+                        end_token_loc,
+                        LatexErrKind::UnexpectedToken {
+                            expected: &Token::End(Env::Align),
+                            got: end_token,
+                        },
+                    ));
+                };
                 let content = self.arena.push_slice(&content);
-                let end_token_loc = self.next_token().location();
-                let node = match env_name {
-                    "align" | "align*" | "aligned" => Node::Table {
+                let node = match env {
+                    Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
                         content,
                         align: Alignment::Alternating,
                         attr: Some(FracAttr::DisplayStyleTrue),
-                        with_numbering: env_name == "align",
+                        with_numbering: matches!(env, Env::Align),
                     },
-                    "cases" => {
+                    Env::Cases => {
                         let align = Alignment::Cases;
                         let content = self.commit(Node::Table {
                             content,
@@ -850,18 +861,18 @@ where
                             style: None,
                         }
                     }
-                    "matrix" => Node::Table {
+                    Env::Matrix => Node::Table {
                         content,
                         align: Alignment::Centered,
                         attr: None,
                         with_numbering: false,
                     },
-                    array_variant @ ("array" | "subarray") => {
+                    array_variant @ (Env::Array | Env::Subarray) => {
                         // SAFETY: `array_spec` is guaranteed to be Some because we checked for
                         // "array" and "subarray" above.
                         // TODO: Refactor this to avoid using `unsafe`.
                         let mut spec = unsafe { array_spec.unwrap_unchecked() };
-                        let style = if array_variant == "subarray" {
+                        let style = if matches!(array_variant, Env::Subarray) {
                             spec.is_sub = true;
                             Some(Style::Script)
                         } else {
@@ -873,28 +884,31 @@ where
                             array_spec: self.arena.alloc_array_spec(spec),
                         }
                     }
-                    matrix_variant
-                    @ ("pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix") => {
+                    matrix_variant @ (Env::PMatrix
+                    | Env::BMatrix
+                    | Env::Bmatrix
+                    | Env::VMatrix
+                    | Env::Vmatrix) => {
                         let align = Alignment::Centered;
                         let (open, close) = match matrix_variant {
-                            "pmatrix" => (
+                            Env::PMatrix => (
                                 symbol::LEFT_PARENTHESIS.as_op(),
                                 symbol::RIGHT_PARENTHESIS.as_op(),
                             ),
-                            "bmatrix" => (
+                            Env::BMatrix => (
                                 symbol::LEFT_SQUARE_BRACKET.as_op(),
                                 symbol::RIGHT_SQUARE_BRACKET.as_op(),
                             ),
-                            "Bmatrix" => (
+                            Env::Bmatrix => (
                                 symbol::LEFT_CURLY_BRACKET.as_op(),
                                 symbol::RIGHT_CURLY_BRACKET.as_op(),
                             ),
-                            "vmatrix" => {
+                            Env::VMatrix => {
                                 const LINE: StretchableOp =
                                     symbol::VERTICAL_LINE.as_stretchable_op().unwrap();
                                 (LINE, LINE)
                             }
-                            "Vmatrix" => {
+                            Env::Vmatrix => {
                                 const DOUBLE_LINE: StretchableOp =
                                     symbol::DOUBLE_VERTICAL_LINE.as_stretchable_op().unwrap();
                                 (DOUBLE_LINE, DOUBLE_LINE)
@@ -915,17 +929,13 @@ where
                             style: None,
                         }
                     }
-                    _ => {
-                        return Err(LatexError(loc, LatexErrKind::UnknownEnvironment(env_name)));
-                    }
                 };
-                let end_name = self.parse_ascii_text_group()?.1;
-                if end_name != env_name {
+                if end_env != env {
                     return Err(LatexError(
                         end_token_loc,
                         LatexErrKind::MismatchedEnvironment {
-                            expected: env_name,
-                            got: end_name,
+                            expected: env,
+                            got: end_env,
                         },
                     ));
                 }
@@ -1052,7 +1062,10 @@ where
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                if !matches!(self.peek.token(), Token::Eof | Token::GroupEnd | Token::End) {
+                if !matches!(
+                    self.peek.token(),
+                    Token::Eof | Token::GroupEnd | Token::End(_)
+                ) {
                     let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
                         (Some(symbol), None)
@@ -1088,7 +1101,7 @@ where
                 ));
             }
             Token::Eof => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
-            Token::End | Token::Right | Token::GroupEnd => {
+            Token::End(_) | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
             }
             Token::CustomCmd(num_args, predefined) => {
@@ -1369,7 +1382,7 @@ where
             Token::Close(_) | Token::SquareBracketClose | Token::Ampersand => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End | Token::Right | Token::GroupEnd | Token::Eof
+            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof
                 if sequence_state.real_boundaries =>
             {
                 Class::Close
@@ -1601,7 +1614,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                     LatexErrKind::UnclosedGroup(Token::GroupEnd),
                 ));
             }
-            Token::End | Token::Right | Token::GroupEnd => {
+            Token::End(_) | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(
                     tokloc.location(),
                     LatexErrKind::UnexpectedClose(tokloc.into_token()),
