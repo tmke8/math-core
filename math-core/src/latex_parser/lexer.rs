@@ -3,6 +3,7 @@ use std::num::NonZero;
 use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
+use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
 use super::token::{Digit, TokLoc, Token};
 use crate::CustomCmds;
@@ -248,20 +249,57 @@ impl<'config, 'source> Lexer<'config, 'source> {
             };
             tok
         } else {
-            let Some(tok) = self
-                .custom_cmds
-                .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                .or_else(|| get_command(cmd_string))
-            else {
-                return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
+            let begin_or_end = match cmd_string {
+                "begin" => Some(BeginOrEnd::Begin),
+                "end" => Some(BeginOrEnd::End),
+                _ => None,
             };
-            tok
+            if let Some(begin_or_end) = begin_or_end {
+                // Read the environment name.
+                // First skip any whitespace.
+                self.skip_whitespace();
+                // Next character must be `{`.
+                let (new_loc, next_char) = self.read_char();
+                if next_char != '{' {
+                    return Err(LatexError(new_loc, LatexErrKind::MissingBrace(next_char)));
+                }
+                // Read the text until the next `}`.
+                let Some(env_name) = self.read_ascii_text_group() else {
+                    return Err(LatexError(new_loc, LatexErrKind::DisallowedChars));
+                };
+                // Convert the environment name to the `Env` enum.
+                let Some(env) = Env::from_str(env_name) else {
+                    return Err(LatexError(
+                        new_loc,
+                        LatexErrKind::UnknownEnvironment(env_name),
+                    ));
+                };
+                // Return the `\begin{env}` or `\end{env}` token.
+                match begin_or_end {
+                    BeginOrEnd::Begin => Token::Begin(env),
+                    BeginOrEnd::End => Token::End(env),
+                }
+            } else {
+                let Some(tok) = self
+                    .custom_cmds
+                    .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                    .or_else(|| get_command(cmd_string))
+                else {
+                    return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
+                };
+                tok
+            }
         };
         if matches!(tok, Token::Text(_)) {
             self.text_mode = true;
         }
         Ok(TokLoc(loc, tok))
     }
+}
+
+enum BeginOrEnd {
+    Begin = 1,
+    End = 2,
 }
 
 #[cfg(test)]

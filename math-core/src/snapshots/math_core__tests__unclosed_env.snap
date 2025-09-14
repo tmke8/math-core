@@ -4,5 +4,7 @@ expression: "\\begin{matrix} x"
 ---
 Position: 16
 UnclosedGroup(
-    End,
+    End(
+        Matrix,
+    ),
 )

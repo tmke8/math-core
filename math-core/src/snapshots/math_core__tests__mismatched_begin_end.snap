@@ -4,6 +4,6 @@ expression: "\\begin{matrix} 1 \\end{bmatrix}"
 ---
 Position: 17
 MismatchedEnvironment {
-    expected: "matrix",
-    got: "bmatrix",
+    expected: Matrix,
+    got: BMatrix,
 }
