@@ -23,7 +23,7 @@ use super::{
 };
 
 pub(crate) struct Parser<'arena, 'source> {
-    pub(crate) l: Lexer<'source>,
+    pub(crate) l: Lexer<'source, 'source>,
     peek: TokLoc<'source>,
     token_stack: Vec<Token<'source>>,
     buffer: Buffer,
@@ -82,7 +82,7 @@ impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
 {
-    pub(crate) fn new(lexer: Lexer<'source>, arena: &'arena Arena) -> Self {
+    pub(crate) fn new(lexer: Lexer<'source, 'source>, arena: &'arena Arena) -> Self {
         let input_length = lexer.input_length();
         let mut p = Parser {
             l: lexer,
@@ -758,7 +758,7 @@ where
                     matches!(parse_as, ParseAs::Arg),
                 ));
             }
-            tok @ (Token::Open(paren) | Token::Close(paren)) => {
+            ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 if matches!(tok, Token::Open(_)) {
                     new_class = Class::Open;
                 }
@@ -933,7 +933,7 @@ where
                 node
             }
             Token::OperatorName => {
-                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser = TextModeParser::new(
                     &mut builder,
@@ -966,7 +966,7 @@ where
                 // Copy the token out of the peek variable.
                 // We do this because we need to turn off text mode while there is still a peek
                 // token that is consumed by the `Text` command.
-                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser = TextModeParser::new(
                     &mut builder,
@@ -1034,8 +1034,8 @@ where
                     attr: RowAttr::Style(style),
                 }
             }
-            Token::UnknownCommand(name) => {
-                return Err(LatexError(loc, LatexErrKind::UnknownCommand(name)));
+            Token::Error(err) => {
+                return Err(LatexError(loc, *err));
             }
             Token::Prime => {
                 let target = self.commit(Node::Row {
@@ -1108,12 +1108,12 @@ where
             Token::TokenStream(_, token_stream) => {
                 if let [head, tail @ ..] = token_stream {
                     // Replace the peek token with the first token of the token stream.
-                    let old_peek = mem::replace(&mut self.peek, TokLoc(0, *head));
+                    let old_peek = mem::replace(&mut self.peek, TokLoc(0, head.clone()));
                     // Put the old peek token onto the token stack.
                     self.token_stack.push(old_peek.into_token());
                     // Put the rest of the token stream onto the token stack in reverse order.
-                    for &tok in tail.iter().rev() {
-                        self.token_stack.push(tok);
+                    for tok in tail.iter().rev() {
+                        self.token_stack.push(tok.clone());
                     }
                 }
                 let token = self.next_token();
@@ -1390,7 +1390,7 @@ where
 fn next_token<'source>(
     peek: &mut TokLoc<'source>,
     token_stack: &mut Vec<Token<'source>>,
-    lexer: &mut Lexer<'source>,
+    lexer: &mut Lexer<'source, 'source>,
 ) -> TokLoc<'source> {
     let peek_token = if let Some(tok) = token_stack.pop() {
         TokLoc(0, tok)
@@ -1502,7 +1502,7 @@ struct TextModeParser<'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
     peek: &'parser mut TokLoc<'source>,
     token_stack: &'parser mut Vec<Token<'source>>,
-    lexer: &'parser mut Lexer<'source>,
+    lexer: &'parser mut Lexer<'source, 'source>,
     tf: Option<TextTransform>,
 }
 
@@ -1511,7 +1511,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
         builder: &'builder mut StringBuilder<'parser>,
         peek: &'parser mut TokLoc<'source>,
         token_stack: &'parser mut Vec<Token<'source>>,
-        lexer: &'parser mut Lexer<'source>,
+        lexer: &'parser mut Lexer<'source, 'source>,
     ) -> Self {
         Self {
             builder,
@@ -1568,7 +1568,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
                 self.next_token();
-                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(*accent);
                 return Ok(());
@@ -1577,7 +1577,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 // Discard `Text` token.
                 self.next_token();
                 let old_tf = mem::replace(&mut self.tf, *tf);
-                let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
                 self.parse_token_in_text_mode(tokloc)?;
                 self.tf = old_tf;
                 return Ok(());
@@ -1586,7 +1586,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 // Discard opening token.
                 self.next_token();
                 while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
-                    let tokloc = TokLoc(self.peek.location(), *self.peek.token());
+                    let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
@@ -1607,11 +1607,8 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                     LatexErrKind::UnexpectedClose(tokloc.into_token()),
                 ));
             }
-            Token::UnknownCommand(command) => {
-                return Err(LatexError(
-                    tokloc.location(),
-                    LatexErrKind::UnknownCommand(command),
-                ));
+            Token::Error(err) => {
+                return Err(LatexError(tokloc.location(), *err.clone()));
             }
             _ => {
                 return Err(LatexError(

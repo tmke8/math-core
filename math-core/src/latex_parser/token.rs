@@ -2,7 +2,8 @@ use std::mem::discriminant;
 
 use strum_macros::IntoStaticStr;
 
-use crate::latex_parser::character_class::Class;
+use super::character_class::Class;
+use super::error::LatexErrKind;
 use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -10,7 +11,7 @@ use crate::mathml_renderer::attribute::{
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Debug, Clone, PartialEq, IntoStaticStr)]
 #[repr(u32)]
 pub enum Token<'source> {
     #[strum(serialize = "end of document")]
@@ -116,7 +117,7 @@ pub enum Token<'source> {
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    UnknownCommand(&'source str),
+    Error(Box<LatexErrKind<'source>>),
 }
 
 impl Token<'_> {

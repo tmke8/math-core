@@ -7,10 +7,10 @@ use strum_macros::IntoStaticStr;
 use super::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LatexErrKind<'source> {
     UnexpectedToken {
         expected: &'static Token<'static>,
@@ -43,7 +43,7 @@ pub enum LatexErrKind<'source> {
     InvalidMacroName(&'source str),
 }
 
-#[derive(Debug, IntoStaticStr)]
+#[derive(Debug, Clone, PartialEq, IntoStaticStr)]
 #[repr(u32)] // A different value here somehow increases code size on WASM enormously.
 pub enum Place {
     #[strum(serialize = r"after \int, \sum, ...")]

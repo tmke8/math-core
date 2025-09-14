@@ -123,7 +123,7 @@ impl CustomCmds {
     pub fn get_command<'config, 'source>(
         &'config self,
         command: &'source str,
-    ) -> Option<Token<'source>>
+    ) -> Option<Token<'config>>
     where
         'config: 'source,
     {

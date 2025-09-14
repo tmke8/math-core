@@ -674,14 +674,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "}" => Token::Close(symbol::RIGHT_CURLY_BRACKET),
 };
 
-pub fn get_command(command: &str) -> Token<'_> {
+pub fn get_command(command: &str) -> Option<Token<'static>> {
     match COMMANDS.get(command) {
-        Some(token) => *token,
+        Some(token) => Some(token.clone()),
         None => {
             if let Some(function) = FUNCTIONS.get_key(command) {
-                return Token::PseudoOperator(function);
+                return Some(Token::PseudoOperator(function));
             }
-            Token::UnknownCommand(command)
+            None
         }
     }
 }
@@ -758,9 +758,6 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "~" => Token::TextModeAccent(symbol::COMBINING_TILDE.as_op().as_char()),
 };
 
-pub fn get_text_command(command: &str) -> Token<'_> {
-    match TEXT_COMMANDS.get(command) {
-        Some(token) => *token,
-        None => Token::UnknownCommand(command),
-    }
+pub fn get_text_command(command: &str) -> Option<Token<'static>> {
+    TEXT_COMMANDS.get(command).cloned()
 }
