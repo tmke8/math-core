@@ -15,7 +15,7 @@ path = "src/main.rs"
 clap = { version = "4.5.46", features = ["derive"] }
 math-core = { path = "../math-core", features = ["serde"] }
 memchr = "2.7.5"
-phf = { version = "0.12.1", features = ["macros"] }
+phf = { version = "0.13.1", features = ["macros"] }
 toml = "0.9.5"
 serde = { workspace = true }
 bitflags = { workspace = true, features = ["serde"] }
