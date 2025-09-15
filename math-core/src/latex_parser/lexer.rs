@@ -249,12 +249,12 @@ impl<'config, 'source> Lexer<'config, 'source> {
             };
             tok
         } else {
-            let begin_or_end = match cmd_string {
-                "begin" => Some(BeginOrEnd::Begin),
-                "end" => Some(BeginOrEnd::End),
+            let env_marker = match cmd_string {
+                "begin" => Some(EnvMarker::Begin),
+                "end" => Some(EnvMarker::End),
                 _ => None,
             };
-            if let Some(begin_or_end) = begin_or_end {
+            if let Some(env_marker) = env_marker {
                 // Read the environment name.
                 // First skip any whitespace.
                 self.skip_whitespace();
@@ -275,9 +275,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     ));
                 };
                 // Return the `\begin{env}` or `\end{env}` token.
-                match begin_or_end {
-                    BeginOrEnd::Begin => Token::Begin(env),
-                    BeginOrEnd::End => Token::End(env),
+                match env_marker {
+                    EnvMarker::Begin => Token::Begin(env),
+                    EnvMarker::End => Token::End(env),
                 }
             } else {
                 let Some(tok) = self
@@ -297,7 +297,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 }
 
-enum BeginOrEnd {
+enum EnvMarker {
     Begin = 1,
     End = 2,
 }
