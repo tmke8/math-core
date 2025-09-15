@@ -1,0 +1,5 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "{x + {y + z}"
+---
+Error at 12: UnclosedGroup(Eof)

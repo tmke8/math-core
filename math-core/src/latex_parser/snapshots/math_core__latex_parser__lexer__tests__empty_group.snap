@@ -1,0 +1,5 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "{} d"
+---
+1: GroupEnd

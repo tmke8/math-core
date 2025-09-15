@@ -137,6 +137,44 @@ impl<'config, 'source> Lexer<'config, 'source> {
         self.peek.1.is_ascii_digit()
     }
 
+    /// Read a group of tokens, ending with (an unopened) `}`.
+    pub(super) fn read_group(&mut self) -> Result<Vec<TokLoc<'config>>, LatexError<'source>> {
+        let mut tokens = Vec::new();
+        // Set the initial nesting level to 1.
+        let mut brace_nesting_level: usize = 1;
+        loop {
+            let tokloc = self.next_token_or_error()?;
+            let mut stop = false;
+            match tokloc.token() {
+                Token::GroupBegin => {
+                    brace_nesting_level += 1;
+                }
+                Token::GroupEnd => {
+                    // Decrease the nesting level.
+                    // This cannot underflow because we started at 1 and stop
+                    // when it reaches 0.
+                    brace_nesting_level -= 1;
+                    // If the nesting level is 0, we stop reading.
+                    if brace_nesting_level == 0 {
+                        stop = true;
+                    }
+                }
+                Token::Eof => {
+                    return Err(LatexError(
+                        tokloc.location(),
+                        LatexErrKind::UnclosedGroup(tokloc.into_token()),
+                    ));
+                }
+                _ => {}
+            }
+            tokens.push(tokloc);
+            if stop {
+                break;
+            }
+        }
+        Ok(tokens)
+    }
+
     /// Generate the next token.
     pub(super) fn next_token(&mut self) -> TokLoc<'source> {
         match self.next_token_or_error() {
@@ -345,6 +383,38 @@ mod tests {
                 let TokLoc(loc, tok) = tokloc;
                 write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
             }
+            assert_snapshot!(name, &tokens, problem);
+        }
+    }
+
+    #[test]
+    fn test_read_group() {
+        let problems = [
+            ("simple_group", r"{x+y}"),
+            ("group_followed", r"{x+y} b"),
+            ("nested_group", r"{x + {y - z}} c"),
+            ("unclosed_group", r"{x + y"),
+            ("unclosed_nested_group", r"{x + {y + z}"),
+            ("too_many_closes", r"{x + y} + z}"),
+            ("empty_group", r"{} d"),
+            ("group_with_begin", r"{\begin{matrix}}"),
+            ("early_error", r"{x + \unknowncmd + y}"),
+        ];
+
+        for (name, problem) in problems.into_iter() {
+            let mut lexer = Lexer::new(problem, false, None);
+            // Check that the first token is `GroupBegin`.
+            assert!(matches!(lexer.next_token().token(), Token::GroupBegin));
+            let tokens = match lexer.read_group() {
+                Ok(tokens) => {
+                    let mut token_str = String::new();
+                    for TokLoc(loc, tok) in tokens {
+                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+                    }
+                    token_str
+                }
+                Err(err) => format!("Error at {}: {:?}", err.0, err.1),
+            };
             assert_snapshot!(name, &tokens, problem);
         }
     }
