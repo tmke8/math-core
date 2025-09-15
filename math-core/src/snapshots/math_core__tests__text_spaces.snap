@@ -1,0 +1,7 @@
+---
+source: math-core/src/lib.rs
+expression: "\\text{x\\;x\\:x\\,x\\>x}"
+---
+<math>
+    <mtext>x x x x x</mtext>
+</math>

@@ -710,8 +710,12 @@ pub fn get_negated_op(op: Rel) -> Option<Rel> {
 static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "%" => Token::Letter('%'),
     "'" => Token::TextModeAccent(symbol::COMBINING_ACUTE_ACCENT),
+    "," => Token::Space(LatexUnit::Mu.length_with_unit(3.0)),
     "." => Token::TextModeAccent(symbol::COMBINING_DOT_ABOVE),
+    ":" => Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
+    ";" => Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
     "=" => Token::TextModeAccent(symbol::COMBINING_OVERLINE),
+    ">" => Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
     "AA" => Token::Letter('Å'),
     "AE" => Token::Letter('Æ'),
     "DH" => Token::Letter('Ð'),

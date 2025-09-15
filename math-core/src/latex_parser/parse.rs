@@ -1555,6 +1555,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::BinaryOp(op) => op.as_op().into(),
             Token::Relation(op) => op.as_op().into(),
             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op().into(),
+            Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op().into(),
             Token::Number(digit) => *digit as u8 as char,
             Token::Prime => '’',
             Token::ForceRelation(op) => op.as_char(),
