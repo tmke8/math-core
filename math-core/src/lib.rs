@@ -391,7 +391,7 @@ mod tests {
                 "text_diacritics",
                 r#"\text{\'{a} \~{a} \.{a} \H{a} \`{a} \={a} \"{a} \v{a} \^{a} \u{a} \r{a} \c{c}}"#,
             ),
-            ("text_spaces", r"\text{x\;x\:x\,x\>x}"),
+            ("text_spaces", r"\text{x\;x\:x\,x\>x\ x}"),
             ("text_with_escape_brace", r"\text{a\}b}"),
             ("text_with_weird_o", r"\text{x\o y}"),
             ("text_with_group", r"\text{x{y}z{}p{}}"),
