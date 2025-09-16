@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\text{\\max}"
+---
+Position: 6
+UnknownCommand(
+    "max",
+)
