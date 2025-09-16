@@ -1434,7 +1434,7 @@ fn next_token<'source>(
     let peek_token = if let Some(tok) = token_stack.pop() {
         tok
     } else {
-        lexer.next_token()
+        lexer.next_token_with_boxed_error()
     };
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)

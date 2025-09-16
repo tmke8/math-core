@@ -318,7 +318,7 @@ fn parse_custom_commands<'source>(
             latex_parser::Lexer::new(definition, true, None);
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_token_or_error()?;
+            let tokloc = lexer.next_token()?;
             if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
