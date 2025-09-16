@@ -5,4 +5,3 @@ expression: "{x+y} b"
 1: Letter('x')
 2: BinaryOp(Bin('+'))
 3: Letter('y')
-4: GroupEnd

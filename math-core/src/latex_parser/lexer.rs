@@ -144,7 +144,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
         let mut brace_nesting_level: usize = 1;
         loop {
             let tokloc = self.next_token_or_error()?;
-            let mut stop = false;
             match tokloc.token() {
                 Token::GroupBegin => {
                     brace_nesting_level += 1;
@@ -156,7 +155,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     brace_nesting_level -= 1;
                     // If the nesting level is 0, we stop reading.
                     if brace_nesting_level == 0 {
-                        stop = true;
+                        // We break directly without pushing the `}` token.
+                        break;
                     }
                 }
                 Token::Eof => {
@@ -168,9 +168,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 _ => {}
             }
             tokens.push(tokloc);
-            if stop {
-                break;
-            }
         }
         Ok(tokens)
     }

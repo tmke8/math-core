@@ -9,4 +9,3 @@ expression: "{x + {y - z}} c"
 8: BinaryOp(Bin('−'))
 10: Letter('z')
 11: GroupEnd
-12: GroupEnd

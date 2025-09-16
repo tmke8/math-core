@@ -1,125 +1,96 @@
 use crate::mathml_renderer::{
-    ast::Node::{self, *},
-    attribute::{LetterAttr, MathSpacing, MathVariant, RowAttr, StretchMode},
-    length::{Length, LengthUnit, LengthValue},
+    ast::Node,
+    attribute::{MathSpacing, MathVariant, RowAttr},
     symbol,
 };
 
 use super::specifications::LatexUnit;
-use super::token::Token;
+use super::token::Token::{self, *};
 
-pub static MOD: Node = Row {
+pub static ODV: [Token<'static>; 11] = [
+    Frac(None),                     // \frac
+    GroupBegin,                     // {
+    Transform(MathVariant::Normal), // \mathrm
+    Letter('d'),                    // d
+    CustomCmdArg2(0),               // #1
+    GroupEnd,                       // }
+    GroupBegin,                     // {
+    Transform(MathVariant::Normal), // \mathrm
+    Letter('d'),                    // d
+    CustomCmdArg2(1),               // #2
+    GroupEnd,                       // }
+];
+
+static XARROW_SPACING_HACK: [Token<'static>; 7] = [
+    Overset,
+    Space(LatexUnit::Em.length_with_unit(3.5)),
+    GroupBegin,
+    Space(LatexUnit::Em.length_with_unit(0.4286)),
+    CustomCmdArg2(0),
+    Space(LatexUnit::Em.length_with_unit(0.4286)),
+    GroupEnd,
+];
+
+pub static XRIGHTARROW: [Token<'static>; 7] = [
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Overset,
+    TokenStream(0, &XARROW_SPACING_HACK),
+    GroupBegin,
+    Relation(symbol::RIGHTWARDS_ARROW),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static XLEFTARROW: [Token<'static>; 7] = [
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Overset,
+    TokenStream(0, &XARROW_SPACING_HACK),
+    GroupBegin,
+    Relation(symbol::LEFTWARDS_ARROW),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+];
+
+pub static DOTS: Node = Node::Row {
     nodes: &[
-        &Space(LatexUnit::Em.length_with_unit(1.0)),
-        &Text("mod"),
-        &Space(LatexUnit::Mu.length_with_unit(6.0)),
-        &CustomCmdArg(0),
-    ],
-    attr: RowAttr::None,
-};
-
-pub static PMOD: Node = Row {
-    nodes: &[
-        &Space(LatexUnit::Em.length_with_unit(1.0)),
-        &StretchableOp(symbol::LEFT_PARENTHESIS.as_op(), StretchMode::NoStretch),
-        &Text("mod"),
-        &Space(LatexUnit::Mu.length_with_unit(6.0)),
-        &CustomCmdArg(0),
-        &StretchableOp(symbol::RIGHT_PARENTHESIS.as_op(), StretchMode::NoStretch),
-    ],
-    attr: RowAttr::None,
-};
-
-const LENGTH_NONE: (LengthValue, LengthUnit) = Length::none().into_parts();
-
-pub static ODV: Node = Frac {
-    num: &Row {
-        nodes: &[
-            &TextTransform {
-                tf: MathVariant::Normal,
-                content: &IdentifierChar('d', LetterAttr::Default),
-            },
-            &CustomCmdArg(0),
-        ],
-        attr: RowAttr::None,
-    },
-    denom: &Node::Row {
-        nodes: &[
-            &TextTransform {
-                tf: MathVariant::Normal,
-                content: &IdentifierChar('d', LetterAttr::Default),
-            },
-            &CustomCmdArg(1),
-        ],
-        attr: RowAttr::None,
-    },
-    lt_value: LENGTH_NONE.0,
-    lt_unit: LENGTH_NONE.1,
-    attr: None,
-};
-
-static XARROW_SPACING_HACK: Node = Overset {
-    target: &Row {
-        nodes: &[
-            &Space(LatexUnit::Em.length_with_unit(0.4286)),
-            &CustomCmdArg(0),
-            &Space(LatexUnit::Em.length_with_unit(0.4286)),
-        ],
-        attr: RowAttr::None,
-    },
-    symbol: &Space(LatexUnit::Em.length_with_unit(3.5)),
-};
-
-pub static XRIGHTARROW: Node = Row {
-    nodes: &[
-        &Space(LatexUnit::Mu.length_with_unit(5.0)),
-        &Overset {
-            target: &Operator {
-                op: symbol::RIGHTWARDS_ARROW.as_op(),
-                attr: None,
-                left: Some(MathSpacing::Zero),
-                right: Some(MathSpacing::Zero),
-            },
-            symbol: &XARROW_SPACING_HACK,
-        },
-        &Space(LatexUnit::Mu.length_with_unit(5.0)),
-    ],
-    attr: RowAttr::None,
-};
-
-pub static XLEFTARROW: Node = Row {
-    nodes: &[
-        &Space(LatexUnit::Mu.length_with_unit(5.0)),
-        &Overset {
-            target: &Operator {
-                op: symbol::LEFTWARDS_ARROW.as_op(),
-                attr: None,
-                left: Some(MathSpacing::Zero),
-                right: Some(MathSpacing::Zero),
-            },
-            symbol: &XARROW_SPACING_HACK,
-        },
-        &Space(LatexUnit::Mu.length_with_unit(5.0)),
-    ],
-    attr: RowAttr::None,
-};
-
-pub static DOTS: Node = Row {
-    nodes: &[
-        &Operator {
+        &Node::Operator {
             op: symbol::FULL_STOP.as_op(),
             attr: None,
             left: None,
             right: None,
         },
-        &Operator {
+        &Node::Operator {
             op: symbol::FULL_STOP.as_op(),
             attr: None,
             left: Some(MathSpacing::Zero),
             right: Some(MathSpacing::Zero),
         },
-        &Operator {
+        &Node::Operator {
             op: symbol::FULL_STOP.as_op(),
+            attr: None,
+            left: None,
+            right: None,
+        },
+    ],
+    attr: RowAttr::None,
+};
+
+pub static CDOTS: Node = Node::Row {
+    nodes: &[
+        &Node::Operator {
+            op: symbol::MIDDLE_DOT.as_op(),
+            attr: None,
+            left: None,
+            right: None,
+        },
+        &Node::Operator {
+            op: symbol::MIDDLE_DOT.as_op(),
+            attr: None,
+            left: Some(MathSpacing::Zero),
+            right: Some(MathSpacing::Zero),
+        },
+        &Node::Operator {
+            op: symbol::MIDDLE_DOT.as_op(),
             attr: None,
             left: None,
             right: None,
@@ -129,36 +100,61 @@ pub static DOTS: Node = Row {
 };
 
 pub static AND: [Token<'static>; 3] = [
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Token::ForceRelation(symbol::AMPERSAND.as_op()),
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    ForceRelation(symbol::AMPERSAND.as_op()),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
 pub static IFF: [Token<'static>; 3] = [
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Token::Relation(symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW),
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Relation(symbol::LONG_LEFT_RIGHT_DOUBLE_ARROW),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
 pub static IMPLIEDBY: [Token<'static>; 3] = [
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Token::Relation(symbol::LONG_LEFTWARDS_DOUBLE_ARROW),
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Relation(symbol::LONG_LEFTWARDS_DOUBLE_ARROW),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
 pub static IMPLIES: [Token<'static>; 3] = [
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Token::Relation(symbol::LONG_RIGHTWARDS_DOUBLE_ARROW),
-    Token::Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
+    Relation(symbol::LONG_RIGHTWARDS_DOUBLE_ARROW),
+    Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
 pub static BMOD: [Token<'static>; 8] = [
-    Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
-    Token::Text(None),
-    Token::GroupBegin,
-    Token::Letter('m'),
-    Token::Letter('o'),
-    Token::Letter('d'),
-    Token::GroupEnd,
-    Token::Space(LatexUnit::Mu.length_with_unit(4.0)),
+    Space(LatexUnit::Mu.length_with_unit(4.0)),
+    Text(None),
+    GroupBegin,
+    Letter('m'),
+    Letter('o'),
+    Letter('d'),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(4.0)),
+];
+
+pub static MOD: [Token<'static>; 8] = [
+    Space(LatexUnit::Em.length_with_unit(1.0)),
+    Text(None),
+    GroupBegin,
+    Letter('m'),
+    Letter('o'),
+    Letter('d'),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(6.0)),
+];
+
+pub static PMOD: [Token<'static>; 11] = [
+    Space(LatexUnit::Em.length_with_unit(1.0)),
+    Open(symbol::LEFT_PARENTHESIS),
+    Text(None),
+    GroupBegin,
+    Letter('m'),
+    Letter('o'),
+    Letter('d'),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(6.0)),
+    CustomCmdArg2(0),
+    Close(symbol::RIGHT_PARENTHESIS),
 ];

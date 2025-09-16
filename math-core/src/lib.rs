@@ -634,6 +634,8 @@ mod tests {
                 "subarray",
                 r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
             ),
+            ("mod", r"a \equiv r \mod n"),
+            ("nested_custom_cmd", r"\odv{\odv f x} x"),
         ];
 
         let config = crate::MathCoreConfig {

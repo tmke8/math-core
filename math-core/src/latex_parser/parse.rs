@@ -26,7 +26,8 @@ use super::{
 pub(crate) struct Parser<'arena, 'source> {
     pub(crate) l: Lexer<'source, 'source>,
     peek: TokLoc<'source>,
-    token_stack: Vec<Token<'source>>,
+    token_stack: Vec<TokLoc<'source>>,
+    cmd_args: Vec<Vec<TokLoc<'source>>>,
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
@@ -89,6 +90,7 @@ where
             l: lexer,
             peek: TokLoc(0, Token::Eof),
             token_stack: Vec::new(),
+            cmd_args: Vec::new(),
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
@@ -1118,19 +1120,53 @@ where
                 }
             }
             Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
-            Token::TokenStream(_, token_stream) => {
+            Token::TokenStream(num_args, token_stream) => {
+                if num_args > 0 {
+                    // The fact that we only clear for `num_args > 0` is a hack to
+                    // allow zero-argument token streams to be used within
+                    // non-zero-argument token streams.
+                    self.cmd_args.clear();
+                }
+                for _ in 0..num_args {
+                    let tokens = if matches!(self.peek.token(), Token::GroupBegin) {
+                        let tokens = self.l.read_group()?;
+                        self.next_token(); // Discard the opening `{` token.
+                        tokens
+                    } else {
+                        vec![self.next_token()]
+                    };
+                    self.cmd_args.push(tokens);
+                }
                 if let [head, tail @ ..] = token_stream {
                     // Replace the peek token with the first token of the token stream.
                     let old_peek = mem::replace(&mut self.peek, TokLoc(0, head.clone()));
                     // Put the old peek token onto the token stack.
-                    self.token_stack.push(old_peek.into_token());
+                    self.token_stack.push(old_peek);
                     // Put the rest of the token stream onto the token stack in reverse order.
                     for tok in tail.iter().rev() {
-                        self.token_stack.push(tok.clone());
+                        self.token_stack.push(TokLoc(0, tok.clone()));
                     }
                 }
                 let token = self.next_token();
                 return self.parse_token(token, parse_as, Some(sequence_state));
+            }
+            Token::CustomCmdArg2(arg_num) => {
+                if let Some(arg) = self.cmd_args.get(arg_num as usize) {
+                    if let [head, tail @ ..] = &arg[..] {
+                        // Replace the peek token with the first token of the argument.
+                        let old_peek = mem::replace(&mut self.peek, head.clone());
+                        // Put the old peek token onto the token stack.
+                        self.token_stack.push(old_peek);
+                        // Put the rest of the argument onto the token stack in reverse order.
+                        for tok in tail.iter().rev() {
+                            self.token_stack.push(tok.clone());
+                        }
+                    }
+                    let token = self.next_token();
+                    return self.parse_token(token, parse_as, Some(sequence_state));
+                } else {
+                    return Err(LatexError(loc, LatexErrKind::RenderError));
+                }
             }
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
@@ -1402,11 +1438,11 @@ where
 #[inline]
 fn next_token<'source>(
     peek: &mut TokLoc<'source>,
-    token_stack: &mut Vec<Token<'source>>,
+    token_stack: &mut Vec<TokLoc<'source>>,
     lexer: &mut Lexer<'source, 'source>,
 ) -> TokLoc<'source> {
     let peek_token = if let Some(tok) = token_stack.pop() {
-        TokLoc(0, tok)
+        tok
     } else {
         lexer.next_token()
     };
@@ -1514,7 +1550,7 @@ enum LetterCollector<'arena> {
 struct TextModeParser<'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
     peek: &'parser mut TokLoc<'source>,
-    token_stack: &'parser mut Vec<Token<'source>>,
+    token_stack: &'parser mut Vec<TokLoc<'source>>,
     lexer: &'parser mut Lexer<'source, 'source>,
     tf: Option<TextTransform>,
 }
@@ -1523,7 +1559,7 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
     fn new(
         builder: &'builder mut StringBuilder<'parser>,
         peek: &'parser mut TokLoc<'source>,
-        token_stack: &'parser mut Vec<Token<'source>>,
+        token_stack: &'parser mut Vec<TokLoc<'source>>,
         lexer: &'parser mut Lexer<'source, 'source>,
     ) -> Self {
         Self {
