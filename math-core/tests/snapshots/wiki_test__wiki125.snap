@@ -12,9 +12,11 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
                 </mtd>
                 <mtd>
                     <mrow>
-                        <mo>·</mo>
+                        <mspace width="0.16666667em"/>
                         <mo lspace="0" rspace="0">·</mo>
                         <mo>·</mo>
+                        <mo lspace="0" rspace="0">·</mo>
+                        <mspace width="0.16666667em"/>
                     </mrow>
                 </mtd>
                 <mtd>
@@ -38,9 +40,11 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
                 </mtd>
                 <mtd>
                     <mrow>
-                        <mo>·</mo>
+                        <mspace width="0.16666667em"/>
                         <mo lspace="0" rspace="0">·</mo>
                         <mo>·</mo>
+                        <mo lspace="0" rspace="0">·</mo>
+                        <mspace width="0.16666667em"/>
                     </mrow>
                 </mtd>
                 <mtd>

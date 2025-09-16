@@ -6,7 +6,7 @@ use crate::mathml_renderer::symbol::{self, Rel};
 use super::character_class::Class;
 use super::predefined;
 use super::specifications::LatexUnit;
-use super::token::{NodeRef, Token};
+use super::token::Token;
 
 // These function names are essentially just passed-through, wrapped in a token.
 static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
@@ -176,7 +176,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cancel" => Token::Enclose(Notation::UP_DIAGONAL),
     "cap" => Token::BinaryOp(symbol::INTERSECTION),
     "cdot" => Token::BinaryOp(symbol::MIDDLE_DOT),
-    "cdots" => Token::CustomCmd(0, NodeRef::new(&predefined::CDOTS)),
+    "cdots" => Token::TokenStream(0, &predefined::CDOTS),
     "centerdot" => Token::BinaryOp(symbol::BULLET_OPERATOR),
     "cfrac" => Token::Frac(Some(FracAttr::CFracStyle)),
     "check" => Token::OverUnder(symbol::CARON, true, Some(OpAttr::StretchyFalse)),
@@ -233,7 +233,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "doteq" => Token::Relation(symbol::APPROACHES_THE_LIMIT),
     "doteqdot" => Token::Relation(symbol::GEOMETRICALLY_EQUAL_TO),
     "dotplus" => Token::BinaryOp(symbol::DOT_PLUS),
-    "dots" => Token::CustomCmd(0, NodeRef::new(&predefined::DOTS)),
+    "dots" => Token::TokenStream(0, &predefined::DOTS),
     "dotsminusdots" => Token::Relation(symbol::GEOMETRIC_PROPORTION),
     "doublebarwedge" => Token::Relation(symbol::LOGICAL_AND_WITH_DOUBLE_OVERBAR),
     "downarrow" => Token::Relation(symbol::DOWNWARDS_ARROW),
@@ -332,7 +332,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lbrace" => Token::Open(symbol::LEFT_CURLY_BRACKET),
     "lbrack" => Token::Open(symbol::LEFT_SQUARE_BRACKET),
     "lceil" => Token::Open(symbol::LEFT_CEILING),
-    "ldots" => Token::CustomCmd(0, NodeRef::new(&predefined::DOTS)),
+    "ldots" => Token::TokenStream(0, &predefined::DOTS),
     "le" => Token::Relation(symbol::LESS_THAN_OR_EQUAL_TO),
     "left" => Token::Left,
     "leftarrow" => Token::Relation(symbol::LEFTWARDS_ARROW),
