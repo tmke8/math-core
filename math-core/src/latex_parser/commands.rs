@@ -1,6 +1,5 @@
-use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
-    FracAttr, MathSpacing, MathVariant, Notation, OpAttr, RowAttr, Size, Style, TextTransform,
+    FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::symbol::{self, Rel};
 
@@ -177,29 +176,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cancel" => Token::Enclose(Notation::UP_DIAGONAL),
     "cap" => Token::BinaryOp(symbol::INTERSECTION),
     "cdot" => Token::BinaryOp(symbol::MIDDLE_DOT),
-    "cdots" => Token::CustomCmd(0, NodeRef::new(&Node::Row {
-        nodes: &[
-            &Node::Operator {
-                op:symbol::MIDDLE_DOT.as_op(),
-                attr: None,
-                left: None,
-                right: None,
-            },
-            &Node::Operator {
-                op:symbol::MIDDLE_DOT.as_op(),
-                attr: None,
-                left: Some(MathSpacing::Zero),
-                right: Some(MathSpacing::Zero),
-            },
-            &Node::Operator {
-                op:symbol::MIDDLE_DOT.as_op(),
-                attr: None,
-                left: None,
-                right: None,
-            },
-        ],
-        attr: RowAttr::None
-    })),
+    "cdots" => Token::CustomCmd(0, NodeRef::new(&predefined::CDOTS)),
     "centerdot" => Token::BinaryOp(symbol::BULLET_OPERATOR),
     "cfrac" => Token::Frac(Some(FracAttr::CFracStyle)),
     "check" => Token::OverUnder(symbol::CARON, true, Some(OpAttr::StretchyFalse)),
@@ -266,8 +243,20 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dprime" => Token::Ord(symbol::DOUBLE_PRIME),
     "earth" => Token::Letter(symbol::EARTH),
     "ell" => Token::Letter(symbol::SCRIPT_SMALL_L),
-    "empty" => Token::CustomCmd(0, NodeRef::new(&Node::IdentifierStr("∅\u{FE00}"))), // with Unicode variation selector
-    "emptyset" => Token::CustomCmd(0, NodeRef::new(&Node::IdentifierStr("∅\u{FE00}"))), // with Unicode variation selector
+    "empty" => Token::TokenStream(0, &[
+        Token::Transform(MathVariant::Normal),
+        Token::GroupBegin,
+        Token::Letter('∅'),
+        Token::Letter('\u{FE00}'), // Unicode variation selector
+        Token::GroupEnd,
+    ]),
+    "emptyset" => Token::TokenStream(0, &[
+        Token::Transform(MathVariant::Normal),
+        Token::GroupBegin,
+        Token::Letter('∅'),
+        Token::Letter('\u{FE00}'), // Unicode variation selector
+        Token::GroupEnd,
+    ]),
     "epsilon" => Token::Letter(symbol::GREEK_LUNATE_EPSILON_SYMBOL),
     "eqcirc" => Token::Relation(symbol::RING_IN_EQUAL_TO),
     "eqcolon" => Token::Relation(symbol::EQUALS_COLON),
@@ -417,7 +406,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mid" => Token::Relation(symbol::DIVIDES),
     "middle" => Token::Middle,
     "min" => Token::PseudoOperatorLimits("min"),
-    "mod" => Token::CustomCmd(1, NodeRef::new(&predefined::MOD)),
+    "mod" => Token::TokenStream(0, &predefined::MOD),
     "models" => Token::Relation(symbol::TRUE),
     "mp" => Token::BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
     "mspace" => Token::CustomSpace,
@@ -467,7 +456,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nvdash" => Token::Relation(symbol::DOES_NOT_PROVE),
     "nwarrow" => Token::Relation(symbol::NORTH_WEST_ARROW),
     "odot" => Token::BinaryOp(symbol::CIRCLED_DOT_OPERATOR),
-    "odv" => Token::CustomCmd(2, NodeRef::new(&predefined::ODV)),
+    "odv" => Token::TokenStream(2, &predefined::ODV),
     "oiiint" => Token::Integral(symbol::VOLUME_INTEGRAL),
     "oiint" => Token::Integral(symbol::SURFACE_INTEGRAL),
     "oint" => Token::Integral(symbol::CONTOUR_INTEGRAL),
@@ -493,7 +482,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "pi" => Token::Letter(symbol::GREEK_SMALL_LETTER_PI),
     "pitchfork" => Token::Relation(symbol::PITCHFORK),
     "pm" => Token::BinaryOp(symbol::PLUS_MINUS_SIGN),
-    "pmod" => Token::CustomCmd(1, NodeRef::new(&predefined::PMOD)),
+    "pmod" => Token::TokenStream(1, &predefined::PMOD),
     "pounds" => Token::Letter('£'),
     "prec" => Token::Relation(symbol::PRECEDES),
     "precapprox" => Token::Relation(symbol::PRECEDES_ABOVE_ALMOST_EQUAL_TO),
@@ -664,8 +653,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "wr" => Token::Relation(symbol::WREATH_PRODUCT),
     "xcancel" => Token::Enclose(Notation::UP_DIAGONAL.union(Notation::DOWN_DIAGONAL)),
     "xi" => Token::Letter(symbol::GREEK_SMALL_LETTER_XI),
-    "xleftarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XLEFTARROW)),
-    "xrightarrow" => Token::CustomCmd(1, NodeRef::new(&predefined::XRIGHTARROW)),
+    "xleftarrow" => Token::TokenStream(1, &predefined::XLEFTARROW),
+    "xrightarrow" => Token::TokenStream(1, &predefined::XRIGHTARROW),
     "zeta" => Token::Letter(symbol::GREEK_SMALL_LETTER_ZETA),
     "{" => Token::Open(symbol::LEFT_CURLY_BRACKET),
     "|" => Token::Ord(symbol::DOUBLE_VERTICAL_LINE),

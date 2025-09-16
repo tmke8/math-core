@@ -1,0 +1,5 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "{x + \\unknowncmd + y}"
+---
+Error at 5: UnknownCommand("unknowncmd")

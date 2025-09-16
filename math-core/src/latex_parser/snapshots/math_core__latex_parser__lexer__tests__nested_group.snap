@@ -1,0 +1,11 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "{x + {y - z}} c"
+---
+1: Letter('x')
+3: BinaryOp(Bin('+'))
+5: GroupBegin
+6: Letter('y')
+8: BinaryOp(Bin('−'))
+10: Letter('z')
+11: GroupEnd

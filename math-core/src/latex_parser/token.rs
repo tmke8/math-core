@@ -115,6 +115,7 @@ pub enum Token<'source> {
     Color,
     CustomCmd(usize, NodeRef<'source>),
     CustomCmdArg(usize),
+    CustomCmdArg2(u8),
     TokenStream(u8, &'source [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
@@ -185,7 +186,7 @@ impl TryFrom<char> for Digit {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokLoc<'source>(pub usize, pub Token<'source>);
 
 impl<'source> TokLoc<'source> {
