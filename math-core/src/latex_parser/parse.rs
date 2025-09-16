@@ -1106,20 +1106,6 @@ where
             Token::End(_) | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
             }
-            Token::CustomCmd(num_args, predefined) => {
-                let mut nodes = Vec::with_capacity(num_args);
-                for _ in 0..num_args {
-                    let token = self.next_token();
-                    let node = self.parse_token(token, ParseAs::Arg, None)?;
-                    nodes.push(node);
-                }
-                let args = self.arena.push_slice(&nodes);
-                Node::CustomCmd {
-                    predefined: predefined.into_ref(),
-                    args,
-                }
-            }
-            Token::CustomCmdArg(arg_num) => Node::CustomCmdArg(arg_num),
             Token::TokenStream(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
@@ -1150,7 +1136,7 @@ where
                 let token = self.next_token();
                 return self.parse_token(token, parse_as, Some(sequence_state));
             }
-            Token::CustomCmdArg2(arg_num) => {
+            Token::CustomCmdArg(arg_num) => {
                 if let Some(arg) = self.cmd_args.get(arg_num as usize) {
                     if let [head, tail @ ..] = &arg[..] {
                         // Replace the peek token with the first token of the argument.

@@ -8,12 +8,12 @@ pub static ODV: [Token<'static>; 11] = [
     GroupBegin,                     // {
     Transform(MathVariant::Normal), // \mathrm
     Letter('d'),                    // d
-    CustomCmdArg2(0),               // #1
+    CustomCmdArg(0),                // #1
     GroupEnd,                       // }
     GroupBegin,                     // {
     Transform(MathVariant::Normal), // \mathrm
     Letter('d'),                    // d
-    CustomCmdArg2(1),               // #2
+    CustomCmdArg(1),                // #2
     GroupEnd,                       // }
 ];
 
@@ -22,7 +22,7 @@ static XARROW_SPACING_HACK: [Token<'static>; 7] = [
     Space(LatexUnit::Em.length_with_unit(3.5)),
     GroupBegin,
     Space(LatexUnit::Em.length_with_unit(0.4286)),
-    CustomCmdArg2(0),
+    CustomCmdArg(0),
     Space(LatexUnit::Em.length_with_unit(0.4286)),
     GroupEnd,
 ];
@@ -127,6 +127,6 @@ pub static PMOD: [Token<'static>; 11] = [
     Letter('d'),
     GroupEnd,
     Space(LatexUnit::Mu.length_with_unit(6.0)),
-    CustomCmdArg2(0),
+    CustomCmdArg(0),
     Close(symbol::RIGHT_PARENTHESIS),
 ];
