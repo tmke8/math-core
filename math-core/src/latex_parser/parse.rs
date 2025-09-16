@@ -1202,6 +1202,10 @@ where
 
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
     fn parse_ascii_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
+        if !self.token_stack.is_empty() {
+            // This function doesn't work if we are processing tokens from the token stack.
+            return Err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd));
+        }
         // First check whether there is an opening `{` token.
         if !matches!(self.peek.token(), Token::GroupBegin) {
             let TokLoc(loc, token) = self.next_token();
