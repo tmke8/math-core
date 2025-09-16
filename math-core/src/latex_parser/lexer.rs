@@ -143,7 +143,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
-            let tokloc = self.next_token_or_error()?;
+            let tokloc = self.next_token()?;
             match tokloc.token() {
                 Token::GroupBegin => {
                     brace_nesting_level += 1;
@@ -172,15 +172,16 @@ impl<'config, 'source> Lexer<'config, 'source> {
         Ok(tokens)
     }
 
-    /// Generate the next token.
-    pub(super) fn next_token(&mut self) -> TokLoc<'source> {
-        match self.next_token_or_error() {
+    /// Generate the next token, boxing errors in `Token::Error`.
+    pub(super) fn next_token_with_boxed_error(&mut self) -> TokLoc<'source> {
+        match self.next_token() {
             Ok(tokloc) => tokloc,
             Err(err) => TokLoc(err.0, Token::Error(Box::new(err.1))),
         }
     }
 
-    pub(crate) fn next_token_or_error(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
+    /// Generate the next token.
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -193,7 +194,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
                 self.read_char();
             }
-            return self.next_token_or_error();
+            return self.next_token();
         }
         let tok = match ch {
             '\u{0}' => Token::Eof,
@@ -377,7 +378,7 @@ mod tests {
                 write!(tokens, "(text mode)\n").unwrap();
             }
             loop {
-                let tokloc = lexer.next_token();
+                let tokloc = lexer.next_token().unwrap();
                 if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
@@ -405,7 +406,10 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let mut lexer = Lexer::new(problem, false, None);
             // Check that the first token is `GroupBegin`.
-            assert!(matches!(lexer.next_token().token(), Token::GroupBegin));
+            assert!(matches!(
+                lexer.next_token().unwrap().token(),
+                Token::GroupBegin
+            ));
             let tokens = match lexer.read_group() {
                 Ok(tokens) => {
                     let mut token_str = String::new();
@@ -427,13 +431,14 @@ mod tests {
         let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
         let mut tokens = String::new();
         loop {
-            let tokloc = lexer.next_token();
+            let tokloc = lexer.next_token().unwrap();
             if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
             let TokLoc(loc, tok) = tokloc;
             write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
         }
+        assert!(matches!(lexer.parse_cmd_args(), Some(3)));
         assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
 }
