@@ -1,8 +1,4 @@
-use crate::mathml_renderer::{
-    ast::Node,
-    attribute::{MathSpacing, MathVariant, RowAttr},
-    symbol,
-};
+use crate::mathml_renderer::{attribute::MathVariant, symbol};
 
 use super::specifications::LatexUnit;
 use super::token::Token::{self, *};
@@ -51,53 +47,29 @@ pub static XLEFTARROW: [Token<'static>; 7] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
-pub static DOTS: Node = Node::Row {
-    nodes: &[
-        &Node::Operator {
-            op: symbol::FULL_STOP.as_op(),
-            attr: None,
-            left: None,
-            right: None,
-        },
-        &Node::Operator {
-            op: symbol::FULL_STOP.as_op(),
-            attr: None,
-            left: Some(MathSpacing::Zero),
-            right: Some(MathSpacing::Zero),
-        },
-        &Node::Operator {
-            op: symbol::FULL_STOP.as_op(),
-            attr: None,
-            left: None,
-            right: None,
-        },
-    ],
-    attr: RowAttr::None,
-};
+pub static DOTS: [Token<'static>; 9] = [
+    GroupBegin,
+    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    BigOp(symbol::FULL_STOP),
+    BigOp(symbol::FULL_STOP),
+    GroupBegin,
+    BigOp(symbol::FULL_STOP),
+    GroupEnd,
+    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    GroupEnd,
+];
 
-pub static CDOTS: Node = Node::Row {
-    nodes: &[
-        &Node::Operator {
-            op: symbol::MIDDLE_DOT.as_op(),
-            attr: None,
-            left: None,
-            right: None,
-        },
-        &Node::Operator {
-            op: symbol::MIDDLE_DOT.as_op(),
-            attr: None,
-            left: Some(MathSpacing::Zero),
-            right: Some(MathSpacing::Zero),
-        },
-        &Node::Operator {
-            op: symbol::MIDDLE_DOT.as_op(),
-            attr: None,
-            left: None,
-            right: None,
-        },
-    ],
-    attr: RowAttr::None,
-};
+pub static CDOTS: [Token<'static>; 9] = [
+    GroupBegin,
+    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    GroupBegin,
+    BinaryOp(symbol::MIDDLE_DOT),
+    GroupEnd,
+    BinaryOp(symbol::MIDDLE_DOT),
+    BinaryOp(symbol::MIDDLE_DOT),
+    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    GroupEnd,
+];
 
 pub static AND: [Token<'static>; 3] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
