@@ -14,7 +14,7 @@ use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike,
 
 #[derive(Debug, Clone, PartialEq, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'source> {
+pub enum Token<'source, 'lexer> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin{...}")]
@@ -113,14 +113,14 @@ pub enum Token<'source> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    TokenStream(u8, &'source [Token<'static>]),
+    TokenStream(u8, &'source [Token<'static, 'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    Error(Box<LatexErrKind<'source>>),
+    Error(&'lexer LatexErrKind<'source>),
 }
 
-impl Token<'_> {
+impl Token<'_, '_> {
     /// Returns `true` if `self` and `other` are of the same kind.
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
@@ -160,21 +160,21 @@ impl TryFrom<char> for Digit {
 }
 
 #[derive(Debug, Clone)]
-pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+pub struct TokLoc<'source, 'lexer>(pub usize, pub Token<'source, 'lexer>);
 
-impl<'source> TokLoc<'source> {
+impl<'source, 'lexer> TokLoc<'source, 'lexer> {
     #[inline]
-    pub fn token(&self) -> &Token<'source> {
+    pub fn token(&self) -> &Token<'source, 'lexer> {
         &self.1
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'source> {
+    pub fn into_token(self) -> Token<'source, 'lexer> {
         self.1
     }
 
     // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'source> {
+    // pub fn token_mut(&mut self) -> &mut Token<'source, 'lexer> {
     //     &mut self.1
     // }
 

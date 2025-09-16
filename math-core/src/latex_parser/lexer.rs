@@ -21,6 +21,7 @@ where
     text_mode: bool,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
+    error_slot: mem::MaybeUninit<LatexErrKind<'source>>,
 }
 
 impl<'config, 'source> Lexer<'config, 'source> {
@@ -42,6 +43,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 None
             },
             custom_cmds,
+            error_slot: mem::MaybeUninit::uninit(),
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -138,7 +140,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.
-    pub(super) fn read_group(&mut self) -> Result<Vec<TokLoc<'config>>, LatexError<'source>> {
+    pub(super) fn read_group(
+        &mut self,
+    ) -> Result<Vec<TokLoc<'config, 'static>>, LatexError<'source>> {
         let mut tokens = Vec::new();
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
@@ -172,16 +176,34 @@ impl<'config, 'source> Lexer<'config, 'source> {
         Ok(tokens)
     }
 
-    /// Generate the next token, boxing errors in `Token::Error`.
-    pub(super) fn next_token_with_boxed_error(&mut self) -> TokLoc<'source> {
-        match self.next_token() {
+    fn set_error(&mut self, err: LatexErrKind<'source>) -> &LatexErrKind<'source> {
+        self.error_slot.write(err)
+    }
+
+    pub(super) fn put_error_in_token<'lexer>(
+        &'lexer mut self,
+        tokloc: Result<TokLoc<'config, 'static>, LatexError<'source>>,
+    ) -> TokLoc<'source, 'lexer> {
+        match tokloc {
+            // Ok(tokloc) => tokloc,
             Ok(tokloc) => tokloc,
-            Err(err) => TokLoc(err.0, Token::Error(Box::new(err.1))),
+            Err(err) => {
+                let kind = self.error_slot.write(err.1);
+                // let kind = self.set_error(err.1);
+                TokLoc(err.0, Token::Error(kind))
+                // TokLoc(err.0, Token::Error(&LatexErrKind::DisallowedChars))
+            }
         }
     }
 
+    // /// Generate the next token, boxing errors in `Token::Error`.
+    // pub(super) fn next_token_with_boxed_error(&mut self) -> TokLoc<'source, '_> {
+    //     let tokloc = self.next_token();
+    //     self.put_error_in_token(tokloc)
+    // }
+
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config, 'static>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -282,7 +304,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, LatexError<'source>> {
+    ) -> Result<TokLoc<'config, 'static>, LatexError<'source>> {
         let tok = if self.text_mode {
             let Some(tok) = get_text_command(cmd_string) else {
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));

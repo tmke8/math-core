@@ -14,15 +14,15 @@ pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 #[derive(Debug, Clone, PartialEq)]
 pub enum LatexErrKind<'source> {
     UnexpectedToken {
-        expected: &'static Token<'static>,
-        got: Token<'source>,
+        expected: &'static Token<'static, 'static>,
+        got: Token<'source, 'static>,
     },
-    UnclosedGroup(Token<'source>),
-    UnexpectedClose(Token<'source>),
+    UnclosedGroup(Token<'source, 'static>),
+    UnexpectedClose(Token<'source, 'static>),
     UnexpectedEOF,
     MissingParenthesis {
-        location: &'static Token<'static>,
-        got: Token<'source>,
+        location: &'static Token<'static, 'static>,
+        got: Token<'source, 'static>,
     },
     MissingBrace(char),
     DisallowedChars,
@@ -34,14 +34,14 @@ pub enum LatexErrKind<'source> {
         got: Env,
     },
     CannotBeUsedHere {
-        got: Token<'source>,
+        got: Token<'source, 'static>,
         correct_place: Place,
     },
     ExpectedText(&'static str),
     ExpectedLength(&'source str),
     ExpectedColSpec(&'source str),
     RenderError,
-    NotValidInTextMode(Token<'source>),
+    NotValidInTextMode(Token<'source, 'static>),
     InvalidMacroName(&'source str),
     InvalidParameterNumber,
     NotSupportedInCustomCmd,

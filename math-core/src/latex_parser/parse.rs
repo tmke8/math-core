@@ -1426,15 +1426,16 @@ where
 /// With this function, we can explicitly say which fields of the parser are borrowed
 /// mutably.
 #[inline]
-fn next_token<'source>(
-    peek: &mut TokLoc<'source>,
-    token_stack: &mut Vec<TokLoc<'source>>,
-    lexer: &mut Lexer<'source, 'source>,
-) -> TokLoc<'source> {
+fn next_token<'source, 'lexer>(
+    peek: &mut TokLoc<'source, 'lexer>,
+    token_stack: &mut Vec<TokLoc<'source, 'static>>,
+    lexer: &'lexer mut Lexer<'source, 'source>,
+) -> TokLoc<'source, 'lexer> {
     let peek_token = if let Some(tok) = token_stack.pop() {
         tok
     } else {
-        lexer.next_token_with_boxed_error()
+        let tokloc = lexer.next_token();
+        lexer.put_error_in_token(tokloc)
     };
     // Return the previous peek token and store the new peek token.
     mem::replace(peek, peek_token)
@@ -1479,7 +1480,7 @@ pub(crate) fn node_vec_to_node<'arena>(
     }
 }
 
-fn extract_delimiter(tok_loc: TokLoc<'_>) -> Result<(StretchableOp, Class), LatexError<'_>> {
+fn extract_delimiter(tok_loc: TokLoc<'_, '_>) -> Result<(StretchableOp, Class), LatexError<'_>> {
     let (delim, class) = match tok_loc.token() {
         Token::Open(paren) => (Some(paren.as_op()), Class::Open),
         Token::Close(paren) => (Some(paren.as_op()), Class::Close),
