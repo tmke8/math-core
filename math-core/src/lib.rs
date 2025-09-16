@@ -27,16 +27,14 @@
 //!
 mod latex_parser;
 mod mathml_renderer;
-mod raw_node_slice;
 
 use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use self::latex_parser::{LatexErrKind, NodeRef, Token, node_vec_to_node};
-use self::mathml_renderer::arena::{Arena, FrozenArena};
-use self::mathml_renderer::ast::{MathMLEmitter, Node};
-use self::raw_node_slice::RawNodeSlice;
+use self::latex_parser::{LatexErrKind, Token};
+use self::mathml_renderer::arena::Arena;
+use self::mathml_renderer::ast::MathMLEmitter;
 
 pub use self::latex_parser::LatexError;
 
@@ -114,9 +112,8 @@ pub struct MathCoreConfig {
 
 #[derive(Debug)]
 struct CustomCmds {
-    arena: FrozenArena,
-    slice: RawNodeSlice,
-    map: FxHashMap<String, (usize, usize)>,
+    tokens: Vec<Token<'static>>,
+    map: FxHashMap<String, (u8, (usize, usize))>,
 }
 
 impl CustomCmds {
@@ -127,10 +124,9 @@ impl CustomCmds {
     where
         'config: 'source,
     {
-        let (index, num_args) = *self.map.get(command)?;
-        let nodes = self.slice.lift(&self.arena)?;
-        let node = *nodes.get(index)?;
-        Some(Token::CustomCmd(num_args, NodeRef::new(node)))
+        let (num_args, slice) = *self.map.get(command)?;
+        let tokens = self.tokens.get(slice.0..slice.1)?;
+        Some(Token::TokenStream(num_args, tokens))
     }
 }
 
@@ -312,30 +308,29 @@ where
 fn parse_custom_commands<'source>(
     macros: &'source FxHashMap<String, String>,
 ) -> Result<CustomCmds, LatexError<'source>> {
-    let arena = Arena::new();
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
-    let mut parsed_macros = Vec::with_capacity(macros.len());
+    let mut tokens = Vec::new();
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
             return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
-        let lexer = latex_parser::Lexer::new(definition, true, None);
-        let mut p = latex_parser::Parser::new(lexer, &arena);
-        let nodes = p.parse()?;
-        let num_args = p.l.parse_cmd_args().unwrap_or(0);
+        let mut lexer: latex_parser::Lexer<'static, '_> =
+            latex_parser::Lexer::new(definition, true, None);
+        let start = tokens.len();
+        loop {
+            let tokloc = lexer.next_token_or_error()?;
+            if matches!(tokloc.token(), Token::Eof) {
+                break;
+            }
+            tokens.push(tokloc.into_token());
+        }
+        let end = tokens.len();
+        let num_args = lexer.parse_cmd_args().unwrap_or(0);
 
-        let node_ref = node_vec_to_node(&arena, nodes, true);
-        let index = parsed_macros.len();
-        parsed_macros.push(node_ref);
         // TODO: avoid cloning `name` here
-        map.insert(name.clone(), (index, num_args));
+        map.insert(name.clone(), (num_args, (start, end)));
     }
-    let slice = RawNodeSlice::from_slice(arena.push_slice(&parsed_macros));
-    Ok(CustomCmds {
-        arena: arena.freeze(),
-        slice,
-        map,
-    })
+    Ok(CustomCmds { tokens, map })
 }
 
 fn is_valid_macro_name(s: &str) -> bool {

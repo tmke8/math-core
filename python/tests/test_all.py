@@ -23,7 +23,7 @@ def test_exception():
 
 
 def test_macros():
-    converter = LatexToMathML(pretty_print=PrettyPrint.NEVER, macros={"ab": "ab"})
+    converter = LatexToMathML(pretty_print=PrettyPrint.NEVER, macros={"ab": "{ab}"})
     assert (
         converter.convert_with_local_counter(r"\ab", displaystyle=False)
         == "<math><mrow><mi>a</mi><mi>b</mi></mrow></math>"

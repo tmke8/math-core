@@ -19,7 +19,7 @@ where
     input_string: &'source str,
     input_length: usize,
     text_mode: bool,
-    parse_cmd_args: Option<usize>,
+    parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
 }
 
@@ -58,7 +58,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     #[inline]
-    pub(crate) fn parse_cmd_args(&self) -> Option<usize> {
+    pub(crate) fn parse_cmd_args(&self) -> Option<u8> {
         self.parse_cmd_args
     }
 
@@ -180,7 +180,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
     }
 
-    fn next_token_or_error(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
+    pub(crate) fn next_token_or_error(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -203,13 +203,17 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if self.parse_cmd_args.is_some() && self.peek.1.is_ascii_digit() {
                     // In pre-defined commands, `#` is used to denote a parameter.
                     let next = self.read_char().1;
-                    let param_num = (next as u32).wrapping_sub('0' as u32) as usize;
+                    let param_num = (next as u32).wrapping_sub('1' as u32);
+                    if !(0..=8).contains(&param_num) {
+                        return Err(LatexError(loc, LatexErrKind::InvalidParameterNumber));
+                    }
+                    let param_num = param_num as u8;
                     if let Some(num) = self.parse_cmd_args.as_mut() {
-                        if param_num > *num {
-                            *num = param_num;
+                        if (param_num + 1) > *num {
+                            *num = param_num + 1;
                         }
                     }
-                    Token::CustomCmdArg(param_num.saturating_sub(1))
+                    Token::CustomCmdArg(param_num)
                 } else {
                     Token::Letter('#')
                 }

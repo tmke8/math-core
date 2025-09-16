@@ -136,11 +136,6 @@ pub enum Node<'arena> {
         tf: MathVariant,
         content: &'arena Node<'arena>,
     },
-    CustomCmd {
-        predefined: &'arena Node<'arena>,
-        args: &'arena [&'arena Node<'arena>],
-    },
-    CustomCmdArg(usize),
     HardcodedMathML(&'static str),
 }
 
@@ -157,20 +152,18 @@ macro_rules! writeln_indent {
     };
 }
 
-pub struct MathMLEmitter<'converter, 'arena> {
+pub struct MathMLEmitter<'converter> {
     s: String,
     var: Option<MathVariant>,
-    custom_cmd_args: Option<&'arena [&'arena Node<'arena>]>,
     equation_counter: &'converter mut usize,
 }
 
-impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
+impl<'converter> MathMLEmitter<'converter> {
     #[inline]
     pub fn new(equation_counter: &'converter mut usize) -> Self {
         Self {
             s: String::new(),
             var: None,
-            custom_cmd_args: None,
             equation_counter,
         }
     }
@@ -190,7 +183,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
         self.s.push_str(s);
     }
 
-    pub fn emit(&mut self, node: &'arena Node<'arena>, base_indent: usize) -> std::fmt::Result {
+    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> std::fmt::Result {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -200,11 +193,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
 
         if !matches!(
             node,
-            Node::ColumnSeparator
-                | Node::RowSeparator
-                | Node::TextTransform { .. }
-                | Node::CustomCmd { .. }
-                | Node::CustomCmdArg(_)
+            Node::ColumnSeparator | Node::RowSeparator | Node::TextTransform { .. }
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -586,20 +575,6 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
                 }
                 writeln_indent!(&mut self.s, base_indent, "</menclose>");
             }
-            Node::CustomCmd { predefined, args } => {
-                let old_args = self.custom_cmd_args.replace(args);
-                self.emit(predefined, base_indent)?;
-                self.custom_cmd_args = old_args;
-            }
-            Node::CustomCmdArg(index) => {
-                if let Some(arg) = self
-                    .custom_cmd_args
-                    .as_ref()
-                    .and_then(|args| args.get(*index))
-                {
-                    self.emit(arg, base_indent)?;
-                }
-            }
             Node::HardcodedMathML(mathml) => {
                 write!(self.s, "{mathml}")?;
             }
@@ -641,7 +616,7 @@ impl<'converter, 'arena> MathMLEmitter<'converter, 'arena> {
         &mut self,
         base_indent: usize,
         child_indent: usize,
-        content: &'arena [&Node<'arena>],
+        content: &[&Node<'_>],
         mut col_gen: ColumnGenerator,
         with_numbering: bool,
     ) -> Result<(), std::fmt::Error> {

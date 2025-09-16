@@ -43,6 +43,8 @@ pub enum LatexErrKind<'source> {
     RenderError,
     NotValidInTextMode(Token<'source>),
     InvalidMacroName(&'source str),
+    InvalidParameterNumber,
+    NotSupportedInCustomCmd,
 }
 
 #[derive(Debug, Clone, PartialEq, IntoStaticStr)]
@@ -125,6 +127,12 @@ impl LatexErrKind<'_> {
             }
             LatexErrKind::InvalidMacroName(name) => {
                 "Invalid macro name: \"\\".to_string() + name + "\"."
+            }
+            LatexErrKind::InvalidParameterNumber => {
+                "Invalid parameter number. Must be 1-9.".to_string()
+            }
+            LatexErrKind::NotSupportedInCustomCmd => {
+                "This functionality is not supported in custom commands.".to_string()
             }
         }
     }

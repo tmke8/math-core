@@ -6,7 +6,6 @@ use super::character_class::Class;
 use super::environments::Env;
 use super::error::LatexErrKind;
 
-use crate::mathml_renderer::ast::Node;
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
@@ -113,9 +112,7 @@ pub enum Token<'source> {
     Text(Option<TextTransform>),
     Style(Style),
     Color,
-    CustomCmd(usize, NodeRef<'source>),
-    CustomCmdArg(usize),
-    CustomCmdArg2(u8),
+    CustomCmdArg(u8),
     TokenStream(u8, &'source [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
@@ -128,30 +125,6 @@ impl Token<'_> {
     /// Note that this does not compare the content of the tokens.
     pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-#[repr(transparent)]
-pub struct NodeRef<'source>(&'source Node<'source>);
-
-impl<'source> NodeRef<'source> {
-    /// Creates a new `NodeRef` from a reference to a `Node`.
-    pub(crate) const fn new(node: &'source Node<'source>) -> Self {
-        NodeRef(node)
-    }
-
-    pub(crate) fn into_ref(self) -> &'source Node<'source> {
-        self.0
-    }
-}
-
-impl PartialEq for NodeRef<'_> {
-    fn eq(&self, other: &NodeRef<'_>) -> bool {
-        // Use pointer equality for NodeRef comparison.
-        // This does the right thing for the equality for `Token`. Tokens can contain references
-        // to pre-defined nodes and two tokens are equal if they refer to the same node.
-        std::ptr::eq(self.0, other.0)
     }
 }
 
