@@ -24,14 +24,35 @@ use super::{
 };
 
 pub(crate) struct Parser<'arena, 'source> {
-    pub(crate) l: Lexer<'source, 'source>,
-    peek: TokLoc<'source>,
-    token_stack: Vec<TokLoc<'source>>,
+    tokens: TokenProducer<'source>,
     cmd_args: Vec<Vec<TokLoc<'source>>>,
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
     tf_differs_on_upright_letters: bool,
+}
+
+pub(crate) struct TokenProducer<'source> {
+    lexer: Lexer<'source, 'source>,
+    peek: TokLoc<'source>,
+    stack: Vec<TokLoc<'source>>,
+}
+
+impl<'source> TokenProducer<'source> {
+    /// Get the next token from the lexer, replacing the current peek token.
+    ///
+    /// This function is often necessary due to limitations in Rust's borrow checker.
+    /// With this function, we can explicitly say which fields of the parser are borrowed
+    /// mutably.
+    fn next(&mut self) -> TokLoc<'source> {
+        let peek_token = if let Some(tok) = self.stack.pop() {
+            tok
+        } else {
+            self.lexer.next_token_with_boxed_error()
+        };
+        // Return the previous peek token and store the new peek token.
+        mem::replace(&mut self.peek, peek_token)
+    }
 }
 
 /// A struct for managing the state of the sequence parser.
@@ -87,9 +108,11 @@ where
     pub(crate) fn new(lexer: Lexer<'source, 'source>, arena: &'arena Arena) -> Self {
         let input_length = lexer.input_length();
         let mut p = Parser {
-            l: lexer,
-            peek: TokLoc(0, Token::Eof),
-            token_stack: Vec::new(),
+            tokens: TokenProducer {
+                lexer,
+                peek: TokLoc(0, Token::Eof),
+                stack: Vec::new(),
+            },
             cmd_args: Vec::new(),
             buffer: Buffer::new(input_length),
             arena,
@@ -103,7 +126,7 @@ where
     }
 
     fn collect_letters(&mut self) -> Option<TokLoc<'source>> {
-        let first_loc = self.peek.location();
+        let first_loc = self.tokens.peek.location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
         // We store the first character separately, because if we only collect
@@ -111,7 +134,7 @@ where
         let mut first_char: Option<char> = None;
 
         // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.peek.token() {
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.tokens.peek.token() {
             // We stop collecting if we encounter an upright letter while the transformation is
             // different on upright letters. Handling upright letters differently wouldn't be
             // possible anymore if we merged these letters // here together with the non-upright
@@ -125,7 +148,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            next_token(&mut self.peek, &mut self.token_stack, &mut self.l);
+            self.tokens.next();
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -150,7 +173,7 @@ where
 
     #[inline(never)]
     fn next_token(&mut self) -> TokLoc<'source> {
-        next_token(&mut self.peek, &mut self.token_stack, &mut self.l)
+        self.tokens.next()
     }
 
     #[inline]
@@ -184,7 +207,7 @@ where
         };
 
         // Because we don't want to consume the end token, we just peek here.
-        while !sequence_end.matches(self.peek.token()) {
+        while !sequence_end.matches(self.tokens.peek.token()) {
             let cur_tokloc = if matches!(self.collector, LetterCollector::Collecting) {
                 self.collect_letters()
             } else {
@@ -257,16 +280,16 @@ where
                     // `Token::Letter('.')`,
                     // but the latter only if the token *after that* is a digit.
                     loop {
-                        let ch = if let Token::Number(number) = self.peek.token() {
+                        let ch = if let Token::Number(number) = self.tokens.peek.token() {
                             *number as u8 as char
                         } else {
-                            let ch = if matches!(self.peek.token(), Token::Letter('.')) {
+                            let ch = if matches!(self.tokens.peek.token(), Token::Letter('.')) {
                                 Some('.')
                             } else {
                                 None
                             };
                             if let Some(ch) = ch {
-                                if self.l.is_next_digit() {
+                                if self.tokens.lexer.is_next_digit() {
                                     ch
                                 } else {
                                     break;
@@ -276,7 +299,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        next_token(&mut self.peek, &mut self.token_stack, &mut self.l);
+                        self.tokens.next();
                     }
                 }
                 Node::Number(builder.finish(self.arena))
@@ -521,8 +544,8 @@ where
                 } else {
                     Node::Underset { symbol, target }
                 };
-                if (is_over && matches!(self.peek.token(), Token::Circumflex))
-                    || (!is_over && matches!(self.peek.token(), Token::Underscore))
+                if (is_over && matches!(self.tokens.peek.token(), Token::Circumflex))
+                    || (!is_over && matches!(self.tokens.peek.token(), Token::Underscore))
                 {
                     let target = self.commit(base);
                     self.next_token(); // Discard the circumflex or underscore token.
@@ -544,7 +567,7 @@ where
             }
             Token::BigOp(op) => {
                 new_class = Class::Operator;
-                let limits = matches!(self.peek.token(), Token::Limits);
+                let limits = matches!(self.tokens.peek.token(), Token::Limits);
                 if limits {
                     self.next_token(); // Discard the limits token.
                 };
@@ -575,13 +598,13 @@ where
                 }
             }
             Token::PseudoOperatorLimits(name) => {
-                let movablelimits = if matches!(self.peek.token(), Token::Limits) {
+                let movablelimits = if matches!(self.tokens.peek.token(), Token::Limits) {
                     self.next_token(); // Discard the limits token.
                     Some(OpAttr::NoMovableLimits)
                 } else {
                     Some(OpAttr::ForceMovableLimits)
                 };
-                if matches!(self.peek.token(), Token::Underscore) {
+                if matches!(self.tokens.peek.token(), Token::Underscore) {
                     let target = self.commit(Node::PseudoOp {
                         name,
                         attr: movablelimits,
@@ -671,7 +694,7 @@ where
             }
             Token::Integral(int) => {
                 new_class = Class::Operator;
-                let limits = matches!(self.peek.token(), Token::Limits);
+                let limits = matches!(self.tokens.peek.token(), Token::Limits);
                 if limits {
                     self.next_token(); // Discard the limits token.
                 };
@@ -945,14 +968,12 @@ where
                 node
             }
             Token::OperatorName => {
-                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
-                let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextModeParser::new(
-                    &mut builder,
-                    &mut self.peek,
-                    &mut self.token_stack,
-                    &mut self.l,
+                let tokloc = TokLoc(
+                    self.tokens.peek.location(),
+                    self.tokens.peek.token().clone(),
                 );
+                let mut builder = self.buffer.get_builder();
+                let mut text_parser = TextModeParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
@@ -972,29 +993,27 @@ where
             }
             Token::Text(transform) => {
                 // Discard any whitespace that immediately follows the `Text` token.
-                if matches!(self.peek.token(), Token::Whitespace) {
+                if matches!(self.tokens.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
                 // Copy the token out of the peek variable.
                 // We do this because we need to turn off text mode while there is still a peek
                 // token that is consumed by the `Text` command.
-                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
-                let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextModeParser::new(
-                    &mut builder,
-                    &mut self.peek,
-                    &mut self.token_stack,
-                    &mut self.l,
+                let tokloc = TokLoc(
+                    self.tokens.peek.location(),
+                    self.tokens.peek.token().clone(),
                 );
+                let mut builder = self.buffer.get_builder();
+                let mut text_parser = TextModeParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
-                self.l.turn_off_text_mode();
+                self.tokens.lexer.turn_off_text_mode();
                 // Discard the last token that we already processed but we kept it in `peek`,
                 // so that we can turn off text mode before new tokens are read.
                 self.next_token();
-                // Discard any whitespace tokens that are still stored in self.peek_token.
-                if matches!(self.peek.token(), Token::Whitespace) {
+                // Discard any whitespace tokens that are still stored in self.tokens.peek.
+                if matches!(self.tokens.peek.token(), Token::Whitespace) {
                     self.next_token();
                 }
                 if let Some(transform) = transform {
@@ -1065,7 +1084,7 @@ where
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 if !matches!(
-                    self.peek.token(),
+                    self.tokens.peek.token(),
                     Token::Eof | Token::GroupEnd | Token::End(_)
                 ) {
                     let base = self.parse_next(ParseAs::Sequence)?;
@@ -1114,8 +1133,8 @@ where
                     self.cmd_args.clear();
                 }
                 for _ in 0..num_args {
-                    let tokens = if matches!(self.peek.token(), Token::GroupBegin) {
-                        let tokens = self.l.read_group()?;
+                    let tokens = if matches!(self.tokens.peek.token(), Token::GroupBegin) {
+                        let tokens = self.tokens.lexer.read_group()?;
                         self.next_token(); // Discard the opening `{` token.
                         tokens
                     } else {
@@ -1125,12 +1144,12 @@ where
                 }
                 if let [head, tail @ ..] = token_stream {
                     // Replace the peek token with the first token of the token stream.
-                    let old_peek = mem::replace(&mut self.peek, TokLoc(0, head.clone()));
+                    let old_peek = mem::replace(&mut self.tokens.peek, TokLoc(0, head.clone()));
                     // Put the old peek token onto the token stack.
-                    self.token_stack.push(old_peek);
+                    self.tokens.stack.push(old_peek);
                     // Put the rest of the token stream onto the token stack in reverse order.
                     for tok in tail.iter().rev() {
-                        self.token_stack.push(TokLoc(0, tok.clone()));
+                        self.tokens.stack.push(TokLoc(0, tok.clone()));
                     }
                 }
                 let token = self.next_token();
@@ -1140,12 +1159,12 @@ where
                 if let Some(arg) = self.cmd_args.get(arg_num as usize) {
                     if let [head, tail @ ..] = &arg[..] {
                         // Replace the peek token with the first token of the argument.
-                        let old_peek = mem::replace(&mut self.peek, head.clone());
+                        let old_peek = mem::replace(&mut self.tokens.peek, head.clone());
                         // Put the old peek token onto the token stack.
-                        self.token_stack.push(old_peek);
+                        self.tokens.stack.push(old_peek);
                         // Put the rest of the argument onto the token stack in reverse order.
                         for tok in tail.iter().rev() {
-                            self.token_stack.push(tok.clone());
+                            self.tokens.stack.push(tok.clone());
                         }
                     }
                     let token = self.next_token();
@@ -1202,12 +1221,12 @@ where
 
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
     fn parse_ascii_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
-        if !self.token_stack.is_empty() {
+        if !self.tokens.stack.is_empty() {
             // This function doesn't work if we are processing tokens from the token stack.
             return Err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd));
         }
         // First check whether there is an opening `{` token.
-        if !matches!(self.peek.token(), Token::GroupBegin) {
+        if !matches!(self.tokens.peek.token(), Token::GroupBegin) {
             let TokLoc(loc, token) = self.next_token();
             return Err(LatexError(
                 loc,
@@ -1218,7 +1237,7 @@ where
             ));
         }
         // Read the text.
-        let result = self.l.read_ascii_text_group();
+        let result = self.tokens.lexer.read_ascii_text_group();
         // Discard the opening `{` token (which is still stored as `peek`).
         let opening_loc = self.next_token().location();
         result
@@ -1231,8 +1250,8 @@ where
     fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
         let mut primes = self.prime_check();
         // Check whether the first bound is specified and is a lower bound.
-        let first_underscore = matches!(self.peek.token(), Token::Underscore);
-        let first_circumflex = matches!(self.peek.token(), Token::Circumflex);
+        let first_underscore = matches!(self.tokens.peek.token(), Token::Underscore);
+        let first_circumflex = matches!(self.tokens.peek.token(), Token::Circumflex);
 
         let (sub, sup) = if first_underscore || first_circumflex {
             let first_bound = Some(self.get_sub_or_sup(first_circumflex)?);
@@ -1244,8 +1263,8 @@ where
             }
 
             // Check whether both an upper and a lower bound were specified.
-            let second_underscore = matches!(self.peek.token(), Token::Underscore);
-            let second_circumflex = matches!(self.peek.token(), Token::Circumflex);
+            let second_underscore = matches!(self.tokens.peek.token(), Token::Underscore);
+            let second_circumflex = matches!(self.tokens.peek.token(), Token::Circumflex);
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
                 let TokLoc(loc, token) = self.next_token();
@@ -1292,7 +1311,7 @@ where
     fn prime_check(&mut self) -> Vec<&'arena Node<'arena>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
-        while matches!(self.peek.token(), Token::Prime) {
+        while matches!(self.tokens.peek.token(), Token::Prime) {
             self.next_token(); // Discard the prime token.
             prime_count += 1;
         }
@@ -1351,9 +1370,9 @@ where
         let node = self.parse_token(next, ParseAs::Arg, Some(&mut sequence_state));
 
         // If the bound was a superscript, it may *not* be followed by a prime.
-        if is_sup && matches!(self.peek.token(), Token::Prime) {
+        if is_sup && matches!(self.tokens.peek.token(), Token::Prime) {
             return Err(LatexError(
-                self.peek.location(),
+                self.tokens.peek.location(),
                 LatexErrKind::CannotBeUsedHere {
                     got: Token::Prime,
                     correct_place: Place::AfterOpOrIdent,
@@ -1401,7 +1420,7 @@ where
         if !matches!(parse_as, ParseAs::Sequence | ParseAs::ContinueSequence) {
             return Class::Default;
         }
-        match self.peek.token() {
+        match self.tokens.peek.token() {
             Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
@@ -1418,26 +1437,6 @@ where
             _ => Class::Default,
         }
     }
-}
-
-/// Get the next token from the lexer, replacing the current peek token.
-///
-/// This function is often necessary due to limitations in Rust's borrow checker.
-/// With this function, we can explicitly say which fields of the parser are borrowed
-/// mutably.
-#[inline]
-fn next_token<'source>(
-    peek: &mut TokLoc<'source>,
-    token_stack: &mut Vec<TokLoc<'source>>,
-    lexer: &mut Lexer<'source, 'source>,
-) -> TokLoc<'source> {
-    let peek_token = if let Some(tok) = token_stack.pop() {
-        tok
-    } else {
-        lexer.next_token_with_boxed_error()
-    };
-    // Return the previous peek token and store the new peek token.
-    mem::replace(peek, peek_token)
 }
 
 // Turn a vector of nodes into a single node.
@@ -1539,30 +1538,24 @@ enum LetterCollector<'arena> {
 
 struct TextModeParser<'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
-    peek: &'parser mut TokLoc<'source>,
-    token_stack: &'parser mut Vec<TokLoc<'source>>,
-    lexer: &'parser mut Lexer<'source, 'source>,
+    tokens: &'parser mut TokenProducer<'source>,
     tf: Option<TextTransform>,
 }
 
 impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
     fn new(
         builder: &'builder mut StringBuilder<'parser>,
-        peek: &'parser mut TokLoc<'source>,
-        token_stack: &'parser mut Vec<TokLoc<'source>>,
-        lexer: &'parser mut Lexer<'source, 'source>,
+        tokens: &'parser mut TokenProducer<'source>,
     ) -> Self {
         Self {
             builder,
-            peek,
-            token_stack,
-            lexer,
+            tokens,
             tf: None,
         }
     }
 
     fn next_token(&mut self) -> TokLoc<'source> {
-        next_token(self.peek, self.token_stack, self.lexer)
+        self.tokens.next()
     }
 
     /// Parse the given token in text mode.
@@ -1608,7 +1601,10 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
                 self.next_token();
-                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
+                let tokloc = TokLoc(
+                    self.tokens.peek.location(),
+                    self.tokens.peek.token().clone(),
+                );
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(*accent);
                 return Ok(());
@@ -1617,7 +1613,10 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
                 // Discard `Text` token.
                 self.next_token();
                 let old_tf = mem::replace(&mut self.tf, *tf);
-                let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
+                let tokloc = TokLoc(
+                    self.tokens.peek.location(),
+                    self.tokens.peek.token().clone(),
+                );
                 self.parse_token_in_text_mode(tokloc)?;
                 self.tf = old_tf;
                 return Ok(());
@@ -1625,8 +1624,11 @@ impl<'builder, 'source, 'parser> TextModeParser<'builder, 'source, 'parser> {
             Token::GroupBegin => {
                 // Discard opening token.
                 self.next_token();
-                while !self.peek.token().is_same_kind_as(&Token::GroupEnd) {
-                    let tokloc = TokLoc(self.peek.location(), self.peek.token().clone());
+                while !self.tokens.peek.token().is_same_kind_as(&Token::GroupEnd) {
+                    let tokloc = TokLoc(
+                        self.tokens.peek.location(),
+                        self.tokens.peek.token().clone(),
+                    );
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
