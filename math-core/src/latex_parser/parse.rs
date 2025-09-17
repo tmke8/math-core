@@ -477,7 +477,7 @@ where
                     })
                 }
             }
-            Token::Genfrac => {
+            Token::Genfrac => 'genfrac: {
                 // TODO: This should not just blindly try to parse a node.
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
@@ -485,12 +485,12 @@ where
                 let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err((0, self.arena.alloc(LatexErrKind::UnexpectedEOF))),
+                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err((0, self.arena.alloc(LatexErrKind::UnexpectedEOF))),
+                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
                 };
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let lt = match length.trim() {
@@ -505,11 +505,11 @@ where
                         b"2" => Some(Style::Script),
                         b"3" => Some(Style::ScriptScript),
                         _ => {
-                            return Err((0, self.arena.alloc(LatexErrKind::UnexpectedEOF)));
+                            break 'genfrac Err((0, LatexErrKind::UnexpectedEOF));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err((0, self.arena.alloc(LatexErrKind::UnexpectedEOF))),
+                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
@@ -846,19 +846,14 @@ where
                 new_class = class.unwrap_or(symbol_class);
                 Ok(Node::SizedParen(size, paren))
             }
-            Token::Begin(env) => {
+            Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
-                    Some(
-                        parse_column_specification(options, self.arena).ok_or_else(|| {
-                            (
-                                loc,
-                                self.arena
-                                    .alloc(LatexErrKind::ExpectedColSpec(options.trim())),
-                            )
-                        })?,
-                    )
+                    let Some(spec) = parse_column_specification(options, self.arena) else {
+                        break 'begin_env Err((loc, LatexErrKind::ExpectedColSpec(options.trim())));
+                    };
+                    Some(spec)
                 } else {
                     None
                 };
@@ -875,12 +870,12 @@ where
                 let (end_token_loc, end_token) = self.next_token().with_error()?;
                 let Token::End(end_env) = end_token else {
                     // This should never happen because we specified the end token above.
-                    return Err((
+                    break 'begin_env Err((
                         end_token_loc,
-                        self.arena.alloc(LatexErrKind::UnexpectedToken {
+                        LatexErrKind::UnexpectedToken {
                             expected: &Token::End(Env::Align),
                             got: end_token,
-                        }),
+                        },
                     ));
                 };
 
