@@ -27,7 +27,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     ";" => Space(LatexUnit::Mu.length_with_unit(5.0)),
     ">" => Space(LatexUnit::Mu.length_with_unit(4.0)),
     "Alpha" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_ALPHA),
-    "And" => TokenStream(0, &predefined::AND),
+    "And" => CustomCmd(0, &predefined::AND),
     "Angstrom" => Letter(symbol::ANGSTROM_SIGN),
     "Bbbk" => Letter(TextTransform::DoubleStruck.transform('k', false)),
     "Beta" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_BETA),
@@ -159,7 +159,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "blacktriangleleft" => Letter(symbol::BLACK_LEFT_POINTING_TRIANGLE),
     "blacktriangleright" => Letter(symbol::BLACK_RIGHT_POINTING_TRIANGLE),
     "bm" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
-    "bmod" => TokenStream(0, &predefined::BMOD),
+    "bmod" => CustomCmd(0, &predefined::BMOD),
     "boldsymbol" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Letter(symbol::UP_TACK),
     "botdoteq" => Relation(symbol::EQUALS_SIGN_WITH_DOT_BELOW),
@@ -176,7 +176,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cancel" => Enclose(Notation::UP_DIAGONAL),
     "cap" => BinaryOp(symbol::INTERSECTION),
     "cdot" => BinaryOp(symbol::MIDDLE_DOT),
-    "cdots" => TokenStream(0, &predefined::CDOTS),
+    "cdots" => CustomCmd(0, &predefined::CDOTS),
     "centerdot" => BinaryOp(symbol::BULLET_OPERATOR),
     "cfrac" => Frac(Some(FracAttr::CFracStyle)),
     "check" => OverUnder(symbol::CARON, true, Some(OpAttr::StretchyFalse)),
@@ -233,7 +233,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "doteq" => Relation(symbol::APPROACHES_THE_LIMIT),
     "doteqdot" => Relation(symbol::GEOMETRICALLY_EQUAL_TO),
     "dotplus" => BinaryOp(symbol::DOT_PLUS),
-    "dots" => TokenStream(0, &predefined::DOTS),
+    "dots" => CustomCmd(0, &predefined::DOTS),
     "dotsminusdots" => Relation(symbol::GEOMETRIC_PROPORTION),
     "doublebarwedge" => Relation(symbol::LOGICAL_AND_WITH_DOUBLE_OVERBAR),
     "downarrow" => Relation(symbol::DOWNWARDS_ARROW),
@@ -243,14 +243,14 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dprime" => Ord(symbol::DOUBLE_PRIME),
     "earth" => Letter(symbol::EARTH),
     "ell" => Letter(symbol::SCRIPT_SMALL_L),
-    "empty" => TokenStream(0, &[
+    "empty" => CustomCmd(0, &[
         Transform(MathVariant::Normal),
         GroupBegin,
         Letter('∅'),
         Letter('\u{FE00}'), // Unicode variation selector
         GroupEnd,
     ]),
-    "emptyset" => TokenStream(0, &[
+    "emptyset" => CustomCmd(0, &[
         Transform(MathVariant::Normal),
         GroupBegin,
         Letter('∅'),
@@ -304,13 +304,13 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hookrightarrow" => Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hslash" => Letter(symbol::PLANCK_CONSTANT_OVER_TWO_PI),
     "hspace" => CustomSpace,
-    "iff" => TokenStream(0, &predefined::IFF),
+    "iff" => CustomCmd(0, &predefined::IFF),
     "iiiint" => Integral(symbol::QUADRUPLE_INTEGRAL_OPERATOR),
     "iiint" => Integral(symbol::TRIPLE_INTEGRAL),
     "iint" => Integral(symbol::DOUBLE_INTEGRAL),
     "imath" => Letter(symbol::LATIN_SMALL_LETTER_DOTLESS_I),
-    "impliedby" => TokenStream(0, &predefined::IMPLIEDBY),
-    "implies" => TokenStream(0, &predefined::IMPLIES),
+    "impliedby" => CustomCmd(0, &predefined::IMPLIEDBY),
+    "implies" => CustomCmd(0, &predefined::IMPLIES),
     "in" => Relation(symbol::ELEMENT_OF),
     "inf" => PseudoOperatorLimits("inf"),
     "infty" => Letter(symbol::INFINITY),
@@ -332,7 +332,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lbrace" => Open(symbol::LEFT_CURLY_BRACKET),
     "lbrack" => Open(symbol::LEFT_SQUARE_BRACKET),
     "lceil" => Open(symbol::LEFT_CEILING),
-    "ldots" => TokenStream(0, &predefined::DOTS),
+    "ldots" => CustomCmd(0, &predefined::DOTS),
     "le" => Relation(symbol::LESS_THAN_OR_EQUAL_TO),
     "left" => Left,
     "leftarrow" => Relation(symbol::LEFTWARDS_ARROW),
@@ -406,7 +406,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mid" => Relation(symbol::DIVIDES),
     "middle" => Middle,
     "min" => PseudoOperatorLimits("min"),
-    "mod" => TokenStream(0, &predefined::MOD),
+    "mod" => CustomCmd(0, &predefined::MOD),
     "models" => Relation(symbol::TRUE),
     "mp" => BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
     "mspace" => CustomSpace,
@@ -456,7 +456,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nvdash" => Relation(symbol::DOES_NOT_PROVE),
     "nwarrow" => Relation(symbol::NORTH_WEST_ARROW),
     "odot" => BinaryOp(symbol::CIRCLED_DOT_OPERATOR),
-    "odv" => TokenStream(2, &predefined::ODV),
+    "odv" => CustomCmd(2, &predefined::ODV),
     "oiiint" => Integral(symbol::VOLUME_INTEGRAL),
     "oiint" => Integral(symbol::SURFACE_INTEGRAL),
     "oint" => Integral(symbol::CONTOUR_INTEGRAL),
@@ -482,7 +482,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "pi" => Letter(symbol::GREEK_SMALL_LETTER_PI),
     "pitchfork" => Relation(symbol::PITCHFORK),
     "pm" => BinaryOp(symbol::PLUS_MINUS_SIGN),
-    "pmod" => TokenStream(1, &predefined::PMOD),
+    "pmod" => CustomCmd(1, &predefined::PMOD),
     "pounds" => Letter('£'),
     "prec" => Relation(symbol::PRECEDES),
     "precapprox" => Relation(symbol::PRECEDES_ABOVE_ALMOST_EQUAL_TO),
@@ -653,8 +653,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "wr" => Relation(symbol::WREATH_PRODUCT),
     "xcancel" => Enclose(Notation::UP_DIAGONAL.union(Notation::DOWN_DIAGONAL)),
     "xi" => Letter(symbol::GREEK_SMALL_LETTER_XI),
-    "xleftarrow" => TokenStream(1, &predefined::XLEFTARROW),
-    "xrightarrow" => TokenStream(1, &predefined::XRIGHTARROW),
+    "xleftarrow" => CustomCmd(1, &predefined::XLEFTARROW),
+    "xrightarrow" => CustomCmd(1, &predefined::XRIGHTARROW),
     "zeta" => Letter(symbol::GREEK_SMALL_LETTER_ZETA),
     "{" => Open(symbol::LEFT_CURLY_BRACKET),
     "|" => Ord(symbol::DOUBLE_VERTICAL_LINE),
@@ -663,7 +663,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 
 pub fn get_command(command: &str) -> Option<Token<'static>> {
     match COMMANDS.get(command) {
-        Some(token) => Some(token.clone()),
+        Some(token) => Some(*token),
         None => {
             if let Some(function) = FUNCTIONS.get_key(command) {
                 return Some(PseudoOperator(function));
@@ -751,5 +751,5 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 };
 
 pub fn get_text_command(command: &str) -> Option<Token<'static>> {
-    TEXT_COMMANDS.get(command).cloned()
+    TEXT_COMMANDS.get(command).copied()
 }

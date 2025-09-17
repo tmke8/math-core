@@ -156,7 +156,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            self.tokens.next(&self.arena);
+            self.tokens.next(self.arena);
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -181,7 +181,7 @@ where
 
     #[inline(never)]
     fn next_token(&mut self) -> TokResult<'arena, 'source> {
-        self.tokens.next(&self.arena)
+        self.tokens.next(self.arena)
     }
 
     #[inline]
@@ -271,7 +271,7 @@ where
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
     ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
-        let TokResult(loc, cur_token) = cur_tokloc;
+        let (loc, cur_token) = cur_tokloc.with_error()?;
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
         } else {
@@ -279,7 +279,6 @@ where
         };
         let mut new_class: Class = Default::default();
         let next_class = self.next_class(parse_as, sequence_state);
-        let cur_token = cur_token.map_err(|e| LatexError(loc, e.clone()))?;
         let node = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -308,7 +307,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        self.tokens.next(&self.arena);
+                        self.tokens.next(self.arena);
                     }
                 }
                 Node::Number(builder.finish(self.arena))
@@ -857,6 +856,8 @@ where
                 };
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state))?;
+
+                // TODO: Find a better way to extract the `env` of the `End` token.
                 let (end_token_loc, end_token) = self.next_token().with_error()?;
                 let Token::End(end_env) = end_token else {
                     // This should never happen because we specified the end token above.
@@ -868,6 +869,7 @@ where
                         },
                     ));
                 };
+
                 let content = self.arena.push_slice(&content);
                 let node = match env {
                     Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
@@ -973,13 +975,10 @@ where
                 node
             }
             Token::OperatorName => {
-                let tokloc = TokResult(
-                    self.tokens.peek.location(),
-                    self.tokens.peek.token().clone(),
-                );
+                let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.tokens, &self.arena);
+                    TextModeParser::new(&mut builder, &mut self.tokens, self.arena);
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
@@ -1005,13 +1004,10 @@ where
                 // Copy the token out of the peek variable.
                 // We do this because we need to turn off text mode while there is still a peek
                 // token that is consumed by the `Text` command.
-                let tokloc = TokResult(
-                    self.tokens.peek.location(),
-                    self.tokens.peek.token().clone(),
-                );
+                let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.tokens, &self.arena);
+                    TextModeParser::new(&mut builder, &mut self.tokens, self.arena);
                 text_parser.parse_token_in_text_mode(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
@@ -1129,7 +1125,7 @@ where
             Token::End(_) | Token::Right | Token::GroupEnd => {
                 return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
             }
-            Token::TokenStream(num_args, token_stream) => {
+            Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
                     // allow zero-argument token streams to be used within
@@ -1148,13 +1144,12 @@ where
                 }
                 if let [head, tail @ ..] = token_stream {
                     // Replace the peek token with the first token of the token stream.
-                    let old_peek =
-                        mem::replace(&mut self.tokens.peek, TokResult(0, Ok(head.clone())));
+                    let old_peek = mem::replace(&mut self.tokens.peek, TokResult(0, Ok(*head)));
                     // Put the old peek token onto the token stack.
                     self.tokens.stack.push(old_peek);
                     // Put the rest of the token stream onto the token stack in reverse order.
                     for tok in tail.iter().rev() {
-                        self.tokens.stack.push(TokResult(0, Ok(tok.clone())));
+                        self.tokens.stack.push(TokResult(0, Ok(*tok)));
                     }
                 }
                 let token = self.next_token();
@@ -1164,12 +1159,12 @@ where
                 if let Some(arg) = self.cmd_args.get(arg_num as usize) {
                     if let [head, tail @ ..] = &arg[..] {
                         // Replace the peek token with the first token of the argument.
-                        let old_peek = mem::replace(&mut self.tokens.peek, head.clone());
+                        let old_peek = mem::replace(&mut self.tokens.peek, *head);
                         // Put the old peek token onto the token stack.
                         self.tokens.stack.push(old_peek);
                         // Put the rest of the argument onto the token stack in reverse order.
                         for tok in tail.iter().rev() {
-                            self.tokens.stack.push(tok.clone());
+                            self.tokens.stack.push(*tok);
                         }
                     }
                     let token = self.next_token();
@@ -1500,7 +1495,6 @@ fn extract_delimiter<'source>(
         _ => (None, Class::Default),
     };
     let Some(delim) = delim else {
-        let loc = loc;
         return Err(LatexError(
             loc,
             LatexErrKind::UnexpectedToken {
@@ -1569,7 +1563,7 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
     }
 
     fn next_token(&mut self) -> TokResult<'arena, 'source> {
-        self.tokens.next(&self.arena)
+        self.tokens.next(self.arena)
     }
 
     /// Parse the given token in text mode.
@@ -1600,7 +1594,6 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
                 return Ok(());
             }
             Token::Space(length) => {
-                let length = length;
                 if length == Length::new(1.0, LengthUnit::Em) {
                     '\u{2003}'
                 } else if length == LatexUnit::Mu.length_with_unit(5.0) {
@@ -1616,7 +1609,7 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
                 self.next_token();
-                let tokloc = self.tokens.peek.clone();
+                let tokloc = self.tokens.peek;
                 self.parse_token_in_text_mode(tokloc)?;
                 self.builder.push_char(accent);
                 return Ok(());
@@ -1625,7 +1618,7 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
                 // Discard `Text` token.
                 self.next_token();
                 let old_tf = mem::replace(&mut self.tf, tf);
-                let tokloc = self.tokens.peek.clone();
+                let tokloc = self.tokens.peek;
                 self.parse_token_in_text_mode(tokloc)?;
                 self.tf = old_tf;
                 return Ok(());
@@ -1634,7 +1627,7 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
                 // Discard opening token.
                 self.next_token();
                 while !matches!(self.tokens.peek.token(), Ok(Token::GroupEnd)) {
-                    let tokloc = self.tokens.peek.clone();
+                    let tokloc = self.tokens.peek;
                     self.parse_token_in_text_mode(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the

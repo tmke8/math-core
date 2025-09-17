@@ -8,10 +8,10 @@ use super::environments::Env;
 use super::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LatexErrKind<'source> {
     UnexpectedToken {
         expected: &'static Token<'static>,
@@ -47,7 +47,7 @@ pub enum LatexErrKind<'source> {
     NotSupportedInCustomCmd,
 }
 
-#[derive(Debug, Clone, PartialEq, IntoStaticStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)] // A different value here somehow increases code size on WASM enormously.
 pub enum Place {
     #[strum(serialize = r"after \int, \sum, ...")]

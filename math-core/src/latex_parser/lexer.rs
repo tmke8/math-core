@@ -5,11 +5,9 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
-use super::token::{Digit, TokResult, Token};
+use super::token::{Digit, TokLoc, TokResult, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
-
-pub type TokLoc<'source> = (usize, Token<'source>);
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>

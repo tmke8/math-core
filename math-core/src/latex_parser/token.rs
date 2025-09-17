@@ -12,7 +12,7 @@ use crate::mathml_renderer::attribute::{
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
 
-#[derive(Debug, Clone, PartialEq, IntoStaticStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
 pub enum Token<'config> {
     #[strum(serialize = "end of document")]
@@ -113,7 +113,7 @@ pub enum Token<'config> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    TokenStream(u8, &'config [Token<'static>]),
+    CustomCmd(u8, &'config [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
@@ -158,7 +158,9 @@ impl TryFrom<char> for Digit {
     }
 }
 
-#[derive(Debug, Clone)]
+pub type TokLoc<'config> = (usize, Token<'config>);
+
+#[derive(Debug, Clone, Copy)]
 pub struct TokResult<'arena, 'source>(
     pub usize,
     pub Result<Token<'source>, &'arena LatexErrKind<'source>>,
@@ -176,10 +178,10 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 
     #[inline]
-    pub fn with_error(self) -> Result<(usize, Token<'source>), LatexError<'source>> {
+    pub fn with_error(self) -> Result<TokLoc<'source>, LatexError<'source>> {
         match self.1 {
             Ok(tok) => Ok((self.0, tok)),
-            Err(err_kind) => Err(LatexError(self.0, err_kind.clone())),
+            Err(err_kind) => Err(LatexError(self.0, *err_kind)),
         }
     }
 
@@ -205,7 +207,11 @@ mod tests {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
         assert!(
             std::mem::size_of::<TokResult>() <= 4 * WORD,
-            "size of TokLoc"
+            "size of TokResult"
+        );
+        assert!(
+            std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
+            "size of Result<Token, pointer>"
         );
     }
 }

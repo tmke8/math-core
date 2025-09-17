@@ -126,7 +126,7 @@ impl CustomCmds {
     {
         let (num_args, slice) = *self.map.get(command)?;
         let tokens = self.tokens.get(slice.0..slice.1)?;
-        Some(Token::TokenStream(num_args, tokens))
+        Some(Token::CustomCmd(num_args, tokens))
     }
 }
 
@@ -319,7 +319,7 @@ fn parse_custom_commands<'source>(
         let start = tokens.len();
         loop {
             let tokloc = lexer.next_token()?;
-            if matches!(tokloc.1, Token::Eof) {
+            if matches!(&tokloc.1, Token::Eof) {
                 break;
             }
             tokens.push(tokloc.1);
