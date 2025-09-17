@@ -17,7 +17,7 @@ use super::{
     color_defs::get_color,
     commands::get_negated_op,
     environments::Env,
-    error::{LatexErrKind, Place},
+    error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     token::{ErrorTup, TokResult, Token},
@@ -281,7 +281,7 @@ where
         };
         let mut new_class: Class = Default::default();
         let next_class = self.next_class(parse_as, sequence_state);
-        let node: Result<Node, (usize, LatexErrKind)> = match cur_token {
+        let node: Result<Node, LatexError> = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
                 builder.push_char(number as u8 as char);
@@ -430,7 +430,7 @@ where
                 let (loc, length) = self.parse_ascii_text_group()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
-                    None => Err((loc, LatexErrKind::ExpectedLength(length))),
+                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
                 }
             }
             Token::NonBreakingSpace => Ok(Node::Text("\u{A0}")),
@@ -485,12 +485,12 @@ where
                 let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let lt = match length.trim() {
@@ -505,11 +505,11 @@ where
                         b"2" => Some(Style::Script),
                         b"3" => Some(Style::ScriptScript),
                         _ => {
-                            break 'genfrac Err((0, LatexErrKind::UnexpectedEOF));
+                            break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err((0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
@@ -684,7 +684,7 @@ where
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
-                    _ => Err((
+                    _ => Err(LatexError(
                         loc,
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
@@ -851,7 +851,10 @@ where
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
                     let Some(spec) = parse_column_specification(options, self.arena) else {
-                        break 'begin_env Err((loc, LatexErrKind::ExpectedColSpec(options.trim())));
+                        break 'begin_env Err(LatexError(
+                            loc,
+                            LatexErrKind::ExpectedColSpec(options.trim()),
+                        ));
                     };
                     Some(spec)
                 } else {
@@ -870,7 +873,7 @@ where
                 let (end_token_loc, end_token) = self.next_token().with_error()?;
                 let Token::End(end_env) = end_token else {
                     // This should never happen because we specified the end token above.
-                    break 'begin_env Err((
+                    break 'begin_env Err(LatexError(
                         end_token_loc,
                         LatexErrKind::UnexpectedToken {
                             expected: &Token::End(Env::Align),
@@ -972,7 +975,7 @@ where
                     }
                 };
                 if end_env != env {
-                    Err((
+                    Err(LatexError(
                         end_token_loc,
                         LatexErrKind::MismatchedEnvironment {
                             expected: env,
@@ -1042,7 +1045,7 @@ where
                     new_class = Class::Close;
                     Ok(Node::ColumnSeparator)
                 } else {
-                    Err((
+                    Err(LatexError(
                         loc,
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
@@ -1062,7 +1065,7 @@ where
                         attr: color,
                     })
                 } else {
-                    Err((loc, LatexErrKind::UnknownColor(color_name)))
+                    Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)))
                 }
             }
             Token::Style(style) => {
@@ -1122,16 +1125,16 @@ where
                     }
                 }
             }
-            Token::Limits => Err((
+            Token::Limits => Err(LatexError(
                 loc,
                 LatexErrKind::CannotBeUsedHere {
                     got: cur_token,
                     correct_place: Place::AfterBigOp,
                 },
             )),
-            Token::Eof => Err((loc, LatexErrKind::UnexpectedEOF)),
+            Token::Eof => Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
             Token::End(_) | Token::Right | Token::GroupEnd => {
-                Err((loc, LatexErrKind::UnexpectedClose(cur_token)))
+                Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
@@ -1182,7 +1185,7 @@ where
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
                 } else {
-                    Err((loc, LatexErrKind::RenderError))
+                    Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
             Token::GetCollectedLetters => match self.collector {
@@ -1194,7 +1197,7 @@ where
                     self.collector = LetterCollector::Collecting;
                     Ok(Node::IdentifierStr(collected_letters))
                 }
-                _ => Err((
+                _ => Err(LatexError(
                     loc,
                     LatexErrKind::CannotBeUsedHere {
                         got: cur_token,
@@ -1205,7 +1208,7 @@ where
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             // The following are text-mode-only tokens.
             Token::Whitespace | Token::TextModeAccent(_) => {
-                Err((
+                Err(LatexError(
                     loc,
                     // TODO: Find a better error.
                     LatexErrKind::CannotBeUsedHere {
@@ -1218,7 +1221,7 @@ where
         sequence_state.class = new_class;
         match node {
             Ok(n) => Ok(self.commit(n)),
-            Err((loc, e)) => Err((loc, self.arena.alloc(e))),
+            Err(LatexError(loc, e)) => Err((loc, self.arena.alloc(e))),
         }
     }
 
