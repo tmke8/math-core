@@ -301,7 +301,7 @@ where
 {
     let lexer = latex_parser::Lexer::new(latex, false, custom_cmds);
     let mut p = latex_parser::Parser::new(lexer, arena);
-    let nodes = p.parse()?;
+    let nodes = p.parse().map_err(|e| LatexError(e.0, *e.1))?;
     Ok(nodes)
 }
 

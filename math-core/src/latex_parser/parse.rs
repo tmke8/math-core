@@ -20,7 +20,7 @@ use super::{
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
-    token::{TokResult, Token},
+    token::{ErrorTup, TokResult, Token},
 };
 
 pub(crate) struct Parser<'arena, 'source> {
@@ -107,6 +107,8 @@ enum ParseAs {
     ArgWithSpace,
 }
 
+type ASTResult<'arena, 'source> = Result<&'arena Node<'arena>, ErrorTup<'arena, 'source>>;
+
 impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
@@ -185,7 +187,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, ErrorTup<'arena, 'source>> {
         let nodes = self.parse_sequence(SequenceEnd::Token(Token::Eof), None)?;
         Ok(nodes)
     }
@@ -201,7 +203,7 @@ where
         &mut self,
         sequence_end: SequenceEnd,
         sequence_state: Option<&mut SequenceState>,
-    ) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>> {
+    ) -> Result<Vec<&'arena Node<'arena>>, ErrorTup<'arena, 'source>> {
         let mut nodes = Vec::new();
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -225,9 +227,9 @@ where
             if matches!(cur_tokloc.token(), Ok(Token::Eof)) {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
-                    return Err(LatexError(
+                    return Err((
                         cur_tokloc.location(),
-                        LatexErrKind::UnclosedGroup(end_token),
+                        self.arena.alloc(LatexErrKind::UnclosedGroup(end_token)),
                     ));
                 }
             }
@@ -270,7 +272,7 @@ where
         cur_tokloc: TokResult<'arena, 'source>,
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    ) -> ASTResult<'arena, 'source> {
         let (loc, cur_token) = cur_tokloc.with_error()?;
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -279,7 +281,7 @@ where
         };
         let mut new_class: Class = Default::default();
         let next_class = self.next_class(parse_as, sequence_state);
-        let node = match cur_token {
+        let node: Result<Node, LatexError> = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
                 builder.push_char(number as u8 as char);
@@ -310,22 +312,22 @@ where
                         self.tokens.next(self.arena);
                     }
                 }
-                Node::Number(builder.finish(self.arena))
+                Ok(Node::Number(builder.finish(self.arena)))
             }
-            Token::Letter(x) => Node::IdentifierChar(x, LetterAttr::Default),
-            Token::UprightLetter(x) => Node::IdentifierChar(x, LetterAttr::Upright),
+            Token::Letter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Default)),
+            Token::UprightLetter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Upright)),
             Token::Relation(relation) => {
                 new_class = Class::Relation;
                 if let Some(op) = relation.as_stretchable_op() {
-                    Node::StretchableOp(op, StretchMode::NoStretch)
+                    Ok(Node::StretchableOp(op, StretchMode::NoStretch))
                 } else {
                     let (left, right) = relation_spacing(next_class, sequence_state);
-                    Node::Operator {
+                    Ok(Node::Operator {
                         op: relation.as_op(),
                         attr: None,
                         left,
                         right,
-                    }
+                    })
                 }
             }
             Token::Punctuation(punc) => {
@@ -335,25 +337,25 @@ where
                 } else {
                     None
                 };
-                Node::Operator {
+                Ok(Node::Operator {
                     op: punc.as_op(),
                     attr: None,
                     left: None,
                     right,
-                }
+                })
             }
             Token::Ord(ord) => {
                 if let Some(op) = ord.as_stretchable_op() {
                     // If the operator can stretch, we prevent that by rendering it
                     // as a normal identifier.
-                    Node::IdentifierChar(op.into(), LetterAttr::Default)
+                    Ok(Node::IdentifierChar(op.into(), LetterAttr::Default))
                 } else {
-                    Node::Operator {
+                    Ok(Node::Operator {
                         op: ord.as_op(),
                         attr: None,
                         left: None,
                         right: None,
-                    }
+                    })
                 }
             }
             Token::BinaryOp(binary_op) => {
@@ -374,63 +376,64 @@ where
                 } else {
                     None
                 };
-                Node::Operator {
+                Ok(Node::Operator {
                     op: binary_op.into(),
                     attr: None,
                     left: spacing,
                     right: spacing,
-                }
+                })
             }
             Token::OpGreaterThan => {
                 let (left, right) = relation_spacing(next_class, sequence_state);
-                Node::PseudoOp {
+                Ok(Node::PseudoOp {
                     name: "&gt;",
                     attr: None,
                     left,
                     right,
-                }
+                })
             }
             Token::OpLessThan => {
                 let (left, right) = relation_spacing(next_class, sequence_state);
-                Node::PseudoOp {
+                Ok(Node::PseudoOp {
                     name: "&lt;",
                     attr: None,
                     left,
                     right,
-                }
+                })
             }
-            Token::OpAmpersand => Node::PseudoOp {
+            Token::OpAmpersand => Ok(Node::PseudoOp {
                 name: "&amp;",
                 attr: None,
                 left: None,
                 right: None,
-            },
+            }),
             Token::PseudoOperator(name) => {
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                 new_class = Class::Operator;
-                Node::PseudoOp {
+                Ok(Node::PseudoOp {
                     attr: None,
                     left,
                     right,
                     name,
-                }
+                })
             }
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
-                Node::Enclose { content, notation }
+                Ok(Node::Enclose { content, notation })
             }
             Token::Space(space) => {
                 // Spaces pass through the sequence state.
                 new_class = sequence_state.class;
-                Node::Space(space)
+                Ok(Node::Space(space))
             }
             Token::CustomSpace => {
                 let (loc, length) = self.parse_ascii_text_group()?;
-                let space = parse_length_specification(length.trim())
-                    .ok_or(LatexError(loc, LatexErrKind::ExpectedLength(length)))?;
-                Node::Space(space)
+                match parse_length_specification(length.trim()) {
+                    Some(space) => Ok(Node::Space(space)),
+                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
+                }
             }
-            Token::NonBreakingSpace => Node::Text("\u{A0}"),
+            Token::NonBreakingSpace => Ok(Node::Text("\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next.token(), Ok(Token::SquareBracketOpen)) {
@@ -438,9 +441,12 @@ where
                         self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), None)?;
                     self.next_token(); // Discard the closing token.
                     let content = self.parse_next(ParseAs::Arg)?;
-                    Node::Root(node_vec_to_node(self.arena, degree, true), content)
+                    Ok(Node::Root(
+                        node_vec_to_node(self.arena, degree, true),
+                        content,
+                    ))
                 } else {
-                    Node::Sqrt(self.parse_token(next, ParseAs::Arg, None)?)
+                    Ok(Node::Sqrt(self.parse_token(next, ParseAs::Arg, None)?))
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
@@ -448,7 +454,7 @@ where
                 let denom = self.parse_next(ParseAs::Arg)?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
-                    Node::Fenced {
+                    Ok(Node::Fenced {
                         open: Some(symbol::LEFT_PARENTHESIS.as_op()),
                         close: Some(symbol::RIGHT_PARENTHESIS.as_op()),
                         content: self.commit(Node::Frac {
@@ -459,19 +465,19 @@ where
                             attr,
                         }),
                         style: None,
-                    }
+                    })
                 } else {
                     let (lt_value, lt_unit) = Length::none().into_parts();
-                    Node::Frac {
+                    Ok(Node::Frac {
                         num,
                         denom,
                         lt_value,
                         lt_unit,
                         attr,
-                    }
+                    })
                 }
             }
-            Token::Genfrac => {
+            Token::Genfrac => 'genfrac: {
                 // TODO: This should not just blindly try to parse a node.
                 // Rather, we should explicitly attempt to parse a group (aka Row),
                 // and if that doesn't work, we try to parse it as an Operator,
@@ -479,18 +485,18 @@ where
                 let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal)
-                        .ok_or(LatexError(loc, LatexErrKind::ExpectedLength(decimal)))?,
+                        .ok_or((loc, self.arena.alloc(LatexErrKind::ExpectedLength(decimal))))?,
                 };
                 let style = match self.parse_next(ParseAs::Arg)? {
                     Node::Number(num) => match num.as_bytes() {
@@ -498,16 +504,18 @@ where
                         b"1" => Some(Style::Text),
                         b"2" => Some(Style::Script),
                         b"3" => Some(Style::ScriptScript),
-                        _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                        _ => {
+                            break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF));
+                        }
                     },
                     Node::Row { nodes: [], .. } => None,
-                    _ => return Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
                 let attr = None;
                 let (lt_value, lt_unit) = lt.into_parts();
-                Node::Fenced {
+                Ok(Node::Fenced {
                     open,
                     close,
                     content: self.commit(Node::Frac {
@@ -518,14 +526,14 @@ where
                         attr,
                     }),
                     style,
-                }
+                })
             }
             Token::OverUnder(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
-                    Node::OverOp(op.as_op(), attr, target)
+                    Ok(Node::OverOp(op.as_op(), attr, target))
                 } else {
-                    Node::UnderOp(op.as_op(), target)
+                    Ok(Node::UnderOp(op.as_op(), target))
                 }
             }
             Token::Overset | Token::Underset => {
@@ -534,9 +542,9 @@ where
                 let target =
                     self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
                 if matches!(cur_token, Token::Overset) {
-                    Node::Overset { symbol, target }
+                    Ok(Node::Overset { symbol, target })
                 } else {
-                    Node::Underset { symbol, target }
+                    Ok(Node::Underset { symbol, target })
                 }
             }
             Token::OverUnderBrace(x, is_over) => {
@@ -559,18 +567,18 @@ where
                     self.next_token(); // Discard the circumflex or underscore token.
                     let expl = self.parse_next(ParseAs::Arg)?;
                     if is_over {
-                        Node::Overset {
+                        Ok(Node::Overset {
                             symbol: expl,
                             target,
-                        }
+                        })
                     } else {
-                        Node::Underset {
+                        Ok(Node::Underset {
                             symbol: expl,
                             target,
-                        }
+                        })
                     }
                 } else {
-                    base
+                    Ok(base)
                 }
             }
             Token::BigOp(op) => {
@@ -592,13 +600,13 @@ where
                     right,
                 });
                 match self.get_bounds()? {
-                    Bounds(Some(under), Some(over)) => Node::UnderOver {
+                    Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
                         target,
                         under,
                         over,
-                    },
-                    Bounds(Some(symbol), None) => Node::Underset { target, symbol },
-                    Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                    }),
+                    Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                    Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
                         sequence_state.class = new_class;
                         return Ok(target);
@@ -621,46 +629,46 @@ where
                     });
                     self.next_token(); // Discard the underscore token.
                     let under = self.parse_next(ParseAs::Arg)?;
-                    Node::Underset {
+                    Ok(Node::Underset {
                         target,
                         symbol: under,
-                    }
+                    })
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
-                    Node::PseudoOp {
+                    Ok(Node::PseudoOp {
                         attr: None,
                         left,
                         right,
                         name,
-                    }
+                    })
                 }
             }
             Token::Slashed => {
                 let node = self.parse_next(ParseAs::Arg)?;
-                Node::Slashed(node)
+                Ok(Node::Slashed(node))
             }
             Token::Not => {
                 // `\not` has to be followed by something:
                 match self.next_token().into_token() {
                     Ok(Token::Relation(op)) => {
                         if let Some(negated) = get_negated_op(op) {
-                            Node::Operator {
+                            Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attr: None,
                                 left: None,
                                 right: None,
-                            }
+                            })
                         } else {
-                            Node::Operator {
+                            Ok(Node::Operator {
                                 op: op.as_op(),
                                 attr: None,
                                 left: None,
                                 right: None,
-                            }
+                            })
                         }
                     }
-                    Ok(tok @ (Token::OpLessThan | Token::OpGreaterThan)) => Node::Operator {
+                    Ok(tok @ (Token::OpLessThan | Token::OpGreaterThan)) => Ok(Node::Operator {
                         op: if matches!(tok, Token::OpLessThan) {
                             symbol::NOT_LESS_THAN.as_op()
                         } else {
@@ -669,22 +677,20 @@ where
                         attr: None,
                         left: None,
                         right: None,
-                    },
+                    }),
                     Ok(Token::Letter(char) | Token::UprightLetter(char)) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Node::IdentifierStr(builder.finish(self.arena))
+                        Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
-                    _ => {
-                        return Err(LatexError(
-                            loc,
-                            LatexErrKind::CannotBeUsedHere {
-                                got: cur_token,
-                                correct_place: Place::BeforeSomeOps,
-                            },
-                        ));
-                    }
+                    _ => Err(LatexError(
+                        loc,
+                        LatexErrKind::CannotBeUsedHere {
+                            got: cur_token,
+                            correct_place: Place::BeforeSomeOps,
+                        },
+                    )),
                 }
             }
             Token::Transform(tf) => {
@@ -696,7 +702,7 @@ where
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.collector = old_collector;
                 self.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
-                Node::TextTransform { content, tf }
+                Ok(Node::TextTransform { content, tf })
             }
             Token::Integral(int) => {
                 new_class = Class::Operator;
@@ -714,13 +720,13 @@ where
                 });
                 if limits {
                     match bounds {
-                        Bounds(Some(under), Some(over)) => Node::UnderOver {
+                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
                             target,
                             under,
                             over,
-                        },
-                        Bounds(Some(symbol), None) => Node::Underset { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Overset { target, symbol },
+                        }),
+                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
                             sequence_state.class = new_class;
                             return Ok(target);
@@ -728,9 +734,9 @@ where
                     }
                 } else {
                     match bounds {
-                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                        Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                        Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
                             sequence_state.class = new_class;
                             return Ok(target);
@@ -763,12 +769,12 @@ where
                 } else {
                     Some(MathSpacing::FiveMu)
                 };
-                Node::Operator {
+                Ok(Node::Operator {
                     op,
                     attr: None,
                     left,
                     right,
-                }
+                })
             }
             Token::GroupBegin => {
                 let content = if matches!(parse_as, ParseAs::ContinueSequence) {
@@ -794,21 +800,25 @@ where
                 if matches!(tok, Token::Open(_)) {
                     new_class = Class::Open;
                 }
-                Node::StretchableOp(paren.as_op(), StretchMode::NoStretch)
+                Ok(Node::StretchableOp(paren.as_op(), StretchMode::NoStretch))
             }
             Token::SquareBracketOpen => {
                 new_class = Class::Open;
-                Node::StretchableOp(symbol::LEFT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
+                Ok(Node::StretchableOp(
+                    symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    StretchMode::NoStretch,
+                ))
             }
-            Token::SquareBracketClose => {
-                Node::StretchableOp(symbol::RIGHT_SQUARE_BRACKET.as_op(), StretchMode::NoStretch)
-            }
+            Token::SquareBracketClose => Ok(Node::StretchableOp(
+                symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                StretchMode::NoStretch,
+            )),
             Token::Left => {
                 let tok_loc = self.next_token();
                 let open_paren = if matches!(tok_loc.token(), Ok(Token::Letter('.'))) {
                     None
                 } else {
-                    Some(extract_delimiter(tok_loc)?.0)
+                    Some(self.extract_delimiter(tok_loc)?.0)
                 };
                 let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None)?;
                 self.next_token(); // Discard the closing token.
@@ -816,35 +826,37 @@ where
                 let close_paren = if matches!(tok_loc.token(), Ok(Token::Letter('.'))) {
                     None
                 } else {
-                    Some(extract_delimiter(tok_loc)?.0)
+                    Some(self.extract_delimiter(tok_loc)?.0)
                 };
-                Node::Fenced {
+                Ok(Node::Fenced {
                     open: open_paren,
                     close: close_paren,
                     content: node_vec_to_node(self.arena, content, false),
                     style: None,
-                }
+                })
             }
             Token::Middle => {
                 let tok_loc = self.next_token();
-                let op = extract_delimiter(tok_loc)?.0;
-                Node::StretchableOp(op, StretchMode::Middle)
+                let op = self.extract_delimiter(tok_loc)?.0;
+                Ok(Node::StretchableOp(op, StretchMode::Middle))
             }
             Token::Big(size, class) => {
                 let tok_loc = self.next_token();
-                let (paren, symbol_class) = extract_delimiter(tok_loc)?;
+                let (paren, symbol_class) = self.extract_delimiter(tok_loc)?;
                 new_class = class.unwrap_or(symbol_class);
-                Node::SizedParen(size, paren)
+                Ok(Node::SizedParen(size, paren))
             }
-            Token::Begin(env) => {
+            Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
-                    Some(
-                        parse_column_specification(options, self.arena).ok_or_else(|| {
-                            LatexError(loc, LatexErrKind::ExpectedColSpec(options.trim()))
-                        })?,
-                    )
+                    let Some(spec) = parse_column_specification(options, self.arena) else {
+                        break 'begin_env Err(LatexError(
+                            loc,
+                            LatexErrKind::ExpectedColSpec(options.trim()),
+                        ));
+                    };
+                    Some(spec)
                 } else {
                     None
                 };
@@ -861,7 +873,7 @@ where
                 let (end_token_loc, end_token) = self.next_token().with_error()?;
                 let Token::End(end_env) = end_token else {
                     // This should never happen because we specified the end token above.
-                    return Err(LatexError(
+                    break 'begin_env Err(LatexError(
                         end_token_loc,
                         LatexErrKind::UnexpectedToken {
                             expected: &Token::End(Env::Align),
@@ -963,16 +975,16 @@ where
                     }
                 };
                 if end_env != env {
-                    return Err(LatexError(
+                    Err(LatexError(
                         end_token_loc,
                         LatexErrKind::MismatchedEnvironment {
                             expected: env,
                             got: end_env,
                         },
-                    ));
+                    ))
+                } else {
+                    Ok(node)
                 }
-
-                node
             }
             Token::OperatorName => {
                 let tokloc = self.tokens.peek;
@@ -984,16 +996,16 @@ where
                 // Discard the last token.
                 self.next_token();
                 if let Some(ch) = get_single_char(letters) {
-                    Node::IdentifierChar(ch, LetterAttr::Upright)
+                    Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
-                    Node::PseudoOp {
+                    Ok(Node::PseudoOp {
                         attr: None,
                         left,
                         right,
                         name: letters,
-                    }
+                    })
                 }
             }
             Token::Text(transform) => {
@@ -1020,39 +1032,40 @@ where
                     self.next_token();
                 }
                 if let Some(transform) = transform {
-                    Node::TextTransform {
+                    Ok(Node::TextTransform {
                         content: self.commit(Node::Text(text)),
                         tf: MathVariant::Transform(transform),
-                    }
+                    })
                 } else {
-                    Node::Text(text)
+                    Ok(Node::Text(text))
                 }
             }
             Token::Ampersand => {
                 if sequence_state.allow_columns {
                     new_class = Class::Close;
-                    Node::ColumnSeparator
+                    Ok(Node::ColumnSeparator)
                 } else {
-                    return Err(LatexError(
+                    Err(LatexError(
                         loc,
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
                             correct_place: Place::TableEnv,
                         },
-                    ));
+                    ))
                 }
             }
-            Token::NewLine => Node::RowSeparator,
+            Token::NewLine => Ok(Node::RowSeparator),
             Token::Color => {
                 let (loc, color_name) = self.parse_ascii_text_group()?;
-                let Some(color) = get_color(color_name) else {
-                    return Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
-                };
-                let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
-                Node::Row {
-                    nodes: self.arena.push_slice(&content),
-                    attr: color,
+                if let Some(color) = get_color(color_name) {
+                    let content =
+                        self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
+                    Ok(Node::Row {
+                        nodes: self.arena.push_slice(&content),
+                        attr: color,
+                    })
+                } else {
+                    Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)))
                 }
             }
             Token::Style(style) => {
@@ -1063,10 +1076,10 @@ where
                 let content =
                     self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
                 sequence_state.script_style = old_style;
-                Node::Row {
+                Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
-                }
+                })
             }
             Token::Prime => {
                 let target = self.commit(Node::Row {
@@ -1079,7 +1092,7 @@ where
                     left: None,
                     right: None,
                 });
-                Node::Superscript { target, symbol }
+                Ok(Node::Superscript { target, symbol })
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
@@ -1093,37 +1106,35 @@ where
                     } else {
                         (None, Some(symbol))
                     };
-                    Node::Multiscript { base, sub, sup }
+                    Ok(Node::Multiscript { base, sub, sup })
                 } else {
                     let empty_row = self.commit(Node::Row {
                         nodes: &[],
                         attr: RowAttr::None,
                     });
                     if matches!(tok, Token::Underscore) {
-                        Node::Subscript {
+                        Ok(Node::Subscript {
                             target: empty_row,
                             symbol,
-                        }
+                        })
                     } else {
-                        Node::Superscript {
+                        Ok(Node::Superscript {
                             target: empty_row,
                             symbol,
-                        }
+                        })
                     }
                 }
             }
-            Token::Limits => {
-                return Err(LatexError(
-                    loc,
-                    LatexErrKind::CannotBeUsedHere {
-                        got: cur_token,
-                        correct_place: Place::AfterBigOp,
-                    },
-                ));
-            }
-            Token::Eof => return Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
+            Token::Limits => Err(LatexError(
+                loc,
+                LatexErrKind::CannotBeUsedHere {
+                    got: cur_token,
+                    correct_place: Place::AfterBigOp,
+                },
+            )),
+            Token::Eof => Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
             Token::End(_) | Token::Right | Token::GroupEnd => {
-                return Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)));
+                Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
@@ -1134,7 +1145,11 @@ where
                 }
                 for _ in 0..num_args {
                     let tokens = if matches!(self.tokens.peek.token(), Ok(Token::GroupBegin)) {
-                        let tokens = self.tokens.lexer.read_group()?;
+                        let tokens = self
+                            .tokens
+                            .lexer
+                            .read_group()
+                            .map_err(|e| (e.0, self.arena.alloc(e.1)))?;
                         self.next_token(); // Discard the opening `{` token.
                         tokens
                     } else {
@@ -1170,70 +1185,70 @@ where
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
                 } else {
-                    return Err(LatexError(loc, LatexErrKind::RenderError));
+                    Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
             Token::GetCollectedLetters => match self.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
                     self.collector = LetterCollector::Collecting;
-                    Node::IdentifierChar(collected_letter, LetterAttr::Default)
+                    Ok(Node::IdentifierChar(collected_letter, LetterAttr::Default))
                 }
                 LetterCollector::FinishedManyLetters { collected_letters } => {
                     self.collector = LetterCollector::Collecting;
-                    Node::IdentifierStr(collected_letters)
+                    Ok(Node::IdentifierStr(collected_letters))
                 }
-                _ => {
-                    return Err(LatexError(
-                        loc,
-                        LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
-                            correct_place: Place::AfterOpOrIdent,
-                        },
-                    ));
-                }
+                _ => Err(LatexError(
+                    loc,
+                    LatexErrKind::CannotBeUsedHere {
+                        got: cur_token,
+                        correct_place: Place::AfterOpOrIdent,
+                    },
+                )),
             },
-            Token::HardcodedMathML(mathml) => Node::HardcodedMathML(mathml),
+            Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             // The following are text-mode-only tokens.
             Token::Whitespace | Token::TextModeAccent(_) => {
-                return Err(LatexError(
+                Err(LatexError(
                     loc,
                     // TODO: Find a better error.
                     LatexErrKind::CannotBeUsedHere {
                         got: cur_token,
                         correct_place: Place::BeforeSomeOps,
                     },
-                ));
+                ))
             }
         };
         sequence_state.class = new_class;
-        Ok(self.commit(node))
+        match node {
+            Ok(n) => Ok(self.commit(n)),
+            Err(LatexError(loc, e)) => Err((loc, self.arena.alloc(e))),
+        }
     }
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(
-        &mut self,
-        parse_as: ParseAs,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'arena, 'source> {
         let token = self.next_token();
         self.parse_token(token, parse_as, None)
     }
 
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
-    fn parse_ascii_text_group(&mut self) -> Result<(usize, &'source str), LatexError<'source>> {
+    fn parse_ascii_text_group(
+        &mut self,
+    ) -> Result<(usize, &'source str), ErrorTup<'arena, 'source>> {
         if !self.tokens.stack.is_empty() {
             // This function doesn't work if we are processing tokens from the token stack.
-            return Err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd));
+            return Err((0, self.arena.alloc(LatexErrKind::NotSupportedInCustomCmd)));
         }
         // First check whether there is an opening `{` token.
         if !matches!(self.tokens.peek.token(), Ok(Token::GroupBegin)) {
             let (loc, token) = self.next_token().with_error()?;
-            return Err(LatexError(
+            return Err((
                 loc,
-                LatexErrKind::UnexpectedToken {
+                self.arena.alloc(LatexErrKind::UnexpectedToken {
                     expected: &Token::GroupBegin,
                     got: token,
-                },
+                }),
             ));
         }
         // Read the text.
@@ -1242,12 +1257,12 @@ where
         let opening_loc = self.next_token().location();
         result
             .map(|r| (opening_loc, r))
-            .ok_or(LatexError(opening_loc, LatexErrKind::DisallowedChars))
+            .ok_or((opening_loc, self.arena.alloc(LatexErrKind::DisallowedChars)))
     }
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena>, LatexError<'source>> {
+    fn get_bounds(&mut self) -> Result<Bounds<'arena>, ErrorTup<'arena, 'source>> {
         let mut primes = self.prime_check();
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek.token(), Ok(Token::Underscore));
@@ -1268,12 +1283,12 @@ where
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
                 let (loc, token) = self.next_token().with_error()?;
-                return Err(LatexError(
+                return Err((
                     loc,
-                    LatexErrKind::CannotBeUsedHere {
+                    self.arena.alloc(LatexErrKind::CannotBeUsedHere {
                         got: token,
                         correct_place: Place::AfterOpOrIdent,
-                    },
+                    }),
                 ));
             }
 
@@ -1348,19 +1363,19 @@ where
     fn get_sub_or_sup(
         &mut self,
         is_sup: bool,
-    ) -> Result<&'arena Node<'arena>, LatexError<'source>> {
+    ) -> Result<&'arena Node<'arena>, ErrorTup<'arena, 'source>> {
         self.next_token(); // Discard the underscore or circumflex token.
         let next = self.next_token();
         if matches!(
             next.token(),
             Ok(Token::Underscore | Token::Circumflex | Token::Prime)
         ) {
-            return Err(LatexError(
+            return Err((
                 next.location(),
-                LatexErrKind::CannotBeUsedHere {
+                self.arena.alloc(LatexErrKind::CannotBeUsedHere {
                     got: next.with_error()?.1,
                     correct_place: Place::AfterOpOrIdent,
-                },
+                }),
             ));
         }
         let mut sequence_state = SequenceState {
@@ -1371,12 +1386,12 @@ where
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek.token(), Ok(Token::Prime)) {
-            return Err(LatexError(
+            return Err((
                 self.tokens.peek.location(),
-                LatexErrKind::CannotBeUsedHere {
+                self.arena.alloc(LatexErrKind::CannotBeUsedHere {
                     got: Token::Prime,
                     correct_place: Place::AfterOpOrIdent,
-                },
+                }),
             ));
         }
 
@@ -1440,6 +1455,32 @@ where
             _ => Class::Default,
         }
     }
+
+    fn extract_delimiter(
+        &self,
+        tok: TokResult<'arena, 'source>,
+    ) -> Result<(StretchableOp, Class), ErrorTup<'arena, 'source>> {
+        let (loc, tok) = tok.with_error()?;
+        let (delim, class) = match tok {
+            Token::Open(paren) => (Some(paren.as_op()), Class::Open),
+            Token::Close(paren) => (Some(paren.as_op()), Class::Close),
+            Token::Ord(ord) => (ord.as_stretchable_op(), Class::Default),
+            Token::Relation(rel) => (rel.as_stretchable_op(), Class::Relation),
+            Token::SquareBracketOpen => (Some(symbol::LEFT_SQUARE_BRACKET.as_op()), Class::Open),
+            Token::SquareBracketClose => (Some(symbol::RIGHT_SQUARE_BRACKET.as_op()), Class::Close),
+            _ => (None, Class::Default),
+        };
+        let Some(delim) = delim else {
+            return Err((
+                loc,
+                self.arena.alloc(LatexErrKind::UnexpectedToken {
+                    expected: &Token::Open(symbol::LEFT_PARENTHESIS),
+                    got: tok,
+                }),
+            ));
+        };
+        Ok((delim, class))
+    }
 }
 
 // Turn a vector of nodes into a single node.
@@ -1479,31 +1520,6 @@ pub(crate) fn node_vec_to_node<'arena>(
             attr: RowAttr::None,
         })
     }
-}
-
-fn extract_delimiter<'source>(
-    tok_loc: TokResult<'_, 'source>,
-) -> Result<(StretchableOp, Class), LatexError<'source>> {
-    let (loc, tok) = tok_loc.with_error()?;
-    let (delim, class) = match tok {
-        Token::Open(paren) => (Some(paren.as_op()), Class::Open),
-        Token::Close(paren) => (Some(paren.as_op()), Class::Close),
-        Token::Ord(ord) => (ord.as_stretchable_op(), Class::Default),
-        Token::Relation(rel) => (rel.as_stretchable_op(), Class::Relation),
-        Token::SquareBracketOpen => (Some(symbol::LEFT_SQUARE_BRACKET.as_op()), Class::Open),
-        Token::SquareBracketClose => (Some(symbol::RIGHT_SQUARE_BRACKET.as_op()), Class::Close),
-        _ => (None, Class::Default),
-    };
-    let Some(delim) = delim else {
-        return Err(LatexError(
-            loc,
-            LatexErrKind::UnexpectedToken {
-                expected: &Token::Open(symbol::LEFT_PARENTHESIS),
-                got: tok,
-            },
-        ));
-    };
-    Ok((delim, class))
 }
 
 fn relation_spacing(
@@ -1574,20 +1590,20 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
     fn parse_token_in_text_mode(
         &mut self,
         tokloc: TokResult<'arena, 'source>,
-    ) -> Result<(), LatexError<'source>> {
+    ) -> Result<(), ErrorTup<'arena, 'source>> {
         let (loc, token) = tokloc.with_error()?;
-        let c: char = match token {
-            Token::Letter(c) | Token::UprightLetter(c) => c,
-            Token::Whitespace | Token::NonBreakingSpace => '\u{A0}',
-            Token::Open(op) | Token::Close(op) => op.as_op().into(),
-            Token::BinaryOp(op) => op.as_op().into(),
-            Token::Relation(op) => op.as_op().into(),
-            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op().into(),
-            Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op().into(),
-            Token::Number(digit) => digit as u8 as char,
-            Token::Prime => '’',
-            Token::ForceRelation(op) => op.as_char(),
-            Token::Punctuation(op) => op.as_op().into(),
+        let c: Result<char, LatexErrKind> = match token {
+            Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
+            Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
+            Token::Open(op) | Token::Close(op) => Ok(op.as_op().into()),
+            Token::BinaryOp(op) => Ok(op.as_op().into()),
+            Token::Relation(op) => Ok(op.as_op().into()),
+            Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
+            Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
+            Token::Number(digit) => Ok(digit as u8 as char),
+            Token::Prime => Ok('’'),
+            Token::ForceRelation(op) => Ok(op.as_char()),
+            Token::Punctuation(op) => Ok(op.as_op().into()),
             Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => {
                 // We don't transform these strings.
                 self.builder.push_str(name);
@@ -1595,13 +1611,13 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
             }
             Token::Space(length) => {
                 if length == Length::new(1.0, LengthUnit::Em) {
-                    '\u{2003}'
+                    Ok('\u{2003}')
                 } else if length == LatexUnit::Mu.length_with_unit(5.0) {
-                    '\u{2004}'
+                    Ok('\u{2004}')
                 } else if length == LatexUnit::Mu.length_with_unit(4.0) {
-                    '\u{205F}'
+                    Ok('\u{205F}')
                 } else if length == LatexUnit::Mu.length_with_unit(3.0) {
-                    '\u{2009}'
+                    Ok('\u{2009}')
                 } else {
                     return Ok(());
                 }
@@ -1636,22 +1652,20 @@ impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'sourc
                 }
                 return Ok(());
             }
-            Token::Eof => {
-                return Err(LatexError(
-                    loc,
-                    LatexErrKind::UnclosedGroup(Token::GroupEnd),
-                ));
-            }
+            Token::Eof => Err(LatexErrKind::UnclosedGroup(Token::GroupEnd)),
             Token::End(_) | Token::Right | Token::GroupEnd => {
-                return Err(LatexError(loc, LatexErrKind::UnexpectedClose(token)));
+                Err(LatexErrKind::UnexpectedClose(token))
             }
-            _ => {
-                return Err(LatexError(loc, LatexErrKind::NotValidInTextMode(token)));
-            }
+            _ => Err(LatexErrKind::NotValidInTextMode(token)),
         };
-        self.builder
-            .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));
-        Ok(())
+        match c {
+            Err(e) => Err((loc, self.arena.alloc(e))),
+            Ok(c) => {
+                self.builder
+                    .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));
+                Ok(())
+            }
+        }
     }
 }
 

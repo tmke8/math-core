@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use super::character_class::Class;
 use super::environments::Env;
-use super::error::{LatexErrKind, LatexError};
+use super::error::LatexErrKind;
 
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -158,7 +158,9 @@ impl TryFrom<char> for Digit {
     }
 }
 
-pub type TokLoc<'config> = (usize, Token<'config>);
+pub(crate) type TokLoc<'config> = (usize, Token<'config>);
+
+pub(crate) type ErrorTup<'arena, 'source> = (usize, &'arena LatexErrKind<'source>);
 
 #[derive(Debug, Clone, Copy)]
 pub struct TokResult<'arena, 'source>(
@@ -178,10 +180,10 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 
     #[inline]
-    pub fn with_error(self) -> Result<TokLoc<'source>, LatexError<'source>> {
+    pub fn with_error(self) -> Result<TokLoc<'source>, ErrorTup<'arena, 'source>> {
         match self.1 {
             Ok(tok) => Ok((self.0, tok)),
-            Err(err_kind) => Err(LatexError(self.0, *err_kind)),
+            Err(err_kind) => Err((self.0, err_kind)),
         }
     }
 
