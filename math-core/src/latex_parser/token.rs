@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use super::character_class::Class;
 use super::environments::Env;
-use super::error::LatexErrKind;
+use super::error::{LatexErrKind, LatexError};
 
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -12,9 +12,9 @@ use crate::mathml_renderer::attribute::{
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
 
-#[derive(Debug, Clone, PartialEq, IntoStaticStr)]
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'source> {
+pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin{...}")]
@@ -113,11 +113,10 @@ pub enum Token<'source> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    TokenStream(u8, &'source [Token<'static>]),
+    CustomCmd(u8, &'config [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    Error(Box<LatexErrKind<'source>>),
 }
 
 impl Token<'_> {
@@ -159,18 +158,31 @@ impl TryFrom<char> for Digit {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+pub type TokLoc<'config> = (usize, Token<'config>);
 
-impl<'source> TokLoc<'source> {
+#[derive(Debug, Clone, Copy)]
+pub struct TokResult<'arena, 'source>(
+    pub usize,
+    pub Result<Token<'source>, &'arena LatexErrKind<'source>>,
+);
+
+impl<'arena, 'source> TokResult<'arena, 'source> {
     #[inline]
-    pub fn token(&self) -> &Token<'source> {
+    pub fn token(&self) -> &Result<Token<'source>, &'arena LatexErrKind<'source>> {
         &self.1
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'source> {
+    pub fn into_token(self) -> Result<Token<'source>, &'arena LatexErrKind<'source>> {
         self.1
+    }
+
+    #[inline]
+    pub fn with_error(self) -> Result<TokLoc<'source>, LatexError<'source>> {
+        match self.1 {
+            Ok(tok) => Ok((self.0, tok)),
+            Err(err_kind) => Err(LatexError(self.0, *err_kind)),
+        }
     }
 
     // #[inline]
@@ -193,6 +205,13 @@ mod tests {
     #[test]
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
-        assert!(std::mem::size_of::<TokLoc>() <= 4 * WORD, "size of TokLoc");
+        assert!(
+            std::mem::size_of::<TokResult>() <= 4 * WORD,
+            "size of TokResult"
+        );
+        assert!(
+            std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
+            "size of Result<Token, pointer>"
+        );
     }
 }

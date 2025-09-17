@@ -30,7 +30,7 @@ static XARROW_SPACING_HACK: [Token<'static>; 7] = [
 pub static XRIGHTARROW: [Token<'static>; 7] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
     Overset,
-    TokenStream(0, &XARROW_SPACING_HACK),
+    CustomCmd(0, &XARROW_SPACING_HACK),
     GroupBegin,
     Relation(symbol::RIGHTWARDS_ARROW),
     GroupEnd,
@@ -40,7 +40,7 @@ pub static XRIGHTARROW: [Token<'static>; 7] = [
 pub static XLEFTARROW: [Token<'static>; 7] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
     Overset,
-    TokenStream(0, &XARROW_SPACING_HACK),
+    CustomCmd(0, &XARROW_SPACING_HACK),
     GroupBegin,
     Relation(symbol::LEFTWARDS_ARROW),
     GroupEnd,
