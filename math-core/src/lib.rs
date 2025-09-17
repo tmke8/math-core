@@ -319,10 +319,10 @@ fn parse_custom_commands<'source>(
         let start = tokens.len();
         loop {
             let tokloc = lexer.next_token()?;
-            if matches!(tokloc.token(), Token::Eof) {
+            if matches!(tokloc.1, Token::Eof) {
                 break;
             }
-            tokens.push(tokloc.into_token());
+            tokens.push(tokloc.1);
         }
         let end = tokens.len();
         let num_args = lexer.parse_cmd_args().unwrap_or(0);
