@@ -1,5 +1,6 @@
 use std::mem;
 
+use crate::LatexError;
 use crate::mathml_renderer::arena::Arena;
 
 use super::{
@@ -7,17 +8,17 @@ use super::{
     token::{TokLoc, Token},
 };
 
-pub(super) struct TokenManager<'arena, 'source> {
+pub(super) struct TokenManager<'source> {
     pub lexer: Lexer<'source, 'source>,
-    pub peek: TokLoc<'arena, 'source>,
-    stack: Vec<TokLoc<'arena, 'source>>,
+    pub peek: TokLoc<'source>,
+    stack: Vec<TokLoc<'source>>,
 }
 
-impl<'arena, 'source> TokenManager<'arena, 'source> {
+impl<'source> TokenManager<'source> {
     pub(super) fn new(lexer: Lexer<'source, 'source>, initial_peek: Token<'source>) -> Self {
         TokenManager {
             lexer,
-            peek: TokLoc(0, Ok(initial_peek)),
+            peek: TokLoc(0, initial_peek),
             stack: Vec::new(),
         }
     }
@@ -25,23 +26,26 @@ impl<'arena, 'source> TokenManager<'arena, 'source> {
     /// Get the next token from the lexer, replacing the current peek token.
     ///
     /// If there are tokens on the stack, pop the top token from the stack instead.
-    pub(super) fn next(&mut self, arena: &'arena Arena) -> TokLoc<'arena, 'source> {
+    pub(super) fn next<'arena>(
+        &mut self,
+        arena: &'arena Arena,
+    ) -> Result<TokLoc<'source>, &'arena LatexError<'source>> {
         let peek_token = if let Some(tok) = self.stack.pop() {
             tok
         } else {
             match self.lexer.next_token() {
-                Ok((loc, tok)) => TokLoc(loc, Ok(tok)),
+                Ok(tokloc) => tokloc,
                 Err(e) => {
-                    let err = arena.alloc(e.1);
-                    TokLoc(e.0, Err(err))
+                    let err = arena.alloc(e);
+                    return Err(err);
                 }
             }
         };
         // Return the previous peek token and store the new peek token.
-        mem::replace(&mut self.peek, peek_token)
+        Ok(mem::replace(&mut self.peek, peek_token))
     }
 
-    pub(super) fn add_to_stack(&mut self, tokens: &[impl Into<TokLoc<'arena, 'source>> + Copy]) {
+    pub(super) fn add_to_stack(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
         // Only do something if the token slice is non-empty.
         if let [head, tail @ ..] = tokens {
             // Replace the peek token with the first token of the token stream.

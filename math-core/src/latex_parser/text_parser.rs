@@ -8,9 +8,9 @@ use crate::mathml_renderer::{
 };
 
 use super::{
-    error::LatexErrKind,
+    error::{LatexErrKind, LatexError},
     specifications::LatexUnit,
-    token::{ErrorTup, TokLoc, Token},
+    token::{TokLoc, Token},
     token_manager::TokenManager,
 };
 
@@ -20,7 +20,7 @@ use super::{
 /// but also `\textbf{...}` and `\operatorname{...}`.
 pub(super) struct TextParser<'arena, 'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
-    tokens: &'parser mut TokenManager<'arena, 'source>,
+    tokens: &'parser mut TokenManager<'source>,
     arena: &'arena Arena,
     tf: Option<TextTransform>,
 }
@@ -28,7 +28,7 @@ pub(super) struct TextParser<'arena, 'builder, 'source, 'parser> {
 impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, 'parser> {
     pub(super) fn new(
         builder: &'builder mut StringBuilder<'parser>,
-        tokens: &'parser mut TokenManager<'arena, 'source>,
+        tokens: &'parser mut TokenManager<'source>,
         arena: &'arena Arena,
     ) -> Self {
         Self {
@@ -39,7 +39,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
         }
     }
 
-    fn next_token(&mut self) -> TokLoc<'arena, 'source> {
+    fn next_token(&mut self) -> Result<TokLoc<'source>, &'arena LatexError<'source>> {
         self.tokens.next(self.arena)
     }
 
@@ -50,9 +50,9 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
     /// the right time.
     pub(super) fn parse_token_as_text(
         &mut self,
-        tokloc: TokLoc<'arena, 'source>,
-    ) -> Result<(), ErrorTup<'arena, 'source>> {
-        let (loc, token) = tokloc.with_error()?;
+        tokloc: TokLoc<'source>,
+    ) -> Result<(), &'arena LatexError<'source>> {
+        let TokLoc(loc, token) = tokloc;
         let c: Result<char, LatexErrKind> = match token {
             Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
             Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
@@ -85,7 +85,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
             }
             Token::TextModeAccent(accent) => {
                 // Discard `TextModeAccent` token.
-                self.next_token();
+                self.next_token()?;
                 let tokloc = self.tokens.peek;
                 self.parse_token_as_text(tokloc)?;
                 self.builder.push_char(accent);
@@ -93,7 +93,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
             }
             Token::Text(tf) => {
                 // Discard `Text` token.
-                self.next_token();
+                self.next_token()?;
                 let old_tf = mem::replace(&mut self.tf, tf);
                 let tokloc = self.tokens.peek;
                 self.parse_token_as_text(tokloc)?;
@@ -102,14 +102,14 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
             }
             Token::GroupBegin => {
                 // Discard opening token.
-                self.next_token();
-                while !matches!(self.tokens.peek.token(), Ok(Token::GroupEnd)) {
+                self.next_token()?;
+                while !matches!(self.tokens.peek.token(), Token::GroupEnd) {
                     let tokloc = self.tokens.peek;
                     self.parse_token_as_text(tokloc)?;
                     // Discard the last token.
                     // We must do this here, because `parse_token_in_text_mode` always leaves the
                     // last token in `peek`, but we want to continue here, so we need to discard it.
-                    self.next_token();
+                    self.next_token()?;
                 }
                 return Ok(());
             }
@@ -120,7 +120,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
             _ => Err(LatexErrKind::NotValidInTextMode(token)),
         };
         match c {
-            Err(e) => Err((loc, self.arena.alloc(e))),
+            Err(e) => Err(self.arena.alloc(LatexError(loc, e))),
             Ok(c) => {
                 self.builder
                     .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));

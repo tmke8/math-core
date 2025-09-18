@@ -4,7 +4,6 @@ use strum_macros::IntoStaticStr;
 
 use super::character_class::Class;
 use super::environments::Env;
-use super::error::LatexErrKind;
 
 use crate::mathml_renderer::attribute::{
     FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
@@ -182,33 +181,18 @@ impl TryFrom<char> for Digit {
     }
 }
 
-pub(crate) type TokTup<'config> = (usize, Token<'config>);
-
-pub(crate) type ErrorTup<'arena, 'source> = (usize, &'arena LatexErrKind<'source>);
-
 #[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'arena, 'source>(
-    pub usize,
-    pub Result<Token<'source>, &'arena LatexErrKind<'source>>,
-);
+pub struct TokLoc<'source>(pub usize, pub Token<'source>);
 
-impl<'arena, 'source> TokLoc<'arena, 'source> {
+impl<'source> TokLoc<'source> {
     #[inline]
-    pub fn token(&self) -> &Result<Token<'source>, &'arena LatexErrKind<'source>> {
+    pub fn token(&self) -> &Token<'source> {
         &self.1
     }
 
     #[inline]
-    pub fn into_token(self) -> Result<Token<'source>, &'arena LatexErrKind<'source>> {
+    pub fn into_token(self) -> Token<'source> {
         self.1
-    }
-
-    #[inline]
-    pub fn with_error(self) -> Result<TokTup<'source>, ErrorTup<'arena, 'source>> {
-        match self.1 {
-            Ok(tok) => Ok((self.0, tok)),
-            Err(err_kind) => Err((self.0, err_kind)),
-        }
     }
 
     // #[inline]
@@ -223,17 +207,14 @@ impl<'arena, 'source> TokLoc<'arena, 'source> {
 
     #[inline]
     pub(super) fn class(&self, in_sequence: bool, real_boundaries: bool) -> Class {
-        let Ok(tok) = self.token() else {
-            return Class::Default;
-        };
-        tok.class(in_sequence, real_boundaries)
+        self.1.class(in_sequence, real_boundaries)
     }
 }
 
-impl<'config> From<Token<'config>> for TokLoc<'_, 'config> {
+impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokLoc(0, Ok(token))
+        TokLoc(0, token)
     }
 }
 

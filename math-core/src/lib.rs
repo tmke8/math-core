@@ -300,8 +300,8 @@ where
     'config: 'source, // 'config outlives 'source
 {
     let lexer = latex_parser::Lexer::new(latex, false, custom_cmds);
-    let mut p = latex_parser::Parser::new(lexer, arena);
-    let nodes = p.parse().map_err(|e| LatexError(e.0, *e.1))?;
+    let mut p = latex_parser::Parser::new(lexer, arena).map_err(|e| *e)?;
+    let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
 }
 
@@ -697,10 +697,13 @@ mod tests {
             ("hspace_non_digits", r"\hspace{2b2cm}"),
             ("hspace_non_ascii", r"\hspace{22öm}"),
             ("ampersand_outside_array", r"x & y"),
+            ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ];
 
         for (name, problem) in problems.into_iter() {
-            let LatexError(loc, error) = convert_content(problem).unwrap_err();
+            let Err(LatexError(loc, error)) = convert_content(problem) else {
+                panic!("problem `{}` did not return an error", problem);
+            };
             let output = format!("Position: {}\n{:#?}", loc, error);
             assert_snapshot!(name, &output, problem);
         }
