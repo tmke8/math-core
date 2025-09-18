@@ -766,7 +766,7 @@ mod tests {
 
         let converter = LatexToMathML::new(&config).unwrap();
 
-        let latex = r"x \eq 3";
+        let latex = r"x + \eq 3";
         let mathml = converter
             .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();

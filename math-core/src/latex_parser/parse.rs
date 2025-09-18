@@ -1,15 +1,11 @@
 use std::mem;
 
 use crate::mathml_renderer::{
-    arena::{Arena, Buffer, StringBuilder},
+    arena::{Arena, Buffer},
     ast::Node,
-    attribute::{
-        FracAttr, LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-        TextTransform,
-    },
-    length::{Length, LengthUnit},
+    attribute::{LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
+    length::Length,
     symbol::{self, StretchableOp},
-    table::Alignment,
 };
 
 use super::{
@@ -19,46 +15,19 @@ use super::{
     environments::Env,
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
-    specifications::{LatexUnit, parse_column_specification, parse_length_specification},
+    specifications::{parse_column_specification, parse_length_specification},
+    text_parser::TextParser,
     token::{ErrorTup, TokResult, Token},
+    token_manager::TokenManager,
 };
 
 pub(crate) struct Parser<'arena, 'source> {
-    tokens: TokenProducer<'arena, 'source>,
+    tokens: TokenManager<'arena, 'source>,
     cmd_args: Vec<Vec<TokResult<'arena, 'source>>>,
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
     tf_differs_on_upright_letters: bool,
-}
-
-pub(crate) struct TokenProducer<'arena, 'source> {
-    lexer: Lexer<'source, 'source>,
-    peek: TokResult<'arena, 'source>,
-    stack: Vec<TokResult<'arena, 'source>>,
-}
-
-impl<'arena, 'source> TokenProducer<'arena, 'source> {
-    /// Get the next token from the lexer, replacing the current peek token.
-    ///
-    /// This function is often necessary due to limitations in Rust's borrow checker.
-    /// With this function, we can explicitly say which fields of the parser are borrowed
-    /// mutably.
-    fn next(&mut self, arena: &'arena Arena) -> TokResult<'arena, 'source> {
-        let peek_token = if let Some(tok) = self.stack.pop() {
-            tok
-        } else {
-            match self.lexer.next_token() {
-                Ok((loc, tok)) => TokResult(loc, Ok(tok)),
-                Err(e) => {
-                    let err = arena.alloc(e.1);
-                    TokResult(e.0, Err(err))
-                }
-            }
-        };
-        // Return the previous peek token and store the new peek token.
-        mem::replace(&mut self.peek, peek_token)
-    }
 }
 
 /// A struct for managing the state of the sequence parser.
@@ -107,6 +76,13 @@ enum ParseAs {
     ArgWithSpace,
 }
 
+impl ParseAs {
+    #[inline]
+    fn in_sequence(&self) -> bool {
+        matches!(self, ParseAs::Sequence | ParseAs::ContinueSequence)
+    }
+}
+
 type ASTResult<'arena, 'source> = Result<&'arena Node<'arena>, ErrorTup<'arena, 'source>>;
 
 impl<'arena, 'source> Parser<'arena, 'source>
@@ -116,11 +92,7 @@ where
     pub(crate) fn new(lexer: Lexer<'source, 'source>, arena: &'arena Arena) -> Self {
         let input_length = lexer.input_length();
         let mut p = Parser {
-            tokens: TokenProducer {
-                lexer,
-                peek: TokResult(0, Ok(Token::Eof)),
-                stack: Vec::new(),
-            },
+            tokens: TokenManager::new(lexer, Token::Eof),
             cmd_args: Vec::new(),
             buffer: Buffer::new(input_length),
             arena,
@@ -280,7 +252,10 @@ where
             &mut Default::default()
         };
         let mut new_class: Class = Default::default();
-        let next_class = self.next_class(parse_as, sequence_state);
+        let next_class = self
+            .tokens
+            .peek
+            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -745,9 +720,6 @@ where
                 }
             }
             Token::ForceRelation(op) => {
-                // A colon is actually just a relation, but by default, MathML Core gives it
-                // punctuation spacing (left: 0, right: 3mu), so we have to explicitly make it have
-                // relation spacing (left: 5mu, right: 5mu).
                 new_class = Class::Relation;
                 let left = if !matches!(parse_as, ParseAs::Sequence) {
                     None // Don't add spacing if we are in an argument.
@@ -850,13 +822,16 @@ where
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
-                    let Some(spec) = parse_column_specification(options, self.arena) else {
+                    let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             loc,
                             LatexErrKind::ExpectedColSpec(options.trim()),
                         ));
                     };
-                    Some(spec)
+                    if matches!(env, Env::Subarray) {
+                        spec.is_sub = true;
+                    };
+                    Some(self.arena.alloc_array_spec(spec))
                 } else {
                     None
                 };
@@ -866,8 +841,9 @@ where
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
                 };
-                let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state))?;
+                let content = self.arena.push_slice(
+                    &self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state))?,
+                );
 
                 // TODO: Find a better way to extract the `env` of the `End` token.
                 let (end_token_loc, end_token) = self.next_token().with_error()?;
@@ -882,116 +858,23 @@ where
                     ));
                 };
 
-                let content = self.arena.push_slice(&content);
-                let node = match env {
-                    Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
-                        content,
-                        align: Alignment::Alternating,
-                        attr: Some(FracAttr::DisplayStyleTrue),
-                        with_numbering: matches!(env, Env::Align),
-                    },
-                    Env::Cases => {
-                        let align = Alignment::Cases;
-                        let content = self.commit(Node::Table {
-                            content,
-                            align,
-                            attr: None,
-                            with_numbering: false,
-                        });
-                        Node::Fenced {
-                            open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
-                            close: None,
-                            content,
-                            style: None,
-                        }
-                    }
-                    Env::Matrix => Node::Table {
-                        content,
-                        align: Alignment::Centered,
-                        attr: None,
-                        with_numbering: false,
-                    },
-                    array_variant @ (Env::Array | Env::Subarray) => {
-                        // SAFETY: `array_spec` is guaranteed to be Some because we checked for
-                        // "array" and "subarray" above.
-                        // TODO: Refactor this to avoid using `unsafe`.
-                        let mut spec = unsafe { array_spec.unwrap_unchecked() };
-                        let style = if matches!(array_variant, Env::Subarray) {
-                            spec.is_sub = true;
-                            Some(Style::Script)
-                        } else {
-                            None
-                        };
-                        Node::Array {
-                            style,
-                            content,
-                            array_spec: self.arena.alloc_array_spec(spec),
-                        }
-                    }
-                    matrix_variant @ (Env::PMatrix
-                    | Env::BMatrix
-                    | Env::Bmatrix
-                    | Env::VMatrix
-                    | Env::Vmatrix) => {
-                        let align = Alignment::Centered;
-                        let (open, close) = match matrix_variant {
-                            Env::PMatrix => (
-                                symbol::LEFT_PARENTHESIS.as_op(),
-                                symbol::RIGHT_PARENTHESIS.as_op(),
-                            ),
-                            Env::BMatrix => (
-                                symbol::LEFT_SQUARE_BRACKET.as_op(),
-                                symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                            ),
-                            Env::Bmatrix => (
-                                symbol::LEFT_CURLY_BRACKET.as_op(),
-                                symbol::RIGHT_CURLY_BRACKET.as_op(),
-                            ),
-                            Env::VMatrix => {
-                                const LINE: StretchableOp =
-                                    symbol::VERTICAL_LINE.as_stretchable_op().unwrap();
-                                (LINE, LINE)
-                            }
-                            Env::Vmatrix => {
-                                const DOUBLE_LINE: StretchableOp =
-                                    symbol::DOUBLE_VERTICAL_LINE.as_stretchable_op().unwrap();
-                                (DOUBLE_LINE, DOUBLE_LINE)
-                            }
-                            // SAFETY: `matrix_variant` is one of the strings above.
-                            _ => unsafe { std::hint::unreachable_unchecked() },
-                        };
-                        let attr = None;
-                        Node::Fenced {
-                            open: Some(open),
-                            close: Some(close),
-                            content: self.commit(Node::Table {
-                                content,
-                                align,
-                                attr,
-                                with_numbering: false,
-                            }),
-                            style: None,
-                        }
-                    }
-                };
                 if end_env != env {
-                    Err(LatexError(
+                    break 'begin_env Err(LatexError(
                         end_token_loc,
                         LatexErrKind::MismatchedEnvironment {
                             expected: env,
                             got: end_env,
                         },
-                    ))
-                } else {
-                    Ok(node)
+                    ));
                 }
+
+                Ok(env.construct_node(content, array_spec, &self.arena))
             }
             Token::OperatorName => {
                 let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.tokens, self.arena);
-                text_parser.parse_token_in_text_mode(tokloc)?;
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, self.arena);
+                text_parser.parse_token_as_text(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
                 self.next_token();
@@ -1018,9 +901,8 @@ where
                 // token that is consumed by the `Text` command.
                 let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser =
-                    TextModeParser::new(&mut builder, &mut self.tokens, self.arena);
-                text_parser.parse_token_in_text_mode(tokloc)?;
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, self.arena);
+                text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
                 self.tokens.lexer.turn_off_text_mode();
@@ -1040,7 +922,7 @@ where
                     Ok(Node::Text(text))
                 }
             }
-            Token::Ampersand => {
+            Token::NewColumn => {
                 if sequence_state.allow_columns {
                     new_class = Class::Close;
                     Ok(Node::ColumnSeparator)
@@ -1055,18 +937,17 @@ where
                 }
             }
             Token::NewLine => Ok(Node::RowSeparator),
-            Token::Color => {
+            Token::Color => 'color: {
                 let (loc, color_name) = self.parse_ascii_text_group()?;
-                if let Some(color) = get_color(color_name) {
-                    let content =
-                        self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
-                    Ok(Node::Row {
-                        nodes: self.arena.push_slice(&content),
-                        attr: color,
-                    })
-                } else {
-                    Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)))
-                }
+                let Some(color) = get_color(color_name) else {
+                    break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
+                };
+                let content =
+                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state))?;
+                Ok(Node::Row {
+                    nodes: self.arena.push_slice(&content),
+                    attr: color,
+                })
             }
             Token::Style(style) => {
                 let old_style = mem::replace(
@@ -1157,31 +1038,14 @@ where
                     };
                     self.cmd_args.push(tokens);
                 }
-                if let [head, tail @ ..] = token_stream {
-                    // Replace the peek token with the first token of the token stream.
-                    let old_peek = mem::replace(&mut self.tokens.peek, TokResult(0, Ok(*head)));
-                    // Put the old peek token onto the token stack.
-                    self.tokens.stack.push(old_peek);
-                    // Put the rest of the token stream onto the token stack in reverse order.
-                    for tok in tail.iter().rev() {
-                        self.tokens.stack.push(TokResult(0, Ok(*tok)));
-                    }
-                }
+                self.tokens.add_to_stack(token_stream);
                 let token = self.next_token();
+                // TODO: Use `become` here once it is stable.
                 return self.parse_token(token, parse_as, Some(sequence_state));
             }
             Token::CustomCmdArg(arg_num) => {
                 if let Some(arg) = self.cmd_args.get(arg_num as usize) {
-                    if let [head, tail @ ..] = &arg[..] {
-                        // Replace the peek token with the first token of the argument.
-                        let old_peek = mem::replace(&mut self.tokens.peek, *head);
-                        // Put the old peek token onto the token stack.
-                        self.tokens.stack.push(old_peek);
-                        // Put the rest of the argument onto the token stack in reverse order.
-                        for tok in tail.iter().rev() {
-                            self.tokens.stack.push(*tok);
-                        }
-                    }
+                    self.tokens.add_to_stack(&arg[..]);
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
                 } else {
@@ -1236,7 +1100,7 @@ where
     fn parse_ascii_text_group(
         &mut self,
     ) -> Result<(usize, &'source str), ErrorTup<'arena, 'source>> {
-        if !self.tokens.stack.is_empty() {
+        if !self.tokens.is_empty_stack() {
             // This function doesn't work if we are processing tokens from the token stack.
             return Err((0, self.arena.alloc(LatexErrKind::NotSupportedInCustomCmd)));
         }
@@ -1406,7 +1270,10 @@ where
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
-        let next_class = self.next_class(parse_as, sequence_state);
+        let next_class = self
+            .tokens
+            .peek
+            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         (
             if matches!(
                 sequence_state.class,
@@ -1429,31 +1296,6 @@ where
                 None
             },
         )
-    }
-
-    fn next_class(&self, parse_as: ParseAs, sequence_state: &SequenceState) -> Class {
-        if !matches!(parse_as, ParseAs::Sequence | ParseAs::ContinueSequence) {
-            return Class::Default;
-        }
-        let Ok(tok) = self.tokens.peek.token() else {
-            return Class::Default;
-        };
-        match tok {
-            Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
-            Token::Punctuation(_) => Class::Punctuation,
-            Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::Close(_) | Token::SquareBracketClose | Token::Ampersand => Class::Close,
-            Token::BinaryOp(_) => Class::BinaryOp,
-            Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof
-                if sequence_state.real_boundaries =>
-            {
-                Class::Close
-            }
-            Token::Big(_, None) => Class::Default,
-            Token::Big(_, Some(class)) => *class,
-            _ => Class::Default,
-        }
     }
 
     fn extract_delimiter(
@@ -1555,118 +1397,6 @@ enum LetterCollector<'arena> {
     Collecting,
     FinishedOneLetter { collected_letter: char },
     FinishedManyLetters { collected_letters: &'arena str },
-}
-
-struct TextModeParser<'arena, 'builder, 'source, 'parser> {
-    builder: &'builder mut StringBuilder<'parser>,
-    tokens: &'parser mut TokenProducer<'arena, 'source>,
-    arena: &'arena Arena,
-    tf: Option<TextTransform>,
-}
-
-impl<'arena, 'builder, 'source, 'parser> TextModeParser<'arena, 'builder, 'source, 'parser> {
-    fn new(
-        builder: &'builder mut StringBuilder<'parser>,
-        tokens: &'parser mut TokenProducer<'arena, 'source>,
-        arena: &'arena Arena,
-    ) -> Self {
-        Self {
-            builder,
-            tokens,
-            arena,
-            tf: None,
-        }
-    }
-
-    fn next_token(&mut self) -> TokResult<'arena, 'source> {
-        self.tokens.next(self.arena)
-    }
-
-    /// Parse the given token in text mode.
-    ///
-    /// This function may read in more tokens from the lexer, but it will always leave the last
-    /// processed token in `peek`. This is important for turning of the text mode in the lexer at
-    /// the right time.
-    fn parse_token_in_text_mode(
-        &mut self,
-        tokloc: TokResult<'arena, 'source>,
-    ) -> Result<(), ErrorTup<'arena, 'source>> {
-        let (loc, token) = tokloc.with_error()?;
-        let c: Result<char, LatexErrKind> = match token {
-            Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
-            Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
-            Token::Open(op) | Token::Close(op) => Ok(op.as_op().into()),
-            Token::BinaryOp(op) => Ok(op.as_op().into()),
-            Token::Relation(op) => Ok(op.as_op().into()),
-            Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
-            Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
-            Token::Number(digit) => Ok(digit as u8 as char),
-            Token::Prime => Ok('’'),
-            Token::ForceRelation(op) => Ok(op.as_char()),
-            Token::Punctuation(op) => Ok(op.as_op().into()),
-            Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => {
-                // We don't transform these strings.
-                self.builder.push_str(name);
-                return Ok(());
-            }
-            Token::Space(length) => {
-                if length == Length::new(1.0, LengthUnit::Em) {
-                    Ok('\u{2003}')
-                } else if length == LatexUnit::Mu.length_with_unit(5.0) {
-                    Ok('\u{2004}')
-                } else if length == LatexUnit::Mu.length_with_unit(4.0) {
-                    Ok('\u{205F}')
-                } else if length == LatexUnit::Mu.length_with_unit(3.0) {
-                    Ok('\u{2009}')
-                } else {
-                    return Ok(());
-                }
-            }
-            Token::TextModeAccent(accent) => {
-                // Discard `TextModeAccent` token.
-                self.next_token();
-                let tokloc = self.tokens.peek;
-                self.parse_token_in_text_mode(tokloc)?;
-                self.builder.push_char(accent);
-                return Ok(());
-            }
-            Token::Text(tf) => {
-                // Discard `Text` token.
-                self.next_token();
-                let old_tf = mem::replace(&mut self.tf, tf);
-                let tokloc = self.tokens.peek;
-                self.parse_token_in_text_mode(tokloc)?;
-                self.tf = old_tf;
-                return Ok(());
-            }
-            Token::GroupBegin => {
-                // Discard opening token.
-                self.next_token();
-                while !matches!(self.tokens.peek.token(), Ok(Token::GroupEnd)) {
-                    let tokloc = self.tokens.peek;
-                    self.parse_token_in_text_mode(tokloc)?;
-                    // Discard the last token.
-                    // We must do this here, because `parse_token_in_text_mode` always leaves the
-                    // last token in `peek`, but we want to continue here, so we need to discard it.
-                    self.next_token();
-                }
-                return Ok(());
-            }
-            Token::Eof => Err(LatexErrKind::UnclosedGroup(Token::GroupEnd)),
-            Token::End(_) | Token::Right | Token::GroupEnd => {
-                Err(LatexErrKind::UnexpectedClose(token))
-            }
-            _ => Err(LatexErrKind::NotValidInTextMode(token)),
-        };
-        match c {
-            Err(e) => Err((loc, self.arena.alloc(e))),
-            Ok(c) => {
-                self.builder
-                    .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));
-                Ok(())
-            }
-        }
-    }
 }
 
 fn get_single_char(s: &str) -> Option<char> {

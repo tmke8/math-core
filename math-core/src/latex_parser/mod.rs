@@ -8,7 +8,9 @@ mod lexer;
 mod parse;
 mod predefined;
 mod specifications;
+mod text_parser;
 mod token;
+mod token_manager;
 
 pub use error::{LatexErrKind, LatexError};
 pub(crate) use lexer::Lexer;
