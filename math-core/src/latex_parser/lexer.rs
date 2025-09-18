@@ -143,8 +143,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,
-    ) -> Result<Vec<TokResult<'config, 'config>>, LatexError<'source>> {
-        let mut tokens = Vec::new();
+        tokens: &mut Vec<TokResult<'_, 'config>>,
+    ) -> Result<(), LatexError<'source>> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
@@ -171,7 +171,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             tokens.push(TokResult(loc, Ok(tok)));
         }
-        Ok(tokens)
+        Ok(())
     }
 
     /// Generate the next token.
@@ -401,8 +401,9 @@ mod tests {
             let mut lexer = Lexer::new(problem, false, None);
             // Check that the first token is `GroupBegin`.
             assert!(matches!(lexer.next_token().unwrap().1, Token::GroupBegin));
-            let tokens = match lexer.read_group() {
-                Ok(tokens) => {
+            let mut tokens = Vec::new();
+            let tokens = match lexer.read_group(&mut tokens) {
+                Ok(()) => {
                     let mut token_str = String::new();
                     for TokResult(loc, tok) in tokens {
                         write!(token_str, "{}: {:?}\n", loc, tok.unwrap()).unwrap();

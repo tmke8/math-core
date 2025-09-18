@@ -23,7 +23,8 @@ use super::{
 
 pub(crate) struct Parser<'arena, 'source> {
     tokens: TokenManager<'arena, 'source>,
-    cmd_args: Vec<Vec<TokResult<'arena, 'source>>>,
+    cmd_args: Vec<TokResult<'arena, 'source>>,
+    cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
@@ -94,6 +95,7 @@ where
         let mut p = Parser {
             tokens: TokenManager::new(lexer, Token::Eof),
             cmd_args: Vec::new(),
+            cmd_arg_offsets: [0; 9],
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
@@ -1017,26 +1019,25 @@ where
             Token::End(_) | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::CustomCmd(num_args, token_stream) => {
+            Token::CustomCmd(num_args, token_stream) => 'custom_cmd: {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
                     // allow zero-argument token streams to be used within
                     // non-zero-argument token streams.
                     self.cmd_args.clear();
                 }
-                for _ in 0..num_args {
-                    let tokens = if matches!(self.tokens.peek.token(), Ok(Token::GroupBegin)) {
-                        let tokens = self
-                            .tokens
-                            .lexer
-                            .read_group()
-                            .map_err(|e| (e.0, self.arena.alloc(e.1)))?;
+                for arg_num in 0..num_args {
+                    if matches!(self.tokens.peek.token(), Ok(Token::GroupBegin)) {
+                        if let Err(err) = self.tokens.lexer.read_group(&mut self.cmd_args) {
+                            break 'custom_cmd Err(err);
+                        }
                         self.next_token(); // Discard the opening `{` token.
-                        tokens
                     } else {
-                        vec![self.next_token()]
-                    };
-                    self.cmd_args.push(tokens);
+                        self.cmd_args.push(self.tokens.next(&self.arena));
+                    }
+                    if let Some(offset) = self.cmd_arg_offsets.get_mut(arg_num as usize) {
+                        *offset = self.cmd_args.len();
+                    }
                 }
                 self.tokens.add_to_stack(token_stream);
                 let token = self.next_token();
@@ -1044,8 +1045,18 @@ where
                 return self.parse_token(token, parse_as, Some(sequence_state));
             }
             Token::CustomCmdArg(arg_num) => {
-                if let Some(arg) = self.cmd_args.get(arg_num as usize) {
-                    self.tokens.add_to_stack(&arg[..]);
+                let start = self
+                    .cmd_arg_offsets
+                    .get(arg_num.wrapping_sub(1) as usize)
+                    .copied()
+                    .unwrap_or(0);
+                let end = self
+                    .cmd_arg_offsets
+                    .get(arg_num as usize)
+                    .copied()
+                    .unwrap_or(self.cmd_args.len());
+                if let Some(arg) = self.cmd_args.get(start..end) {
+                    self.tokens.add_to_stack(arg);
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
                 } else {
