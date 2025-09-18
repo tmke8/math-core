@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::mathml_renderer::{
-    arena::{Arena, StringBuilder},
+    arena::StringBuilder,
     attribute::TextTransform,
     length::{Length, LengthUnit},
     symbol,
@@ -18,29 +18,26 @@ use super::{
 ///
 /// This is, for example, used to parse the argument of `\text{...}`,
 /// but also `\textbf{...}` and `\operatorname{...}`.
-pub(super) struct TextParser<'arena, 'builder, 'source, 'parser> {
+pub(super) struct TextParser<'cell, 'builder, 'source, 'parser> {
     builder: &'builder mut StringBuilder<'parser>,
-    tokens: &'parser mut TokenManager<'source>,
-    arena: &'arena Arena,
+    tokens: &'parser mut TokenManager<'cell, 'source>,
     tf: Option<TextTransform>,
 }
 
-impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, 'parser> {
+impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'parser> {
     pub(super) fn new(
         builder: &'builder mut StringBuilder<'parser>,
-        tokens: &'parser mut TokenManager<'source>,
-        arena: &'arena Arena,
+        tokens: &'parser mut TokenManager<'cell, 'source>,
     ) -> Self {
         Self {
             builder,
             tokens,
-            arena,
             tf: None,
         }
     }
 
-    fn next_token(&mut self) -> Result<TokLoc<'source>, &'arena LatexError<'source>> {
-        self.tokens.next(self.arena)
+    fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+        self.tokens.next()
     }
 
     /// Parse the given token as text.
@@ -51,7 +48,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
     pub(super) fn parse_token_as_text(
         &mut self,
         tokloc: TokLoc<'source>,
-    ) -> Result<(), &'arena LatexError<'source>> {
+    ) -> Result<(), &'cell LatexError<'source>> {
         let TokLoc(loc, token) = tokloc;
         let c: Result<char, LatexErrKind> = match token {
             Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
@@ -120,7 +117,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
             _ => Err(LatexErrKind::NotValidInTextMode(token)),
         };
         match c {
-            Err(e) => Err(self.arena.alloc(LatexError(loc, e))),
+            Err(e) => Err(self.tokens.lexer.alloc_err(LatexError(loc, e))),
             Ok(c) => {
                 self.builder
                     .push_char(self.tf.map(|tf| tf.transform(c, false)).unwrap_or(c));

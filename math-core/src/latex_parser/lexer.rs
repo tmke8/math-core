@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::mem;
 use std::num::NonZero;
 use std::str::CharIndices;
@@ -10,9 +11,10 @@ use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source>
+pub(crate) struct Lexer<'config, 'source, 'cell>
 where
     'config: 'source,
+    'source: 'cell,
 {
     input: CharIndices<'source>,
     peek: (usize, char),
@@ -24,14 +26,16 @@ where
     text_mode: bool,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
+    error_slot: &'cell OnceCell<LatexError<'source>>,
 }
 
-impl<'config, 'source> Lexer<'config, 'source> {
+impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
+        error_slot: &'cell OnceCell<LatexError<'source>>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -45,9 +49,15 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 None
             },
             custom_cmds,
+            error_slot,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
+    }
+
+    #[inline]
+    pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+        self.error_slot.get_or_init(|| err)
     }
 
     #[inline]
@@ -144,7 +154,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     pub(super) fn read_group(
         &mut self,
         tokens: &mut Vec<TokLoc<'config>>,
-    ) -> Result<(), LatexError<'source>> {
+    ) -> Result<(), &'cell LatexError<'source>> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
@@ -165,7 +175,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     }
                 }
                 Token::Eof => {
-                    return Err(LatexError(loc, LatexErrKind::UnclosedGroup(tok)));
+                    return Err(self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(tok))));
                 }
                 _ => {}
             }
@@ -175,7 +185,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -200,7 +210,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     let next = self.read_char().1;
                     let param_num = (next as u32).wrapping_sub('1' as u32);
                     if !(0..=8).contains(&param_num) {
-                        return Err(LatexError(loc, LatexErrKind::InvalidParameterNumber));
+                        return Err(
+                            self.alloc_err(LatexError(loc, LatexErrKind::InvalidParameterNumber))
+                        );
                     }
                     let param_num = param_num as u8;
                     if let Some(num) = self.parse_cmd_args.as_mut() {
@@ -276,58 +288,70 @@ impl<'config, 'source> Lexer<'config, 'source> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, LatexError<'source>> {
-        let tok = if self.text_mode {
-            let Some(tok) = get_text_command(cmd_string) else {
-                return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
-            };
-            tok
+    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+        let tok: Result<Token<'config>, LatexError<'source>> = if self.text_mode {
+            if let Some(tok) = get_text_command(cmd_string) {
+                Ok(tok)
+            } else {
+                Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
+            }
         } else {
             let env_marker = match cmd_string {
                 "begin" => Some(EnvMarker::Begin),
                 "end" => Some(EnvMarker::End),
                 _ => None,
             };
-            if let Some(env_marker) = env_marker {
-                // Read the environment name.
-                // First skip any whitespace.
-                self.skip_whitespace();
-                // Next character must be `{`.
-                let (new_loc, next_char) = self.read_char();
-                if next_char != '{' {
-                    return Err(LatexError(new_loc, LatexErrKind::MissingBrace(next_char)));
+            'env_parsing: {
+                if let Some(env_marker) = env_marker {
+                    // Read the environment name.
+                    // First skip any whitespace.
+                    self.skip_whitespace();
+                    // Next character must be `{`.
+                    let (new_loc, next_char) = self.read_char();
+                    if next_char != '{' {
+                        break 'env_parsing Err(LatexError(
+                            new_loc,
+                            LatexErrKind::MissingBrace(next_char),
+                        ));
+                    }
+                    // Read the text until the next `}`.
+                    let Some(env_name) = self.read_ascii_text_group() else {
+                        break 'env_parsing Err(LatexError(new_loc, LatexErrKind::DisallowedChars));
+                    };
+                    // Convert the environment name to the `Env` enum.
+                    let Some(env) = Env::from_str(env_name) else {
+                        break 'env_parsing Err(LatexError(
+                            new_loc,
+                            LatexErrKind::UnknownEnvironment(env_name),
+                        ));
+                    };
+                    // Return the `\begin{env}` or `\end{env}` token.
+                    Ok(match env_marker {
+                        EnvMarker::Begin => Token::Begin(env),
+                        EnvMarker::End => Token::End(env),
+                    })
+                } else {
+                    let Some(tok) = self
+                        .custom_cmds
+                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                        .or_else(|| get_command(cmd_string))
+                    else {
+                        break 'env_parsing Err(LatexError(
+                            loc,
+                            LatexErrKind::UnknownCommand(cmd_string),
+                        ));
+                    };
+                    Ok(tok)
                 }
-                // Read the text until the next `}`.
-                let Some(env_name) = self.read_ascii_text_group() else {
-                    return Err(LatexError(new_loc, LatexErrKind::DisallowedChars));
-                };
-                // Convert the environment name to the `Env` enum.
-                let Some(env) = Env::from_str(env_name) else {
-                    return Err(LatexError(
-                        new_loc,
-                        LatexErrKind::UnknownEnvironment(env_name),
-                    ));
-                };
-                // Return the `\begin{env}` or `\end{env}` token.
-                match env_marker {
-                    EnvMarker::Begin => Token::Begin(env),
-                    EnvMarker::End => Token::End(env),
-                }
-            } else {
-                let Some(tok) = self
-                    .custom_cmds
-                    .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                    .or_else(|| get_command(cmd_string))
-                else {
-                    return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
-                };
-                tok
             }
         };
-        if matches!(tok, Token::Text(_)) {
+        if matches!(tok, Ok(Token::Text(_))) {
             self.text_mode = true;
         }
-        Ok(TokLoc(loc, tok))
+        match tok {
+            Ok(tok) => Ok(TokLoc(loc, tok)),
+            Err(err) => Err(self.alloc_err(err)),
+        }
     }
 }
 
@@ -364,7 +388,8 @@ mod tests {
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None);
+            let error_slot = OnceCell::new();
+            let mut lexer = Lexer::new(problem, false, None, &error_slot);
             lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
@@ -398,7 +423,8 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None);
+            let error_slot = OnceCell::new();
+            let mut lexer = Lexer::new(problem, false, None, &error_slot);
             // Check that the first token is `GroupBegin`.
             assert!(matches!(lexer.next_token().unwrap().1, Token::GroupBegin));
             let mut tokens = Vec::new();
@@ -420,7 +446,8 @@ mod tests {
     fn test_parsing_custom_commands() {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
+        let error_slot = OnceCell::new();
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None, &error_slot);
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();

@@ -21,8 +21,8 @@ use super::{
     token_manager::TokenManager,
 };
 
-pub(crate) struct Parser<'arena, 'source> {
-    tokens: TokenManager<'source>,
+pub(crate) struct Parser<'cell, 'arena, 'source> {
+    tokens: TokenManager<'cell, 'source>,
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
@@ -84,16 +84,17 @@ impl ParseAs {
     }
 }
 
-type ASTResult<'arena, 'source> = Result<&'arena Node<'arena>, &'arena LatexError<'source>>;
+type ASTResult<'cell, 'arena, 'source> = Result<&'arena Node<'arena>, &'cell LatexError<'source>>;
 
-impl<'arena, 'source> Parser<'arena, 'source>
+impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
+    'arena: 'cell,   // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
-        lexer: Lexer<'source, 'source>,
+        lexer: Lexer<'source, 'source, 'cell>,
         arena: &'arena Arena,
-    ) -> Result<Self, &'arena LatexError<'source>> {
+    ) -> Result<Self, &'cell LatexError<'source>> {
         let input_length = lexer.input_length();
         let mut p = Parser {
             tokens: TokenManager::new(lexer, Token::Eof),
@@ -111,11 +112,11 @@ where
     }
 
     #[inline]
-    fn alloc_err(&mut self, err: LatexError<'source>) -> &'arena LatexError<'source> {
-        self.arena.alloc(err)
+    fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+        self.tokens.lexer.alloc_err(err)
     }
 
-    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &'arena LatexError<'source>> {
+    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &'cell LatexError<'source>> {
         let first_loc = self.tokens.peek.location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
@@ -138,7 +139,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            self.tokens.next(self.arena)?;
+            self.tokens.next()?;
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -162,14 +163,14 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> Result<TokLoc<'source>, &'arena LatexError<'source>> {
-        self.tokens.next(self.arena)
+    fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+        self.tokens.next()
     }
 
     #[inline]
     pub(crate) fn parse(
         &mut self,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'arena LatexError<'source>> {
+    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
         self.parse_sequence(SequenceEnd::Token(Token::Eof), None, true)
     }
 
@@ -185,7 +186,7 @@ where
         sequence_end: SequenceEnd,
         sequence_state: Option<&mut SequenceState>,
         keep_end_token: bool,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'arena LatexError<'source>> {
+    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
         let mut nodes = Vec::new();
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -258,10 +259,10 @@ where
     /// Parse the given token into a node.
     fn parse_token<'parser>(
         &'parser mut self,
-        cur_tokloc: Result<TokLoc<'source>, &'arena LatexError<'source>>,
+        cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
-    ) -> ASTResult<'arena, 'source> {
+    ) -> ASTResult<'cell, 'arena, 'source> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -301,7 +302,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        self.tokens.next(self.arena)?;
+                        self.tokens.next()?;
                     }
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
@@ -429,8 +430,11 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
-                    let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), None, false)?;
+                    let degree = self.parse_sequence(
+                        SequenceEnd::Token(Token::SquareBracketClose),
+                        None,
+                        false,
+                    )?;
                     let content = self.parse_next(ParseAs::Arg)?;
                     Ok(Node::Root(
                         node_vec_to_node(self.arena, degree, true),
@@ -486,10 +490,9 @@ where
                 let (loc, length) = self.parse_ascii_text_group()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
-                    decimal => parse_length_specification(decimal).ok_or(
-                        self.arena
-                            .alloc(LatexError(loc, LatexErrKind::ExpectedLength(decimal))),
-                    )?,
+                    decimal => parse_length_specification(decimal).ok_or_else(|| {
+                        self.alloc_err(LatexError(loc, LatexErrKind::ExpectedLength(decimal)))
+                    })?,
                 };
                 let style = match self.parse_next(ParseAs::Arg)? {
                     Node::Number(num) => match num.as_bytes() {
@@ -770,7 +773,11 @@ where
             }
             Token::GroupBegin => {
                 let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(sequence_state), false)?
+                    self.parse_sequence(
+                        SequenceEnd::Token(Token::GroupEnd),
+                        Some(sequence_state),
+                        false,
+                    )?
                 } else {
                     let mut s = SequenceState {
                         class: Class::Open,
@@ -859,9 +866,11 @@ where
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
                 };
-                let content = self.arena.push_slice(
-                    &self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state), true)?,
-                );
+                let content = self.arena.push_slice(&self.parse_sequence(
+                    SequenceEnd::Token(Token::End(env)),
+                    Some(&mut state),
+                    true,
+                )?);
 
                 // TODO: Find a better way to extract the `env` of the `End` token.
                 let TokLoc(end_token_loc, end_token) = self.next_token()?;
@@ -891,7 +900,7 @@ where
             Token::OperatorName => {
                 let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, self.arena);
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_as_text(tokloc)?;
                 let letters = builder.finish(self.arena);
                 // Discard the last token.
@@ -919,7 +928,7 @@ where
                 // token that is consumed by the `Text` command.
                 let tokloc = self.tokens.peek;
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, self.arena);
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Now turn off text mode.
@@ -1035,7 +1044,7 @@ where
             Token::End(_) | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::CustomCmd(num_args, token_stream) => 'custom_cmd: {
+            Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
                     // allow zero-argument token streams to be used within
@@ -1044,12 +1053,10 @@ where
                 }
                 for arg_num in 0..num_args {
                     if matches!(self.tokens.peek.token(), Token::GroupBegin) {
-                        if let Err(err) = self.tokens.lexer.read_group(&mut self.cmd_args) {
-                            break 'custom_cmd Err(err);
-                        }
+                        self.tokens.lexer.read_group(&mut self.cmd_args)?;
                         self.next_token()?; // Discard the opening `{` token.
                     } else {
-                        self.cmd_args.push(self.tokens.next(self.arena)?);
+                        self.cmd_args.push(self.tokens.next()?);
                     }
                     if let Some(offset) = self.cmd_arg_offsets.get_mut(arg_num as usize) {
                         *offset = self.cmd_args.len();
@@ -1118,7 +1125,7 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'arena, 'source> {
+    fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
         let token = self.next_token();
         self.parse_token(token, parse_as, None)
     }
@@ -1126,7 +1133,7 @@ where
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
     fn parse_ascii_text_group(
         &mut self,
-    ) -> Result<(usize, &'source str), &'arena LatexError<'source>> {
+    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
         if !self.tokens.is_empty_stack() {
             // This function doesn't work if we are processing tokens from the token stack.
             return Err(self.alloc_err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd)));
@@ -1148,12 +1155,12 @@ where
         let opening_loc = self.next_token()?.location();
         result
             .map(|r| (opening_loc, r))
-            .ok_or(self.alloc_err(LatexError(opening_loc, LatexErrKind::DisallowedChars)))
+            .ok_or_else(|| self.alloc_err(LatexError(opening_loc, LatexErrKind::DisallowedChars)))
     }
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena>, &'arena LatexError<'source>> {
+    fn get_bounds(&mut self) -> Result<Bounds<'arena>, &'cell LatexError<'source>> {
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek.token(), Token::Underscore);
@@ -1174,7 +1181,7 @@ where
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
                 let TokLoc(loc, token) = self.next_token()?;
-                return Err(self.arena.alloc(LatexError(
+                return Err(self.alloc_err(LatexError(
                     loc,
                     LatexErrKind::CannotBeUsedHere {
                         got: token,
@@ -1214,7 +1221,7 @@ where
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> Result<Vec<&'arena Node<'arena>>, &'arena LatexError<'source>> {
+    fn prime_check(&mut self) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.tokens.peek.token(), Token::Prime) {
@@ -1251,7 +1258,7 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(&mut self, is_sup: bool) -> ASTResult<'arena, 'source> {
+    fn get_sub_or_sup(&mut self, is_sup: bool) -> ASTResult<'cell, 'arena, 'source> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(TokLoc(loc, tok @ (Token::Underscore | Token::Circumflex | Token::Prime))) = next
@@ -1323,7 +1330,7 @@ where
     fn extract_delimiter(
         &mut self,
         tok: TokLoc<'source>,
-    ) -> Result<(StretchableOp, Class), &'arena LatexError<'source>> {
+    ) -> Result<(StretchableOp, Class), &'cell LatexError<'source>> {
         let TokLoc(loc, tok) = tok;
         let (delim, class) = match tok {
             Token::Open(paren) => (Some(paren.as_op()), Class::Open),
@@ -1496,7 +1503,8 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let l = Lexer::new(problem, false, None);
+            let error_slot = std::cell::OnceCell::new();
+            let l = Lexer::new(problem, false, None, &error_slot);
             let mut p = Parser::new(l, &arena).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
