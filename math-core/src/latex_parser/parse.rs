@@ -115,7 +115,7 @@ where
         self.arena.alloc(err)
     }
 
-    fn collect_letters(&mut self) -> Option<TokLoc<'source>> {
+    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &'arena LatexError<'source>> {
         let first_loc = self.tokens.peek.location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
@@ -138,7 +138,7 @@ where
             }
             num_chars += 1;
             // Get the next token for the next iteration.
-            self.tokens.next(self.arena).ok();
+            self.tokens.next(self.arena)?;
         }
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
@@ -156,9 +156,9 @@ where
                 }
                 _ => {}
             }
-            return Some(TokLoc(first_loc, Token::GetCollectedLetters));
+            return Ok(Some(TokLoc(first_loc, Token::GetCollectedLetters)));
         }
-        None
+        Ok(None)
     }
 
     #[inline(never)]
@@ -201,7 +201,7 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek.token()) {
             let cur_tokloc = if matches!(self.collector, LetterCollector::Collecting) {
-                self.collect_letters()
+                self.collect_letters()?
             } else {
                 None
             };
@@ -301,7 +301,7 @@ where
                             }
                         };
                         builder.push_char(ch);
-                        self.tokens.next(self.arena).ok();
+                        self.tokens.next(self.arena)?;
                     }
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
