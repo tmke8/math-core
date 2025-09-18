@@ -5,7 +5,7 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
-use super::token::{Digit, TokLoc, TokResult, Token};
+use super::token::{Digit, TokLoc, TokTup, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
@@ -143,7 +143,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokResult<'_, 'config>>,
+        tokens: &mut Vec<TokLoc<'_, 'config>>,
     ) -> Result<(), LatexError<'source>> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
@@ -169,13 +169,13 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
                 _ => {}
             }
-            tokens.push(TokResult(loc, Ok(tok)));
+            tokens.push(TokLoc(loc, Ok(tok)));
         }
         Ok(())
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokTup<'config>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok((loc.get(), Token::Whitespace));
@@ -276,7 +276,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, LatexError<'source>> {
+    ) -> Result<TokTup<'config>, LatexError<'source>> {
         let tok = if self.text_mode {
             let Some(tok) = get_text_command(cmd_string) else {
                 return Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)));
@@ -405,7 +405,7 @@ mod tests {
             let tokens = match lexer.read_group(&mut tokens) {
                 Ok(()) => {
                     let mut token_str = String::new();
-                    for TokResult(loc, tok) in tokens {
+                    for TokLoc(loc, tok) in tokens {
                         write!(token_str, "{}: {:?}\n", loc, tok.unwrap()).unwrap();
                     }
                     token_str

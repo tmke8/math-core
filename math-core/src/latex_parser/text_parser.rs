@@ -10,7 +10,7 @@ use crate::mathml_renderer::{
 use super::{
     error::LatexErrKind,
     specifications::LatexUnit,
-    token::{ErrorTup, TokResult, Token},
+    token::{ErrorTup, TokLoc, Token},
     token_manager::TokenManager,
 };
 
@@ -39,7 +39,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
         }
     }
 
-    fn next_token(&mut self) -> TokResult<'arena, 'source> {
+    fn next_token(&mut self) -> TokLoc<'arena, 'source> {
         self.tokens.next(self.arena)
     }
 
@@ -50,7 +50,7 @@ impl<'arena, 'builder, 'source, 'parser> TextParser<'arena, 'builder, 'source, '
     /// the right time.
     pub(super) fn parse_token_as_text(
         &mut self,
-        tokloc: TokResult<'arena, 'source>,
+        tokloc: TokLoc<'arena, 'source>,
     ) -> Result<(), ErrorTup<'arena, 'source>> {
         let (loc, token) = tokloc.with_error()?;
         let c: Result<char, LatexErrKind> = match token {

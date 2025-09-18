@@ -182,17 +182,17 @@ impl TryFrom<char> for Digit {
     }
 }
 
-pub(crate) type TokLoc<'config> = (usize, Token<'config>);
+pub(crate) type TokTup<'config> = (usize, Token<'config>);
 
 pub(crate) type ErrorTup<'arena, 'source> = (usize, &'arena LatexErrKind<'source>);
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokResult<'arena, 'source>(
+pub struct TokLoc<'arena, 'source>(
     pub usize,
     pub Result<Token<'source>, &'arena LatexErrKind<'source>>,
 );
 
-impl<'arena, 'source> TokResult<'arena, 'source> {
+impl<'arena, 'source> TokLoc<'arena, 'source> {
     #[inline]
     pub fn token(&self) -> &Result<Token<'source>, &'arena LatexErrKind<'source>> {
         &self.1
@@ -204,7 +204,7 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 
     #[inline]
-    pub fn with_error(self) -> Result<TokLoc<'source>, ErrorTup<'arena, 'source>> {
+    pub fn with_error(self) -> Result<TokTup<'source>, ErrorTup<'arena, 'source>> {
         match self.1 {
             Ok(tok) => Ok((self.0, tok)),
             Err(err_kind) => Err((self.0, err_kind)),
@@ -230,10 +230,10 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokResult<'_, 'config> {
+impl<'config> From<Token<'config>> for TokLoc<'_, 'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokResult(0, Ok(token))
+        TokLoc(0, Ok(token))
     }
 }
 
@@ -247,7 +247,7 @@ mod tests {
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
         assert!(
-            std::mem::size_of::<TokResult>() <= 4 * WORD,
+            std::mem::size_of::<TokLoc>() <= 4 * WORD,
             "size of TokResult"
         );
         assert!(

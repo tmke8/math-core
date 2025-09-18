@@ -17,13 +17,13 @@ use super::{
     lexer::Lexer,
     specifications::{parse_column_specification, parse_length_specification},
     text_parser::TextParser,
-    token::{ErrorTup, TokResult, Token},
+    token::{ErrorTup, TokLoc, Token},
     token_manager::TokenManager,
 };
 
 pub(crate) struct Parser<'arena, 'source> {
     tokens: TokenManager<'arena, 'source>,
-    cmd_args: Vec<TokResult<'arena, 'source>>,
+    cmd_args: Vec<TokLoc<'arena, 'source>>,
     cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
     arena: &'arena Arena,
@@ -107,7 +107,7 @@ where
         p
     }
 
-    fn collect_letters(&mut self) -> Option<TokResult<'arena, 'source>> {
+    fn collect_letters(&mut self) -> Option<TokLoc<'arena, 'source>> {
         let first_loc = self.tokens.peek.location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
@@ -150,13 +150,13 @@ where
                 }
                 _ => {}
             }
-            return Some(TokResult(first_loc, Ok(Token::GetCollectedLetters)));
+            return Some(TokLoc(first_loc, Ok(Token::GetCollectedLetters)));
         }
         None
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> TokResult<'arena, 'source> {
+    fn next_token(&mut self) -> TokLoc<'arena, 'source> {
         self.tokens.next(self.arena)
     }
 
@@ -243,7 +243,7 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: TokResult<'arena, 'source>,
+        cur_tokloc: TokLoc<'arena, 'source>,
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
     ) -> ASTResult<'arena, 'source> {
@@ -1311,7 +1311,7 @@ where
 
     fn extract_delimiter(
         &self,
-        tok: TokResult<'arena, 'source>,
+        tok: TokLoc<'arena, 'source>,
     ) -> Result<(StretchableOp, Class), ErrorTup<'arena, 'source>> {
         let (loc, tok) = tok.with_error()?;
         let (delim, class) = match tok {
