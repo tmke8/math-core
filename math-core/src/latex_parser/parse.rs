@@ -429,8 +429,11 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
-                    let degree =
-                        self.parse_sequence(SequenceEnd::Token(Token::SquareBracketClose), None, false)?;
+                    let degree = self.parse_sequence(
+                        SequenceEnd::Token(Token::SquareBracketClose),
+                        None,
+                        false,
+                    )?;
                     let content = self.parse_next(ParseAs::Arg)?;
                     Ok(Node::Root(
                         node_vec_to_node(self.arena, degree, true),
@@ -770,7 +773,11 @@ where
             }
             Token::GroupBegin => {
                 let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(sequence_state), false)?
+                    self.parse_sequence(
+                        SequenceEnd::Token(Token::GroupEnd),
+                        Some(sequence_state),
+                        false,
+                    )?
                 } else {
                     let mut s = SequenceState {
                         class: Class::Open,
@@ -859,9 +866,11 @@ where
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
                 };
-                let content = self.arena.push_slice(
-                    &self.parse_sequence(SequenceEnd::Token(Token::End(env)), Some(&mut state), true)?,
-                );
+                let content = self.arena.push_slice(&self.parse_sequence(
+                    SequenceEnd::Token(Token::End(env)),
+                    Some(&mut state),
+                    true,
+                )?);
 
                 // TODO: Find a better way to extract the `env` of the `End` token.
                 let TokLoc(end_token_loc, end_token) = self.next_token()?;
