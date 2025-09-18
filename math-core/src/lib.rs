@@ -299,7 +299,8 @@ where
     'source: 'arena,  // 'source outlives 'arena
     'config: 'source, // 'config outlives 'source
 {
-    let lexer = latex_parser::Lexer::new(latex, false, custom_cmds);
+    let error_slot = std::cell::OnceCell::new();
+    let lexer = latex_parser::Lexer::new(latex, false, custom_cmds, &error_slot);
     let mut p = latex_parser::Parser::new(lexer, arena).map_err(|e| *e)?;
     let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
@@ -314,11 +315,12 @@ fn parse_custom_commands<'source>(
         if !is_valid_macro_name(name) {
             return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
-        let mut lexer: latex_parser::Lexer<'static, '_> =
-            latex_parser::Lexer::new(definition, true, None);
+        let error_slot = std::cell::OnceCell::new();
+        let mut lexer: latex_parser::Lexer<'static, '_, '_> =
+            latex_parser::Lexer::new(definition, true, None, &error_slot);
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_token()?;
+            let tokloc = lexer.next_token().map_err(|e| *e)?;
             if matches!(&tokloc.1, Token::Eof) {
                 break;
             }

@@ -22,10 +22,6 @@ impl Arena {
         self.inner.alloc(node)
     }
 
-    pub fn alloc<T>(&self, value: T) -> &T {
-        self.inner.alloc(value)
-    }
-
     pub fn push_slice<'arena>(
         &'arena self,
         nodes: &[&'arena Node<'arena>],
