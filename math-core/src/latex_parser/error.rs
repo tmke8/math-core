@@ -8,7 +8,7 @@ use super::environments::Env;
 use super::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
 #[derive(Debug, Clone, Copy)]

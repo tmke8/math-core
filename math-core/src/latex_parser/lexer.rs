@@ -5,7 +5,7 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
-use super::token::{Digit, TokLoc, TokResult, Token};
+use super::token::{Digit, TokLoc, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
@@ -143,12 +143,12 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokResult<'_, 'config>>,
+        tokens: &mut Vec<TokLoc<'config>>,
     ) -> Result<(), LatexError<'source>> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
-            let (loc, tok) = self.next_token()?;
+            let TokLoc(loc, tok) = self.next_token()?;
             match tok {
                 Token::GroupBegin => {
                     brace_nesting_level += 1;
@@ -169,7 +169,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
                 _ => {}
             }
-            tokens.push(TokResult(loc, Ok(tok)));
+            tokens.push(TokLoc(loc, tok));
         }
         Ok(())
     }
@@ -178,7 +178,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
-                return Ok((loc.get(), Token::Whitespace));
+                return Ok(TokLoc(loc.get(), Token::Whitespace));
             }
         }
 
@@ -269,7 +269,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
             }
         };
-        Ok((loc, tok))
+        Ok(TokLoc(loc, tok))
     }
 
     fn parse_command(
@@ -327,7 +327,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         if matches!(tok, Token::Text(_)) {
             self.text_mode = true;
         }
-        Ok((loc, tok))
+        Ok(TokLoc(loc, tok))
     }
 }
 
@@ -376,7 +376,7 @@ mod tests {
                 if matches!(tokloc.1, Token::Eof) {
                     break;
                 }
-                let (loc, tok) = tokloc;
+                let TokLoc(loc, tok) = tokloc;
                 write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
@@ -405,8 +405,8 @@ mod tests {
             let tokens = match lexer.read_group(&mut tokens) {
                 Ok(()) => {
                     let mut token_str = String::new();
-                    for TokResult(loc, tok) in tokens {
-                        write!(token_str, "{}: {:?}\n", loc, tok.unwrap()).unwrap();
+                    for TokLoc(loc, tok) in tokens {
+                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
                     }
                     token_str
                 }
@@ -427,7 +427,7 @@ mod tests {
             if matches!(tokloc.1, Token::Eof) {
                 break;
             }
-            let (loc, tok) = tokloc;
+            let TokLoc(loc, tok) = tokloc;
             write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));

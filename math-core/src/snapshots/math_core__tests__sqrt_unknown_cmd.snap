@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\sqrt[3]\\asdf 3"
+---
+Position: 8
+UnknownCommand(
+    "asdf",
+)
