@@ -32,7 +32,7 @@ pub(crate) struct Parser<'arena, 'source> {
     tf_differs_on_upright_letters: bool,
 }
 
-pub(crate) struct TokenProducer<'arena, 'source> {
+struct TokenProducer<'arena, 'source> {
     lexer: Lexer<'source, 'source>,
     peek: TokResult<'arena, 'source>,
     stack: Vec<TokResult<'arena, 'source>>,
@@ -41,9 +41,7 @@ pub(crate) struct TokenProducer<'arena, 'source> {
 impl<'arena, 'source> TokenProducer<'arena, 'source> {
     /// Get the next token from the lexer, replacing the current peek token.
     ///
-    /// This function is often necessary due to limitations in Rust's borrow checker.
-    /// With this function, we can explicitly say which fields of the parser are borrowed
-    /// mutably.
+    /// If there are tokens on the stack, pop the top token from the stack instead.
     fn next(&mut self, arena: &'arena Arena) -> TokResult<'arena, 'source> {
         let peek_token = if let Some(tok) = self.stack.pop() {
             tok
@@ -58,6 +56,25 @@ impl<'arena, 'source> TokenProducer<'arena, 'source> {
         };
         // Return the previous peek token and store the new peek token.
         mem::replace(&mut self.peek, peek_token)
+    }
+
+    fn add_to_stack(&mut self, tokens: &[impl Into<TokResult<'arena, 'source>> + Copy]) {
+        // Only do something if the token slice is non-empty.
+        if let [head, tail @ ..] = tokens {
+            // Replace the peek token with the first token of the token stream.
+            let old_peek = mem::replace(&mut self.peek, (*head).into());
+            // Put the old peek token onto the token stack.
+            self.stack.push(old_peek);
+            // Put the rest of the token stream onto the token stack in reverse order.
+            for tok in tail.iter().rev() {
+                self.stack.push((*tok).into());
+            }
+        }
+    }
+
+    #[inline]
+    fn is_empty_stack(&self) -> bool {
+        self.stack.is_empty()
     }
 }
 
@@ -1157,31 +1174,13 @@ where
                     };
                     self.cmd_args.push(tokens);
                 }
-                if let [head, tail @ ..] = token_stream {
-                    // Replace the peek token with the first token of the token stream.
-                    let old_peek = mem::replace(&mut self.tokens.peek, TokResult(0, Ok(*head)));
-                    // Put the old peek token onto the token stack.
-                    self.tokens.stack.push(old_peek);
-                    // Put the rest of the token stream onto the token stack in reverse order.
-                    for tok in tail.iter().rev() {
-                        self.tokens.stack.push(TokResult(0, Ok(*tok)));
-                    }
-                }
+                self.tokens.add_to_stack(token_stream);
                 let token = self.next_token();
                 return self.parse_token(token, parse_as, Some(sequence_state));
             }
             Token::CustomCmdArg(arg_num) => {
                 if let Some(arg) = self.cmd_args.get(arg_num as usize) {
-                    if let [head, tail @ ..] = &arg[..] {
-                        // Replace the peek token with the first token of the argument.
-                        let old_peek = mem::replace(&mut self.tokens.peek, *head);
-                        // Put the old peek token onto the token stack.
-                        self.tokens.stack.push(old_peek);
-                        // Put the rest of the argument onto the token stack in reverse order.
-                        for tok in tail.iter().rev() {
-                            self.tokens.stack.push(*tok);
-                        }
-                    }
+                    self.tokens.add_to_stack(&arg[..]);
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
                 } else {
@@ -1236,7 +1235,7 @@ where
     fn parse_ascii_text_group(
         &mut self,
     ) -> Result<(usize, &'source str), ErrorTup<'arena, 'source>> {
-        if !self.tokens.stack.is_empty() {
+        if !self.tokens.is_empty_stack() {
             // This function doesn't work if we are processing tokens from the token stack.
             return Err((0, self.arena.alloc(LatexErrKind::NotSupportedInCustomCmd)));
         }

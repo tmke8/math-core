@@ -166,7 +166,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
                 _ => {}
             }
-            tokens.push(TokResult(tokloc.0, Ok(tokloc.1)));
+            tokens.push(tokloc.into());
         }
         Ok(tokens)
     }

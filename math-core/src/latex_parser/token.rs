@@ -198,6 +198,20 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 }
 
+impl<'config> From<Token<'config>> for TokResult<'_, 'config> {
+    #[inline]
+    fn from(token: Token<'config>) -> Self {
+        TokResult(0, Ok(token))
+    }
+}
+
+impl<'config> From<TokLoc<'config>> for TokResult<'_, 'config> {
+    #[inline]
+    fn from(tok_loc: TokLoc<'config>) -> Self {
+        TokResult(tok_loc.0, Ok(tok_loc.1))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
