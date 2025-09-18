@@ -1,0 +1,8 @@
+---
+source: math-core/src/lib.rs
+expression: "\\mathrm{ab\\asdf}"
+---
+Position: 10
+UnknownCommand(
+    "asdf",
+)

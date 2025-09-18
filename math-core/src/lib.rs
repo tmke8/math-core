@@ -698,6 +698,8 @@ mod tests {
             ("hspace_non_ascii", r"\hspace{22öm}"),
             ("ampersand_outside_array", r"x & y"),
             ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
+            ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
+            ("digits_unknown_cmd", r"1.1\asdf"),
         ];
 
         for (name, problem) in problems.into_iter() {
