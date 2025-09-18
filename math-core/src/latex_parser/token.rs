@@ -12,7 +12,7 @@ use crate::mathml_renderer::attribute::{
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Debug, Clone, Copy, IntoStaticStr)]
 #[repr(u32)]
 pub enum Token<'config> {
     #[strum(serialize = "end of document")]
@@ -96,6 +96,9 @@ pub enum Token<'config> {
     #[strum(serialize = r"\&")]
     OpAmpersand,
     #[strum(serialize = ":")]
+    /// A token to force an operator to behave like a relation.
+    /// This is, for example, needed for `:`, which in LaTeX is a relation,
+    /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
@@ -202,13 +205,6 @@ impl<'config> From<Token<'config>> for TokResult<'_, 'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
         TokResult(0, Ok(token))
-    }
-}
-
-impl<'config> From<TokLoc<'config>> for TokResult<'_, 'config> {
-    #[inline]
-    fn from(tok_loc: TokLoc<'config>) -> Self {
-        TokResult(tok_loc.0, Ok(tok_loc.1))
     }
 }
 

@@ -8,10 +8,10 @@ use super::environments::Env;
 use super::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum LatexErrKind<'source> {
     UnexpectedToken {
         expected: &'static Token<'static>,

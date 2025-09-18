@@ -18,6 +18,9 @@ where
     peek: (usize, char),
     input_string: &'source str,
     input_length: usize,
+    /// In text mode, spaces are converted to `Token::Whitespace` and
+    /// math commands (like `\sqrt`) don't work. Instead, text commands
+    /// (like `\ae`) are recognized.
     text_mode: bool,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
@@ -88,7 +91,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     fn read_command(&mut self) -> &'source str {
         let start = self.peek.0;
 
-        // Read in all ASCII characters.
+        // Read in all ASCII alphabetic characters.
         while self.peek.1.is_ascii_alphabetic() {
             self.read_char();
         }
@@ -104,9 +107,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
         self.input_string.get_unwrap(start..end)
     }
 
-    /// Read ASCII alphanumeric characters until the next `}`.
+    /// Read ASCII alphanumeric characters (and a few others) until the next `}`.
     ///
-    /// Returns `None` if there are any non-alphanumeric characters before the `}`.
+    /// Returns `None` if there are any disallowed characters before the `}`.
     #[inline]
     pub(super) fn read_ascii_text_group(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
@@ -145,8 +148,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
-            let tokloc = self.next_token()?;
-            match tokloc.1 {
+            let (loc, tok) = self.next_token()?;
+            match tok {
                 Token::GroupBegin => {
                     brace_nesting_level += 1;
                 }
@@ -162,11 +165,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     }
                 }
                 Token::Eof => {
-                    return Err(LatexError(tokloc.0, LatexErrKind::UnclosedGroup(tokloc.1)));
+                    return Err(LatexError(loc, LatexErrKind::UnclosedGroup(tok)));
                 }
                 _ => {}
             }
-            tokens.push(tokloc.into());
+            tokens.push(TokResult(loc, Ok(tok)));
         }
         Ok(tokens)
     }
