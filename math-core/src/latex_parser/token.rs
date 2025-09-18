@@ -230,10 +230,17 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokResult<'_, 'config> {
+impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokResult(0, Ok(token))
+        (0, token)
+    }
+}
+
+impl<'config> From<TokLoc<'config>> for TokResult<'_, 'config> {
+    #[inline]
+    fn from(token: TokLoc<'config>) -> Self {
+        TokResult(token.0, Ok(token.1))
     }
 }
 

@@ -17,13 +17,13 @@ use super::{
     lexer::Lexer,
     specifications::{parse_column_specification, parse_length_specification},
     text_parser::TextParser,
-    token::{ErrorTup, TokResult, Token},
+    token::{ErrorTup, TokLoc, TokResult, Token},
     token_manager::TokenManager,
 };
 
 pub(crate) struct Parser<'arena, 'source> {
     tokens: TokenManager<'arena, 'source>,
-    cmd_args: Vec<Vec<TokResult<'arena, 'source>>>,
+    cmd_args: Vec<Vec<TokLoc<'source>>>,
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
@@ -1034,7 +1034,8 @@ where
                         self.next_token(); // Discard the opening `{` token.
                         tokens
                     } else {
-                        vec![self.next_token()]
+                        let (loc, tok) = self.next_token().with_error()?;
+                        vec![(loc, tok)]
                     };
                     self.cmd_args.push(tokens);
                 }

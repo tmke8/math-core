@@ -5,7 +5,7 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
-use super::token::{Digit, TokLoc, TokResult, Token};
+use super::token::{Digit, TokLoc, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
@@ -141,9 +141,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.
-    pub(super) fn read_group(
-        &mut self,
-    ) -> Result<Vec<TokResult<'config, 'config>>, LatexError<'source>> {
+    pub(super) fn read_group(&mut self) -> Result<Vec<TokLoc<'config>>, LatexError<'source>> {
         let mut tokens = Vec::new();
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
@@ -169,7 +167,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
                 _ => {}
             }
-            tokens.push(TokResult(loc, Ok(tok)));
+            tokens.push((loc, tok));
         }
         Ok(tokens)
     }

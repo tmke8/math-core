@@ -4,13 +4,13 @@ use crate::mathml_renderer::arena::Arena;
 
 use super::{
     lexer::Lexer,
-    token::{TokResult, Token},
+    token::{TokLoc, TokResult, Token},
 };
 
 pub(super) struct TokenManager<'arena, 'source> {
     pub lexer: Lexer<'source, 'source>,
     pub peek: TokResult<'arena, 'source>,
-    stack: Vec<TokResult<'arena, 'source>>,
+    stack: Vec<TokLoc<'source>>,
 }
 
 impl<'arena, 'source> TokenManager<'arena, 'source> {
@@ -27,7 +27,7 @@ impl<'arena, 'source> TokenManager<'arena, 'source> {
     /// If there are tokens on the stack, pop the top token from the stack instead.
     pub(super) fn next(&mut self, arena: &'arena Arena) -> TokResult<'arena, 'source> {
         let peek_token = if let Some(tok) = self.stack.pop() {
-            tok
+            tok.into()
         } else {
             match self.lexer.next_token() {
                 Ok((loc, tok)) => TokResult(loc, Ok(tok)),
@@ -41,7 +41,7 @@ impl<'arena, 'source> TokenManager<'arena, 'source> {
         mem::replace(&mut self.peek, peek_token)
     }
 
-    pub(super) fn add_to_stack(&mut self, tokens: &[impl Into<TokResult<'arena, 'source>> + Copy]) {
+    pub(super) fn add_to_stack(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
         // Only do something if the token slice is non-empty.
         if let [head, tail @ ..] = tokens {
             // Replace the peek token with the first token of the token stream.
