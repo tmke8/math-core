@@ -22,7 +22,7 @@ pub enum Token<'config> {
     #[strum(serialize = r"\end{...}")]
     End(Env),
     #[strum(serialize = "&")]
-    Ampersand,
+    NewColumn,
     #[strum(serialize = r"\\")]
     NewLine,
     #[strum(serialize = r"\left")]
@@ -128,6 +128,27 @@ impl Token<'_> {
     pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
         discriminant(self) == discriminant(other)
     }
+
+    /// Returns the character class of this token.
+    pub(super) fn class(&self, in_sequence: bool, real_boundaries: bool) -> Class {
+        if !in_sequence {
+            return Class::Default;
+        }
+        match self {
+            Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
+            Token::Punctuation(_) => Class::Punctuation,
+            Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
+            Token::Close(_) | Token::SquareBracketClose | Token::NewColumn => Class::Close,
+            Token::BinaryOp(_) => Class::BinaryOp,
+            Token::BigOp(_) | Token::Integral(_) => Class::Operator,
+            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if real_boundaries => {
+                Class::Close
+            }
+            Token::Big(_, Some(cls)) => *cls,
+            Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, real_boundaries),
+            _ => Class::Default,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -198,6 +219,14 @@ impl<'arena, 'source> TokResult<'arena, 'source> {
     #[inline]
     pub fn location(&self) -> usize {
         self.0
+    }
+
+    #[inline]
+    pub(super) fn class(&self, in_sequence: bool, real_boundaries: bool) -> Class {
+        let Ok(tok) = self.token() else {
+            return Class::Default;
+        };
+        tok.class(in_sequence, real_boundaries)
     }
 }
 

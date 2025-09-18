@@ -213,7 +213,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     Token::Letter('#')
                 }
             }
-            '&' => Token::Ampersand,
+            '&' => Token::NewColumn,
             '\'' => Token::Prime,
             '(' => Token::Open(symbol::LEFT_PARENTHESIS),
             ')' => Token::Close(symbol::RIGHT_PARENTHESIS),

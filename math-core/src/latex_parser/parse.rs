@@ -76,6 +76,13 @@ enum ParseAs {
     ArgWithSpace,
 }
 
+impl ParseAs {
+    #[inline]
+    fn in_sequence(&self) -> bool {
+        matches!(self, ParseAs::Sequence | ParseAs::ContinueSequence)
+    }
+}
+
 type ASTResult<'arena, 'source> = Result<&'arena Node<'arena>, ErrorTup<'arena, 'source>>;
 
 impl<'arena, 'source> Parser<'arena, 'source>
@@ -245,7 +252,10 @@ where
             &mut Default::default()
         };
         let mut new_class: Class = Default::default();
-        let next_class = self.next_class(parse_as, sequence_state);
+        let next_class = self
+            .tokens
+            .peek
+            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Number(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -912,7 +922,7 @@ where
                     Ok(Node::Text(text))
                 }
             }
-            Token::Ampersand => {
+            Token::NewColumn => {
                 if sequence_state.allow_columns {
                     new_class = Class::Close;
                     Ok(Node::ColumnSeparator)
@@ -1260,7 +1270,10 @@ where
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
-        let next_class = self.next_class(parse_as, sequence_state);
+        let next_class = self
+            .tokens
+            .peek
+            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         (
             if matches!(
                 sequence_state.class,
@@ -1283,31 +1296,6 @@ where
                 None
             },
         )
-    }
-
-    fn next_class(&self, parse_as: ParseAs, sequence_state: &SequenceState) -> Class {
-        if !matches!(parse_as, ParseAs::Sequence | ParseAs::ContinueSequence) {
-            return Class::Default;
-        }
-        let Ok(tok) = self.tokens.peek.token() else {
-            return Class::Default;
-        };
-        match tok {
-            Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
-            Token::Punctuation(_) => Class::Punctuation,
-            Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::Close(_) | Token::SquareBracketClose | Token::Ampersand => Class::Close,
-            Token::BinaryOp(_) => Class::BinaryOp,
-            Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof
-                if sequence_state.real_boundaries =>
-            {
-                Class::Close
-            }
-            Token::Big(_, None) => Class::Default,
-            Token::Big(_, Some(class)) => *class,
-            _ => Class::Default,
-        }
     }
 
     fn extract_delimiter(
