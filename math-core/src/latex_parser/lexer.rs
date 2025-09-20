@@ -11,10 +11,9 @@ use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source, 'cell>
+pub(crate) struct Lexer<'config, 'source>
 where
     'config: 'source,
-    'source: 'cell,
 {
     input: CharIndices<'source>,
     peek: (usize, char),
@@ -26,16 +25,15 @@ where
     text_mode: bool,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
-    error_slot: &'cell OnceCell<LatexError<'source>>,
+    error_slot: OnceCell<LatexError<'source>>,
 }
 
-impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
+impl<'config, 'source> Lexer<'config, 'source> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
-        error_slot: &'cell OnceCell<LatexError<'source>>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -49,14 +47,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 None
             },
             custom_cmds,
-            error_slot,
+            error_slot: OnceCell::new(),
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
     }
 
     #[inline]
-    pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+    pub(super) fn alloc_err(&self, err: LatexError<'source>) -> &LatexError<'source> {
         self.error_slot.get_or_init(|| err)
     }
 
@@ -151,10 +149,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.
-    pub(super) fn read_group(
-        &mut self,
+    pub(super) fn read_group<'slf>(
+        &'slf mut self,
         tokens: &mut Vec<TokLoc<'config>>,
-    ) -> Result<(), &'cell LatexError<'source>> {
+    ) -> Result<(), &'slf LatexError<'source>> {
         // Set the initial nesting level to 1.
         let mut brace_nesting_level: usize = 1;
         loop {
@@ -185,7 +183,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &LatexError<'source>> {
         if let Some(loc) = self.skip_whitespace() {
             if self.text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -288,7 +286,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+    ) -> Result<TokLoc<'config>, &LatexError<'source>> {
         let tok: Result<Token<'config>, LatexError<'source>> = if self.text_mode {
             if let Some(tok) = get_text_command(cmd_string) {
                 Ok(tok)
@@ -388,8 +386,7 @@ mod tests {
         ];
 
         for (name, problem, text_mode) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None);
             lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
@@ -423,8 +420,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None);
             // Check that the first token is `GroupBegin`.
             assert!(matches!(lexer.next_token().unwrap().1, Token::GroupBegin));
             let mut tokens = Vec::new();
@@ -446,8 +442,7 @@ mod tests {
     fn test_parsing_custom_commands() {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let error_slot = OnceCell::new();
-        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None, &error_slot);
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
