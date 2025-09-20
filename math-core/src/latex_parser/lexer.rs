@@ -20,10 +20,7 @@ where
     peek: (usize, char),
     input_string: &'source str,
     input_length: usize,
-    /// In text mode, spaces are converted to `Token::Whitespace` and
-    /// math commands (like `\sqrt`) don't work. Instead, text commands
-    /// (like `\ae`) are recognized.
-    text_mode: bool,
+    mode: Mode,
     brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
@@ -43,7 +40,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             peek: (0, '\u{0}'),
             input_string: input,
             input_length: input.len(),
-            text_mode: false,
+            mode: Mode::default(),
             brace_nesting_level: 0,
             parse_cmd_args: if parsing_custom_cmds {
                 Some(0) // Start counting command arguments.
@@ -60,11 +57,6 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     #[inline]
     pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
         self.error_slot.get_or_init(|| err)
-    }
-
-    #[inline]
-    pub(super) fn turn_off_text_mode(&mut self) {
-        self.text_mode = false;
     }
 
     #[inline]
@@ -146,7 +138,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
 
     /// Check if the next character is a digit.
     pub(super) fn is_next_digit(&mut self) -> bool {
-        if !self.text_mode {
+        if matches!(self.mode, Mode::Math) {
             self.skip_whitespace();
         }
         self.peek.1.is_ascii_digit()
@@ -181,8 +173,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
 
     /// Generate the next token.
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+        let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup(_));
         if let Some(loc) = self.skip_whitespace() {
-            if self.text_mode {
+            if text_mode {
                 return Ok(TokLoc(loc.get(), Token::Whitespace));
             }
         }
@@ -225,7 +218,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '(' => Token::Open(symbol::LEFT_PARENTHESIS),
             ')' => Token::Close(symbol::RIGHT_PARENTHESIS),
             '*' => {
-                if self.text_mode {
+                if text_mode {
                     Token::Letter(ch)
                 } else {
                     Token::BinaryOp(symbol::ASTERISK_OPERATOR)
@@ -234,7 +227,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
             ',' => Token::Punctuation(symbol::COMMA),
             '-' => {
-                if self.text_mode {
+                if text_mode {
                     Token::Letter(ch)
                 } else {
                     Token::BinaryOp(symbol::MINUS_SIGN)
@@ -252,10 +245,19 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '_' => Token::Underscore,
             '{' => {
                 self.brace_nesting_level += 1;
+                if matches!(self.mode, Mode::TextStart) {
+                    self.mode = Mode::TextGroup(self.brace_nesting_level);
+                }
                 Token::GroupBegin
             }
             '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
+                if let Mode::TextGroup(level) = self.mode {
+                    if level == self.brace_nesting_level {
+                        // We are closing a text group.
+                        self.mode = Mode::Math;
+                    }
+                }
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return Err(self.alloc_err(LatexError(
                         loc,
@@ -268,7 +270,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let cmd_string = self.read_command();
-                if self.text_mode {
+                if text_mode {
                     // After a command, all whitespace is skipped, even in text mode.
                     // This is done automatically in non-text-mode, but for text
                     // mode we need to do it manually.
@@ -288,6 +290,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 }
             }
         };
+        if matches!(self.mode, Mode::TextStart) {
+            // If we didn't go into `Mode::TextGroup` (by reading a `{`),
+            // we go back to math mode after reading one token.
+            self.mode = Mode::Math;
+        }
         Ok(TokLoc(loc, tok))
     }
 
@@ -296,64 +303,73 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         loc: usize,
         cmd_string: &'source str,
     ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
-        let tok: Result<Token<'config>, LatexError<'source>> = if self.text_mode {
-            if let Some(tok) = get_text_command(cmd_string) {
-                Ok(tok)
-            } else {
-                Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
-            }
-        } else {
-            let env_marker = match cmd_string {
-                "begin" => Some(EnvMarker::Begin),
-                "end" => Some(EnvMarker::End),
-                _ => None,
-            };
-            'env_parsing: {
-                if let Some(env_marker) = env_marker {
-                    // Read the environment name.
-                    // First skip any whitespace.
-                    self.skip_whitespace();
-                    // Next character must be `{`.
-                    let (new_loc, next_char) = self.read_char();
-                    if next_char != '{' {
-                        break 'env_parsing Err(LatexError(
-                            new_loc,
-                            LatexErrKind::MissingBrace(next_char),
-                        ));
-                    }
-                    // Read the text until the next `}`.
-                    let Some(env_name) = self.read_ascii_text_group() else {
-                        break 'env_parsing Err(LatexError(new_loc, LatexErrKind::DisallowedChars));
-                    };
-                    // Convert the environment name to the `Env` enum.
-                    let Some(env) = Env::from_str(env_name) else {
-                        break 'env_parsing Err(LatexError(
-                            new_loc,
-                            LatexErrKind::UnknownEnvironment(env_name),
-                        ));
-                    };
-                    // Return the `\begin{env}` or `\end{env}` token.
-                    Ok(match env_marker {
-                        EnvMarker::Begin => Token::Begin(env),
-                        EnvMarker::End => Token::End(env),
-                    })
-                } else {
-                    let Some(tok) = self
-                        .custom_cmds
-                        .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                        .or_else(|| get_command(cmd_string))
-                    else {
-                        break 'env_parsing Err(LatexError(
-                            loc,
-                            LatexErrKind::UnknownCommand(cmd_string),
-                        ));
-                    };
+        let tok: Result<Token<'config>, LatexError<'source>> =
+            if matches!(self.mode, Mode::TextStart | Mode::TextGroup(_)) {
+                if let Some(tok) = get_text_command(cmd_string) {
                     Ok(tok)
+                } else {
+                    Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
                 }
-            }
-        };
+            } else {
+                let env_marker = match cmd_string {
+                    "begin" => Some(EnvMarker::Begin),
+                    "end" => Some(EnvMarker::End),
+                    _ => None,
+                };
+                'env_parsing: {
+                    if let Some(env_marker) = env_marker {
+                        // Read the environment name.
+                        // First skip any whitespace.
+                        self.skip_whitespace();
+                        // Next character must be `{`.
+                        let (new_loc, next_char) = self.read_char();
+                        if next_char != '{' {
+                            break 'env_parsing Err(LatexError(
+                                new_loc,
+                                LatexErrKind::MissingBrace(next_char),
+                            ));
+                        }
+                        // Read the text until the next `}`.
+                        let Some(env_name) = self.read_ascii_text_group() else {
+                            break 'env_parsing Err(LatexError(
+                                new_loc,
+                                LatexErrKind::DisallowedChars,
+                            ));
+                        };
+                        // Convert the environment name to the `Env` enum.
+                        let Some(env) = Env::from_str(env_name) else {
+                            break 'env_parsing Err(LatexError(
+                                new_loc,
+                                LatexErrKind::UnknownEnvironment(env_name),
+                            ));
+                        };
+                        // Return the `\begin{env}` or `\end{env}` token.
+                        Ok(match env_marker {
+                            EnvMarker::Begin => Token::Begin(env),
+                            EnvMarker::End => Token::End(env),
+                        })
+                    } else {
+                        let Some(tok) = self
+                            .custom_cmds
+                            .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                            .or_else(|| get_command(cmd_string))
+                        else {
+                            break 'env_parsing Err(LatexError(
+                                loc,
+                                LatexErrKind::UnknownCommand(cmd_string),
+                            ));
+                        };
+                        Ok(tok)
+                    }
+                }
+            };
+        if matches!(self.mode, Mode::TextStart) {
+            // If we didn't go into `Mode::TextGroup` (by reading a `{`),
+            // we go back to math mode after reading one token.
+            self.mode = Mode::Math;
+        }
         if matches!(tok, Ok(Token::Text(_))) {
-            self.text_mode = true;
+            self.mode = Mode::TextStart;
         }
         match tok {
             Ok(tok) => Ok(TokLoc(loc, tok)),
@@ -365,6 +381,17 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
 enum EnvMarker {
     Begin = 1,
     End = 2,
+}
+
+#[derive(Debug, Default)]
+enum Mode {
+    #[default]
+    Math,
+    /// In text mode, spaces are converted to `Token::Whitespace` and
+    /// math commands (like `\sqrt`) don't work. Instead, text commands
+    /// (like `\ae`) are recognized.
+    TextStart,
+    TextGroup(usize), // The nesting level of `{` in the text group.
 }
 
 #[cfg(test)]
@@ -379,30 +406,27 @@ mod tests {
     #[test]
     fn lexer_test() {
         let problems = [
-            ("simple_number", r"3", false),
-            ("number_with_dot", r"3.14", false),
-            ("number_with_dot_at_end", r"3.14.", false),
-            ("number_with_two_inner_dots", r"3..14", false),
-            ("lower_case_latin", r"x", false),
-            ("lower_case_greek", r"\pi", false),
-            ("assigment_with_space", r"x = 3.14", false),
-            ("two_lower_case_greek", r"\alpha\beta", false),
-            ("simple_expression", r"x+y", false),
-            ("space_and_number", r"\ 1", false),
-            ("space_in_text", r"  x   y z", true),
-            ("comment", "ab%hello\ncd", false),
-            ("switch_to_text_mode", r"\text\o", false),
+            ("simple_number", r"3"),
+            ("number_with_dot", r"3.14"),
+            ("number_with_dot_at_end", r"3.14."),
+            ("number_with_two_inner_dots", r"3..14"),
+            ("lower_case_latin", r"x"),
+            ("lower_case_greek", r"\pi"),
+            ("assigment_with_space", r"x = 3.14"),
+            ("two_lower_case_greek", r"\alpha\beta"),
+            ("simple_expression", r"x+y"),
+            ("space_and_number", r"\ 1"),
+            ("space_in_text", r"\text{  x   y z}"),
+            ("comment", "ab%hello\ncd"),
+            ("switch_to_text_mode", r"\prod\text\o\sum"),
+            ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
         ];
 
-        for (name, problem, text_mode) in problems.into_iter() {
+        for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
             let mut lexer = Lexer::new(problem, false, None, &error_slot);
-            lexer.text_mode = text_mode;
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
-            if text_mode {
-                write!(tokens, "(text mode)\n").unwrap();
-            }
             loop {
                 let tokloc = lexer.next_token().unwrap();
                 if matches!(tokloc.1, Token::Eof) {

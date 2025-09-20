@@ -931,8 +931,6 @@ where
                 let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
-                // Now turn off text mode.
-                self.tokens.lexer.turn_off_text_mode();
                 // Discard the last token that we already processed but we kept it in `peek`,
                 // so that we can turn off text mode before new tokens are read.
                 self.next_token()?;
