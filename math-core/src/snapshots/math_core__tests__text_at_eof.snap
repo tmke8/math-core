@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\text{x{}"
+expression: "\\sum\\text"
 ---
 Position: 9
 UnexpectedEOF

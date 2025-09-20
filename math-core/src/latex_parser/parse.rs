@@ -898,13 +898,11 @@ where
                 Ok(env.construct_node(content, array_spec, self.arena))
             }
             Token::OperatorName => {
-                let tokloc = self.tokens.peek;
+                let tokloc = self.tokens.next();
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_as_text(tokloc)?;
                 let letters = builder.finish(self.arena);
-                // Discard the last token.
-                self.next_token()?;
                 if let Some(ch) = get_single_char(letters) {
                     Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
                 } else {
@@ -923,17 +921,11 @@ where
                 if matches!(self.tokens.peek.token(), Token::Whitespace) {
                     self.next_token()?;
                 }
-                // Copy the token out of the peek variable.
-                // We do this because we need to turn off text mode while there is still a peek
-                // token that is consumed by the `Text` command.
-                let tokloc = self.tokens.peek;
+                let tokloc = self.tokens.next();
                 let mut builder = self.buffer.get_builder();
                 let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
                 text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
-                // Discard the last token that we already processed but we kept it in `peek`,
-                // so that we can turn off text mode before new tokens are read.
-                self.next_token()?;
                 // Discard any whitespace tokens that are still stored in self.tokens.peek.
                 if matches!(self.tokens.peek.token(), Token::Whitespace) {
                     self.next_token()?;

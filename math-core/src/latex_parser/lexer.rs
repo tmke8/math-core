@@ -244,20 +244,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '{' => {
-                self.brace_nesting_level += 1;
                 if matches!(self.mode, Mode::TextStart) {
                     self.mode = Mode::TextGroup(self.brace_nesting_level);
                 }
+                self.brace_nesting_level += 1;
                 Token::GroupBegin
             }
             '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
-                if let Mode::TextGroup(level) = self.mode {
-                    if level == self.brace_nesting_level {
-                        // We are closing a text group.
-                        self.mode = Mode::Math;
-                    }
-                }
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return Err(self.alloc_err(LatexError(
                         loc,
@@ -265,6 +259,12 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     )));
                 };
                 self.brace_nesting_level = new_level;
+                if let Mode::TextGroup(level) = self.mode {
+                    if level == self.brace_nesting_level {
+                        // We are closing a text group.
+                        self.mode = Mode::Math;
+                    }
+                }
                 Token::GroupEnd
             }
             '~' => Token::NonBreakingSpace,
