@@ -24,6 +24,7 @@ where
     /// math commands (like `\sqrt`) don't work. Instead, text commands
     /// (like `\ae`) are recognized.
     text_mode: bool,
+    brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
     error_slot: &'cell OnceCell<LatexError<'source>>,
@@ -43,6 +44,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             input_string: input,
             input_length: input.len(),
             text_mode: false,
+            brace_nesting_level: 0,
             parse_cmd_args: if parsing_custom_cmds {
                 Some(0) // Start counting command arguments.
             } else {
@@ -155,21 +157,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         &mut self,
         tokens: &mut Vec<TokLoc<'config>>,
     ) -> Result<(), &'cell LatexError<'source>> {
-        // Set the initial nesting level to 1.
-        let mut brace_nesting_level: usize = 1;
+        let start_nesting_level = self.brace_nesting_level;
         loop {
             let TokLoc(loc, tok) = self.next_token()?;
             match tok {
-                Token::GroupBegin => {
-                    brace_nesting_level += 1;
-                }
                 Token::GroupEnd => {
-                    // Decrease the nesting level.
-                    // This cannot underflow because we started at 1 and stop
-                    // when it reaches 0.
-                    brace_nesting_level -= 1;
-                    // If the nesting level is 0, we stop reading.
-                    if brace_nesting_level == 0 {
+                    // If the nesting level reaches one below where we started, we
+                    // stop reading.
+                    if self.brace_nesting_level + 1 == start_nesting_level {
                         // We break directly without pushing the `}` token.
                         break;
                     }
@@ -255,9 +250,21 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '{' => Token::GroupBegin,
+            '{' => {
+                self.brace_nesting_level += 1;
+                Token::GroupBegin
+            }
             '|' => Token::Ord(symbol::VERTICAL_LINE),
-            '}' => Token::GroupEnd,
+            '}' => {
+                let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
+                    return Err(self.alloc_err(LatexError(
+                        loc,
+                        LatexErrKind::UnexpectedClose(Token::GroupEnd),
+                    )));
+                };
+                self.brace_nesting_level = new_level;
+                Token::GroupEnd
+            }
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let cmd_string = self.read_command();
@@ -404,6 +411,43 @@ mod tests {
                 let TokLoc(loc, tok) = tokloc;
                 write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
             }
+            assert_snapshot!(name, &tokens, problem);
+        }
+    }
+
+    #[test]
+    fn test_lexer_errors() {
+        let problems = [
+            ("unknown_command", r"\unknowncmd + x"),
+            ("unexpected_close", r"x + y}"),
+            ("missing_brace", r"\begin x + y"),
+            ("disallowed_chars", r"\begin{matrix x + y}"),
+            (
+                "unknown_environment",
+                r"\begin{unknownenv} x + y \end{unknownenv}",
+            ),
+            ("unexpected_close_in_group", r"{x + y}}"),
+        ];
+        for (name, problem) in problems.into_iter() {
+            let error_slot = OnceCell::new();
+            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut tokens = String::new();
+            let err = loop {
+                match lexer.next_token() {
+                    Ok(tokloc) => {
+                        if matches!(tokloc.1, Token::Eof) {
+                            break None;
+                        }
+                    }
+                    Err(err) => {
+                        break Some(err);
+                    }
+                }
+            };
+            let Some(err) = err else {
+                panic!("Expected an error in problem: {}", problem);
+            };
+            write!(tokens, "Error at {}: {:?}\n", err.0, err.1).unwrap();
             assert_snapshot!(name, &tokens, problem);
         }
     }
