@@ -21,8 +21,8 @@ use super::{
     token_manager::TokenManager,
 };
 
-pub(crate) struct Parser<'cell, 'arena, 'source> {
-    tokens: TokenManager<'cell, 'source>,
+pub(crate) struct Parser<'arena, 'source> {
+    tokens: TokenManager<'source>,
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
@@ -84,17 +84,17 @@ impl ParseAs {
     }
 }
 
-type ASTResult<'cell, 'arena, 'source> = Result<&'arena Node<'arena>, &'cell LatexError<'source>>;
+type ASTResult<'parser, 'arena, 'source> =
+    Result<&'arena Node<'arena>, &'parser LatexError<'source>>;
 
-impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source>
+impl<'arena, 'source> Parser<'arena, 'source>
 where
     'source: 'arena, // The reference to the source string will live as long as the arena.
-    'arena: 'cell,   // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
-        lexer: Lexer<'source, 'source, 'cell>,
+        lexer: Lexer<'source, 'source>,
         arena: &'arena Arena,
-    ) -> Result<Self, &'cell LatexError<'source>> {
+    ) -> Result<Self, LatexError<'source>> {
         let input_length = lexer.input_length();
         let mut p = Parser {
             tokens: TokenManager::new(lexer, Token::Eof),
@@ -107,16 +107,16 @@ where
         };
         // Discard the EOF token we just stored in `peek_token`.
         // This loads the first real token into `peek_token`.
-        p.next_token()?;
+        p.next_token().map_err(|e| *e)?;
         Ok(p)
     }
 
     #[inline]
-    fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+    fn alloc_err(&self, err: LatexError<'source>) -> &LatexError<'source> {
         self.tokens.lexer.alloc_err(err)
     }
 
-    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &'cell LatexError<'source>> {
+    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &LatexError<'source>> {
         let first_loc = self.tokens.peek.location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
@@ -163,14 +163,12 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+    fn next_token(&mut self) -> Result<TokLoc<'source>, &LatexError<'source>> {
         self.tokens.next()
     }
 
     #[inline]
-    pub(crate) fn parse(
-        &mut self,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> Result<Vec<&'arena Node<'arena>>, &LatexError<'source>> {
         self.parse_sequence(SequenceEnd::Token(Token::Eof), None, true)
     }
 
@@ -186,7 +184,7 @@ where
         sequence_end: SequenceEnd,
         sequence_state: Option<&mut SequenceState>,
         keep_end_token: bool,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    ) -> Result<Vec<&'arena Node<'arena>>, &LatexError<'source>> {
         let mut nodes = Vec::new();
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -259,10 +257,10 @@ where
     /// Parse the given token into a node.
     fn parse_token<'parser>(
         &'parser mut self,
-        cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
+        cur_tokloc: Result<TokLoc<'source>, &'parser LatexError<'source>>,
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
-    ) -> ASTResult<'cell, 'arena, 'source> {
+    ) -> ASTResult<'parser, 'arena, 'source> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
@@ -1125,15 +1123,16 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
+    fn parse_next<'parser>(
+        &'parser mut self,
+        parse_as: ParseAs,
+    ) -> ASTResult<'parser, 'arena, 'source> {
         let token = self.next_token();
         self.parse_token(token, parse_as, None)
     }
 
     /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
-    fn parse_ascii_text_group(
-        &mut self,
-    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
+    fn parse_ascii_text_group(&mut self) -> Result<(usize, &'source str), &LatexError<'source>> {
         if !self.tokens.is_empty_stack() {
             // This function doesn't work if we are processing tokens from the token stack.
             return Err(self.alloc_err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd)));
@@ -1160,7 +1159,7 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena>, &'cell LatexError<'source>> {
+    fn get_bounds(&mut self) -> Result<Bounds<'arena>, &LatexError<'source>> {
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek.token(), Token::Underscore);
@@ -1221,7 +1220,7 @@ where
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    fn prime_check(&mut self) -> Result<Vec<&'arena Node<'arena>>, &LatexError<'source>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.tokens.peek.token(), Token::Prime) {
@@ -1258,7 +1257,10 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(&mut self, is_sup: bool) -> ASTResult<'cell, 'arena, 'source> {
+    fn get_sub_or_sup<'parser>(
+        &'parser mut self,
+        is_sup: bool,
+    ) -> ASTResult<'parser, 'arena, 'source> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(TokLoc(loc, tok @ (Token::Underscore | Token::Circumflex | Token::Prime))) = next
@@ -1330,7 +1332,7 @@ where
     fn extract_delimiter(
         &mut self,
         tok: TokLoc<'source>,
-    ) -> Result<(StretchableOp, Class), &'cell LatexError<'source>> {
+    ) -> Result<(StretchableOp, Class), &LatexError<'source>> {
         let TokLoc(loc, tok) = tok;
         let (delim, class) = match tok {
             Token::Open(paren) => (Some(paren.as_op()), Class::Open),

@@ -7,14 +7,14 @@ use super::{
     token::{TokLoc, Token},
 };
 
-pub(super) struct TokenManager<'cell, 'source> {
-    pub lexer: Lexer<'source, 'source, 'cell>,
+pub(super) struct TokenManager<'source> {
+    pub lexer: Lexer<'source, 'source>,
     pub peek: TokLoc<'source>,
     stack: Vec<TokLoc<'source>>,
 }
 
-impl<'cell, 'source> TokenManager<'cell, 'source> {
-    pub(super) fn new(lexer: Lexer<'source, 'source, 'cell>, initial_peek: Token<'source>) -> Self {
+impl<'source> TokenManager<'source> {
+    pub(super) fn new(lexer: Lexer<'source, 'source>, initial_peek: Token<'source>) -> Self {
         TokenManager {
             lexer,
             peek: TokLoc(0, initial_peek),
@@ -25,7 +25,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
     /// Get the next token from the lexer, replacing the current peek token.
     ///
     /// If there are tokens on the stack, pop the top token from the stack instead.
-    pub(super) fn next<'arena>(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+    pub(super) fn next(&mut self) -> Result<TokLoc<'source>, &LatexError<'source>> {
         let peek_token = if let Some(tok) = self.stack.pop() {
             tok
         } else {
