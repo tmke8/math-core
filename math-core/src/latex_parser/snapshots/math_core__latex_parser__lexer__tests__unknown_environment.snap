@@ -1,0 +1,5 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "\\begin{unknownenv} x + y \\end{unknownenv}"
+---
+Error at 6: UnknownEnvironment("unknownenv")

@@ -36,20 +36,12 @@ impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'pa
         }
     }
 
-    fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
-        self.tokens.next()
-    }
-
     /// Parse the given token as text.
-    ///
-    /// This function may read in more tokens from the lexer, but it will always leave the last
-    /// processed token in `peek`. This is important for turning of the text mode in the lexer at
-    /// the right time.
     pub(super) fn parse_token_as_text(
         &mut self,
-        tokloc: TokLoc<'source>,
+        tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
     ) -> Result<(), &'cell LatexError<'source>> {
-        let TokLoc(loc, token) = tokloc;
+        let TokLoc(loc, token) = tokloc?;
         let c: Result<char, LatexErrKind> = match token {
             Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
             Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
@@ -81,36 +73,29 @@ impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'pa
                 }
             }
             Token::TextModeAccent(accent) => {
-                // Discard `TextModeAccent` token.
-                self.next_token()?;
-                let tokloc = self.tokens.peek;
+                let tokloc = self.tokens.next();
                 self.parse_token_as_text(tokloc)?;
                 self.builder.push_char(accent);
                 return Ok(());
             }
             Token::Text(tf) => {
-                // Discard `Text` token.
-                self.next_token()?;
                 let old_tf = mem::replace(&mut self.tf, tf);
-                let tokloc = self.tokens.peek;
+                let tokloc = self.tokens.next();
                 self.parse_token_as_text(tokloc)?;
                 self.tf = old_tf;
                 return Ok(());
             }
             Token::GroupBegin => {
-                // Discard opening token.
-                self.next_token()?;
-                while !matches!(self.tokens.peek.token(), Token::GroupEnd) {
-                    let tokloc = self.tokens.peek;
+                loop {
+                    let tokloc = self.tokens.next();
+                    if matches!(tokloc, Ok(TokLoc(_, Token::GroupEnd))) {
+                        break;
+                    }
                     self.parse_token_as_text(tokloc)?;
-                    // Discard the last token.
-                    // We must do this here, because `parse_token_in_text_mode` always leaves the
-                    // last token in `peek`, but we want to continue here, so we need to discard it.
-                    self.next_token()?;
                 }
                 return Ok(());
             }
-            Token::Eof => Err(LatexErrKind::UnclosedGroup(Token::GroupEnd)),
+            Token::Eof => Err(LatexErrKind::UnexpectedEOF),
             Token::End(_) | Token::Right | Token::GroupEnd => {
                 Err(LatexErrKind::UnexpectedClose(token))
             }

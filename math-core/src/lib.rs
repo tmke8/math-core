@@ -685,6 +685,7 @@ mod tests {
             ("unsupported_not", r"\not\text{hello}"),
             ("text_with_unclosed_group", r"\text{x{}"),
             ("text_with_math_command", r"\text{\max}"),
+            ("text_at_eof", r"\sum\text"),
             ("operatorname_with_end", r"\operatorname{\end{matrix}}"),
             ("operatorname_with_begin", r"\operatorname{\begin{matrix}}"),
             ("operatorname_with_text_command", r"\operatorname{\ae}"),
@@ -718,6 +719,7 @@ mod tests {
         let macros = [
             ("half".to_string(), r"\frac{1}{2}".to_string()),
             ("mycmd".to_string(), r"\sqrt{3}".to_string()),
+            ("withText".to_string(), r"\text{a b}\sum".to_string()),
         ]
         .into_iter()
         .collect();
@@ -730,7 +732,7 @@ mod tests {
 
         let converter = LatexToMathML::new(&config).unwrap();
 
-        let latex = r"x = \half";
+        let latex = r"x = \half, \withText 3";
         let mathml = converter
             .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();

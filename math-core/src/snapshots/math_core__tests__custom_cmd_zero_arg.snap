@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: "x = \\half"
+expression: "x = \\half, \\withText 3"
 ---
 <math>
     <mi>x</mi>
@@ -9,4 +9,8 @@ expression: "x = \\half"
         <mn>1</mn>
         <mn>2</mn>
     </mfrac>
+    <mo>,</mo>
+    <mtext>a b</mtext>
+    <mo>∑</mo>
+    <mn>3</mn>
 </math>
