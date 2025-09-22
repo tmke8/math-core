@@ -30,7 +30,7 @@ bitflags = { workspace = true }
 
 
 [dev-dependencies]
-insta = { version = "1.41.1", features = ["default", "ron"] }
+insta = { version = "1.43.2", features = ["default", "ron"] }
 regex = "1.11.2"
 math-core = { path = ".", features = ["serde"] }
 minijinja = "2.12.0"
