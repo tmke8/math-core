@@ -30,7 +30,7 @@ is converted to
 
 which looks like this:
 
-<img src="https://tmke8.github.io/math-core/render_example.png" width=95 height=97/>
+<img src="https://tmke8.github.io/math-core/render_example.png" width=96 height=98/>
 
 ## Goals
 The goal of this project is to translate modern LaTeX math faithfully to the browser. More specifically, the goal is to…
