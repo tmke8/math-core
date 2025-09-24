@@ -13,10 +13,10 @@ is converted to
 ```html
 <math display="block">
     <munderover>
-        <mo>∑</mo>
+        <mo lspace="0">∑</mo>
         <mrow>
             <mi>i</mi>
-            <mo>=</mo>
+            <mo lspace="0" rspace="0">=</mo>
             <mn>0</mn>
         </mrow>
         <mi>N</mi>
