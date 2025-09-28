@@ -96,7 +96,7 @@ impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'pa
                 return Ok(());
             }
             Token::Eof => Err(LatexErrKind::UnexpectedEOF),
-            Token::End(_) | Token::Right | Token::GroupEnd => {
+            Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexErrKind::UnexpectedClose(token))
             }
             _ => Err(LatexErrKind::NotValidInTextMode(token)),

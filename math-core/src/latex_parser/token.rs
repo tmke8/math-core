@@ -16,10 +16,12 @@ use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike,
 pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,
-    #[strum(serialize = r"\begin{...}")]
-    Begin(Env),
-    #[strum(serialize = r"\end{...}")]
-    End(Env),
+    #[strum(serialize = r"\begin")]
+    Begin,
+    #[strum(serialize = r"\end")]
+    End,
+    /// For `\begin{...}` and `\end{...}`.
+    EnvName(Env),
     #[strum(serialize = "&")]
     NewColumn,
     #[strum(serialize = r"\\")]
@@ -140,7 +142,7 @@ impl Token<'_> {
             Token::Close(_) | Token::SquareBracketClose | Token::NewColumn => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if real_boundaries => {
+            Token::End | Token::Right | Token::GroupEnd | Token::Eof if real_boundaries => {
                 Class::Close
             }
             Token::Big(_, Some(cls)) => *cls,

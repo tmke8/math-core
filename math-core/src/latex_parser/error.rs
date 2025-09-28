@@ -45,6 +45,7 @@ pub enum LatexErrKind<'source> {
     InvalidMacroName(&'source str),
     InvalidParameterNumber,
     NotSupportedInCustomCmd,
+    Internal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -134,6 +135,9 @@ impl LatexErrKind<'_> {
             LatexErrKind::NotSupportedInCustomCmd => {
                 "This functionality is not supported in custom commands.".to_string()
             }
+            LatexErrKind::Internal => {
+                "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues".to_string()
+            },
         }
     }
 }
