@@ -741,25 +741,16 @@ where
             }
             Token::ForceRelation(op) => {
                 new_class = Class::Relation;
-                let left = if !matches!(parse_as, ParseAs::Sequence) {
-                    None // Don't add spacing if we are in an argument.
-                } else if matches!(
-                    sequence_state.class,
-                    Class::Relation | Class::Open | Class::Punctuation
-                ) {
-                    Some(MathSpacing::Zero)
+                let (left, right) = if !parse_as.in_sequence() {
+                    // Don't add spacing if we are in an argument.
+                    (None, None)
                 } else {
-                    Some(MathSpacing::FiveMu)
-                };
-                let right = if !matches!(parse_as, ParseAs::Sequence) {
-                    None // Don't add spacing if we are in an argument.
-                } else if matches!(
-                    next_class,
-                    Class::Relation | Class::Close | Class::Punctuation
-                ) {
-                    Some(MathSpacing::Zero)
-                } else {
-                    Some(MathSpacing::FiveMu)
+                    let (left, right) = relation_spacing(next_class, sequence_state);
+                    // We have to turn `None` into explicit relation spacing.
+                    (
+                        left.or(Some(MathSpacing::FiveMu)),
+                        right.or(Some(MathSpacing::FiveMu)),
+                    )
                 };
                 Ok(Node::Operator {
                     op,

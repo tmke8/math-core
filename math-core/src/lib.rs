@@ -514,6 +514,7 @@ mod tests {
             ("colon_alone_group", r"x{:}x"),
             ("colon_approx", r"x:\approx 2"),
             ("colon_sqrt", r"\sqrt :"),
+            ("colon_subscript", r"x_{x:x}"),
             (
                 "cases",
                 r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
