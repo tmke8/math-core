@@ -2,7 +2,7 @@
 source: math-core/src/lib.rs
 expression: "\\begin{matrix} 1 \\end{bmatrix}"
 ---
-Position: 17
+Position: 21
 MismatchedEnvironment {
     expected: Matrix,
     got: BMatrix,

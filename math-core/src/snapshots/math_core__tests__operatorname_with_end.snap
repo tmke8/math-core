@@ -4,7 +4,5 @@ expression: "\\operatorname{\\end{matrix}}"
 ---
 Position: 14
 UnexpectedClose(
-    End(
-        Matrix,
-    ),
+    End,
 )

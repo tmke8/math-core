@@ -57,7 +57,7 @@ impl SequenceEnd {
             SequenceEnd::Token(token) => token.is_same_kind_as(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
-                Token::Eof | Token::GroupEnd | Token::End(_) | Token::Right
+                Token::Eof | Token::GroupEnd | Token::End | Token::Right
             ),
         }
     }
@@ -843,7 +843,14 @@ where
                 new_class = class.unwrap_or(symbol_class);
                 Ok(Node::SizedParen(size, paren))
             }
-            Token::Begin(env) => 'begin_env: {
+            Token::Begin => 'begin_env: {
+                let TokLoc(loc, env) = self.next_token()?;
+                let Token::EnvName(env) = env else {
+                    // This should never happen because the tokenizer guarantees that
+                    // `\begin` is always followed by an environment name.
+                    // We report an internal error here.
+                    break 'begin_env Err(LatexError(loc, LatexErrKind::Internal));
+                };
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_ascii_text_group()?;
@@ -867,27 +874,25 @@ where
                     script_style: matches!(env, Env::Subarray),
                 };
                 let content = self.arena.push_slice(&self.parse_sequence(
-                    SequenceEnd::Token(Token::End(env)),
+                    SequenceEnd::Token(Token::End),
                     Some(&mut state),
                     true,
                 )?);
 
-                // TODO: Find a better way to extract the `env` of the `End` token.
-                let TokLoc(end_token_loc, end_token) = self.next_token()?;
-                let Token::End(end_env) = end_token else {
-                    // This should never happen because we specified the end token above.
-                    break 'begin_env Err(LatexError(
-                        end_token_loc,
-                        LatexErrKind::UnexpectedToken {
-                            expected: &Token::End(Env::Align),
-                            got: end_token,
-                        },
-                    ));
+                self.next_token()?; // Discard the `End` token.
+
+                // Get the environment name after `\end`.
+                let TokLoc(end_loc, end_env) = self.next_token()?;
+                let Token::EnvName(end_env) = end_env else {
+                    // This should never happen because the tokenizer guarantees that
+                    // `\end` is always followed by an environment name.
+                    // We report an internal error here.
+                    break 'begin_env Err(LatexError(end_loc, LatexErrKind::Internal));
                 };
 
                 if end_env != env {
                     break 'begin_env Err(LatexError(
-                        end_token_loc,
+                        end_loc,
                         LatexErrKind::MismatchedEnvironment {
                             expected: env,
                             got: end_env,
@@ -996,7 +1001,7 @@ where
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 if !matches!(
                     self.tokens.peek.token(),
-                    Token::Eof | Token::GroupEnd | Token::End(_)
+                    Token::Eof | Token::GroupEnd | Token::End
                 ) {
                     let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
@@ -1031,8 +1036,13 @@ where
                 },
             )),
             Token::Eof => Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
-            Token::End(_) | Token::Right | Token::GroupEnd => {
+            Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
+            }
+            Token::EnvName(_) => {
+                // An `Env` token that is not preceeded by `\begin` or `\end` should
+                // never occur. We report an internal error here.
+                Err(LatexError(loc, LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
