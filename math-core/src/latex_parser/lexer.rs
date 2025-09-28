@@ -208,7 +208,8 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     fn next_token_or_string_literal(
         &mut self,
     ) -> Result<LexResult<'config, 'source>, &'cell LatexError<'source>> {
-        if matches!(self.mode, Mode::EnvName | Mode::StringLiteral) {
+        if matches!(self.mode, Mode::EnvName(_) | Mode::StringLiteral) {
+            let mode = mem::replace(&mut self.mode, Mode::Math);
             // Read the string literal.
             let result = 'str_literal: {
                 // First skip any whitespace.
@@ -225,7 +226,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 let Some(string_literal) = self.read_ascii_text_group() else {
                     break 'str_literal Err(LatexError(group_loc, LatexErrKind::DisallowedChars));
                 };
-                if matches!(self.mode, Mode::EnvName) {
+                if let Mode::EnvName(is_begin) = mode {
                     // Convert the environment name to the `Env` enum.
                     let Some(env) = Env::from_str(string_literal) else {
                         break 'str_literal Err(LatexError(
@@ -233,13 +234,16 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                             LatexErrKind::UnknownEnvironment(string_literal),
                         ));
                     };
+                    if is_begin && env.needs_string_literal() {
+                        // Some environments need a string literal after `\begin{...}`.
+                        self.mode = Mode::StringLiteral;
+                    }
                     // Return an `EnvName` token.
                     Ok(LexResult::Token(TokLoc(group_loc, Token::EnvName(env))))
                 } else {
                     Ok(LexResult::StringLiteral(group_loc, string_literal))
                 }
             };
-            self.mode = Mode::Math;
             match result {
                 Ok(tok) => {
                     return Ok(tok);
@@ -405,8 +409,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         if let Ok(tok) = &tok {
             if matches!(tok, Token::Text(_)) {
                 self.mode = Mode::TextStart;
-            } else if matches!(tok, Token::Begin | Token::End) {
-                self.mode = Mode::EnvName;
+            } else if matches!(tok, Token::Begin) {
+                self.mode = Mode::EnvName(true);
+            } else if matches!(tok, Token::End) {
+                self.mode = Mode::EnvName(false);
             } else if tok.needs_string_literal() {
                 self.mode = Mode::StringLiteral;
             }
@@ -427,7 +433,7 @@ enum Mode {
     /// (like `\ae`) are recognized.
     TextStart,
     TextGroup(usize), // The nesting level of `{` in the text group.
-    EnvName,
+    EnvName(bool),    // `true` if it's `\begin`, `false` if it's `\end`.
     StringLiteral,
 }
 

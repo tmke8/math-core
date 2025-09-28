@@ -153,6 +153,7 @@ impl Token<'_> {
         }
     }
 
+    #[inline]
     pub(super) fn needs_string_literal(&self) -> bool {
         matches!(self, Token::CustomSpace | Token::Color)
     }

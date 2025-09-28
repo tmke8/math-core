@@ -419,16 +419,8 @@ where
                 new_class = sequence_state.class;
                 Ok(Node::Space(space))
             }
-            Token::CustomSpace => 'custom_space: {
-                let TokLoc(loc, string) = self.next_token()?;
-                let length = match string {
-                    Token::StringLiteral(s) => Some(s),
-                    Token::StoredStringLiteral(start, end) => self.tokens.lexer.get_str(start, end),
-                    _ => None,
-                };
-                let Some(length) = length else {
-                    break 'custom_space Err(LatexError(loc, LatexErrKind::Internal));
-                };
+            Token::CustomSpace => {
+                let (loc, length) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
@@ -861,7 +853,7 @@ where
                 };
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (loc, options) = self.parse_ascii_text_group()?;
+                    let (loc, options) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             loc,
@@ -968,7 +960,7 @@ where
             }
             Token::NewLine => Ok(Node::RowSeparator),
             Token::Color => 'color: {
-                let (loc, color_name) = self.parse_ascii_text_group()?;
+                let (loc, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
@@ -1128,6 +1120,22 @@ where
         match node {
             Ok(n) => Ok(self.commit(n)),
             Err(e) => Err(self.alloc_err(e)),
+        }
+    }
+
+    fn parse_string_literal(
+        &mut self,
+    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
+        let TokLoc(loc, string) = self.next_token()?;
+        let string = match string {
+            Token::StringLiteral(s) => Some(s),
+            Token::StoredStringLiteral(start, end) => self.tokens.lexer.get_str(start, end),
+            _ => None,
+        };
+        if let Some(string) = string {
+            Ok((loc, string))
+        } else {
+            Err(self.alloc_err(LatexError(loc, LatexErrKind::Internal)))
         }
     }
 
