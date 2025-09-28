@@ -104,7 +104,7 @@ pub enum Token<'source> {
     ForceRelation(MathMLOperator),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
-    Number(Digit),
+    Digit(Digit),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
     PseudoOperator(&'static str),
     Enclose(Notation),

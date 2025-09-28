@@ -276,7 +276,7 @@ where
             .peek()
             .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         let node: Result<Node, LatexError> = match cur_token {
-            Token::Number(number) => {
+            Token::Digit(number) => {
                 let mut builder = self.buffer.get_builder();
                 builder.push_char(number as u8 as char);
                 if matches!(parse_as, ParseAs::Sequence) {
@@ -284,7 +284,7 @@ where
                     // `Token::Letter('.')`,
                     // but the latter only if the token *after that* is a digit.
                     loop {
-                        let ch = if let Token::Number(number) = self.tokens.peek().token() {
+                        let ch = if let Token::Digit(number) = self.tokens.peek().token() {
                             *number as u8 as char
                         } else {
                             let ch = if matches!(self.tokens.peek().token(), Token::Letter('.')) {
@@ -293,7 +293,7 @@ where
                                 None
                             };
                             if let Some(ch) = ch {
-                                if matches!(self.tokens.peek_two()?.token(), Token::Number(_)) {
+                                if matches!(self.tokens.peek_second()?.token(), Token::Digit(_)) {
                                     ch
                                 } else {
                                     break;

@@ -50,7 +50,7 @@ impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'pa
             Token::Relation(op) => Ok(op.as_op().into()),
             Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
             Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
-            Token::Number(digit) => Ok(digit as u8 as char),
+            Token::Digit(digit) => Ok(digit as u8 as char),
             Token::Prime => Ok('’'),
             Token::ForceRelation(op) => Ok(op.as_char()),
             Token::Punctuation(op) => Ok(op.as_op().into()),

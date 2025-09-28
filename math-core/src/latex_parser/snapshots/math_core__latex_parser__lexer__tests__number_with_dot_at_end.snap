@@ -2,8 +2,8 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: 3.14.
 ---
-0: Number(Three)
+0: Digit(Three)
 1: Letter('.')
-2: Number(One)
-3: Number(Four)
+2: Digit(One)
+3: Digit(Four)
 4: Letter('.')
