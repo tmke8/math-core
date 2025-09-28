@@ -419,8 +419,16 @@ where
                 new_class = sequence_state.class;
                 Ok(Node::Space(space))
             }
-            Token::CustomSpace => {
-                let (loc, length) = self.parse_ascii_text_group()?;
+            Token::CustomSpace => 'custom_space: {
+                let TokLoc(loc, string) = self.next_token()?;
+                let length = match string {
+                    Token::StringLiteral(s) => Some(s),
+                    Token::StoredStringLiteral(start, end) => self.tokens.lexer.get_str(start, end),
+                    _ => None,
+                };
+                let Some(length) = length else {
+                    break 'custom_space Err(LatexError(loc, LatexErrKind::Internal));
+                };
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
@@ -1039,9 +1047,9 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::EnvName(_) => {
-                // An `Env` token that is not preceeded by `\begin` or `\end` should
-                // never occur. We report an internal error here.
+            Token::EnvName(_) | Token::StringLiteral(_) | Token::StoredStringLiteral(_, _) => {
+                // A string literal (or env name) token that is not expected by the
+                // parser should never occur. We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
@@ -1504,7 +1512,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let error_slot = std::cell::OnceCell::new();
-            let l = Lexer::new(problem, false, None, &error_slot);
+            let string_literal_store = &mut String::new();
+            let l = Lexer::new(problem, false, None, &error_slot, string_literal_store);
             let mut p = Parser::new(l, &arena).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

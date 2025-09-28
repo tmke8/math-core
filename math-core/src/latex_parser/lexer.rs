@@ -25,6 +25,7 @@ where
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
     error_slot: &'cell OnceCell<LatexError<'source>>,
+    string_storage: &'cell mut String,
 }
 
 impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
@@ -34,6 +35,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
         error_slot: &'cell OnceCell<LatexError<'source>>,
+        string_storage: &'cell mut String,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -49,9 +51,16 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             },
             custom_cmds,
             error_slot,
+            string_storage,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
+    }
+
+    #[inline]
+    pub(super) fn get_str(&self, start: usize, end: usize) -> Option<&'config str> {
+        self.custom_cmds
+            .and_then(|cmds| cmds.get_string_literal(start, end))
     }
 
     #[inline]
@@ -147,7 +156,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokLoc<'config>>,
+        tokens: &mut Vec<TokLoc<'source>>,
     ) -> Result<(), &'cell LatexError<'source>> {
         let start_nesting_level = self.brace_nesting_level;
         loop {
@@ -172,35 +181,65 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
-        if matches!(self.mode, Mode::EnvName) {
-            self.mode = Mode::Math;
-            let result = 'env_parsing: {
-                // Read the environment name.
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+        // Put the string literal in a token.
+        match self.next_token_or_string_literal()? {
+            LexResult::StringLiteral(loc, s) => Ok(TokLoc(loc, Token::StringLiteral(s))),
+            LexResult::Token(tokloc) => Ok(tokloc),
+        }
+    }
+
+    /// Generate the next token, without references to the source string.
+    pub(crate) fn next_static_token(
+        &mut self,
+    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+        // Put the string literal in a token.
+        match self.next_token_or_string_literal()? {
+            LexResult::StringLiteral(loc, s) => {
+                let start = self.string_storage.len();
+                self.string_storage.push_str(s);
+                let end = self.string_storage.len();
+                Ok(TokLoc(loc, Token::StoredStringLiteral(start, end)))
+            }
+            LexResult::Token(tokloc) => Ok(tokloc),
+        }
+    }
+
+    fn next_token_or_string_literal(
+        &mut self,
+    ) -> Result<LexResult<'config, 'source>, &'cell LatexError<'source>> {
+        if matches!(self.mode, Mode::EnvName | Mode::StringLiteral) {
+            // Read the string literal.
+            let result = 'str_literal: {
                 // First skip any whitespace.
                 self.skip_whitespace();
                 // Next character must be `{`.
                 let (group_loc, next_char) = self.read_char();
                 if next_char != '{' {
-                    break 'env_parsing Err(LatexError(
+                    break 'str_literal Err(LatexError(
                         group_loc,
                         LatexErrKind::MissingBrace(next_char),
                     ));
                 }
                 // Read the text until the next `}`.
-                let Some(env_name) = self.read_ascii_text_group() else {
-                    break 'env_parsing Err(LatexError(group_loc, LatexErrKind::DisallowedChars));
+                let Some(string_literal) = self.read_ascii_text_group() else {
+                    break 'str_literal Err(LatexError(group_loc, LatexErrKind::DisallowedChars));
                 };
-                // Convert the environment name to the `Env` enum.
-                let Some(env) = Env::from_str(env_name) else {
-                    break 'env_parsing Err(LatexError(
-                        group_loc,
-                        LatexErrKind::UnknownEnvironment(env_name),
-                    ));
-                };
-                // Return the `\begin{env}` or `\end{env}` token.
-                Ok(TokLoc(group_loc, Token::EnvName(env)))
+                if matches!(self.mode, Mode::EnvName) {
+                    // Convert the environment name to the `Env` enum.
+                    let Some(env) = Env::from_str(string_literal) else {
+                        break 'str_literal Err(LatexError(
+                            group_loc,
+                            LatexErrKind::UnknownEnvironment(string_literal),
+                        ));
+                    };
+                    // Return an `EnvName` token.
+                    Ok(LexResult::Token(TokLoc(group_loc, Token::EnvName(env))))
+                } else {
+                    Ok(LexResult::StringLiteral(group_loc, string_literal))
+                }
             };
+            self.mode = Mode::Math;
             match result {
                 Ok(tok) => {
                     return Ok(tok);
@@ -213,7 +252,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup(_));
         if let Some(loc) = self.skip_whitespace() {
             if text_mode {
-                return Ok(TokLoc(loc.get(), Token::Whitespace));
+                return Ok(LexResult::Token(TokLoc(loc.get(), Token::Whitespace)));
             }
         }
 
@@ -223,7 +262,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
                 self.read_char();
             }
-            return self.next_token();
+            return self.next_token_or_string_literal();
         }
         let tok = match ch {
             '\u{0}' => Token::Eof,
@@ -313,7 +352,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     // mode we need to do it manually.
                     self.skip_whitespace();
                 }
-                return self.parse_command(loc, cmd_string);
+                return self.parse_command(loc, cmd_string).map(LexResult::Token);
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
@@ -332,7 +371,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        Ok(TokLoc(loc, tok))
+        Ok(LexResult::Token(TokLoc(loc, tok)))
     }
 
     fn parse_command(
@@ -363,10 +402,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        if matches!(tok, Ok(Token::Text(_))) {
-            self.mode = Mode::TextStart;
-        } else if matches!(tok, Ok(Token::Begin | Token::End)) {
-            self.mode = Mode::EnvName;
+        if let Ok(tok) = &tok {
+            if matches!(tok, Token::Text(_)) {
+                self.mode = Mode::TextStart;
+            } else if matches!(tok, Token::Begin | Token::End) {
+                self.mode = Mode::EnvName;
+            } else if tok.needs_string_literal() {
+                self.mode = Mode::StringLiteral;
+            }
         }
         match tok {
             Ok(tok) => Ok(TokLoc(loc, tok)),
@@ -385,6 +428,13 @@ enum Mode {
     TextStart,
     TextGroup(usize), // The nesting level of `{` in the text group.
     EnvName,
+    StringLiteral,
+}
+
+#[derive(Debug)]
+enum LexResult<'config, 'source> {
+    Token(TokLoc<'config>),
+    StringLiteral(usize, &'source str), // The string and its starting location.
 }
 
 #[cfg(test)]
@@ -415,9 +465,10 @@ mod tests {
             ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
         ];
 
+        let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
             loop {
@@ -445,9 +496,10 @@ mod tests {
             ),
             ("unexpected_close_in_group", r"{x + y}}"),
         ];
+        let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
             let mut tokens = String::new();
             let err = loop {
                 match lexer.next_token() {
@@ -483,9 +535,10 @@ mod tests {
             ("early_error", r"{x + \unknowncmd + y}"),
         ];
 
+        let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
             // Check that the first token is `GroupBegin`.
             assert!(matches!(lexer.next_token().unwrap().1, Token::GroupBegin));
             let mut tokens = Vec::new();
@@ -508,7 +561,14 @@ mod tests {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
         let error_slot = OnceCell::new();
-        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None, &error_slot);
+        let mut string_storage = String::new();
+        let mut lexer = Lexer::new(
+            problem,
+            parsing_custom_cmds,
+            None,
+            &error_slot,
+            &mut string_storage,
+        );
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();

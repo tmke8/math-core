@@ -13,7 +13,7 @@ use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike,
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'config> {
+pub enum Token<'source> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin")]
@@ -117,10 +117,12 @@ pub enum Token<'config> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    CustomCmd(u8, &'config [Token<'static>]),
+    CustomCmd(u8, &'source [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
+    StringLiteral(&'source str),
+    StoredStringLiteral(usize, usize),
 }
 
 impl Token<'_> {
@@ -149,6 +151,10 @@ impl Token<'_> {
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, real_boundaries),
             _ => Class::Default,
         }
+    }
+
+    pub(super) fn needs_string_literal(&self) -> bool {
+        matches!(self, Token::CustomSpace | Token::Color)
     }
 }
 
