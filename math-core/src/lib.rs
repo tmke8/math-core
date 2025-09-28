@@ -764,7 +764,7 @@ mod tests {
     #[test]
     fn test_custom_cmd_one_arg() {
         let macros = [
-            ("half".to_string(), r"\frac{1}{2}".to_string()),
+            ("half".to_string(), r"\frac{1}{2}\mspace{3mu}".to_string()),
             ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
         ]
         .into_iter()
@@ -778,7 +778,7 @@ mod tests {
 
         let converter = LatexToMathML::new(&config).unwrap();
 
-        let latex = r"x = \mycmd{3}";
+        let latex = r"x = \mycmd{3} + \half";
         let mathml = converter
             .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();
