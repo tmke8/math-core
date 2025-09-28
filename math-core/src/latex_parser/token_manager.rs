@@ -1,4 +1,4 @@
-use std::mem;
+use std::collections::VecDeque;
 
 use crate::LatexError;
 
@@ -9,43 +9,60 @@ use super::{
 
 pub(super) struct TokenManager<'cell, 'source> {
     pub lexer: Lexer<'source, 'source, 'cell>,
-    pub peek: TokLoc<'source>,
-    stack: Vec<TokLoc<'source>>,
+    buf: VecDeque<TokLoc<'source>>,
+    is_eof: bool,
 }
 
+static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
+
 impl<'cell, 'source> TokenManager<'cell, 'source> {
-    pub(super) fn new(lexer: Lexer<'source, 'source, 'cell>, initial_peek: Token<'source>) -> Self {
+    pub(super) fn new(lexer: Lexer<'source, 'source, 'cell>) -> Self {
         TokenManager {
             lexer,
-            peek: TokLoc(0, initial_peek),
-            stack: Vec::new(),
+            buf: VecDeque::new(),
+            is_eof: false,
         }
+    }
+
+    /// Ensure that there are at least `n` tokens in the buffer.
+    /// If the end of the input is reached, this will stop early.
+    pub(super) fn ensure(&mut self, n: usize) -> Result<(), &'cell LatexError<'source>> {
+        if self.is_eof {
+            return Ok(());
+        }
+        while self.buf.len() < n {
+            let tok = self.lexer.next_token()?;
+            let is_eof = matches!(tok.1, Token::Eof);
+            self.buf.push_back(tok);
+            if is_eof {
+                self.is_eof = true;
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    #[inline]
+    pub(super) fn peek(&mut self) -> &TokLoc<'source> {
+        // The queue can only be empty if we reached EOF.
+        self.buf.front().unwrap_or(&EOF_TOK)
     }
 
     /// Get the next token from the lexer, replacing the current peek token.
     ///
-    /// If there are tokens on the stack, pop the top token from the stack instead.
+    /// If there are tokens in the queue, pop the front from the queue instead.
     pub(super) fn next<'arena>(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
-        let peek_token = if let Some(tok) = self.stack.pop() {
-            tok
-        } else {
-            self.lexer.next_token()?
-        };
-        // Return the previous peek token and store the new peek token.
-        Ok(mem::replace(&mut self.peek, peek_token))
+        // We ensure two tokens here, so that we can always peek.
+        self.ensure(2)?;
+        // The queue can only be empty if we reached EOF.
+        Ok(self.buf.pop_front().unwrap_or(*&EOF_TOK))
     }
 
-    pub(super) fn add_to_stack(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
-        // Only do something if the token slice is non-empty.
-        if let [head, tail @ ..] = tokens {
-            // Replace the peek token with the first token of the token stream.
-            let old_peek = mem::replace(&mut self.peek, (*head).into());
-            // Put the old peek token onto the token stack.
-            self.stack.push(old_peek);
-            // Put the rest of the token stream onto the token stack in reverse order.
-            for tok in tail.iter().rev() {
-                self.stack.push((*tok).into());
-            }
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
+        // Only do anything if the token slice is non-empty.
+        // Queue the token stream in reverse order.
+        for tok in tokens.iter().rev() {
+            self.buf.push_front((*tok).into());
         }
     }
 }
