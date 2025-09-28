@@ -43,7 +43,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
     }
 
     #[inline]
-    pub(super) fn peek(&mut self) -> &TokLoc<'source> {
+    pub(super) fn peek(&self) -> &TokLoc<'source> {
         // The queue can only be empty if we reached EOF.
         self.buf.front().unwrap_or(&EOF_TOK)
     }

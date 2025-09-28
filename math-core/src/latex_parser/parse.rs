@@ -402,7 +402,7 @@ where
                 right: None,
             }),
             Token::PseudoOperator(name) => {
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true)?;
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                 new_class = Class::Operator;
                 Ok(Node::PseudoOp {
                     attr: None,
@@ -584,7 +584,7 @@ where
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false)?;
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let attr = if limits {
                     Some(OpAttr::NoMovableLimits)
                 } else {
@@ -631,8 +631,7 @@ where
                         symbol: under,
                     })
                 } else {
-                    let (left, right) =
-                        self.big_operator_spacing(parse_as, sequence_state, true)?;
+                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
                     Ok(Node::PseudoOp {
                         attr: None,
@@ -711,7 +710,7 @@ where
                     self.next_token()?; // Discard the limits token.
                 };
                 let bounds = self.get_bounds()?;
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false)?;
+                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let target = self.commit(Node::Operator {
                     op: int.as_op(),
                     attr: None,
@@ -913,8 +912,7 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
                 } else {
-                    let (left, right) =
-                        self.big_operator_spacing(parse_as, sequence_state, true)?;
+                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
                     new_class = Class::Operator;
                     Ok(Node::PseudoOp {
                         attr: None,
@@ -1270,9 +1268,8 @@ where
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
-            let loc = self.tokens.peek().location();
             return Err(self.alloc_err(LatexError(
-                loc,
+                self.tokens.peek().location(),
                 LatexErrKind::CannotBeUsedHere {
                     got: Token::Prime,
                     correct_place: Place::AfterOpOrIdent,
@@ -1284,18 +1281,18 @@ where
     }
 
     fn big_operator_spacing(
-        &mut self,
+        &self,
         parse_as: ParseAs,
         sequence_state: &SequenceState,
         explicit: bool,
-    ) -> Result<(Option<MathSpacing>, Option<MathSpacing>), &'cell LatexError<'source>> {
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
         let next_class = self
             .tokens
             .peek()
             .class(parse_as.in_sequence(), sequence_state.real_boundaries);
-        Ok((
+        (
             if matches!(
                 sequence_state.class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
@@ -1316,7 +1313,7 @@ where
             } else {
                 None
             },
-        ))
+        )
     }
 
     fn extract_delimiter(
