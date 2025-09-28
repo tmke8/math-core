@@ -145,14 +145,6 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
     }
 
-    /// Check if the next character is a digit.
-    pub(super) fn is_next_digit(&mut self) -> bool {
-        if matches!(self.mode, Mode::Math) {
-            self.skip_whitespace();
-        }
-        self.peek.1.is_ascii_digit()
-    }
-
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,

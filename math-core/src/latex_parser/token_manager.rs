@@ -48,6 +48,12 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         self.buf.front().unwrap_or(&EOF_TOK)
     }
 
+    pub(super) fn peek_two(&mut self) -> Result<&TokLoc<'source>, &'cell LatexError<'source>> {
+        self.ensure(2)?;
+        // The queue can only be empty if we reached EOF.
+        Ok(self.buf.get(1).unwrap_or(&EOF_TOK))
+    }
+
     /// Get the next token from the lexer, replacing the current peek token.
     ///
     /// If there are tokens in the queue, pop the front from the queue instead.

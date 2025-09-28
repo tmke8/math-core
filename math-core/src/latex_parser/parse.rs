@@ -293,7 +293,7 @@ where
                                 None
                             };
                             if let Some(ch) = ch {
-                                if self.tokens.lexer.is_next_digit() {
+                                if matches!(self.tokens.peek_two()?.token(), Token::Number(_)) {
                                     ch
                                 } else {
                                     break;
