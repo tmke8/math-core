@@ -268,10 +268,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             }
         }
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
-        if let Some(loc) = self.skip_whitespace() {
-            if text_mode {
-                return Ok(LexResult::Token(TokLoc(loc.get(), Token::Whitespace)));
-            }
+        if let Some(loc) = self.skip_whitespace()
+            && text_mode
+        {
+            return Ok(LexResult::Token(TokLoc(loc.get(), Token::Whitespace)));
         }
 
         let (loc, ch) = self.read_char();
@@ -297,10 +297,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                         );
                     }
                     let param_num = param_num as u8;
-                    if let Some(num) = self.parse_cmd_args.as_mut() {
-                        if (param_num + 1) > *num {
-                            *num = param_num + 1;
-                        }
+                    if let Some(num) = self.parse_cmd_args.as_mut()
+                        && (param_num + 1) > *num
+                    {
+                        *num = param_num + 1;
                     }
                     Token::CustomCmdArg(param_num)
                 } else {
@@ -355,11 +355,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     )));
                 };
                 self.brace_nesting_level = new_level;
-                if let Mode::TextGroup { nesting } = self.mode {
-                    if nesting == self.brace_nesting_level {
-                        // We are closing a text group.
-                        self.mode = Mode::Math;
-                    }
+                if let Mode::TextGroup { nesting } = self.mode
+                    && nesting == self.brace_nesting_level
+                {
+                    // We are closing a text group.
+                    self.mode = Mode::Math;
                 }
                 Token::GroupEnd
             }
@@ -406,16 +406,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 } else {
                     Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
                 }
+            } else if let Some(tok) = self
+                .custom_cmds
+                .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+                .or_else(|| get_command(cmd_string))
+            {
+                Ok(tok)
             } else {
-                if let Some(tok) = self
-                    .custom_cmds
-                    .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                    .or_else(|| get_command(cmd_string))
-                {
-                    Ok(tok)
-                } else {
-                    Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
-                }
+                Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
             };
         if matches!(self.mode, Mode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),

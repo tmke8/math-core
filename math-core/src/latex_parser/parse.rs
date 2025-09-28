@@ -96,19 +96,15 @@ where
         arena: &'arena Arena,
     ) -> Result<Self, &'cell LatexError<'source>> {
         let input_length = lexer.input_length();
-        let mut p = Parser {
-            tokens: TokenManager::new(lexer),
+        Ok(Parser {
+            tokens: TokenManager::new(lexer)?,
             cmd_args: Vec::new(),
             cmd_arg_offsets: [0; 9],
             buffer: Buffer::new(input_length),
             arena,
             collector: LetterCollector::Inactive,
             tf_differs_on_upright_letters: false,
-        };
-
-        // We prime the token manager by reading the first token.
-        p.tokens.ensure(1)?;
-        Ok(p)
+        })
     }
 
     #[inline]

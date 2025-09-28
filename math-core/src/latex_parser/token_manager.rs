@@ -16,12 +16,17 @@ pub(super) struct TokenManager<'cell, 'source> {
 static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
 
 impl<'cell, 'source> TokenManager<'cell, 'source> {
-    pub(super) fn new(lexer: Lexer<'source, 'source, 'cell>) -> Self {
-        TokenManager {
+    pub(super) fn new(
+        lexer: Lexer<'source, 'source, 'cell>,
+    ) -> Result<Self, &'cell LatexError<'source>> {
+        let mut tm = TokenManager {
             lexer,
             buf: VecDeque::new(),
             is_eof: false,
-        }
+        };
+        // Ensure that we have at least one token in the buffer for peeking.
+        tm.ensure(1)?;
+        Ok(tm)
     }
 
     /// Ensure that there are at least `n` tokens in the buffer.
@@ -42,8 +47,17 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         Ok(())
     }
 
+    /// Peek at the next token without consuming it.
+    ///
+    /// If the lexer has reached the end of the input, this will return an EOF token.
+    /// The public interface of `TokenManager` enforces the invariant that there is
+    /// always at least one token in the buffer when this is called, unless EOF has
+    /// been reached.
     #[inline]
     pub(super) fn peek(&self) -> &TokLoc<'source> {
+        if !self.is_eof {
+            debug_assert!(!self.buf.is_empty(), "peek called without ensure");
+        }
         // The queue can only be empty if we reached EOF.
         self.buf.front().unwrap_or(&EOF_TOK)
     }
@@ -54,19 +68,18 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         Ok(self.buf.get(1).unwrap_or(&EOF_TOK))
     }
 
-    /// Get the next token from the lexer, replacing the current peek token.
+    /// Get the next token.
     ///
-    /// If there are tokens in the queue, pop the front from the queue instead.
-    pub(super) fn next<'arena>(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+    /// This method also ensures that there is always a peekable token after this one.
+    pub(super) fn next(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
         // We ensure two tokens here, so that we can always peek.
         self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
-        Ok(self.buf.pop_front().unwrap_or(*&EOF_TOK))
+        Ok(self.buf.pop_front().unwrap_or(EOF_TOK))
     }
 
     pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
-        // Only do anything if the token slice is non-empty.
-        // Queue the token stream in reverse order.
+        // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
             self.buf.push_front((*tok).into());
         }
