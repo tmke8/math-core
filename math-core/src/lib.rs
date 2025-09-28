@@ -112,8 +112,9 @@ pub struct MathCoreConfig {
 
 #[derive(Debug)]
 struct CustomCmds {
-    tokens: Vec<Token<'static>>,
+    tokens: Box<[Token<'static>]>,
     map: FxHashMap<String, (u8, (usize, usize))>,
+    string_literal_store: Box<str>,
 }
 
 impl CustomCmds {
@@ -127,6 +128,10 @@ impl CustomCmds {
         let (num_args, slice) = *self.map.get(command)?;
         let tokens = self.tokens.get(slice.0..slice.1)?;
         Some(Token::CustomCmd(num_args, tokens))
+    }
+
+    pub fn get_string_literal(&self, start: usize, end: usize) -> Option<&str> {
+        self.string_literal_store.get(start..end)
     }
 }
 
@@ -300,7 +305,14 @@ where
     'config: 'source, // 'config outlives 'source
 {
     let error_slot = std::cell::OnceCell::new();
-    let lexer = latex_parser::Lexer::new(latex, false, custom_cmds, &error_slot);
+    let mut string_literal_store = String::new();
+    let lexer = latex_parser::Lexer::new(
+        latex,
+        false,
+        custom_cmds,
+        &error_slot,
+        &mut string_literal_store,
+    );
     let mut p = latex_parser::Parser::new(lexer, arena).map_err(|e| *e)?;
     let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
@@ -311,16 +323,22 @@ fn parse_custom_commands<'source>(
 ) -> Result<CustomCmds, LatexError<'source>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
+    let mut string_literal_store = String::new();
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
             return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
         let error_slot = std::cell::OnceCell::new();
-        let mut lexer: latex_parser::Lexer<'static, '_, '_> =
-            latex_parser::Lexer::new(definition, true, None, &error_slot);
+        let mut lexer: latex_parser::Lexer<'static, '_, '_> = latex_parser::Lexer::new(
+            definition,
+            true,
+            None,
+            &error_slot,
+            &mut string_literal_store,
+        );
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_token().map_err(|e| *e)?;
+            let tokloc = lexer.next_static_token().map_err(|e| *e)?;
             if matches!(&tokloc.1, Token::Eof) {
                 break;
             }
@@ -332,7 +350,11 @@ fn parse_custom_commands<'source>(
         // TODO: avoid cloning `name` here
         map.insert(name.clone(), (num_args, (start, end)));
     }
-    Ok(CustomCmds { tokens, map })
+    Ok(CustomCmds {
+        tokens: tokens.into_boxed_slice(),
+        map,
+        string_literal_store: string_literal_store.into_boxed_str(),
+    })
 }
 
 fn is_valid_macro_name(s: &str) -> bool {
@@ -742,7 +764,7 @@ mod tests {
     #[test]
     fn test_custom_cmd_one_arg() {
         let macros = [
-            ("half".to_string(), r"\frac{1}{2}".to_string()),
+            ("half".to_string(), r"\frac{1}{2}\mspace{3mu}".to_string()),
             ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
         ]
         .into_iter()
@@ -756,7 +778,7 @@ mod tests {
 
         let converter = LatexToMathML::new(&config).unwrap();
 
-        let latex = r"x = \mycmd{3}";
+        let latex = r"x = \mycmd{3} + \half";
         let mathml = converter
             .convert_with_local_counter(latex, crate::MathDisplay::Inline)
             .unwrap();

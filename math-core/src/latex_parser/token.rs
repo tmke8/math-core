@@ -1,4 +1,5 @@
 use std::mem::discriminant;
+use std::num::NonZeroU8;
 
 use strum_macros::IntoStaticStr;
 
@@ -13,7 +14,7 @@ use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike,
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'config> {
+pub enum Token<'source> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin")]
@@ -117,10 +118,12 @@ pub enum Token<'config> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    CustomCmd(u8, &'config [Token<'static>]),
+    CustomCmd(u8, &'source [Token<'static>]),
     GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
+    StringLiteral(&'source str),
+    StoredStringLiteral(usize, usize),
 }
 
 impl Token<'_> {
@@ -148,6 +151,15 @@ impl Token<'_> {
             Token::Big(_, Some(cls)) => *cls,
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, real_boundaries),
             _ => Class::Default,
+        }
+    }
+
+    #[inline]
+    pub(super) fn needs_string_literal(&self) -> Option<NonZeroU8> {
+        match self {
+            Token::CustomSpace | Token::Color => NonZeroU8::new(1),
+            Token::Genfrac => NonZeroU8::new(3),
+            _ => None,
         }
     }
 }
@@ -213,9 +225,9 @@ impl<'source> TokLoc<'source> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokLoc<'config> {
+impl<'source> From<Token<'source>> for TokLoc<'source> {
     #[inline]
-    fn from(token: Token<'config>) -> Self {
+    fn from(token: Token<'source>) -> Self {
         TokLoc(0, token)
     }
 }

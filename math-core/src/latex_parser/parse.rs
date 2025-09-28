@@ -420,7 +420,7 @@ where
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
-                let (loc, length) = self.parse_ascii_text_group()?;
+                let (loc, length) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
@@ -487,7 +487,7 @@ where
                     Node::Row { nodes: [], .. } => None,
                     _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let (loc, length) = self.parse_ascii_text_group()?;
+                let (loc, length) = self.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
@@ -853,7 +853,7 @@ where
                 };
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (loc, options) = self.parse_ascii_text_group()?;
+                    let (loc, options) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             loc,
@@ -960,7 +960,7 @@ where
             }
             Token::NewLine => Ok(Node::RowSeparator),
             Token::Color => 'color: {
-                let (loc, color_name) = self.parse_ascii_text_group()?;
+                let (loc, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
@@ -1039,9 +1039,9 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::EnvName(_) => {
-                // An `Env` token that is not preceeded by `\begin` or `\end` should
-                // never occur. We report an internal error here.
+            Token::EnvName(_) | Token::StringLiteral(_) | Token::StoredStringLiteral(_, _) => {
+                // A string literal (or env name) token that is not expected by the
+                // parser should never occur. We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
@@ -1123,39 +1123,27 @@ where
         }
     }
 
+    fn parse_string_literal(
+        &mut self,
+    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
+        let TokLoc(loc, string) = self.next_token()?;
+        let string = match string {
+            Token::StringLiteral(s) => Some(s),
+            Token::StoredStringLiteral(start, end) => self.tokens.lexer.get_str(start, end),
+            _ => None,
+        };
+        if let Some(string) = string {
+            Ok((loc, string))
+        } else {
+            Err(self.alloc_err(LatexError(loc, LatexErrKind::Internal)))
+        }
+    }
+
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
     fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
         let token = self.next_token();
         self.parse_token(token, parse_as, None)
-    }
-
-    /// Parse the contents of a group, `{...}`, which may only contain ASCII text.
-    fn parse_ascii_text_group(
-        &mut self,
-    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
-        if !self.tokens.is_empty_stack() {
-            // This function doesn't work if we are processing tokens from the token stack.
-            return Err(self.alloc_err(LatexError(0, LatexErrKind::NotSupportedInCustomCmd)));
-        }
-        // First check whether there is an opening `{` token.
-        if !matches!(self.tokens.peek.token(), Token::GroupBegin) {
-            let TokLoc(loc, token) = self.next_token()?;
-            return Err(self.alloc_err(LatexError(
-                loc,
-                LatexErrKind::UnexpectedToken {
-                    expected: &Token::GroupBegin,
-                    got: token,
-                },
-            )));
-        }
-        // Read the text.
-        let result = self.tokens.lexer.read_ascii_text_group();
-        // Discard the opening `{` token (which is still stored as `peek`).
-        let opening_loc = self.next_token()?.location();
-        result
-            .map(|r| (opening_loc, r))
-            .ok_or_else(|| self.alloc_err(LatexError(opening_loc, LatexErrKind::DisallowedChars)))
     }
 
     /// Parse the bounds of an integral, sum, or product.
@@ -1504,7 +1492,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let error_slot = std::cell::OnceCell::new();
-            let l = Lexer::new(problem, false, None, &error_slot);
+            let string_literal_store = &mut String::new();
+            let l = Lexer::new(problem, false, None, &error_slot, string_literal_store);
             let mut p = Parser::new(l, &arena).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

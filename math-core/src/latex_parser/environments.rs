@@ -41,6 +41,11 @@ impl Env {
         ENVIRONMENTS.get(s).copied()
     }
 
+    #[inline]
+    pub(super) fn needs_string_literal(&self) -> bool {
+        matches!(self, Env::Array | Env::Subarray)
+    }
+
     pub(super) fn construct_node<'arena>(
         &self,
         content: &'arena [&'arena Node<'arena>],

@@ -44,7 +44,6 @@ pub enum LatexErrKind<'source> {
     NotValidInTextMode(Token<'source>),
     InvalidMacroName(&'source str),
     InvalidParameterNumber,
-    NotSupportedInCustomCmd,
     Internal,
 }
 
@@ -131,9 +130,6 @@ impl LatexErrKind<'_> {
             }
             LatexErrKind::InvalidParameterNumber => {
                 "Invalid parameter number. Must be 1-9.".to_string()
-            }
-            LatexErrKind::NotSupportedInCustomCmd => {
-                "This functionality is not supported in custom commands.".to_string()
             }
             LatexErrKind::Internal => {
                 "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues".to_string()
