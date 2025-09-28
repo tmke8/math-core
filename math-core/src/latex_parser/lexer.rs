@@ -1,6 +1,6 @@
 use std::cell::OnceCell;
 use std::mem;
-use std::num::NonZero;
+use std::num::{NonZeroU8, NonZeroUsize};
 use std::str::CharIndices;
 
 use super::commands::{get_command, get_text_command};
@@ -87,14 +87,14 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     /// Skip whitespace characters.
-    fn skip_whitespace(&mut self) -> Option<NonZero<usize>> {
+    fn skip_whitespace(&mut self) -> Option<NonZeroUsize> {
         let mut skipped = None;
         while self.peek.1.is_ascii_whitespace() {
             let (loc, _) = self.read_char();
             // This is technically wrong because there can be whitespace at position 0,
             // but we are only recording whitespace in text mode, which is started by
             // the `\text` command, so at position 0 we will never we in text mode.
-            skipped = NonZero::<usize>::new(loc);
+            skipped = NonZeroUsize::new(loc);
         }
         skipped
     }
@@ -124,7 +124,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     ///
     /// Returns `None` if there are any disallowed characters before the `}`.
     #[inline]
-    pub(super) fn read_ascii_text_group(&mut self) -> Option<&'source str> {
+    fn read_ascii_text_group(&mut self) -> Option<&'source str> {
         let start = self.peek.0;
 
         while self.peek.1.is_ascii_alphanumeric()
@@ -208,8 +208,26 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     fn next_token_or_string_literal(
         &mut self,
     ) -> Result<LexResult<'config, 'source>, &'cell LatexError<'source>> {
-        if matches!(self.mode, Mode::EnvName { .. } | Mode::StringLiteral) {
-            let mode = mem::replace(&mut self.mode, Mode::Math);
+        let mut is_string_literal = false;
+        if let Mode::StringLiteral {
+            ref mut arg_num,
+            nesting,
+        } = self.mode
+            // We check the nesting here in order to count a `{...}` group as one
+            // argument.
+            && nesting == self.brace_nesting_level
+        {
+            // Try subtracting 1 from `arg_num`.
+            let new_val = NonZeroU8::new(arg_num.get() - 1);
+            if let Some(new_val) = new_val {
+                // If successful, the value must have been > 1.
+                *arg_num = new_val;
+            } else {
+                is_string_literal = true;
+            }
+        };
+        if matches!(self.mode, Mode::EnvName { .. }) || is_string_literal {
+            let mode = mem::take(&mut self.mode);
             // Read the string literal.
             let result = 'str_literal: {
                 // First skip any whitespace.
@@ -236,7 +254,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     };
                     if is_begin && env.needs_string_literal() {
                         // Some environments need a string literal after `\begin{...}`.
-                        self.mode = Mode::StringLiteral;
+                        const ONE: NonZeroU8 = NonZeroU8::new(1).unwrap();
+                        self.mode = Mode::StringLiteral {
+                            arg_num: ONE,
+                            nesting: self.brace_nesting_level,
+                        };
                     }
                     // Return an `EnvName` token.
                     Ok(LexResult::Token(TokLoc(group_loc, Token::EnvName(env))))
@@ -415,8 +437,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 self.mode = Mode::EnvName { is_begin: true };
             } else if matches!(tok, Token::End) {
                 self.mode = Mode::EnvName { is_begin: false };
-            } else if tok.needs_string_literal() {
-                self.mode = Mode::StringLiteral;
+            } else if let Some(arg_num) = tok.needs_string_literal() {
+                self.mode = Mode::StringLiteral {
+                    arg_num,
+                    nesting: self.brace_nesting_level,
+                };
             }
         }
         match tok {
@@ -440,7 +465,12 @@ enum Mode {
     EnvName {
         is_begin: bool, // `true` if it's `\begin`, `false` if it's `\end`.
     },
-    StringLiteral,
+    StringLiteral {
+        /// 1-based index of the argument that is a string literal.
+        arg_num: NonZeroU8,
+        /// The nesting level of `{` when the string literal was requested.
+        nesting: usize,
+    },
 }
 
 #[derive(Debug)]

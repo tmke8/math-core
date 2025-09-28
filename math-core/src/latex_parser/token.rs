@@ -1,4 +1,5 @@
 use std::mem::discriminant;
+use std::num::NonZeroU8;
 
 use strum_macros::IntoStaticStr;
 
@@ -154,8 +155,12 @@ impl Token<'_> {
     }
 
     #[inline]
-    pub(super) fn needs_string_literal(&self) -> bool {
-        matches!(self, Token::CustomSpace | Token::Color)
+    pub(super) fn needs_string_literal(&self) -> Option<NonZeroU8> {
+        match self {
+            Token::CustomSpace | Token::Color => NonZeroU8::new(1),
+            Token::Genfrac => NonZeroU8::new(3),
+            _ => None,
+        }
     }
 }
 
@@ -220,9 +225,9 @@ impl<'source> TokLoc<'source> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokLoc<'config> {
+impl<'source> From<Token<'source>> for TokLoc<'source> {
     #[inline]
-    fn from(token: Token<'config>) -> Self {
+    fn from(token: Token<'source>) -> Self {
         TokLoc(0, token)
     }
 }

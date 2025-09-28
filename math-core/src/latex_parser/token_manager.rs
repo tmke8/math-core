@@ -48,9 +48,4 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
             }
         }
     }
-
-    #[inline]
-    pub(super) fn is_empty_stack(&self) -> bool {
-        self.stack.is_empty()
-    }
 }
