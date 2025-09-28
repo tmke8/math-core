@@ -208,7 +208,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     fn next_token_or_string_literal(
         &mut self,
     ) -> Result<LexResult<'config, 'source>, &'cell LatexError<'source>> {
-        if matches!(self.mode, Mode::EnvName(_) | Mode::StringLiteral) {
+        if matches!(self.mode, Mode::EnvName { .. } | Mode::StringLiteral) {
             let mode = mem::replace(&mut self.mode, Mode::Math);
             // Read the string literal.
             let result = 'str_literal: {
@@ -226,7 +226,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 let Some(string_literal) = self.read_ascii_text_group() else {
                     break 'str_literal Err(LatexError(group_loc, LatexErrKind::DisallowedChars));
                 };
-                if let Mode::EnvName(is_begin) = mode {
+                if let Mode::EnvName { is_begin } = mode {
                     // Convert the environment name to the `Env` enum.
                     let Some(env) = Env::from_str(string_literal) else {
                         break 'str_literal Err(LatexError(
@@ -253,7 +253,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 }
             }
         }
-        let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup(_));
+        let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(loc) = self.skip_whitespace() {
             if text_mode {
                 return Ok(LexResult::Token(TokLoc(loc.get(), Token::Whitespace)));
@@ -325,7 +325,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '_' => Token::Underscore,
             '{' => {
                 if matches!(self.mode, Mode::TextStart) {
-                    self.mode = Mode::TextGroup(self.brace_nesting_level);
+                    self.mode = Mode::TextGroup {
+                        nesting: self.brace_nesting_level,
+                    };
                 }
                 self.brace_nesting_level += 1;
                 Token::GroupBegin
@@ -339,8 +341,8 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     )));
                 };
                 self.brace_nesting_level = new_level;
-                if let Mode::TextGroup(level) = self.mode {
-                    if level == self.brace_nesting_level {
+                if let Mode::TextGroup { nesting } = self.mode {
+                    if nesting == self.brace_nesting_level {
                         // We are closing a text group.
                         self.mode = Mode::Math;
                     }
@@ -384,7 +386,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         cmd_string: &'source str,
     ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
         let tok: Result<Token<'config>, LatexError<'source>> =
-            if matches!(self.mode, Mode::TextStart | Mode::TextGroup(_)) {
+            if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
                 if let Some(tok) = get_text_command(cmd_string) {
                     Ok(tok)
                 } else {
@@ -410,9 +412,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             if matches!(tok, Token::Text(_)) {
                 self.mode = Mode::TextStart;
             } else if matches!(tok, Token::Begin) {
-                self.mode = Mode::EnvName(true);
+                self.mode = Mode::EnvName { is_begin: true };
             } else if matches!(tok, Token::End) {
-                self.mode = Mode::EnvName(false);
+                self.mode = Mode::EnvName { is_begin: false };
             } else if tok.needs_string_literal() {
                 self.mode = Mode::StringLiteral;
             }
@@ -432,8 +434,12 @@ enum Mode {
     /// math commands (like `\sqrt`) don't work. Instead, text commands
     /// (like `\ae`) are recognized.
     TextStart,
-    TextGroup(usize), // The nesting level of `{` in the text group.
-    EnvName(bool),    // `true` if it's `\begin`, `false` if it's `\end`.
+    TextGroup {
+        nesting: usize, // The nesting level of `{` in the text group.
+    },
+    EnvName {
+        is_begin: bool, // `true` if it's `\begin`, `false` if it's `\end`.
+    },
     StringLiteral,
 }
 
