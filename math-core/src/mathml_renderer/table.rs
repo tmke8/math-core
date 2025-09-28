@@ -93,7 +93,7 @@ impl<'arena> ColumnGenerator<'arena> {
         self.column_idx += 1;
         match self.typ {
             AlignmentType::Predefined(align) => {
-                let is_even = column_idx % 2 == 0;
+                let is_even = column_idx.is_multiple_of(2);
                 match align {
                     Alignment::Cases => {
                         write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}")?;
