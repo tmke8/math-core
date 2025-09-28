@@ -376,7 +376,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             }
             c => {
                 if let Ok(digit) = Digit::try_from(c) {
-                    Token::Number(digit)
+                    Token::Digit(digit)
                 } else {
                     // Some symbols like '.' and '/' are considered operators by the MathML Core spec,
                     // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).

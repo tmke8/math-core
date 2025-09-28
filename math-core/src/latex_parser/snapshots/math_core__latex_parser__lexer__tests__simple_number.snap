@@ -2,4 +2,4 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: "3"
 ---
-0: Number(Three)
+0: Digit(Three)
