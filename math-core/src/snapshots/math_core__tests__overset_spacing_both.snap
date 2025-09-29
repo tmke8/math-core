@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: "x\\overset{!}{=}"
+expression: "x\\overset{!}{=}x"
 ---
 <math>
     <mi>x</mi>
@@ -8,4 +8,5 @@ expression: "x\\overset{!}{=}"
         <mo>=</mo>
         <mo>!</mo>
     </mover>
+    <mi>x</mi>
 </math>
