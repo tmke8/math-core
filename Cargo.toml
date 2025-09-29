@@ -13,7 +13,7 @@ repository = "https://github.com/tmke8/math-core"
 
 [workspace.dependencies]
 rustc-hash = "2.1.1"
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 bitflags = "2.9.3"
 
 [profile.dev.package]
