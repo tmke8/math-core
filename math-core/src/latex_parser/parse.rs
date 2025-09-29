@@ -613,6 +613,7 @@ where
                 } else {
                     Some(OpAttr::ForceMovableLimits)
                 };
+                // FIXME: Use `self.get_bounds()` here.
                 if matches!(self.tokens.peek().token(), Token::Underscore) {
                     let target = self.commit(Node::PseudoOp {
                         name,
@@ -621,7 +622,12 @@ where
                         right: Some(MathSpacing::ThreeMu),
                     });
                     self.next_token()?; // Discard the underscore token.
-                    let under = self.parse_next(ParseAs::Arg)?;
+                    let tokloc = self.next_token();
+                    let mut sequence_state = SequenceState {
+                        script_style: true,
+                        ..Default::default()
+                    };
+                    let under = self.parse_token(tokloc, ParseAs::Arg, Some(&mut sequence_state))?;
                     Ok(Node::Underset {
                         target,
                         symbol: under,
