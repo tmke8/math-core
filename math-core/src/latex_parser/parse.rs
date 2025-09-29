@@ -767,11 +767,14 @@ where
             }
             Token::GroupBegin => {
                 let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    self.parse_sequence(
+                    let old_boundaries = mem::replace(&mut sequence_state.real_boundaries, false);
+                    let content = self.parse_sequence(
                         SequenceEnd::Token(Token::GroupEnd),
                         Some(sequence_state),
                         false,
-                    )?
+                    )?;
+                    sequence_state.real_boundaries = old_boundaries;
+                    content
                 } else {
                     let mut s = SequenceState {
                         class: Class::Open,

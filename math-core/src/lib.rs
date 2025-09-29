@@ -585,6 +585,7 @@ mod tests {
             ("int_prime", r"\int'"),
             ("vec_prime", r"\vec{x}'"),
             ("overset_spacing", r"x\overset{!}{=}"),
+            ("overset_spacing_both", r"x\overset{!}{=}x"),
             ("overset_with_prime", r"\overset{!}{=}'"),
             ("overset_prime", r"\overset{'}{=}"),
             ("overset_plus", r"\overset{!}{+}"),
