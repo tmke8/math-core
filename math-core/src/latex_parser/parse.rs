@@ -5,7 +5,7 @@ use crate::mathml_renderer::{
     ast::Node,
     attribute::{LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
     length::Length,
-    symbol::{self, StretchableOp},
+    symbol::{self, StretchableOp, BinCategory},
 };
 
 use super::{
@@ -350,7 +350,10 @@ where
             }
             Token::BinaryOp(binary_op) => {
                 new_class = Class::BinaryOp;
-                let spacing = if matches!(
+                let spacing = if !parse_as.in_sequence() {
+                    // Don't add spacing if we are in an argument.
+                    None
+                } else if matches!(
                     sequence_state.class,
                     Class::Relation
                         | Class::Punctuation
@@ -363,11 +366,13 @@ where
                 ) || sequence_state.script_style
                 {
                     Some(MathSpacing::Zero)
+                } else if matches!(binary_op.cat, BinCategory::OnlyC) {
+                    Some(MathSpacing::FourMu) // force binary op spacing
                 } else {
                     None
                 };
                 Ok(Node::Operator {
-                    op: binary_op.into(),
+                    op: binary_op.as_op(),
                     attr: None,
                     left: spacing,
                     right: spacing,

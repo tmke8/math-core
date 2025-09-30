@@ -9,11 +9,9 @@ expression: "\\{ \\bigl\\{ \\Bigl\\{ \\biggl\\{ \\Biggl\\{ \\dots \\Biggr\\rangl
     <mo maxsize="2.047em" minsize="2.047em">{</mo>
     <mo maxsize="2.470em" minsize="2.470em">{</mo>
     <mrow>
-        <mspace width="0.16666667em"/>
-        <mo lspace="0">.</mo>
-        <mo lspace="0">.</mo>
+        <mo>.</mo>
         <mo lspace="0" rspace="0">.</mo>
-        <mspace width="0.16666667em"/>
+        <mo>.</mo>
     </mrow>
     <mo maxsize="2.470em" minsize="2.470em">⟩</mo>
     <mo maxsize="2.047em" minsize="2.047em">⟩</mo>

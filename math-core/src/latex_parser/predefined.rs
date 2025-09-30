@@ -47,27 +47,23 @@ pub static XLEFTARROW: [Token<'static>; 7] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
-pub static DOTS: [Token<'static>; 9] = [
+static DOT: &str = "<mo>.</mo>";
+
+pub static DOTS: [Token<'static>; 5] = [
     GroupBegin,
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
-    BigOp(symbol::FULL_STOP),
-    BigOp(symbol::FULL_STOP),
-    GroupBegin,
-    BigOp(symbol::FULL_STOP),
-    GroupEnd,
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    HardcodedMathML(DOT),
+    HardcodedMathML(r#"<mo lspace="0" rspace="0">.</mo>"#),
+    HardcodedMathML(DOT),
     GroupEnd,
 ];
 
-pub static CDOTS: [Token<'static>; 9] = [
+static CDOT: &str = "<mo>·</mo>";
+
+pub static CDOTS: [Token<'static>; 5] = [
     GroupBegin,
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
-    GroupBegin,
-    BinaryOp(symbol::MIDDLE_DOT),
-    GroupEnd,
-    BinaryOp(symbol::MIDDLE_DOT),
-    BinaryOp(symbol::MIDDLE_DOT),
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
+    HardcodedMathML(CDOT),
+    HardcodedMathML(r#"<mo lspace="0" rspace="0">·</mo>"#),
+    HardcodedMathML(CDOT),
     GroupEnd,
 ];
 
