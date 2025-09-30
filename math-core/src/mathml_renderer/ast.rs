@@ -820,7 +820,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::Operator {
-                op: symbol::PLUS_SIGN.into(),
+                op: symbol::PLUS_SIGN.as_op(),
                 attr: Some(OpAttr::FormPrefix),
                 left: None,
                 right: None,

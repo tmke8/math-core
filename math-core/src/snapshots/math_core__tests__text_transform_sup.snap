@@ -7,6 +7,6 @@ expression: "\\mathbb{N} \\cup \\mathbb{N}^+"
     <mo>∪</mo>
     <msup>
         <mi>ℕ</mi>
-        <mo lspace="0" rspace="0">+</mo>
+        <mo>+</mo>
     </msup>
 </math>

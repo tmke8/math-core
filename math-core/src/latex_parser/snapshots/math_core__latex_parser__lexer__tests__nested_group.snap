@@ -3,9 +3,9 @@ source: math-core/src/latex_parser/lexer.rs
 expression: "{x + {y - z}} c"
 ---
 1: Letter('x')
-3: BinaryOp(Bin('+'))
+3: BinaryOp(Bin { char: 43, cat: BD })
 5: GroupBegin
 6: Letter('y')
-8: BinaryOp(Bin('−'))
+8: BinaryOp(Bin { char: 8722, cat: BD })
 10: Letter('z')
 11: GroupEnd

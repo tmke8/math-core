@@ -16,7 +16,7 @@ expression: "\\left( \\frac{\\left(3-x\\right) \\times 2}{3-x} \\right)"
                     </mrow>
                     <mo>)</mo>
                 </mrow>
-                <mo>×</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
                 <mn>2</mn>
             </mrow>
             <mrow>

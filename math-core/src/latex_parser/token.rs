@@ -98,7 +98,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\&")]
     OpAmpersand,
     #[strum(serialize = ":")]
-    /// A token to force an operator to behave like a relation.
+    /// A token to force an operator to behave like a relation (mathrel).
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
