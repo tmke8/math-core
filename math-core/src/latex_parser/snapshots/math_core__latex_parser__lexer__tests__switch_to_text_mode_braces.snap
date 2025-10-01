@@ -2,9 +2,9 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: "\\prod\\text{\\o}\\sum"
 ---
-0: BigOp(BigOp { char: 8719, cat: OnlyJ })
+0: BigOp(BigOp { char: '∏', cat: OnlyJ })
 5: Text(None)
 10: GroupBegin
 11: Letter('ø')
 13: GroupEnd
-14: BigOp(BigOp { char: 8721, cat: OnlyJ })
+14: BigOp(BigOp { char: '∑', cat: OnlyJ })

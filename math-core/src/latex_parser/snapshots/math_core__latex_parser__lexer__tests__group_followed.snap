@@ -3,5 +3,5 @@ source: math-core/src/latex_parser/lexer.rs
 expression: "{x+y} b"
 ---
 1: Letter('x')
-2: BinaryOp(Bin { char: 43, cat: BD })
+2: BinaryOp(Bin { char: '+', cat: BD })
 3: Letter('y')

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
@@ -32,28 +34,66 @@ impl From<&MathMLOperator> for char {
     }
 }
 
-/// An operator with zero spacing, categories D, E, F, G, I, K.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct OrdLike {
-    char: u16,
-    cat: OrdCategory,
+macro_rules! make_character_class {
+    ($(#[$meta:meta])* $struct_name:ident, $cat_type:ty, $const_fn_name:ident) => {
+        $(#[$meta])*
+        #[derive(Clone, PartialEq, Eq, Copy)]
+        pub struct $struct_name {
+            char: u16,
+            pub cat: $cat_type,
+        }
+
+        const fn $const_fn_name(ch: char, cat: $cat_type) -> $struct_name {
+            assert!(ch as u32 <= u16::MAX as u32);
+            $struct_name {
+                char: ch as u16,
+                cat,
+            }
+        }
+
+        impl $struct_name {
+            #[inline(always)]
+            pub const fn as_op(&self) -> MathMLOperator {
+                debug_assert!(char::from_u32(self.char as u32).is_some());
+                MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
+            }
+        }
+
+        // We use a custom `Debug` implementation to render the character as a `char`.
+        impl Debug for $struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct(stringify!($struct_name))
+                    .field("char", &self.as_op().0)
+                    .field("cat", &self.cat)
+                    .finish()
+            }
+        }
+    };
 }
 
-const fn ord(ch: char, cat: OrdCategory) -> OrdLike {
-    assert!(ch as u32 <= u16::MAX as u32);
-    OrdLike {
-        char: ch as u16,
-        cat,
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OrdCategory {
+    /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// (e.g. `|`).
+    FG,
+    /// Category D: Prefix, zero spacing (e.g. `¬`).
+    OnlyD,
+    /// Category E: Postfix, zero spacing (e.g. `′`).
+    OnlyE,
+    /// Category D and E: Prefix or postfix, zero spacing (e.g. `!`).
+    DE,
+    /// Category I: Postfix, zero spacing, stretchy
+    OnlyI,
+    /// Category K: Infix, zero spacing (e.g. `/`).
+    OnlyK,
 }
+
+make_character_class!(
+    /// An operator with zero spacing, categories D, E, F, G, I, K.
+    OrdLike, OrdCategory, ord
+);
 
 impl OrdLike {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        debug_assert!(char::from_u32(self.char as u32).is_some());
-        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
-    }
-
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         match self.cat {
@@ -71,49 +111,7 @@ impl OrdLike {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-enum OrdCategory {
-    /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
-    /// (e.g. `|`).
-    FG,
-    /// Category D: Prefix, zero spacing (e.g. `¬`).
-    OnlyD,
-    /// Category E: Postfix, zero spacing (e.g. `′`).
-    OnlyE,
-    /// Category D and E: Prefix or postfix, zero spacing (e.g. `!`).
-    DE,
-    /// Category I: Postfix, zero spacing, stretchy
-    OnlyI,
-    /// Category K: Infix, zero spacing (e.g. `/`).
-    OnlyK,
-}
-
-/// A prefix operator with operator spacing (categories H, J).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct BigOp {
-    char: u16,
-    cat: BigOpCategory,
-}
-
-const fn big_op(ch: char, cat: BigOpCategory) -> BigOp {
-    assert!(ch as u32 <= u16::MAX as u32);
-    BigOp {
-        char: ch as u16,
-        cat,
-    }
-}
-
-impl BigOp {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        debug_assert!(char::from_u32(self.char as u32).is_some());
-        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-enum BigOpCategory {
+pub enum BigOpCategory {
     /// Category H: Prefix, op spacing, symmetric, largeop (e.g. `∫`).
     OnlyH,
     /// Category J: Prefix, op spacing, symmetric, largeop, movablelimits
@@ -121,31 +119,12 @@ enum BigOpCategory {
     OnlyJ,
 }
 
-/// An infix operator that does *not* have relation spacing (categories B and C).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Bin {
-    char: u16,
-    pub cat: BinCategory,
-}
-
-const fn bin(ch: char, cat: BinCategory) -> Bin {
-    assert!(ch as u32 <= u16::MAX as u32);
-    Bin {
-        char: ch as u16,
-        cat,
-    }
-}
-
-impl Bin {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        debug_assert!(char::from_u32(self.char as u32).is_some());
-        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
-    }
-}
+make_character_class!(
+    /// A prefix operator with operator spacing (categories H, J).
+    BigOp, BigOpCategory, big_op
+);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum BinCategory {
     /// Category B: Infix, binary op spacing (e.g. `÷`)
     OnlyB,
@@ -155,28 +134,25 @@ pub enum BinCategory {
     OnlyC,
 }
 
-/// A operator with relation spacing.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Rel {
-    char: u16,
-    cat: RelCategory,
+make_character_class!(
+    /// An infix operator that does *not* have relation spacing or zero spacing
+    /// (categories B and C).
+    Bin, BinCategory, bin
+);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RelCategory {
+    Default,
+    /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
+    OnlyA,
 }
 
-const fn rel(ch: char, cat: RelCategory) -> Rel {
-    assert!(ch as u32 <= u16::MAX as u32);
-    Rel {
-        char: ch as u16,
-        cat,
-    }
-}
+make_character_class!(
+    /// A operator with relation spacing.
+    Rel, RelCategory, rel
+);
 
 impl Rel {
-    #[inline(always)]
-    pub const fn as_op(&self) -> MathMLOperator {
-        debug_assert!(char::from_u32(self.char as u32).is_some());
-        MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
-    }
-
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         match self.cat {
@@ -187,14 +163,6 @@ impl Rel {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-enum RelCategory {
-    Default,
-    /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
-    OnlyA,
 }
 
 /// An operator with punctuation spacing (category M).

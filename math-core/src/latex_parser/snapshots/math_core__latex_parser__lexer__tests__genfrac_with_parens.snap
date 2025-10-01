@@ -1,0 +1,21 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "\\genfrac(]{0pt}{2}{a+b}{c+d}"
+---
+0: Genfrac
+8: Open(Fence('('))
+9: SquareBracketClose
+10: StringLiteral("0pt")
+15: GroupBegin
+16: Digit(Two)
+17: GroupEnd
+18: GroupBegin
+19: Letter('a')
+20: BinaryOp(Bin { char: '+', cat: BD })
+21: Letter('b')
+22: GroupEnd
+23: GroupBegin
+24: Letter('c')
+25: BinaryOp(Bin { char: '+', cat: BD })
+26: Letter('d')
+27: GroupEnd

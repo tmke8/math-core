@@ -2,7 +2,7 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: "\\prod\\text\\o\\sum"
 ---
-0: BigOp(BigOp { char: 8719, cat: OnlyJ })
+0: BigOp(BigOp { char: '∏', cat: OnlyJ })
 5: Text(None)
 10: Letter('ø')
-12: BigOp(BigOp { char: 8721, cat: OnlyJ })
+12: BigOp(BigOp { char: '∑', cat: OnlyJ })
