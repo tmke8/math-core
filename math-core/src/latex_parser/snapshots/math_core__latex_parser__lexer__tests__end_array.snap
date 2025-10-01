@@ -1,0 +1,11 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "\\end{array}{c|c}"
+---
+0: End
+4: EnvName(Array)
+11: GroupBegin
+12: Letter('c')
+13: Ord(OrdLike { char: '|', cat: FG })
+14: Letter('c')
+15: GroupEnd

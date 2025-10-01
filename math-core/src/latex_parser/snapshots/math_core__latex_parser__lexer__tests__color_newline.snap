@@ -1,0 +1,10 @@
+---
+source: math-core/src/latex_parser/lexer.rs
+expression: "{x\\color\n{red} y}"
+---
+0: GroupBegin
+1: Letter('x')
+2: Color
+9: StringLiteral("red")
+15: Letter('y')
+16: GroupEnd

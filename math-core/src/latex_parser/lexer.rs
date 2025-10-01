@@ -495,6 +495,18 @@ mod tests {
             ("comment", "ab%hello\ncd"),
             ("switch_to_text_mode", r"\prod\text\o\sum"),
             ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
+            ("custom_space", r"{x\hspace{2em}}"),
+            ("color", r"{x\color{red} y}"),
+            ("color_whitespace", r"{x\color     {red} y}"),
+            ("color_newline", "{x\\color\n{red} y}"),
+            ("genfrac_with_parens", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
+            (
+                "genfrac_with_one_sided_parens",
+                r"\genfrac{}]{0pt}{2}{a+b}{c+d}",
+            ),
+            ("genfrac_without_parens", r"\genfrac{}{}{0pt}{2}{a+b}{c+d}"),
+            ("begin_array", r"\begin{array}{c|c}"),
+            ("end_array", r"\end{array}{c|c}"),
         ];
 
         let string_storage = &mut String::new();
