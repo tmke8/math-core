@@ -13,15 +13,15 @@
   "license": "MIT",
   "author": "Thomas M Kehrenberg",
   "type": "module",
-  "main": "src/math_core.js",
+  "main": "dist/math_core.js",
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "test": "mocha",
     "build": "npm run build:cargo && npm run build:wasm-bindgen",
     "build:cargo": "cargo build --release --target wasm32-unknown-unknown --package math-core-wasm",
-    "build:wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/math_core_wasm.wasm --out-dir ./src --out-name math_core --target experimental-nodejs-module"
+    "build:wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/math_core_wasm.wasm --out-dir ./dist --out-name math_core --target experimental-nodejs-module"
   },
   "devDependencies": {
     "chai": "^6.2.0",
