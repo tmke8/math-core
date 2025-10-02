@@ -74,3 +74,4 @@ docs/_build/
 *.xml
 
 node_modules/
+/nodejs/src/
