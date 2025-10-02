@@ -15,12 +15,17 @@ jobs:
         node-version: latest
     - working-directory: nodejs
       run: npm install
-    - name: install wasm target
+    - name: Install wasm target
       run: |
         rustup target add wasm32-unknown-unknown
-    - working-directory: nodejs
+    - name: Install wasm-bindgen
+      run: |
+        cargo install wasm-bindgen-cli
+    - name: Build the wasm module
+      working-directory: nodejs
       run: |
         npm run build
-    - working-directory: nodejs
+    - name: Run the tests
+      working-directory: nodejs
       run: |
         npm test
