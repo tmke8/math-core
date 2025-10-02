@@ -20,7 +20,7 @@ jobs:
         rustup target add wasm32-unknown-unknown
     - name: Install wasm-bindgen
       run: |
-        WASM_BINDGEN_VERSION=$(grep -A 1 'name = "wasm-bindgen"' math-core-wasm/Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+        WASM_BINDGEN_VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
         cargo install wasm-bindgen-cli --version $WASM_BINDGEN_VERSION
     - name: Build the wasm module
       working-directory: nodejs
