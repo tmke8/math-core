@@ -72,3 +72,6 @@ docs/_build/
 .python-version
 
 *.xml
+
+node_modules/
+/nodejs/src/

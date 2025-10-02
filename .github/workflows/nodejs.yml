@@ -1,0 +1,32 @@
+name: Nodejs
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-node@v5
+      with:
+        node-version: latest
+    - working-directory: nodejs
+      run: npm install
+    - name: Install wasm target
+      run: |
+        rustup target add wasm32-unknown-unknown
+    - name: Install wasm-bindgen
+      run: |
+        WASM_BINDGEN_VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+        cargo install wasm-bindgen-cli --version $WASM_BINDGEN_VERSION
+    - name: Build the wasm module
+      working-directory: nodejs
+      run: |
+        npm run build
+    - name: Run the tests
+      working-directory: nodejs
+      run: |
+        npm test
