@@ -1,4 +1,4 @@
-import {convert} from '../src/math_core.js';
+import {convert} from '../dist/math_core.js';
 import {assert} from 'chai';
 
 describe('Convert Tests', function() {
