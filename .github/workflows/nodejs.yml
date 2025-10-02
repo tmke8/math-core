@@ -1,11 +1,11 @@
-name: CI
+name: Nodejs
 
 on:
   pull_request:
     branches: ["main"]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,8 +15,12 @@ jobs:
         node-version: latest
     - working-directory: nodejs
       run: npm install
+    - name: install wasm target
+      run: |
+        rustup target add wasm32-unknown-unknown
     - working-directory: nodejs
-      run: npm run build
+      run: |
+        npm run build
     - working-directory: nodejs
-      run: npm test
-      
+      run: |
+        npm test
