@@ -174,18 +174,6 @@ impl LatexToMathML {
         })
     }
 
-    /// Create a new `LatexToMathML` converter with default settings.
-    pub const fn const_default() -> Self {
-        Self {
-            flags: Flags {
-                pretty_print: PrettyPrint::Never,
-                xml_namespace: false,
-            },
-            equation_count: 0,
-            custom_cmds: None,
-        }
-    }
-
     /// Convert LaTeX text to MathML with a global equation counter.
     ///
     /// For basic usage, see the documentation of [`convert_with_local_counter`].

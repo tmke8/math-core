@@ -1,7 +1,5 @@
 extern crate alloc;
 
-use std::sync::RwLock;
-
 #[cfg(target_arch = "wasm32")]
 use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
 
@@ -12,7 +10,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
+use math_core::{MathDisplay, PrettyPrint};
 use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
 
@@ -23,89 +21,89 @@ pub struct LatexError {
 }
 
 #[wasm_bindgen]
+pub struct LatexToMathML {
+    inner: math_core::LatexToMathML,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const ITEXT_STYLE: &'static str = r#"
+interface MathCoreConfig {
+    prettyPrint: "never" | "always" | "auto";
+    macros: Map<string, string>;
+    xmlNamespace: boolean;
+}
+"#;
+
+#[wasm_bindgen]
 extern "C" {
-    pub type JsConfig;
+    #[wasm_bindgen(typescript_type = "MathCoreConfig")]
+    pub type MathCoreConfig;
 
     #[wasm_bindgen(method, getter)]
-    fn prettyPrint(this: &JsConfig) -> String;
+    fn prettyPrint(this: &MathCoreConfig) -> String;
 
     #[wasm_bindgen(method, getter)]
-    fn macros(this: &JsConfig) -> Map;
+    fn macros(this: &MathCoreConfig) -> Map;
 
     #[wasm_bindgen(method, getter)]
-    fn xmlNamespace(this: &JsConfig) -> bool;
+    fn xmlNamespace(this: &MathCoreConfig) -> bool;
 }
-
-thread_local! {
-    static LOCK_ERR_MGS: JsValue = JsValue::from_str("Couldn't get lock");
-}
-
-static LATEX_TO_MATHML: RwLock<LatexToMathML> = RwLock::new(LatexToMathML::const_default());
 
 #[wasm_bindgen]
-pub fn set_config(js_config: &JsConfig) -> Result<(), LatexError> {
-    // This is the poor man's `serde_wasm_bindgen::from_value`.
-    let macro_map = js_config.macros();
-    let mut macros =
-        FxHashMap::with_capacity_and_hasher(macro_map.size() as usize, Default::default());
-    let macro_iter = macro_map.entries();
-    loop {
-        let Ok(entry) = macro_iter.next() else {
-            break; // Exit the loop on error.
-        };
-        if entry.done() {
-            break; // Exit the loop when there are no more entries.
+impl LatexToMathML {
+    #[wasm_bindgen(constructor)]
+    pub fn new(js_config: &MathCoreConfig) -> Result<LatexToMathML, LatexError> {
+        // This is the poor man's `serde_wasm_bindgen::from_value`.
+        let macro_map = js_config.macros();
+        let mut macros =
+            FxHashMap::with_capacity_and_hasher(macro_map.size() as usize, Default::default());
+        let macro_iter = macro_map.entries();
+        loop {
+            let Ok(entry) = macro_iter.next() else {
+                break; // Exit the loop on error.
+            };
+            if entry.done() {
+                break; // Exit the loop when there are no more entries.
+            }
+            let Ok(value) = entry.value().dyn_into::<Array>() else {
+                continue; // Skip if the value is not an Array.
+            };
+            let Some(key) = value.get(0).as_string() else {
+                continue; // Skip if the first element is not a string.
+            };
+            let Some(value) = value.get(1).as_string() else {
+                continue; // Skip if the second element is not a string.
+            };
+            macros.insert(key, value);
         }
-        let Ok(value) = entry.value().dyn_into::<Array>() else {
-            continue; // Skip if the value is not an Array.
+        let pretty_print = match js_config.prettyPrint().as_str() {
+            "always" => PrettyPrint::Always,
+            "never" => PrettyPrint::Never,
+            "auto" => PrettyPrint::Auto,
+            _ => {
+                return Err(LatexError {
+                    message: JsValue::from_str("Invalid value for prettyPrint"),
+                    location: 0,
+                });
+            }
         };
-        let Some(key) = value.get(0).as_string() else {
-            continue; // Skip if the first element is not a string.
+        let xml_namespace = js_config.xmlNamespace();
+        let config = math_core::MathCoreConfig {
+            pretty_print,
+            macros,
+            xml_namespace,
+            ..Default::default()
         };
-        let Some(value) = value.get(1).as_string() else {
-            continue; // Skip if the second element is not a string.
-        };
-        macros.insert(key, value);
+        let convert = math_core::LatexToMathML::new(&config).map_err(|e| LatexError {
+            message: JsValue::from_str(&e.1.string()),
+            location: e.0 as u32,
+        })?;
+        Ok(LatexToMathML { inner: convert })
     }
-    let pretty_print = match js_config.prettyPrint().as_str() {
-        "always" => PrettyPrint::Always,
-        "never" => PrettyPrint::Never,
-        "auto" => PrettyPrint::Auto,
-        _ => {
-            return Err(LatexError {
-                message: JsValue::from_str("Invalid value for prettyPrint"),
-                location: 0,
-            });
-        }
-    };
-    let xml_namespace = js_config.xmlNamespace();
-    let config = MathCoreConfig {
-        pretty_print,
-        macros,
-        xml_namespace,
-        ..Default::default()
-    };
-    let converter = LatexToMathML::new(&config).map_err(|e| LatexError {
-        message: JsValue::from_str(&e.1.string()),
-        location: e.0 as u32,
-    })?;
-    let mut global_converter = LATEX_TO_MATHML.write().map_err(|_| LatexError {
-        message: LOCK_ERR_MGS.with(Clone::clone),
-        location: 0,
-    })?;
-    *global_converter = converter;
-    Ok(())
-}
 
-#[wasm_bindgen]
-pub fn convert(content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
-    match LATEX_TO_MATHML
-        .read()
-        .map_err(|_| LatexError {
-            message: LOCK_ERR_MGS.with(Clone::clone),
-            location: 0,
-        })?
-        .convert_with_local_counter(
+    #[wasm_bindgen(unchecked_return_type = "string")]
+    pub fn convert(&self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
+        match self.inner.convert_with_local_counter(
             content,
             if displaystyle {
                 MathDisplay::Block
@@ -113,10 +111,11 @@ pub fn convert(content: &str, displaystyle: bool) -> Result<JsValue, LatexError>
                 MathDisplay::Inline
             },
         ) {
-        Ok(result) => Ok(JsValue::from_str(&result)),
-        Err(e) => Err(LatexError {
-            message: JsValue::from_str(&e.1.string()),
-            location: e.0 as u32,
-        }),
+            Ok(result) => Ok(JsValue::from_str(&result)),
+            Err(e) => Err(LatexError {
+                message: JsValue::from_str(&e.1.string()),
+                location: e.0 as u32,
+            }),
+        }
     }
 }
