@@ -1,7 +1,11 @@
-import init, { convert, set_config } from "./pkg/math_core_wasm.js";
+import init, { LatexToMathML } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value
+/**
+ * @type {LatexToMathML | null}
+ */
+let cachedConverter = null;
 
 function initializeCachedValues() {
   // Initialize cached values based on current DOM state
@@ -18,6 +22,10 @@ function updateIsBlockCache() {
   cachedIsBlock = selectedRadio ? selectedRadio.value === "block" : true;
 }
 
+/**
+ * Updates the cachedConverter based on the current config field and pretty print setting
+ * @return {boolean} True if the config was successfully updated, false otherwise
+ */
 function updateConfig() {
   const prettyRadio = document.querySelector(
     '#prettyprint input[type="radio"]:checked',
@@ -38,7 +46,7 @@ function updateConfig() {
     });
     // Set the prettyPrint property from the radio selection
     parsed["prettyPrint"] = isPrettyPrint ? "always" : "never";
-    set_config(parsed);
+    cachedConverter = new LatexToMathML(parsed);
   } catch (error) {
     const outputCode = document.getElementById("outputCode");
     if (outputCode) {
@@ -49,6 +57,10 @@ function updateConfig() {
   return true;
 }
 
+/**
+ * Returns whether the current display mode is block or inline
+ * @returns {boolean} True if block mode, false if inline
+ */
 function isBlock() {
   return cachedIsBlock;
 }
@@ -63,7 +75,7 @@ async function generateLink() {
   }
 
   // Compress the content
-  const compressedContent = await compressText(content, "gzip");
+  const compressedContent = await compressText(content);
 
   // Encode content to base64
   const encodedContent = uint8ArrayToBase64Url(compressedContent);
@@ -236,7 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateOutput() {
     try {
       const input = inputField.value;
-      const output = convert(input, isBlock());
+      const output = cachedConverter.convert(input, isBlock());
       outputField.innerHTML = output;
       outputCode.textContent = output;
     } catch (error) {
