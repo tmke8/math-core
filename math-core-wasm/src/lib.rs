@@ -102,8 +102,26 @@ impl LatexToMathML {
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
-    pub fn convert(&self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
+    pub fn convert_with_local_counter(&self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
         match self.inner.convert_with_local_counter(
+            content,
+            if displaystyle {
+                MathDisplay::Block
+            } else {
+                MathDisplay::Inline
+            },
+        ) {
+            Ok(result) => Ok(JsValue::from_str(&result)),
+            Err(e) => Err(LatexError {
+                message: JsValue::from_str(&e.1.string()),
+                location: e.0 as u32,
+            }),
+        }
+    }
+
+    #[wasm_bindgen(unchecked_return_type = "string")]
+    pub fn convert_with_global_counter(&mut self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
+        match self.inner.convert_with_global_counter(
             content,
             if displaystyle {
                 MathDisplay::Block

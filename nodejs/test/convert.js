@@ -12,7 +12,7 @@ describe("Convert Tests", function () {
       const latex = "x\\sum x";
       const displayStyle = false;
       assert.equal(
-        converter.convert(latex, displayStyle),
+        converter.convert_with_local_counter(latex, displayStyle),
         "<math><mi>x</mi><mo>∑</mo><mi>x</mi></math>",
       );
     });
