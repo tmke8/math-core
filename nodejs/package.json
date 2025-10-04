@@ -14,6 +14,7 @@
   "author": "Thomas M Kehrenberg",
   "type": "module",
   "main": "dist/math_core.js",
+  "types": "dist/math_core.d.ts",
   "files": [
     "dist"
   ],
