@@ -1,11 +1,12 @@
-name: Nodejs
+name: CI
 
 on:
   pull_request:
     branches: ["main"]
 
 jobs:
-  test:
+  node_test:
+    name: "Node.js test"
     runs-on: ubuntu-latest
 
     steps:
