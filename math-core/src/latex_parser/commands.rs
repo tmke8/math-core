@@ -648,6 +648,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "vert" => Ord(symbol::VERTICAL_LINE),
     "wedge" => BinaryOp(symbol::LOGICAL_AND),
     "wedgeq" => Relation(symbol::ESTIMATES), // from "stix"
+    "widecheck" => OverUnder(symbol::CARON, true, None),
     "widehat" => OverUnder(symbol::CIRCUMFLEX_ACCENT, true, None),
     "wideparen" => OverUnderBrace(symbol::TOP_PARENTHESIS, true),
     "widetilde" => OverUnder(symbol::TILDE, true, None),
