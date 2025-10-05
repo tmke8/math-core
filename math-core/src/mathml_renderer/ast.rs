@@ -379,7 +379,7 @@ impl<'converter> MathMLEmitter<'converter> {
                 writeln_indent!(&mut self.s, base_indent, "</mover>");
             }
             Node::UnderOp(op, target) => {
-                write!(self.s, "<munder accent=\"true\">")?;
+                write!(self.s, "<munder accentunder=\"true\">")?;
                 self.emit(target, child_indent)?;
                 writeln_indent!(&mut self.s, child_indent, "<mo>{}</mo>", char::from(op));
                 writeln_indent!(&mut self.s, base_indent, "</munder>");
@@ -925,7 +925,7 @@ mod tests {
                 symbol::LOW_LINE.as_op(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
-            "<munder accent=\"true\"><mi>x</mi><mo>_</mo></munder>"
+            "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
     }
 
