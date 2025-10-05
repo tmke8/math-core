@@ -136,4 +136,8 @@ impl LatexToMathML {
             }),
         }
     }
+
+    pub fn reset_global_counter(&mut self) {
+        self.inner.reset_global_counter();
+    }
 }

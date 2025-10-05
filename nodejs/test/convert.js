@@ -58,6 +58,17 @@ describe("Convert Tests", function () {
       assert.include(output2, "(3)");
       assert.include(output2, "(4)");
     });
+    it("should convert equation with global numbering, the second time", function () {
+      converter.reset_global_counter();
+      const latex = "\\begin{align}x\\\\y\\end{align}";
+      const displayStyle = true;
+      const output = converter.convert_with_global_counter(latex, displayStyle);
+      assert.include(output, "(1)");
+      assert.include(output, "(2)");
+      const output2 = converter.convert_with_global_counter(latex, displayStyle);
+      assert.include(output2, "(3)");
+      assert.include(output2, "(4)");
+    });
   });
   context("Macros", function () {
     it("should convert with custom macros", function () {
