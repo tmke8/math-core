@@ -49,7 +49,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         <mo>‾</mo>
     </mover>
     <mtext> </mtext>
-    <munder accent="true">
+    <munder accentunder="true">
         <mrow>
             <mi>j</mi>
             <mi>k</mi>
