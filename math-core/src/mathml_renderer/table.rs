@@ -50,8 +50,8 @@ enum AlignmentType<'arena> {
 
 const MTD_OPEN_STYLE: &str = "<mtd style=\"";
 const MTD_CLOSE_STYLE: &str = "\">";
-const LEFT_ALIGN: &str = "text-align: -webkit-left;text-align: -moz-left;";
-pub const RIGHT_ALIGN: &str = "text-align: -webkit-right;text-align: -moz-right;";
+const LEFT_ALIGN: &str = "text-align: left;justify-items: start;";
+pub const RIGHT_ALIGN: &str = "text-align: right;justify-items: end;";
 const PADDING_RIGHT_ZERO: &str = "padding-right: 0;";
 const PADDING_LEFT_ZERO: &str = "padding-left: 0;";
 const PADDING_TOP_BOTTOM_ZERO: &str = "padding-top: 0;padding-bottom: 0;";

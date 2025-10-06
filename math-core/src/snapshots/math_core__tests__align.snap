@@ -6,13 +6,13 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
     <mtable displaystyle="true" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>
-            <mtd style="text-align: -webkit-right;text-align: -moz-right;padding-right: 0;">
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
                 <mi>f</mi>
                 <mo stretchy="false">(</mo>
                 <mi>x</mi>
                 <mo stretchy="false">)</mo>
             </mtd>
-            <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-left: 0;">
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
                 <mo>=</mo>
                 <msup>
                     <mi>x</mi>
@@ -24,15 +24,15 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                 <mo>+</mo>
                 <mn>1</mn>
             </mtd>
-        <mtd style="width: 50%;text-align: -webkit-right;text-align: -moz-right;">
+        <mtd style="width: 50%;text-align: right;justify-items: end;">
             <mtext>(1)</mtext>
         </mtd>
         </mtr>
         <mtr>
             <mtd style="width: 50%"></mtd>
-            <mtd style="text-align: -webkit-right;text-align: -moz-right;padding-right: 0;">
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
             </mtd>
-            <mtd style="text-align: -webkit-left;text-align: -moz-left;padding-left: 0;">
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
                 <mo>=</mo>
                 <mo stretchy="false">(</mo>
                 <mi>x</mi>
@@ -43,7 +43,7 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                     <mn>2</mn>
                 </msup>
             </mtd>
-            <mtd style="width: 50%;text-align: -webkit-right;text-align: -moz-right;">
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
                 <mtext>(2)</mtext>
             </mtd>
         </mtr>
