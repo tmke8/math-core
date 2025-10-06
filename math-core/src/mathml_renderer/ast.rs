@@ -1193,7 +1193,7 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable><mtr><mtd style=\"text-align: -webkit-left;text-align: -moz-left;\"><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: -webkit-left;text-align: -moz-left;\"><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
