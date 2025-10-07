@@ -742,7 +742,6 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "textbackslash" => Letter('\\'),
     "textbf" => Text(Some(TextTransform::Bold)),
     "textit" => Text(Some(TextTransform::Italic)),
-    "textstyle" => Style(Style::Text),
     "texttt" => Text(Some(TextTransform::Monospace)),
     "textyen" => Letter('¥'),
     "u" => TextModeAccent(symbol::COMBINING_BREVE),
