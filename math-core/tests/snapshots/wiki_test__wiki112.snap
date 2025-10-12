@@ -38,7 +38,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
             <mi>e</mi>
             <mi>f</mi>
         </mrow>
-        <mo>^</mo>
+        <mo stretchy="true">̂</mo>
     </mover>
     <mover accent="true">
         <mrow>

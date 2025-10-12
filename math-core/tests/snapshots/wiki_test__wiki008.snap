@@ -10,7 +10,7 @@ expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo>^</mo>
+        <mo stretchy="true">̂</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
