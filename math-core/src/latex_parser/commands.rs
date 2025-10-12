@@ -590,7 +590,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "th" => Letter(symbol::LATIN_SMALL_LETTER_THORN),
     "therefore" => Relation(symbol::THEREFORE),
     "theta" => Letter(symbol::GREEK_SMALL_LETTER_THETA),
-    "tilde" => OverUnder(symbol::COMBINING_TILDE, true, Some(OpAttr::StretchyFalse)),
+    "tilde" => OverUnder(symbol::COMBINING_TILDE, true, Some(OpAttr::StretchyTrue)), // should be stretchy=false, but Safari has a bug
     "times" => BinaryOp(symbol::MULTIPLICATION_SIGN),
     "to" => Relation(symbol::RIGHTWARDS_ARROW),
     "top" => Letter(symbol::DOWN_TACK),
