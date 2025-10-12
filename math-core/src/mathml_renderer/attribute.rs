@@ -28,6 +28,8 @@ impl MathVariant {
 pub enum OpAttr {
     #[strum(serialize = r#" stretchy="false""#)]
     StretchyFalse = 1,
+    #[strum(serialize = r#" stretchy="true""#)]
+    StretchyTrue,
     #[strum(serialize = r#" movablelimits="false""#)]
     NoMovableLimits,
     #[strum(serialize = r#" movablelimits="true""#)]

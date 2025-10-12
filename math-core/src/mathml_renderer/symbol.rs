@@ -272,7 +272,7 @@ pub const EQUALS_SIGN: Rel = rel('=', RelCategory::Default);
 pub const LEFT_SQUARE_BRACKET: Fence = Fence('[');
 pub const REVERSE_SOLIDUS: OrdLike = ord('\\', OrdCategory::OnlyK);
 pub const RIGHT_SQUARE_BRACKET: Fence = Fence(']');
-pub const CIRCUMFLEX_ACCENT: Rel = rel('^', RelCategory::Default);
+// pub const CIRCUMFLEX_ACCENT: Rel = rel('^', RelCategory::Default);
 pub const LOW_LINE: Rel = rel('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = rel('`', RelCategory::Default);
 
