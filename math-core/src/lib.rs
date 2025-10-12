@@ -54,6 +54,7 @@ pub enum MathDisplay {
 #[derive(Debug, Clone, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
 pub enum PrettyPrint {
     /// Never pretty print.
     #[default]
