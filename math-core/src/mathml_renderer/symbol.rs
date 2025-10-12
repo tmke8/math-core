@@ -80,8 +80,6 @@ pub enum OrdCategory {
     OnlyD,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     OnlyE,
-    /// Category D and E: Prefix or postfix, zero spacing (e.g. `!`).
-    DE,
     /// Category I: Postfix, zero spacing, stretchy
     OnlyI,
     /// Category K: Infix, zero spacing (e.g. `/`).
@@ -248,7 +246,7 @@ impl From<StretchableOp> for char {
 //
 // Unicode Block: Basic Latin
 //
-pub const EXCLAMATION_MARK: OrdLike = ord('!', OrdCategory::DE);
+pub const EXCLAMATION_MARK: MathMLOperator = MathMLOperator('!');
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';

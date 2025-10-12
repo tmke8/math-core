@@ -934,7 +934,7 @@ mod tests {
         assert_eq!(
             render(&Node::Overset {
                 symbol: &Node::Operator {
-                    op: symbol::EXCLAMATION_MARK.as_op(),
+                    op: symbol::EXCLAMATION_MARK,
                     attr: None,
                     left: None,
                     right: None

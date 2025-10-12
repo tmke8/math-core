@@ -102,6 +102,10 @@ pub enum Token<'source> {
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
+    /// A token to force an operator to behave like a closing symbol (mathclose).
+    /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
+    /// but in MathML Core is an ordinary operator.
+    ForceClose(MathMLOperator),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Digit(Digit),
@@ -142,7 +146,10 @@ impl Token<'_> {
             Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::Close(_) | Token::SquareBracketClose | Token::NewColumn => Class::Close,
+            Token::Close(_)
+            | Token::SquareBracketClose
+            | Token::NewColumn
+            | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
             Token::End | Token::Right | Token::GroupEnd | Token::Eof if real_boundaries => {
