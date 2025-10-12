@@ -5,7 +5,7 @@ use crate::mathml_renderer::{
     ast::Node,
     attribute::{LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
     length::Length,
-    symbol::{self, StretchableOp, BinCategory},
+    symbol::{self, BinCategory, StretchableOp},
 };
 
 use super::{
@@ -632,7 +632,8 @@ where
                         script_style: true,
                         ..Default::default()
                     };
-                    let under = self.parse_token(tokloc, ParseAs::Arg, Some(&mut sequence_state))?;
+                    let under =
+                        self.parse_token(tokloc, ParseAs::Arg, Some(&mut sequence_state))?;
                     Ok(Node::Underset {
                         target,
                         symbol: under,
@@ -768,6 +769,15 @@ where
                     attr: None,
                     left,
                     right,
+                })
+            }
+            Token::ForceClose(op) => {
+                new_class = Class::Close;
+                Ok(Node::Operator {
+                    op,
+                    attr: None,
+                    left: None,
+                    right: None,
                 })
             }
             Token::GroupBegin => {

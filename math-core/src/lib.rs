@@ -577,6 +577,7 @@ mod tests {
             ("overset_with_prime", r"\overset{!}{=}'"),
             ("overset_prime", r"\overset{'}{=}"),
             ("overset_plus", r"\overset{!}{+}"),
+            ("exclamation_mark_spacing", r"x=!=x"),
             ("int_limit_prime", r"\int\limits'"),
             ("prime_command", r"f^\prime"),
             ("prime_command_braces", r"f^{\prime}"),
