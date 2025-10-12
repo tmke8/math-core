@@ -940,10 +940,15 @@ pub const MALTESE_CROSS: char = '✠';
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
 pub const PERPENDICULAR: Rel = rel('⟂', RelCategory::Default);
+
 pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Fence = Fence('⟦');
 pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Fence = Fence('⟧');
 pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Fence = Fence('⟨');
 pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Fence = Fence('⟩');
+pub const MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET: Fence = Fence('⟪');
+pub const MATHEMATICAL_RIGHT_DOUBLE_ANGLE_BRACKET: Fence = Fence('⟫');
+// pub const MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET: Fence = Fence('⟬');
+// pub const MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET: Fence = Fence('⟭');
 pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Fence = Fence('⟮');
 pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Fence = Fence('⟯');
 
