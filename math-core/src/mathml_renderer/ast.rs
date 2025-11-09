@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use std::num::NonZeroU16;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -111,6 +112,7 @@ pub enum Node<'arena> {
         align: Alignment,
         attr: Option<FracAttr>,
         with_numbering: bool,
+        last_equation_num: Option<NonZeroU16>,
     },
     Array {
         style: Option<Style>,
@@ -120,7 +122,7 @@ pub enum Node<'arena> {
     /// `<mtd>...</mtd>`
     ColumnSeparator,
     /// `<mtr>...</mtr>`
-    RowSeparator,
+    RowSeparator(Option<NonZeroU16>),
     /// <menclose>...</menclose>
     Enclose {
         content: &'arena Node<'arena>,
@@ -152,20 +154,15 @@ macro_rules! writeln_indent {
     };
 }
 
-pub struct MathMLEmitter<'converter> {
+#[derive(Default)]
+pub struct MathMLEmitter {
     s: String,
     var: Option<MathVariant>,
-    equation_counter: &'converter mut usize,
 }
 
-impl<'converter> MathMLEmitter<'converter> {
-    #[inline]
-    pub fn new(equation_counter: &'converter mut usize) -> Self {
-        Self {
-            s: String::new(),
-            var: None,
-            equation_counter,
-        }
+impl MathMLEmitter {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     #[inline]
@@ -193,7 +190,7 @@ impl<'converter> MathMLEmitter<'converter> {
 
         if !matches!(
             node,
-            Node::ColumnSeparator | Node::RowSeparator | Node::TextTransform { .. }
+            Node::ColumnSeparator | Node::RowSeparator(_) | Node::TextTransform { .. }
         ) {
             // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
@@ -487,6 +484,7 @@ impl<'converter> MathMLEmitter<'converter> {
                 align,
                 attr,
                 with_numbering,
+                last_equation_num,
             } => {
                 let mtd_opening = ColumnGenerator::new_predefined(*align);
                 let with_numbering = *with_numbering;
@@ -505,6 +503,7 @@ impl<'converter> MathMLEmitter<'converter> {
                     content,
                     mtd_opening,
                     with_numbering,
+                    last_equation_num.as_ref().copied(),
                 )?;
             }
             Node::Array {
@@ -527,9 +526,9 @@ impl<'converter> MathMLEmitter<'converter> {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening, false)?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening, false, None)?;
             }
-            Node::ColumnSeparator | Node::RowSeparator => (),
+            Node::ColumnSeparator | Node::RowSeparator(_) => (),
             Node::Enclose { content, notation } => {
                 let notation = *notation;
                 write!(self.s, "<menclose notation=\"")?;
@@ -619,6 +618,7 @@ impl<'converter> MathMLEmitter<'converter> {
         content: &[&Node<'_>],
         mut col_gen: ColumnGenerator,
         with_numbering: bool,
+        last_equation_num: Option<NonZeroU16>,
     ) -> Result<(), std::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
@@ -647,10 +647,14 @@ impl<'converter> MathMLEmitter<'converter> {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                     col_gen.write_next_mtd(&mut self.s, child_indent2)?;
                 }
-                Node::RowSeparator => {
+                Node::RowSeparator(equation_counter) => {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                     if with_numbering {
-                        self.write_equation_num(child_indent, child_indent2)?;
+                        self.write_equation_num(
+                            child_indent,
+                            child_indent2,
+                            equation_counter.as_ref().copied(),
+                        )?;
                     }
                     writeln_indent!(&mut self.s, child_indent, "</mtr>");
                     writeln_indent!(&mut self.s, child_indent, "<mtr>");
@@ -672,7 +676,7 @@ impl<'converter> MathMLEmitter<'converter> {
         }
         writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         if with_numbering {
-            self.write_equation_num(child_indent2, child_indent3)?;
+            self.write_equation_num(child_indent2, child_indent3, last_equation_num)?;
         }
         writeln_indent!(&mut self.s, child_indent, "</mtr>");
         writeln_indent!(&mut self.s, base_indent, "</mtable>");
@@ -683,20 +687,22 @@ impl<'converter> MathMLEmitter<'converter> {
         &mut self,
         child_indent2: usize,
         child_indent3: usize,
+        equation_counter: Option<NonZeroU16>,
     ) -> Result<(), std::fmt::Error> {
-        *self.equation_counter += 1;
         writeln_indent!(
             &mut self.s,
             child_indent2,
             r#"<mtd style="width: 50%;{}">"#,
             RIGHT_ALIGN
         );
-        writeln_indent!(
-            &mut self.s,
-            child_indent3,
-            "<mtext>({})</mtext>",
-            self.equation_counter
-        );
+        if let Some(equation_counter) = equation_counter {
+            writeln_indent!(
+                &mut self.s,
+                child_indent3,
+                "<mtext>({})</mtext>",
+                equation_counter
+            );
+        }
         writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         Ok(())
     }
@@ -758,8 +764,7 @@ mod tests {
     where
         'a: 'b,
     {
-        let mut equation_counter = 0;
-        let mut emitter = MathMLEmitter::new(&mut equation_counter);
+        let mut emitter = MathMLEmitter::new();
         emitter.emit(node, 0).unwrap();
         emitter.into_inner()
     }
@@ -780,8 +785,7 @@ mod tests {
             "<mi mathvariant=\"normal\">Γ</mi>"
         );
 
-        let mut equation_counter = 0;
-        let mut emitter = MathMLEmitter::new(&mut equation_counter);
+        let mut emitter = MathMLEmitter::new();
         emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
         emitter
             .emit(&Node::IdentifierChar('L', LetterAttr::Default), 0)
@@ -1151,7 +1155,7 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator,
+            &Node::RowSeparator(None),
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1163,8 +1167,33 @@ mod tests {
                 align: Alignment::Centered,
                 attr: None,
                 with_numbering: false,
+                last_equation_num: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_numbered_table() {
+        let nodes = [
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator(NonZeroU16::new(1)),
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
+        ];
+
+        assert_eq!(
+            render(&Node::Table {
+                content: &nodes,
+                align: Alignment::Centered,
+                attr: None,
+                with_numbering: true,
+                last_equation_num: NonZeroU16::new(2),
+            }),
+            "<mtable style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
     }
 
@@ -1174,7 +1203,7 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator,
+            &Node::RowSeparator(None),
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),

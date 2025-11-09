@@ -1,3 +1,5 @@
+use std::num::NonZeroU16;
+
 use strum_macros::IntoStaticStr;
 
 use crate::mathml_renderer::{
@@ -51,6 +53,7 @@ impl Env {
         content: &'arena [&'arena Node<'arena>],
         array_spec: Option<&'arena ArraySpec<'arena>>,
         arena: &'arena Arena,
+        last_equation_num: Option<NonZeroU16>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
@@ -58,6 +61,7 @@ impl Env {
                 align: Alignment::Alternating,
                 attr: Some(FracAttr::DisplayStyleTrue),
                 with_numbering: matches!(self, Env::Align),
+                last_equation_num,
             },
             Env::Cases => {
                 let align = Alignment::Cases;
@@ -66,6 +70,7 @@ impl Env {
                     align,
                     attr: None,
                     with_numbering: false,
+                    last_equation_num: None,
                 });
                 Node::Fenced {
                     open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
@@ -79,6 +84,7 @@ impl Env {
                 align: Alignment::Centered,
                 attr: None,
                 with_numbering: false,
+                last_equation_num: None,
             },
             array_variant @ (Env::Array | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -137,6 +143,7 @@ impl Env {
                         align,
                         attr,
                         with_numbering: false,
+                        last_equation_num: None,
                     }),
                     style: None,
                 }
