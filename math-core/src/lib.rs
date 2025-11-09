@@ -158,7 +158,7 @@ impl From<&MathCoreConfig> for Flags {
 pub struct LatexToMathML {
     flags: Flags,
     /// This is used for numbering equations in the document.
-    equation_count: usize,
+    equation_count: u16,
     custom_cmds: Option<CustomCmds>,
 }
 
@@ -249,16 +249,16 @@ fn convert<'config, 'source>(
     latex: &'source str,
     display: MathDisplay,
     custom_cmds: Option<&'config CustomCmds>,
-    equation_count: &mut usize,
+    equation_count: &mut u16,
     flags: &Flags,
 ) -> Result<String, LatexError<'source>>
 where
     'config: 'source,
 {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, custom_cmds)?;
+    let ast = parse(latex, &arena, custom_cmds, equation_count)?;
 
-    let mut output = MathMLEmitter::new(equation_count);
+    let mut output = MathMLEmitter::new();
     output.push_str("<math");
     if flags.xml_namespace {
         output.push_str(" xmlns=\"http://www.w3.org/1998/Math/MathML\"");
@@ -284,14 +284,14 @@ where
     Ok(output.into_inner())
 }
 
-fn parse<'config, 'arena, 'source>(
+fn parse<'arena, 'source>(
     latex: &'source str,
     arena: &'arena Arena,
-    custom_cmds: Option<&'config CustomCmds>,
+    custom_cmds: Option<&'source CustomCmds>,
+    equation_count: &mut u16,
 ) -> Result<Vec<&'arena mathml_renderer::ast::Node<'arena>>, LatexError<'source>>
 where
-    'source: 'arena,  // 'source outlives 'arena
-    'config: 'source, // 'config outlives 'source
+    'source: 'arena, // 'source outlives 'arena
 {
     let error_slot = std::cell::OnceCell::new();
     let mut string_literal_store = String::new();
@@ -302,7 +302,7 @@ where
         &error_slot,
         &mut string_literal_store,
     );
-    let mut p = latex_parser::Parser::new(lexer, arena).map_err(|e| *e)?;
+    let mut p = latex_parser::Parser::new(lexer, arena, equation_count).map_err(|e| *e)?;
     let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
 }
@@ -370,9 +370,9 @@ mod tests {
 
     fn convert_content(latex: &str) -> Result<String, LatexError<'_>> {
         let arena = Arena::new();
-        let nodes = parse(latex, &arena, None)?;
-        let mut equation_count = 0;
-        let mut emitter = MathMLEmitter::new(&mut equation_count);
+        let mut equation_count = 0u16;
+        let nodes = parse(latex, &arena, None, &mut equation_count)?;
+        let mut emitter = MathMLEmitter::new();
         for node in nodes.iter() {
             emitter
                 .emit(node, 0)

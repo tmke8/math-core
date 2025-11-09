@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, num::NonZeroU16};
 
 use crate::mathml_renderer::{
     arena::{Arena, Buffer},
@@ -29,6 +29,7 @@ pub(crate) struct Parser<'cell, 'arena, 'source> {
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
     tf_differs_on_upright_letters: bool,
+    equation_counter: &'cell mut u16,
 }
 
 /// A struct for managing the state of the sequence parser.
@@ -40,6 +41,8 @@ struct SequenceState {
     real_boundaries: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
+    /// `true` if we are inside an environment that numbers equations.
+    with_numbering: bool,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
 }
@@ -94,6 +97,7 @@ where
     pub(crate) fn new(
         lexer: Lexer<'source, 'source, 'cell>,
         arena: &'arena Arena,
+        equation_counter: &'cell mut u16,
     ) -> Result<Self, &'cell LatexError<'source>> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -104,6 +108,7 @@ where
             arena,
             collector: LetterCollector::Inactive,
             tf_differs_on_upright_letters: false,
+            equation_counter,
         })
     }
 
@@ -193,6 +198,7 @@ where
                 real_boundaries: true,
                 allow_columns: false,
                 script_style: false,
+                with_numbering: false,
             }
         };
 
@@ -884,6 +890,7 @@ where
                     real_boundaries: true,
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
+                    with_numbering: matches!(env, Env::Align),
                 };
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
@@ -912,7 +919,16 @@ where
                     ));
                 }
 
-                Ok(env.construct_node(content, array_spec, self.arena))
+                let last_equation_num = if matches!(env, Env::Align) {
+                    *self.equation_counter += 1;
+                    let equation_number = NonZeroU16::new(*self.equation_counter);
+                    debug_assert!(equation_number.is_some());
+                    equation_number
+                } else {
+                    None
+                };
+
+                Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
             Token::OperatorName => {
                 let tokloc = self.tokens.next();
@@ -970,7 +986,16 @@ where
                     ))
                 }
             }
-            Token::NewLine => Ok(Node::RowSeparator),
+            Token::NewLine => {
+                if sequence_state.with_numbering {
+                    *self.equation_counter += 1;
+                    let equation_number = NonZeroU16::new(*self.equation_counter);
+                    debug_assert!(equation_number.is_some());
+                    Ok(Node::RowSeparator(equation_number))
+                } else {
+                    Ok(Node::RowSeparator(None))
+                }
+            }
             Token::Color => 'color: {
                 let (loc, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
@@ -1504,9 +1529,10 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let error_slot = std::cell::OnceCell::new();
+            let mut equation_counter = 0u16;
             let string_literal_store = &mut String::new();
             let l = Lexer::new(problem, false, None, &error_slot, string_literal_store);
-            let mut p = Parser::new(l, &arena).unwrap();
+            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }

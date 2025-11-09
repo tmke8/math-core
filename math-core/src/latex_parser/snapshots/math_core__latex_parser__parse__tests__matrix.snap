@@ -10,12 +10,13 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
     content: Table(
       content: [
         IdentifierChar('x', Default),
-        RowSeparator,
+        RowSeparator(None),
         IdentifierChar('y', Default),
       ],
       align: Centered,
       attr: None,
       with_numbering: false,
+      last_equation_num: None,
     ),
   ),
 ]
