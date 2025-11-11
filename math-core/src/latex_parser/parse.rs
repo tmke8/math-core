@@ -23,19 +23,19 @@ use super::{
 
 pub(crate) struct Parser<'cell, 'arena, 'source> {
     tokens: TokenManager<'cell, 'source>,
-    cmd_args: Vec<TokLoc<'source>>,
-    cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
     arena: &'arena Arena,
     collector: LetterCollector<'arena>,
-    tf_differs_on_upright_letters: bool,
     equation_counter: &'cell mut u16,
+    cmd_args: Vec<TokLoc<'source>>,
+    cmd_arg_offsets: [usize; 9],
+    tf_differs_on_upright_letters: bool,
+    class: Class,
 }
 
 /// A struct for managing the state of the sequence parser.
 #[derive(Debug, Default)]
 struct SequenceState {
-    class: Class,
     /// `true` if the boundaries of the sequence are real boundaries;
     /// this is not the case for style-only rows.
     real_boundaries: bool,
@@ -109,6 +109,7 @@ where
             collector: LetterCollector::Inactive,
             tf_differs_on_upright_letters: false,
             equation_counter,
+            class: Class::Open,
         })
     }
 
@@ -193,8 +194,8 @@ where
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
         } else {
+            self.class = Class::Open;
             &mut SequenceState {
-                class: Class::Open,
                 real_boundaries: true,
                 allow_columns: false,
                 script_style: false,
@@ -260,8 +261,8 @@ where
     }
 
     /// Parse the given token into a node.
-    fn parse_token<'parser>(
-        &'parser mut self,
+    fn parse_token(
+        &mut self,
         cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
         parse_as: ParseAs,
         sequence_state: Option<&mut SequenceState>,
@@ -317,7 +318,7 @@ where
                 if let Some(op) = relation.as_stretchable_op() {
                     Ok(Node::StretchableOp(op, StretchMode::NoStretch))
                 } else {
-                    let (left, right) = relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.relation_spacing(next_class, sequence_state);
                     Ok(Node::Operator {
                         op: relation.as_op(),
                         attr: None,
@@ -360,7 +361,7 @@ where
                     // Don't add spacing if we are in an argument.
                     None
                 } else if matches!(
-                    sequence_state.class,
+                    self.class,
                     Class::Relation
                         | Class::Punctuation
                         | Class::BinaryOp
@@ -385,7 +386,7 @@ where
                 })
             }
             Token::OpGreaterThan => {
-                let (left, right) = relation_spacing(next_class, sequence_state);
+                let (left, right) = self.relation_spacing(next_class, sequence_state);
                 Ok(Node::PseudoOp {
                     name: "&gt;",
                     attr: None,
@@ -394,7 +395,7 @@ where
                 })
             }
             Token::OpLessThan => {
-                let (left, right) = relation_spacing(next_class, sequence_state);
+                let (left, right) = self.relation_spacing(next_class, sequence_state);
                 Ok(Node::PseudoOp {
                     name: "&lt;",
                     attr: None,
@@ -424,7 +425,7 @@ where
             }
             Token::Space(space) => {
                 // Spaces pass through the sequence state.
-                new_class = sequence_state.class;
+                new_class = self.class;
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
@@ -541,7 +542,9 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
+                let previous_class = self.class;
                 let symbol = self.parse_next(ParseAs::Arg)?;
+                self.class = previous_class; // Restore the class, because the symbol does not affect it.
                 let token = self.next_token();
                 let target =
                     self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
@@ -612,7 +615,9 @@ where
                     Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                     Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
-                        sequence_state.class = new_class;
+                        if parse_as.in_sequence() {
+                            self.class = new_class;
+                        }
                         return Ok(target);
                     }
                 }
@@ -723,7 +728,9 @@ where
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
+                let previous_class = self.class;
                 let bounds = self.get_bounds()?;
+                self.class = previous_class; // Restore the class, because it's not set by the bounds.
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let target = self.commit(Node::Operator {
                     op: int.as_op(),
@@ -741,7 +748,9 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
-                            sequence_state.class = new_class;
+                            if parse_as.in_sequence() {
+                                self.class = new_class;
+                            }
                             return Ok(target);
                         }
                     }
@@ -751,7 +760,9 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
-                            sequence_state.class = new_class;
+                            if parse_as.in_sequence() {
+                                self.class = new_class;
+                            }
                             return Ok(target);
                         }
                     }
@@ -763,7 +774,7 @@ where
                     // Don't add spacing if we are in an argument.
                     (None, None)
                 } else {
-                    let (left, right) = relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.relation_spacing(next_class, sequence_state);
                     // We have to turn `None` into explicit relation spacing.
                     (
                         left.or(Some(MathSpacing::FiveMu)),
@@ -798,14 +809,16 @@ where
                     content
                 } else {
                     let mut s = SequenceState {
-                        class: Class::Open,
                         real_boundaries: true,
                         script_style: sequence_state.script_style,
                         ..Default::default()
                     };
+                    self.class = Class::Open;
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&mut s), false)?
                 };
-                sequence_state.class = Class::Default;
+                if parse_as.in_sequence() {
+                    self.class = Class::Default;
+                }
                 return Ok(node_vec_to_node(
                     self.arena,
                     content,
@@ -886,12 +899,12 @@ where
                     None
                 };
                 let mut state = SequenceState {
-                    class: Class::Open,
                     real_boundaries: true,
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
                     with_numbering: matches!(env, Env::Align),
                 };
+                self.class = Class::Open;
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
                     Some(&mut state),
@@ -927,6 +940,7 @@ where
                 } else {
                     None
                 };
+                new_class = Class::Close;
 
                 Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
@@ -1153,7 +1167,9 @@ where
                 ))
             }
         };
-        sequence_state.class = new_class;
+        if parse_as.in_sequence() {
+            self.class = new_class;
+        }
         match node {
             Ok(n) => Ok(self.commit(n)),
             Err(e) => Err(self.alloc_err(e)),
@@ -1330,7 +1346,7 @@ where
             .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         (
             if matches!(
-                sequence_state.class,
+                self.class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
             ) {
                 Some(MathSpacing::Zero)
@@ -1377,6 +1393,33 @@ where
         };
         Ok((delim, class))
     }
+
+    fn relation_spacing(
+        &self,
+        next_class: Class,
+        sequence_state: &SequenceState,
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        (
+            if matches!(
+                self.class,
+                Class::Relation | Class::Open | Class::Punctuation
+            ) || sequence_state.script_style
+            {
+                Some(MathSpacing::Zero)
+            } else {
+                None
+            },
+            if matches!(
+                next_class,
+                Class::Relation | Class::Punctuation | Class::Close
+            ) || sequence_state.script_style
+            {
+                Some(MathSpacing::Zero)
+            } else {
+                None
+            },
+        )
+    }
 }
 
 // Turn a vector of nodes into a single node.
@@ -1416,32 +1459,6 @@ pub(crate) fn node_vec_to_node<'arena>(
             attr: RowAttr::None,
         })
     }
-}
-
-fn relation_spacing(
-    next_class: Class,
-    sequence_state: &SequenceState,
-) -> (Option<MathSpacing>, Option<MathSpacing>) {
-    (
-        if matches!(
-            sequence_state.class,
-            Class::Relation | Class::Open | Class::Punctuation
-        ) || sequence_state.script_style
-        {
-            Some(MathSpacing::Zero)
-        } else {
-            None
-        },
-        if matches!(
-            next_class,
-            Class::Relation | Class::Punctuation | Class::Close
-        ) || sequence_state.script_style
-        {
-            Some(MathSpacing::Zero)
-        } else {
-            None
-        },
-    )
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);

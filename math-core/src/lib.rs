@@ -621,7 +621,7 @@ mod tests {
             ("sqrt_equal_three", r"\sqrt{=3}"),
             ("equal_squared", r"==^2 x"),
             ("equal_vectored", r"=\vec{=}x"),
-            ("sqrt_log", r"\sqrt\log"),
+            ("sqrt_sum", r"\sqrt\sum"),
             ("sqrt_log_braces", r"\sqrt{\log}"),
             ("root_op", r"\sqrt[+]{x}"),
             ("root_log", r"\sqrt[\log]{x}"),
