@@ -181,13 +181,10 @@ where
     ///
     /// Note that this function does not consume the end token. That's because the end token might
     /// be used by the calling function to emit another node.
-    ///
-    /// If `real_boundaries` is `true`, the parser will treat the boundaries of the sequence as real.
-    /// This is used for sequences that are *not* just style-only rows.
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
-        sequence_state: Option<&mut SequenceState>,
+        sequence_state: Option<&SequenceState>,
         keep_end_token: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
         let mut nodes = Vec::new();
@@ -195,7 +192,7 @@ where
             seq_state
         } else {
             self.class = Class::Open;
-            &mut SequenceState {
+            &SequenceState {
                 real_boundaries: true,
                 allow_columns: false,
                 script_style: false,
@@ -265,13 +262,13 @@ where
         &mut self,
         cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
         parse_as: ParseAs,
-        sequence_state: Option<&mut SequenceState>,
+        sequence_state: Option<&SequenceState>,
     ) -> ASTResult<'cell, 'arena, 'source> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
         } else {
-            &mut Default::default()
+            &Default::default()
         };
         let mut new_class: Class = Default::default();
         let next_class = self
@@ -639,12 +636,11 @@ where
                     });
                     self.next_token()?; // Discard the underscore token.
                     let tokloc = self.next_token();
-                    let mut sequence_state = SequenceState {
+                    let sequence_state = SequenceState {
                         script_style: true,
                         ..Default::default()
                     };
-                    let under =
-                        self.parse_token(tokloc, ParseAs::Arg, Some(&mut sequence_state))?;
+                    let under = self.parse_token(tokloc, ParseAs::Arg, Some(&sequence_state))?;
                     Ok(Node::Underset {
                         target,
                         symbol: under,
@@ -799,22 +795,24 @@ where
             }
             Token::GroupBegin => {
                 let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    let old_boundaries = mem::replace(&mut sequence_state.real_boundaries, false);
+                    let state = SequenceState {
+                        real_boundaries: false,
+                        ..*sequence_state
+                    };
                     let content = self.parse_sequence(
                         SequenceEnd::Token(Token::GroupEnd),
-                        Some(sequence_state),
+                        Some(&state),
                         false,
                     )?;
-                    sequence_state.real_boundaries = old_boundaries;
                     content
                 } else {
-                    let mut s = SequenceState {
+                    let s = SequenceState {
                         real_boundaries: true,
                         script_style: sequence_state.script_style,
                         ..Default::default()
                     };
                     self.class = Class::Open;
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&mut s), false)?
+                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&s), false)?
                 };
                 if parse_as.in_sequence() {
                     self.class = Class::Default;
@@ -898,7 +896,7 @@ where
                 } else {
                     None
                 };
-                let mut state = SequenceState {
+                let state = SequenceState {
                     real_boundaries: true,
                     allow_columns: true,
                     script_style: matches!(env, Env::Subarray),
@@ -907,7 +905,7 @@ where
                 self.class = Class::Open;
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
-                    Some(&mut state),
+                    Some(&state),
                     true,
                 )?);
 
@@ -1023,13 +1021,11 @@ where
                 })
             }
             Token::Style(style) => {
-                let old_style = mem::replace(
-                    &mut sequence_state.script_style,
-                    matches!(style, Style::Script | Style::ScriptScript),
-                );
-                let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state), true)?;
-                sequence_state.script_style = old_style;
+                let state = SequenceState {
+                    script_style: matches!(style, Style::Script | Style::ScriptScript),
+                    ..*sequence_state
+                };
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, Some(&state), true)?;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -1312,11 +1308,11 @@ where
                 },
             )));
         }
-        let mut sequence_state = SequenceState {
+        let sequence_state = SequenceState {
             script_style: true,
             ..Default::default()
         };
-        let node = self.parse_token(next, ParseAs::Arg, Some(&mut sequence_state));
+        let node = self.parse_token(next, ParseAs::Arg, Some(&sequence_state));
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
