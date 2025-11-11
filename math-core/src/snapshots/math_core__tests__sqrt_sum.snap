@@ -4,6 +4,6 @@ expression: "\\sqrt\\sum"
 ---
 <math>
     <msqrt>
-        <mo lspace="0">∑</mo>
+        <mo>∑</mo>
     </msqrt>
 </math>

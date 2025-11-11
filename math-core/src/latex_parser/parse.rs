@@ -784,7 +784,7 @@ where
                     let content = self.parse_sequence(
                         SequenceEnd::Token(Token::GroupEnd),
                         Class::Open,
-                        true,
+                        false,
                     )?;
                     content
                 };

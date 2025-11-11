@@ -5,7 +5,7 @@ expression: "x\\overset{!}{=}"
 <math>
     <mi>x</mi>
     <mover>
-        <mo>=</mo>
+        <mo rspace="0">=</mo>
         <mo>!</mo>
     </mover>
 </math>
