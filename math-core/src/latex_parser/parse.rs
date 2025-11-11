@@ -771,21 +771,15 @@ where
                 })
             }
             Token::GroupBegin => {
-                let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    let content = self.parse_sequence(
-                        SequenceEnd::Token(Token::GroupEnd),
-                        prev_class,
-                        false,
-                    )?;
-                    content
-                } else {
-                    let content = self.parse_sequence(
-                        SequenceEnd::Token(Token::GroupEnd),
-                        Class::Open,
-                        false,
-                    )?;
-                    content
-                };
+                let content = self.parse_sequence(
+                    SequenceEnd::Token(Token::GroupEnd),
+                    if matches!(parse_as, ParseAs::ContinueSequence) {
+                        prev_class
+                    } else {
+                        Class::Open
+                    },
+                    false,
+                )?;
                 return Ok((
                     node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
                     Class::Default,
@@ -875,14 +869,12 @@ where
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
                     Class::Open,
-                    true,
+                    false,
                 )?);
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.script_style = old_script_style;
                 self.state.with_numbering = old_with_numbering;
-
-                self.next_token()?; // Discard the `End` token.
 
                 // Get the environment name after `\end`.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
