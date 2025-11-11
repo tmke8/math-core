@@ -276,7 +276,7 @@ where
         } else {
             &Default::default()
         };
-        let mut new_class: Class = Default::default();
+        let mut class: Class = Default::default();
         let next_class = self
             .tokens
             .peek()
@@ -317,7 +317,7 @@ where
             Token::Letter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Default)),
             Token::UprightLetter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Upright)),
             Token::Relation(relation) => {
-                new_class = Class::Relation;
+                class = Class::Relation;
                 if let Some(op) = relation.as_stretchable_op() {
                     Ok(Node::StretchableOp(op, StretchMode::NoStretch))
                 } else {
@@ -331,7 +331,7 @@ where
                 }
             }
             Token::Punctuation(punc) => {
-                new_class = Class::Punctuation;
+                class = Class::Punctuation;
                 let right = if matches!(next_class, Class::Close) || sequence_state.script_style {
                     Some(MathSpacing::Zero)
                 } else {
@@ -359,7 +359,7 @@ where
                 }
             }
             Token::BinaryOp(binary_op) => {
-                new_class = Class::BinaryOp;
+                class = Class::BinaryOp;
                 let spacing = if !parse_as.in_sequence() {
                     // Don't add spacing if we are in an argument.
                     None
@@ -414,7 +414,7 @@ where
             }),
             Token::PseudoOperator(name) => {
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                new_class = Class::Operator;
+                class = Class::Operator;
                 Ok(Node::PseudoOp {
                     attr: None,
                     left,
@@ -427,8 +427,8 @@ where
                 Ok(Node::Enclose { content, notation })
             }
             Token::Space(space) => {
-                // Spaces pass through the sequence state.
-                new_class = self.state.prev_class;
+                // Spaces pass through the symbol class.
+                class = self.state.prev_class;
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
@@ -592,7 +592,7 @@ where
                 }
             }
             Token::BigOp(op) => {
-                new_class = Class::Operator;
+                class = Class::Operator;
                 let limits = matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
@@ -619,7 +619,7 @@ where
                     Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
                         if parse_as.in_sequence() {
-                            self.state.prev_class = new_class;
+                            self.state.prev_class = class;
                         }
                         return Ok(target);
                     }
@@ -653,7 +653,7 @@ where
                     })
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                    new_class = Class::Operator;
+                    class = Class::Operator;
                     Ok(Node::PseudoOp {
                         attr: None,
                         left,
@@ -726,7 +726,7 @@ where
                 Ok(Node::TextTransform { content, tf })
             }
             Token::Integral(int) => {
-                new_class = Class::Operator;
+                class = Class::Operator;
                 let limits = matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
@@ -752,7 +752,7 @@ where
                         Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
                             if parse_as.in_sequence() {
-                                self.state.prev_class = new_class;
+                                self.state.prev_class = class;
                             }
                             return Ok(target);
                         }
@@ -764,7 +764,7 @@ where
                         Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
                             if parse_as.in_sequence() {
-                                self.state.prev_class = new_class;
+                                self.state.prev_class = class;
                             }
                             return Ok(target);
                         }
@@ -772,7 +772,7 @@ where
                 }
             }
             Token::ForceRelation(op) => {
-                new_class = Class::Relation;
+                class = Class::Relation;
                 let (left, right) = if !parse_as.in_sequence() {
                     // Don't add spacing if we are in an argument.
                     (None, None)
@@ -792,7 +792,7 @@ where
                 })
             }
             Token::ForceClose(op) => {
-                new_class = Class::Close;
+                class = Class::Close;
                 Ok(Node::Operator {
                     op,
                     attr: None,
@@ -832,12 +832,12 @@ where
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 if matches!(tok, Token::Open(_)) {
-                    new_class = Class::Open;
+                    class = Class::Open;
                 }
                 Ok(Node::StretchableOp(paren.as_op(), StretchMode::NoStretch))
             }
             Token::SquareBracketOpen => {
-                new_class = Class::Open;
+                class = Class::Open;
                 Ok(Node::StretchableOp(
                     symbol::LEFT_SQUARE_BRACKET.as_op(),
                     StretchMode::NoStretch,
@@ -873,10 +873,10 @@ where
                 let op = self.extract_delimiter(tok_loc)?.0;
                 Ok(Node::StretchableOp(op, StretchMode::Middle))
             }
-            Token::Big(size, class) => {
+            Token::Big(size, cls) => {
                 let tok_loc = self.next_token()?;
                 let (paren, symbol_class) = self.extract_delimiter(tok_loc)?;
-                new_class = class.unwrap_or(symbol_class);
+                class = cls.unwrap_or(symbol_class);
                 Ok(Node::SizedParen(size, paren))
             }
             Token::Begin => 'begin_env: {
@@ -945,7 +945,7 @@ where
                 } else {
                     None
                 };
-                new_class = Class::Close;
+                class = Class::Close;
 
                 Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
@@ -959,7 +959,7 @@ where
                     Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                    new_class = Class::Operator;
+                    class = Class::Operator;
                     Ok(Node::PseudoOp {
                         attr: None,
                         left,
@@ -993,7 +993,7 @@ where
             }
             Token::NewColumn => {
                 if sequence_state.allow_columns {
-                    new_class = Class::Close;
+                    class = Class::Close;
                     Ok(Node::ColumnSeparator)
                 } else {
                     Err(LatexError(
@@ -1173,7 +1173,7 @@ where
             }
         };
         if parse_as.in_sequence() {
-            self.state.prev_class = new_class;
+            self.state.prev_class = class;
         }
         match node {
             Ok(n) => Ok(self.commit(n)),
@@ -1207,6 +1207,8 @@ where
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
     fn get_bounds(&mut self) -> Result<Bounds<'arena>, &'cell LatexError<'source>> {
+        // Bounds don't affect the previous class.
+        let previous_class = self.state.prev_class;
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
@@ -1262,6 +1264,9 @@ where
         } else {
             sup
         };
+
+        // Restore the previous class.
+        self.state.prev_class = previous_class;
 
         Ok(Bounds(sub, sup))
     }
