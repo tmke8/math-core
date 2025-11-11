@@ -25,12 +25,16 @@ pub(crate) struct Parser<'cell, 'arena, 'source> {
     tokens: TokenManager<'cell, 'source>,
     buffer: Buffer,
     arena: &'arena Arena,
-    collector: LetterCollector<'arena>,
     equation_counter: &'cell mut u16,
+    state: ParserState<'arena, 'source>,
+}
+
+struct ParserState<'arena, 'source> {
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
     tf_differs_on_upright_letters: bool,
-    class: Class,
+    collector: LetterCollector<'arena>,
+    prev_class: Class,
 }
 
 /// A struct for managing the state of the sequence parser.
@@ -102,14 +106,16 @@ where
         let input_length = lexer.input_length();
         Ok(Parser {
             tokens: TokenManager::new(lexer)?,
-            cmd_args: Vec::new(),
-            cmd_arg_offsets: [0; 9],
             buffer: Buffer::new(input_length),
             arena,
-            collector: LetterCollector::Inactive,
-            tf_differs_on_upright_letters: false,
             equation_counter,
-            class: Class::Open,
+            state: ParserState {
+                cmd_args: Vec::new(),
+                cmd_arg_offsets: [0; 9],
+                collector: LetterCollector::Inactive,
+                tf_differs_on_upright_letters: false,
+                prev_class: Class::Open,
+            },
         })
     }
 
@@ -133,7 +139,7 @@ where
             // different on upright letters. Handling upright letters differently wouldn't be
             // possible anymore if we merged these letters // here together with the non-upright
             // letters.
-            if matches!(tok, Token::UprightLetter(_)) && self.tf_differs_on_upright_letters {
+            if matches!(tok, Token::UprightLetter(_)) && self.state.tf_differs_on_upright_letters {
                 break;
             }
             builder.push_char(*ch);
@@ -149,12 +155,12 @@ where
         if let Some(ch) = first_char {
             match num_chars.cmp(&1) {
                 std::cmp::Ordering::Equal => {
-                    self.collector = LetterCollector::FinishedOneLetter {
+                    self.state.collector = LetterCollector::FinishedOneLetter {
                         collected_letter: ch,
                     };
                 }
                 std::cmp::Ordering::Greater => {
-                    self.collector = LetterCollector::FinishedManyLetters {
+                    self.state.collector = LetterCollector::FinishedManyLetters {
                         collected_letters: builder.finish(self.arena),
                     };
                 }
@@ -191,7 +197,7 @@ where
         let sequence_state = if let Some(seq_state) = sequence_state {
             seq_state
         } else {
-            self.class = Class::Open;
+            self.state.prev_class = Class::Open;
             &SequenceState {
                 real_boundaries: true,
                 allow_columns: false,
@@ -202,7 +208,7 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            let cur_tokloc = if matches!(self.collector, LetterCollector::Collecting) {
+            let cur_tokloc = if matches!(self.state.collector, LetterCollector::Collecting) {
                 self.collect_letters()?
             } else {
                 None
@@ -315,7 +321,7 @@ where
                 if let Some(op) = relation.as_stretchable_op() {
                     Ok(Node::StretchableOp(op, StretchMode::NoStretch))
                 } else {
-                    let (left, right) = self.relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.state.relation_spacing(next_class, sequence_state);
                     Ok(Node::Operator {
                         op: relation.as_op(),
                         attr: None,
@@ -358,7 +364,7 @@ where
                     // Don't add spacing if we are in an argument.
                     None
                 } else if matches!(
-                    self.class,
+                    self.state.prev_class,
                     Class::Relation
                         | Class::Punctuation
                         | Class::BinaryOp
@@ -383,7 +389,7 @@ where
                 })
             }
             Token::OpGreaterThan => {
-                let (left, right) = self.relation_spacing(next_class, sequence_state);
+                let (left, right) = self.state.relation_spacing(next_class, sequence_state);
                 Ok(Node::PseudoOp {
                     name: "&gt;",
                     attr: None,
@@ -392,7 +398,7 @@ where
                 })
             }
             Token::OpLessThan => {
-                let (left, right) = self.relation_spacing(next_class, sequence_state);
+                let (left, right) = self.state.relation_spacing(next_class, sequence_state);
                 Ok(Node::PseudoOp {
                     name: "&lt;",
                     attr: None,
@@ -422,7 +428,7 @@ where
             }
             Token::Space(space) => {
                 // Spaces pass through the sequence state.
-                new_class = self.class;
+                new_class = self.state.prev_class;
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
@@ -539,9 +545,9 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
-                let previous_class = self.class;
+                let previous_class = self.state.prev_class;
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                self.class = previous_class; // Restore the class, because the symbol does not affect it.
+                self.state.prev_class = previous_class; // Restore the class, because the symbol does not affect it.
                 let token = self.next_token();
                 let target =
                     self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
@@ -613,7 +619,7 @@ where
                     Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
                         if parse_as.in_sequence() {
-                            self.class = new_class;
+                            self.state.prev_class = new_class;
                         }
                         return Ok(target);
                     }
@@ -708,14 +714,15 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let old_collector = mem::replace(&mut self.collector, LetterCollector::Collecting);
+                let old_collector =
+                    mem::replace(&mut self.state.collector, LetterCollector::Collecting);
                 let old_tf_differs_on_upright_letters = mem::replace(
-                    &mut self.tf_differs_on_upright_letters,
+                    &mut self.state.tf_differs_on_upright_letters,
                     tf.differs_on_upright_letters(),
                 );
                 let content = self.parse_next(ParseAs::Arg)?;
-                self.collector = old_collector;
-                self.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
+                self.state.collector = old_collector;
+                self.state.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
                 Ok(Node::TextTransform { content, tf })
             }
             Token::Integral(int) => {
@@ -724,9 +731,9 @@ where
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
-                let previous_class = self.class;
+                let previous_class = self.state.prev_class;
                 let bounds = self.get_bounds()?;
-                self.class = previous_class; // Restore the class, because it's not set by the bounds.
+                self.state.prev_class = previous_class; // Restore the class, because it's not set by the bounds.
                 let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
                 let target = self.commit(Node::Operator {
                     op: int.as_op(),
@@ -745,7 +752,7 @@ where
                         Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
                             if parse_as.in_sequence() {
-                                self.class = new_class;
+                                self.state.prev_class = new_class;
                             }
                             return Ok(target);
                         }
@@ -757,7 +764,7 @@ where
                         Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
                             if parse_as.in_sequence() {
-                                self.class = new_class;
+                                self.state.prev_class = new_class;
                             }
                             return Ok(target);
                         }
@@ -770,7 +777,7 @@ where
                     // Don't add spacing if we are in an argument.
                     (None, None)
                 } else {
-                    let (left, right) = self.relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.state.relation_spacing(next_class, sequence_state);
                     // We have to turn `None` into explicit relation spacing.
                     (
                         left.or(Some(MathSpacing::FiveMu)),
@@ -811,11 +818,11 @@ where
                         script_style: sequence_state.script_style,
                         ..Default::default()
                     };
-                    self.class = Class::Open;
+                    self.state.prev_class = Class::Open;
                     self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&s), false)?
                 };
                 if parse_as.in_sequence() {
-                    self.class = Class::Default;
+                    self.state.prev_class = Class::Default;
                 }
                 return Ok(node_vec_to_node(
                     self.arena,
@@ -902,7 +909,7 @@ where
                     script_style: matches!(env, Env::Subarray),
                     with_numbering: matches!(env, Env::Align),
                 };
-                self.class = Class::Open;
+                self.state.prev_class = Class::Open;
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
                     Some(&state),
@@ -1096,17 +1103,17 @@ where
                     // The fact that we only clear for `num_args > 0` is a hack to
                     // allow zero-argument token streams to be used within
                     // non-zero-argument token streams.
-                    self.cmd_args.clear();
+                    self.state.cmd_args.clear();
                 }
                 for arg_num in 0..num_args {
                     if matches!(self.tokens.peek().token(), Token::GroupBegin) {
-                        self.tokens.lexer.read_group(&mut self.cmd_args)?;
+                        self.tokens.lexer.read_group(&mut self.state.cmd_args)?;
                         self.next_token()?; // Discard the opening `{` token.
                     } else {
-                        self.cmd_args.push(self.tokens.next()?);
+                        self.state.cmd_args.push(self.tokens.next()?);
                     }
-                    if let Some(offset) = self.cmd_arg_offsets.get_mut(arg_num as usize) {
-                        *offset = self.cmd_args.len();
+                    if let Some(offset) = self.state.cmd_arg_offsets.get_mut(arg_num as usize) {
+                        *offset = self.state.cmd_args.len();
                     }
                 }
                 self.tokens.queue_in_front(token_stream);
@@ -1116,16 +1123,18 @@ where
             }
             Token::CustomCmdArg(arg_num) => {
                 let start = self
+                    .state
                     .cmd_arg_offsets
                     .get(arg_num.wrapping_sub(1) as usize)
                     .copied()
                     .unwrap_or(0);
                 let end = self
+                    .state
                     .cmd_arg_offsets
                     .get(arg_num as usize)
                     .copied()
-                    .unwrap_or(self.cmd_args.len());
-                if let Some(arg) = self.cmd_args.get(start..end) {
+                    .unwrap_or(self.state.cmd_args.len());
+                if let Some(arg) = self.state.cmd_args.get(start..end) {
                     self.tokens.queue_in_front(arg);
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, Some(sequence_state));
@@ -1133,13 +1142,13 @@ where
                     Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
-            Token::GetCollectedLetters => match self.collector {
+            Token::GetCollectedLetters => match self.state.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
-                    self.collector = LetterCollector::Collecting;
+                    self.state.collector = LetterCollector::Collecting;
                     Ok(Node::IdentifierChar(collected_letter, LetterAttr::Default))
                 }
                 LetterCollector::FinishedManyLetters { collected_letters } => {
-                    self.collector = LetterCollector::Collecting;
+                    self.state.collector = LetterCollector::Collecting;
                     Ok(Node::IdentifierStr(collected_letters))
                 }
                 _ => Err(LatexError(
@@ -1164,7 +1173,7 @@ where
             }
         };
         if parse_as.in_sequence() {
-            self.class = new_class;
+            self.state.prev_class = new_class;
         }
         match node {
             Ok(n) => Ok(self.commit(n)),
@@ -1342,7 +1351,7 @@ where
             .class(parse_as.in_sequence(), sequence_state.real_boundaries);
         (
             if matches!(
-                self.class,
+                self.state.prev_class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
             ) {
                 Some(MathSpacing::Zero)
@@ -1389,7 +1398,9 @@ where
         };
         Ok((delim, class))
     }
+}
 
+impl<'arena, 'source> ParserState<'arena, 'source> {
     fn relation_spacing(
         &self,
         next_class: Class,
@@ -1397,7 +1408,7 @@ where
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         (
             if matches!(
-                self.class,
+                self.prev_class,
                 Class::Relation | Class::Open | Class::Punctuation
             ) || sequence_state.script_style
             {
