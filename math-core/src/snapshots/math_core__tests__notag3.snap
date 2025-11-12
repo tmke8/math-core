@@ -9,8 +9,7 @@ expression: "\\begin{align} \\notag1\\\\2\\end{align}"
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
                 <mn>1</mn>
             </mtd>
-            <mtd style="width: 50%;text-align: right;justify-items: end;">
-            </mtd>
+            <mtd style="width: 50%"></mtd>
         </mtr>
         <mtr>
             <mtd style="width: 50%"></mtd>

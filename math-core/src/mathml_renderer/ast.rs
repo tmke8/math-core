@@ -698,21 +698,19 @@ impl MathMLEmitter {
         child_indent3: usize,
         equation_counter: Option<NonZeroU16>,
     ) -> Result<(), std::fmt::Error> {
-        writeln_indent!(
-            &mut self.s,
-            child_indent2,
-            r#"<mtd style="width: 50%;{}">"#,
-            RIGHT_ALIGN
-        );
+        writeln_indent!(&mut self.s, child_indent2, r#"<mtd style="width: 50%"#);
         if let Some(equation_counter) = equation_counter {
+            write!(&mut self.s, r#";{}">"#, RIGHT_ALIGN)?;
             writeln_indent!(
                 &mut self.s,
                 child_indent3,
                 "<mtext>({})</mtext>",
                 equation_counter
             );
+            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        } else {
+            write!(&mut self.s, "\"></mtd>")?;
         }
-        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         Ok(())
     }
 
