@@ -60,7 +60,7 @@ impl Env {
                 content,
                 align: Alignment::Alternating,
                 attr: Some(FracAttr::DisplayStyleTrue),
-                with_numbering: matches!(self, Env::Align),
+                with_numbering: matches!(self, Env::Align | Env::AlignStar),
                 last_equation_num,
             },
             Env::Cases => {

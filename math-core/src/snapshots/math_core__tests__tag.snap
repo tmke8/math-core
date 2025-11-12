@@ -18,8 +18,7 @@ expression: "\\begin{align} 1\\nonumber\\tag{32}\\\\2\\end{align}"
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
                 <mn>2</mn>
             </mtd>
-            <mtd style="width: 50%;text-align: right;justify-items: end;">
-            </mtd>
+            <mtd style="width: 50%"></mtd>
         </mtr>
     </mtable>
 </math>

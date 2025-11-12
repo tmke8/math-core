@@ -48,8 +48,28 @@ struct ParserState<'arena, 'source> {
 /// State for environments that number equations.
 #[derive(Default)]
 struct NumberedEnvState {
+    suppress_all_numbers: bool,
     suppress_next_number: bool,
     custom_next_number: Option<NonZeroU16>,
+}
+
+impl NumberedEnvState {
+    fn next_equation_number(&mut self, equation_counter: &mut u16) -> Option<NonZeroU16> {
+        // A custom number takes precedence over suppression.
+        if let Some(custom_number) = self.custom_next_number.take() {
+            // The state has already been cleared here through `take()`.
+            Some(custom_number)
+        } else if self.suppress_next_number || self.suppress_all_numbers {
+            // Clear the flag.
+            self.suppress_next_number = false;
+            None
+        } else {
+            *equation_counter += 1;
+            let equation_number = NonZeroU16::new(*equation_counter);
+            debug_assert!(equation_number.is_some());
+            equation_number
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -879,8 +899,11 @@ where
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
                 let old_numbered = mem::replace(
                     &mut self.state.numbered,
-                    if matches!(env, Env::Align) {
-                        Some(NumberedEnvState::default())
+                    if matches!(env, Env::Align | Env::AlignStar) {
+                        Some(NumberedEnvState {
+                            suppress_all_numbers: matches!(env, Env::AlignStar),
+                            ..Default::default()
+                        })
                     } else {
                         None
                     },
@@ -915,19 +938,8 @@ where
                     ));
                 }
 
-                let last_equation_num = if let Some(n) = numbered_state
-                    && !n.suppress_next_number
-                {
-                    // Use the custom number if it is set.
-                    // Otherwise, increment the equation counter.
-                    if n.custom_next_number.is_some() {
-                        n.custom_next_number
-                    } else {
-                        *self.equation_counter += 1;
-                        let equation_number = NonZeroU16::new(*self.equation_counter);
-                        debug_assert!(equation_number.is_some());
-                        equation_number
-                    }
+                let last_equation_num = if let Some(mut n) = numbered_state {
+                    n.next_equation_number(self.equation_counter)
                 } else {
                     None
                 };
@@ -993,20 +1005,9 @@ where
             }
             Token::NewLine => {
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    // A custom number takes precedence over suppression.
-                    if let Some(custom_number) = numbered_state.custom_next_number.take() {
-                        // The state has already been cleared here through `take()`.
-                        Ok(Node::RowSeparator(Some(custom_number)))
-                    } else if numbered_state.suppress_next_number {
-                        // Clear the flag.
-                        numbered_state.suppress_next_number = false;
-                        Ok(Node::RowSeparator(None))
-                    } else {
-                        *self.equation_counter += 1;
-                        let equation_number = NonZeroU16::new(*self.equation_counter);
-                        debug_assert!(equation_number.is_some());
-                        Ok(Node::RowSeparator(equation_number))
-                    }
+                    Ok(Node::RowSeparator(
+                        numbered_state.next_equation_number(self.equation_counter),
+                    ))
                 } else {
                     // FIXME: If we aren't in a table-like environment, we should just emit
                     //        `Node::Dummy` here.

@@ -698,21 +698,19 @@ impl MathMLEmitter {
         child_indent3: usize,
         equation_counter: Option<NonZeroU16>,
     ) -> Result<(), std::fmt::Error> {
-        writeln_indent!(
-            &mut self.s,
-            child_indent2,
-            r#"<mtd style="width: 50%;{}">"#,
-            RIGHT_ALIGN
-        );
+        writeln_indent!(&mut self.s, child_indent2, r#"<mtd style="width: 50%"#);
         if let Some(equation_counter) = equation_counter {
+            write!(&mut self.s, r#";{}">"#, RIGHT_ALIGN)?;
             writeln_indent!(
                 &mut self.s,
                 child_indent3,
                 "<mtext>({})</mtext>",
                 equation_counter
             );
+            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        } else {
+            write!(&mut self.s, "\"></mtd>")?;
         }
-        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
         Ok(())
     }
 
@@ -1203,6 +1201,17 @@ mod tests {
                 last_equation_num: NonZeroU16::new(2),
             }),
             "<mtable style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
+        );
+
+        assert_eq!(
+            render(&Node::Table {
+                content: &nodes,
+                align: Alignment::Centered,
+                attr: None,
+                with_numbering: true,
+                last_equation_num: None,
+            }),
+            "<mtable style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
     }
 

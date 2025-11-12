@@ -501,6 +501,9 @@ mod tests {
                 "tag2",
                 r#"\begin{align} 1\mathbf{\tag{32}}\\2\tag{64}\end{align}"#,
             ),
+            ("tag3", r#"\begin{align} 1\\2\nonumber\tag{32}\end{align}"#),
+            ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
+            ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
             ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
             (
                 "text_transforms",
