@@ -40,10 +40,15 @@ struct ParserState<'arena, 'source> {
     right_boundary_hack: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
-    /// `true` if we are inside an environment that numbers equations.
-    with_numbering: bool,
+    numbered: Option<NumberedEnvState>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
+}
+
+/// State for environments that number equations.
+#[derive(Default)]
+struct NumberedEnvState {
+    no_number: bool,
 }
 
 #[derive(Debug)]
@@ -111,7 +116,7 @@ where
                 tf_differs_on_upright_letters: false,
                 right_boundary_hack: false,
                 allow_columns: false,
-                with_numbering: false,
+                numbered: None,
                 script_style: false,
             },
         })
@@ -871,8 +876,14 @@ where
                 let old_allow_columns = mem::replace(&mut self.state.allow_columns, true);
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
-                let old_with_numbering =
-                    mem::replace(&mut self.state.with_numbering, matches!(env, Env::Align));
+                let old_numbered = mem::replace(
+                    &mut self.state.numbered,
+                    if matches!(env, Env::Align) {
+                        Some(NumberedEnvState::default())
+                    } else {
+                        None
+                    },
+                );
 
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
@@ -882,7 +893,7 @@ where
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.script_style = old_script_style;
-                self.state.with_numbering = old_with_numbering;
+                self.state.numbered = old_numbered;
 
                 // Get the environment name after `\end`.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
@@ -972,7 +983,7 @@ where
                 }
             }
             Token::NewLine => {
-                if self.state.with_numbering {
+                if self.state.numbered.is_some() {
                     *self.equation_counter += 1;
                     let equation_number = NonZeroU16::new(*self.equation_counter);
                     debug_assert!(equation_number.is_some());
