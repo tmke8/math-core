@@ -1,11 +1,12 @@
 ---
 source: math-core/src/lib.rs
-expression: "x\\overset{!}{=}"
+expression: "x\\overset{!}{=}x"
 ---
 <math>
     <mi>x</mi>
     <mover>
-        <mo rspace="0">=</mo>
+        <mo>=</mo>
         <mo>!</mo>
     </mover>
+    <mi>x</mi>
 </math>

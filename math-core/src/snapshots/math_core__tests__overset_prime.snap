@@ -1,14 +1,15 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\overset{'}{=}"
+expression: "\\overset{'}{=}x"
 ---
 <math>
     <mover>
-        <mo lspace="0" rspace="0">=</mo>
+        <mo lspace="0">=</mo>
         <msup>
             <mrow>
             </mrow>
             <mo>′</mo>
         </msup>
     </mover>
+    <mi>x</mi>
 </math>

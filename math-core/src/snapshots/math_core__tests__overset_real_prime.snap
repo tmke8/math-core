@@ -1,12 +1,11 @@
 ---
 source: math-core/src/lib.rs
-expression: "x\\overset{!}{=}x"
+expression: "\\overset{\\prime}{=}x"
 ---
 <math>
-    <mi>x</mi>
     <mover>
-        <mo>=</mo>
-        <mo>!</mo>
+        <mo lspace="0">=</mo>
+        <mo>′</mo>
     </mover>
     <mi>x</mi>
 </math>

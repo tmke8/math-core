@@ -36,7 +36,7 @@ struct ParserState<'arena, 'source> {
     collector: LetterCollector<'arena>,
     /// `true` if the boundaries of the sequence are real boundaries;
     /// this is not the case for style-only rows.
-    // real_boundaries: bool,
+    real_boundaries: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
     /// `true` if we are inside an environment that numbers equations.
@@ -108,7 +108,7 @@ where
                 cmd_arg_offsets: [0; 9],
                 collector: LetterCollector::Inactive,
                 tf_differs_on_upright_letters: false,
-                // real_boundaries: true,
+                real_boundaries: true,
                 allow_columns: false,
                 with_numbering: false,
                 script_style: false,
@@ -261,8 +261,10 @@ where
     ) -> Result<(&'arena Node<'arena>, Class), &'cell LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let mut class: Class = Default::default();
-        let next_class = self.tokens.peek().class(parse_as.in_sequence(), true);
-        // .class(parse_as.in_sequence(), self.state.real_boundaries);
+        let next_class = self
+            .tokens
+            .peek()
+            .class(parse_as.in_sequence(), self.state.real_boundaries);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -531,8 +533,10 @@ where
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
+                let old_real_boundaries = mem::replace(&mut self.state.real_boundaries, false);
                 let (target, cls) =
                     self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
+                self.state.real_boundaries = old_real_boundaries;
                 class = cls;
                 if matches!(cur_token, Token::Overset) {
                     Ok(Node::Overset { symbol, target })
@@ -1299,8 +1303,10 @@ where
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
-        let next_class = self.tokens.peek().class(parse_as.in_sequence(), true);
-        // .class(parse_as.in_sequence(), self.state.real_boundaries);
+        let next_class = self
+            .tokens
+            .peek()
+            .class(parse_as.in_sequence(), self.state.real_boundaries);
         (
             if matches!(
                 prev_class,
