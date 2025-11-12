@@ -183,8 +183,9 @@ where
 
     /// Parse a sequence of tokens until the given end token is encountered.
     ///
-    /// Note that this function does not consume the end token. That's because the end token might
-    /// be used by the calling function to emit another node.
+    /// If `keep_end_token` is set to `true`, this function does not consume the end token.
+    /// This is helpful in cases where the end token is used by the calling function to emit
+    /// another node.
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
@@ -197,16 +198,19 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            let cur_tokloc = if matches!(self.state.collector, LetterCollector::Collecting) {
+            // First check whether we need to collect letters.
+            let collected_letters = if matches!(self.state.collector, LetterCollector::Collecting) {
                 self.collect_letters()?
             } else {
                 None
             };
-            let cur_tokloc = if let Some(tok) = cur_tokloc {
+            // Get the current token (which may be the collected letters).
+            let cur_tokloc = if let Some(tok) = collected_letters {
                 Ok(tok)
             } else {
                 self.next_token()
             };
+            // Check here for EOF, so we know to end the loop prematurely.
             if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
@@ -427,6 +431,7 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
+                    // FIXME: We should perhaps use set `right_boundary_hack` here.
                     let degree = self.parse_sequence(
                         SequenceEnd::Token(Token::SquareBracketClose),
                         Class::Open,
@@ -534,10 +539,10 @@ where
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
-                let old_fake_boundaries = mem::replace(&mut self.state.right_boundary_hack, true);
+                let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
                 let (cls, target) =
                     self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
-                self.state.right_boundary_hack = old_fake_boundaries;
+                self.state.right_boundary_hack = old_boundary_hack;
                 class = cls;
                 if matches!(cur_token, Token::Overset) {
                     Ok(Node::Overset { symbol, target })
