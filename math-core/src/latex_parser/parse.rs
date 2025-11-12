@@ -1021,20 +1021,33 @@ where
                 class = prev_class;
                 Ok(Node::Dummy)
             }
-            Token::Tag => 'tag: {
+            Token::Tag => {
+                // We always need to collect the string literal here, even if we don't use it,
+                // because otherwise we'd have an orphaned string literal in the token stream.
+                let (literal_loc, tag_name) = self.tokens.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    let (loc, tag_name) = self.tokens.parse_string_literal()?;
                     // For now, we only support numeric tags.
                     if let Ok(tag_num) = tag_name.trim().parse::<u16>()
                         && tag_num != 0
                     {
                         numbered_state.custom_next_number = NonZeroU16::new(tag_num);
+                        class = prev_class;
+                        Ok(Node::Dummy)
                     } else {
-                        break 'tag Err(LatexError(loc, LatexErrKind::ExpectedNumber(tag_name)));
-                    };
+                        Err(LatexError(
+                            literal_loc,
+                            LatexErrKind::ExpectedNumber(tag_name),
+                        ))
+                    }
+                } else {
+                    Err(LatexError(
+                        loc,
+                        LatexErrKind::CannotBeUsedHere {
+                            got: cur_token,
+                            correct_place: Place::NumberedEnv,
+                        },
+                    ))
                 }
-                class = prev_class;
-                Ok(Node::Dummy)
             }
             Token::Color => 'color: {
                 let (loc, color_name) = self.tokens.parse_string_literal()?;

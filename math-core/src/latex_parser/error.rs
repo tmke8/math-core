@@ -59,6 +59,8 @@ pub enum Place {
     AfterOpOrIdent,
     #[strum(serialize = r"in a table-like environment")]
     TableEnv,
+    #[strum(serialize = r"in a numbered equation environment")]
+    NumberedEnv,
 }
 
 impl LatexErrKind<'_> {
