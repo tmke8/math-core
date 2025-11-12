@@ -1,7 +1,7 @@
 import inspect
 
-from pytest import raises
 from math_core import LatexError, LatexToMathML, PrettyPrint
+from pytest import raises
 
 
 def test_identifier():
@@ -64,4 +64,16 @@ def test_xml():
     assert (
         converter.convert_with_local_counter("x", displaystyle=False)
         == '<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'
+    )
+
+
+def test_continue_on_error():
+    converter = LatexToMathML(continue_on_error=True)
+    assert (
+        converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
+        == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf &lt;b&gt;</code></span>'
+    )
+    assert (
+        converter.convert_with_local_counter("\\hspace{\"} '&", displaystyle=True)
+        == '<p class="math-core-error" title="7: Disallowed characters in text group."><code>\\hspace{"} \'&amp;</code></p>'
     )

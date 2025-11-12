@@ -109,6 +109,9 @@ pub struct MathCoreConfig {
     pub macros: FxHashMap<String, String>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
     pub xml_namespace: bool,
+    /// If `true`, continue processing the input even if errors are encountered.
+    /// Input that caused the error will be left unconverted.
+    pub continue_on_error: bool,
 }
 
 #[derive(Debug)]
@@ -141,6 +144,7 @@ impl CustomCmds {
 struct Flags {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
+    continue_on_error: bool,
 }
 
 impl From<&MathCoreConfig> for Flags {
@@ -149,6 +153,7 @@ impl From<&MathCoreConfig> for Flags {
         Self {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,
+            continue_on_error: config.continue_on_error,
         }
     }
 }
@@ -256,7 +261,33 @@ where
     'config: 'source,
 {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, custom_cmds, equation_count)?;
+    let ast = parse(latex, &arena, custom_cmds, equation_count);
+
+    let ast = match ast {
+        Ok(ast) => ast,
+        Err(err) => {
+            if flags.continue_on_error {
+                let mut output = String::new();
+                let tag = if matches!(display, MathDisplay::Block) {
+                    "p"
+                } else {
+                    "span"
+                };
+                output.push_str("<");
+                output.push_str(tag);
+                output.push_str(r#" class="math-core-error" title=""#);
+                escape_html_attribute(&mut output, &err.to_string());
+                output.push_str(r#""><code>"#);
+                escape_html_content(&mut output, latex);
+                output.push_str(r#"</code></"#);
+                output.push_str(tag);
+                output.push_str(">");
+                return Ok(output);
+            } else {
+                return Err(err);
+            }
+        }
+    };
 
     let mut output = MathMLEmitter::new();
     output.push_str("<math");
@@ -356,6 +387,30 @@ fn is_valid_macro_name(s: &str) -> bool {
         (Some(_), None) => true,
         // If the name contains more than one character, all characters must be ASCII alphabetic.
         _ => s.bytes().all(|b| b.is_ascii_alphabetic()),
+    }
+}
+
+fn escape_html_content(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'<' => output.extend_from_slice(b"&lt;"),
+            b'>' => output.extend_from_slice(b"&gt;"),
+            _ => output.push(ch),
+        }
+    }
+}
+
+fn escape_html_attribute(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'"' => output.extend_from_slice(b"&quot;"),
+            b'\'' => output.extend_from_slice(b"&#x27;"),
+            _ => output.push(ch),
+        }
     }
 }
 

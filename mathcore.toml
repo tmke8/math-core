@@ -1,4 +1,6 @@
-pretty-print = true
+pretty-print = "always"
+xml-namespace = true
+continue-on-error = false
 
 [macros]
 d = "\\mathrm{d}"

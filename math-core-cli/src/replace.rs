@@ -75,7 +75,6 @@ pub struct Replacer<'args> {
     /// A buffer for storing the result of replacing HTML entities.
     entity_buffer: String,
     ignore_escaped_delim: bool,
-    continue_on_error: bool,
 }
 
 impl<'args> Replacer<'args> {
@@ -83,7 +82,6 @@ impl<'args> Replacer<'args> {
         inline_delim: (&'args str, &'args str),
         block_delim: (&'args str, &'args str),
         ignore_escaped_delim: bool,
-        continue_on_error: bool,
     ) -> Self {
         let inline_opening = Finder::new(inline_delim.0);
         let inline_closing = Finder::new(inline_delim.1);
@@ -98,7 +96,6 @@ impl<'args> Replacer<'args> {
             closing_identical: inline_delim.1 == block_delim.1,
             entity_buffer: String::new(),
             ignore_escaped_delim,
-            continue_on_error,
         }
     }
 
@@ -185,27 +182,21 @@ impl<'args> Replacer<'args> {
             // Convert the content and check for error.
             let is_error = { f(state, &mut result, replaced, open_typ).is_err() };
             if is_error {
-                if self.continue_on_error {
-                    // If we continue on error, we just skip the conversion and return the
-                    // original content (including delimiters).
-                    result.push_str(&input[open_pos..end + closing_delim_len]);
-                } else {
-                    // If we stop on error, return the error together with the snippet.
-                    // Unfortunately, due to limitations in the borrow checker, we have to run the
-                    // conversion again to get the error.
-                    // The reason seems to be that the borrow checker cannot tell that when we
-                    // return `replaced` here, we are not maintaining the borrow for the next
-                    // iteration of the loop.
-                    // This is quite unfortunate, but we only have to do this in the error case,
-                    // which is hopefully not too common.
-                    let replaced = replace_html_entities(&mut self.entity_buffer, content);
-                    let latex_error = f(state, &mut result, replaced, open_typ).unwrap_err();
-                    return Err(ConversionError(
-                        start,
-                        ConvErrKind::LatexError(latex_error, replaced),
-                        input,
-                    ));
-                }
+                // If we stop on error, return the error together with the snippet.
+                // Unfortunately, due to limitations in the borrow checker, we have to run the
+                // conversion again to get the error.
+                // The reason seems to be that the borrow checker cannot tell that when we
+                // return `replaced` here, we are not maintaining the borrow for the next
+                // iteration of the loop.
+                // This is quite unfortunate, but we only have to do this in the error case,
+                // which is hopefully not too common.
+                let replaced = replace_html_entities(&mut self.entity_buffer, content);
+                let latex_error = f(state, &mut result, replaced, open_typ).unwrap_err();
+                return Err(ConversionError(
+                    start,
+                    ConvErrKind::LatexError(latex_error, replaced),
+                    input,
+                ));
             }
             // Update current position
             current_pos = end + closing_delim_len;
@@ -317,7 +308,7 @@ mod tests {
         block_delim: (&str, &str),
         ignore_escaped_delim: bool,
     ) -> Result<String, ConversionError<'static, 'static>> {
-        let mut replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim, false);
+        let mut replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim);
         match replacer.replace(input, &mut (), mock_convert) {
             Ok(s) => Ok(s),
             Err(e) => match &e.1 {
