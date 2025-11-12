@@ -216,7 +216,7 @@ where
                 }
             }
             // Parse the token.
-            let (target, class) = self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?;
+            let (class, target) = self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?;
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -259,7 +259,7 @@ where
         cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
         parse_as: ParseAs,
         prev_class: Class,
-    ) -> Result<(&'arena Node<'arena>, Class), &'cell LatexError<'source>> {
+    ) -> Result<(Class, &'arena Node<'arena>), &'cell LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let mut class: Class = Default::default();
         let next_class = self
@@ -439,7 +439,7 @@ where
                     ))
                 } else {
                     Ok(Node::Sqrt(
-                        self.parse_token(next, ParseAs::Arg, Class::Default)?.0,
+                        self.parse_token(next, ParseAs::Arg, Class::Default)?.1,
                     ))
                 }
             }
@@ -535,7 +535,7 @@ where
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
                 let old_fake_boundaries = mem::replace(&mut self.state.right_boundary_hack, true);
-                let (target, cls) =
+                let (cls, target) =
                     self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
                 self.state.right_boundary_hack = old_fake_boundaries;
                 class = cls;
@@ -606,7 +606,7 @@ where
                     Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                     Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
-                        return Ok((target, class));
+                        return Ok((class, target));
                     }
                 }
             }
@@ -629,7 +629,7 @@ where
                     self.next_token()?; // Discard the underscore token.
                     let tokloc = self.next_token();
                     let old_script_style = mem::replace(&mut self.state.script_style, true);
-                    let under = self.parse_token(tokloc, ParseAs::Arg, Class::Default)?.0;
+                    let under = self.parse_token(tokloc, ParseAs::Arg, Class::Default)?.1;
                     self.state.script_style = old_script_style;
                     Ok(Node::Underset {
                         target,
@@ -732,7 +732,7 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
-                            return Ok((target, class));
+                            return Ok((class, target));
                         }
                     }
                 } else {
@@ -741,7 +741,7 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
-                            return Ok((target, class));
+                            return Ok((class, target));
                         }
                     }
                 }
@@ -786,8 +786,8 @@ where
                     false,
                 )?;
                 return Ok((
-                    node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
                     Class::Default,
+                    node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
@@ -1136,7 +1136,7 @@ where
             }
         };
         match node {
-            Ok(n) => Ok((self.commit(n), class)),
+            Ok(n) => Ok((class, self.commit(n))),
             Err(e) => Err(self.alloc_err(e)),
         }
     }
@@ -1162,7 +1162,7 @@ where
     fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
         let token = self.next_token();
         self.parse_token(token, parse_as, Class::Default)
-            .map(|(node, _)| node)
+            .map(|(_, node)| node)
     }
 
     /// Parse the bounds of an integral, sum, or product.
@@ -1293,7 +1293,7 @@ where
             )));
         }
 
-        node.map(|(n, _)| n)
+        node.map(|(_, n)| n)
     }
 
     fn big_operator_spacing(
