@@ -48,7 +48,7 @@ struct ParserState<'arena, 'source> {
 /// State for environments that number equations.
 #[derive(Default)]
 struct NumberedEnvState {
-    no_number: bool,
+    suppress_next_number: bool,
 }
 
 #[derive(Debug)]
@@ -893,7 +893,7 @@ where
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.script_style = old_script_style;
-                self.state.numbered = old_numbered;
+                let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the environment name after `\end`.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
@@ -914,7 +914,9 @@ where
                     ));
                 }
 
-                let last_equation_num = if matches!(env, Env::Align) {
+                let last_equation_num = if matches!(env, Env::Align)
+                    && numbered_state.is_none_or(|n| !n.suppress_next_number)
+                {
                     *self.equation_counter += 1;
                     let equation_number = NonZeroU16::new(*self.equation_counter);
                     debug_assert!(equation_number.is_some());
@@ -983,14 +985,29 @@ where
                 }
             }
             Token::NewLine => {
-                if self.state.numbered.is_some() {
-                    *self.equation_counter += 1;
-                    let equation_number = NonZeroU16::new(*self.equation_counter);
-                    debug_assert!(equation_number.is_some());
-                    Ok(Node::RowSeparator(equation_number))
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    if numbered_state.suppress_next_number {
+                        // Clear the flag.
+                        numbered_state.suppress_next_number = false;
+                        Ok(Node::RowSeparator(None))
+                    } else {
+                        *self.equation_counter += 1;
+                        let equation_number = NonZeroU16::new(*self.equation_counter);
+                        debug_assert!(equation_number.is_some());
+                        Ok(Node::RowSeparator(equation_number))
+                    }
                 } else {
+                    // TODO: If we aren't in a table-like environment, we should just emit
+                    // `Node::Dummy` here.
                     Ok(Node::RowSeparator(None))
                 }
+            }
+            Token::NoNumber => {
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    numbered_state.suppress_next_number = true;
+                }
+                class = prev_class;
+                Ok(Node::Dummy)
             }
             Token::Color => 'color: {
                 let (loc, color_name) = self.parse_string_literal()?;

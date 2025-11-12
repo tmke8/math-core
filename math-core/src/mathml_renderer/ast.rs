@@ -139,6 +139,9 @@ pub enum Node<'arena> {
         content: &'arena Node<'arena>,
     },
     HardcodedMathML(&'static str),
+    /// This node is used when the parser needs to return a node,
+    /// but does not want to emit anything.
+    Dummy,
 }
 
 impl PartialEq for &Node<'_> {
@@ -188,11 +191,11 @@ impl MathMLEmitter {
             0
         };
 
+        // Get the base indent out of the way, as long as we are not in a "pseudo" node.
         if !matches!(
             node,
-            Node::ColumnSeparator | Node::RowSeparator(_) | Node::TextTransform { .. }
+            Node::Dummy | Node::TextTransform { .. } | Node::RowSeparator(_)
         ) {
-            // Get the base indent out of the way.
             new_line_and_indent(&mut self.s, base_indent);
         }
 
@@ -528,7 +531,10 @@ impl MathMLEmitter {
                 write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening, false, None)?;
             }
-            Node::ColumnSeparator | Node::RowSeparator(_) => (),
+            Node::ColumnSeparator | Node::RowSeparator(_) => {
+                // These nodes are handled in `emit_table`.
+                // TODO: unreachable!()?
+            }
             Node::Enclose { content, notation } => {
                 let notation = *notation;
                 write!(self.s, "<menclose notation=\"")?;
@@ -576,6 +582,9 @@ impl MathMLEmitter {
             }
             Node::HardcodedMathML(mathml) => {
                 write!(self.s, "{mathml}")?;
+            }
+            Node::Dummy => {
+                // Do nothing.
             }
         };
         Ok(())
@@ -651,8 +660,8 @@ impl MathMLEmitter {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                     if with_numbering {
                         self.write_equation_num(
-                            child_indent,
                             child_indent2,
+                            child_indent3,
                             equation_counter.as_ref().copied(),
                         )?;
                     }
