@@ -496,6 +496,7 @@ mod tests {
             ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
             ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
             ("notag4", r#"\begin{align} 1\\\notag2\end{align}"#),
+            ("notag_in_the_wild", r#"(\notag + 1)"#),
             ("tag", r#"\begin{align} 1\nonumber\tag{32}\\2\end{align}"#),
             (
                 "tag2",
@@ -734,6 +735,7 @@ mod tests {
             ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
             ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
             ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
+            ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
         ];
 
         for (name, problem) in problems.into_iter() {
