@@ -1,6 +1,6 @@
 ---
 source: math-core/src/lib.rs
-expression: "\\overset{!}{=}'"
+expression: "\\overset{!}{=}'x"
 ---
 <math>
     <msup>
@@ -10,4 +10,5 @@ expression: "\\overset{!}{=}'"
         </mover>
         <mo>′</mo>
     </msup>
+    <mi>x</mi>
 </math>

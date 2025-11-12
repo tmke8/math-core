@@ -23,22 +23,21 @@ use super::{
 
 pub(crate) struct Parser<'cell, 'arena, 'source> {
     tokens: TokenManager<'cell, 'source>,
-    cmd_args: Vec<TokLoc<'source>>,
-    cmd_arg_offsets: [usize; 9],
     buffer: Buffer,
     arena: &'arena Arena,
-    collector: LetterCollector<'arena>,
-    tf_differs_on_upright_letters: bool,
     equation_counter: &'cell mut u16,
+    state: ParserState<'arena, 'source>,
 }
 
-/// A struct for managing the state of the sequence parser.
-#[derive(Debug, Default)]
-struct SequenceState {
-    class: Class,
-    /// `true` if the boundaries of the sequence are real boundaries;
+struct ParserState<'arena, 'source> {
+    cmd_args: Vec<TokLoc<'source>>,
+    cmd_arg_offsets: [usize; 9],
+    tf_differs_on_upright_letters: bool,
+    collector: LetterCollector<'arena>,
+    /// `true` if the boundaries at the end of a  sequence are not real boundaries;
     /// this is not the case for style-only rows.
-    real_boundaries: bool,
+    /// This is currently a hack, which should be replaced by a more robust solution later.
+    right_boundary_hack: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
     /// `true` if we are inside an environment that numbers equations.
@@ -102,13 +101,19 @@ where
         let input_length = lexer.input_length();
         Ok(Parser {
             tokens: TokenManager::new(lexer)?,
-            cmd_args: Vec::new(),
-            cmd_arg_offsets: [0; 9],
             buffer: Buffer::new(input_length),
             arena,
-            collector: LetterCollector::Inactive,
-            tf_differs_on_upright_letters: false,
             equation_counter,
+            state: ParserState {
+                cmd_args: Vec::new(),
+                cmd_arg_offsets: [0; 9],
+                collector: LetterCollector::Inactive,
+                tf_differs_on_upright_letters: false,
+                right_boundary_hack: false,
+                allow_columns: false,
+                with_numbering: false,
+                script_style: false,
+            },
         })
     }
 
@@ -132,7 +137,7 @@ where
             // different on upright letters. Handling upright letters differently wouldn't be
             // possible anymore if we merged these letters // here together with the non-upright
             // letters.
-            if matches!(tok, Token::UprightLetter(_)) && self.tf_differs_on_upright_letters {
+            if matches!(tok, Token::UprightLetter(_)) && self.state.tf_differs_on_upright_letters {
                 break;
             }
             builder.push_char(*ch);
@@ -148,12 +153,12 @@ where
         if let Some(ch) = first_char {
             match num_chars.cmp(&1) {
                 std::cmp::Ordering::Equal => {
-                    self.collector = LetterCollector::FinishedOneLetter {
+                    self.state.collector = LetterCollector::FinishedOneLetter {
                         collected_letter: ch,
                     };
                 }
                 std::cmp::Ordering::Greater => {
-                    self.collector = LetterCollector::FinishedManyLetters {
+                    self.state.collector = LetterCollector::FinishedManyLetters {
                         collected_letters: builder.finish(self.arena),
                     };
                 }
@@ -173,47 +178,39 @@ where
     pub(crate) fn parse(
         &mut self,
     ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
-        self.parse_sequence(SequenceEnd::Token(Token::Eof), None, true)
+        self.parse_sequence(SequenceEnd::Token(Token::Eof), Class::Open, true)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
     ///
-    /// Note that this function does not consume the end token. That's because the end token might
-    /// be used by the calling function to emit another node.
-    ///
-    /// If `real_boundaries` is `true`, the parser will treat the boundaries of the sequence as real.
-    /// This is used for sequences that are *not* just style-only rows.
+    /// If `keep_end_token` is set to `true`, this function does not consume the end token.
+    /// This is helpful in cases where the end token is used by the calling function to emit
+    /// another node.
     fn parse_sequence(
         &mut self,
         sequence_end: SequenceEnd,
-        sequence_state: Option<&mut SequenceState>,
+        prev_class: Class,
         keep_end_token: bool,
     ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
         let mut nodes = Vec::new();
-        let sequence_state = if let Some(seq_state) = sequence_state {
-            seq_state
-        } else {
-            &mut SequenceState {
-                class: Class::Open,
-                real_boundaries: true,
-                allow_columns: false,
-                script_style: false,
-                with_numbering: false,
-            }
-        };
+
+        let mut prev_class = prev_class;
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            let cur_tokloc = if matches!(self.collector, LetterCollector::Collecting) {
+            // First check whether we need to collect letters.
+            let collected_letters = if matches!(self.state.collector, LetterCollector::Collecting) {
                 self.collect_letters()?
             } else {
                 None
             };
-            let cur_tokloc = if let Some(tok) = cur_tokloc {
+            // Get the current token (which may be the collected letters).
+            let cur_tokloc = if let Some(tok) = collected_letters {
                 Ok(tok)
             } else {
                 self.next_token()
             };
+            // Check here for EOF, so we know to end the loop prematurely.
             if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
                 // When the input ends without the closing token.
                 if let SequenceEnd::Token(end_token) = sequence_end {
@@ -223,7 +220,8 @@ where
                 }
             }
             // Parse the token.
-            let target = self.parse_token(cur_tokloc, ParseAs::Sequence, Some(sequence_state))?;
+            let (class, target) = self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?;
+            prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds()?;
@@ -260,23 +258,18 @@ where
     }
 
     /// Parse the given token into a node.
-    fn parse_token<'parser>(
-        &'parser mut self,
+    fn parse_token(
+        &mut self,
         cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
         parse_as: ParseAs,
-        sequence_state: Option<&mut SequenceState>,
-    ) -> ASTResult<'cell, 'arena, 'source> {
+        prev_class: Class,
+    ) -> Result<(Class, &'arena Node<'arena>), &'cell LatexError<'source>> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
-        let sequence_state = if let Some(seq_state) = sequence_state {
-            seq_state
-        } else {
-            &mut Default::default()
-        };
-        let mut new_class: Class = Default::default();
+        let mut class: Class = Default::default();
         let next_class = self
             .tokens
             .peek()
-            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
+            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -313,11 +306,11 @@ where
             Token::Letter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Default)),
             Token::UprightLetter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Upright)),
             Token::Relation(relation) => {
-                new_class = Class::Relation;
+                class = Class::Relation;
                 if let Some(op) = relation.as_stretchable_op() {
                     Ok(Node::StretchableOp(op, StretchMode::NoStretch))
                 } else {
-                    let (left, right) = relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.state.relation_spacing(prev_class, next_class);
                     Ok(Node::Operator {
                         op: relation.as_op(),
                         attr: None,
@@ -327,8 +320,8 @@ where
                 }
             }
             Token::Punctuation(punc) => {
-                new_class = Class::Punctuation;
-                let right = if matches!(next_class, Class::Close) || sequence_state.script_style {
+                class = Class::Punctuation;
+                let right = if matches!(next_class, Class::Close) || self.state.script_style {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -355,12 +348,12 @@ where
                 }
             }
             Token::BinaryOp(binary_op) => {
-                new_class = Class::BinaryOp;
+                class = Class::BinaryOp;
                 let spacing = if !parse_as.in_sequence() {
                     // Don't add spacing if we are in an argument.
                     None
                 } else if matches!(
-                    sequence_state.class,
+                    prev_class,
                     Class::Relation
                         | Class::Punctuation
                         | Class::BinaryOp
@@ -369,7 +362,7 @@ where
                 ) || matches!(
                     next_class,
                     Class::Relation | Class::Punctuation | Class::Close
-                ) || sequence_state.script_style
+                ) || self.state.script_style
                 {
                     Some(MathSpacing::Zero)
                 } else if matches!(binary_op.cat, BinCategory::OnlyC) {
@@ -385,7 +378,7 @@ where
                 })
             }
             Token::OpGreaterThan => {
-                let (left, right) = relation_spacing(next_class, sequence_state);
+                let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::PseudoOp {
                     name: "&gt;",
                     attr: None,
@@ -394,7 +387,7 @@ where
                 })
             }
             Token::OpLessThan => {
-                let (left, right) = relation_spacing(next_class, sequence_state);
+                let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::PseudoOp {
                     name: "&lt;",
                     attr: None,
@@ -409,8 +402,8 @@ where
                 right: None,
             }),
             Token::PseudoOperator(name) => {
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                new_class = Class::Operator;
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                class = Class::Operator;
                 Ok(Node::PseudoOp {
                     attr: None,
                     left,
@@ -423,8 +416,8 @@ where
                 Ok(Node::Enclose { content, notation })
             }
             Token::Space(space) => {
-                // Spaces pass through the sequence state.
-                new_class = sequence_state.class;
+                // Spaces pass through the symbol class.
+                class = prev_class;
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
@@ -438,9 +431,10 @@ where
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
+                    // FIXME: We should perhaps use set `right_boundary_hack` here.
                     let degree = self.parse_sequence(
                         SequenceEnd::Token(Token::SquareBracketClose),
-                        None,
+                        Class::Open,
                         false,
                     )?;
                     let content = self.parse_next(ParseAs::Arg)?;
@@ -449,7 +443,9 @@ where
                         content,
                     ))
                 } else {
-                    Ok(Node::Sqrt(self.parse_token(next, ParseAs::Arg, None)?))
+                    Ok(Node::Sqrt(
+                        self.parse_token(next, ParseAs::Arg, Class::Default)?.1,
+                    ))
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
@@ -543,8 +539,11 @@ where
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
-                let target =
-                    self.parse_token(token, ParseAs::ContinueSequence, Some(sequence_state))?;
+                let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
+                let (cls, target) =
+                    self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
+                self.state.right_boundary_hack = old_boundary_hack;
+                class = cls;
                 if matches!(cur_token, Token::Overset) {
                     Ok(Node::Overset { symbol, target })
                 } else {
@@ -586,12 +585,12 @@ where
                 }
             }
             Token::BigOp(op) => {
-                new_class = Class::Operator;
+                class = Class::Operator;
                 let limits = matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false);
                 let attr = if limits {
                     Some(OpAttr::NoMovableLimits)
                 } else {
@@ -612,8 +611,7 @@ where
                     Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                     Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                     Bounds(None, None) => {
-                        sequence_state.class = new_class;
-                        return Ok(target);
+                        return Ok((class, target));
                     }
                 }
             }
@@ -624,6 +622,7 @@ where
                 } else {
                     Some(OpAttr::ForceMovableLimits)
                 };
+                class = Class::Operator;
                 // FIXME: Use `self.get_bounds()` here.
                 if matches!(self.tokens.peek().token(), Token::Underscore) {
                     let target = self.commit(Node::PseudoOp {
@@ -634,19 +633,15 @@ where
                     });
                     self.next_token()?; // Discard the underscore token.
                     let tokloc = self.next_token();
-                    let mut sequence_state = SequenceState {
-                        script_style: true,
-                        ..Default::default()
-                    };
-                    let under =
-                        self.parse_token(tokloc, ParseAs::Arg, Some(&mut sequence_state))?;
+                    let old_script_style = mem::replace(&mut self.state.script_style, true);
+                    let under = self.parse_token(tokloc, ParseAs::Arg, Class::Default)?.1;
+                    self.state.script_style = old_script_style;
                     Ok(Node::Underset {
                         target,
                         symbol: under,
                     })
                 } else {
-                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                    new_class = Class::Operator;
+                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
                     Ok(Node::PseudoOp {
                         attr: None,
                         left,
@@ -707,24 +702,25 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let old_collector = mem::replace(&mut self.collector, LetterCollector::Collecting);
+                let old_collector =
+                    mem::replace(&mut self.state.collector, LetterCollector::Collecting);
                 let old_tf_differs_on_upright_letters = mem::replace(
-                    &mut self.tf_differs_on_upright_letters,
+                    &mut self.state.tf_differs_on_upright_letters,
                     tf.differs_on_upright_letters(),
                 );
                 let content = self.parse_next(ParseAs::Arg)?;
-                self.collector = old_collector;
-                self.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
+                self.state.collector = old_collector;
+                self.state.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
                 Ok(Node::TextTransform { content, tf })
             }
             Token::Integral(int) => {
-                new_class = Class::Operator;
+                class = Class::Operator;
                 let limits = matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
                 let bounds = self.get_bounds()?;
-                let (left, right) = self.big_operator_spacing(parse_as, sequence_state, false);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false);
                 let target = self.commit(Node::Operator {
                     op: int.as_op(),
                     attr: None,
@@ -741,8 +737,7 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
                         Bounds(None, None) => {
-                            sequence_state.class = new_class;
-                            return Ok(target);
+                            return Ok((class, target));
                         }
                     }
                 } else {
@@ -751,19 +746,18 @@ where
                         Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
                         Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
                         Bounds(None, None) => {
-                            sequence_state.class = new_class;
-                            return Ok(target);
+                            return Ok((class, target));
                         }
                     }
                 }
             }
             Token::ForceRelation(op) => {
-                new_class = Class::Relation;
+                class = Class::Relation;
                 let (left, right) = if !parse_as.in_sequence() {
                     // Don't add spacing if we are in an argument.
                     (None, None)
                 } else {
-                    let (left, right) = relation_spacing(next_class, sequence_state);
+                    let (left, right) = self.state.relation_spacing(prev_class, next_class);
                     // We have to turn `None` into explicit relation spacing.
                     (
                         left.or(Some(MathSpacing::FiveMu)),
@@ -778,7 +772,7 @@ where
                 })
             }
             Token::ForceClose(op) => {
-                new_class = Class::Close;
+                class = Class::Close;
                 Ok(Node::Operator {
                     op,
                     attr: None,
@@ -787,39 +781,28 @@ where
                 })
             }
             Token::GroupBegin => {
-                let content = if matches!(parse_as, ParseAs::ContinueSequence) {
-                    let old_boundaries = mem::replace(&mut sequence_state.real_boundaries, false);
-                    let content = self.parse_sequence(
-                        SequenceEnd::Token(Token::GroupEnd),
-                        Some(sequence_state),
-                        false,
-                    )?;
-                    sequence_state.real_boundaries = old_boundaries;
-                    content
-                } else {
-                    let mut s = SequenceState {
-                        class: Class::Open,
-                        real_boundaries: true,
-                        script_style: sequence_state.script_style,
-                        ..Default::default()
-                    };
-                    self.parse_sequence(SequenceEnd::Token(Token::GroupEnd), Some(&mut s), false)?
-                };
-                sequence_state.class = Class::Default;
-                return Ok(node_vec_to_node(
-                    self.arena,
-                    content,
-                    matches!(parse_as, ParseAs::Arg),
+                let content = self.parse_sequence(
+                    SequenceEnd::Token(Token::GroupEnd),
+                    if matches!(parse_as, ParseAs::ContinueSequence) {
+                        prev_class
+                    } else {
+                        Class::Open
+                    },
+                    false,
+                )?;
+                return Ok((
+                    Class::Default,
+                    node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 if matches!(tok, Token::Open(_)) {
-                    new_class = Class::Open;
+                    class = Class::Open;
                 }
                 Ok(Node::StretchableOp(paren.as_op(), StretchMode::NoStretch))
             }
             Token::SquareBracketOpen => {
-                new_class = Class::Open;
+                class = Class::Open;
                 Ok(Node::StretchableOp(
                     symbol::LEFT_SQUARE_BRACKET.as_op(),
                     StretchMode::NoStretch,
@@ -836,7 +819,8 @@ where
                 } else {
                     Some(self.extract_delimiter(tok_loc)?.0)
                 };
-                let content = self.parse_sequence(SequenceEnd::Token(Token::Right), None, false)?;
+                let content =
+                    self.parse_sequence(SequenceEnd::Token(Token::Right), Class::Open, false)?;
                 let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
@@ -855,10 +839,10 @@ where
                 let op = self.extract_delimiter(tok_loc)?.0;
                 Ok(Node::StretchableOp(op, StretchMode::Middle))
             }
-            Token::Big(size, class) => {
+            Token::Big(size, cls) => {
                 let tok_loc = self.next_token()?;
                 let (paren, symbol_class) = self.extract_delimiter(tok_loc)?;
-                new_class = class.unwrap_or(symbol_class);
+                class = cls.unwrap_or(symbol_class);
                 Ok(Node::SizedParen(size, paren))
             }
             Token::Begin => 'begin_env: {
@@ -885,20 +869,22 @@ where
                 } else {
                     None
                 };
-                let mut state = SequenceState {
-                    class: Class::Open,
-                    real_boundaries: true,
-                    allow_columns: true,
-                    script_style: matches!(env, Env::Subarray),
-                    with_numbering: matches!(env, Env::Align),
-                };
+
+                let old_allow_columns = mem::replace(&mut self.state.allow_columns, true);
+                let old_script_style =
+                    mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
+                let old_with_numbering =
+                    mem::replace(&mut self.state.with_numbering, matches!(env, Env::Align));
+
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
-                    Some(&mut state),
-                    true,
+                    Class::Open,
+                    false,
                 )?);
 
-                self.next_token()?; // Discard the `End` token.
+                self.state.allow_columns = old_allow_columns;
+                self.state.script_style = old_script_style;
+                self.state.with_numbering = old_with_numbering;
 
                 // Get the environment name after `\end`.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
@@ -927,6 +913,7 @@ where
                 } else {
                     None
                 };
+                class = Class::Close;
 
                 Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
@@ -939,8 +926,8 @@ where
                 if let Some(ch) = get_single_char(letters) {
                     Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
                 } else {
-                    let (left, right) = self.big_operator_spacing(parse_as, sequence_state, true);
-                    new_class = Class::Operator;
+                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                    class = Class::Operator;
                     Ok(Node::PseudoOp {
                         attr: None,
                         left,
@@ -973,8 +960,8 @@ where
                 }
             }
             Token::NewColumn => {
-                if sequence_state.allow_columns {
-                    new_class = Class::Close;
+                if self.state.allow_columns {
+                    class = Class::Close;
                     Ok(Node::ColumnSeparator)
                 } else {
                     Err(LatexError(
@@ -987,7 +974,7 @@ where
                 }
             }
             Token::NewLine => {
-                if sequence_state.with_numbering {
+                if self.state.with_numbering {
                     *self.equation_counter += 1;
                     let equation_number = NonZeroU16::new(*self.equation_counter);
                     debug_assert!(equation_number.is_some());
@@ -1001,21 +988,19 @@ where
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
-                let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state), true)?;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: color,
                 })
             }
             Token::Style(style) => {
-                let old_style = mem::replace(
-                    &mut sequence_state.script_style,
+                let old_script_style = mem::replace(
+                    &mut self.state.script_style,
                     matches!(style, Style::Script | Style::ScriptScript),
                 );
-                let content =
-                    self.parse_sequence(SequenceEnd::AnyEndToken, Some(sequence_state), true)?;
-                sequence_state.script_style = old_style;
+                let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
+                self.state.script_style = old_script_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: RowAttr::Style(style),
@@ -1086,50 +1071,52 @@ where
                     // The fact that we only clear for `num_args > 0` is a hack to
                     // allow zero-argument token streams to be used within
                     // non-zero-argument token streams.
-                    self.cmd_args.clear();
+                    self.state.cmd_args.clear();
                 }
                 for arg_num in 0..num_args {
                     if matches!(self.tokens.peek().token(), Token::GroupBegin) {
-                        self.tokens.lexer.read_group(&mut self.cmd_args)?;
+                        self.tokens.lexer.read_group(&mut self.state.cmd_args)?;
                         self.next_token()?; // Discard the opening `{` token.
                     } else {
-                        self.cmd_args.push(self.tokens.next()?);
+                        self.state.cmd_args.push(self.tokens.next()?);
                     }
-                    if let Some(offset) = self.cmd_arg_offsets.get_mut(arg_num as usize) {
-                        *offset = self.cmd_args.len();
+                    if let Some(offset) = self.state.cmd_arg_offsets.get_mut(arg_num as usize) {
+                        *offset = self.state.cmd_args.len();
                     }
                 }
                 self.tokens.queue_in_front(token_stream);
                 let token = self.next_token();
                 // TODO: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, Some(sequence_state));
+                return self.parse_token(token, parse_as, prev_class);
             }
             Token::CustomCmdArg(arg_num) => {
                 let start = self
+                    .state
                     .cmd_arg_offsets
                     .get(arg_num.wrapping_sub(1) as usize)
                     .copied()
                     .unwrap_or(0);
                 let end = self
+                    .state
                     .cmd_arg_offsets
                     .get(arg_num as usize)
                     .copied()
-                    .unwrap_or(self.cmd_args.len());
-                if let Some(arg) = self.cmd_args.get(start..end) {
+                    .unwrap_or(self.state.cmd_args.len());
+                if let Some(arg) = self.state.cmd_args.get(start..end) {
                     self.tokens.queue_in_front(arg);
                     let token = self.next_token();
-                    return self.parse_token(token, parse_as, Some(sequence_state));
+                    return self.parse_token(token, parse_as, prev_class);
                 } else {
                     Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
-            Token::GetCollectedLetters => match self.collector {
+            Token::GetCollectedLetters => match self.state.collector {
                 LetterCollector::FinishedOneLetter { collected_letter } => {
-                    self.collector = LetterCollector::Collecting;
+                    self.state.collector = LetterCollector::Collecting;
                     Ok(Node::IdentifierChar(collected_letter, LetterAttr::Default))
                 }
                 LetterCollector::FinishedManyLetters { collected_letters } => {
-                    self.collector = LetterCollector::Collecting;
+                    self.state.collector = LetterCollector::Collecting;
                     Ok(Node::IdentifierStr(collected_letters))
                 }
                 _ => Err(LatexError(
@@ -1153,9 +1140,8 @@ where
                 ))
             }
         };
-        sequence_state.class = new_class;
         match node {
-            Ok(n) => Ok(self.commit(n)),
+            Ok(n) => Ok((class, self.commit(n))),
             Err(e) => Err(self.alloc_err(e)),
         }
     }
@@ -1180,7 +1166,8 @@ where
     #[inline]
     fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
         let token = self.next_token();
-        self.parse_token(token, parse_as, None)
+        self.parse_token(token, parse_as, Class::Default)
+            .map(|(_, node)| node)
     }
 
     /// Parse the bounds of an integral, sum, or product.
@@ -1296,11 +1283,9 @@ where
                 },
             )));
         }
-        let mut sequence_state = SequenceState {
-            script_style: true,
-            ..Default::default()
-        };
-        let node = self.parse_token(next, ParseAs::Arg, Some(&mut sequence_state));
+        let old_script_style = mem::replace(&mut self.state.script_style, true);
+        let node = self.parse_token(next, ParseAs::Arg, Class::Default);
+        self.state.script_style = old_script_style;
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1313,13 +1298,13 @@ where
             )));
         }
 
-        node
+        node.map(|(_, n)| n)
     }
 
     fn big_operator_spacing(
         &self,
         parse_as: ParseAs,
-        sequence_state: &SequenceState,
+        prev_class: Class,
         explicit: bool,
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         // We re-determine the next class here, because the next token may have changed
@@ -1327,10 +1312,10 @@ where
         let next_class = self
             .tokens
             .peek()
-            .class(parse_as.in_sequence(), sequence_state.real_boundaries);
+            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         (
             if matches!(
-                sequence_state.class,
+                prev_class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
             ) {
                 Some(MathSpacing::Zero)
@@ -1379,6 +1364,35 @@ where
     }
 }
 
+impl<'arena, 'source> ParserState<'arena, 'source> {
+    fn relation_spacing(
+        &self,
+        prev_class: Class,
+        next_class: Class,
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        (
+            if matches!(
+                prev_class,
+                Class::Relation | Class::Open | Class::Punctuation
+            ) || self.script_style
+            {
+                Some(MathSpacing::Zero)
+            } else {
+                None
+            },
+            if matches!(
+                next_class,
+                Class::Relation | Class::Punctuation | Class::Close
+            ) || self.script_style
+            {
+                Some(MathSpacing::Zero)
+            } else {
+                None
+            },
+        )
+    }
+}
+
 // Turn a vector of nodes into a single node.
 //
 // This is done either by returning the single node if there is only one,
@@ -1416,32 +1430,6 @@ pub(crate) fn node_vec_to_node<'arena>(
             attr: RowAttr::None,
         })
     }
-}
-
-fn relation_spacing(
-    next_class: Class,
-    sequence_state: &SequenceState,
-) -> (Option<MathSpacing>, Option<MathSpacing>) {
-    (
-        if matches!(
-            sequence_state.class,
-            Class::Relation | Class::Open | Class::Punctuation
-        ) || sequence_state.script_style
-        {
-            Some(MathSpacing::Zero)
-        } else {
-            None
-        },
-        if matches!(
-            next_class,
-            Class::Relation | Class::Punctuation | Class::Close
-        ) || sequence_state.script_style
-        {
-            Some(MathSpacing::Zero)
-        } else {
-            None
-        },
-    )
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
