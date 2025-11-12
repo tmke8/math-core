@@ -27,8 +27,6 @@ strum = "0.27.2"
 strum_macros = "0.27.2"
 rustc-hash = { workspace = true }
 bitflags = { workspace = true }
-html-escape = "0.2.13"
-
 
 [dev-dependencies]
 insta = { version = "1.43.2", features = ["default", "ron"] }
