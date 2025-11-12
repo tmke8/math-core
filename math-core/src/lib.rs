@@ -274,9 +274,9 @@ where
                     "span"
                 };
                 output.push_str(&format!(r#"<{tag} class="math-core-error" title=""#));
-                html_escape::encode_double_quoted_attribute_to_string(err.to_string(), &mut output);
+                escape_html_attribute(&mut output, &err.to_string());
                 output.push_str(r#"">"#);
-                html_escape::encode_text_to_string(latex, &mut output);
+                escape_html_content(&mut output, latex);
                 output.push_str(&format!(r#"</{tag}>"#));
                 return Ok(output);
             } else {
@@ -383,6 +383,30 @@ fn is_valid_macro_name(s: &str) -> bool {
         (Some(_), None) => true,
         // If the name contains more than one character, all characters must be ASCII alphabetic.
         _ => s.bytes().all(|b| b.is_ascii_alphabetic()),
+    }
+}
+
+fn escape_html_content(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'<' => output.extend_from_slice(b"&lt;"),
+            b'>' => output.extend_from_slice(b"&gt;"),
+            _ => output.push(ch),
+        }
+    }
+}
+
+fn escape_html_attribute(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'"' => output.extend_from_slice(b"&quot;"),
+            b'\'' => output.extend_from_slice(b"&#x27;"),
+            _ => output.push(ch),
+        }
     }
 }
 
