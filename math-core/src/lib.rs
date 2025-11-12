@@ -273,11 +273,15 @@ where
                 } else {
                     "span"
                 };
-                output.push_str(&format!(r#"<{tag} class="math-core-error" title=""#));
+                output.push_str("<");
+                output.push_str(tag);
+                output.push_str(r#" class="math-core-error" title=""#);
                 escape_html_attribute(&mut output, &err.to_string());
                 output.push_str(r#"">"#);
                 escape_html_content(&mut output, latex);
-                output.push_str(&format!(r#"</{tag}>"#));
+                output.push_str(r#"</"#);
+                output.push_str(tag);
+                output.push_str(">");
                 return Ok(output);
             } else {
                 return Err(err);
