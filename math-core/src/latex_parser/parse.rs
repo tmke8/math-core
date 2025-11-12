@@ -34,9 +34,10 @@ struct ParserState<'arena, 'source> {
     cmd_arg_offsets: [usize; 9],
     tf_differs_on_upright_letters: bool,
     collector: LetterCollector<'arena>,
-    /// `true` if the boundaries of the sequence are real boundaries;
+    /// `true` if the boundaries at the end of a  sequence are not real boundaries;
     /// this is not the case for style-only rows.
-    real_boundaries: bool,
+    /// This is currently a hack, which should be replaced by a more robust solution later.
+    right_boundary_hack: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
     /// `true` if we are inside an environment that numbers equations.
@@ -108,7 +109,7 @@ where
                 cmd_arg_offsets: [0; 9],
                 collector: LetterCollector::Inactive,
                 tf_differs_on_upright_letters: false,
-                real_boundaries: true,
+                right_boundary_hack: false,
                 allow_columns: false,
                 with_numbering: false,
                 script_style: false,
@@ -264,7 +265,7 @@ where
         let next_class = self
             .tokens
             .peek()
-            .class(parse_as.in_sequence(), self.state.real_boundaries);
+            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => {
                 let mut builder = self.buffer.get_builder();
@@ -533,10 +534,10 @@ where
             Token::Overset | Token::Underset => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 let token = self.next_token();
-                let old_real_boundaries = mem::replace(&mut self.state.real_boundaries, false);
+                let old_fake_boundaries = mem::replace(&mut self.state.right_boundary_hack, true);
                 let (target, cls) =
                     self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
-                self.state.real_boundaries = old_real_boundaries;
+                self.state.right_boundary_hack = old_fake_boundaries;
                 class = cls;
                 if matches!(cur_token, Token::Overset) {
                     Ok(Node::Overset { symbol, target })
@@ -1306,7 +1307,7 @@ where
         let next_class = self
             .tokens
             .peek()
-            .class(parse_as.in_sequence(), self.state.real_boundaries);
+            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         (
             if matches!(
                 prev_class,

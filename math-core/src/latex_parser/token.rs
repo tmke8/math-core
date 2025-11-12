@@ -138,7 +138,7 @@ impl Token<'_> {
     }
 
     /// Returns the character class of this token.
-    pub(super) fn class(&self, in_sequence: bool, real_boundaries: bool) -> Class {
+    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
         if !in_sequence {
             return Class::Default;
         }
@@ -152,11 +152,11 @@ impl Token<'_> {
             | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End | Token::Right | Token::GroupEnd | Token::Eof if real_boundaries => {
+            Token::End | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }
             Token::Big(_, Some(cls)) => *cls,
-            Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, real_boundaries),
+            Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
         }
     }
@@ -227,8 +227,8 @@ impl<'source> TokLoc<'source> {
     }
 
     #[inline]
-    pub(super) fn class(&self, in_sequence: bool, real_boundaries: bool) -> Class {
-        self.1.class(in_sequence, real_boundaries)
+    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
+        self.1.class(in_sequence, ignore_end_tokens)
     }
 }
 
