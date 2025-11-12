@@ -71,9 +71,9 @@ def test_continue_on_error():
     converter = LatexToMathML(continue_on_error=True)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
-        == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;.">\asdf &lt;b&gt;</span>'
+        == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf &lt;b&gt;</code></span>'
     )
     assert (
         converter.convert_with_local_counter("\\hspace{\"} '&", displaystyle=True)
-        == '<p class="math-core-error" title="7: Disallowed characters in text group.">\\hspace{"} \'&amp;</p>'
+        == '<p class="math-core-error" title="7: Disallowed characters in text group."><code>\\hspace{"} \'&amp;</code></p>'
     )

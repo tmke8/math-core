@@ -46,6 +46,7 @@ function updateConfig() {
     });
     // Set the prettyPrint property from the radio selection
     parsed["prettyPrint"] = isPrettyPrint ? "always" : "never";
+    parsed["continueOnError"] = false;
     cachedConverter = new LatexToMathML(parsed);
   } catch (error) {
     const outputCode = document.getElementById("outputCode");
@@ -248,7 +249,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateOutput() {
     try {
       const input = inputField.value;
-      const output = cachedConverter.convert_with_local_counter(input, isBlock());
+      const output = cachedConverter.convert_with_local_counter(
+        input,
+        isBlock(),
+      );
       outputField.innerHTML = output;
       outputCode.textContent = output;
     } catch (error) {
