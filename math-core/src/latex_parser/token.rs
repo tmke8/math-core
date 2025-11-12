@@ -27,6 +27,8 @@ pub enum Token<'source> {
     NewColumn,
     #[strum(serialize = r"\\")]
     NewLine,
+    #[strum(serialize = r"\nonumber/\notag")]
+    NoNumber,
     #[strum(serialize = r"\left")]
     Left,
     #[strum(serialize = r"\right")]

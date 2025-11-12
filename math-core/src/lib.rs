@@ -492,6 +492,10 @@ mod tests {
                 "align",
                 r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
             ),
+            ("notag", r#"\begin{align} 1\notag\\2\end{align}"#),
+            ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
+            ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
+            ("notag4", r#"\begin{align} 1\\\notag2\end{align}"#),
             ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
             (
                 "text_transforms",

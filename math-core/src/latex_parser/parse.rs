@@ -40,10 +40,15 @@ struct ParserState<'arena, 'source> {
     right_boundary_hack: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
-    /// `true` if we are inside an environment that numbers equations.
-    with_numbering: bool,
+    numbered: Option<NumberedEnvState>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
+}
+
+/// State for environments that number equations.
+#[derive(Default)]
+struct NumberedEnvState {
+    suppress_next_number: bool,
 }
 
 #[derive(Debug)]
@@ -86,7 +91,7 @@ impl ParseAs {
     }
 }
 
-type ASTResult<'cell, 'arena, 'source> = Result<&'arena Node<'arena>, &'cell LatexError<'source>>;
+type ParseResult<'cell, 'source, T> = Result<T, &'cell LatexError<'source>>;
 
 impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source>
 where
@@ -97,7 +102,7 @@ where
         lexer: Lexer<'source, 'source, 'cell>,
         arena: &'arena Arena,
         equation_counter: &'cell mut u16,
-    ) -> Result<Self, &'cell LatexError<'source>> {
+    ) -> ParseResult<'cell, 'source, Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
             tokens: TokenManager::new(lexer)?,
@@ -111,7 +116,7 @@ where
                 tf_differs_on_upright_letters: false,
                 right_boundary_hack: false,
                 allow_columns: false,
-                with_numbering: false,
+                numbered: None,
                 script_style: false,
             },
         })
@@ -122,7 +127,7 @@ where
         self.tokens.lexer.alloc_err(err)
     }
 
-    fn collect_letters(&mut self) -> Result<Option<TokLoc<'source>>, &'cell LatexError<'source>> {
+    fn collect_letters(&mut self) -> ParseResult<'cell, 'source, Option<TokLoc<'source>>> {
         let first_loc = self.tokens.peek().location();
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
@@ -170,14 +175,12 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+    fn next_token(&mut self) -> ParseResult<'cell, 'source, TokLoc<'source>> {
         self.tokens.next()
     }
 
     #[inline]
-    pub(crate) fn parse(
-        &mut self,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    pub(crate) fn parse(&mut self) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
         self.parse_sequence(SequenceEnd::Token(Token::Eof), Class::Open, true)
     }
 
@@ -191,7 +194,7 @@ where
         sequence_end: SequenceEnd,
         prev_class: Class,
         keep_end_token: bool,
-    ) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    ) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
 
         let mut prev_class = prev_class;
@@ -260,10 +263,10 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: Result<TokLoc<'source>, &'cell LatexError<'source>>,
+        cur_tokloc: ParseResult<'cell, 'source, TokLoc<'source>>,
         parse_as: ParseAs,
         prev_class: Class,
-    ) -> Result<(Class, &'arena Node<'arena>), &'cell LatexError<'source>> {
+    ) -> ParseResult<'cell, 'source, (Class, &'arena Node<'arena>)> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let mut class: Class = Default::default();
         let next_class = self
@@ -873,8 +876,14 @@ where
                 let old_allow_columns = mem::replace(&mut self.state.allow_columns, true);
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
-                let old_with_numbering =
-                    mem::replace(&mut self.state.with_numbering, matches!(env, Env::Align));
+                let old_numbered = mem::replace(
+                    &mut self.state.numbered,
+                    if matches!(env, Env::Align) {
+                        Some(NumberedEnvState::default())
+                    } else {
+                        None
+                    },
+                );
 
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
@@ -884,7 +893,7 @@ where
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.script_style = old_script_style;
-                self.state.with_numbering = old_with_numbering;
+                let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the environment name after `\end`.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
@@ -905,7 +914,9 @@ where
                     ));
                 }
 
-                let last_equation_num = if matches!(env, Env::Align) {
+                let last_equation_num = if matches!(env, Env::Align)
+                    && numbered_state.is_none_or(|n| !n.suppress_next_number)
+                {
                     *self.equation_counter += 1;
                     let equation_number = NonZeroU16::new(*self.equation_counter);
                     debug_assert!(equation_number.is_some());
@@ -974,14 +985,29 @@ where
                 }
             }
             Token::NewLine => {
-                if self.state.with_numbering {
-                    *self.equation_counter += 1;
-                    let equation_number = NonZeroU16::new(*self.equation_counter);
-                    debug_assert!(equation_number.is_some());
-                    Ok(Node::RowSeparator(equation_number))
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    if numbered_state.suppress_next_number {
+                        // Clear the flag.
+                        numbered_state.suppress_next_number = false;
+                        Ok(Node::RowSeparator(None))
+                    } else {
+                        *self.equation_counter += 1;
+                        let equation_number = NonZeroU16::new(*self.equation_counter);
+                        debug_assert!(equation_number.is_some());
+                        Ok(Node::RowSeparator(equation_number))
+                    }
                 } else {
+                    // TODO: If we aren't in a table-like environment, we should just emit
+                    // `Node::Dummy` here.
                     Ok(Node::RowSeparator(None))
                 }
+            }
+            Token::NoNumber => {
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    numbered_state.suppress_next_number = true;
+                }
+                class = prev_class;
+                Ok(Node::Dummy)
             }
             Token::Color => 'color: {
                 let (loc, color_name) = self.parse_string_literal()?;
@@ -1146,9 +1172,7 @@ where
         }
     }
 
-    fn parse_string_literal(
-        &mut self,
-    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
+    fn parse_string_literal(&mut self) -> ParseResult<'cell, 'source, (usize, &'source str)> {
         let TokLoc(loc, string) = self.next_token()?;
         let string = match string {
             Token::StringLiteral(s) => Some(s),
@@ -1164,7 +1188,10 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, parse_as: ParseAs) -> ASTResult<'cell, 'arena, 'source> {
+    fn parse_next(
+        &mut self,
+        parse_as: ParseAs,
+    ) -> ParseResult<'cell, 'source, &'arena Node<'arena>> {
         let token = self.next_token();
         self.parse_token(token, parse_as, Class::Default)
             .map(|(_, node)| node)
@@ -1172,7 +1199,7 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> Result<Bounds<'arena>, &'cell LatexError<'source>> {
+    fn get_bounds(&mut self) -> ParseResult<'cell, 'source, Bounds<'arena>> {
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
@@ -1233,7 +1260,7 @@ where
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> Result<Vec<&'arena Node<'arena>>, &'cell LatexError<'source>> {
+    fn prime_check(&mut self) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1270,7 +1297,10 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(&mut self, is_sup: bool) -> ASTResult<'cell, 'arena, 'source> {
+    fn get_sub_or_sup(
+        &mut self,
+        is_sup: bool,
+    ) -> ParseResult<'cell, 'source, &'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(TokLoc(loc, tok @ (Token::Underscore | Token::Circumflex | Token::Prime))) = next
@@ -1340,7 +1370,7 @@ where
     fn extract_delimiter(
         &mut self,
         tok: TokLoc<'source>,
-    ) -> Result<(StretchableOp, Class), &'cell LatexError<'source>> {
+    ) -> ParseResult<'cell, 'source, (StretchableOp, Class)> {
         let TokLoc(loc, tok) = tok;
         let (delim, class) = match tok {
             Token::Open(paren) => (Some(paren.as_op()), Class::Open),

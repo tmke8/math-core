@@ -24,9 +24,9 @@ expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{al
                 <mo>+</mo>
                 <mn>1</mn>
             </mtd>
-        <mtd style="width: 50%;text-align: right;justify-items: end;">
-            <mtext>(1)</mtext>
-        </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
         </mtr>
         <mtr>
             <mtd style="width: 50%"></mtd>
