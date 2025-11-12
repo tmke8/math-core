@@ -496,6 +496,11 @@ mod tests {
             ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
             ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
             ("notag4", r#"\begin{align} 1\\\notag2\end{align}"#),
+            ("tag", r#"\begin{align} 1\nonumber\tag{32}\\2\end{align}"#),
+            (
+                "tag2",
+                r#"\begin{align} 1\mathbf{\tag{32}}\\2\tag{64}\end{align}"#,
+            ),
             ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
             (
                 "text_transforms",
@@ -723,6 +728,9 @@ mod tests {
             ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
             ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
             ("digits_unknown_cmd", r"1.1\asdf"),
+            ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
+            ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
+            ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
         ];
 
         for (name, problem) in problems.into_iter() {

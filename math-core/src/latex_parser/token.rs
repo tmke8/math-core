@@ -29,6 +29,8 @@ pub enum Token<'source> {
     NewLine,
     #[strum(serialize = r"\nonumber/\notag")]
     NoNumber,
+    #[strum(serialize = r"\tag")]
+    Tag,
     #[strum(serialize = r"\left")]
     Left,
     #[strum(serialize = r"\right")]
@@ -166,7 +168,7 @@ impl Token<'_> {
     #[inline]
     pub(super) fn needs_string_literal(&self) -> Option<NonZeroU8> {
         match self {
-            Token::CustomSpace | Token::Color => NonZeroU8::new(1),
+            Token::CustomSpace | Token::Color | Token::Tag => NonZeroU8::new(1),
             Token::Genfrac => NonZeroU8::new(3),
             _ => None,
         }
