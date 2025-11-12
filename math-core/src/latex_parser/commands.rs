@@ -581,6 +581,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "supsetneqq" => Relation(symbol::SUPERSET_OF_ABOVE_NOT_EQUAL_TO),
     "swarrow" => Relation(symbol::SOUTH_WEST_ARROW),
     "symbf" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
+    "tag" => Tag,
     "tau" => Letter(symbol::GREEK_SMALL_LETTER_TAU),
     "tbinom" => Binom(Some(FracAttr::DisplayStyleFalse)),
     "text" => Text(None),

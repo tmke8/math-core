@@ -49,6 +49,7 @@ struct ParserState<'arena, 'source> {
 #[derive(Default)]
 struct NumberedEnvState {
     suppress_next_number: bool,
+    custom_next_number: Option<NonZeroU16>,
 }
 
 #[derive(Debug)]
@@ -424,7 +425,7 @@ where
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
-                let (loc, length) = self.parse_string_literal()?;
+                let (loc, length) = self.tokens.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
@@ -494,7 +495,7 @@ where
                     Node::Row { nodes: [], .. } => None,
                     _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let (loc, length) = self.parse_string_literal()?;
+                let (loc, length) = self.tokens.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
@@ -858,7 +859,7 @@ where
                 };
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (loc, options) = self.parse_string_literal()?;
+                    let (loc, options) = self.tokens.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             loc,
@@ -914,13 +915,19 @@ where
                     ));
                 }
 
-                let last_equation_num = if matches!(env, Env::Align)
-                    && numbered_state.is_none_or(|n| !n.suppress_next_number)
+                let last_equation_num = if let Some(n) = numbered_state
+                    && !n.suppress_next_number
                 {
-                    *self.equation_counter += 1;
-                    let equation_number = NonZeroU16::new(*self.equation_counter);
-                    debug_assert!(equation_number.is_some());
-                    equation_number
+                    // Use the custom number if it is set.
+                    // Otherwise, increment the equation counter.
+                    if n.custom_next_number.is_some() {
+                        n.custom_next_number
+                    } else {
+                        *self.equation_counter += 1;
+                        let equation_number = NonZeroU16::new(*self.equation_counter);
+                        debug_assert!(equation_number.is_some());
+                        equation_number
+                    }
                 } else {
                     None
                 };
@@ -986,7 +993,11 @@ where
             }
             Token::NewLine => {
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    if numbered_state.suppress_next_number {
+                    // A custom number takes precedence over suppression.
+                    if let Some(custom_number) = numbered_state.custom_next_number.take() {
+                        // The state has already been cleared here through `take()`.
+                        Ok(Node::RowSeparator(Some(custom_number)))
+                    } else if numbered_state.suppress_next_number {
                         // Clear the flag.
                         numbered_state.suppress_next_number = false;
                         Ok(Node::RowSeparator(None))
@@ -997,8 +1008,8 @@ where
                         Ok(Node::RowSeparator(equation_number))
                     }
                 } else {
-                    // TODO: If we aren't in a table-like environment, we should just emit
-                    // `Node::Dummy` here.
+                    // FIXME: If we aren't in a table-like environment, we should just emit
+                    //        `Node::Dummy` here.
                     Ok(Node::RowSeparator(None))
                 }
             }
@@ -1009,8 +1020,23 @@ where
                 class = prev_class;
                 Ok(Node::Dummy)
             }
+            Token::Tag => 'tag: {
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    let (loc, tag_name) = self.tokens.parse_string_literal()?;
+                    // For now, we only support numeric tags.
+                    if let Ok(tag_num) = tag_name.trim().parse::<u16>()
+                        && tag_num != 0
+                    {
+                        numbered_state.custom_next_number = NonZeroU16::new(tag_num);
+                    } else {
+                        break 'tag Err(LatexError(loc, LatexErrKind::ExpectedNumber(tag_name)));
+                    };
+                }
+                class = prev_class;
+                Ok(Node::Dummy)
+            }
             Token::Color => 'color: {
-                let (loc, color_name) = self.parse_string_literal()?;
+                let (loc, color_name) = self.tokens.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
                 };
@@ -1169,20 +1195,6 @@ where
         match node {
             Ok(n) => Ok((class, self.commit(n))),
             Err(e) => Err(self.alloc_err(e)),
-        }
-    }
-
-    fn parse_string_literal(&mut self) -> ParseResult<'cell, 'source, (usize, &'source str)> {
-        let TokLoc(loc, string) = self.next_token()?;
-        let string = match string {
-            Token::StringLiteral(s) => Some(s),
-            Token::StoredStringLiteral(start, end) => self.tokens.lexer.get_str(start, end),
-            _ => None,
-        };
-        if let Some(string) = string {
-            Ok((loc, string))
-        } else {
-            Err(self.alloc_err(LatexError(loc, LatexErrKind::Internal)))
         }
     }
 

@@ -1,8 +1,7 @@
 use std::collections::VecDeque;
 
-use crate::LatexError;
-
 use super::{
+    error::{LatexErrKind, LatexError},
     lexer::Lexer,
     token::{TokLoc, Token},
 };
@@ -82,6 +81,24 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
             self.buf.push_front((*tok).into());
+        }
+    }
+
+    pub(super) fn parse_string_literal(
+        &mut self,
+    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
+        let TokLoc(loc, string) = self.next()?;
+        let string = match string {
+            Token::StringLiteral(s) => Some(s),
+            Token::StoredStringLiteral(start, end) => self.lexer.get_str(start, end),
+            _ => None,
+        };
+        if let Some(string) = string {
+            Ok((loc, string))
+        } else {
+            Err(self
+                .lexer
+                .alloc_err(LatexError(loc, LatexErrKind::Internal)))
         }
     }
 }
