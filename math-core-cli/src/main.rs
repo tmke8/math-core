@@ -90,10 +90,6 @@ struct Args {
     #[arg(long, conflicts_with = "formula")]
     ignore_escaped_delim: bool,
 
-    /// If true, the program continues to convert when an error occurs
-    #[arg(long, conflicts_with = "formula")]
-    continue_on_error: bool,
-
     /// Specifies a single LaTeX formula
     #[arg(short, long, conflicts_with = "file")]
     formula: Option<String>,
@@ -160,12 +156,7 @@ fn main() {
         } else {
             (&args.block_del, &args.block_del)
         };
-        let mut replacer = Replacer::new(
-            inline_delim,
-            block_delim,
-            args.ignore_escaped_delim,
-            args.continue_on_error,
-        );
+        let mut replacer = Replacer::new(inline_delim, block_delim, args.ignore_escaped_delim);
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
             match replace(&mut replacer, &input, &mut converter) {
@@ -332,7 +323,7 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
         let mut converter =
             math_core::LatexToMathML::new(&math_core::MathCoreConfig::default()).unwrap();
-        let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false, false);
+        let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let mathml = crate::replace(&mut replacer, text, &mut converter).unwrap();
         println!("{}", mathml);
     }

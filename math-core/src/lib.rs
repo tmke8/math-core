@@ -109,6 +109,9 @@ pub struct MathCoreConfig {
     pub macros: FxHashMap<String, String>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
     pub xml_namespace: bool,
+    /// If `true`, continue processing the input even if errors are encountered.
+    /// Input that caused the error will be left unconverted.
+    pub continue_on_error: bool,
 }
 
 #[derive(Debug)]
@@ -141,6 +144,7 @@ impl CustomCmds {
 struct Flags {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
+    continue_on_error: bool,
 }
 
 impl From<&MathCoreConfig> for Flags {
@@ -149,6 +153,7 @@ impl From<&MathCoreConfig> for Flags {
         Self {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,
+            continue_on_error: config.continue_on_error,
         }
     }
 }
@@ -256,7 +261,29 @@ where
     'config: 'source,
 {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, custom_cmds, equation_count)?;
+    let ast = parse(latex, &arena, custom_cmds, equation_count);
+
+    let ast = match ast {
+        Ok(ast) => ast,
+        Err(err) => {
+            if flags.continue_on_error {
+                let mut output = String::new();
+                let tag = if matches!(display, MathDisplay::Block) {
+                    "p"
+                } else {
+                    "span"
+                };
+                output.push_str(&format!(r#"<{tag} class="math-core-error" title=""#));
+                html_escape::encode_double_quoted_attribute_to_string(err.to_string(), &mut output);
+                output.push_str(r#"">"#);
+                html_escape::encode_text_to_string(latex, &mut output);
+                output.push_str(&format!(r#"</{tag}>"#));
+                return Ok(output);
+            } else {
+                return Err(err);
+            }
+        }
+    };
 
     let mut output = MathMLEmitter::new();
     output.push_str("<math");

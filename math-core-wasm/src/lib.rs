@@ -31,6 +31,7 @@ interface MathCoreOptions {
     prettyPrint: "never" | "always" | "auto";
     macros: Map<string, string>;
     xmlNamespace: boolean;
+    continueOnError: boolean;
 }
 "#;
 
@@ -47,6 +48,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn xmlNamespace(this: &MathCoreOptions) -> bool;
+
+    #[wasm_bindgen(method, getter)]
+    fn continueOnError(this: &MathCoreOptions) -> bool;
 }
 
 #[wasm_bindgen]
@@ -88,10 +92,12 @@ impl LatexToMathML {
             }
         };
         let xml_namespace = js_config.xmlNamespace();
+        let continue_on_error = js_config.continueOnError();
         let config = math_core::MathCoreConfig {
             pretty_print,
             macros,
             xml_namespace,
+            continue_on_error,
             ..Default::default()
         };
         let convert = math_core::LatexToMathML::new(&config).map_err(|e| LatexError {
