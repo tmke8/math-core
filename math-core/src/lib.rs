@@ -276,7 +276,7 @@ where
                 output.push_str("<");
                 output.push_str(tag);
                 output.push_str(r#" class="math-core-error" title=""#);
-                escape_html_attribute(&mut output, &err.to_string());
+                escape_html_attribute(&mut output, &err.1.string());
                 output.push_str(r#""><code>"#);
                 escape_html_content(&mut output, latex);
                 output.push_str(r#"</code></"#);
