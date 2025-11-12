@@ -27,7 +27,7 @@ pub struct LatexToMathML {
 
 #[wasm_bindgen(typescript_custom_section)]
 const ITEXT_STYLE: &'static str = r#"
-interface MathCoreConfig {
+interface MathCoreOptions {
     prettyPrint: "never" | "always" | "auto";
     macros: Map<string, string>;
     xmlNamespace: boolean;
@@ -36,23 +36,23 @@ interface MathCoreConfig {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "MathCoreConfig")]
-    pub type MathCoreConfig;
+    #[wasm_bindgen(typescript_type = "MathCoreOptions")]
+    pub type MathCoreOptions;
 
     #[wasm_bindgen(method, getter)]
-    fn prettyPrint(this: &MathCoreConfig) -> String;
+    fn prettyPrint(this: &MathCoreOptions) -> String;
 
     #[wasm_bindgen(method, getter)]
-    fn macros(this: &MathCoreConfig) -> Map;
+    fn macros(this: &MathCoreOptions) -> Map;
 
     #[wasm_bindgen(method, getter)]
-    fn xmlNamespace(this: &MathCoreConfig) -> bool;
+    fn xmlNamespace(this: &MathCoreOptions) -> bool;
 }
 
 #[wasm_bindgen]
 impl LatexToMathML {
     #[wasm_bindgen(constructor)]
-    pub fn new(js_config: &MathCoreConfig) -> Result<LatexToMathML, LatexError> {
+    pub fn new(js_config: &MathCoreOptions) -> Result<LatexToMathML, LatexError> {
         // This is the poor man's `serde_wasm_bindgen::from_value`.
         let macro_map = js_config.macros();
         let mut macros =
@@ -102,7 +102,11 @@ impl LatexToMathML {
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
-    pub fn convert_with_local_counter(&self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
+    pub fn convert_with_local_counter(
+        &self,
+        content: &str,
+        displaystyle: bool,
+    ) -> Result<JsValue, LatexError> {
         match self.inner.convert_with_local_counter(
             content,
             if displaystyle {
@@ -120,7 +124,11 @@ impl LatexToMathML {
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
-    pub fn convert_with_global_counter(&mut self, content: &str, displaystyle: bool) -> Result<JsValue, LatexError> {
+    pub fn convert_with_global_counter(
+        &mut self,
+        content: &str,
+        displaystyle: bool,
+    ) -> Result<JsValue, LatexError> {
         match self.inner.convert_with_global_counter(
             content,
             if displaystyle {
