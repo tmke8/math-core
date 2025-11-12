@@ -37,7 +37,7 @@ The goal of this project is to translate modern LaTeX math faithfully to the bro
 
 - Support all common LaTeX math commands, at least those that KaTeX supports
 - Produce concise, readable, and semantically correct MathML
-- Don’t rely on CSS hacks (and definitely don’t use JavaScript in any way)
+- Try to avoid CSS hacks as much as possible (and definitely don’t use JavaScript in any way)
 - Support many different math fonts
 - Try to keep the compiled WebAssembly code small
 
@@ -106,7 +106,7 @@ math {
 
 Some day, perhaps, any font with a MATH table will be supported, but right now fonts require some tweaks.
 
-The main problem is that Chromium does not look at `ssty` variants when deciding on a glyph for super- and subscript (resulting in incorrectly rendered primes) and the fact that Chromium does not vertically center large operators and does not horizontally center accents. These problems have been manually fixed for the three fonts included in this project:
+The main problem is that Chromium does not look at `ssty` variants when deciding on a glyph for super- and subscript (resulting in incorrectly rendered primes) and the fact that Chromium does not horizontally center accents. These problems have been manually fixed for the three fonts included in this project:
 
 - *New Computer Modern Math Book* ([original repo](https://git.gnu.org.ua/newcm.git/about/)): a maintained continuation of LaTeX’s classic *Computer Modern Math*
 - *Libertinus Math* ([original repo](https://github.com/alerque/libertinus)): a maintained continuation of *Linux Libertine*
@@ -150,8 +150,11 @@ Chromium does not support the `<menclose>` element, which is used for `\sout{...
 }
 ```
 
+### Dealing with other rendering problems
+The above CSS unfortunately does not fix all rendering bugs found in the current versions of browsers. There is a tracking issue for other known rendering bugs: https://github.com/tmke8/math-core/issues/209
+
 ## Development status
-There are two tracking issues:
+There are two tracking issues for development:
 
 - Missing environments: https://github.com/tmke8/math-core/issues/154
 - Missing commands: https://github.com/tmke8/math-core/issues/155
@@ -164,15 +167,12 @@ Other things that haven’t been implemented yet:
 There are some things we will (most likely) never support.
 
 ### Infix commands like `\over` and `\above`
-Supporting these would make the parser much more complicated, which does not seem worth it given that these commands are very rarely used and considered somewhat deprecated.
+Supporting these would make the parser much more complicated. This does not seem worth it, given that these commands are very rarely used and considered somewhat deprecated.
 
 Other commands in this category: `\choose`, `\brace`, `\brack`, `\atop`
 
 ### Definition commands like `\def`, `\newcommand`, `\definecolor`
 Again, supporting these would make the code much more complicated and anyway, these commands need to be repeated in every document. It seems more convenient to users and to the development of this project if new commands can only be defined in the config file.
-
-### Explicit tagging of equations, `\tag`
-This one is a bit debatable. It is a bit annoying to support this (because it introduces new state into the parser at a place where it’s currently stateless), but if there is strong demand for it, we could reconsider.
 
 ### Italic numbers, `\mathit{012}`
 There is no Unicode range for this, so the only way to implement this would be with a custom font and a CSS class, which we would prefer to avoid.
