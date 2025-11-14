@@ -28,6 +28,8 @@
 mod latex_parser;
 mod mathml_renderer;
 
+use std::fmt::Write;
+
 use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -273,15 +275,11 @@ where
                 } else {
                     "span"
                 };
-                output.push_str("<");
-                output.push_str(tag);
-                output.push_str(r#" class="math-core-error" title=""#);
+                write!(output, r#"<{tag} class="math-core-error" title=""#).unwrap();
                 escape_html_attribute(&mut output, &err.1.string());
                 output.push_str(r#""><code>"#);
                 escape_html_content(&mut output, latex);
-                output.push_str(r#"</code></"#);
-                output.push_str(tag);
-                output.push_str(">");
+                write!(output, "</code></{tag}>").unwrap();
                 return Ok(output);
             } else {
                 return Err(err);
