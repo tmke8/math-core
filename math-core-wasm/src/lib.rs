@@ -23,6 +23,7 @@ pub struct LatexError {
 #[wasm_bindgen]
 pub struct LatexToMathML {
     inner: math_core::LatexToMathML,
+    continue_on_error: bool,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -97,14 +98,15 @@ impl LatexToMathML {
             pretty_print,
             macros,
             xml_namespace,
-            continue_on_error,
-            ..Default::default()
         };
         let convert = math_core::LatexToMathML::new(&config).map_err(|e| LatexError {
             message: JsValue::from_str(&e.1.string()),
             location: e.0 as u32,
         })?;
-        Ok(LatexToMathML { inner: convert })
+        Ok(LatexToMathML {
+            inner: convert,
+            continue_on_error,
+        })
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
@@ -113,19 +115,23 @@ impl LatexToMathML {
         content: &str,
         displaystyle: bool,
     ) -> Result<JsValue, LatexError> {
-        match self.inner.convert_with_local_counter(
-            content,
-            if displaystyle {
-                MathDisplay::Block
-            } else {
-                MathDisplay::Inline
-            },
-        ) {
+        let display = if displaystyle {
+            MathDisplay::Block
+        } else {
+            MathDisplay::Inline
+        };
+        match self.inner.convert_with_local_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
-            Err(e) => Err(LatexError {
-                message: JsValue::from_str(&e.1.string()),
-                location: e.0 as u32,
-            }),
+            Err(e) => {
+                if self.continue_on_error {
+                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
+                } else {
+                    Err(LatexError {
+                        message: JsValue::from_str(&e.1.string()),
+                        location: e.0 as u32,
+                    })
+                }
+            }
         }
     }
 
@@ -135,19 +141,23 @@ impl LatexToMathML {
         content: &str,
         displaystyle: bool,
     ) -> Result<JsValue, LatexError> {
-        match self.inner.convert_with_global_counter(
-            content,
-            if displaystyle {
-                MathDisplay::Block
-            } else {
-                MathDisplay::Inline
-            },
-        ) {
+        let display = if displaystyle {
+            MathDisplay::Block
+        } else {
+            MathDisplay::Inline
+        };
+        match self.inner.convert_with_global_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
-            Err(e) => Err(LatexError {
-                message: JsValue::from_str(&e.1.string()),
-                location: e.0 as u32,
-            }),
+            Err(e) => {
+                if self.continue_on_error {
+                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
+                } else {
+                    Err(LatexError {
+                        message: JsValue::from_str(&e.1.string()),
+                        location: e.0 as u32,
+                    })
+                }
+            }
         }
     }
 

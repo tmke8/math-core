@@ -90,6 +90,10 @@ struct Args {
     #[arg(long, conflicts_with = "formula")]
     ignore_escaped_delim: bool,
 
+    /// If true, the program continues to convert when an error occurs
+    #[arg(long, conflicts_with = "formula")]
+    continue_on_error: bool,
+
     /// Specifies a single LaTeX formula
     #[arg(short, long, conflicts_with = "file")]
     formula: Option<String>,
@@ -145,32 +149,37 @@ fn main() {
     let mut converter =
         LatexToMathML::new(&config.math_core).unwrap_or_else(|err| exit_latex_error(err, None));
 
-    if let Some(ref fpath) = args.file {
-        let inline_delim: (&str, &str) = if let Some(ref open) = args.inline_open {
-            (open, &args.inline_close.unwrap())
+    if let Some(fpath) = &args.file {
+        let inline_delim: (&str, &str) = if let Some(open) = &args.inline_open {
+            (open, args.inline_close.as_ref().unwrap())
         } else {
             (&args.inline_del, &args.inline_del)
         };
-        let block_delim: (&str, &str) = if let Some(ref open) = args.block_open {
-            (open, &args.block_close.unwrap())
+        let block_delim: (&str, &str) = if let Some(open) = &args.block_open {
+            (open, args.block_close.as_ref().unwrap())
         } else {
             (&args.block_del, &args.block_del)
         };
         let mut replacer = Replacer::new(inline_delim, block_delim, args.ignore_escaped_delim);
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
-            match replace(&mut replacer, &input, &mut converter) {
+            match replace(
+                &mut replacer,
+                &input,
+                &mut converter,
+                args.continue_on_error,
+            ) {
                 Ok(mathml) => {
                     println!("{mathml}");
                 }
                 Err(e) => exit_latex_error(e, None),
             };
         } else if args.recursive {
-            convert_html_recursive(fpath, &mut replacer, &mut converter, args.dry_run);
+            convert_html_recursive(&args, fpath, &mut replacer, &mut converter);
         } else {
-            convert_html(fpath, &mut replacer, &mut converter, args.dry_run);
+            convert_html(&args, fpath, &mut replacer, &mut converter);
         };
-    } else if let Some(ref formula) = args.formula {
+    } else if let Some(formula) = &args.formula {
         convert_and_exit(&args, formula, &mut converter);
     } else {
         convert_and_exit(&args, &read_stdin(), &mut converter);
@@ -222,12 +231,18 @@ fn replace<'source, 'buf>(
     replacer: &'buf mut Replacer,
     input: &'source str,
     converter: &'buf mut LatexToMathML,
+    continue_on_error: bool,
 ) -> Result<String, ConversionError<'source, 'buf>>
 where
     'source: 'buf,
 {
     replacer.replace(input, converter, |converter, buf, latex, display| {
-        let result = converter.convert_with_global_counter(latex, display)?;
+        let result = converter.convert_with_global_counter(latex, display);
+        let result = if continue_on_error {
+            result.unwrap_or_else(|err| err.to_html(latex, display, None))
+        } else {
+            result?
+        };
         buf.push_str(result.as_str());
         Ok(())
     })
@@ -259,30 +274,30 @@ where
 /// will be converted into MathML.
 ///
 fn convert_html_recursive(
+    args: &Args,
     path: &Path,
     replacer: &mut Replacer,
     converter: &mut LatexToMathML,
-    dry_run: bool,
 ) {
     if path.is_dir() {
         let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
         for entry in dir.filter_map(Result::ok) {
-            convert_html_recursive(entry.path().as_ref(), replacer, converter, dry_run)
+            convert_html_recursive(args, entry.path().as_ref(), replacer, converter)
         }
     } else if path.is_file() {
         if let Some(ext) = path.extension() {
             if ext == "html" {
-                convert_html(path, replacer, converter, dry_run);
+                convert_html(args, path, replacer, converter);
             }
         }
     }
 }
 
-fn convert_html(fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML, dry_run: bool) {
+fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML) {
     let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(e));
-    let converted =
-        replace(replacer, &original, converter).unwrap_or_else(|e| exit_latex_error(e, Some(fp)));
-    if !dry_run && original != converted {
+    let converted = replace(replacer, &original, converter, args.continue_on_error)
+        .unwrap_or_else(|e| exit_latex_error(e, Some(fp)));
+    if !args.dry_run && original != converted {
         let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
             .unwrap_or_else(|e| exit_io_error(e));
@@ -324,7 +339,7 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
         let mut converter =
             math_core::LatexToMathML::new(&math_core::MathCoreConfig::default()).unwrap();
         let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
-        let mathml = crate::replace(&mut replacer, text, &mut converter).unwrap();
+        let mathml = crate::replace(&mut replacer, text, &mut converter, false).unwrap();
         println!("{}", mathml);
     }
 }
