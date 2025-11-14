@@ -275,16 +275,15 @@ where
                 } else {
                     "span"
                 };
-                write!(
+                let _ = write!(
                     output,
                     r#"<{} class="math-core-error" title="{}: "#,
                     tag, err.0
-                )
-                .unwrap();
+                );
                 escape_html_attribute(&mut output, &err.1.string());
                 output.push_str(r#""><code>"#);
                 escape_html_content(&mut output, latex);
-                write!(output, "</code></{tag}>").unwrap();
+                let _ = write!(output, "</code></{tag}>");
                 return Ok(output);
             } else {
                 return Err(err);
