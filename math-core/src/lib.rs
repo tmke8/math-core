@@ -307,9 +307,7 @@ where
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
-        output
-            .emit(node, base_indent)
-            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+        output.emit(node, base_indent);
     }
     if pretty_print {
         output.push('\n');
@@ -422,7 +420,7 @@ mod tests {
     use insta::assert_snapshot;
 
     use crate::mathml_renderer::ast::MathMLEmitter;
-    use crate::{LatexErrKind, LatexError, LatexToMathML};
+    use crate::{LatexError, LatexToMathML};
 
     use super::{Arena, parse};
 
@@ -432,9 +430,7 @@ mod tests {
         let nodes = parse(latex, &arena, None, &mut equation_count)?;
         let mut emitter = MathMLEmitter::new();
         for node in nodes.iter() {
-            emitter
-                .emit(node, 0)
-                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+            emitter.emit(node, 0);
         }
         Ok(emitter.into_inner())
     }

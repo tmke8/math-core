@@ -83,11 +83,7 @@ impl<'arena> ColumnGenerator<'arena> {
         self.column_idx = 0;
     }
 
-    pub fn write_next_mtd(
-        &mut self,
-        s: &mut String,
-        indent_num: usize,
-    ) -> Result<(), std::fmt::Error> {
+    pub fn write_next_mtd(&mut self, s: &mut String, indent_num: usize) {
         new_line_and_indent(s, indent_num);
         let column_idx = self.column_idx;
         self.column_idx += 1;
@@ -96,23 +92,23 @@ impl<'arena> ColumnGenerator<'arena> {
                 let is_even = column_idx.is_multiple_of(2);
                 match align {
                     Alignment::Cases => {
-                        write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}")?;
+                        let _ = write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}");
                         if !is_even {
-                            write!(s, "padding-left:1em;")?;
+                            let _ = write!(s, "padding-left:1em;");
                         }
-                        write!(s, "{MTD_CLOSE_STYLE}")?;
+                        let _ = write!(s, "{MTD_CLOSE_STYLE}");
                     }
                     Alignment::Centered => {
-                        write!(s, "{SIMPLE_CENTERED}")?;
+                        let _ = write!(s, "{SIMPLE_CENTERED}");
                     }
                     Alignment::Alternating => {
-                        write!(s, "{MTD_OPEN_STYLE}")?;
+                        let _ = write!(s, "{MTD_OPEN_STYLE}");
                         if is_even {
-                            write!(s, "{RIGHT_ALIGN}{PADDING_RIGHT_ZERO}")?;
+                            let _ = write!(s, "{RIGHT_ALIGN}{PADDING_RIGHT_ZERO}");
                         } else {
-                            write!(s, "{LEFT_ALIGN}{PADDING_LEFT_ZERO}")?;
+                            let _ = write!(s, "{LEFT_ALIGN}{PADDING_LEFT_ZERO}");
                         }
-                        write!(s, "{MTD_CLOSE_STYLE}")?;
+                        let _ = write!(s, "{MTD_CLOSE_STYLE}");
                     }
                 }
             }
@@ -127,20 +123,20 @@ impl<'arena> ColumnGenerator<'arena> {
                         .get(self.column_idx)
                         .unwrap_or(&ColumnSpec::WithContent(ColumnAlignment::Centered, None));
                     self.column_idx += 1;
-                    write!(s, "{MTD_OPEN_STYLE}")?;
+                    let _ = write!(s, "{MTD_OPEN_STYLE}");
                     match line_type {
                         LineType::Solid => {
-                            write!(s, "{BORDER_RIGHT_SOLID}")?;
+                            let _ = write!(s, "{BORDER_RIGHT_SOLID}");
                         }
                         LineType::Dashed => {
-                            write!(s, "{BORDER_RIGHT_DASHED}")?;
+                            let _ = write!(s, "{BORDER_RIGHT_DASHED}");
                         }
                     }
                     if array_spec.is_sub {
-                        write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
+                        let _ = write!(s, "{PADDING_TOP_BOTTOM_ZERO}");
                     }
-                    write!(s, "padding-left: 0.1em;padding-right: 0.1em;")?;
-                    write!(s, "\"></mtd>")?;
+                    let _ = write!(s, "padding-left: 0.1em;padding-right: 0.1em;");
+                    let _ = write!(s, "\"></mtd>");
                     new_line_and_indent(s, indent_num);
                 }
                 match column_spec {
@@ -149,37 +145,36 @@ impl<'arena> ColumnGenerator<'arena> {
                             && line_type.is_none()
                             && !array_spec.is_sub
                         {
-                            write!(s, "{SIMPLE_CENTERED}")?;
-                            return Ok(());
+                            let _ = write!(s, "{SIMPLE_CENTERED}");
+                            return;
                         }
-                        write!(s, "{MTD_OPEN_STYLE}")?;
+                        let _ = write!(s, "{MTD_OPEN_STYLE}");
                         match alignment {
                             ColumnAlignment::LeftJustified => {
-                                write!(s, "{LEFT_ALIGN}")?;
+                                let _ = write!(s, "{LEFT_ALIGN}");
                             }
                             ColumnAlignment::Centered => {}
                             ColumnAlignment::RightJustified => {
-                                write!(s, "{RIGHT_ALIGN}")?;
+                                let _ = write!(s, "{RIGHT_ALIGN}");
                             }
                         }
                         match line_type {
                             Some(LineType::Solid) => {
-                                write!(s, "{BORDER_RIGHT_SOLID}")?;
+                                let _ = write!(s, "{BORDER_RIGHT_SOLID}");
                             }
                             Some(LineType::Dashed) => {
-                                write!(s, "{BORDER_RIGHT_DASHED}")?;
+                                let _ = write!(s, "{BORDER_RIGHT_DASHED}");
                             }
                             _ => {}
                         }
                         if array_spec.is_sub {
-                            write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
+                            let _ = write!(s, "{PADDING_TOP_BOTTOM_ZERO}");
                         }
-                        write!(s, "{MTD_CLOSE_STYLE}")?;
+                        let _ = write!(s, "{MTD_CLOSE_STYLE}");
                     }
                     ColumnSpec::OnlyLine(_) => {}
                 }
             }
         };
-        Ok(())
     }
 }
