@@ -13,7 +13,7 @@ describe("Convert Tests", function () {
       const displayStyle = false;
       assert.equal(
         converter.convert_with_local_counter(latex, displayStyle),
-        "<math><mi>x</mi><mo>∑</mo><mi>x</mi></math>",
+        "<math><mi>x</mi><mo>∑</mo><mi>x</mi>/math>",
       );
     });
     it("should convert simple command correctly in display style", function () {
@@ -21,7 +21,7 @@ describe("Convert Tests", function () {
       const displayStyle = true;
       assert.equal(
         converter.convert_with_local_counter(latex, displayStyle),
-        "<math display=\"block\"><mi>x</mi><mo>∑</mo><mi>x</mi></math>",
+        '<math display="block"><mi>x</mi><mo>∑</mo><mi>x</mi></math>',
       );
     });
   });
@@ -54,7 +54,10 @@ describe("Convert Tests", function () {
       const output = converter.convert_with_global_counter(latex, displayStyle);
       assert.include(output, "(1)");
       assert.include(output, "(2)");
-      const output2 = converter.convert_with_global_counter(latex, displayStyle);
+      const output2 = converter.convert_with_global_counter(
+        latex,
+        displayStyle,
+      );
       assert.include(output2, "(3)");
       assert.include(output2, "(4)");
     });
@@ -65,7 +68,10 @@ describe("Convert Tests", function () {
       const output = converter.convert_with_global_counter(latex, displayStyle);
       assert.include(output, "(1)");
       assert.include(output, "(2)");
-      const output2 = converter.convert_with_global_counter(latex, displayStyle);
+      const output2 = converter.convert_with_global_counter(
+        latex,
+        displayStyle,
+      );
       assert.include(output2, "(3)");
       assert.include(output2, "(4)");
     });
