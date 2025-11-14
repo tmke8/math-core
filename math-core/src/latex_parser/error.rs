@@ -148,7 +148,6 @@ impl LatexError<'_> {
     /// Format a LaTeX error as an HTML snippet.
     ///
     /// # Arguments
-    /// - `err`: The `LatexError` to format.
     /// - `latex`: The original LaTeX input that caused the error.
     /// - `display`: The display mode of the equation (inline or block).
     /// - `css_class`: An optional CSS class to apply to the error element. If `None`,
@@ -176,6 +175,7 @@ impl LatexError<'_> {
 
 fn escape_html_content(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
+    // TODO: one could optimize this with `memchr::memchr3` to find the next special char
     for ch in input.bytes() {
         match ch {
             b'&' => output.extend_from_slice(b"&amp;"),
@@ -188,6 +188,7 @@ fn escape_html_content(output: &mut String, input: &str) {
 
 fn escape_html_attribute(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
+    // TODO: one could optimize this with `memchr::memchr3` to find the next special char
     for ch in input.bytes() {
         match ch {
             b'&' => output.extend_from_slice(b"&amp;"),
