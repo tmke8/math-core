@@ -1,0 +1,36 @@
+name: Publish Package to npmjs
+on:
+  release:
+    types: [published]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+      - working-directory: nodejs
+        run: npm install
+      - name: Install wasm target
+        run: |
+          rustup target add wasm32-unknown-unknown
+      - name: Install wasm-bindgen
+        run: |
+          WASM_BINDGEN_VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+          cargo install wasm-bindgen-cli --version $WASM_BINDGEN_VERSION
+      - name: Build the wasm module
+        working-directory: nodejs
+        run: |
+          npm run build
+      - name: Run the tests
+        working-directory: nodejs
+        run: |
+          npm test
+      - run: npm publish --provenance
+        working-directory: nodejs
