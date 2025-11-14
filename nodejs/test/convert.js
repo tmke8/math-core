@@ -3,8 +3,8 @@ import { assert } from "chai";
 
 describe("Convert Tests", function () {
   context("Simple commands", function () {
+    const converter = new LatexToMathML({});
     it("should convert simple command correctly", function () {
-      const converter = new LatexToMathML({});
       const latex = "x\\sum x";
       const displayStyle = false;
       assert.equal(
@@ -13,7 +13,6 @@ describe("Convert Tests", function () {
       );
     });
     it("should convert simple command correctly in display style", function () {
-      const converter = new LatexToMathML({});
       const latex = "x\\sum x";
       const displayStyle = true;
       assert.equal(
@@ -38,10 +37,10 @@ describe("Convert Tests", function () {
     });
   });
   context("Global equation numbering", function () {
+    const converter = new LatexToMathML({
+      prettyPrint: "auto",
+    });
     it("should convert equation with global numbering", function () {
-      const converter = new LatexToMathML({
-        prettyPrint: "auto",
-      });
       const latex = "\\begin{align}x\\\\y\\end{align}";
       const displayStyle = true;
       const output = converter.convert_with_global_counter(latex, displayStyle);
@@ -55,9 +54,6 @@ describe("Convert Tests", function () {
       assert.include(output2, "(4)");
     });
     it("should convert equation with global numbering, the second time", function () {
-      const converter = new LatexToMathML({
-        prettyPrint: "auto",
-      });
       converter.reset_global_counter();
       const latex = "\\begin{align}x\\\\y\\end{align}";
       const displayStyle = true;
