@@ -9,7 +9,7 @@ use lol_alloc::{AssumeSingleThreaded, FreeListAllocator};
 static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
-use js_sys::{Array, Map};
+use js_sys::{Array, Map, Reflect};
 use math_core::{MathDisplay, PrettyPrint};
 use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
@@ -29,10 +29,10 @@ pub struct LatexToMathML {
 #[wasm_bindgen(typescript_custom_section)]
 const ITEXT_STYLE: &'static str = r#"
 interface MathCoreOptions {
-    prettyPrint: "never" | "always" | "auto";
-    macros: Map<string, string>;
-    xmlNamespace: boolean;
-    continueOnError: boolean;
+    prettyPrint?: "never" | "always" | "auto";
+    macros?: Map<string, string>;
+    xmlNamespace?: boolean;
+    continueOnError?: boolean;
 }
 "#;
 
@@ -41,17 +41,17 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "MathCoreOptions")]
     pub type MathCoreOptions;
 
-    #[wasm_bindgen(method, getter)]
-    fn prettyPrint(this: &MathCoreOptions) -> String;
+    // #[wasm_bindgen(method, getter)]
+    // fn prettyPrint(this: &MathCoreOptions) -> String;
 
-    #[wasm_bindgen(method, getter)]
-    fn macros(this: &MathCoreOptions) -> Map;
+    // #[wasm_bindgen(method, getter)]
+    // fn macros(this: &MathCoreOptions) -> Map;
 
-    #[wasm_bindgen(method, getter)]
-    fn xmlNamespace(this: &MathCoreOptions) -> bool;
+    // #[wasm_bindgen(method, getter)]
+    // fn xmlNamespace(this: &MathCoreOptions) -> bool;
 
-    #[wasm_bindgen(method, getter)]
-    fn continueOnError(this: &MathCoreOptions) -> bool;
+    // #[wasm_bindgen(method, getter)]
+    // fn continueOnError(this: &MathCoreOptions) -> bool;
 }
 
 #[wasm_bindgen]
@@ -59,7 +59,10 @@ impl LatexToMathML {
     #[wasm_bindgen(constructor)]
     pub fn new(js_config: &MathCoreOptions) -> Result<LatexToMathML, LatexError> {
         // This is the poor man's `serde_wasm_bindgen::from_value`.
-        let macro_map = js_config.macros();
+        let macro_map = Reflect::get(js_config, &JsValue::from_str("macros"))
+            .unwrap()
+            .dyn_into::<Map>()
+            .unwrap();
         let mut macros =
             FxHashMap::with_capacity_and_hasher(macro_map.size() as usize, Default::default());
         let macro_iter = macro_map.entries();
