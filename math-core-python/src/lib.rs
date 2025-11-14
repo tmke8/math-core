@@ -13,6 +13,7 @@ create_exception!(_math_core_rust, LatexError, PyException);
 #[pyclass(frozen)]
 struct LatexToMathML {
     inner: RwLock<math_core::LatexToMathML>,
+    continue_on_error: bool,
 }
 
 #[pyclass(eq, eq_int, rename_all = "UPPERCASE")]
@@ -46,8 +47,6 @@ impl LatexToMathML {
                 Default::default()
             },
             xml_namespace,
-            continue_on_error,
-            ..Default::default()
         };
 
         Ok(LatexToMathML {
@@ -55,6 +54,7 @@ impl LatexToMathML {
                 math_core::LatexToMathML::new(&config)
                     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?,
             ),
+            continue_on_error,
         })
     }
 
@@ -66,20 +66,29 @@ impl LatexToMathML {
         displaystyle: bool,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyString>> {
-        let result = self
+        let display = if displaystyle {
+            MathDisplay::Block
+        } else {
+            MathDisplay::Inline
+        };
+        match self
             .inner
             .write()
             .map_err(|_| LatexError::new_err("Failed to acquire write lock"))?
-            .convert_with_global_counter(
-                latex,
-                if displaystyle {
-                    MathDisplay::Block
+            .convert_with_global_counter(latex, display)
+        {
+            Err(latex_error) => {
+                if self.continue_on_error {
+                    Ok(PyString::new(
+                        py,
+                        &latex_error.to_html(latex, display, None),
+                    ))
                 } else {
-                    MathDisplay::Inline
-                },
-            )
-            .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
-        Ok(PyString::new(py, &result))
+                    Err(LatexError::new_err(latex_error.to_string()))
+                }
+            }
+            Ok(output) => Ok(PyString::new(py, &output)),
+        }
     }
 
     /// Convert LaTeX equation to MathML.
@@ -90,20 +99,29 @@ impl LatexToMathML {
         displaystyle: bool,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyString>> {
-        let result = self
+        let display = if displaystyle {
+            MathDisplay::Block
+        } else {
+            MathDisplay::Inline
+        };
+        match self
             .inner
-            .read()
+            .write()
             .map_err(|_| LatexError::new_err("Failed to acquire read lock"))?
-            .convert_with_local_counter(
-                latex,
-                if displaystyle {
-                    MathDisplay::Block
+            .convert_with_local_counter(latex, display)
+        {
+            Err(latex_error) => {
+                if self.continue_on_error {
+                    Ok(PyString::new(
+                        py,
+                        &latex_error.to_html(latex, display, None),
+                    ))
                 } else {
-                    MathDisplay::Inline
-                },
-            )
-            .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?;
-        Ok(PyString::new(py, &result))
+                    Err(LatexError::new_err(latex_error.to_string()))
+                }
+            }
+            Ok(output) => Ok(PyString::new(py, &output)),
+        }
     }
 
     fn reset_global_counter(&self) -> PyResult<()> {

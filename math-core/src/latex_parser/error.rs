@@ -1,8 +1,10 @@
-use std::fmt;
+use std::fmt::{self, Write};
 
 use strum_macros::IntoStaticStr;
 
 // use no_panic::no_panic;
+
+use crate::MathDisplay;
 
 use super::environments::Env;
 use super::token::Token;
@@ -138,6 +140,60 @@ impl LatexErrKind<'_> {
             LatexErrKind::Internal => {
                 "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues".to_string()
             },
+        }
+    }
+}
+
+impl LatexError<'_> {
+    /// Format a LaTeX error as an HTML snippet.
+    ///
+    /// # Arguments
+    /// - `err`: The `LatexError` to format.
+    /// - `latex`: The original LaTeX input that caused the error.
+    /// - `display`: The display mode of the equation (inline or block).
+    /// - `css_class`: An optional CSS class to apply to the error element. If `None`,
+    ///   defaults to `"math-core-error"`.
+    pub fn to_html(&self, latex: &str, display: MathDisplay, css_class: Option<&str>) -> String {
+        let mut output = String::new();
+        let tag = if matches!(display, MathDisplay::Block) {
+            "p"
+        } else {
+            "span"
+        };
+        let css_class = css_class.unwrap_or("math-core-error");
+        let _ = write!(
+            output,
+            r#"<{} class="{}" title="{}: "#,
+            tag, css_class, self.0
+        );
+        escape_html_attribute(&mut output, &self.1.string());
+        output.push_str(r#""><code>"#);
+        escape_html_content(&mut output, latex);
+        let _ = write!(output, "</code></{tag}>");
+        output
+    }
+}
+
+fn escape_html_content(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'<' => output.extend_from_slice(b"&lt;"),
+            b'>' => output.extend_from_slice(b"&gt;"),
+            _ => output.push(ch),
+        }
+    }
+}
+
+fn escape_html_attribute(output: &mut String, input: &str) {
+    let output = unsafe { output.as_mut_vec() };
+    for ch in input.bytes() {
+        match ch {
+            b'&' => output.extend_from_slice(b"&amp;"),
+            b'"' => output.extend_from_slice(b"&quot;"),
+            b'\'' => output.extend_from_slice(b"&#x27;"),
+            _ => output.push(ch),
         }
     }
 }
