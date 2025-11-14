@@ -2,6 +2,11 @@ name: Publish Package to npmjs
 on:
   release:
     types: [published]
+
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +20,9 @@ jobs:
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
+      # Ensure npm 11.5.1 or later is installed
+      - name: Update npm
+        run: npm install -g npm@latest
       - working-directory: nodejs
         run: npm install
       - name: Install wasm target
@@ -32,5 +40,5 @@ jobs:
         working-directory: nodejs
         run: |
           npm test
-      - run: npm publish --provenance
+      - run: npm publish
         working-directory: nodejs
