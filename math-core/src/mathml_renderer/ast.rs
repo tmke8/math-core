@@ -531,9 +531,16 @@ impl MathMLEmitter {
                 write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening, false, None)?;
             }
-            Node::ColumnSeparator | Node::RowSeparator(_) => {
-                // These nodes are handled in `emit_table`.
-                // TODO: unreachable!()?
+            Node::ColumnSeparator => {
+                // This should only appear in tables where it is handled in `emit_table`.
+                if cfg!(debug_assertions) {
+                    panic!("ColumnSeparator node should be handled in emit_table");
+                }
+            }
+            Node::RowSeparator(_) => {
+                // This should only appear in tables where it is handled in `emit_table`.
+                // However, we are currently not yet properly ensuring this fact,
+                // so we just ignore it here.
             }
             Node::Enclose { content, notation } => {
                 let notation = *notation;
