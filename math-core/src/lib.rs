@@ -364,23 +364,7 @@ fn is_valid_macro_name(s: &str) -> bool {
 mod tests {
     use insta::assert_snapshot;
 
-    use crate::mathml_renderer::ast::MathMLEmitter;
-    use crate::{LatexErrKind, LatexError, LatexToMathML};
-
-    use super::{Arena, parse};
-
-    fn convert_content(latex: &str) -> Result<String, LatexError<'_>> {
-        let arena = Arena::new();
-        let mut equation_count = 0u16;
-        let nodes = parse(latex, &arena, None, &mut equation_count)?;
-        let mut emitter = MathMLEmitter::new();
-        for node in nodes.iter() {
-            emitter
-                .emit(node, 0)
-                .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
-        }
-        Ok(emitter.into_inner())
-    }
+    use crate::{LatexError, LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
     #[test]
     fn full_tests() {
@@ -666,14 +650,14 @@ mod tests {
             ("nested_custom_cmd", r"\odv{\odv f x} x"),
         ];
 
-        let config = crate::MathCoreConfig {
-            pretty_print: crate::PrettyPrint::Always,
+        let config = MathCoreConfig {
+            pretty_print: PrettyPrint::Always,
             ..Default::default()
         };
         let converter = LatexToMathML::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
             let mathml = converter
-                .convert_with_local_counter(problem, crate::MathDisplay::Inline)
+                .convert_with_local_counter(problem, MathDisplay::Inline)
                 .expect(format!("failed to convert `{}`", problem).as_str());
             assert_snapshot!(name, &mathml, problem);
         }
@@ -739,8 +723,15 @@ mod tests {
             ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
         ];
 
+        let config = MathCoreConfig {
+            pretty_print: PrettyPrint::Never,
+            ..Default::default()
+        };
+        let converter = LatexToMathML::new(&config).unwrap();
         for (name, problem) in problems.into_iter() {
-            let Err(LatexError(loc, error)) = convert_content(problem) else {
+            let Err(LatexError(loc, error)) =
+                converter.convert_with_local_counter(problem, crate::MathDisplay::Inline)
+            else {
                 panic!("problem `{}` did not return an error", problem);
             };
             let output = format!("Position: {}\n{:#?}", loc, error);
@@ -801,9 +792,9 @@ mod tests {
     fn test_custom_cmd_spacing() {
         let macros = [("eq".to_string(), r"=".to_string())].into_iter().collect();
 
-        let config = crate::MathCoreConfig {
+        let config = MathCoreConfig {
             macros,
-            pretty_print: crate::PrettyPrint::Always,
+            pretty_print: PrettyPrint::Always,
             ..Default::default()
         };
 
@@ -811,7 +802,7 @@ mod tests {
 
         let latex = r"x + \eq 3";
         let mathml = converter
-            .convert_with_local_counter(latex, crate::MathDisplay::Inline)
+            .convert_with_local_counter(latex, MathDisplay::Inline)
             .unwrap();
 
         assert_snapshot!("custom_cmd_spacing", mathml, latex);
