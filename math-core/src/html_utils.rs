@@ -1,3 +1,10 @@
+/// Escapes special characters in `input` for safe inclusion in HTML content.
+/// Specifically, it replaces:
+/// - `&` with `&amp;`
+/// - `<` with `&lt;`
+/// - `>` with `&gt;`
+///
+/// This function uses `memchr` for efficient searching of special characters.
 pub fn escape_html_content(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
     let mut haystack = input.as_bytes();
@@ -28,34 +35,24 @@ pub fn escape_html_content(output: &mut String, input: &str) {
     output.extend_from_slice(haystack);
 }
 
+/// Escapes special characters in `input` for safe inclusion in HTML attributes.
+/// Specifically, it replaces:
+/// - `&` with `&amp;`
+/// - `"` with `&quot;`
+/// - `'` with `&apos;`
+///
+/// In contrast to `escape_html_content`, this function does not use `memchr`
+/// for optimization, as attributes are typically shorter strings.
 pub fn escape_html_attribute(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
-    let mut haystack = input.as_bytes();
-
-    while let Some(index) = memchr::memchr3(b'&', b'"', b'\'', haystack) {
-        let Some((before, after)) = haystack.split_at_checked(index) else {
-            break;
-        };
-        // Copy everything before the special character
-        output.extend_from_slice(before);
-
-        let Some((special_char, rest)) = after.split_first() else {
-            break;
-        };
-
-        // Append the escaped version
-        match special_char {
+    for ch in input.bytes() {
+        match ch {
             b'&' => output.extend_from_slice(b"&amp;"),
             b'"' => output.extend_from_slice(b"&quot;"),
-            b'\'' => output.extend_from_slice(b"&#x27;"),
-            _ => {}
+            b'\'' => output.extend_from_slice(b"&apos;"),
+            _ => output.push(ch),
         }
-
-        haystack = rest;
     }
-
-    // Copy any remaining bytes after the last special character
-    output.extend_from_slice(haystack);
 }
 
 #[cfg(test)]
