@@ -1,0 +1,14 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "f''_3^2"
+---
+<math>
+    <msubsup>
+        <mi>f</mi>
+        <mn>3</mn>
+        <mrow>
+            <mo>″</mo>
+            <mn>2</mn>
+        </mrow>
+    </msubsup>
+</math>

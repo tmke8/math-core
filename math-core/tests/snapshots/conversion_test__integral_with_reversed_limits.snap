@@ -1,0 +1,13 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\int\\limits^1_0 dx"
+---
+<math>
+    <munderover>
+        <mo lspace="0">∫</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </munderover>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

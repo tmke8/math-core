@@ -1,0 +1,10 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "f''''"
+---
+<math>
+    <msup>
+        <mi>f</mi>
+        <mo>⁗</mo>
+    </msup>
+</math>

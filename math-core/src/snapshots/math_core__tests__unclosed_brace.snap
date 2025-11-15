@@ -1,8 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "{"
----
-Position: 1
-UnclosedGroup(
-    GroupEnd,
-)

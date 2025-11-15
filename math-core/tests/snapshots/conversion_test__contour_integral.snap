@@ -1,0 +1,12 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\oint_C dz"
+---
+<math>
+    <msub>
+        <mo lspace="0">∮</mo>
+        <mi>C</mi>
+    </msub>
+    <mi>d</mi>
+    <mi>z</mi>
+</math>

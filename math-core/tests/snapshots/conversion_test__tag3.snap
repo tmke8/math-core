@@ -1,0 +1,26 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\begin{align} 1\\\\2\\nonumber\\tag{32}\\end{align}"
+---
+<math>
+    <mtable displaystyle="true" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mn>2</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(32)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

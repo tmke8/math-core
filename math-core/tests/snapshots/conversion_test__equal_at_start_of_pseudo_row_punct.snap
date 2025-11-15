@@ -1,0 +1,11 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: ", \\displaystyle = x"
+---
+<math>
+    <mo>,</mo>
+    <mrow displaystyle="true" scriptlevel="0">
+        <mo lspace="0">=</mo>
+        <mi>x</mi>
+    </mrow>
+</math>

@@ -1,0 +1,12 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "{\\color{Blue}x^2}"
+---
+<math>
+    <mrow style="color:#102694;">
+        <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msup>
+    </mrow>
+</math>

@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{a\\}b}"
----
-<math>
-    <mtext>a}b</mtext>
-</math>

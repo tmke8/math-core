@@ -1,0 +1,13 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\vec{x}'"
+---
+<math>
+    <msup>
+        <mover accent="true">
+            <mi>x</mi>
+            <mo stretchy="false">⃗</mo>
+        </mover>
+        <mo>′</mo>
+    </msup>
+</math>

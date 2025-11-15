@@ -1,0 +1,10 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: x^2
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mn>2</mn>
+    </msup>
+</math>

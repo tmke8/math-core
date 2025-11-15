@@ -1,0 +1,10 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\int\\limits'"
+---
+<math>
+    <mover>
+        <mo lspace="0" rspace="0">∫</mo>
+        <mo>′</mo>
+    </mover>
+</math>

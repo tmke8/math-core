@@ -1,6 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\hspace{22öm}"
----
-Position: 7
-DisallowedChars

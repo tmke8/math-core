@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\mathrm{abc}"
+---
+<math>
+    <mi>abc</mi>
+</math>

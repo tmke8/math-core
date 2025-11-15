@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\text{\\'{a} \\~{a} \\.{a} \\H{a} \\`{a} \\={a} \\\"{a} \\v{a} \\^{a} \\u{a} \\r{a} \\c{c}}"
+---
+<math>
+    <mtext>á ã ȧ a̋ à a̅ ä ǎ â ă å ç</mtext>
+</math>

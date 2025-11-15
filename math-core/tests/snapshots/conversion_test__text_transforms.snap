@@ -1,0 +1,16 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
+---
+<math>
+    <mrow>
+        <mi>f</mi>
+        <mi>i</mi>
+    </mrow>
+    <mtext> </mtext>
+    <mi>𝑓𝑖</mi>
+    <mtext> </mtext>
+    <mi>fi</mi>
+    <mtext> </mtext>
+    <mtext>𝚏𝚒</mtext>
+</math>

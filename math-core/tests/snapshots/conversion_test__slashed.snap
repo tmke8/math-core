@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\slashed{\\partial}"
+---
+<math>
+    <mi>∂&#x0338;</mi>
+</math>

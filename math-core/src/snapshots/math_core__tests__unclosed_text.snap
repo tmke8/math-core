@@ -1,6 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{hello"
----
-Position: 11
-UnexpectedEOF

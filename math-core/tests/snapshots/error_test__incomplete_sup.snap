@@ -1,0 +1,6 @@
+---
+source: math-core/tests/error_test.rs
+expression: x^
+---
+Position: 2
+UnexpectedEOF

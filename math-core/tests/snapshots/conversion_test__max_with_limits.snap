@@ -1,0 +1,10 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\max\\limits_x"
+---
+<math>
+    <munder>
+        <mo movablelimits="false" lspace="0.1667em" rspace="0.1667em">max</mo>
+        <mi>x</mi>
+    </munder>
+</math>

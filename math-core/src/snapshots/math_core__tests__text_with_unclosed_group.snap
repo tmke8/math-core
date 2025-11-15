@@ -1,6 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{x{}"
----
-Position: 9
-UnexpectedEOF

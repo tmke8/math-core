@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\textbf{1234.5}"
+---
+<math>
+    <mtext>𝟏𝟐𝟑𝟒.𝟓</mtext>
+</math>

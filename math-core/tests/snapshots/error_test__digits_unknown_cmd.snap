@@ -1,0 +1,8 @@
+---
+source: math-core/tests/error_test.rs
+expression: "1.1\\asdf"
+---
+Position: 3
+UnknownCommand(
+    "asdf",
+)

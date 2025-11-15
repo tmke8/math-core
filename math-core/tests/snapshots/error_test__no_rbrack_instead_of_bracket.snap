@@ -1,0 +1,8 @@
+---
+source: math-core/tests/error_test.rs
+expression: "\\sqrt[3\\rbrack{1}"
+---
+Position: 17
+UnclosedGroup(
+    SquareBracketClose,
+)

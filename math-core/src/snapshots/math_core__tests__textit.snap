@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\textit{x}"
----
-<math>
-    <mtext>𝑥</mtext>
-</math>

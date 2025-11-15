@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\bigl)+ x"
----
-<math>
-    <mo maxsize="1.2em" minsize="1.2em">)</mo>
-    <mo lspace="0" rspace="0">+</mo>
-    <mi>x</mi>
-</math>

@@ -1,8 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\begin[matrix} x \\end{matrix}"
----
-Position: 6
-MissingBrace(
-    '[',
-)

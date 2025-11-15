@@ -1,8 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\begin{align} x \\tag{0} \\\\ y \\end{align}"
----
-Position: 20
-ExpectedNumber(
-    "0",
-)

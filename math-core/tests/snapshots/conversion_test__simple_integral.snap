@@ -1,0 +1,9 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\int dx"
+---
+<math>
+    <mo lspace="0">∫</mo>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

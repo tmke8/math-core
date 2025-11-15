@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{x}~y"
----
-<math>
-    <mtext>x</mtext>
-    <mtext> </mtext>
-    <mi>y</mi>
-</math>

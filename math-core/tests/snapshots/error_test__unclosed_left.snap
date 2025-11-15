@@ -1,0 +1,8 @@
+---
+source: math-core/tests/error_test.rs
+expression: "\\left( x"
+---
+Position: 8
+UnclosedGroup(
+    Right,
+)
