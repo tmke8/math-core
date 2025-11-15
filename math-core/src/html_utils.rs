@@ -32,7 +32,7 @@ pub fn escape_html_attribute(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
     let mut haystack = input.as_bytes();
 
-    while let Some(index) = memchr::memchr3(b'&', b'<', b'>', haystack) {
+    while let Some(index) = memchr::memchr3(b'&', b'"', b'\'', haystack) {
         let Some((before, after)) = haystack.split_at_checked(index) else {
             break;
         };
