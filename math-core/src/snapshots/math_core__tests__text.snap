@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{hi}xx"
----
-<math>
-    <mtext>hi</mtext>
-    <mi>x</mi>
-    <mi>x</mi>
-</math>

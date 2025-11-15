@@ -1,0 +1,11 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "{4+}x"
+---
+<math>
+    <mrow>
+        <mn>4</mn>
+        <mo lspace="0" rspace="0">+</mo>
+    </mrow>
+    <mi>x</mi>
+</math>

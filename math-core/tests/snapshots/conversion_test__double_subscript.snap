@@ -1,0 +1,13 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "g_{\\mu\\nu}"
+---
+<math>
+    <msub>
+        <mi>g</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msub>
+</math>

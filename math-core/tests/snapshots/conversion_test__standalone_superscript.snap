@@ -1,0 +1,15 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: ^2F_3
+---
+<math>
+    <msub>
+        <mmultiscripts>
+            <mi>F</mi>
+            <mprescripts/>
+            <mrow></mrow>
+            <mn>2</mn>
+        </mmultiscripts>
+        <mn>3</mn>
+    </msub>
+</math>

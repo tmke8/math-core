@@ -1,0 +1,8 @@
+---
+source: math-core/tests/error_test.rs
+expression: "\\operatorname{\\end{matrix}}"
+---
+Position: 14
+UnexpectedClose(
+    End,
+)

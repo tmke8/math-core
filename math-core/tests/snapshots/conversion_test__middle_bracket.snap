@@ -1,0 +1,21 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\left(\\frac12\\middle]\\frac12\\right)"
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <mfrac>
+                <mn>1</mn>
+                <mn>2</mn>
+            </mfrac>
+            <mo>]</mo>
+            <mfrac>
+                <mn>1</mn>
+                <mn>2</mn>
+            </mfrac>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+</math>

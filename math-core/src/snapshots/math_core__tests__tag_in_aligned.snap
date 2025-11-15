@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\begin{aligned}\\tag{32}1\\end{aligned}"
----
-Position: 15
-CannotBeUsedHere {
-    got: Tag,
-    correct_place: NumberedEnv,
-}

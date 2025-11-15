@@ -1,0 +1,11 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: x_3^2
+---
+<math>
+    <msubsup>
+        <mi>x</mi>
+        <mn>3</mn>
+        <mn>2</mn>
+    </msubsup>
+</math>

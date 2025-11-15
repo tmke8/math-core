@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: x^_
----
-Position: 2
-CannotBeUsedHere {
-    got: Underscore,
-    correct_place: AfterOpOrIdent,
-}

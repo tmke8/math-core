@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "x{:}x"
----
-<math>
-    <mi>x</mi>
-    <mo lspace="0" rspace="0">:</mo>
-    <mi>x</mi>
-</math>

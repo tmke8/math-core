@@ -1,0 +1,11 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: _2
+---
+<math>
+    <msub>
+        <mrow>
+        </mrow>
+        <mn>2</mn>
+    </msub>
+</math>

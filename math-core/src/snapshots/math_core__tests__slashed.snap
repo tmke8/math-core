@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\slashed{\\partial}"
----
-<math>
-    <mi>∂&#x0338;</mi>
-</math>

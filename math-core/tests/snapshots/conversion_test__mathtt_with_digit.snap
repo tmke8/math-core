@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\mathtt2"
+---
+<math>
+    <mi>𝟸</mi>
+</math>

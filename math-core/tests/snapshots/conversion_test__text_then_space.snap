@@ -1,0 +1,9 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\text{x}~y"
+---
+<math>
+    <mtext>x</mtext>
+    <mtext> </mtext>
+    <mi>y</mi>
+</math>

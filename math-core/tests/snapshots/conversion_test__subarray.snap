@@ -1,0 +1,29 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\sum_{\\begin{subarray}{c} 0 \\le i \\le m\\\\ 0 < j < n \\end{subarray}}"
+---
+<math>
+    <munder>
+        <mo lspace="0">∑</mo>
+        <mtable displaystyle="false" scriptlevel="1">
+            <mtr>
+                <mtd style="padding-top: 0;padding-bottom: 0;">
+                    <mn>0</mn>
+                    <mo lspace="0" rspace="0">≤</mo>
+                    <mi>i</mi>
+                    <mo lspace="0" rspace="0">≤</mo>
+                    <mi>m</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="padding-top: 0;padding-bottom: 0;">
+                    <mn>0</mn>
+                    <mo lspace="0" rspace="0">&lt;</mo>
+                    <mi>j</mi>
+                    <mo lspace="0" rspace="0">&lt;</mo>
+                    <mi>n</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+    </munder>
+</math>

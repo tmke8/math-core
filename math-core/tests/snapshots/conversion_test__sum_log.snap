@@ -1,0 +1,9 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\sum\\log n"
+---
+<math>
+    <mo lspace="0">∑</mo>
+    <mo lspace="0" rspace="0.1667em">log</mo>
+    <mi>n</mi>
+</math>

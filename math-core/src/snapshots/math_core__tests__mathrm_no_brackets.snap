@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\mathrm x"
----
-<math>
-    <mi mathvariant="normal">x</mi>
-</math>

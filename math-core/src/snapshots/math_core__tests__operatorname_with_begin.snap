@@ -1,8 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\operatorname{\\begin{matrix}}"
----
-Position: 14
-NotValidInTextMode(
-    Begin,
-)

@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\sqrt\\sum"
----
-<math>
-    <msqrt>
-        <mo>∑</mo>
-    </msqrt>
-</math>

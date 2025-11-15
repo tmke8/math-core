@@ -1,0 +1,11 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "x{\\sin x}"
+---
+<math>
+    <mi>x</mi>
+    <mrow>
+        <mo lspace="0" rspace="0.1667em">sin</mo>
+        <mi>x</mi>
+    </mrow>
+</math>

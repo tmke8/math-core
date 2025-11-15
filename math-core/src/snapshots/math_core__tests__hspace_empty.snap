@@ -1,8 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\hspace{  }"
----
-Position: 7
-ExpectedLength(
-    "  ",
-)

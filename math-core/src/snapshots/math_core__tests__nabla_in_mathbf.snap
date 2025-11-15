@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\mathbf{\\nabla} + \\nabla"
----
-<math>
-    <mi>𝛁</mi>
-    <mo>+</mo>
-    <mi mathvariant="normal">∇</mi>
-</math>

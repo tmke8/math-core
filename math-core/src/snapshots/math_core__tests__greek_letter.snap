@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\alpha"
----
-<math>
-    <mi>α</mi>
-</math>

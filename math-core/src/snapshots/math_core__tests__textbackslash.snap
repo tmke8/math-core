@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\text{\\textbackslash}"
----
-<math>
-    <mtext>\</mtext>
-</math>

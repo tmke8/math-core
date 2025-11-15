@@ -1,0 +1,51 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\begin{align} f ( x ) &= x^2 + 2 x + 1 \\\\ &= ( x + 1 )^2\\end{align}"
+---
+<math>
+    <mtable displaystyle="true" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>f</mi>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo stretchy="false">)</mo>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <msup>
+                    <mi>x</mi>
+                    <mn>2</mn>
+                </msup>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mi>x</mi>
+                <mo>+</mo>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo>+</mo>
+                <mn>1</mn>
+                <msup>
+                    <mo stretchy="false">)</mo>
+                    <mn>2</mn>
+                </msup>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(2)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

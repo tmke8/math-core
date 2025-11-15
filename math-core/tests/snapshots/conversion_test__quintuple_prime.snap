@@ -1,0 +1,16 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "f'''''"
+---
+<math>
+    <msup>
+        <mi>f</mi>
+        <mrow>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+        </mrow>
+    </msup>
+</math>

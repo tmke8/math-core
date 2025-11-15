@@ -1,0 +1,14 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "x_{x:x}"
+---
+<math>
+    <msub>
+        <mi>x</mi>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0" rspace="0">:</mo>
+            <mi>x</mi>
+        </mrow>
+    </msub>
+</math>

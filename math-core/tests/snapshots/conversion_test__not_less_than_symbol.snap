@@ -1,0 +1,8 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\not< x"
+---
+<math>
+    <mo>≮</mo>
+    <mi>x</mi>
+</math>

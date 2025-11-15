@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "\\sqrt{\\log}"
----
-<math>
-    <msqrt>
-        <mo lspace="0" rspace="0">log</mo>
-    </msqrt>
-</math>

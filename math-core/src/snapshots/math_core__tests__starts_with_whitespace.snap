@@ -1,7 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: "  x  "
----
-<math>
-    <mi>x</mi>
-</math>

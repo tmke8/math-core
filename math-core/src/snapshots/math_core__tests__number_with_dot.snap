@@ -1,9 +1,0 @@
----
-source: math-core/src/lib.rs
-expression: 4.x
----
-<math>
-    <mn>4</mn>
-    <mi>.</mi>
-    <mi>x</mi>
-</math>

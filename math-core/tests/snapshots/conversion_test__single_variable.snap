@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: x
+---
+<math>
+    <mi>x</mi>
+</math>
