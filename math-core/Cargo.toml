@@ -27,6 +27,7 @@ strum = "0.27.2"
 strum_macros = "0.27.2"
 rustc-hash = { workspace = true }
 bitflags = { workspace = true }
+memchr = { workspace = true }
 
 [dev-dependencies]
 insta = { version = "1.43.2", features = ["default", "ron"] }
