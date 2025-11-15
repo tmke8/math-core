@@ -35,21 +35,21 @@ pub fn escape_html_content(output: &mut String, input: &str) {
     output.extend_from_slice(haystack);
 }
 
-/// Escapes special characters in `input` for safe inclusion in HTML attributes.
+/// Escapes special characters in `input` for safe inclusion in HTML attributes
+/// which are enclosed in double quotes.
+///
 /// Specifically, it replaces:
 /// - `&` with `&amp;`
 /// - `"` with `&quot;`
-/// - `'` with `&apos;`
 ///
 /// In contrast to `escape_html_content`, this function does not use `memchr`
 /// for optimization, as attributes are typically shorter strings.
-pub fn escape_html_attribute(output: &mut String, input: &str) {
+pub fn escape_double_quoted_html_attribute(output: &mut String, input: &str) {
     let output = unsafe { output.as_mut_vec() };
     for ch in input.bytes() {
         match ch {
             b'&' => output.extend_from_slice(b"&amp;"),
             b'"' => output.extend_from_slice(b"&quot;"),
-            b'\'' => output.extend_from_slice(b"&apos;"),
             _ => output.push(ch),
         }
     }
