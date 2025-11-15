@@ -5,6 +5,7 @@ use strum_macros::IntoStaticStr;
 // use no_panic::no_panic;
 
 use crate::MathDisplay;
+use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
 
 use super::environments::Env;
 use super::token::Token;
@@ -165,37 +166,11 @@ impl LatexError<'_> {
             r#"<{} class="{}" title="{}: "#,
             tag, css_class, self.0
         );
-        escape_html_attribute(&mut output, &self.1.string());
+        escape_double_quoted_html_attribute(&mut output, &self.1.string());
         output.push_str(r#""><code>"#);
         escape_html_content(&mut output, latex);
         let _ = write!(output, "</code></{tag}>");
         output
-    }
-}
-
-fn escape_html_content(output: &mut String, input: &str) {
-    let output = unsafe { output.as_mut_vec() };
-    // TODO: one could optimize this with `memchr::memchr3` to find the next special char
-    for ch in input.bytes() {
-        match ch {
-            b'&' => output.extend_from_slice(b"&amp;"),
-            b'<' => output.extend_from_slice(b"&lt;"),
-            b'>' => output.extend_from_slice(b"&gt;"),
-            _ => output.push(ch),
-        }
-    }
-}
-
-fn escape_html_attribute(output: &mut String, input: &str) {
-    let output = unsafe { output.as_mut_vec() };
-    // TODO: one could optimize this with `memchr::memchr3` to find the next special char
-    for ch in input.bytes() {
-        match ch {
-            b'&' => output.extend_from_slice(b"&amp;"),
-            b'"' => output.extend_from_slice(b"&quot;"),
-            b'\'' => output.extend_from_slice(b"&#x27;"),
-            _ => output.push(ch),
-        }
     }
 }
 

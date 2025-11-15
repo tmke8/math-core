@@ -25,6 +25,7 @@
 //!
 //! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
 //!
+mod html_utils;
 mod latex_parser;
 mod mathml_renderer;
 
