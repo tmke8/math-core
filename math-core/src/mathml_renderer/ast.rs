@@ -805,7 +805,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::IdentifierChar('Γ', LetterAttr::Upright)),
-            "<mi mathvariant=\"normal\">Γ</mi>"
+            "<mpadded><mi mathvariant=\"normal\">Γ</mi></mpadded>"
         );
 
         let mut emitter = MathMLEmitter::new();
@@ -880,7 +880,10 @@ mod tests {
 
     #[test]
     fn render_collected_letters() {
-        assert_eq!(render(&Node::IdentifierStr("sin")), "<mi>sin</mi>");
+        assert_eq!(
+            render(&Node::IdentifierStr("sin")),
+            "<mpadded><mi>sin</mi></mpadded>"
+        );
     }
 
     #[test]
@@ -1290,21 +1293,21 @@ mod tests {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierChar('a', LetterAttr::Upright),
             }),
-            "<mi mathvariant=\"normal\">a</mi>"
+            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierChar('a', LetterAttr::Default),
             }),
-            "<mi mathvariant=\"normal\">a</mi>"
+            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierStr("abc"),
             }),
-            "<mi>abc</mi>"
+            "<mpadded><mi>abc</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {
