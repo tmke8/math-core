@@ -3,5 +3,5 @@ source: math-core/tests/conversion_test.rs
 expression: "\\mathrm x"
 ---
 <math>
-    <mi mathvariant="normal">x</mi>
+    <mpadded><mi mathvariant="normal">x</mi></mpadded>
 </math>

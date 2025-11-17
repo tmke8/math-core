@@ -218,7 +218,7 @@ impl MathMLEmitter {
                     || matches!(self.var, Some(MathVariant::Normal));
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
-                    write!(self.s, "<mi mathvariant=\"normal\">")?;
+                    write!(self.s, "<mpadded><mi mathvariant=\"normal\">")?;
                 } else {
                     write!(self.s, "<mi>")?;
                 }
@@ -240,6 +240,9 @@ impl MathMLEmitter {
                     ""
                 };
                 write!(self.s, "{c}{variant_selector}</mi>")?;
+                if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
+                    write!(self.s, "</mpadded>")?;
+                }
             }
             Node::TextTransform { content, tf } => {
                 let old_var = self.var.replace(*tf);
@@ -273,7 +276,13 @@ impl MathMLEmitter {
             }
             node @ (Node::IdentifierStr(letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
-                    Node::IdentifierStr(_) => ("<mi>", "</mi>"),
+                    Node::IdentifierStr(_) => {
+                        if matches!(self.var, Some(MathVariant::Transform(_))) {
+                            ("<mi>", "</mi>")
+                        } else {
+                            ("<mpadded><mi>", "</mi></mpadded>")
+                        }
+                    }
                     Node::Text(_) => ("<mtext>", "</mtext>"),
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
@@ -796,7 +805,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::IdentifierChar('Γ', LetterAttr::Upright)),
-            "<mi mathvariant=\"normal\">Γ</mi>"
+            "<mpadded><mi mathvariant=\"normal\">Γ</mi></mpadded>"
         );
 
         let mut emitter = MathMLEmitter::new();
@@ -871,7 +880,10 @@ mod tests {
 
     #[test]
     fn render_collected_letters() {
-        assert_eq!(render(&Node::IdentifierStr("sin")), "<mi>sin</mi>");
+        assert_eq!(
+            render(&Node::IdentifierStr("sin")),
+            "<mpadded><mi>sin</mi></mpadded>"
+        );
     }
 
     #[test]
@@ -1281,21 +1293,21 @@ mod tests {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierChar('a', LetterAttr::Upright),
             }),
-            "<mi mathvariant=\"normal\">a</mi>"
+            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierChar('a', LetterAttr::Default),
             }),
-            "<mi mathvariant=\"normal\">a</mi>"
+            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {
                 tf: MathVariant::Normal,
                 content: &Node::IdentifierStr("abc"),
             }),
-            "<mi>abc</mi>"
+            "<mpadded><mi>abc</mi></mpadded>"
         );
         assert_eq!(
             render(&Node::TextTransform {

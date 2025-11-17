@@ -5,6 +5,6 @@ expression: "\\mathrm{\\mathit{a}b}"
 <math>
     <mrow>
         <mi>𝑎</mi>
-        <mi mathvariant="normal">b</mi>
+        <mpadded><mi mathvariant="normal">b</mi></mpadded>
     </mrow>
 </math>

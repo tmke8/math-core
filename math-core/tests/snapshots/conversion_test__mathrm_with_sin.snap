@@ -4,7 +4,7 @@ expression: "\\mathrm{x\\sin}"
 ---
 <math>
     <mrow>
-        <mi mathvariant="normal">x</mi>
+        <mpadded><mi mathvariant="normal">x</mi></mpadded>
         <mo lspace="0.1667em" rspace="0">sin</mo>
     </mrow>
 </math>

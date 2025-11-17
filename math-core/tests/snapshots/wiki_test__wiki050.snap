@@ -12,7 +12,7 @@ expression: "\\doteq, \\doteqdot, \\overset{\\underset{\\mathrm{def}}{}}{=}, :="
         <munder>
             <mrow>
             </mrow>
-            <mi>def</mi>
+            <mpadded><mi>def</mi></mpadded>
         </munder>
     </mover>
     <mo>,</mo>
