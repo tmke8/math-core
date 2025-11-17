@@ -44,7 +44,7 @@
     </head>
     <body>
         <div class="container">
-            <h1>LaTeX to MathML</h1>
+            <h1>MathCore: LaTeX to MathML</h1>
             <p class="explanation-link">
                 <a href="#what-is-this">What is this?</a> / <a href="https://github.com/tmke8/math-core">GitHub</a>
             </p>
@@ -125,7 +125,7 @@
                     <div>
                         <textarea rows="10" id="configField" spellcheck="false">{
     "macros": {
-        "d": "{\\mathrm{d}{}}",
+        "d": "\\mathrm{d}",
         "ceil": "\\lceil #1 \\rceil",
         "floor": "\\lfloor #1 \\rfloor"
     },
@@ -150,8 +150,8 @@
                 <h2 id="what-is-this">What is this?</h2>
                 <p>
                     This website allows you to convert LaTeX math into MathML
-                    (or, more specifically, MathML Core), which is then rendered
-                    by your browser. For example, try this input:
+                    (or, more specifically, <a href="https://www.w3.org/TR/mathml-core/">MathML Core</a>),
+                    which is then rendered by your browser. For example, try this input:
                 </p>
                 <pre class="copyable"><code>p\big(z;f(\theta)\big) =
 \sum_{i=1}^K \gamma_i\,\mathcal{N}\big(z; f_i(\theta), \Sigma_i\big),
@@ -165,12 +165,14 @@
                     The conversion runs entirely in your browser, using
                     WebAssembly and a tiny bit of JavaScript. Your LaTeX math is
                     never sent to a server. The compiled WebAssembly is about
-                    100kB (half that with gzip compression);
+                    120kB (half that with gzip compression);
                     less than many images on the web. However, this
                     webpage also needs a patched version of the
                     <em>New Computer Modern Math</em>
                     font, to render primes correctly on Chromium-based browsers.
-                    The font file for that is 679kB.
+                    The font file for that is 679kB,
+                    though this could be reduced with
+                    <a href="https://fonts.google.com/knowledge/glossary/subsetting">font subsetting</a>.
                 </p>
                 <p>
                     Not all features of LaTeX math are supported. Some of them
