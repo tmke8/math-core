@@ -3,12 +3,12 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega"
 ---
 <math>
-    <mi mathvariant="normal">Ρ</mi>
-    <mi mathvariant="normal">Σ</mi>
-    <mi mathvariant="normal">Τ</mi>
-    <mi mathvariant="normal">Υ</mi>
-    <mi mathvariant="normal">Φ</mi>
-    <mi mathvariant="normal">Χ</mi>
-    <mi mathvariant="normal">Ψ</mi>
-    <mi mathvariant="normal">Ω</mi>
+    <mpadded><mi mathvariant="normal">Ρ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Σ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Τ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Υ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Φ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Χ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ψ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ω</mi></mpadded>
 </math>

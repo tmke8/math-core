@@ -3,12 +3,12 @@ source: math-core/tests/wiki_test.rs
 expression: "\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta"
 ---
 <math>
-    <mi mathvariant="normal">Α</mi>
-    <mi mathvariant="normal">Β</mi>
-    <mi mathvariant="normal">Γ</mi>
-    <mi mathvariant="normal">Δ</mi>
-    <mi mathvariant="normal">Ε</mi>
-    <mi mathvariant="normal">Ζ</mi>
-    <mi mathvariant="normal">Η</mi>
-    <mi mathvariant="normal">Θ</mi>
+    <mpadded><mi mathvariant="normal">Α</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Β</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Γ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Δ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ε</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ζ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Η</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Θ</mi></mpadded>
 </math>

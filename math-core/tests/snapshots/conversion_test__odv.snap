@@ -5,11 +5,11 @@ expression: "\\odv{f}{x}"
 <math>
     <mfrac>
         <mrow>
-            <mi mathvariant="normal">d</mi>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
             <mi>f</mi>
         </mrow>
         <mrow>
-            <mi mathvariant="normal">d</mi>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
             <mi>x</mi>
         </mrow>
     </mfrac>

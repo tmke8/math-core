@@ -5,5 +5,5 @@ expression: "\\mathbf{\\nabla} + \\nabla"
 <math>
     <mi>𝛁</mi>
     <mo>+</mo>
-    <mi mathvariant="normal">∇</mi>
+    <mpadded><mi mathvariant="normal">∇</mi></mpadded>
 </math>

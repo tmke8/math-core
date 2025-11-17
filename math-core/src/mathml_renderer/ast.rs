@@ -218,7 +218,7 @@ impl MathMLEmitter {
                     || matches!(self.var, Some(MathVariant::Normal));
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
-                    write!(self.s, "<mi mathvariant=\"normal\">")?;
+                    write!(self.s, "<mpadded><mi mathvariant=\"normal\">")?;
                 } else {
                     write!(self.s, "<mi>")?;
                 }
@@ -240,6 +240,9 @@ impl MathMLEmitter {
                     ""
                 };
                 write!(self.s, "{c}{variant_selector}</mi>")?;
+                if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
+                    write!(self.s, "</mpadded>")?;
+                }
             }
             Node::TextTransform { content, tf } => {
                 let old_var = self.var.replace(*tf);
@@ -273,7 +276,13 @@ impl MathMLEmitter {
             }
             node @ (Node::IdentifierStr(letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
-                    Node::IdentifierStr(_) => ("<mi>", "</mi>"),
+                    Node::IdentifierStr(_) => {
+                        if matches!(self.var, Some(MathVariant::Transform(_))) {
+                            ("<mi>", "</mi>")
+                        } else {
+                            ("<mpadded><mi>", "</mi></mpadded>")
+                        }
+                    }
                     Node::Text(_) => ("<mtext>", "</mtext>"),
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),

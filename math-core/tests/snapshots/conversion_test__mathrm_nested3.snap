@@ -4,8 +4,8 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
 ---
 <math>
     <mrow>
-        <mi>ab</mi>
+        <mpadded><mi>ab</mi></mpadded>
         <mi>𝑐𝑑</mi>
-        <mi>ef</mi>
+        <mpadded><mi>ef</mi></mpadded>
     </mrow>
 </math>
