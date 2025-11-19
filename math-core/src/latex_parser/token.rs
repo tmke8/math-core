@@ -127,7 +127,6 @@ pub enum Token<'source> {
     Color,
     CustomCmdArg(u8),
     CustomCmd(u8, &'source [Token<'static>]),
-    GetCollectedLetters(MathVariant),
     HardcodedMathML(&'static str),
     TextModeAccent(char),
     StringLiteral(&'source str),

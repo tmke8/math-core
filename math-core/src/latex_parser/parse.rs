@@ -26,13 +26,13 @@ pub(crate) struct Parser<'cell, 'arena, 'source> {
     buffer: Buffer,
     arena: &'arena Arena,
     equation_counter: &'cell mut u16,
-    state: ParserState<'arena, 'source>,
+    state: ParserState<'source>,
 }
 
-struct ParserState<'arena, 'source> {
+struct ParserState<'source> {
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
-    collector: LetterCollector<'arena>,
+    collector: LetterCollector,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
     /// this is not the case for style-only rows.
     /// This is currently a hack, which should be replaced by a more robust solution later.
@@ -173,29 +173,28 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            // First check whether we need to collect letters.
-            let collected_letters = self.state.collector.collect_letters(
-                &mut self.tokens,
-                &mut self.buffer,
-                self.arena,
-            )?;
-            // Get the current token (which may be the collected letters).
-            let cur_tokloc = if let Some(tok) = collected_letters {
-                Ok(tok)
+            // Check whether we need to collect letters.
+            let (class, target) = if let Some(collected_letters) = self
+                .state
+                .collector
+                .collect_letters(&mut self.tokens, &mut self.buffer, self.arena)?
+            {
+                collected_letters
             } else {
-                self.next_token()
-            };
-            // Check here for EOF, so we know to end the loop prematurely.
-            if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
-                // When the input ends without the closing token.
-                if let SequenceEnd::Token(end_token) = sequence_end {
-                    return Err(
-                        self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
-                    );
+                // Get the current token.
+                let cur_tokloc = self.next_token();
+                // Check here for EOF, so we know to end the loop prematurely.
+                if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
+                    // When the input ends without the closing token.
+                    if let SequenceEnd::Token(end_token) = sequence_end {
+                        return Err(
+                            self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
+                        );
+                    }
                 }
-            }
-            // Parse the token.
-            let (class, target) = self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?;
+                // Parse the token.
+                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+            };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -1157,34 +1156,6 @@ where
                     Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
-            Token::GetCollectedLetters(tf) => {
-                let with_tf = matches!(tf, MathVariant::Transform(_));
-                match self.state.collector {
-                    LetterCollector::FinishedOneLetter { collected_letter } => {
-                        self.state.collector = LetterCollector::Collecting(tf);
-                        Ok(Node::IdentifierChar(
-                            collected_letter,
-                            if matches!(tf, MathVariant::Normal) {
-                                LetterAttr::Upright
-                            } else {
-                                LetterAttr::Default
-                            },
-                            with_tf,
-                        ))
-                    }
-                    LetterCollector::FinishedManyLetters { collected_letters } => {
-                        self.state.collector = LetterCollector::Collecting(tf);
-                        Ok(Node::IdentifierStr(with_tf, collected_letters))
-                    }
-                    _ => Err(LatexError(
-                        loc,
-                        LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
-                            correct_place: Place::AfterOpOrIdent,
-                        },
-                    )),
-                }
-            }
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             // The following are text-mode-only tokens.
             Token::Whitespace | Token::TextModeAccent(_) => {
@@ -1412,7 +1383,7 @@ where
     }
 }
 
-impl<'arena, 'source> ParserState<'arena, 'source> {
+impl<'source> ParserState<'source> {
     fn relation_spacing(
         &self,
         prev_class: Class,
@@ -1482,25 +1453,22 @@ pub(crate) fn node_vec_to_node<'arena>(
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-enum LetterCollector<'arena> {
+enum LetterCollector {
     Inactive,
     Collecting(MathVariant),
-    FinishedOneLetter { collected_letter: char },
-    FinishedManyLetters { collected_letters: &'arena str },
 }
 
-impl<'arena> LetterCollector<'arena> {
-    fn collect_letters<'cell, 'source>(
+impl LetterCollector {
+    fn collect_letters<'cell, 'arena, 'source>(
         &mut self,
         tokens: &mut TokenManager<'cell, 'source>,
         buffer: &mut Buffer,
         arena: &'arena Arena,
-    ) -> ParseResult<'cell, 'source, Option<TokLoc<'source>>> {
+    ) -> ParseResult<'cell, 'source, Option<(Class, &'arena Node<'arena>)>> {
         let LetterCollector::Collecting(tf) = self else {
             return Ok(None);
         };
         let tf = *tf;
-        let first_loc = tokens.peek().location();
         let mut builder = buffer.get_builder();
         let mut num_chars = 0usize;
         // We store the first character separately, because if we only collect
@@ -1532,22 +1500,22 @@ impl<'arena> LetterCollector<'arena> {
         // If we collected at least one letter, commit it to the arena and signal with a token
         // that we are done.
         if let Some(ch) = first_char {
-            // TODO: Just return the correct token directly instead of this surrogate token.
-            //       And then set ourselves to collecting again.
-            match num_chars.cmp(&1) {
-                std::cmp::Ordering::Equal => {
-                    *self = LetterCollector::FinishedOneLetter {
-                        collected_letter: ch,
-                    };
-                }
-                std::cmp::Ordering::Greater => {
-                    *self = LetterCollector::FinishedManyLetters {
-                        collected_letters: builder.finish(arena),
-                    };
-                }
-                _ => {}
-            }
-            return Ok(Some(TokLoc(first_loc, Token::GetCollectedLetters(tf))));
+            let with_tf = matches!(tf, MathVariant::Transform(_));
+            *self = LetterCollector::Collecting(tf);
+            let node = arena.push(if num_chars == 1 {
+                Node::IdentifierChar(
+                    ch,
+                    if matches!(tf, MathVariant::Normal) {
+                        LetterAttr::Upright
+                    } else {
+                        LetterAttr::Default
+                    },
+                    with_tf,
+                )
+            } else {
+                Node::IdentifierStr(with_tf, builder.finish(arena))
+            });
+            return Ok(Some((Class::Default, node)));
         }
         Ok(None)
     }
