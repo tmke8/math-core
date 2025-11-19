@@ -3,7 +3,7 @@ source: math-core/tests/conversion_test.rs
 expression: "\\mathcal A, \\mathscr A"
 ---
 <math>
-    <mi>𝒜︀</mi>
+    <mpadded><mi>𝒜︀</mi></mpadded>
     <mo>,</mo>
-    <mi>𝒜︁</mi>
+    <mpadded><mi>𝒜︁</mi></mpadded>
 </math>

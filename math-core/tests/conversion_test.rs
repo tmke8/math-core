@@ -173,6 +173,10 @@ fn main() {
         ("mathbb_no_brackets", r"\mathbb N"),
         ("mathit_of_max", r"\mathit{ab \max \alpha\beta}"),
         ("mathit_of_operatorname", r"\mathit{a\operatorname{bc}d}"),
+        (
+            "mathit_of_operatorname_single",
+            r"\mathit{\operatorname{a}}",
+        ),
         ("nested_transform", r"\mathit{\mathbf{a}b}"),
         ("mathrm_nested", r"\mathit{\mathrm{a}b}"),
         ("mathrm_nested2", r"\mathrm{\mathit{a}b}"),
