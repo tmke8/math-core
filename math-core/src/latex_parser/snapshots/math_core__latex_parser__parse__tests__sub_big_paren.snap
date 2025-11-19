@@ -4,7 +4,7 @@ expression: "x_\\big("
 ---
 [
   Subscript(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar('x', Default, false),
     symbol: SizedParen(Scale1, StretchableOp('(', Always)),
   ),
 ]

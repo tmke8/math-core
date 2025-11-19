@@ -5,8 +5,7 @@ use std::num::NonZeroU16;
 use serde::Serialize;
 
 use super::attribute::{
-    FracAttr, LetterAttr, MathSpacing, MathVariant, Notation, OpAttr, RowAttr, Size, StretchMode,
-    Style, TextTransform,
+    FracAttr, LetterAttr, MathSpacing, Notation, OpAttr, RowAttr, Size, StretchMode, Style,
 };
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
@@ -21,7 +20,7 @@ pub enum Node<'arena> {
     /// `<mn>...</mn>`
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
-    IdentifierChar(char, LetterAttr),
+    IdentifierChar(char, LetterAttr, bool),
     StretchableOp(StretchableOp, StretchMode),
     /// `<mo>...</mo>` for a single character.
     Operator {
@@ -38,7 +37,7 @@ pub enum Node<'arena> {
         name: &'arena str,
     },
     /// `<mi>...</mi>` for a string.
-    IdentifierStr(&'arena str),
+    IdentifierStr(bool, &'arena str),
     /// `<mspace width="..."/>`
     Space(Length),
     /// `<msub>...</msub>`
@@ -134,10 +133,6 @@ pub enum Node<'arena> {
         sub: Option<&'arena Node<'arena>>,
         sup: Option<&'arena Node<'arena>>,
     },
-    TextTransform {
-        tf: MathVariant,
-        content: &'arena Node<'arena>,
-    },
     HardcodedMathML(&'static str),
     /// This node is used when the parser needs to return a node,
     /// but does not want to emit anything.
@@ -160,7 +155,6 @@ macro_rules! writeln_indent {
 #[derive(Default)]
 pub struct MathMLEmitter {
     s: String,
-    var: Option<MathVariant>,
 }
 
 impl MathMLEmitter {
@@ -192,62 +186,40 @@ impl MathMLEmitter {
         };
 
         // Get the base indent out of the way, as long as we are not in a "pseudo" node.
-        if !matches!(
-            node,
-            Node::Dummy | Node::TextTransform { .. } | Node::RowSeparator(_)
-        ) {
+        if !matches!(node, Node::Dummy | Node::RowSeparator(_)) {
             new_line_and_indent(&mut self.s, base_indent);
         }
 
         match node {
             Node::Number(number) => {
-                if let Some(MathVariant::Transform(tf)) = self.var {
-                    // We render transformed numbers as identifiers.
-                    write!(self.s, "<mi>")?;
-                    self.s
-                        .extend(number.chars().map(|c| tf.transform(c, false)));
-                    write!(self.s, "</mi>")?;
-                } else {
-                    write!(self.s, "<mn>{number}</mn>")?;
-                }
+                write!(self.s, "<mn>{number}</mn>")?;
             }
-            Node::IdentifierChar(letter, attr) => {
-                // The identifier is "normal" if either `is_upright` is set,
-                // or the global `self.var` is set to `MathVariant::Normal`.
-                let is_normal = matches!(attr, LetterAttr::Upright)
-                    || matches!(self.var, Some(MathVariant::Normal));
+            Node::IdentifierChar(letter, attr, with_tf) => {
+                let is_upright = matches!(attr, LetterAttr::Upright);
                 // Only set "mathvariant" if we are not transforming the letter.
-                if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
+                if is_upright && !with_tf {
                     write!(self.s, "<mpadded><mi mathvariant=\"normal\">")?;
                 } else {
                     write!(self.s, "<mi>")?;
                 }
-                let c = match self.var {
-                    Some(MathVariant::Transform(tf)) => tf.transform(*letter, is_normal),
-                    _ => *letter,
-                };
-                let variant_selector = if matches!(
-                    self.var,
-                    Some(MathVariant::Transform(TextTransform::ScriptChancery))
-                ) {
-                    "\u{FE00}"
-                } else if matches!(
-                    self.var,
-                    Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
-                ) {
-                    "\u{FE01}"
-                } else {
-                    ""
-                };
-                write!(self.s, "{c}{variant_selector}</mi>")?;
-                if is_normal && !matches!(self.var, Some(MathVariant::Transform(_))) {
+                let c = *letter;
+                // let variant_selector = if matches!(
+                //     self.var,
+                //     Some(MathVariant::Transform(TextTransform::ScriptChancery))
+                // ) {
+                //     "\u{FE00}"
+                // } else if matches!(
+                //     self.var,
+                //     Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
+                // ) {
+                //     "\u{FE01}"
+                // } else {
+                //     ""
+                // };
+                write!(self.s, "{c}</mi>")?;
+                if is_upright && !with_tf {
                     write!(self.s, "</mpadded>")?;
                 }
-            }
-            Node::TextTransform { content, tf } => {
-                let old_var = self.var.replace(*tf);
-                self.emit(content, base_indent)?;
-                self.var = old_var;
             }
             Node::StretchableOp(op, stretch_mode) => {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
@@ -274,10 +246,10 @@ impl MathMLEmitter {
                 self.emit_operator_attributes(*attr, *left, *right)?;
                 write!(self.s, ">{text}</mo>")?;
             }
-            node @ (Node::IdentifierStr(letters) | Node::Text(letters)) => {
+            node @ (Node::IdentifierStr(_, letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
-                    Node::IdentifierStr(_) => {
-                        if matches!(self.var, Some(MathVariant::Transform(_))) {
+                    Node::IdentifierStr(with_tf, _) => {
+                        if *with_tf {
                             ("<mi>", "</mi>")
                         } else {
                             ("<mpadded><mi>", "</mi></mpadded>")
@@ -287,14 +259,7 @@ impl MathMLEmitter {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(self.s, "{open}")?;
-                match self.var {
-                    Some(MathVariant::Transform(tf)) => self
-                        .s
-                        .extend(letters.chars().map(|c| tf.transform(c, false))),
-                    _ => self.s.push_str(letters),
-                }
-                write!(self.s, "{close}")?;
+                write!(self.s, "{open}{letters}{close}")?;
             }
             Node::Space(space) => {
                 write!(self.s, "<mspace width=\"")?;
@@ -477,10 +442,8 @@ impl MathMLEmitter {
                 write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
-                Node::IdentifierChar(x, attr) => {
-                    if matches!(attr, LetterAttr::Upright)
-                        || matches!(self.var, Some(MathVariant::Normal))
-                    {
+                Node::IdentifierChar(x, attr, _with_tf) => {
+                    if matches!(attr, LetterAttr::Upright) {
                         write!(self.s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
                     } else {
                         write!(self.s, "<mi>{x}&#x0338;</mi>")?;
@@ -800,20 +763,17 @@ mod tests {
     #[test]
     fn render_single_letter_ident() {
         assert_eq!(
-            render(&Node::IdentifierChar('x', LetterAttr::Default)),
+            render(&Node::IdentifierChar('x', LetterAttr::Default, false)),
             "<mi>x</mi>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('Γ', LetterAttr::Upright)),
+            render(&Node::IdentifierChar('Γ', LetterAttr::Upright, false)),
             "<mpadded><mi mathvariant=\"normal\">Γ</mi></mpadded>"
         );
-
-        let mut emitter = MathMLEmitter::new();
-        emitter.var = Some(MathVariant::Transform(TextTransform::ScriptRoundhand));
-        emitter
-            .emit(&Node::IdentifierChar('L', LetterAttr::Default), 0)
-            .unwrap();
-        assert_eq!(emitter.into_inner(), "<mi>ℒ︁</mi>");
+        assert_eq!(
+            render(&Node::IdentifierChar('𝑥', LetterAttr::Default, true)),
+            "<mi>𝑥</mi>"
+        );
     }
 
     #[test]
@@ -881,7 +841,7 @@ mod tests {
     #[test]
     fn render_collected_letters() {
         assert_eq!(
-            render(&Node::IdentifierStr("sin")),
+            render(&Node::IdentifierStr(false, "sin")),
             "<mpadded><mi>sin</mi></mpadded>"
         );
     }
@@ -898,7 +858,7 @@ mod tests {
     fn render_subscript() {
         assert_eq!(
             render(&Node::Subscript {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
                 symbol: &Node::Number("2"),
             }),
             "<msub><mi>x</mi><mn>2</mn></msub>"
@@ -909,7 +869,7 @@ mod tests {
     fn render_superscript() {
         assert_eq!(
             render(&Node::Superscript {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
                 symbol: &Node::Number("2"),
             }),
             "<msup><mi>x</mi><mn>2</mn></msup>"
@@ -920,7 +880,7 @@ mod tests {
     fn render_sub_sup() {
         assert_eq!(
             render(&Node::SubSup {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
                 sub: &Node::Number("1"),
                 sup: &Node::Number("2"),
             }),
@@ -934,7 +894,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::MACRON.as_op(),
                 Some(OpAttr::StretchyFalse),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x', LetterAttr::Default, false),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
@@ -942,7 +902,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::OVERLINE.as_op(),
                 None,
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x', LetterAttr::Default, false),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
@@ -953,7 +913,7 @@ mod tests {
         assert_eq!(
             render(&Node::UnderOp(
                 symbol::LOW_LINE.as_op(),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x', LetterAttr::Default, false),
             )),
             "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
@@ -984,7 +944,7 @@ mod tests {
     fn render_underset() {
         assert_eq!(
             render(&Node::Underset {
-                symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
+                symbol: &Node::IdentifierChar('θ', LetterAttr::Default, false),
                 target: &Node::PseudoOp {
                     attr: Some(OpAttr::ForceMovableLimits),
                     left: Some(MathSpacing::ThreeMu),
@@ -1000,7 +960,7 @@ mod tests {
     fn render_under_over() {
         assert_eq!(
             render(&Node::UnderOver {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
                 under: &Node::Number("1"),
                 over: &Node::Number("2"),
             }),
@@ -1011,7 +971,11 @@ mod tests {
     #[test]
     fn render_sqrt() {
         assert_eq!(
-            render(&Node::Sqrt(&Node::IdentifierChar('x', LetterAttr::Default))),
+            render(&Node::Sqrt(&Node::IdentifierChar(
+                'x',
+                LetterAttr::Default,
+                false
+            ))),
             "<msqrt><mi>x</mi></msqrt>"
         );
     }
@@ -1021,7 +985,7 @@ mod tests {
         assert_eq!(
             render(&Node::Root(
                 &Node::Number("3"),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x', LetterAttr::Default, false),
             )),
             "<mroot><mi>x</mi><mn>3</mn></mroot>"
         );
@@ -1120,7 +1084,7 @@ mod tests {
     #[test]
     fn render_row() {
         let nodes = &[
-            &Node::IdentifierChar('x', LetterAttr::Default),
+            &Node::IdentifierChar('x', LetterAttr::Default, false),
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
                 attr: None,
@@ -1268,7 +1232,8 @@ mod tests {
         assert_eq!(
             render(&Node::Slashed(&Node::IdentifierChar(
                 'x',
-                LetterAttr::Default
+                LetterAttr::Default,
+                false,
             ))),
             "<mi>x&#x0338;</mi>"
         );
@@ -1278,7 +1243,7 @@ mod tests {
     fn render_multiscript() {
         assert_eq!(
             render(&Node::Multiscript {
-                base: &Node::IdentifierChar('x', LetterAttr::Default),
+                base: &Node::IdentifierChar('x', LetterAttr::Default, false),
                 sub: Some(&Node::Number("1")),
                 sup: None,
             }),
@@ -1289,80 +1254,35 @@ mod tests {
     #[test]
     fn render_text_transform() {
         assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Normal,
-                content: &Node::IdentifierChar('a', LetterAttr::Upright),
-            }),
+            render(&Node::IdentifierChar('a', LetterAttr::Upright, false)),
             "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Normal,
-                content: &Node::IdentifierChar('a', LetterAttr::Default),
-            }),
+            render(&Node::IdentifierChar('a', LetterAttr::Upright, false)),
             "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Normal,
-                content: &Node::IdentifierStr("abc"),
-            }),
+            render(&Node::IdentifierStr(false, "abc")),
             "<mpadded><mi>abc</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Normal,
-                content: &Node::PseudoOp {
-                    name: "abc",
-                    attr: None,
-                    left: Some(MathSpacing::ThreeMu),
-                    right: Some(MathSpacing::ThreeMu),
-                }
-            }),
-            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
-        );
-        assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::IdentifierChar('a', LetterAttr::Upright),
-            }),
+            render(&Node::IdentifierChar('𝐚', LetterAttr::Upright, true)),
             "<mi>𝐚</mi>"
         );
         assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::IdentifierChar('a', LetterAttr::Default),
-            }),
+            render(&Node::IdentifierChar('𝒂', LetterAttr::Default, true)),
             "<mi>𝒂</mi>"
         );
-        assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::IdentifierStr("abc"),
-            }),
-            "<mi>𝒂𝒃𝒄</mi>"
-        );
-        assert_eq!(
-            render(&Node::TextTransform {
-                tf: MathVariant::Transform(TextTransform::BoldItalic),
-                content: &Node::PseudoOp {
-                    name: "abc",
-                    attr: None,
-                    left: Some(MathSpacing::ThreeMu),
-                    right: Some(MathSpacing::ThreeMu),
-                },
-            }),
-            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">abc</mo>"
-        );
+        assert_eq!(render(&Node::IdentifierStr(true, "𝒂𝒃𝒄")), "<mi>𝒂𝒃𝒄</mi>");
     }
 
     #[test]
     fn render_enclose() {
         let content = Node::Row {
             nodes: &[
-                &Node::IdentifierChar('a', LetterAttr::Default),
-                &Node::IdentifierChar('b', LetterAttr::Default),
-                &Node::IdentifierChar('c', LetterAttr::Default),
+                &Node::IdentifierChar('a', LetterAttr::Default, false),
+                &Node::IdentifierChar('b', LetterAttr::Default, false),
+                &Node::IdentifierChar('c', LetterAttr::Default, false),
             ],
             attr: RowAttr::None,
         };

@@ -4,7 +4,7 @@ expression: x^12
 ---
 [
   Superscript(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar('x', Default, false),
     symbol: Number("1"),
   ),
   Number("2"),

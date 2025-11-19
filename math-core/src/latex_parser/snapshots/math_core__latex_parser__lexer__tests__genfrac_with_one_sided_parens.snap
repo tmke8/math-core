@@ -8,7 +8,7 @@ expression: "\\genfrac{}]{0pt}{2}{a+b}{c+d}"
 10: SquareBracketClose
 11: StringLiteral("0pt")
 16: GroupBegin
-17: Digit(Two)
+17: Digit('2')
 18: GroupEnd
 19: GroupBegin
 20: Letter('a')

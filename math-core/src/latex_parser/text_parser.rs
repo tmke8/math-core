@@ -28,11 +28,12 @@ impl<'cell, 'builder, 'source, 'parser> TextParser<'cell, 'builder, 'source, 'pa
     pub(super) fn new(
         builder: &'builder mut StringBuilder<'parser>,
         tokens: &'parser mut TokenManager<'cell, 'source>,
+        tf: Option<TextTransform>,
     ) -> Self {
         Self {
             builder,
             tokens,
-            tf: None,
+            tf,
         }
     }
 

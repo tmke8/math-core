@@ -4,7 +4,7 @@ expression: "\\sqrt[3] x_i"
 ---
 [
   Subscript(
-    target: Root(Number("3"), IdentifierChar('x', Default)),
-    symbol: IdentifierChar('i', Default),
+    target: Root(Number("3"), IdentifierChar('x', Default, false)),
+    symbol: IdentifierChar('i', Default, false),
   ),
 ]

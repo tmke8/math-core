@@ -3,10 +3,10 @@ source: math-core/src/latex_parser/parse.rs
 expression: "x\\scriptstyle y"
 ---
 [
-  IdentifierChar('x', Default),
+  IdentifierChar('x', Default, false),
   Row(
     nodes: [
-      IdentifierChar('y', Default),
+      IdentifierChar('y', Default, false),
     ],
     attr: Style(Script),
   ),

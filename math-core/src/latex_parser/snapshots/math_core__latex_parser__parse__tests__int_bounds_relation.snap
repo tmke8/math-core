@@ -13,7 +13,7 @@ expression: "{\\int_0^\\infty = 4}"
           right: Some(Zero),
         ),
         sub: Number("0"),
-        sup: IdentifierChar('∞', Default),
+        sup: IdentifierChar('∞', Default, false),
       ),
       Operator(
         op: '=',

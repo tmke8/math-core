@@ -4,7 +4,7 @@ expression: x = 3.14
 ---
 0: Letter('x')
 2: Relation(Rel { char: '=', cat: Default })
-4: Digit(Three)
+4: Digit('3')
 5: Letter('.')
-6: Digit(One)
-7: Digit(Four)
+6: Digit('1')
+7: Digit('4')

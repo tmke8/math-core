@@ -3,17 +3,11 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\mathit{\\mathrm{a}b}"
 ---
 [
-  TextTransform(
-    tf: Transform(Italic),
-    content: Row(
-      nodes: [
-        TextTransform(
-          tf: Normal,
-          content: IdentifierChar('a', Default),
-        ),
-        IdentifierChar('b', Default),
-      ],
-      attr: None,
-    ),
+  Row(
+    nodes: [
+      IdentifierChar('a', Upright, false),
+      IdentifierChar('𝑏', Default, true),
+    ],
+    attr: None,
   ),
 ]

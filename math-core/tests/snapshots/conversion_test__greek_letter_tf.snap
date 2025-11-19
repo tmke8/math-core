@@ -5,8 +5,5 @@ expression: "\\Gamma\\varGamma\\boldsymbol{\\Gamma\\varGamma}"
 <math>
     <mpadded><mi mathvariant="normal">Γ</mi></mpadded>
     <mi>Γ</mi>
-    <mrow>
-        <mi>𝚪</mi>
-        <mi>𝜞</mi>
-    </mrow>
+    <mi>𝚪𝜞</mi>
 </math>

@@ -4,7 +4,7 @@ expression: "x_:\\equiv, x_:="
 ---
 [
   Subscript(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar('x', Default, false),
     symbol: Operator(
       op: ':',
       attr: None,
@@ -25,7 +25,7 @@ expression: "x_:\\equiv, x_:="
     right: None,
   ),
   Subscript(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar('x', Default, false),
     symbol: Operator(
       op: ':',
       attr: None,
