@@ -3,14 +3,5 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\boldsymbol{\\Gamma\\varGamma}"
 ---
 [
-  TextTransform(
-    tf: Transform(BoldItalic),
-    content: Row(
-      nodes: [
-        IdentifierChar('Γ', Upright),
-        IdentifierChar('Γ', Default),
-      ],
-      attr: None,
-    ),
-  ),
+  IdentifierStr(true, "𝚪𝜞"),
 ]

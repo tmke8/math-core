@@ -3,8 +3,5 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\mathit{\\Alpha\\Beta}"
 ---
 [
-  TextTransform(
-    tf: Transform(Italic),
-    content: IdentifierStr("ΑΒ"),
-  ),
+  IdentifierStr(true, "𝛢𝛣"),
 ]

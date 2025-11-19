@@ -3,8 +3,5 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\textbf{abc}"
 ---
 [
-  TextTransform(
-    tf: Transform(Bold),
-    content: Text("abc"),
-  ),
+  Text("𝐚𝐛𝐜"),
 ]

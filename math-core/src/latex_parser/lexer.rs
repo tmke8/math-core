@@ -6,7 +6,7 @@ use std::str::CharIndices;
 use super::commands::{get_command, get_text_command};
 use super::environments::Env;
 use super::error::{GetUnwrap, LatexErrKind, LatexError};
-use super::token::{Digit, TokLoc, Token};
+use super::token::{TokLoc, Token};
 use crate::CustomCmds;
 use crate::mathml_renderer::symbol;
 
@@ -375,8 +375,8 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 return self.parse_command(loc, cmd_string).map(LexResult::Token);
             }
             c => {
-                if let Ok(digit) = Digit::try_from(c) {
-                    Token::Digit(digit)
+                if c.is_ascii_digit() {
+                    Token::Digit(c)
                 } else {
                     // Some symbols like '.' and '/' are considered operators by the MathML Core spec,
                     // but in LaTeX they behave like normal identifiers (they are in the "ordinary" class 0).

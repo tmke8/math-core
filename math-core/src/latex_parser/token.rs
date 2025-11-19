@@ -112,7 +112,7 @@ pub enum Token<'source> {
     ForceClose(MathMLOperator),
     Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
-    Digit(Digit),
+    Digit(char),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
     PseudoOperator(&'static str),
     Enclose(Notation),
@@ -127,7 +127,6 @@ pub enum Token<'source> {
     Color,
     CustomCmdArg(u8),
     CustomCmd(u8, &'source [Token<'static>]),
-    GetCollectedLetters,
     HardcodedMathML(&'static str),
     TextModeAccent(char),
     StringLiteral(&'source str),
@@ -171,37 +170,6 @@ impl Token<'_> {
             Token::CustomSpace | Token::Color | Token::Tag => NonZeroU8::new(1),
             Token::Genfrac => NonZeroU8::new(3),
             _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Digit {
-    Zero = b'0',
-    One = b'1',
-    Two = b'2',
-    Three = b'3',
-    Four = b'4',
-    Five = b'5',
-    Six = b'6',
-    Seven = b'7',
-    Eight = b'8',
-    Nine = b'9',
-}
-
-impl TryFrom<char> for Digit {
-    type Error = ();
-
-    fn try_from(value: char) -> Result<Self, Self::Error> {
-        if value.is_ascii_digit() {
-            // Safety:
-            // 1. We've verified this is an ASCII digit ('0'..='9')
-            // 2. Digit is #[repr(u8)] with variants exactly matching ASCII values
-            // 3. The input char is converted to the exact matching byte value
-            Ok(unsafe { std::mem::transmute::<u8, Digit>(value as u8) })
-        } else {
-            Err(())
         }
     }
 }

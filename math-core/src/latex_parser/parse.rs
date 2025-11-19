@@ -3,7 +3,9 @@ use std::{mem, num::NonZeroU16};
 use crate::mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
+    attribute::{
+        LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
+    },
     length::Length,
     symbol::{self, BinCategory, StretchableOp},
 };
@@ -26,14 +28,13 @@ pub(crate) struct Parser<'cell, 'arena, 'source> {
     buffer: Buffer,
     arena: &'arena Arena,
     equation_counter: &'cell mut u16,
-    state: ParserState<'arena, 'source>,
+    state: ParserState<'source>,
 }
 
-struct ParserState<'arena, 'source> {
+struct ParserState<'source> {
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
-    tf_differs_on_upright_letters: bool,
-    collector: LetterCollector<'arena>,
+    collector: LetterCollector,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
     /// this is not the case for style-only rows.
     /// This is currently a hack, which should be replaced by a more robust solution later.
@@ -134,7 +135,6 @@ where
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
                 collector: LetterCollector::Inactive,
-                tf_differs_on_upright_letters: false,
                 right_boundary_hack: false,
                 allow_columns: false,
                 numbered: None,
@@ -146,53 +146,6 @@ where
     #[inline]
     fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
         self.tokens.lexer.alloc_err(err)
-    }
-
-    fn collect_letters(&mut self) -> ParseResult<'cell, 'source, Option<TokLoc<'source>>> {
-        let first_loc = self.tokens.peek().location();
-        let mut builder = self.buffer.get_builder();
-        let mut num_chars = 0usize;
-        // We store the first character separately, because if we only collect
-        // one character, we need it as a `char` and not as a `String`.
-        let mut first_char: Option<char> = None;
-
-        // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.tokens.peek().token()
-        {
-            // We stop collecting if we encounter an upright letter while the transformation is
-            // different on upright letters. Handling upright letters differently wouldn't be
-            // possible anymore if we merged these letters // here together with the non-upright
-            // letters.
-            if matches!(tok, Token::UprightLetter(_)) && self.state.tf_differs_on_upright_letters {
-                break;
-            }
-            builder.push_char(*ch);
-            if first_char.is_none() {
-                first_char = Some(*ch);
-            }
-            num_chars += 1;
-            // Get the next token for the next iteration.
-            self.tokens.next()?;
-        }
-        // If we collected at least one letter, commit it to the arena and signal with a token
-        // that we are done.
-        if let Some(ch) = first_char {
-            match num_chars.cmp(&1) {
-                std::cmp::Ordering::Equal => {
-                    self.state.collector = LetterCollector::FinishedOneLetter {
-                        collected_letter: ch,
-                    };
-                }
-                std::cmp::Ordering::Greater => {
-                    self.state.collector = LetterCollector::FinishedManyLetters {
-                        collected_letters: builder.finish(self.arena),
-                    };
-                }
-                _ => {}
-            }
-            return Ok(Some(TokLoc(first_loc, Token::GetCollectedLetters)));
-        }
-        Ok(None)
     }
 
     #[inline(never)]
@@ -222,29 +175,28 @@ where
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            // First check whether we need to collect letters.
-            let collected_letters = if matches!(self.state.collector, LetterCollector::Collecting) {
-                self.collect_letters()?
+            // Check whether we need to collect letters.
+            let (class, target) = if let Some(collected_letters) = self
+                .state
+                .collector
+                .collect_letters(&mut self.tokens, &mut self.buffer, self.arena)?
+            {
+                collected_letters
             } else {
-                None
-            };
-            // Get the current token (which may be the collected letters).
-            let cur_tokloc = if let Some(tok) = collected_letters {
-                Ok(tok)
-            } else {
-                self.next_token()
-            };
-            // Check here for EOF, so we know to end the loop prematurely.
-            if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
-                // When the input ends without the closing token.
-                if let SequenceEnd::Token(end_token) = sequence_end {
-                    return Err(
-                        self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
-                    );
+                // Get the current token.
+                let cur_tokloc = self.next_token();
+                // Check here for EOF, so we know to end the loop prematurely.
+                if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
+                    // When the input ends without the closing token.
+                    if let SequenceEnd::Token(end_token) = sequence_end {
+                        return Err(
+                            self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
+                        );
+                    }
                 }
-            }
-            // Parse the token.
-            let (class, target) = self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?;
+                // Parse the token.
+                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+            };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -296,15 +248,26 @@ where
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => {
+                if let LetterCollector::Collecting(MathVariant::Transform(tf)) =
+                    self.state.collector
+                {
+                    return Ok((
+                        Class::Default,
+                        self.commit(Node::IdentifierChar(
+                            tf.transform(number, false),
+                            LetterAttr::Default,
+                        )),
+                    ));
+                }
                 let mut builder = self.buffer.get_builder();
-                builder.push_char(number as u8 as char);
+                builder.push_char(number);
                 if matches!(parse_as, ParseAs::Sequence) {
                     // Consume tokens as long as they are `Token::Number` or
                     // `Token::Letter('.')`,
                     // but the latter only if the token *after that* is a digit.
                     loop {
                         let ch = if let Token::Digit(number) = self.tokens.peek().token() {
-                            *number as u8 as char
+                            *number
                         } else {
                             let ch = if matches!(self.tokens.peek().token(), Token::Letter('.')) {
                                 Some('.')
@@ -327,8 +290,47 @@ where
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            Token::Letter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Default)),
-            Token::UprightLetter(x) => Ok(Node::IdentifierChar(x, LetterAttr::Upright)),
+            tok @ (Token::Letter(c) | Token::UprightLetter(c)) => {
+                let mut is_upright = matches!(tok, Token::UprightLetter(_));
+                let mut with_tf = false;
+                let ch = if let LetterCollector::Collecting(tf) = self.state.collector {
+                    match tf {
+                        MathVariant::Transform(tf) => {
+                            with_tf = true;
+                            tf.transform(c, is_upright)
+                        }
+                        MathVariant::Normal => {
+                            is_upright = true;
+                            c
+                        }
+                    }
+                } else {
+                    c
+                };
+                if let LetterCollector::Collecting(MathVariant::Transform(
+                    tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
+                )) = self.state.collector
+                {
+                    // We need to append Unicode variant selectors for these transforms.
+                    let mut builder = self.buffer.get_builder();
+                    builder.push_char(ch);
+                    builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
+                        '\u{FE00}' // VARIATION SELECTOR-1
+                    } else {
+                        '\u{FE01}' // VARIATION SELECTOR-2
+                    });
+                    Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
+                } else {
+                    Ok(Node::IdentifierChar(
+                        ch,
+                        if is_upright && !with_tf {
+                            LetterAttr::ForcedUpright
+                        } else {
+                            LetterAttr::Default
+                        },
+                    ))
+                }
+            }
             Token::Relation(relation) => {
                 class = Class::Relation;
                 if let Some(op) = relation.as_stretchable_op() {
@@ -712,7 +714,7 @@ where
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Ok(Node::IdentifierStr(builder.finish(self.arena)))
+                        Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                     }
                     _ => {
                         return Err(self.alloc_err(LatexError(
@@ -727,15 +729,15 @@ where
             }
             Token::Transform(tf) => {
                 let old_collector =
-                    mem::replace(&mut self.state.collector, LetterCollector::Collecting);
-                let old_tf_differs_on_upright_letters = mem::replace(
-                    &mut self.state.tf_differs_on_upright_letters,
-                    tf.differs_on_upright_letters(),
-                );
+                    mem::replace(&mut self.state.collector, LetterCollector::Collecting(tf));
+                // let old_tf_differs_on_upright_letters = mem::replace(
+                //     &mut self.state.tf_differs_on_upright_letters,
+                //     tf.differs_on_upright_letters(),
+                // );
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.collector = old_collector;
-                self.state.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
-                Ok(Node::TextTransform { content, tf })
+                // self.state.tf_differs_on_upright_letters = old_tf_differs_on_upright_letters;
+                return Ok((Class::Close, content));
             }
             Token::Integral(int) => {
                 class = Class::Operator;
@@ -950,11 +952,11 @@ where
             Token::OperatorName => {
                 let tokloc = self.tokens.next();
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, None);
                 text_parser.parse_token_as_text(tokloc)?;
                 let letters = builder.finish(self.arena);
                 if let Some(ch) = get_single_char(letters) {
-                    Ok(Node::IdentifierChar(ch, LetterAttr::Upright))
+                    Ok(Node::IdentifierChar(ch, LetterAttr::ForcedUpright))
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
                     class = Class::Operator;
@@ -973,21 +975,14 @@ where
                 }
                 let tokloc = self.tokens.next();
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens);
+                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, transform);
                 text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
                 // Discard any whitespace tokens that are still stored in self.tokens.peek().
                 if matches!(self.tokens.peek().token(), Token::Whitespace) {
                     self.next_token()?;
                 }
-                if let Some(transform) = transform {
-                    Ok(Node::TextTransform {
-                        content: self.commit(Node::Text(text)),
-                        tf: MathVariant::Transform(transform),
-                    })
-                } else {
-                    Ok(Node::Text(text))
-                }
+                Ok(Node::Text(text))
             }
             Token::NewColumn => {
                 if self.state.allow_columns {
@@ -1176,23 +1171,6 @@ where
                     Err(LatexError(loc, LatexErrKind::RenderError))
                 }
             }
-            Token::GetCollectedLetters => match self.state.collector {
-                LetterCollector::FinishedOneLetter { collected_letter } => {
-                    self.state.collector = LetterCollector::Collecting;
-                    Ok(Node::IdentifierChar(collected_letter, LetterAttr::Default))
-                }
-                LetterCollector::FinishedManyLetters { collected_letters } => {
-                    self.state.collector = LetterCollector::Collecting;
-                    Ok(Node::IdentifierStr(collected_letters))
-                }
-                _ => Err(LatexError(
-                    loc,
-                    LatexErrKind::CannotBeUsedHere {
-                        got: cur_token,
-                        correct_place: Place::AfterOpOrIdent,
-                    },
-                )),
-            },
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             // The following are text-mode-only tokens.
             Token::Whitespace | Token::TextModeAccent(_) => {
@@ -1420,7 +1398,7 @@ where
     }
 }
 
-impl<'arena, 'source> ParserState<'arena, 'source> {
+impl<'source> ParserState<'source> {
     fn relation_spacing(
         &self,
         prev_class: Class,
@@ -1490,11 +1468,85 @@ pub(crate) fn node_vec_to_node<'arena>(
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-enum LetterCollector<'arena> {
+enum LetterCollector {
     Inactive,
-    Collecting,
-    FinishedOneLetter { collected_letter: char },
-    FinishedManyLetters { collected_letters: &'arena str },
+    Collecting(MathVariant),
+}
+
+impl LetterCollector {
+    #[inline]
+    fn collect_letters<'cell, 'arena, 'source>(
+        &mut self,
+        tokens: &mut TokenManager<'cell, 'source>,
+        buffer: &mut Buffer,
+        arena: &'arena Arena,
+    ) -> ParseResult<'cell, 'source, Option<(Class, &'arena Node<'arena>)>> {
+        let LetterCollector::Collecting(tf) = self else {
+            return Ok(None);
+        };
+        let tf = *tf;
+        let mut builder = buffer.get_builder();
+        let mut num_chars = 0usize;
+        // We store the first character separately, because if we only collect
+        // one character, we need it as a `char` and not as a `String`.
+        let mut first_char: Option<char> = None;
+
+        // Loop until we find a non-letter token.
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
+            tokens.peek().token()
+        {
+            if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
+                // Don't collect digits in normal math variant.
+                break;
+            }
+            let is_upright = matches!(tok, Token::UprightLetter(_));
+            let c = if let MathVariant::Transform(tf) = tf {
+                tf.transform(*ch, is_upright)
+            } else {
+                *ch
+            };
+            builder.push_char(c);
+            if first_char.is_none() {
+                first_char = Some(c);
+            }
+            num_chars += 1;
+
+            if let MathVariant::Transform(
+                tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
+            ) = tf
+            {
+                // We need to append Unicode variant selectors for these transforms.
+                builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
+                    '\u{FE00}' // VARIATION SELECTOR-1
+                } else {
+                    '\u{FE01}' // VARIATION SELECTOR-2
+                });
+                num_chars += 1;
+            }
+            // Get the next token for the next iteration.
+            tokens.next()?;
+        }
+        // If we collected at least one letter, commit it to the arena and return
+        // the corresponding AST node.
+        if let Some(ch) = first_char {
+            *self = LetterCollector::Collecting(tf);
+            let node = arena.push(if num_chars == 1 {
+                Node::IdentifierChar(
+                    ch,
+                    if matches!(tf, MathVariant::Normal) {
+                        LetterAttr::ForcedUpright
+                    } else {
+                        LetterAttr::Default
+                    },
+                )
+            } else {
+                let with_tf = matches!(tf, MathVariant::Transform(_));
+                Node::IdentifierStr(with_tf, builder.finish(arena))
+            });
+            return Ok(Some((Class::Default, node)));
+        }
+        Ok(None)
+    }
 }
 
 fn get_single_char(s: &str) -> Option<char> {

@@ -3,8 +3,5 @@ source: math-core/tests/conversion_test.rs
 expression: "\\mathbf{1234.}"
 ---
 <math>
-    <mrow>
-        <mi>𝟏𝟐𝟑𝟒</mi>
-        <mi>.</mi>
-    </mrow>
+    <mi>𝟏𝟐𝟑𝟒.</mi>
 </math>
