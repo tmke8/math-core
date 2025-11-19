@@ -2,5 +2,7 @@
 source: math-core/tests/error_test.rs
 expression: "\\begin{matrix] 1 \\end{matrix}"
 ---
-Position: 6
-DisallowedChars
+Position: 13
+DisallowedChar(
+    ']',
+)

@@ -2,4 +2,4 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: "\\begin x + y"
 ---
-Error at 7: MissingBrace('x')
+Error at 7: UnknownEnvironment("x")

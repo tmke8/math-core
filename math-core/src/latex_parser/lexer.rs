@@ -124,7 +124,20 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     ///
     /// Returns `None` if there are any disallowed characters before the `}`.
     #[inline]
-    fn read_ascii_text_group(&mut self) -> Option<&'source str> {
+    fn read_ascii_text_group(&mut self) -> Result<&'source str, (usize, char)> {
+        // Next character must be `{`.
+        let first = self.read_char();
+        if first.1 != '{' {
+            return if first.1.is_ascii_alphanumeric()
+                || first.1.is_ascii_whitespace()
+                || matches!(first.1, '|' | '.' | '-' | ',' | '*' | ':')
+            {
+                // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
+                Ok(self.input_string.get_unwrap(first.0..self.peek.0))
+            } else {
+                Err(first)
+            };
+        }
         let start = self.peek.0;
 
         while self.peek.1.is_ascii_alphanumeric()
@@ -139,9 +152,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         if closing.1 == '}' {
             let end = closing.0;
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-            Some(self.input_string.get_unwrap(start..end))
+            Ok(self.input_string.get_unwrap(start..end))
         } else {
-            None
+            Err(closing)
         }
     }
 
@@ -224,17 +237,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             let result = 'str_literal: {
                 // First skip any whitespace.
                 self.skip_whitespace();
-                // Next character must be `{`.
-                let (group_loc, next_char) = self.read_char();
-                if next_char != '{' {
-                    break 'str_literal Err(LatexError(
-                        group_loc,
-                        LatexErrKind::MissingBrace(next_char),
-                    ));
-                }
-                // Read the text until the next `}`.
-                let Some(string_literal) = self.read_ascii_text_group() else {
-                    break 'str_literal Err(LatexError(group_loc, LatexErrKind::DisallowedChars));
+                let group_loc = self.peek.0;
+                // Read the string literal.
+                let string_literal = match self.read_ascii_text_group() {
+                    Ok(lit) => lit,
+                    Err((loc, ch)) => break 'str_literal Err(LatexError(loc, LatexErrKind::DisallowedChar(ch))),
                 };
                 if let Mode::EnvName { is_begin } = mode {
                     // Convert the environment name to the `Env` enum.
