@@ -1,6 +1,6 @@
 import inspect
 
-from math_core import LatexError, LatexToMathML, PrettyPrint
+from math_core import LatexError, LatexToMathML
 from pytest import raises
 
 
@@ -17,16 +17,19 @@ def test_identifier():
 
 
 def test_exception():
-    converter = LatexToMathML(pretty_print=PrettyPrint.NEVER)
+    converter = LatexToMathML(pretty_print="never")
     with raises(LatexError):
         converter.convert_with_local_counter(r"\nonexistentcommand", displaystyle=False)
 
+    with raises(ValueError):
+        _ = LatexToMathML(pretty_print="sometimes")  # type: ignore
+
 
 def test_macros():
-    converter = LatexToMathML(pretty_print=PrettyPrint.NEVER, macros={"ab": "{ab}"})
+    converter = LatexToMathML(pretty_print="never", macros={"ab": "cd"})
     assert (
         converter.convert_with_local_counter(r"\ab", displaystyle=False)
-        == "<math><mrow><mi>a</mi><mi>b</mi></mrow></math>"
+        == "<math><mi>c</mi><mi>d</mi></math>"
     )
 
 
@@ -68,7 +71,7 @@ def test_xml():
 
 
 def test_continue_on_error():
-    converter = LatexToMathML(continue_on_error=True)
+    converter = LatexToMathML(raise_on_error=False)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
         == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf &lt;b&gt;</code></span>'

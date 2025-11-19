@@ -5,7 +5,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString};
 
-use math_core::{MathCoreConfig, MathDisplay};
+use math_core::{MathCoreConfig, MathDisplay, PrettyPrint};
 use rustc_hash::FxHashMap;
 
 create_exception!(_math_core_rust, LatexError, PyException);
@@ -13,31 +13,29 @@ create_exception!(_math_core_rust, LatexError, PyException);
 #[pyclass(frozen)]
 struct LatexToMathML {
     inner: RwLock<math_core::LatexToMathML>,
-    continue_on_error: bool,
-}
-
-#[pyclass(eq, eq_int, rename_all = "UPPERCASE")]
-#[derive(PartialEq)]
-enum PrettyPrint {
-    Never,
-    Always,
-    Auto,
+    raise_on_error: bool,
 }
 
 #[pymethods]
 impl LatexToMathML {
     #[new]
-    #[pyo3(signature = (*, pretty_print=&PrettyPrint::Never, macros=None, xml_namespace=false, continue_on_error=false))]
+    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, raise_on_error=true))]
     fn new(
-        pretty_print: &PrettyPrint,
+        pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
         xml_namespace: bool,
-        continue_on_error: bool,
+        raise_on_error: bool,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
-            PrettyPrint::Never => math_core::PrettyPrint::Never,
-            PrettyPrint::Always => math_core::PrettyPrint::Always,
-            PrettyPrint::Auto => math_core::PrettyPrint::Auto,
+            "never" => PrettyPrint::Never,
+            "always" => PrettyPrint::Always,
+            "auto" => PrettyPrint::Auto,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid pretty_print value: '{}'. Must be 'never', 'always', or 'auto'.",
+                    pretty_print
+                )));
+            }
         };
         let config = MathCoreConfig {
             pretty_print,
@@ -54,7 +52,7 @@ impl LatexToMathML {
                 math_core::LatexToMathML::new(&config)
                     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?,
             ),
-            continue_on_error,
+            raise_on_error,
         })
     }
 
@@ -78,13 +76,13 @@ impl LatexToMathML {
             .convert_with_global_counter(latex, display)
         {
             Err(latex_error) => {
-                if self.continue_on_error {
+                if self.raise_on_error {
+                    Err(LatexError::new_err(latex_error.to_string()))
+                } else {
                     Ok(PyString::new(
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
-                } else {
-                    Err(LatexError::new_err(latex_error.to_string()))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output)),
@@ -111,13 +109,13 @@ impl LatexToMathML {
             .convert_with_local_counter(latex, display)
         {
             Err(latex_error) => {
-                if self.continue_on_error {
+                if self.raise_on_error {
+                    Err(LatexError::new_err(latex_error.to_string()))
+                } else {
                     Ok(PyString::new(
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
-                } else {
-                    Err(LatexError::new_err(latex_error.to_string()))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output)),
@@ -138,7 +136,6 @@ impl LatexToMathML {
 fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LatexError", m.py().get_type::<LatexError>())?;
     m.add_class::<LatexToMathML>()?;
-    m.add_class::<PrettyPrint>()?;
     Ok(())
 }
 
