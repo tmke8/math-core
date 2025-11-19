@@ -3,7 +3,9 @@ use std::{mem, num::NonZeroU16};
 use crate::mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style},
+    attribute::{
+        LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
+    },
     length::Length,
     symbol::{self, BinCategory, StretchableOp},
 };
@@ -305,14 +307,29 @@ where
                 } else {
                     c
                 };
-                Ok(Node::IdentifierChar(
-                    ch,
-                    if is_upright && !with_tf {
-                        LetterAttr::ForcedUpright
+                if let LetterCollector::Collecting(MathVariant::Transform(
+                    tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
+                )) = self.state.collector
+                {
+                    // We need to append Unicode variant selectors for these transforms.
+                    let mut builder = self.buffer.get_builder();
+                    builder.push_char(ch);
+                    builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
+                        '\u{FE00}' // VARIATION SELECTOR-1
                     } else {
-                        LetterAttr::Default
-                    },
-                ))
+                        '\u{FE01}' // VARIATION SELECTOR-2
+                    });
+                    Ok(Node::IdentifierStr(true, builder.finish(self.arena)))
+                } else {
+                    Ok(Node::IdentifierChar(
+                        ch,
+                        if is_upright && !with_tf {
+                            LetterAttr::ForcedUpright
+                        } else {
+                            LetterAttr::Default
+                        },
+                    ))
+                }
             }
             Token::Relation(relation) => {
                 class = Class::Relation;
@@ -1493,6 +1510,19 @@ impl LetterCollector {
                 first_char = Some(c);
             }
             num_chars += 1;
+
+            if let MathVariant::Transform(
+                tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
+            ) = tf
+            {
+                // We need to append Unicode variant selectors for these transforms.
+                builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
+                    '\u{FE00}' // VARIATION SELECTOR-1
+                } else {
+                    '\u{FE01}' // VARIATION SELECTOR-2
+                });
+                num_chars += 1;
+            }
             // Get the next token for the next iteration.
             tokens.next()?;
         }

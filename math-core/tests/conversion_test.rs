@@ -218,6 +218,8 @@ fn main() {
         ("transform_group", r"\mathit{a{bc}d}"),
         ("nabla_in_mathbf", r"\mathbf{\nabla} + \nabla"),
         ("mathcal_vs_mathscr", r"\mathcal{A}, \mathscr{A}"),
+        ("mathcal_vs_mathscr_single", r"\mathcal A, \mathscr A"),
+        ("mathcal_vs_mathscr_multi", r"\mathcal{AB}, \mathscr{AB}"),
         ("vertical_line", r"P(x|y)"),
         ("mid", r"P(x\mid y)"),
         ("special_symbols", r"\%\$\#"),
