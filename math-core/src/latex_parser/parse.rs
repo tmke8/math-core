@@ -148,53 +148,6 @@ where
         self.tokens.lexer.alloc_err(err)
     }
 
-    fn collect_letters(&mut self) -> ParseResult<'cell, 'source, Option<TokLoc<'source>>> {
-        let first_loc = self.tokens.peek().location();
-        let mut builder = self.buffer.get_builder();
-        let mut num_chars = 0usize;
-        // We store the first character separately, because if we only collect
-        // one character, we need it as a `char` and not as a `String`.
-        let mut first_char: Option<char> = None;
-
-        // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = self.tokens.peek().token()
-        {
-            // We stop collecting if we encounter an upright letter while the transformation is
-            // different on upright letters. Handling upright letters differently wouldn't be
-            // possible anymore if we merged these letters // here together with the non-upright
-            // letters.
-            if matches!(tok, Token::UprightLetter(_)) && self.state.tf_differs_on_upright_letters {
-                break;
-            }
-            builder.push_char(*ch);
-            if first_char.is_none() {
-                first_char = Some(*ch);
-            }
-            num_chars += 1;
-            // Get the next token for the next iteration.
-            self.tokens.next()?;
-        }
-        // If we collected at least one letter, commit it to the arena and signal with a token
-        // that we are done.
-        if let Some(ch) = first_char {
-            match num_chars.cmp(&1) {
-                std::cmp::Ordering::Equal => {
-                    self.state.collector = LetterCollector::FinishedOneLetter {
-                        collected_letter: ch,
-                    };
-                }
-                std::cmp::Ordering::Greater => {
-                    self.state.collector = LetterCollector::FinishedManyLetters {
-                        collected_letters: builder.finish(self.arena),
-                    };
-                }
-                _ => {}
-            }
-            return Ok(Some(TokLoc(first_loc, Token::GetCollectedLetters)));
-        }
-        Ok(None)
-    }
-
     #[inline(never)]
     fn next_token(&mut self) -> ParseResult<'cell, 'source, TokLoc<'source>> {
         self.tokens.next()
@@ -224,7 +177,12 @@ where
         while !sequence_end.matches(self.tokens.peek().token()) {
             // First check whether we need to collect letters.
             let collected_letters = if matches!(self.state.collector, LetterCollector::Collecting) {
-                self.collect_letters()?
+                self.state.collector.collect_letters(
+                    &mut self.tokens,
+                    &mut self.buffer,
+                    self.arena,
+                    self.state.tf_differs_on_upright_letters,
+                )?
             } else {
                 None
             };
@@ -1495,6 +1453,60 @@ enum LetterCollector<'arena> {
     Collecting,
     FinishedOneLetter { collected_letter: char },
     FinishedManyLetters { collected_letters: &'arena str },
+}
+
+impl<'arena> LetterCollector<'arena> {
+    fn collect_letters<'cell, 'source>(
+        &mut self,
+        tokens: &mut TokenManager<'cell, 'source>,
+        buffer: &mut Buffer,
+        arena: &'arena Arena,
+        tf_differs_on_upright_letters: bool,
+    ) -> ParseResult<'cell, 'source, Option<TokLoc<'source>>> {
+        let first_loc = tokens.peek().location();
+        let mut builder = buffer.get_builder();
+        let mut num_chars = 0usize;
+        // We store the first character separately, because if we only collect
+        // one character, we need it as a `char` and not as a `String`.
+        let mut first_char: Option<char> = None;
+
+        // Loop until we find a non-letter token.
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch)) = tokens.peek().token() {
+            // We stop collecting if we encounter an upright letter while the transformation is
+            // different on upright letters. Handling upright letters differently wouldn't be
+            // possible anymore if we merged these letters // here together with the non-upright
+            // letters.
+            if matches!(tok, Token::UprightLetter(_)) && tf_differs_on_upright_letters {
+                break;
+            }
+            builder.push_char(*ch);
+            if first_char.is_none() {
+                first_char = Some(*ch);
+            }
+            num_chars += 1;
+            // Get the next token for the next iteration.
+            tokens.next()?;
+        }
+        // If we collected at least one letter, commit it to the arena and signal with a token
+        // that we are done.
+        if let Some(ch) = first_char {
+            match num_chars.cmp(&1) {
+                std::cmp::Ordering::Equal => {
+                    *self = LetterCollector::FinishedOneLetter {
+                        collected_letter: ch,
+                    };
+                }
+                std::cmp::Ordering::Greater => {
+                    *self = LetterCollector::FinishedManyLetters {
+                        collected_letters: builder.finish(arena),
+                    };
+                }
+                _ => {}
+            }
+            return Ok(Some(TokLoc(first_loc, Token::GetCollectedLetters)));
+        }
+        Ok(None)
+    }
 }
 
 fn get_single_char(s: &str) -> Option<char> {
