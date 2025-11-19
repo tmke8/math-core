@@ -11,6 +11,6 @@ expression: "\\frac12_x"
       lt_unit: Rem,
       attr: None,
     ),
-    symbol: IdentifierChar('x', Default, false),
+    symbol: IdentifierChar('x', Default),
   ),
 ]

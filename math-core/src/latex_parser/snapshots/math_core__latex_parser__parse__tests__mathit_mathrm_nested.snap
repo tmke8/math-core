@@ -5,8 +5,8 @@ expression: "\\mathit{\\mathrm{a}b}"
 [
   Row(
     nodes: [
-      IdentifierChar('a', Upright, false),
-      IdentifierChar('𝑏', Default, true),
+      IdentifierChar('a', ForcedUpright),
+      IdentifierChar('𝑏', Default),
     ],
     attr: None,
   ),

@@ -5,8 +5,8 @@ expression: "\\mathrm{\\sqrt xy}"
 [
   Row(
     nodes: [
-      Sqrt(IdentifierChar('x', Upright, false)),
-      IdentifierChar('y', Upright, false),
+      Sqrt(IdentifierChar('x', ForcedUpright)),
+      IdentifierChar('y', ForcedUpright),
     ],
     attr: None,
   ),

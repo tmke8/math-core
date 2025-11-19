@@ -20,7 +20,7 @@ pub enum Node<'arena> {
     /// `<mn>...</mn>`
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
-    IdentifierChar(char, LetterAttr, bool),
+    IdentifierChar(char, LetterAttr),
     StretchableOp(StretchableOp, StretchMode),
     /// `<mo>...</mo>` for a single character.
     Operator {
@@ -194,10 +194,10 @@ impl MathMLEmitter {
             Node::Number(number) => {
                 write!(self.s, "<mn>{number}</mn>")?;
             }
-            Node::IdentifierChar(letter, attr, with_tf) => {
-                let is_upright = matches!(attr, LetterAttr::Upright);
+            Node::IdentifierChar(letter, attr) => {
+                let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
-                if is_upright && !with_tf {
+                if is_upright {
                     write!(self.s, "<mpadded><mi mathvariant=\"normal\">")?;
                 } else {
                     write!(self.s, "<mi>")?;
@@ -217,7 +217,7 @@ impl MathMLEmitter {
                 //     ""
                 // };
                 write!(self.s, "{c}</mi>")?;
-                if is_upright && !with_tf {
+                if is_upright {
                     write!(self.s, "</mpadded>")?;
                 }
             }
@@ -249,6 +249,8 @@ impl MathMLEmitter {
             node @ (Node::IdentifierStr(_, letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
                     Node::IdentifierStr(with_tf, _) => {
+                        // This is only needed to prevent Firefox from adding extra space around
+                        // multi-letter ASCII identifiers.
                         if *with_tf {
                             ("<mi>", "</mi>")
                         } else {
@@ -442,8 +444,8 @@ impl MathMLEmitter {
                 write!(self.s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
-                Node::IdentifierChar(x, attr, _with_tf) => {
-                    if matches!(attr, LetterAttr::Upright) {
+                Node::IdentifierChar(x, attr) => {
+                    if matches!(attr, LetterAttr::ForcedUpright) {
                         write!(self.s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
                     } else {
                         write!(self.s, "<mi>{x}&#x0338;</mi>")?;
@@ -763,15 +765,15 @@ mod tests {
     #[test]
     fn render_single_letter_ident() {
         assert_eq!(
-            render(&Node::IdentifierChar('x', LetterAttr::Default, false)),
+            render(&Node::IdentifierChar('x', LetterAttr::Default)),
             "<mi>x</mi>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('Γ', LetterAttr::Upright, false)),
+            render(&Node::IdentifierChar('Γ', LetterAttr::ForcedUpright)),
             "<mpadded><mi mathvariant=\"normal\">Γ</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝑥', LetterAttr::Default, true)),
+            render(&Node::IdentifierChar('𝑥', LetterAttr::Default)),
             "<mi>𝑥</mi>"
         );
     }
@@ -858,7 +860,7 @@ mod tests {
     fn render_subscript() {
         assert_eq!(
             render(&Node::Subscript {
-                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msub><mi>x</mi><mn>2</mn></msub>"
@@ -869,7 +871,7 @@ mod tests {
     fn render_superscript() {
         assert_eq!(
             render(&Node::Superscript {
-                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msup><mi>x</mi><mn>2</mn></msup>"
@@ -880,7 +882,7 @@ mod tests {
     fn render_sub_sup() {
         assert_eq!(
             render(&Node::SubSup {
-                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 sub: &Node::Number("1"),
                 sup: &Node::Number("2"),
             }),
@@ -894,7 +896,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::MACRON.as_op(),
                 Some(OpAttr::StretchyFalse),
-                &Node::IdentifierChar('x', LetterAttr::Default, false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
@@ -902,7 +904,7 @@ mod tests {
             render(&Node::OverOp(
                 symbol::OVERLINE.as_op(),
                 None,
-                &Node::IdentifierChar('x', LetterAttr::Default, false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
@@ -913,7 +915,7 @@ mod tests {
         assert_eq!(
             render(&Node::UnderOp(
                 symbol::LOW_LINE.as_op(),
-                &Node::IdentifierChar('x', LetterAttr::Default, false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
@@ -944,7 +946,7 @@ mod tests {
     fn render_underset() {
         assert_eq!(
             render(&Node::Underset {
-                symbol: &Node::IdentifierChar('θ', LetterAttr::Default, false),
+                symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
                 target: &Node::PseudoOp {
                     attr: Some(OpAttr::ForceMovableLimits),
                     left: Some(MathSpacing::ThreeMu),
@@ -960,7 +962,7 @@ mod tests {
     fn render_under_over() {
         assert_eq!(
             render(&Node::UnderOver {
-                target: &Node::IdentifierChar('x', LetterAttr::Default, false),
+                target: &Node::IdentifierChar('x', LetterAttr::Default),
                 under: &Node::Number("1"),
                 over: &Node::Number("2"),
             }),
@@ -971,11 +973,7 @@ mod tests {
     #[test]
     fn render_sqrt() {
         assert_eq!(
-            render(&Node::Sqrt(&Node::IdentifierChar(
-                'x',
-                LetterAttr::Default,
-                false
-            ))),
+            render(&Node::Sqrt(&Node::IdentifierChar('x', LetterAttr::Default))),
             "<msqrt><mi>x</mi></msqrt>"
         );
     }
@@ -985,7 +983,7 @@ mod tests {
         assert_eq!(
             render(&Node::Root(
                 &Node::Number("3"),
-                &Node::IdentifierChar('x', LetterAttr::Default, false),
+                &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mroot><mi>x</mi><mn>3</mn></mroot>"
         );
@@ -1084,7 +1082,7 @@ mod tests {
     #[test]
     fn render_row() {
         let nodes = &[
-            &Node::IdentifierChar('x', LetterAttr::Default, false),
+            &Node::IdentifierChar('x', LetterAttr::Default),
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
                 attr: None,
@@ -1233,7 +1231,6 @@ mod tests {
             render(&Node::Slashed(&Node::IdentifierChar(
                 'x',
                 LetterAttr::Default,
-                false,
             ))),
             "<mi>x&#x0338;</mi>"
         );
@@ -1243,7 +1240,7 @@ mod tests {
     fn render_multiscript() {
         assert_eq!(
             render(&Node::Multiscript {
-                base: &Node::IdentifierChar('x', LetterAttr::Default, false),
+                base: &Node::IdentifierChar('x', LetterAttr::Default),
                 sub: Some(&Node::Number("1")),
                 sup: None,
             }),
@@ -1254,11 +1251,11 @@ mod tests {
     #[test]
     fn render_text_transform() {
         assert_eq!(
-            render(&Node::IdentifierChar('a', LetterAttr::Upright, false)),
+            render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
             "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('a', LetterAttr::Upright, false)),
+            render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
             "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
@@ -1266,11 +1263,11 @@ mod tests {
             "<mpadded><mi>abc</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝐚', LetterAttr::Upright, true)),
+            render(&Node::IdentifierChar('𝐚', LetterAttr::Default)),
             "<mi>𝐚</mi>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝒂', LetterAttr::Default, true)),
+            render(&Node::IdentifierChar('𝒂', LetterAttr::Default)),
             "<mi>𝒂</mi>"
         );
         assert_eq!(render(&Node::IdentifierStr(true, "𝒂𝒃𝒄")), "<mi>𝒂𝒃𝒄</mi>");
@@ -1280,9 +1277,9 @@ mod tests {
     fn render_enclose() {
         let content = Node::Row {
             nodes: &[
-                &Node::IdentifierChar('a', LetterAttr::Default, false),
-                &Node::IdentifierChar('b', LetterAttr::Default, false),
-                &Node::IdentifierChar('c', LetterAttr::Default, false),
+                &Node::IdentifierChar('a', LetterAttr::Default),
+                &Node::IdentifierChar('b', LetterAttr::Default),
+                &Node::IdentifierChar('c', LetterAttr::Default),
             ],
             attr: RowAttr::None,
         };

@@ -254,7 +254,6 @@ where
                         self.commit(Node::IdentifierChar(
                             tf.transform(number, false),
                             LetterAttr::Default,
-                            true,
                         )),
                     ));
                 }
@@ -308,12 +307,11 @@ where
                 };
                 Ok(Node::IdentifierChar(
                     ch,
-                    if is_upright {
-                        LetterAttr::Upright
+                    if is_upright && !with_tf {
+                        LetterAttr::ForcedUpright
                     } else {
                         LetterAttr::Default
                     },
-                    with_tf,
                 ))
             }
             Token::Relation(relation) => {
@@ -348,7 +346,7 @@ where
                 if let Some(op) = ord.as_stretchable_op() {
                     // If the operator can stretch, we prevent that by rendering it
                     // as a normal identifier.
-                    Ok(Node::IdentifierChar(op.into(), LetterAttr::Default, true))
+                    Ok(Node::IdentifierChar(op.into(), LetterAttr::Default))
                 } else {
                     Ok(Node::Operator {
                         op: ord.as_op(),
@@ -941,7 +939,7 @@ where
                 text_parser.parse_token_as_text(tokloc)?;
                 let letters = builder.finish(self.arena);
                 if let Some(ch) = get_single_char(letters) {
-                    Ok(Node::IdentifierChar(ch, LetterAttr::Upright, false))
+                    Ok(Node::IdentifierChar(ch, LetterAttr::ForcedUpright))
                 } else {
                     let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
                     class = Class::Operator;
@@ -1459,6 +1457,7 @@ enum LetterCollector {
 }
 
 impl LetterCollector {
+    #[inline]
     fn collect_letters<'cell, 'arena, 'source>(
         &mut self,
         tokens: &mut TokenManager<'cell, 'source>,
@@ -1497,22 +1496,21 @@ impl LetterCollector {
             // Get the next token for the next iteration.
             tokens.next()?;
         }
-        // If we collected at least one letter, commit it to the arena and signal with a token
-        // that we are done.
+        // If we collected at least one letter, commit it to the arena and return
+        // the corresponding AST node.
         if let Some(ch) = first_char {
-            let with_tf = matches!(tf, MathVariant::Transform(_));
             *self = LetterCollector::Collecting(tf);
             let node = arena.push(if num_chars == 1 {
                 Node::IdentifierChar(
                     ch,
                     if matches!(tf, MathVariant::Normal) {
-                        LetterAttr::Upright
+                        LetterAttr::ForcedUpright
                     } else {
                         LetterAttr::Default
                     },
-                    with_tf,
                 )
             } else {
+                let with_tf = matches!(tf, MathVariant::Transform(_));
                 Node::IdentifierStr(with_tf, builder.finish(arena))
             });
             return Ok(Some((Class::Default, node)));

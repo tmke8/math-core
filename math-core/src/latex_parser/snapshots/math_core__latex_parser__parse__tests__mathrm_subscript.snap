@@ -6,12 +6,12 @@ expression: "\\mathrm{x_x y_y}"
   Row(
     nodes: [
       Subscript(
-        target: IdentifierChar('x', Upright, false),
-        symbol: IdentifierChar('x', Upright, false),
+        target: IdentifierChar('x', ForcedUpright),
+        symbol: IdentifierChar('x', ForcedUpright),
       ),
       Subscript(
-        target: IdentifierChar('y', Upright, false),
-        symbol: IdentifierChar('y', Upright, false),
+        target: IdentifierChar('y', ForcedUpright),
+        symbol: IdentifierChar('y', ForcedUpright),
       ),
     ],
     attr: None,

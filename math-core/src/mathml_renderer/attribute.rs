@@ -42,7 +42,7 @@ pub enum OpAttr {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LetterAttr {
     Default,
-    Upright,
+    ForcedUpright,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]

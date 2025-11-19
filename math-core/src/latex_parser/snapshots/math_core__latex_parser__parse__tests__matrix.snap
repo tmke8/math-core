@@ -9,9 +9,9 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
     close: Some(StretchableOp(')', Always)),
     content: Table(
       content: [
-        IdentifierChar('x', Default, false),
+        IdentifierChar('x', Default),
         RowSeparator(None),
-        IdentifierChar('y', Default, false),
+        IdentifierChar('y', Default),
       ],
       align: Centered,
       attr: None,

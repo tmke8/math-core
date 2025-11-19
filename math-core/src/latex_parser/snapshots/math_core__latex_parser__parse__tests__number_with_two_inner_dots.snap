@@ -4,7 +4,7 @@ expression: 3..14
 ---
 [
   Number("3"),
-  IdentifierChar('.', Default, false),
-  IdentifierChar('.', Default, false),
+  IdentifierChar('.', Default),
+  IdentifierChar('.', Default),
   Number("14"),
 ]

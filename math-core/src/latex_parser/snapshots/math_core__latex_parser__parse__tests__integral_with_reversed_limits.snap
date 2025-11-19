@@ -13,6 +13,6 @@ expression: "\\int\\limits^1_0 dx"
     under: Number("0"),
     over: Number("1"),
   ),
-  IdentifierChar('d', Default, false),
-  IdentifierChar('x', Default, false),
+  IdentifierChar('d', Default),
+  IdentifierChar('x', Default),
 ]
