@@ -319,7 +319,7 @@ where
                     } else {
                         '\u{FE01}' // VARIATION SELECTOR-2
                     });
-                    Ok(Node::IdentifierStr(true, builder.finish(self.arena)))
+                    Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                 } else {
                     Ok(Node::IdentifierChar(
                         ch,
@@ -714,7 +714,7 @@ where
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Ok(Node::IdentifierStr(true, builder.finish(self.arena)))
+                        Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                     }
                     _ => {
                         return Err(self.alloc_err(LatexError(
