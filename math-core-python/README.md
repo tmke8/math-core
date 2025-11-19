@@ -45,10 +45,10 @@ print(mathml)
 ### Basic Usage
 
 ```python
-from math_core import LatexToMathML, LatexError, PrettyPrint
+from math_core import LatexToMathML, LatexError
 
 # Initialize converter
-converter = LatexToMathML(pretty_print=PrettyPrint.ALWAYS)
+converter = LatexToMathML(pretty_print="always")
 
 # Convert LaTeX to MathML
 try:
@@ -129,8 +129,10 @@ doc2 = converter.convert_with_local_counter(
 The main converter class.
 
 **Constructor Parameters:**
-- `pretty_print` (`PrettyPrint`, optional): An enum value indicating whether to pretty print the MathML output. Options are `PrettyPrint.NEVER`, `PrettyPrint.ALWAYS`, or `PrettyPrint.AUTO`. `PrettyPrint.AUTO` means that all block equations will be pretty printed. Default: `PrettyPrint.NEVER`.
+- `pretty_print` (`str`, optional): A string indicating whether to pretty print the MathML output. Options are “never”, “always”, or “auto”. “auto” means that all block equations will be pretty printed. Default: “never”.
 - `macros` (`dict[str, str]`, optional): Dictionary of LaTeX macros for custom commands.
+- `xml_namespace` (`bool`, optional): A boolean indicating whether to include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag. Default: `False`.
+- `raise_on_error` (`bool`, optional): A boolean indicating whether to raise an exception for conversion errors. If conversion fails and this is `False`, an HTML snippet describing the error will be returned. Default: `True`.
 
 **Methods:**
 - `convert_with_global_counter(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using a global equation counter.
@@ -158,9 +160,9 @@ Integrate `math-core` into your static site generator to convert LaTeX in Markdo
 
 ```python
 import re
-from math_core import LatexToMathML, PrettyPrint
+from math_core import LatexToMathML
 
-converter = LatexToMathML(pretty_print=PrettyPrint.AUTO)
+converter = LatexToMathML(pretty_print="auto")
 
 def process_math(content):
     # Replace display math $$...$$; do this first to avoid conflicts with inline math delimiters
