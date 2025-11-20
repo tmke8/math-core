@@ -703,6 +703,13 @@ where
                         left: None,
                         right: None,
                     }),
+                    // We have to special-case `\exists` here because it is not a relation.
+                    Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
+                        op: symbol::THERE_DOES_NOT_EXIST.as_op(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    }),
                     Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
