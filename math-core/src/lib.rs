@@ -35,7 +35,6 @@ use serde::{Deserialize, Serialize};
 
 use self::latex_parser::{LatexErrKind, Token};
 use self::mathml_renderer::arena::Arena;
-use self::mathml_renderer::ast::MathMLEmitter;
 
 pub use self::latex_parser::LatexError;
 
@@ -259,7 +258,7 @@ where
     let arena = Arena::new();
     let ast = parse(latex, &arena, custom_cmds, equation_count)?;
 
-    let mut output = MathMLEmitter::new();
+    let mut output = String::new();
     output.push_str("<math");
     if flags.xml_namespace {
         output.push_str(" xmlns=\"http://www.w3.org/1998/Math/MathML\"");
@@ -274,15 +273,14 @@ where
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
-        output
-            .emit(node, base_indent)
+        node.emit(&mut output, base_indent)
             .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
     }
     if pretty_print {
         output.push('\n');
     }
     output.push_str("</math>");
-    Ok(output.into_inner())
+    Ok(output)
 }
 
 fn parse<'arena, 'source>(

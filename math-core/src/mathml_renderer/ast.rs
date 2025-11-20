@@ -139,12 +139,6 @@ pub enum Node<'arena> {
     Dummy,
 }
 
-impl PartialEq for &Node<'_> {
-    fn eq(&self, other: &&Node<'_>) -> bool {
-        std::ptr::eq(*self, *other)
-    }
-}
-
 macro_rules! writeln_indent {
     ($buf:expr, $indent:expr, $($tail:tt)+) => {
         new_line_and_indent($buf, $indent);
@@ -152,32 +146,8 @@ macro_rules! writeln_indent {
     };
 }
 
-#[derive(Default)]
-pub struct MathMLEmitter {
-    s: String,
-}
-
-impl MathMLEmitter {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    #[inline]
-    pub fn into_inner(self) -> String {
-        self.s
-    }
-
-    #[inline]
-    pub fn push(&mut self, c: char) {
-        self.s.push(c);
-    }
-
-    #[inline]
-    pub fn push_str(&mut self, s: &str) {
-        self.s.push_str(s);
-    }
-
-    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> std::fmt::Result {
+impl Node<'_> {
+    pub fn emit(&self, s: &mut String, base_indent: usize) -> std::fmt::Result {
         // Compute the indent for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -186,46 +156,33 @@ impl MathMLEmitter {
         };
 
         // Get the base indent out of the way, as long as we are not in a "pseudo" node.
-        if !matches!(node, Node::Dummy | Node::RowSeparator(_)) {
-            new_line_and_indent(&mut self.s, base_indent);
+        if !matches!(self, Node::Dummy | Node::RowSeparator(_)) {
+            new_line_and_indent(s, base_indent);
         }
 
-        match node {
+        match self {
             Node::Number(number) => {
-                write!(self.s, "<mn>{number}</mn>")?;
+                write!(s, "<mn>{number}</mn>")?;
             }
             Node::IdentifierChar(letter, attr) => {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_upright {
-                    write!(self.s, "<mpadded><mi mathvariant=\"normal\">")?;
+                    write!(s, "<mpadded><mi mathvariant=\"normal\">")?;
                 } else {
-                    write!(self.s, "<mi>")?;
+                    write!(s, "<mi>")?;
                 }
                 let c = *letter;
-                // let variant_selector = if matches!(
-                //     self.var,
-                //     Some(MathVariant::Transform(TextTransform::ScriptChancery))
-                // ) {
-                //     "\u{FE00}"
-                // } else if matches!(
-                //     self.var,
-                //     Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
-                // ) {
-                //     "\u{FE01}"
-                // } else {
-                //     ""
-                // };
-                write!(self.s, "{c}</mi>")?;
+                write!(s, "{c}</mi>")?;
                 if is_upright {
-                    write!(self.s, "</mpadded>")?;
+                    write!(s, "</mpadded>")?;
                 }
             }
             Node::StretchableOp(op, stretch_mode) => {
                 if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
-                    write!(self.s, "<mi>{}</mi>", char::from(*op))?;
+                    write!(s, "<mi>{}</mi>", char::from(*op))?;
                 } else {
-                    self.emit_stretchy_op(*stretch_mode, Some(*op))?;
+                    emit_stretchy_op(s, *stretch_mode, Some(*op))?;
                 }
             }
             Node::Operator {
@@ -234,8 +191,8 @@ impl MathMLEmitter {
                 left,
                 right,
             } => {
-                self.emit_operator_attributes(*attr, *left, *right)?;
-                write!(self.s, ">{}</mo>", char::from(op))?;
+                emit_operator_attributes(s, *attr, *left, *right)?;
+                write!(s, ">{}</mo>", char::from(op))?;
             }
             Node::PseudoOp {
                 attr,
@@ -243,8 +200,8 @@ impl MathMLEmitter {
                 right,
                 name: text,
             } => {
-                self.emit_operator_attributes(*attr, *left, *right)?;
-                write!(self.s, ">{text}</mo>")?;
+                emit_operator_attributes(s, *attr, *left, *right)?;
+                write!(s, ">{text}</mo>")?;
             }
             node @ (Node::IdentifierStr(_, letters) | Node::Text(letters)) => {
                 let (open, close) = match node {
@@ -261,17 +218,17 @@ impl MathMLEmitter {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(self.s, "{open}{letters}{close}")?;
+                write!(s, "{open}{letters}{close}")?;
             }
             Node::Space(space) => {
-                write!(self.s, "<mspace width=\"")?;
-                space.push_to_string(&mut self.s);
+                write!(s, "<mspace width=\"")?;
+                space.push_to_string(s);
                 // Work-around for a Firefox bug that causes "rem" to not be processed correctly
                 if matches!(space.unit, LengthUnit::Rem) {
-                    write!(self.s, "\" style=\"width:")?;
-                    space.push_to_string(&mut self.s);
+                    write!(s, "\" style=\"width:")?;
+                    space.push_to_string(s);
                 }
-                write!(self.s, "\"/>")?;
+                write!(s, "\"/>")?;
             }
             // The following nodes have exactly two children.
             node @ (Node::Subscript {
@@ -300,10 +257,10 @@ impl MathMLEmitter {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(self.s, "{open}")?;
-                self.emit(first, child_indent)?;
-                self.emit(second, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "{close}");
+                write!(s, "{open}")?;
+                first.emit(s, child_indent)?;
+                second.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "{close}");
             }
             // The following nodes have exactly three children.
             node @ (Node::SubSup {
@@ -322,48 +279,48 @@ impl MathMLEmitter {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(self.s, "{open}")?;
-                self.emit(first, child_indent)?;
-                self.emit(second, child_indent)?;
-                self.emit(third, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "{close}");
+                write!(s, "{open}")?;
+                first.emit(s, child_indent)?;
+                second.emit(s, child_indent)?;
+                third.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "{close}");
             }
             Node::Multiscript { base, sub, sup } => {
-                write!(self.s, "<mmultiscripts>")?;
-                self.emit(base, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mprescripts/>");
+                write!(s, "<mmultiscripts>")?;
+                base.emit(s, child_indent)?;
+                writeln_indent!(s, child_indent, "<mprescripts/>");
                 if let Some(sub) = sub {
-                    self.emit(sub, child_indent)?;
+                    sub.emit(s, child_indent)?;
                 } else {
-                    writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
+                    writeln_indent!(s, child_indent, "<mrow></mrow>");
                 }
                 if let Some(sup) = sup {
-                    self.emit(sup, child_indent)?;
+                    sup.emit(s, child_indent)?;
                 } else {
-                    writeln_indent!(&mut self.s, child_indent, "<mrow></mrow>");
+                    writeln_indent!(s, child_indent, "<mrow></mrow>");
                 }
-                writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
+                writeln_indent!(s, base_indent, "</mmultiscripts>");
             }
             Node::OverOp(op, attr, target) => {
-                write!(self.s, "<mover accent=\"true\">")?;
-                self.emit(target, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mo");
+                write!(s, "<mover accent=\"true\">")?;
+                target.emit(s, child_indent)?;
+                writeln_indent!(s, child_indent, "<mo");
                 if let Some(attr) = attr {
-                    write!(self.s, "{}", <&str>::from(attr))?;
+                    write!(s, "{}", <&str>::from(attr))?;
                 }
-                write!(self.s, ">{}</mo>", char::from(op))?;
-                writeln_indent!(&mut self.s, base_indent, "</mover>");
+                write!(s, ">{}</mo>", char::from(op))?;
+                writeln_indent!(s, base_indent, "</mover>");
             }
             Node::UnderOp(op, target) => {
-                write!(self.s, "<munder accentunder=\"true\">")?;
-                self.emit(target, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mo>{}</mo>", char::from(op));
-                writeln_indent!(&mut self.s, base_indent, "</munder>");
+                write!(s, "<munder accentunder=\"true\">")?;
+                target.emit(s, child_indent)?;
+                writeln_indent!(s, child_indent, "<mo>{}</mo>", char::from(op));
+                writeln_indent!(s, base_indent, "</munder>");
             }
             Node::Sqrt(content) => {
-                write!(self.s, "<msqrt>")?;
-                self.emit(content, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</msqrt>");
+                write!(s, "<msqrt>")?;
+                content.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "</msqrt>");
             }
             Node::Frac {
                 num,
@@ -372,41 +329,41 @@ impl MathMLEmitter {
                 lt_unit: line_unit,
                 attr,
             } => {
-                write!(self.s, "<mfrac")?;
+                write!(s, "<mfrac")?;
                 let lt = Length::from_parts(*line_length, *line_unit);
                 if let Some(lt) = lt {
-                    write!(self.s, " linethickness=\"")?;
-                    lt.push_to_string(&mut self.s);
-                    write!(self.s, "\"")?;
+                    write!(s, " linethickness=\"")?;
+                    lt.push_to_string(s);
+                    write!(s, "\"")?;
                 }
                 if let Some(style) = attr {
-                    write!(self.s, "{}", <&str>::from(style))?;
+                    write!(s, "{}", <&str>::from(style))?;
                 }
-                write!(self.s, ">")?;
-                self.emit(num, child_indent)?;
-                self.emit(den, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</mfrac>");
+                write!(s, ">")?;
+                num.emit(s, child_indent)?;
+                den.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "</mfrac>");
             }
             Node::Row { nodes, attr: style } => {
                 match style {
                     RowAttr::None => {
-                        write!(self.s, "<mrow>")?;
+                        write!(s, "<mrow>")?;
                     }
                     RowAttr::Style(style) => {
-                        write!(self.s, "<mrow{}>", <&str>::from(style))?;
+                        write!(s, "<mrow{}>", <&str>::from(style))?;
                     }
                     RowAttr::Color(r, g, b) => {
-                        write!(self.s, "<mrow style=\"color:#")?;
-                        append_u8_as_hex(&mut self.s, *r);
-                        append_u8_as_hex(&mut self.s, *g);
-                        append_u8_as_hex(&mut self.s, *b);
-                        write!(self.s, ";\">")?;
+                        write!(s, "<mrow style=\"color:#")?;
+                        append_u8_as_hex(s, *r);
+                        append_u8_as_hex(s, *g);
+                        append_u8_as_hex(s, *b);
+                        write!(s, ";\">")?;
                     }
                 }
                 for node in nodes.iter() {
-                    self.emit(node, child_indent)?;
+                    node.emit(s, child_indent)?;
                 }
-                writeln_indent!(&mut self.s, base_indent, "</mrow>");
+                writeln_indent!(s, base_indent, "</mrow>");
             }
             Node::Fenced {
                 open,
@@ -415,46 +372,46 @@ impl MathMLEmitter {
                 style,
             } => {
                 match style {
-                    Some(style) => write!(self.s, "<mrow{}>", <&str>::from(style))?,
-                    None => write!(self.s, "<mrow>")?,
+                    Some(style) => write!(s, "<mrow{}>", <&str>::from(style))?,
+                    None => write!(s, "<mrow>")?,
                 };
-                new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(StretchMode::Fence, *open)?;
-                self.emit(content, child_indent)?;
-                new_line_and_indent(&mut self.s, child_indent);
-                self.emit_stretchy_op(StretchMode::Fence, *close)?;
-                writeln_indent!(&mut self.s, base_indent, "</mrow>");
+                new_line_and_indent(s, child_indent);
+                emit_stretchy_op(s, StretchMode::Fence, *open)?;
+                content.emit(s, child_indent)?;
+                new_line_and_indent(s, child_indent);
+                emit_stretchy_op(s, StretchMode::Fence, *close)?;
+                writeln_indent!(s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
                 write!(
-                    self.s,
+                    s,
                     "<mo maxsize=\"{}\" minsize=\"{}\"",
                     <&str>::from(size),
                     <&str>::from(size)
                 )?;
                 match paren.stretchy {
                     Stretchy::PrePostfix | Stretchy::Never => {
-                        write!(self.s, " stretchy=\"true\" symmetric=\"true\"")?;
+                        write!(s, " stretchy=\"true\" symmetric=\"true\"")?;
                     }
                     Stretchy::AlwaysAsymmetric => {
-                        write!(self.s, " symmetric=\"true\"")?;
+                        write!(s, " symmetric=\"true\"")?;
                     }
                     _ => {}
                 }
-                write!(self.s, ">{}</mo>", char::from(*paren))?;
+                write!(s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
                 Node::IdentifierChar(x, attr) => {
                     if matches!(attr, LetterAttr::ForcedUpright) {
-                        write!(self.s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
+                        write!(s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
                     } else {
-                        write!(self.s, "<mi>{x}&#x0338;</mi>")?;
+                        write!(s, "<mi>{x}&#x0338;</mi>")?;
                     }
                 }
                 Node::Operator { op, .. } => {
-                    write!(self.s, "<mo>{}&#x0338;</mo>", char::from(op))?;
+                    write!(s, "<mo>{}&#x0338;</mo>", char::from(op))?;
                 }
-                n => self.emit(n, base_indent)?,
+                n => n.emit(s, base_indent)?,
             },
             Node::Table {
                 content,
@@ -466,15 +423,16 @@ impl MathMLEmitter {
                 let mtd_opening = ColumnGenerator::new_predefined(*align);
                 let with_numbering = *with_numbering;
 
-                write!(self.s, "<mtable")?;
+                write!(s, "<mtable")?;
                 if let Some(attr) = attr {
-                    write!(self.s, "{}", <&str>::from(attr))?;
+                    write!(s, "{}", <&str>::from(attr))?;
                 }
                 if with_numbering {
-                    write!(self.s, r#" style="width: 100%""#)?;
+                    write!(s, r#" style="width: 100%""#)?;
                 }
-                write!(self.s, ">")?;
-                self.emit_table(
+                write!(s, ">")?;
+                emit_table(
+                    s,
                     base_indent,
                     child_indent,
                     content,
@@ -489,21 +447,29 @@ impl MathMLEmitter {
                 array_spec,
             } => {
                 let mtd_opening = ColumnGenerator::new_custom(array_spec);
-                write!(self.s, "<mtable")?;
+                write!(s, "<mtable")?;
                 match array_spec.beginning_line {
                     Some(LineType::Solid) => {
-                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor\"")?;
+                        write!(s, " style=\"border-left: 0.05em solid currentcolor\"")?;
                     }
                     Some(LineType::Dashed) => {
-                        write!(self.s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
+                        write!(s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
                     }
                     _ => (),
                 }
                 if let Some(style) = style {
-                    write!(self.s, "{}", <&str>::from(style))?;
+                    write!(s, "{}", <&str>::from(style))?;
                 }
-                write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening, false, None)?;
+                write!(s, ">")?;
+                emit_table(
+                    s,
+                    base_indent,
+                    child_indent,
+                    content,
+                    mtd_opening,
+                    false,
+                    None,
+                )?;
             }
             Node::ColumnSeparator => {
                 // This should only appear in tables where it is handled in `emit_table`.
@@ -518,51 +484,51 @@ impl MathMLEmitter {
             }
             Node::Enclose { content, notation } => {
                 let notation = *notation;
-                write!(self.s, "<menclose notation=\"")?;
+                write!(s, "<menclose notation=\"")?;
                 let mut first = true;
                 if notation.contains(Notation::UP_DIAGONAL) {
-                    write!(self.s, "updiagonalstrike")?;
+                    write!(s, "updiagonalstrike")?;
                     first = false;
                 }
                 if notation.contains(Notation::DOWN_DIAGONAL) {
                     if !first {
-                        write!(self.s, " ")?;
+                        write!(s, " ")?;
                     }
-                    write!(self.s, "downdiagonalstrike")?;
+                    write!(s, "downdiagonalstrike")?;
                 }
                 if notation.contains(Notation::HORIZONTAL) {
                     if !first {
-                        write!(self.s, " ")?;
+                        write!(s, " ")?;
                     }
-                    write!(self.s, "horizontalstrike")?;
+                    write!(s, "horizontalstrike")?;
                 }
-                write!(self.s, "\">")?;
-                self.emit(content, child_indent)?;
+                write!(s, "\">")?;
+                content.emit(s, child_indent)?;
                 if notation.contains(Notation::UP_DIAGONAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        s,
                         child_indent,
                         "<mrow class=\"menclose-updiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::DOWN_DIAGONAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        s,
                         child_indent,
                         "<mrow class=\"menclose-downdiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::HORIZONTAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        s,
                         child_indent,
                         "<mrow class=\"menclose-horizontalstrike\"></mrow>"
                     );
                 }
-                writeln_indent!(&mut self.s, base_indent, "</menclose>");
+                writeln_indent!(s, base_indent, "</menclose>");
             }
             Node::HardcodedMathML(mathml) => {
-                write!(self.s, "{mathml}")?;
+                write!(s, "{mathml}")?;
             }
             Node::Dummy => {
                 // Do nothing.
@@ -570,170 +536,152 @@ impl MathMLEmitter {
         };
         Ok(())
     }
-
-    fn emit_operator_attributes(
-        &mut self,
-        attr: Option<OpAttr>,
-        left: Option<MathSpacing>,
-        right: Option<MathSpacing>,
-    ) -> std::fmt::Result {
-        match attr {
-            Some(attributes) => write!(self.s, "<mo{}", <&str>::from(attributes))?,
-            None => write!(self.s, "<mo")?,
-        };
-        match (left, right) {
-            (Some(left), Some(right)) => {
-                write!(
-                    self.s,
-                    " lspace=\"{}\" rspace=\"{}\"",
-                    <&str>::from(left),
-                    <&str>::from(right)
-                )?;
-            }
-            (Some(left), None) => {
-                write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
-            }
-            (None, Some(right)) => {
-                write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
-            }
-            _ => {}
-        };
-        Ok(())
-    }
-
-    fn emit_table(
-        &mut self,
-        base_indent: usize,
-        child_indent: usize,
-        content: &[&Node<'_>],
-        mut col_gen: ColumnGenerator,
-        with_numbering: bool,
-        last_equation_num: Option<NonZeroU16>,
-    ) -> Result<(), std::fmt::Error> {
-        let child_indent2 = if base_indent > 0 {
-            child_indent.saturating_add(1)
-        } else {
-            0
-        };
-        let child_indent3 = if base_indent > 0 {
-            child_indent2.saturating_add(1)
-        } else {
-            0
-        };
-        col_gen.reset_columns();
-        writeln_indent!(&mut self.s, child_indent, "<mtr>");
-        if with_numbering {
-            // Add a dummy column to help keep everything centered.
-            writeln_indent!(
-                &mut self.s,
-                child_indent2,
-                r#"<mtd style="width: 50%"></mtd>"#
-            );
-        }
-        col_gen.write_next_mtd(&mut self.s, child_indent2)?;
-        for node in content.iter() {
-            match node {
-                Node::ColumnSeparator => {
-                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
-                }
-                Node::RowSeparator(equation_counter) => {
-                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                    if with_numbering {
-                        self.write_equation_num(
-                            child_indent2,
-                            child_indent3,
-                            equation_counter.as_ref().copied(),
-                        )?;
-                    }
-                    writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                    writeln_indent!(&mut self.s, child_indent, "<mtr>");
-                    col_gen.reset_columns();
-                    if with_numbering {
-                        // Add a dummy column to help keep everything centered.
-                        writeln_indent!(
-                            &mut self.s,
-                            child_indent2,
-                            r#"<mtd style="width: 50%"></mtd>"#
-                        );
-                    }
-                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
-                }
-                node => {
-                    self.emit(node, child_indent3)?;
-                }
-            }
-        }
-        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-        if with_numbering {
-            self.write_equation_num(child_indent2, child_indent3, last_equation_num)?;
-        }
-        writeln_indent!(&mut self.s, child_indent, "</mtr>");
-        writeln_indent!(&mut self.s, base_indent, "</mtable>");
-        Ok(())
-    }
-
-    fn write_equation_num(
-        &mut self,
-        child_indent2: usize,
-        child_indent3: usize,
-        equation_counter: Option<NonZeroU16>,
-    ) -> Result<(), std::fmt::Error> {
-        writeln_indent!(&mut self.s, child_indent2, r#"<mtd style="width: 50%"#);
-        if let Some(equation_counter) = equation_counter {
-            write!(&mut self.s, r#";{}">"#, RIGHT_ALIGN)?;
-            writeln_indent!(
-                &mut self.s,
-                child_indent3,
-                "<mtext>({})</mtext>",
-                equation_counter
-            );
-            writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-        } else {
-            write!(&mut self.s, "\"></mtd>")?;
-        }
-        Ok(())
-    }
-
-    fn emit_stretchy_op(
-        &mut self,
-        stretch_mode: StretchMode,
-        op: Option<StretchableOp>,
-    ) -> std::fmt::Result {
-        if let Some(op) = op {
-            match (stretch_mode, op.stretchy) {
-                (StretchMode::Fence, Stretchy::Never)
-                | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
-                    write!(self.s, "<mo stretchy=\"true\">")?;
-                }
-                (
-                    StretchMode::NoStretch,
-                    Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
-                ) => {
-                    write!(self.s, "<mo stretchy=\"false\">")?;
-                }
-
-                (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
-                    write!(self.s, "<mo symmetric=\"true\">")?;
-                }
-                _ => {
-                    write!(self.s, "<mo>")?;
-                }
-            }
-            write!(self.s, "{}", char::from(op))?;
-        } else {
-            write!(self.s, "<mo>")?;
-        }
-        write!(self.s, "</mo>")?;
-        Ok(())
-    }
 }
 
-// impl Default for MathMLEmitter<'static> {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+fn emit_operator_attributes(
+    s: &mut String,
+    attr: Option<OpAttr>,
+    left: Option<MathSpacing>,
+    right: Option<MathSpacing>,
+) -> std::fmt::Result {
+    match attr {
+        Some(attributes) => write!(s, "<mo{}", <&str>::from(attributes))?,
+        None => write!(s, "<mo")?,
+    };
+    match (left, right) {
+        (Some(left), Some(right)) => {
+            write!(
+                s,
+                " lspace=\"{}\" rspace=\"{}\"",
+                <&str>::from(left),
+                <&str>::from(right)
+            )?;
+        }
+        (Some(left), None) => {
+            write!(s, " lspace=\"{}\"", <&str>::from(left))?;
+        }
+        (None, Some(right)) => {
+            write!(s, " rspace=\"{}\"", <&str>::from(right))?;
+        }
+        _ => {}
+    };
+    Ok(())
+}
+
+fn emit_table(
+    s: &mut String,
+    base_indent: usize,
+    child_indent: usize,
+    content: &[&Node<'_>],
+    mut col_gen: ColumnGenerator,
+    with_numbering: bool,
+    last_equation_num: Option<NonZeroU16>,
+) -> Result<(), std::fmt::Error> {
+    let child_indent2 = if base_indent > 0 {
+        child_indent.saturating_add(1)
+    } else {
+        0
+    };
+    let child_indent3 = if base_indent > 0 {
+        child_indent2.saturating_add(1)
+    } else {
+        0
+    };
+    col_gen.reset_columns();
+    writeln_indent!(s, child_indent, "<mtr>");
+    if with_numbering {
+        // Add a dummy column to help keep everything centered.
+        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+    }
+    col_gen.write_next_mtd(s, child_indent2)?;
+    for node in content.iter() {
+        match node {
+            Node::ColumnSeparator => {
+                writeln_indent!(s, child_indent2, "</mtd>");
+                col_gen.write_next_mtd(s, child_indent2)?;
+            }
+            Node::RowSeparator(equation_counter) => {
+                writeln_indent!(s, child_indent2, "</mtd>");
+                if with_numbering {
+                    write_equation_num(
+                        s,
+                        child_indent2,
+                        child_indent3,
+                        equation_counter.as_ref().copied(),
+                    )?;
+                }
+                writeln_indent!(s, child_indent, "</mtr>");
+                writeln_indent!(s, child_indent, "<mtr>");
+                col_gen.reset_columns();
+                if with_numbering {
+                    // Add a dummy column to help keep everything centered.
+                    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+                }
+                col_gen.write_next_mtd(s, child_indent2)?;
+            }
+            node => {
+                node.emit(s, child_indent3)?;
+            }
+        }
+    }
+    writeln_indent!(s, child_indent2, "</mtd>");
+    if with_numbering {
+        write_equation_num(s, child_indent2, child_indent3, last_equation_num)?;
+    }
+    writeln_indent!(s, child_indent, "</mtr>");
+    writeln_indent!(s, base_indent, "</mtable>");
+    Ok(())
+}
+
+fn write_equation_num(
+    s: &mut String,
+    child_indent2: usize,
+    child_indent3: usize,
+    equation_counter: Option<NonZeroU16>,
+) -> Result<(), std::fmt::Error> {
+    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+    if let Some(equation_counter) = equation_counter {
+        write!(s, r#";{}">"#, RIGHT_ALIGN)?;
+        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);
+        writeln_indent!(s, child_indent2, "</mtd>");
+    } else {
+        write!(s, "\"></mtd>")?;
+    }
+    Ok(())
+}
+
+fn emit_stretchy_op(
+    s: &mut String,
+    stretch_mode: StretchMode,
+    op: Option<StretchableOp>,
+) -> std::fmt::Result {
+    if let Some(op) = op {
+        match (stretch_mode, op.stretchy) {
+            (StretchMode::Fence, Stretchy::Never)
+            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
+                write!(s, "<mo stretchy=\"true\">")?;
+            }
+            (
+                StretchMode::NoStretch,
+                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
+            ) => {
+                write!(s, "<mo stretchy=\"false\">")?;
+            }
+
+            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
+                write!(s, "<mo symmetric=\"true\">")?;
+            }
+            _ => {
+                write!(s, "<mo>")?;
+            }
+        }
+        write!(s, "{}", char::from(op))?;
+    } else {
+        write!(s, "<mo>")?;
+    }
+    write!(s, "</mo>")?;
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -752,9 +700,9 @@ mod tests {
     where
         'a: 'b,
     {
-        let mut emitter = MathMLEmitter::new();
-        emitter.emit(node, 0).unwrap();
-        emitter.into_inner()
+        let mut output = String::new();
+        node.emit(&mut output, 0).unwrap();
+        output
     }
 
     #[test]
