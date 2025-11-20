@@ -34,8 +34,7 @@ pub(crate) struct Parser<'cell, 'arena, 'source> {
 struct ParserState<'source> {
     cmd_args: Vec<TokLoc<'source>>,
     cmd_arg_offsets: [usize; 9],
-    collector: LetterCollector,
-    tf: Option<MathVariant>,
+    transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
     /// this is not the case for style-only rows.
     /// This is currently a hack, which should be replaced by a more robust solution later.
@@ -135,8 +134,7 @@ where
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
-                collector: LetterCollector::Inactive,
-                tf: None,
+                transform: None,
                 right_boundary_hack: false,
                 allow_columns: false,
                 numbered: None,
@@ -179,12 +177,8 @@ where
         while !sequence_end.matches(self.tokens.peek().token()) {
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected_letters) =
-                self.state.collector.collect_letters(
-                    &mut self.tokens,
-                    &mut self.buffer,
-                    self.arena,
-                    self.state.tf,
-                )? {
+                self.merge_and_transform_letters()?
+            {
                 collected_letters
             } else {
                 // Get the current token.
@@ -252,7 +246,7 @@ where
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => {
-                if let Some(MathVariant::Transform(tf)) = self.state.tf {
+                if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     return Ok((
                         Class::Default,
                         self.commit(Node::IdentifierChar(
@@ -295,7 +289,7 @@ where
             tok @ (Token::Letter(c) | Token::UprightLetter(c)) => {
                 let mut is_upright = matches!(tok, Token::UprightLetter(_));
                 let mut with_tf = false;
-                let ch = if let Some(tf) = self.state.tf {
+                let ch = if let Some(tf) = self.state.transform {
                     match tf {
                         MathVariant::Transform(tf) => {
                             with_tf = true;
@@ -311,7 +305,7 @@ where
                 };
                 if let Some(MathVariant::Transform(
                     tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
-                )) = self.state.tf
+                )) = self.state.transform
                 {
                     // We need to append Unicode variant selectors for these transforms.
                     let mut builder = self.buffer.get_builder();
@@ -730,12 +724,9 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let old_collector =
-                    mem::replace(&mut self.state.collector, LetterCollector::Collecting);
-                let old_tf = mem::replace(&mut self.state.tf, Some(tf));
+                let old_tf = mem::replace(&mut self.state.transform, Some(tf));
                 let content = self.parse_next(ParseAs::Arg)?;
-                self.state.collector = old_collector;
-                self.state.tf = old_tf;
+                self.state.transform = old_tf;
                 return Ok((Class::Close, content));
             }
             Token::Integral(int) => {
@@ -1395,6 +1386,73 @@ where
         };
         Ok((delim, class))
     }
+
+    #[inline]
+    fn merge_and_transform_letters(
+        &mut self,
+    ) -> ParseResult<'cell, 'source, Option<(Class, &'arena Node<'arena>)>> {
+        let Some(tf) = self.state.transform else {
+            return Ok(None);
+        };
+        let mut builder = self.buffer.get_builder();
+        let mut num_chars = 0usize;
+        // We store the first character separately, because if we only collect
+        // one character, we need it as a `char` and not as a `String`.
+        let mut first_char: Option<char> = None;
+
+        // Loop until we find a non-letter token.
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
+            self.tokens.peek().token()
+        {
+            if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
+                // Don't collect digits in normal math variant.
+                break;
+            }
+            let is_upright = matches!(tok, Token::UprightLetter(_));
+            let c = if let MathVariant::Transform(tf) = tf {
+                tf.transform(*ch, is_upright)
+            } else {
+                *ch
+            };
+            builder.push_char(c);
+            if first_char.is_none() {
+                first_char = Some(c);
+            }
+            num_chars += 1;
+
+            if let MathVariant::Transform(
+                tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
+            ) = tf
+            {
+                // We need to append Unicode variant selectors for these transforms.
+                builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
+                    '\u{FE00}' // VARIATION SELECTOR-1
+                } else {
+                    '\u{FE01}' // VARIATION SELECTOR-2
+                });
+                num_chars += 1;
+            }
+            // Get the next token for the next iteration.
+            self.tokens.next()?;
+        }
+        // If we collected at least one letter, commit it to the arena and return
+        // the corresponding AST node.
+        let Some(ch) = first_char else {
+            return Ok(None);
+        };
+        let node = self.arena.push(if num_chars == 1 {
+            let attr = if matches!(tf, MathVariant::Normal) {
+                LetterAttr::ForcedUpright
+            } else {
+                LetterAttr::Default
+            };
+            Node::IdentifierChar(ch, attr)
+        } else {
+            let with_tf = matches!(tf, MathVariant::Transform(_));
+            Node::IdentifierStr(with_tf, builder.finish(self.arena))
+        });
+        Ok(Some((Class::Default, node)))
+    }
 }
 
 impl<'source> ParserState<'source> {
@@ -1466,87 +1524,6 @@ pub(crate) fn node_vec_to_node<'arena>(
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
-
-enum LetterCollector {
-    Inactive,
-    Collecting,
-}
-
-impl LetterCollector {
-    #[inline]
-    fn collect_letters<'cell, 'arena, 'source>(
-        &mut self,
-        tokens: &mut TokenManager<'cell, 'source>,
-        buffer: &mut Buffer,
-        arena: &'arena Arena,
-        tf: Option<MathVariant>,
-    ) -> ParseResult<'cell, 'source, Option<(Class, &'arena Node<'arena>)>> {
-        if !matches!(self, LetterCollector::Collecting) {
-            return Ok(None);
-        };
-        let tf = tf.unwrap();
-        let mut builder = buffer.get_builder();
-        let mut num_chars = 0usize;
-        // We store the first character separately, because if we only collect
-        // one character, we need it as a `char` and not as a `String`.
-        let mut first_char: Option<char> = None;
-
-        // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
-            tokens.peek().token()
-        {
-            if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
-                // Don't collect digits in normal math variant.
-                break;
-            }
-            let is_upright = matches!(tok, Token::UprightLetter(_));
-            let c = if let MathVariant::Transform(tf) = tf {
-                tf.transform(*ch, is_upright)
-            } else {
-                *ch
-            };
-            builder.push_char(c);
-            if first_char.is_none() {
-                first_char = Some(c);
-            }
-            num_chars += 1;
-
-            if let MathVariant::Transform(
-                tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
-            ) = tf
-            {
-                // We need to append Unicode variant selectors for these transforms.
-                builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
-                    '\u{FE00}' // VARIATION SELECTOR-1
-                } else {
-                    '\u{FE01}' // VARIATION SELECTOR-2
-                });
-                num_chars += 1;
-            }
-            // Get the next token for the next iteration.
-            tokens.next()?;
-        }
-        // If we collected at least one letter, commit it to the arena and return
-        // the corresponding AST node.
-        if let Some(ch) = first_char {
-            let node = arena.push(if num_chars == 1 {
-                Node::IdentifierChar(
-                    ch,
-                    if matches!(tf, MathVariant::Normal) {
-                        LetterAttr::ForcedUpright
-                    } else {
-                        LetterAttr::Default
-                    },
-                )
-            } else {
-                let with_tf = matches!(tf, MathVariant::Transform(_));
-                Node::IdentifierStr(with_tf, builder.finish(arena))
-            });
-            return Ok(Some((Class::Default, node)));
-        }
-        Ok(None)
-    }
-}
 
 fn get_single_char(s: &str) -> Option<char> {
     let mut chars = s.chars();

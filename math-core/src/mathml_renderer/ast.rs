@@ -203,19 +203,6 @@ impl MathMLEmitter {
                     write!(self.s, "<mi>")?;
                 }
                 let c = *letter;
-                // let variant_selector = if matches!(
-                //     self.var,
-                //     Some(MathVariant::Transform(TextTransform::ScriptChancery))
-                // ) {
-                //     "\u{FE00}"
-                // } else if matches!(
-                //     self.var,
-                //     Some(MathVariant::Transform(TextTransform::ScriptRoundhand))
-                // ) {
-                //     "\u{FE01}"
-                // } else {
-                //     ""
-                // };
                 write!(self.s, "{c}</mi>")?;
                 if is_upright {
                     write!(self.s, "</mpadded>")?;
