@@ -27,8 +27,7 @@ pub enum LatexErrKind<'source> {
         location: &'static Token<'static>,
         got: Token<'source>,
     },
-    MissingBrace(char),
-    DisallowedChars,
+    DisallowedChar(char),
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
     UnknownColor(&'source str),
@@ -94,13 +93,12 @@ impl LatexErrKind<'_> {
                     + <&str>::from(got)
                     + "\" was found."
             }
-            LatexErrKind::MissingBrace(got) => {
-                let mut text = "Expected '{' but found '".to_string();
+            LatexErrKind::DisallowedChar(got) => {
+                let mut text = "Disallowed character in text group: '".to_string();
                 text.push(*got);
                 text += "'.";
                 text
             }
-            LatexErrKind::DisallowedChars => "Disallowed characters in text group.".to_string(),
             LatexErrKind::UnknownEnvironment(environment) => {
                 "Unknown environment \"".to_string() + environment + "\"."
             }

@@ -2,4 +2,4 @@
 source: math-core/src/latex_parser/lexer.rs
 expression: "\\begin{matrix x + y}"
 ---
-Error at 6: DisallowedChars
+Error at 16: DisallowedChar('+')
