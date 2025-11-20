@@ -78,5 +78,5 @@ def test_continue_on_error():
     )
     assert (
         converter.convert_with_local_counter("\\hspace{\"} '&", displaystyle=True)
-        == '<p class="math-core-error" title="7: Disallowed characters in text group."><code>\\hspace{"} \'&amp;</code></p>'
+        == '<p class="math-core-error" title="8: Disallowed character in text group: \'&quot;\'."><code>\\hspace{"} \'&amp;</code></p>'
     )
