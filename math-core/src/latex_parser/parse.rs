@@ -245,14 +245,11 @@ where
             .peek()
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
-            Token::Digit(number) => {
+            Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
-                    return Ok((
-                        Class::Default,
-                        self.commit(Node::IdentifierChar(
-                            tf.transform(number, false),
-                            LetterAttr::Default,
-                        )),
+                    break 'digit Ok(Node::IdentifierChar(
+                        tf.transform(number, false),
+                        LetterAttr::Default,
                     ));
                 }
                 let mut builder = self.buffer.get_builder();
@@ -706,21 +703,26 @@ where
                         left: None,
                         right: None,
                     }),
+                    // We have to special-case `\exists` here because it is not a relation.
+                    Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
+                        op: symbol::THERE_DOES_NOT_EXIST.as_op(),
+                        attr: None,
+                        left: None,
+                        right: None,
+                    }),
                     Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                     }
-                    _ => {
-                        return Err(self.alloc_err(LatexError(
-                            loc,
-                            LatexErrKind::CannotBeUsedHere {
-                                got: cur_token,
-                                correct_place: Place::BeforeSomeOps,
-                            },
-                        )));
-                    }
+                    _ => Err(LatexError(
+                        loc,
+                        LatexErrKind::CannotBeUsedHere {
+                            got: cur_token,
+                            correct_place: Place::BeforeSomeOps,
+                        },
+                    )),
                 }
             }
             Token::Transform(tf) => {

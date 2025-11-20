@@ -1,0 +1,7 @@
+---
+source: math-core/tests/conversion_test.rs
+expression: "\\not\\exists"
+---
+<math>
+    <mo>∄</mo>
+</math>
