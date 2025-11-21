@@ -18,15 +18,14 @@ use super::{
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{parse_column_specification, parse_length_specification},
-    text_parser::TextParser,
     token::{TokLoc, Token},
     token_manager::TokenManager,
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source> {
-    tokens: TokenManager<'cell, 'source>,
-    buffer: Buffer,
-    arena: &'arena Arena,
+    pub(super) tokens: TokenManager<'cell, 'source>,
+    pub(super) buffer: Buffer,
+    pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
     state: ParserState<'source>,
 }
@@ -113,7 +112,7 @@ impl ParseAs {
     }
 }
 
-type ParseResult<'cell, 'source, T> = Result<T, &'cell LatexError<'source>>;
+pub(super) type ParseResult<'cell, 'source, T> = Result<T, &'cell LatexError<'source>>;
 
 impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source>
 where
@@ -446,7 +445,7 @@ where
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
                 }
             }
-            Token::NonBreakingSpace => Ok(Node::Text("\u{A0}")),
+            Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
@@ -942,10 +941,11 @@ where
                 Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
             Token::OperatorName => {
-                let tokloc = self.tokens.next();
+                let snippets = self.parse_in_text_mode(None)?;
                 let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, None);
-                text_parser.parse_token_as_text(tokloc)?;
+                for (_style, text) in snippets {
+                    builder.push_str(text);
+                }
                 let letters = builder.finish(self.arena);
                 if let Some(ch) = get_single_char(letters) {
                     Ok(Node::IdentifierChar(ch, LetterAttr::ForcedUpright))
@@ -965,12 +965,12 @@ where
                 if matches!(self.tokens.peek().token(), Token::Whitespace) {
                     self.next_token()?;
                 }
-                let tokloc = self.tokens.next();
-                let mut builder = self.buffer.get_builder();
-                let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, transform);
-                text_parser.parse_token_as_text(tokloc)?;
-                let text = builder.finish(self.arena);
-                Ok(Node::Text(text))
+                let snippets = self.parse_in_text_mode(transform)?;
+                let nodes = snippets
+                    .into_iter()
+                    .map(|(style, text)| self.commit(Node::Text(style, text)))
+                    .collect::<Vec<_>>();
+                return Ok((Class::Close, node_vec_to_node(self.arena, nodes, false)));
             }
             Token::NewColumn => {
                 if self.state.allow_columns {

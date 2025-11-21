@@ -3,6 +3,6 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\text123"
 ---
 [
-  Text("1"),
+  Text(None, "1"),
   Number("23"),
 ]

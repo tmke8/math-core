@@ -3,5 +3,5 @@ source: math-core/tests/conversion_test.rs
 expression: "\\texttt{x}"
 ---
 <math>
-    <mtext>𝚡</mtext>
+    <mtext><code>x</code></mtext>
 </math>

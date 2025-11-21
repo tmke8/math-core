@@ -3,5 +3,5 @@ source: math-core/tests/conversion_test.rs
 expression: "\\textbf{x}"
 ---
 <math>
-    <mtext>𝐱</mtext>
+    <mtext><b>x</b></mtext>
 </math>

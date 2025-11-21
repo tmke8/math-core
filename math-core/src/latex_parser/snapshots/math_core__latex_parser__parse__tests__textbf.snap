@@ -3,5 +3,5 @@ source: math-core/src/latex_parser/parse.rs
 expression: "\\textbf{abc}"
 ---
 [
-  Text("𝐚𝐛𝐜"),
+  Text(Some(Bold), "abc"),
 ]

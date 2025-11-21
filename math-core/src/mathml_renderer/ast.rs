@@ -5,7 +5,8 @@ use std::num::NonZeroU16;
 use serde::Serialize;
 
 use super::attribute::{
-    FracAttr, LetterAttr, MathSpacing, Notation, OpAttr, RowAttr, Size, StretchMode, Style,
+    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttr, RowAttr, Size, StretchMode,
+    Style,
 };
 use super::fmt::new_line_and_indent;
 use super::itoa::append_u8_as_hex;
@@ -104,7 +105,7 @@ pub enum Node<'arena> {
     },
     SizedParen(Size, StretchableOp),
     /// `<mtext>...</mtext>`
-    Text(&'arena str),
+    Text(Option<HtmlTextStyle>, &'arena str),
     /// `<mtable>...</mtable>`
     Table {
         content: &'arena [&'arena Node<'arena>],
@@ -203,7 +204,7 @@ impl Node<'_> {
                 emit_operator_attributes(s, *attr, *left, *right)?;
                 write!(s, ">{text}</mo>")?;
             }
-            node @ (Node::IdentifierStr(_, letters) | Node::Text(letters)) => {
+            node @ (Node::IdentifierStr(_, letters) | Node::Text(_, letters)) => {
                 let (open, close) = match node {
                     Node::IdentifierStr(with_tf, _) => {
                         // This is only needed to prevent Firefox from adding extra space around
@@ -214,7 +215,17 @@ impl Node<'_> {
                             ("<mpadded><mi>", "</mi></mpadded>")
                         }
                     }
-                    Node::Text(_) => ("<mtext>", "</mtext>"),
+                    Node::Text(text_style, _) => match text_style {
+                        None => ("<mtext>", "</mtext>"),
+                        Some(HtmlTextStyle::Bold) => ("<mtext><b>", "</b></mtext>"),
+                        Some(HtmlTextStyle::Italic) => ("<mtext><i>", "</i></mtext>"),
+                        Some(HtmlTextStyle::Emphasis) => ("<mtext><em>", "</em></mtext>"),
+                        Some(HtmlTextStyle::Typewriter) => ("<mtext><code>", "</code></mtext>"),
+                        Some(HtmlTextStyle::SmallCaps) => (
+                            "<mtext><span style=\"font-variant-caps: small-caps\">",
+                            "</span></mtext>",
+                        ),
+                    },
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
@@ -1082,7 +1093,7 @@ mod tests {
 
     #[test]
     fn render_text() {
-        assert_eq!(render(&Node::Text("hello")), "<mtext>hello</mtext>");
+        assert_eq!(render(&Node::Text(None, "hello")), "<mtext>hello</mtext>");
     }
 
     #[test]

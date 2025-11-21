@@ -34,7 +34,7 @@ impl Arena {
         }
     }
 
-    fn alloc_str(&self, src: &str) -> &str {
+    pub fn alloc_str(&self, src: &str) -> &str {
         // `DroplessArena::alloc_str()` panics on empty strings.
         if src.is_empty() {
             ""
@@ -110,6 +110,10 @@ impl<'buffer> StringBuilder<'buffer> {
 
     pub fn finish(self, arena: &Arena) -> &str {
         arena.alloc_str(&self.buffer.0)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.buffer.0.is_empty()
     }
 }
 
