@@ -3,5 +3,5 @@ source: math-core/tests/conversion_test.rs
 expression: "\\mathit{\\operatorname{a}}"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">a</mi></mpadded>
+    <mo lspace="0" rspace="0">a</mo>
 </math>
