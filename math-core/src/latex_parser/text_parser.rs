@@ -17,13 +17,13 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
         &mut self,
         initial_style: Option<HtmlTextStyle>,
     ) -> ParseResult<'cell, 'source, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
-        let mut style_stack = vec![(0usize, initial_style)];
+        let mut style_stack = vec![(0u16, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<(Option<HtmlTextStyle>, &'arena str)> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
-        let mut brace_nesting = 0usize;
+        let mut brace_nesting = 0u16;
 
-        loop {
+        while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
             let tokloc = self.tokens.next();
             let TokLoc(loc, token) = tokloc?;
             let c: Result<char, LatexErrKind> = match token {
@@ -43,12 +43,14 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                         str_builder.push_str(name);
                         continue;
                     } else {
-                        snippets.push((style_stack.pop().unwrap().1, name));
-                        if style_stack.is_empty() {
-                            break;
-                        } else {
-                            continue;
+                        snippets.push((current_style, name));
+                        style_stack.pop();
+                        brace_nesting = previous_nesting;
+                        if !style_stack.is_empty() {
+                            // If there are still styles to process, we must have been within a group.
+                            str_builder = Some(self.buffer.get_builder());
                         }
+                        continue;
                     }
                 }
                 Token::Space(length) => {
@@ -61,11 +63,18 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                     } else if length == LatexUnit::Mu.length_with_unit(3.0) {
                         Ok('\u{2009}')
                     } else {
-                        if str_builder.is_some() {
-                            continue;
-                        } else {
-                            break;
+                        // Ignore other spaces in text mode.
+                        if str_builder.is_none() {
+                            // This space was the only thing after the style change.
+                            // So we need to pop the style stack and restore the previous nesting.
+                            style_stack.pop();
+                            brace_nesting = previous_nesting;
+                            if !style_stack.is_empty() {
+                                // If there are still styles to process, we must have been within a group.
+                                str_builder = Some(self.buffer.get_builder());
+                            }
                         }
+                        continue;
                     }
                 }
                 Token::GroupBegin => {
@@ -84,18 +93,16 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                             str_builder = Some(builder);
                             continue;
                         } else {
-                            let (previous_nesting, style) = style_stack.pop().unwrap();
                             if !builder.is_empty() {
                                 let text = builder.finish(&self.arena);
-                                snippets.push((style, text));
+                                snippets.push((current_style, text));
                             }
-                            if style_stack.is_empty() {
-                                break;
-                            } else {
+                            style_stack.pop();
+                            brace_nesting = previous_nesting;
+                            if !style_stack.is_empty() {
                                 str_builder = Some(self.buffer.get_builder());
-                                brace_nesting = previous_nesting;
-                                continue;
                             }
+                            continue;
                         }
                     } else {
                         Err(LatexErrKind::UnexpectedClose(token))
@@ -114,10 +121,14 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                         && !builder.is_empty()
                     {
                         let text = builder.finish(&self.arena);
-                        snippets.push((style_stack.last().copied().unwrap().1, text));
+                        snippets.push((current_style, text));
                     }
                     style_stack.push((brace_nesting, style));
                     brace_nesting = 0;
+                    // Discard any whitespace that immediately follows the `Text` token.
+                    if matches!(self.tokens.peek().token(), Token::Whitespace) {
+                        self.tokens.next()?;
+                    }
                     continue;
                 }
                 Token::Eof => Err(LatexErrKind::UnexpectedEOF),
@@ -133,9 +144,12 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
             } else {
                 let mut b = [0u8; 4];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
-                snippets.push((style_stack.pop().unwrap().1, text));
-                if style_stack.is_empty() {
-                    break;
+                snippets.push((current_style, text));
+                style_stack.pop();
+                brace_nesting = previous_nesting;
+                if !style_stack.is_empty() {
+                    // If there are still styles to process, we must have been within a group.
+                    str_builder = Some(self.buffer.get_builder());
                 }
             }
         }

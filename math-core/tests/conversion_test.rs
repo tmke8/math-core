@@ -16,6 +16,8 @@ fn main() {
         ("text_nested", r"\text{ \text{a}}"),
         ("text_nested_it", r"\text{ \textit{a}}"),
         ("text_nested_it_braces", r"\text{ {\textit{a}b}c}"),
+        ("text_nested_it_some_braces", r"\text{ {\textit a b}c}"),
+        ("text_nested_space", r"\text{{\textit \; b}c}"),
         ("text_rq", r"\text{\rq}"),
         (
             "text_diacritics",
@@ -83,6 +85,10 @@ fn main() {
         ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
         ("operator_name_with_single_char", r"\operatorname{a}"),
         ("operator_name_with_space_cmd", r"\operatorname{arg\,max}"),
+        (
+            "operator_name_with_text",
+            r"\operatorname{\text{ab}c\textit{de}f}",
+        ),
         ("simple_binomial_coefficient", r"\binom12"),
         ("stretchy_parentheses", r"\left( x \right)"),
         ("stretchy_one-sided_parenthesis", r"\left( x \right."),

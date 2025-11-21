@@ -942,7 +942,11 @@ where
             }
             Token::OperatorName => {
                 let snippets = self.parse_in_text_mode(None)?;
-                let letters = snippets[0].1;
+                let mut builder = self.buffer.get_builder();
+                for (_style, text) in snippets {
+                    builder.push_str(text);
+                }
+                let letters = builder.finish(self.arena);
                 if let Some(ch) = get_single_char(letters) {
                     Ok(Node::IdentifierChar(ch, LetterAttr::ForcedUpright))
                 } else {
