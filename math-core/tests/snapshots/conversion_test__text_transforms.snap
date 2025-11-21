@@ -12,5 +12,5 @@ expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
     <mtext> </mtext>
     <mpadded><mi>fi</mi></mpadded>
     <mtext> </mtext>
-    <mtext>𝚏𝚒</mtext>
+    <mtext><code>fi</code></mtext>
 </math>

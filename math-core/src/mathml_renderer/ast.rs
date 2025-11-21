@@ -219,7 +219,7 @@ impl Node<'_> {
                         None => ("<mtext>", "</mtext>"),
                         Some(HtmlTextStyle::Bold) => ("<mtext><b>", "</b></mtext>"),
                         Some(HtmlTextStyle::Italic) => ("<mtext><i>", "</i></mtext>"),
-                        Some(HtmlTextStyle::Emphasized) => ("<mtext><em>", "</em></mtext>"),
+                        Some(HtmlTextStyle::Emphasis) => ("<mtext><em>", "</em></mtext>"),
                         Some(HtmlTextStyle::Typewriter) => ("<mtext><code>", "</code></mtext>"),
                         Some(HtmlTextStyle::SmallCaps) => (
                             "<mtext><span style=\"font-variant-caps: small-caps\">",
@@ -1093,7 +1093,7 @@ mod tests {
 
     #[test]
     fn render_text() {
-        assert_eq!(render(&Node::Text("hello")), "<mtext>hello</mtext>");
+        assert_eq!(render(&Node::Text(None, "hello")), "<mtext>hello</mtext>");
     }
 
     #[test]
