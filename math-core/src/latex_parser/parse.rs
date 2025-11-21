@@ -970,10 +970,6 @@ where
                 let mut text_parser = TextParser::new(&mut builder, &mut self.tokens, transform);
                 text_parser.parse_token_as_text(tokloc)?;
                 let text = builder.finish(self.arena);
-                // Discard any whitespace tokens that are still stored in self.tokens.peek().
-                if matches!(self.tokens.peek().token(), Token::Whitespace) {
-                    self.next_token()?;
-                }
                 Ok(Node::Text(text))
             }
             Token::NewColumn => {
