@@ -117,7 +117,7 @@ pub enum Token<'source> {
     PseudoOperator(&'static str),
     Enclose(Notation),
     #[strum(serialize = r"\operatorname")]
-    OperatorName,
+    OperatorName(bool),
     Slashed,
     #[strum(serialize = r"\not")]
     Not,

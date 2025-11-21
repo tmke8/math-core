@@ -641,32 +641,33 @@ where
                     Some(OpAttr::ForceMovableLimits)
                 };
                 class = Class::Operator;
-                // FIXME: Use `self.get_bounds()` here.
-                if matches!(self.tokens.peek().token(), Token::Underscore) {
-                    let target = self.commit(Node::PseudoOp {
-                        name,
-                        attr: movablelimits,
-                        left: Some(MathSpacing::ThreeMu),
-                        right: Some(MathSpacing::ThreeMu),
-                    });
-                    self.next_token()?; // Discard the underscore token.
-                    let tokloc = self.next_token();
-                    let old_script_style = mem::replace(&mut self.state.script_style, true);
-                    let under = self.parse_token(tokloc, ParseAs::Arg, Class::Default)?.1;
-                    self.state.script_style = old_script_style;
-                    Ok(Node::Underset {
-                        target,
-                        symbol: under,
-                    })
-                } else {
-                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
-                    Ok(Node::PseudoOp {
-                        attr: None,
-                        left,
-                        right,
-                        name,
-                    })
-                }
+                let bounds = self.get_bounds()?;
+                // Compute spacing after getting the bounds, so that we don't
+                // consider tokens that are part of the bounds for spacing calculations.
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                let op = self.commit(Node::PseudoOp {
+                    attr: if matches!(bounds, Bounds(None, None)) {
+                        None
+                    } else {
+                        movablelimits
+                    },
+                    left,
+                    right,
+                    name,
+                });
+                let node = match bounds {
+                    Bounds(Some(under), Some(over)) => Node::UnderOver {
+                        target: op,
+                        under,
+                        over,
+                    },
+                    Bounds(Some(symbol), None) => Node::Underset { target: op, symbol },
+                    Bounds(None, Some(symbol)) => Node::Overset { target: op, symbol },
+                    Bounds(None, None) => {
+                        return Ok((class, op));
+                    }
+                };
+                Ok(node)
             }
             Token::Slashed => {
                 let node = self.parse_next(ParseAs::Arg)?;
@@ -940,24 +941,36 @@ where
 
                 Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
             }
-            Token::OperatorName => {
+            Token::OperatorName(with_limits) => {
                 let snippets = self.parse_in_text_mode(None)?;
                 let mut builder = self.buffer.get_builder();
                 for (_style, text) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
-                if let Some(ch) = get_single_char(letters) {
-                    Ok(Node::IdentifierChar(ch, LetterAttr::ForcedUpright))
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                let op = self.commit(Node::PseudoOp {
+                    attr: None,
+                    left,
+                    right,
+                    name: letters,
+                });
+                if with_limits {
+                    let node = match self.get_bounds()? {
+                        Bounds(Some(under), Some(over)) => Node::UnderOver {
+                            target: op,
+                            under,
+                            over,
+                        },
+                        Bounds(Some(symbol), None) => Node::Underset { target: op, symbol },
+                        Bounds(None, Some(symbol)) => Node::Overset { target: op, symbol },
+                        Bounds(None, None) => {
+                            return Ok((Class::Operator, op));
+                        }
+                    };
+                    Ok(node)
                 } else {
-                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
-                    class = Class::Operator;
-                    Ok(Node::PseudoOp {
-                        attr: None,
-                        left,
-                        right,
-                        name: letters,
-                    })
+                    return Ok((Class::Operator, op));
                 }
             }
             Token::Text(transform) => {

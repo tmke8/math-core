@@ -109,6 +109,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             self.read_char();
         }
 
+        // Commands may end with a "*".
+        if self.peek.1 == '*' {
+            self.read_char();
+        }
+
         if start == self.peek.0 {
             // Always read at least one character.
             self.read_char();
@@ -241,7 +246,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 // Read the string literal.
                 let string_literal = match self.read_ascii_text_group() {
                     Ok(lit) => lit,
-                    Err((loc, ch)) => break 'str_literal Err(LatexError(loc, LatexErrKind::DisallowedChar(ch))),
+                    Err((loc, ch)) => {
+                        break 'str_literal Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
+                    }
                 };
                 if let Mode::EnvName { is_begin } = mode {
                     // Convert the environment name to the `Env` enum.
