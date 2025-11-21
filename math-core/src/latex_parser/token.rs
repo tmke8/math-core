@@ -7,7 +7,7 @@ use super::character_class::Class;
 use super::environments::Env;
 
 use crate::mathml_renderer::attribute::{
-    FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
+    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style,
 };
 use crate::mathml_renderer::length::Length;
 use crate::mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
@@ -122,7 +122,7 @@ pub enum Token<'source> {
     #[strum(serialize = r"\not")]
     Not,
     #[strum(serialize = r"\text*")]
-    Text(Option<TextTransform>),
+    Text(Option<HtmlTextStyle>),
     Style(Style),
     Color,
     CustomCmdArg(u8),

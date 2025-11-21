@@ -446,7 +446,7 @@ where
                     None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
                 }
             }
-            Token::NonBreakingSpace => Ok(Node::Text("\u{A0}")),
+            Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {

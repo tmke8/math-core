@@ -126,6 +126,16 @@ bitflags! {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum HtmlTextStyle {
+    Bold = 1,
+    Italic,
+    Emphasis,
+    Typewriter,
+    SmallCaps,
+}
+
 // Transform of unicode characters.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]

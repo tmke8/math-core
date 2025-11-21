@@ -1,5 +1,5 @@
 use crate::mathml_renderer::attribute::{
-    FracAttr, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
+    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
 };
 use crate::mathml_renderer::symbol::{self, Rel};
 
@@ -585,10 +585,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "tau" => Letter(symbol::GREEK_SMALL_LETTER_TAU),
     "tbinom" => Binom(Some(FracAttr::DisplayStyleFalse)),
     "text" => Text(None),
-    "textbf" => Text(Some(TextTransform::Bold)),
-    "textit" => Text(Some(TextTransform::Italic)),
+    "textbf" => Text(Some(HtmlTextStyle::Bold)),
+    "textit" => Text(Some(HtmlTextStyle::Italic)),
     "textstyle" => Style(Style::Text),
-    "texttt" => Text(Some(TextTransform::Monospace)),
+    "texttt" => Text(Some(HtmlTextStyle::Typewriter)),
     "tfrac" => Frac(Some(FracAttr::DisplayStyleFalse)),
     "th" => Letter(symbol::LATIN_SMALL_LETTER_THORN),
     "therefore" => Relation(symbol::THEREFORE),
@@ -733,6 +733,7 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dh" => Letter('ð'),
     "dj" => Letter('đ'),
     "dots" => Letter(symbol::HORIZONTAL_ELLIPSIS),
+    "emph" => Text(Some(HtmlTextStyle::Emphasis)),
     "i" => Letter('ı'),
     "j" => Letter('ȷ'),
     "l" => Letter('ł'),
@@ -745,9 +746,9 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ss" => Letter('ß'),
     "text" => Text(None),
     "textbackslash" => Letter('\\'),
-    "textbf" => Text(Some(TextTransform::Bold)),
-    "textit" => Text(Some(TextTransform::Italic)),
-    "texttt" => Text(Some(TextTransform::Monospace)),
+    "textbf" => Text(Some(HtmlTextStyle::Bold)),
+    "textit" => Text(Some(HtmlTextStyle::Italic)),
+    "texttt" => Text(Some(HtmlTextStyle::Typewriter)),
     "textyen" => Letter('¥'),
     "u" => TextModeAccent(symbol::COMBINING_BREVE),
     "v" => TextModeAccent(symbol::COMBINING_CARON.as_op().as_char()),
