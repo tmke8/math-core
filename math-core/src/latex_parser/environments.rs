@@ -5,7 +5,7 @@ use strum_macros::IntoStaticStr;
 use crate::mathml_renderer::{
     arena::Arena,
     ast::Node,
-    attribute::{FracAttr, Style},
+    attribute::Style,
     symbol::{self, StretchableOp},
     table::{Alignment, ArraySpec},
 };
@@ -56,21 +56,22 @@ impl Env {
         last_equation_num: Option<NonZeroU16>,
     ) -> Node<'arena> {
         match self {
-            Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
+            Env::Align | Env::AlignStar => Node::EquationArray {
                 content,
                 align: Alignment::Alternating,
-                attr: Some(FracAttr::DisplayStyleTrue),
-                with_numbering: matches!(self, Env::Align | Env::AlignStar),
                 last_equation_num,
+            },
+            Env::Aligned => Node::Table {
+                content,
+                align: Alignment::Alternating,
+                style: Some(Style::Display),
             },
             Env::Cases => {
                 let align = Alignment::Cases;
                 let content = arena.push(Node::Table {
                     content,
                     align,
-                    attr: None,
-                    with_numbering: false,
-                    last_equation_num: None,
+                    style: None,
                 });
                 Node::Fenced {
                     open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
@@ -82,9 +83,7 @@ impl Env {
             Env::Matrix => Node::Table {
                 content,
                 align: Alignment::Centered,
-                attr: None,
-                with_numbering: false,
-                last_equation_num: None,
+                style: None,
             },
             array_variant @ (Env::Array | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -141,9 +140,7 @@ impl Env {
                     content: arena.push(Node::Table {
                         content,
                         align,
-                        attr,
-                        with_numbering: false,
-                        last_equation_num: None,
+                        style: attr,
                     }),
                     style: None,
                 }

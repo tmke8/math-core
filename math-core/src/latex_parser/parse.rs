@@ -1536,14 +1536,6 @@ pub(crate) fn node_vec_to_node<'arena>(
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
 
-fn get_single_char(s: &str) -> Option<char> {
-    let mut chars = s.chars();
-    match (chars.next(), chars.next()) {
-        (Some(c), None) => Some(c), // Exactly one char
-        _ => None,                  // Zero or multiple chars
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use insta::assert_ron_snapshot;
