@@ -31,8 +31,9 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
+        Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 0;
@@ -42,40 +43,65 @@ body {
 }
 
 @font-face {
-    font-family: Libertinus Math Regular;
-    src: url('./LibertinusMath-Regular.woff2') format('woff2');
+    font-family: "Libertinus Math Regular";
+    src: url("./LibertinusMath-Regular.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
-    font-family: TeX Gyre Pagella Math Regular;
-    src: local("TeX Gyre Pagella Math Regular"), url('./texgyrepagella-math.woff2') format('woff2');
+    font-family: "NewComputerModernMath Book";
+    src: url("./NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
     font-display: swap;
 }
 
-/* @font-face {
-    font-family: TeX Gyre Pagella Math BB;
-    /* The following unicode-range is for the math blackboard bold characters (\mathbb in LaTeX). * /
-    unicode-range: U+1D538-1D56B, U+2102, U+210D, U+2115, U+2119, U+211A, U+211D, U+2124;
-    src: local("TeX Gyre Pagella Math Regular"), url('./texgyrepagella-math-bb.woff2') format('woff2');
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("./NewCM10-Book.woff2") format("woff2");
     font-display: swap;
-} */
+    font-weight: normal;
+    font-style: normal;
+}
 
 @font-face {
-    font-family: NewComputerModernMath Book;
-    src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+    font-family: "NewComputerModern Book";
+    src: url("./NewCM10-Bold.woff2") format("woff2");
+    font-display: swap;
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("./NewCM10-BookItalic.woff2") format("woff2");
+    font-display: swap;
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("./NewCM10-BoldItalic.woff2") format("woff2");
+    font-display: swap;
+    font-weight: bold;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "NewComputerModern Mono";
+    src: url("./NewCMMono10-Book.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: Noto Sans Math Regular;
-    src: url('./NotoSansMath-Regular-centered-diacritics-primes.woff2') format('woff2');
+    src: url("./NotoSansMath-Regular-centered-diacritics-primes.woff2")
+        format("woff2");
     font-display: swap;
 }
 
 math {
     /* We set the font-family now in a <style> tag with an id. */
-    /* font-family: "Latin Modern Math", math; */
+    /* font-family: "NewComputerModernMath Book", math; */
     font-size: 1.3rem;
 }
 
@@ -102,7 +128,8 @@ h1 {
     margin-bottom: 20px;
 }
 
-textarea#inputField, textarea#configField {
+textarea#inputField,
+textarea#configField {
     box-sizing: border-box;
     width: 100%;
     padding: 10px;
@@ -131,22 +158,22 @@ textarea#inputField, textarea#configField {
 }
 
 select {
-  /* padding: 8px 12px; */
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 16px;
-  cursor: pointer;
+    /* padding: 8px 12px; */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 16px;
+    cursor: pointer;
 }
 
 select:hover {
-  border-color: #999;
+    border-color: #999;
 }
 
 select:focus {
-  outline: none;
-  border-color: #2196F3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
 h3 {
