@@ -644,7 +644,6 @@ fn emit_table(
     } else {
         0
     };
-    col_gen.reset_columns();
     writeln_indent!(s, child_indent, "<mtr>");
     // Add a dummy column to help keep everything centered.
     match numbering_cols {
@@ -676,7 +675,7 @@ fn emit_table(
                 }
                 writeln_indent!(s, child_indent, "</mtr>");
                 writeln_indent!(s, child_indent, "<mtr>");
-                col_gen.reset_columns();
+                col_gen.reset_to_new_row();
                 // Add a dummy column to help keep everything centered.
                 match numbering_cols {
                     None => {}

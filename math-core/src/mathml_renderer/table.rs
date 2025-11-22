@@ -63,6 +63,7 @@ const SIMPLE_CENTERED: &str = "<mtd>";
 pub struct ColumnGenerator<'arena> {
     typ: AlignmentType<'arena>,
     column_idx: usize,
+    row_idx: usize,
 }
 
 impl<'arena> ColumnGenerator<'arena> {
@@ -70,6 +71,7 @@ impl<'arena> ColumnGenerator<'arena> {
         ColumnGenerator {
             typ: AlignmentType::Predefined(align),
             column_idx: 0,
+            row_idx: 0,
         }
     }
 
@@ -77,6 +79,7 @@ impl<'arena> ColumnGenerator<'arena> {
         ColumnGenerator {
             typ: AlignmentType::Custom(array_spec),
             column_idx: 0,
+            row_idx: 0,
         }
     }
 
@@ -84,13 +87,13 @@ impl<'arena> ColumnGenerator<'arena> {
         ColumnGenerator {
             typ: AlignmentType::MultLine(num_rows),
             column_idx: 0,
+            row_idx: 0,
         }
     }
 
-    pub fn reset_columns(&mut self) {
-        if !matches!(self.typ, AlignmentType::MultLine(_)) {
-            self.column_idx = 0;
-        }
+    pub fn reset_to_new_row(&mut self) {
+        self.column_idx = 0;
+        self.row_idx += 1;
     }
 
     pub fn write_next_mtd(
@@ -190,8 +193,7 @@ impl<'arena> ColumnGenerator<'arena> {
                 }
             }
             AlignmentType::MultLine(num_rows) => {
-                // Multline does not have columns, so we can use the column index as the row index.
-                let row_idx = column_idx;
+                let row_idx = self.row_idx;
                 // Multline is left-aligned for the first row, right-aligned for the last row,
                 // and centered for all other rows.
                 if row_idx == 0 {
