@@ -141,14 +141,14 @@ impl Env {
                     // SAFETY: `matrix_variant` is one of the strings above.
                     _ => unsafe { std::hint::unreachable_unchecked() },
                 };
-                let attr = None;
+                let style = Some(Style::Display);
                 Node::Fenced {
                     open: Some(open),
                     close: Some(close),
                     content: arena.push(Node::Table {
                         content,
                         align,
-                        style: attr,
+                        style,
                     }),
                     style: None,
                 }
