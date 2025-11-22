@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, num::NonZeroU16};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -46,6 +46,7 @@ pub enum Alignment {
 enum AlignmentType<'arena> {
     Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),
+    MultLine(NonZeroU16),
 }
 
 const MTD_OPEN_STYLE: &str = "<mtd style=\"";
@@ -62,6 +63,7 @@ const SIMPLE_CENTERED: &str = "<mtd>";
 pub struct ColumnGenerator<'arena> {
     typ: AlignmentType<'arena>,
     column_idx: usize,
+    row_idx: usize,
 }
 
 impl<'arena> ColumnGenerator<'arena> {
@@ -69,6 +71,7 @@ impl<'arena> ColumnGenerator<'arena> {
         ColumnGenerator {
             typ: AlignmentType::Predefined(align),
             column_idx: 0,
+            row_idx: 0,
         }
     }
 
@@ -76,11 +79,21 @@ impl<'arena> ColumnGenerator<'arena> {
         ColumnGenerator {
             typ: AlignmentType::Custom(array_spec),
             column_idx: 0,
+            row_idx: 0,
         }
     }
 
-    pub fn reset_columns(&mut self) {
+    pub fn new_multline(num_rows: NonZeroU16) -> Self {
+        ColumnGenerator {
+            typ: AlignmentType::MultLine(num_rows),
+            column_idx: 0,
+            row_idx: 0,
+        }
+    }
+
+    pub fn reset_to_new_row(&mut self) {
         self.column_idx = 0;
+        self.row_idx += 1;
     }
 
     pub fn write_next_mtd(
@@ -177,6 +190,18 @@ impl<'arena> ColumnGenerator<'arena> {
                         write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
                     ColumnSpec::OnlyLine(_) => {}
+                }
+            }
+            AlignmentType::MultLine(num_rows) => {
+                let row_idx = self.row_idx;
+                // Multline is left-aligned for the first row, right-aligned for the last row,
+                // and centered for all other rows.
+                if row_idx == 0 {
+                    write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{MTD_CLOSE_STYLE}")?;
+                } else if row_idx + 1 == (num_rows.get() as usize) {
+                    write!(s, "{MTD_OPEN_STYLE}{RIGHT_ALIGN}{MTD_CLOSE_STYLE}")?;
+                } else {
+                    write!(s, "{SIMPLE_CENTERED}")?;
                 }
             }
         };

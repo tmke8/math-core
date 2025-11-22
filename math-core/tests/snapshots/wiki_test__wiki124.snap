@@ -5,7 +5,7 @@ expression: "\\begin{Vmatrix} x & y \\\\ z & v \\end{Vmatrix}"
 <math>
     <mrow>
         <mo>‖</mo>
-        <mtable>
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mi>x</mi>

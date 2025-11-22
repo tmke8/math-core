@@ -3,7 +3,7 @@ source: math-core/tests/conversion_test.rs
 expression: "\\begin{align} \\notag1\\\\2\\end{align}"
 ---
 <math>
-    <mtable displaystyle="true" style="width: 100%">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">

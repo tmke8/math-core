@@ -137,6 +137,7 @@ fn main() {
         ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+        ("multline", r#"\begin{multline}x=\\1+\\2\end{multline}"#),
         (
             "text_transforms",
             r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,

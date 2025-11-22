@@ -106,18 +106,29 @@ pub enum Node<'arena> {
     SizedParen(Size, StretchableOp),
     /// `<mtext>...</mtext>`
     Text(Option<HtmlTextStyle>, &'arena str),
-    /// `<mtable>...</mtable>`
+    /// `<mtable>...</mtable>` for matrices and similar constructs
     Table {
-        content: &'arena [&'arena Node<'arena>],
         align: Alignment,
-        attr: Option<FracAttr>,
-        with_numbering: bool,
-        last_equation_num: Option<NonZeroU16>,
-    },
-    Array {
         style: Option<Style>,
         content: &'arena [&'arena Node<'arena>],
+    },
+    /// `<mtable>...</mtable>` for equation arrays like the `align` environment
+    EquationArray {
+        align: Alignment,
+        last_equation_num: Option<NonZeroU16>,
+        content: &'arena [&'arena Node<'arena>],
+    },
+    /// `<mtable>...</mtable>` for the `multline` environment
+    MultLine {
+        num_rows: NonZeroU16,
+        last_equation_num: Option<NonZeroU16>,
+        content: &'arena [&'arena Node<'arena>],
+    },
+    /// `<mtable>...</mtable>` for arrays
+    Array {
+        style: Option<Style>,
         array_spec: &'arena ArraySpec<'arena>,
+        content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtd>...</mtd>`
     ColumnSeparator,
@@ -427,19 +438,13 @@ impl Node<'_> {
             Node::Table {
                 content,
                 align,
-                attr,
-                with_numbering,
-                last_equation_num,
+                style,
             } => {
                 let mtd_opening = ColumnGenerator::new_predefined(*align);
-                let with_numbering = *with_numbering;
 
                 write!(s, "<mtable")?;
-                if let Some(attr) = attr {
-                    write!(s, "{}", <&str>::from(attr))?;
-                }
-                if with_numbering {
-                    write!(s, r#" style="width: 100%""#)?;
+                if let Some(style) = style {
+                    write!(s, "{}", <&str>::from(style))?;
                 }
                 write!(s, ">")?;
                 emit_table(
@@ -448,7 +453,42 @@ impl Node<'_> {
                     child_indent,
                     content,
                     mtd_opening,
-                    with_numbering,
+                    None,
+                    None,
+                )?;
+            }
+            node @ (Node::EquationArray {
+                last_equation_num,
+                content,
+                ..
+            }
+            | Node::MultLine {
+                last_equation_num,
+                content,
+                ..
+            }) => {
+                let (mtd_opening, numbering_cols) = match node {
+                    Node::EquationArray { align, .. } => {
+                        (ColumnGenerator::new_predefined(*align), NumberColums::Wide)
+                    }
+                    Node::MultLine { num_rows, .. } => (
+                        ColumnGenerator::new_multline(*num_rows),
+                        NumberColums::Narrow,
+                    ),
+                    _ => unreachable!(),
+                };
+
+                write!(
+                    s,
+                    r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#
+                )?;
+                emit_table(
+                    s,
+                    base_indent,
+                    child_indent,
+                    content,
+                    mtd_opening,
+                    Some(numbering_cols),
                     last_equation_num.as_ref().copied(),
                 )?;
             }
@@ -478,7 +518,7 @@ impl Node<'_> {
                     child_indent,
                     content,
                     mtd_opening,
-                    false,
+                    None,
                     None,
                 )?;
             }
@@ -579,13 +619,19 @@ fn emit_operator_attributes(
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+enum NumberColums {
+    Narrow,
+    Wide,
+}
+
 fn emit_table(
     s: &mut String,
     base_indent: usize,
     child_indent: usize,
     content: &[&Node<'_>],
     mut col_gen: ColumnGenerator,
-    with_numbering: bool,
+    numbering_cols: Option<NumberColums>,
     last_equation_num: Option<NonZeroU16>,
 ) -> Result<(), std::fmt::Error> {
     let child_indent2 = if base_indent > 0 {
@@ -598,11 +644,16 @@ fn emit_table(
     } else {
         0
     };
-    col_gen.reset_columns();
     writeln_indent!(s, child_indent, "<mtr>");
-    if with_numbering {
-        // Add a dummy column to help keep everything centered.
-        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+    // Add a dummy column to help keep everything centered.
+    match numbering_cols {
+        None => {}
+        Some(NumberColums::Narrow) => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
+        }
+        Some(NumberColums::Wide) => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+        }
     }
     col_gen.write_next_mtd(s, child_indent2)?;
     for node in content.iter() {
@@ -613,20 +664,27 @@ fn emit_table(
             }
             Node::RowSeparator(equation_counter) => {
                 writeln_indent!(s, child_indent2, "</mtd>");
-                if with_numbering {
+                if let Some(numbering_cols) = numbering_cols {
                     write_equation_num(
                         s,
                         child_indent2,
                         child_indent3,
                         equation_counter.as_ref().copied(),
+                        numbering_cols,
                     )?;
                 }
                 writeln_indent!(s, child_indent, "</mtr>");
                 writeln_indent!(s, child_indent, "<mtr>");
-                col_gen.reset_columns();
-                if with_numbering {
-                    // Add a dummy column to help keep everything centered.
-                    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+                col_gen.reset_to_new_row();
+                // Add a dummy column to help keep everything centered.
+                match numbering_cols {
+                    None => {}
+                    Some(NumberColums::Narrow) => {
+                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
+                    }
+                    Some(NumberColums::Wide) => {
+                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+                    }
                 }
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
@@ -636,8 +694,14 @@ fn emit_table(
         }
     }
     writeln_indent!(s, child_indent2, "</mtd>");
-    if with_numbering {
-        write_equation_num(s, child_indent2, child_indent3, last_equation_num)?;
+    if let Some(numbering_cols) = numbering_cols {
+        write_equation_num(
+            s,
+            child_indent2,
+            child_indent3,
+            last_equation_num,
+            numbering_cols,
+        )?;
     }
     writeln_indent!(s, child_indent, "</mtr>");
     writeln_indent!(s, base_indent, "</mtable>");
@@ -649,8 +713,16 @@ fn write_equation_num(
     child_indent2: usize,
     child_indent3: usize,
     equation_counter: Option<NonZeroU16>,
+    numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
-    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+    match numbering_cols {
+        NumberColums::Narrow => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"#);
+        }
+        NumberColums::Wide => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+        }
+    }
     if let Some(equation_counter) = equation_counter {
         write!(s, r#";{}">"#, RIGHT_ALIGN)?;
         writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);
@@ -1112,16 +1184,14 @@ mod tests {
             render(&Node::Table {
                 content: &nodes,
                 align: Alignment::Centered,
-                attr: None,
-                with_numbering: false,
-                last_equation_num: None,
+                style: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
     #[test]
-    fn render_numbered_table() {
+    fn render_equation_array() {
         let nodes = [
             &Node::Number("1"),
             &Node::ColumnSeparator,
@@ -1133,25 +1203,21 @@ mod tests {
         ];
 
         assert_eq!(
-            render(&Node::Table {
+            render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                attr: None,
-                with_numbering: true,
                 last_equation_num: NonZeroU16::new(2),
             }),
-            "<mtable style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
 
         assert_eq!(
-            render(&Node::Table {
+            render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                attr: None,
-                with_numbering: true,
                 last_equation_num: None,
             }),
-            "<mtable style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
     }
 

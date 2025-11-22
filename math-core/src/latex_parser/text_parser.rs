@@ -17,11 +17,11 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
         &mut self,
         initial_style: Option<HtmlTextStyle>,
     ) -> ParseResult<'cell, 'source, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
-        let mut style_stack = vec![(0u16, initial_style)];
+        let mut style_stack = vec![(0usize, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<(Option<HtmlTextStyle>, &'arena str)> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
-        let mut brace_nesting = 0u16;
+        let mut brace_nesting = 0usize;
 
         while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
             let tokloc = self.tokens.next();

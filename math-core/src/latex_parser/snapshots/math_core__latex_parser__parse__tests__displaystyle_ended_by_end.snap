@@ -4,6 +4,8 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
 ---
 [
   Table(
+    align: Centered,
+    style: Some(Display),
     content: [
       Operator(
         op: '∑',
@@ -23,9 +25,5 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
         attr: Style(Display),
       ),
     ],
-    align: Centered,
-    attr: None,
-    with_numbering: false,
-    last_equation_num: None,
   ),
 ]

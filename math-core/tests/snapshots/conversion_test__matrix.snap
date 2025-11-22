@@ -5,7 +5,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 <math>
     <mrow>
         <mo>(</mo>
-        <mtable>
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mi>x</mi>

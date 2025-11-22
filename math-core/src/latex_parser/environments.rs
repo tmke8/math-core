@@ -5,7 +5,7 @@ use strum_macros::IntoStaticStr;
 use crate::mathml_renderer::{
     arena::Arena,
     ast::Node,
-    attribute::{FracAttr, Style},
+    attribute::Style,
     symbol::{self, StretchableOp},
     table::{Alignment, ArraySpec},
 };
@@ -22,6 +22,8 @@ pub enum Env {
     AlignStar,
     #[strum(serialize = "aligned")]
     Aligned,
+    #[strum(serialize = "multline")]
+    MultLine,
     #[strum(serialize = "cases")]
     Cases,
     #[strum(serialize = "matrix")]
@@ -54,13 +56,22 @@ impl Env {
         array_spec: Option<&'arena ArraySpec<'arena>>,
         arena: &'arena Arena,
         last_equation_num: Option<NonZeroU16>,
+        num_rows: Option<NonZeroU16>,
     ) -> Node<'arena> {
         match self {
-            Env::Align | Env::AlignStar | Env::Aligned => Node::Table {
-                content,
+            Env::Align | Env::AlignStar => Node::EquationArray {
                 align: Alignment::Alternating,
-                attr: Some(FracAttr::DisplayStyleTrue),
-                with_numbering: matches!(self, Env::Align | Env::AlignStar),
+                last_equation_num,
+                content,
+            },
+            Env::Aligned => Node::Table {
+                align: Alignment::Alternating,
+                style: Some(Style::Display),
+                content,
+            },
+            Env::MultLine => Node::MultLine {
+                content,
+                num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
                 last_equation_num,
             },
             Env::Cases => {
@@ -68,9 +79,7 @@ impl Env {
                 let content = arena.push(Node::Table {
                     content,
                     align,
-                    attr: None,
-                    with_numbering: false,
-                    last_equation_num: None,
+                    style: None,
                 });
                 Node::Fenced {
                     open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
@@ -80,11 +89,9 @@ impl Env {
                 }
             }
             Env::Matrix => Node::Table {
-                content,
                 align: Alignment::Centered,
-                attr: None,
-                with_numbering: false,
-                last_equation_num: None,
+                style: Some(Style::Display),
+                content,
             },
             array_variant @ (Env::Array | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -134,16 +141,14 @@ impl Env {
                     // SAFETY: `matrix_variant` is one of the strings above.
                     _ => unsafe { std::hint::unreachable_unchecked() },
                 };
-                let attr = None;
+                let style = Some(Style::Display);
                 Node::Fenced {
                     open: Some(open),
                     close: Some(close),
                     content: arena.push(Node::Table {
                         content,
                         align,
-                        attr,
-                        with_numbering: false,
-                        last_equation_num: None,
+                        style,
                     }),
                     style: None,
                 }
@@ -158,6 +163,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "align" => Env::Align,
     "align*" => Env::AlignStar,
     "aligned" => Env::Aligned,
+    "multline" => Env::MultLine,
     "bmatrix" => Env::BMatrix,
     "Bmatrix" => Env::Bmatrix,
     "cases" => Env::Cases,
