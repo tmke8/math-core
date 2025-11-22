@@ -22,6 +22,8 @@ pub enum Env {
     AlignStar,
     #[strum(serialize = "aligned")]
     Aligned,
+    #[strum(serialize = "multline")]
+    MultLine,
     #[strum(serialize = "cases")]
     Cases,
     #[strum(serialize = "matrix")]
@@ -54,17 +56,23 @@ impl Env {
         array_spec: Option<&'arena ArraySpec<'arena>>,
         arena: &'arena Arena,
         last_equation_num: Option<NonZeroU16>,
+        num_rows: Option<NonZeroU16>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
-                content,
                 align: Alignment::Alternating,
                 last_equation_num,
+                content,
             },
             Env::Aligned => Node::Table {
-                content,
                 align: Alignment::Alternating,
                 style: Some(Style::Display),
+                content,
+            },
+            Env::MultLine => Node::MultLine {
+                content,
+                num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
+                last_equation_num,
             },
             Env::Cases => {
                 let align = Alignment::Cases;
@@ -155,6 +163,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "align" => Env::Align,
     "align*" => Env::AlignStar,
     "aligned" => Env::Aligned,
+    "multline" => Env::MultLine,
     "bmatrix" => Env::BMatrix,
     "Bmatrix" => Env::Bmatrix,
     "cases" => Env::Cases,

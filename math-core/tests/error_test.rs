@@ -59,6 +59,10 @@ fn main() {
         ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
         ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
         ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
+        (
+            "ampersand_in_multline",
+            r#"\begin{multline}1&1\end{multline}"#,
+        ),
     ];
 
     let config = MathCoreConfig {

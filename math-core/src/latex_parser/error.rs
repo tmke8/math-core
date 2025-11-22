@@ -15,6 +15,7 @@ use super::token::Token;
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 pub enum LatexErrKind<'source> {
     UnexpectedToken {
         expected: &'static Token<'static>,
@@ -47,6 +48,7 @@ pub enum LatexErrKind<'source> {
     NotValidInTextMode(Token<'source>),
     InvalidMacroName(&'source str),
     InvalidParameterNumber,
+    HardLimitExceeded,
     Internal,
 }
 
@@ -135,6 +137,9 @@ impl LatexErrKind<'_> {
             }
             LatexErrKind::InvalidParameterNumber => {
                 "Invalid parameter number. Must be 1-9.".to_string()
+            }
+            LatexErrKind::HardLimitExceeded => {
+                "Hard limit exceeded. Please simplify your equation.".to_string()
             }
             LatexErrKind::Internal => {
                 "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues".to_string()

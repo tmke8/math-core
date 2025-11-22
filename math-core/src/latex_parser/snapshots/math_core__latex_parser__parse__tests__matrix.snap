@@ -8,13 +8,13 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
     open: Some(StretchableOp('(', Always)),
     close: Some(StretchableOp(')', Always)),
     content: Table(
+      align: Centered,
+      style: None,
       content: [
         IdentifierChar('x', Default),
         RowSeparator(None),
         IdentifierChar('y', Default),
       ],
-      align: Centered,
-      style: None,
     ),
   ),
 ]

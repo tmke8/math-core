@@ -106,23 +106,29 @@ pub enum Node<'arena> {
     SizedParen(Size, StretchableOp),
     /// `<mtext>...</mtext>`
     Text(Option<HtmlTextStyle>, &'arena str),
-    /// `<mtable>...</mtable>` with predefined alignment
+    /// `<mtable>...</mtable>` for matrices and similar constructs
     Table {
-        content: &'arena [&'arena Node<'arena>],
         align: Alignment,
         style: Option<Style>,
-    },
-    /// `<mtable>...</mtable>` with predefined alignment
-    EquationArray {
         content: &'arena [&'arena Node<'arena>],
+    },
+    /// `<mtable>...</mtable>` for equation arrays like the `align` environment
+    EquationArray {
         align: Alignment,
         last_equation_num: Option<NonZeroU16>,
+        content: &'arena [&'arena Node<'arena>],
     },
-    /// `<mtable>...</mtable>` with custom alignment
+    /// `<mtable>...</mtable>` for the `multline` environment
+    MultLine {
+        num_rows: NonZeroU16,
+        last_equation_num: Option<NonZeroU16>,
+        content: &'arena [&'arena Node<'arena>],
+    },
+    /// `<mtable>...</mtable>` for arrays
     Array {
         style: Option<Style>,
-        content: &'arena [&'arena Node<'arena>],
         array_spec: &'arena ArraySpec<'arena>,
+        content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtd>...</mtd>`
     ColumnSeparator,
@@ -447,16 +453,30 @@ impl Node<'_> {
                     child_indent,
                     content,
                     mtd_opening,
-                    false,
+                    None,
                     None,
                 )?;
             }
-            Node::EquationArray {
-                content,
-                align,
+            node @ (Node::EquationArray {
                 last_equation_num,
-            } => {
-                let mtd_opening = ColumnGenerator::new_predefined(*align);
+                content,
+                ..
+            }
+            | Node::MultLine {
+                last_equation_num,
+                content,
+                ..
+            }) => {
+                let (mtd_opening, numbering_cols) = match node {
+                    Node::EquationArray { align, .. } => {
+                        (ColumnGenerator::new_predefined(*align), NumberColums::Wide)
+                    }
+                    Node::MultLine { num_rows, .. } => (
+                        ColumnGenerator::new_multline(*num_rows),
+                        NumberColums::Narrow,
+                    ),
+                    _ => unreachable!(),
+                };
 
                 write!(
                     s,
@@ -468,7 +488,7 @@ impl Node<'_> {
                     child_indent,
                     content,
                     mtd_opening,
-                    true,
+                    Some(numbering_cols),
                     last_equation_num.as_ref().copied(),
                 )?;
             }
@@ -498,7 +518,7 @@ impl Node<'_> {
                     child_indent,
                     content,
                     mtd_opening,
-                    false,
+                    None,
                     None,
                 )?;
             }
@@ -599,13 +619,19 @@ fn emit_operator_attributes(
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+enum NumberColums {
+    Narrow,
+    Wide,
+}
+
 fn emit_table(
     s: &mut String,
     base_indent: usize,
     child_indent: usize,
     content: &[&Node<'_>],
     mut col_gen: ColumnGenerator,
-    is_equation_array: bool,
+    numbering_cols: Option<NumberColums>,
     last_equation_num: Option<NonZeroU16>,
 ) -> Result<(), std::fmt::Error> {
     let child_indent2 = if base_indent > 0 {
@@ -620,9 +646,15 @@ fn emit_table(
     };
     col_gen.reset_columns();
     writeln_indent!(s, child_indent, "<mtr>");
-    if is_equation_array {
-        // Add a dummy column to help keep everything centered.
-        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+    // Add a dummy column to help keep everything centered.
+    match numbering_cols {
+        None => {}
+        Some(NumberColums::Narrow) => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
+        }
+        Some(NumberColums::Wide) => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+        }
     }
     col_gen.write_next_mtd(s, child_indent2)?;
     for node in content.iter() {
@@ -633,20 +665,27 @@ fn emit_table(
             }
             Node::RowSeparator(equation_counter) => {
                 writeln_indent!(s, child_indent2, "</mtd>");
-                if is_equation_array {
+                if let Some(numbering_cols) = numbering_cols {
                     write_equation_num(
                         s,
                         child_indent2,
                         child_indent3,
                         equation_counter.as_ref().copied(),
+                        numbering_cols,
                     )?;
                 }
                 writeln_indent!(s, child_indent, "</mtr>");
                 writeln_indent!(s, child_indent, "<mtr>");
                 col_gen.reset_columns();
-                if is_equation_array {
-                    // Add a dummy column to help keep everything centered.
-                    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+                // Add a dummy column to help keep everything centered.
+                match numbering_cols {
+                    None => {}
+                    Some(NumberColums::Narrow) => {
+                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
+                    }
+                    Some(NumberColums::Wide) => {
+                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
+                    }
                 }
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
@@ -656,8 +695,14 @@ fn emit_table(
         }
     }
     writeln_indent!(s, child_indent2, "</mtd>");
-    if is_equation_array {
-        write_equation_num(s, child_indent2, child_indent3, last_equation_num)?;
+    if let Some(numbering_cols) = numbering_cols {
+        write_equation_num(
+            s,
+            child_indent2,
+            child_indent3,
+            last_equation_num,
+            numbering_cols,
+        )?;
     }
     writeln_indent!(s, child_indent, "</mtr>");
     writeln_indent!(s, base_indent, "</mtable>");
@@ -669,8 +714,16 @@ fn write_equation_num(
     child_indent2: usize,
     child_indent3: usize,
     equation_counter: Option<NonZeroU16>,
+    numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
-    writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+    match numbering_cols {
+        NumberColums::Narrow => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"#);
+        }
+        NumberColums::Wide => {
+            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+        }
+    }
     if let Some(equation_counter) = equation_counter {
         write!(s, r#";{}">"#, RIGHT_ALIGN)?;
         writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);

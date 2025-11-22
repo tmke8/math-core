@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, num::NonZeroU16};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -46,6 +46,7 @@ pub enum Alignment {
 enum AlignmentType<'arena> {
     Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),
+    MultLine(NonZeroU16),
 }
 
 const MTD_OPEN_STYLE: &str = "<mtd style=\"";
@@ -79,8 +80,17 @@ impl<'arena> ColumnGenerator<'arena> {
         }
     }
 
+    pub fn new_multline(num_rows: NonZeroU16) -> Self {
+        ColumnGenerator {
+            typ: AlignmentType::MultLine(num_rows),
+            column_idx: 0,
+        }
+    }
+
     pub fn reset_columns(&mut self) {
-        self.column_idx = 0;
+        if !matches!(self.typ, AlignmentType::MultLine(_)) {
+            self.column_idx = 0;
+        }
     }
 
     pub fn write_next_mtd(
@@ -177,6 +187,19 @@ impl<'arena> ColumnGenerator<'arena> {
                         write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
                     ColumnSpec::OnlyLine(_) => {}
+                }
+            }
+            AlignmentType::MultLine(num_rows) => {
+                // Multline does not have columns, so we can use the column index as the row index.
+                let row_idx = column_idx;
+                // Multline is left-aligned for the first row, right-aligned for the last row,
+                // and centered for all other rows.
+                if row_idx == 0 {
+                    write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{MTD_CLOSE_STYLE}")?;
+                } else if row_idx + 1 == (num_rows.get() as usize) {
+                    write!(s, "{MTD_OPEN_STYLE}{RIGHT_ALIGN}{MTD_CLOSE_STYLE}")?;
+                } else {
+                    write!(s, "{SIMPLE_CENTERED}")?;
                 }
             }
         };

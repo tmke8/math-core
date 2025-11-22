@@ -51,23 +51,27 @@ struct NumberedEnvState {
     suppress_all_numbers: bool,
     suppress_next_number: bool,
     custom_next_number: Option<NonZeroU16>,
+    num_rows: Option<NonZeroU16>,
 }
 
 impl NumberedEnvState {
-    fn next_equation_number(&mut self, equation_counter: &mut u16) -> Option<NonZeroU16> {
+    fn next_equation_number(
+        &mut self,
+        equation_counter: &mut u16,
+    ) -> Result<Option<NonZeroU16>, ()> {
         // A custom number takes precedence over suppression.
         if let Some(custom_number) = self.custom_next_number.take() {
             // The state has already been cleared here through `take()`.
-            Some(custom_number)
+            Ok(Some(custom_number))
         } else if self.suppress_next_number || self.suppress_all_numbers {
             // Clear the flag.
             self.suppress_next_number = false;
-            None
+            Ok(None)
         } else {
-            *equation_counter += 1;
+            *equation_counter = equation_counter.checked_add(1).ok_or(())?;
             let equation_number = NonZeroU16::new(*equation_counter);
             debug_assert!(equation_number.is_some());
-            equation_number
+            Ok(equation_number)
         }
     }
 }
@@ -888,14 +892,20 @@ where
                     None
                 };
 
-                let old_allow_columns = mem::replace(&mut self.state.allow_columns, true);
+                let old_allow_columns =
+                    mem::replace(&mut self.state.allow_columns, !matches!(env, Env::MultLine));
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
                 let old_numbered = mem::replace(
                     &mut self.state.numbered,
-                    if matches!(env, Env::Align | Env::AlignStar) {
+                    if matches!(env, Env::Align | Env::AlignStar | Env::MultLine) {
                         Some(NumberedEnvState {
-                            suppress_all_numbers: matches!(env, Env::AlignStar),
+                            suppress_all_numbers: matches!(env, Env::AlignStar | Env::MultLine),
+                            num_rows: if matches!(env, Env::MultLine) {
+                                NonZeroU16::new(1)
+                            } else {
+                                None
+                            },
                             ..Default::default()
                         })
                     } else {
@@ -932,14 +942,31 @@ where
                     ));
                 }
 
-                let last_equation_num = if let Some(mut n) = numbered_state {
-                    n.next_equation_number(self.equation_counter)
+                let (last_equation_num, num_rows) = if let Some(mut n) = numbered_state {
+                    if matches!(env, Env::MultLine) {
+                        // Allow numbering for the last line in `multline` environments.
+                        n.suppress_all_numbers = false;
+                    }
+                    match n.next_equation_number(self.equation_counter) {
+                        Ok(num) => (num, n.num_rows),
+                        Err(_) => {
+                            break 'begin_env Err(LatexError(loc, LatexErrKind::HardLimitExceeded));
+                        }
+                    }
                 } else {
-                    None
+                    (None, None)
                 };
                 class = Class::Close;
 
-                Ok(env.construct_node(content, array_spec, self.arena, last_equation_num))
+                Ok(
+                    env.construct_node(
+                        content,
+                        array_spec,
+                        self.arena,
+                        last_equation_num,
+                        num_rows,
+                    ),
+                )
             }
             Token::OperatorName(with_limits) => {
                 let snippets = self.parse_in_text_mode(None)?;
@@ -999,11 +1026,25 @@ where
                     ))
                 }
             }
-            Token::NewLine => {
+            Token::NewLine => 'new_line: {
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    Ok(Node::RowSeparator(
-                        numbered_state.next_equation_number(self.equation_counter),
-                    ))
+                    if let Some(row_counter) = &mut numbered_state.num_rows {
+                        match row_counter.checked_add(1) {
+                            Some(new_counter) => {
+                                *row_counter = new_counter;
+                            }
+                            None => {
+                                break 'new_line Err(LatexError(
+                                    loc,
+                                    LatexErrKind::HardLimitExceeded,
+                                ));
+                            }
+                        }
+                    }
+                    match numbered_state.next_equation_number(self.equation_counter) {
+                        Ok(num) => Ok(Node::RowSeparator(num)),
+                        Err(_) => Err(LatexError(loc, LatexErrKind::HardLimitExceeded)),
+                    }
                 } else {
                     // FIXME: If we aren't in a table-like environment, we should just emit
                     //        `Node::Dummy` here.
