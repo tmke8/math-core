@@ -89,9 +89,9 @@ impl Env {
                 }
             }
             Env::Matrix => Node::Table {
-                content,
                 align: Alignment::Centered,
-                style: None,
+                style: Some(Style::Display),
+                content,
             },
             array_variant @ (Env::Array | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
