@@ -295,13 +295,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const fontSelect = document.getElementById("math-font");
   const styleElement = document.getElementById("math-font-style");
   const fontFeaturesMap = {
-    "Libertinus Math Regular": '"ss09"',
+    "Libertinus Math Regular": 'font-feature-settings: "ss09";',
+    "NewComputerModernMath Book": `
+    mtext {
+        font-family: "NewComputerModern Book", serif;
+        code {
+            font-family: "NewComputerModern Mono", monospace;
+        }
+    }`,
   };
 
   // Update the style rule when selection changes
   fontSelect.addEventListener("change", function () {
     const featureSettings = fontFeaturesMap[this.value]
-      ? `font-feature-settings: ${fontFeaturesMap[this.value]};`
+      ? fontFeaturesMap[this.value]
       : "";
     styleElement.textContent = `math { font-family: "${this.value}", math; ${featureSettings} }`;
   });
