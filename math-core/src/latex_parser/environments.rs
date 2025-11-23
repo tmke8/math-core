@@ -50,6 +50,11 @@ impl Env {
         matches!(self, Env::Array | Env::Subarray)
     }
 
+    #[inline]
+    pub(super) fn allows_columns(&self) -> bool {
+        !matches!(self, Env::MultLine)
+    }
+
     pub(super) fn construct_node<'arena>(
         &self,
         content: &'arena [&'arena Node<'arena>],
@@ -172,3 +177,47 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "vmatrix" => Env::VMatrix,
     "Vmatrix" => Env::Vmatrix,
 };
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub(super) enum NumberingMode {
+    #[default]
+    NoneByDefault,
+    AllByDefault,
+    OnlyLast,
+}
+
+/// State for environments that number equations.
+#[derive(Default)]
+pub(super) struct NumberedEnvState {
+    pub(super) mode: NumberingMode,
+    pub(super) suppress_next_number: bool,
+    pub(super) custom_next_number: Option<NonZeroU16>,
+    pub(super) num_rows: Option<NonZeroU16>,
+}
+
+impl NumberedEnvState {
+    pub(super) fn next_equation_number(
+        &mut self,
+        equation_counter: &mut u16,
+        is_last: bool,
+    ) -> Result<Option<NonZeroU16>, ()> {
+        if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
+            // Not the last row; do nothing for now.
+            return Ok(None);
+        }
+        // A custom number takes precedence over suppression.
+        if let Some(custom_number) = self.custom_next_number.take() {
+            // The state has already been cleared here through `take()`.
+            Ok(Some(custom_number))
+        } else if self.suppress_next_number || matches!(self.mode, NumberingMode::NoneByDefault) {
+            // Clear the flag.
+            self.suppress_next_number = false;
+            Ok(None)
+        } else {
+            *equation_counter = equation_counter.checked_add(1).ok_or(())?;
+            let equation_number = NonZeroU16::new(*equation_counter);
+            debug_assert!(equation_number.is_some());
+            Ok(equation_number)
+        }
+    }
+}
