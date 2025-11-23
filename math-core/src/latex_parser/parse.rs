@@ -14,7 +14,7 @@ use super::{
     character_class::Class,
     color_defs::get_color,
     commands::get_negated_op,
-    environments::Env,
+    environments::{Env, NumberedEnvState},
     error::{LatexErrKind, LatexError, Place},
     lexer::Lexer,
     specifications::{parse_column_specification, parse_length_specification},
@@ -43,37 +43,6 @@ struct ParserState<'source> {
     numbered: Option<NumberedEnvState>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
-}
-
-/// State for environments that number equations.
-#[derive(Default)]
-struct NumberedEnvState {
-    suppress_all_numbers: bool,
-    suppress_next_number: bool,
-    custom_next_number: Option<NonZeroU16>,
-    num_rows: Option<NonZeroU16>,
-}
-
-impl NumberedEnvState {
-    fn next_equation_number(
-        &mut self,
-        equation_counter: &mut u16,
-    ) -> Result<Option<NonZeroU16>, ()> {
-        // A custom number takes precedence over suppression.
-        if let Some(custom_number) = self.custom_next_number.take() {
-            // The state has already been cleared here through `take()`.
-            Ok(Some(custom_number))
-        } else if self.suppress_next_number || self.suppress_all_numbers {
-            // Clear the flag.
-            self.suppress_next_number = false;
-            Ok(None)
-        } else {
-            *equation_counter = equation_counter.checked_add(1).ok_or(())?;
-            let equation_number = NonZeroU16::new(*equation_counter);
-            debug_assert!(equation_number.is_some());
-            Ok(equation_number)
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -893,25 +862,11 @@ where
                 };
 
                 let old_allow_columns =
-                    mem::replace(&mut self.state.allow_columns, !matches!(env, Env::MultLine));
+                    mem::replace(&mut self.state.allow_columns, env.allows_columns());
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
-                let old_numbered = mem::replace(
-                    &mut self.state.numbered,
-                    if matches!(env, Env::Align | Env::AlignStar | Env::MultLine) {
-                        Some(NumberedEnvState {
-                            suppress_all_numbers: matches!(env, Env::AlignStar | Env::MultLine),
-                            num_rows: if matches!(env, Env::MultLine) {
-                                NonZeroU16::new(1)
-                            } else {
-                                None
-                            },
-                            ..Default::default()
-                        })
-                    } else {
-                        None
-                    },
-                );
+                let old_numbered =
+                    mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),
@@ -943,11 +898,7 @@ where
                 }
 
                 let (last_equation_num, num_rows) = if let Some(mut n) = numbered_state {
-                    if matches!(env, Env::MultLine) {
-                        // Allow numbering for the last line in `multline` environments.
-                        n.suppress_all_numbers = false;
-                    }
-                    match n.next_equation_number(self.equation_counter) {
+                    match n.next_equation_number(self.equation_counter, true) {
                         Ok(num) => (num, n.num_rows),
                         Err(_) => {
                             break 'begin_env Err(LatexError(loc, LatexErrKind::HardLimitExceeded));
@@ -1041,7 +992,7 @@ where
                             }
                         }
                     }
-                    match numbered_state.next_equation_number(self.equation_counter) {
+                    match numbered_state.next_equation_number(self.equation_counter, false) {
                         Ok(num) => Ok(Node::RowSeparator(num)),
                         Err(_) => Err(LatexError(loc, LatexErrKind::HardLimitExceeded)),
                     }

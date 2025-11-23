@@ -625,6 +625,36 @@ enum NumberColums {
     Wide,
 }
 
+impl NumberColums {
+    fn dummy_column_opening(
+        &self,
+        s: &mut String,
+        child_indent2: usize,
+    ) -> Result<(), std::fmt::Error> {
+        match self {
+            NumberColums::Narrow => {
+                writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"#);
+            }
+            NumberColums::Wide => {
+                writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+            }
+        }
+        Ok(())
+    }
+
+    /// Initial dummy column for equation numbering for keeping alignment.
+    #[inline]
+    fn initial_dummy_column(
+        &self,
+        s: &mut String,
+        child_indent2: usize,
+    ) -> Result<(), std::fmt::Error> {
+        self.dummy_column_opening(s, child_indent2)?;
+        write!(s, "\"></mtd>")?;
+        Ok(())
+    }
+}
+
 fn emit_table(
     s: &mut String,
     base_indent: usize,
@@ -645,15 +675,8 @@ fn emit_table(
         0
     };
     writeln_indent!(s, child_indent, "<mtr>");
-    // Add a dummy column to help keep everything centered.
-    match numbering_cols {
-        None => {}
-        Some(NumberColums::Narrow) => {
-            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
-        }
-        Some(NumberColums::Wide) => {
-            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
-        }
+    if let Some(numbering_cols) = numbering_cols {
+        numbering_cols.initial_dummy_column(s, child_indent2)?;
     }
     col_gen.write_next_mtd(s, child_indent2)?;
     for node in content.iter() {
@@ -675,17 +698,10 @@ fn emit_table(
                 }
                 writeln_indent!(s, child_indent, "</mtr>");
                 writeln_indent!(s, child_indent, "<mtr>");
-                col_gen.reset_to_new_row();
-                // Add a dummy column to help keep everything centered.
-                match numbering_cols {
-                    None => {}
-                    Some(NumberColums::Narrow) => {
-                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"></mtd>"#);
-                    }
-                    Some(NumberColums::Wide) => {
-                        writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"></mtd>"#);
-                    }
+                if let Some(numbering_cols) = numbering_cols {
+                    numbering_cols.initial_dummy_column(s, child_indent2)?;
                 }
+                col_gen.reset_to_new_row();
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
             node => {
@@ -715,14 +731,7 @@ fn write_equation_num(
     equation_counter: Option<NonZeroU16>,
     numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
-    match numbering_cols {
-        NumberColums::Narrow => {
-            writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"#);
-        }
-        NumberColums::Wide => {
-            writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
-        }
-    }
+    numbering_cols.dummy_column_opening(s, child_indent2)?;
     if let Some(equation_counter) = equation_counter {
         write!(s, r#";{}">"#, RIGHT_ALIGN)?;
         writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);

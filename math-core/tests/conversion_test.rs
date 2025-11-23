@@ -139,6 +139,10 @@ fn main() {
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
         ("multline", r#"\begin{multline}x=\\1+\\2\end{multline}"#),
         (
+            "multline_tag",
+            r#"\begin{multline}x=\tag{4}\\1+\\2\end{multline}"#,
+        ),
+        (
             "text_transforms",
             r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
         ),
