@@ -137,6 +137,15 @@ fn main() {
         ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+        ("gather", r#"\begin{gather}x=1\\y=2\end{gather}"#),
+        (
+            "gather_nonumber_tag",
+            r#"\begin{gather}x=1\nonumber\\\tag{32}y=2\end{gather}"#,
+        ),
+        (
+            "gather_star",
+            r#"\begin{gather*}x=1\\y=2\tag{1}\end{gather*}"#,
+        ),
         ("multline", r#"\begin{multline}x=\\1+\\2\end{multline}"#),
         (
             "multline_tag",

@@ -22,6 +22,12 @@ pub enum Env {
     AlignStar,
     #[strum(serialize = "aligned")]
     Aligned,
+    #[strum(serialize = "gather")]
+    Gather,
+    #[strum(serialize = "gather*")]
+    GatherStar,
+    #[strum(serialize = "gathered")]
+    Gathered,
     #[strum(serialize = "multline")]
     MultLine,
     #[strum(serialize = "cases")]
@@ -52,15 +58,21 @@ impl Env {
 
     #[inline]
     pub(super) fn allows_columns(&self) -> bool {
-        !matches!(self, Env::MultLine)
+        !matches!(
+            self,
+            Env::Gather | Env::GatherStar | Env::Gathered | Env::MultLine
+        )
     }
 
     #[inline]
     pub(super) fn get_numbered_env_state(&self) -> Option<NumberedEnvState> {
-        if matches!(self, Env::Align | Env::AlignStar | Env::MultLine) {
+        if matches!(
+            self,
+            Env::Align | Env::AlignStar | Env::Gather | Env::GatherStar | Env::MultLine
+        ) {
             Some(NumberedEnvState {
                 mode: match self {
-                    Env::Align => NumberingMode::AllByDefault,
+                    Env::Align | Env::Gather => NumberingMode::AllByDefault,
                     Env::MultLine => NumberingMode::OnlyLast,
                     _ => NumberingMode::NoneByDefault,
                 },
@@ -92,6 +104,16 @@ impl Env {
             },
             Env::Aligned => Node::Table {
                 align: Alignment::Alternating,
+                style: Some(Style::Display),
+                content,
+            },
+            Env::Gather | Env::GatherStar => Node::EquationArray {
+                align: Alignment::Centered,
+                last_equation_num,
+                content,
+            },
+            Env::Gathered => Node::Table {
+                align: Alignment::Centered,
                 style: Some(Style::Display),
                 content,
             },
@@ -190,6 +212,9 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "align" => Env::Align,
     "align*" => Env::AlignStar,
     "aligned" => Env::Aligned,
+    "gather" => Env::Gather,
+    "gather*" => Env::GatherStar,
+    "gathered" => Env::Gathered,
     "multline" => Env::MultLine,
     "bmatrix" => Env::BMatrix,
     "Bmatrix" => Env::Bmatrix,
