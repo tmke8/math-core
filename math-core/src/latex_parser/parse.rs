@@ -1,17 +1,13 @@
 use std::{mem, num::NonZeroU16};
 
-use crate::{
-    latex_parser::environments::NumberingMode,
-    mathml_renderer::{
-        arena::{Arena, Buffer},
-        ast::Node,
-        attribute::{
-            LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style,
-            TextTransform,
-        },
-        length::Length,
-        symbol::{self, BinCategory, StretchableOp},
+use crate::mathml_renderer::{
+    arena::{Arena, Buffer},
+    ast::Node,
+    attribute::{
+        LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
     },
+    length::Length,
+    symbol::{self, BinCategory, StretchableOp},
 };
 
 use super::{
@@ -869,26 +865,8 @@ where
                     mem::replace(&mut self.state.allow_columns, env.allows_columns());
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
-                let old_numbered = mem::replace(
-                    &mut self.state.numbered,
-                    if matches!(env, Env::Align | Env::AlignStar | Env::MultLine) {
-                        Some(NumberedEnvState {
-                            mode: match env {
-                                Env::Align => NumberingMode::AllByDefault,
-                                Env::MultLine => NumberingMode::OnlyLast,
-                                _ => NumberingMode::NoneByDefault,
-                            },
-                            num_rows: if matches!(env, Env::MultLine) {
-                                NonZeroU16::new(1)
-                            } else {
-                                None
-                            },
-                            ..Default::default()
-                        })
-                    } else {
-                        None
-                    },
-                );
+                let old_numbered =
+                    mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::Token(Token::End),

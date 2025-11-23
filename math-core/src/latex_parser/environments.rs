@@ -55,6 +55,27 @@ impl Env {
         !matches!(self, Env::MultLine)
     }
 
+    #[inline]
+    pub(super) fn get_numbered_env_state(&self) -> Option<NumberedEnvState> {
+        if matches!(self, Env::Align | Env::AlignStar | Env::MultLine) {
+            Some(NumberedEnvState {
+                mode: match self {
+                    Env::Align => NumberingMode::AllByDefault,
+                    Env::MultLine => NumberingMode::OnlyLast,
+                    _ => NumberingMode::NoneByDefault,
+                },
+                num_rows: if matches!(self, Env::MultLine) {
+                    NonZeroU16::new(1)
+                } else {
+                    None
+                },
+                ..Default::default()
+            })
+        } else {
+            None
+        }
+    }
+
     pub(super) fn construct_node<'arena>(
         &self,
         content: &'arena [&'arena Node<'arena>],
@@ -102,6 +123,7 @@ impl Env {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
                 // `Env::Array` and `Env::Subarray` in the caller.
                 // TODO: Refactor this to avoid using `unsafe`.
+                debug_assert!(array_spec.is_some());
                 let array_spec = unsafe { array_spec.unwrap_unchecked() };
                 let style = if matches!(array_variant, Env::Subarray) {
                     Some(Style::Script)
