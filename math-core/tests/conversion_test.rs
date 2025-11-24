@@ -7,6 +7,7 @@ fn main() {
         ("empty", r""),
         ("only_whitespace", r"  "),
         ("starts_with_whitespace", r"  x  "),
+        ("newline", r"x\\y"),
         ("text", r"\text{hi}xx"),
         ("text_multi_space", r"\text{x   y}"),
         ("text_no_braces", r"\text x"),
@@ -137,6 +138,8 @@ fn main() {
         ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+        ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
+        ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),
         ("gather", r#"\begin{gather}x=1\\y=2\end{gather}"#),
         (
             "gather_nonumber_tag",

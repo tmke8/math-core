@@ -167,8 +167,8 @@ impl Node<'_> {
             0
         };
 
-        // Get the base indent out of the way, as long as we are not in a "pseudo" node.
-        if !matches!(self, Node::Dummy | Node::RowSeparator(_)) {
+        // Get the base indent out of the way, as long as we are not in a dummy node.
+        if !matches!(self, Node::Dummy) {
             new_line_and_indent(s, base_indent);
         }
 
@@ -522,16 +522,11 @@ impl Node<'_> {
                     None,
                 )?;
             }
-            Node::ColumnSeparator => {
+            Node::RowSeparator(_) | Node::ColumnSeparator => {
                 // This should only appear in tables where it is handled in `emit_table`.
                 if cfg!(debug_assertions) {
                     panic!("ColumnSeparator node should be handled in emit_table");
                 }
-            }
-            Node::RowSeparator(_) => {
-                // This should only appear in tables where it is handled in `emit_table`.
-                // However, we are currently not yet properly ensuring this fact,
-                // so we just ignore it here.
             }
             Node::Enclose { content, notation } => {
                 let notation = *notation;

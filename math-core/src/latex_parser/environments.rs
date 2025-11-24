@@ -1,7 +1,5 @@
 use std::num::NonZeroU16;
 
-use strum_macros::IntoStaticStr;
-
 use crate::mathml_renderer::{
     arena::Arena,
     ast::Node,
@@ -10,45 +8,59 @@ use crate::mathml_renderer::{
     table::{Alignment, ArraySpec},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
+    "array" => Env::Array,
+    "subarray" => Env::Subarray,
+    "align" => Env::Align,
+    "align*" => Env::AlignStar,
+    "aligned" => Env::Aligned,
+    "equation" => Env::Equation,
+    "equation*" => Env::EquationStar,
+    "gather" => Env::Gather,
+    "gather*" => Env::GatherStar,
+    "gathered" => Env::Gathered,
+    "multline" => Env::MultLine,
+    "bmatrix" => Env::BMatrix,
+    "Bmatrix" => Env::Bmatrix,
+    "cases" => Env::Cases,
+    "matrix" => Env::Matrix,
+    "pmatrix" => Env::PMatrix,
+    "vmatrix" => Env::VMatrix,
+    "Vmatrix" => Env::Vmatrix,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Env {
-    #[strum(serialize = "array")]
     Array,
-    #[strum(serialize = "subarray")]
     Subarray,
-    #[strum(serialize = "align")]
     Align,
-    #[strum(serialize = "align*")]
     AlignStar,
-    #[strum(serialize = "aligned")]
     Aligned,
-    #[strum(serialize = "gather")]
+    Equation,
+    EquationStar,
     Gather,
-    #[strum(serialize = "gather*")]
     GatherStar,
-    #[strum(serialize = "gathered")]
     Gathered,
-    #[strum(serialize = "multline")]
     MultLine,
-    #[strum(serialize = "cases")]
     Cases,
-    #[strum(serialize = "matrix")]
     Matrix,
-    #[strum(serialize = "bmatrix")]
     BMatrix,
-    #[strum(serialize = "Bmatrix")]
     Bmatrix,
-    #[strum(serialize = "pmatrix")]
     PMatrix,
-    #[strum(serialize = "vmatrix")]
     VMatrix,
-    #[strum(serialize = "Vmatrix")]
     Vmatrix,
 }
 
 impl Env {
     pub(super) fn from_str(s: &str) -> Option<Self> {
         ENVIRONMENTS.get(s).copied()
+    }
+
+    pub(super) fn as_str(&self) -> &'static str {
+        ENVIRONMENTS
+            .entries()
+            .find_map(|(k, v)| if v == self { Some(*k) } else { None })
+            .unwrap_or("unknown")
     }
 
     #[inline]
@@ -60,19 +72,35 @@ impl Env {
     pub(super) fn allows_columns(&self) -> bool {
         !matches!(
             self,
-            Env::Gather | Env::GatherStar | Env::Gathered | Env::MultLine
+            Env::Equation
+                | Env::EquationStar
+                | Env::Gather
+                | Env::GatherStar
+                | Env::Gathered
+                | Env::MultLine
         )
+    }
+
+    #[inline]
+    pub(super) fn meaningful_newlines(&self) -> bool {
+        !matches!(self, Env::Equation | Env::EquationStar)
     }
 
     #[inline]
     pub(super) fn get_numbered_env_state(&self) -> Option<NumberedEnvState> {
         if matches!(
             self,
-            Env::Align | Env::AlignStar | Env::Gather | Env::GatherStar | Env::MultLine
+            Env::Align
+                | Env::AlignStar
+                | Env::Equation
+                | Env::EquationStar
+                | Env::Gather
+                | Env::GatherStar
+                | Env::MultLine
         ) {
             Some(NumberedEnvState {
                 mode: match self {
-                    Env::Align | Env::Gather => NumberingMode::AllByDefault,
+                    Env::Align | Env::Equation | Env::Gather => NumberingMode::AllByDefault,
                     Env::MultLine => NumberingMode::OnlyLast,
                     _ => NumberingMode::NoneByDefault,
                 },
@@ -107,21 +135,26 @@ impl Env {
                 style: Some(Style::Display),
                 content,
             },
-            Env::Gather | Env::GatherStar => Node::EquationArray {
-                align: Alignment::Centered,
-                last_equation_num,
-                content,
-            },
+            Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
+                Node::EquationArray {
+                    align: Alignment::Centered,
+                    last_equation_num,
+                    content,
+                }
+            }
             Env::Gathered => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Display),
                 content,
             },
-            Env::MultLine => Node::MultLine {
-                content,
-                num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
-                last_equation_num,
-            },
+            Env::MultLine => {
+                debug_assert!(num_rows.is_some());
+                Node::MultLine {
+                    content,
+                    num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
+                    last_equation_num,
+                }
+            }
             Env::Cases => {
                 let align = Alignment::Cases;
                 let content = arena.push(Node::Table {
@@ -205,25 +238,6 @@ impl Env {
         }
     }
 }
-
-static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
-    "array" => Env::Array,
-    "subarray" => Env::Subarray,
-    "align" => Env::Align,
-    "align*" => Env::AlignStar,
-    "aligned" => Env::Aligned,
-    "gather" => Env::Gather,
-    "gather*" => Env::GatherStar,
-    "gathered" => Env::Gathered,
-    "multline" => Env::MultLine,
-    "bmatrix" => Env::BMatrix,
-    "Bmatrix" => Env::Bmatrix,
-    "cases" => Env::Cases,
-    "matrix" => Env::Matrix,
-    "pmatrix" => Env::PMatrix,
-    "vmatrix" => Env::VMatrix,
-    "Vmatrix" => Env::Vmatrix,
-};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub(super) enum NumberingMode {

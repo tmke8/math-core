@@ -108,9 +108,9 @@ impl LatexErrKind<'_> {
             LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 "Expected \"\\end{".to_string()
-                    + <&str>::from(expected)
+                    + expected.as_str()
                     + "}\", but got \"\\end{"
-                    + <&str>::from(got)
+                    + got.as_str()
                     + "}\"."
             }
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
