@@ -63,6 +63,7 @@ fn main() {
             "ampersand_in_multline",
             r#"\begin{multline}1&1\end{multline}"#,
         ),
+        ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
     ];
 
     let config = MathCoreConfig {

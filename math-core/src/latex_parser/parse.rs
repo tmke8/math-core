@@ -40,6 +40,8 @@ struct ParserState<'source> {
     right_boundary_hack: bool,
     /// `true` if we are inside an environment that allows columns (`&`).
     allow_columns: bool,
+    /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
+    meaningful_newlines: bool,
     numbered: Option<NumberedEnvState>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
@@ -109,6 +111,7 @@ where
                 transform: None,
                 right_boundary_hack: false,
                 allow_columns: false,
+                meaningful_newlines: false,
                 numbered: None,
                 script_style: false,
             },
@@ -863,6 +866,10 @@ where
 
                 let old_allow_columns =
                     mem::replace(&mut self.state.allow_columns, env.allows_columns());
+                let old_meaningful_newlines = mem::replace(
+                    &mut self.state.meaningful_newlines,
+                    env.meaningful_newlines(),
+                );
                 let old_script_style =
                     mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
                 let old_numbered =
@@ -875,6 +882,7 @@ where
                 )?);
 
                 self.state.allow_columns = old_allow_columns;
+                self.state.meaningful_newlines = old_meaningful_newlines;
                 self.state.script_style = old_script_style;
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
@@ -978,7 +986,9 @@ where
                 }
             }
             Token::NewLine => 'new_line: {
-                if let Some(numbered_state) = &mut self.state.numbered {
+                if !self.state.meaningful_newlines {
+                    Ok(Node::Dummy)
+                } else if let Some(numbered_state) = &mut self.state.numbered {
                     if let Some(row_counter) = &mut numbered_state.num_rows {
                         match row_counter.checked_add(1) {
                             Some(new_counter) => {
@@ -997,8 +1007,6 @@ where
                         Err(_) => Err(LatexError(loc, LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
-                    // FIXME: If we aren't in a table-like environment, we should just emit
-                    //        `Node::Dummy` here.
                     Ok(Node::RowSeparator(None))
                 }
             }
