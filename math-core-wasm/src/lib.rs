@@ -23,7 +23,7 @@ pub struct LatexError {
 #[wasm_bindgen]
 pub struct LatexToMathML {
     inner: math_core::LatexToMathML,
-    continue_on_error: bool,
+    throw_on_error: bool,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -32,7 +32,7 @@ interface MathCoreOptions {
     prettyPrint?: "never" | "always" | "auto";
     macros?: Map<string, string>;
     xmlNamespace?: boolean;
-    continueOnError?: boolean;
+    throwOnError?: boolean;
 }
 "#;
 
@@ -51,7 +51,7 @@ extern "C" {
     fn xmlNamespace(this: &MathCoreOptions) -> Option<bool>;
 
     #[wasm_bindgen(method, getter)]
-    fn continueOnError(this: &MathCoreOptions) -> Option<bool>;
+    fn throwOnError(this: &MathCoreOptions) -> Option<bool>;
 }
 
 #[wasm_bindgen]
@@ -99,7 +99,7 @@ impl LatexToMathML {
             None
         };
         let xml_namespace = js_config.xmlNamespace();
-        let continue_on_error = js_config.continueOnError();
+        let throw_on_error = js_config.throwOnError();
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             macros: macros.unwrap_or_default(),
@@ -111,7 +111,7 @@ impl LatexToMathML {
         })?;
         Ok(LatexToMathML {
             inner: convert,
-            continue_on_error: continue_on_error.unwrap_or_default(),
+            throw_on_error: throw_on_error.unwrap_or(true),
         })
     }
 
@@ -129,13 +129,13 @@ impl LatexToMathML {
         match self.inner.convert_with_local_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(e) => {
-                if self.continue_on_error {
-                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
-                } else {
+                if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
                         location: e.0 as u32,
                     })
+                } else {
+                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
                 }
             }
         }
@@ -155,13 +155,13 @@ impl LatexToMathML {
         match self.inner.convert_with_global_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(e) => {
-                if self.continue_on_error {
-                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
-                } else {
+                if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
                         location: e.0 as u32,
                     })
+                } else {
+                    Ok(JsValue::from_str(&e.to_html(content, display, None)))
                 }
             }
         }
