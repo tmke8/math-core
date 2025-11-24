@@ -86,7 +86,7 @@ describe("Convert Tests", function () {
   context("Continue on error", function () {
     it("should continue on error", function () {
       const converter = new LatexToMathML({
-        continueOnError: true,
+        throwOnError: false,
       });
       const latex = "\\asdf";
       const displayStyle = false;
@@ -94,6 +94,16 @@ describe("Convert Tests", function () {
         converter.convert_with_local_counter(latex, displayStyle),
         '<span class="math-core-error" title="0: Unknown command &quot;\\asdf&quot;."><code>\\asdf</code></span>',
       );
+    });
+  });
+  context("Throwing an error", function () {
+    it("should throw on error", function () {
+      const converter = new LatexToMathML({});
+      const latex = "\\asdf";
+      const displaystyle = false;
+      assert.throws(() => {
+        converter.convert_with_local_counter(latex, displaystyle);
+      }, /Unknown command "\\asdf"./);
     });
   });
 });
