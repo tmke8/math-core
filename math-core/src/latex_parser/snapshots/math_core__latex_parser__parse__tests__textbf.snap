@@ -1,7 +1,0 @@
----
-source: math-core/src/latex_parser/parse.rs
-expression: "\\textbf{abc}"
----
-[
-  Text(Some(Bold), "abc"),
-]

@@ -1,5 +1,5 @@
 [workspace]
-members = ["math-core", "math-core-cli", "math-core-python", "math-core-wasm"]
+members = ["math-core", "mathml-renderer", "math-core-cli", "math-core-python", "math-core-wasm"]
 exclude = ["fuzz"]
 default-members = ["math-core-cli"]
 resolver = "2"
@@ -14,8 +14,9 @@ repository = "https://github.com/tmke8/math-core"
 [workspace.dependencies]
 rustc-hash = "2.1.1"
 serde = { version = "1.0.228", features = ["derive"] }
-bitflags = "2.10.0"
 memchr = "2.7.6"
+strum = "0.27.2"
+strum_macros = "0.27.2"
 
 [profile.dev.package]
 insta.opt-level = 3

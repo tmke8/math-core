@@ -1,0 +1,10 @@
+---
+source: math-core/src/lexer.rs
+expression: "{x\\color     {red} y}"
+---
+0: GroupBegin
+1: Letter('x')
+2: Color
+13: StringLiteral("red")
+19: Letter('y')
+20: GroupEnd

@@ -1,0 +1,6 @@
+---
+source: math-core/src/lexer.rs
+expression: "{\\begin{matrix}}"
+---
+1: Begin
+7: EnvName(Matrix)

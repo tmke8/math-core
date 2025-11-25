@@ -1,0 +1,7 @@
+---
+source: math-core/src/lexer.rs
+expression: "{x+y} b"
+---
+1: Letter('x')
+2: BinaryOp(Bin { char: '+', cat: BD })
+3: Letter('y')

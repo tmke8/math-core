@@ -1,7 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: x+y
----
-0: Letter('x')
-1: BinaryOp(Bin { char: '+', cat: BD })
-2: Letter('y')

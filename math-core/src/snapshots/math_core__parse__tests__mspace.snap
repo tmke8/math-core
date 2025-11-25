@@ -1,0 +1,10 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mspace{1mu}"
+---
+[
+  Space(Length(
+    value: 0.055555556,
+    unit: Em,
+  )),
+]

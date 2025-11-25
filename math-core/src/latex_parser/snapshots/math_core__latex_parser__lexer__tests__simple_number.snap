@@ -1,5 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: "3"
----
-0: Digit('3')

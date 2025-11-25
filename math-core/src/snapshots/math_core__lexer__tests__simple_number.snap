@@ -1,0 +1,5 @@
+---
+source: math-core/src/lexer.rs
+expression: "3"
+---
+0: Digit('3')

@@ -1,8 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: "\\prod\\text\\o\\sum"
----
-0: BigOp(BigOp { char: '∏', cat: OnlyJ })
-5: Text(None)
-10: Letter('ø')
-12: BigOp(BigOp { char: '∑', cat: OnlyJ })

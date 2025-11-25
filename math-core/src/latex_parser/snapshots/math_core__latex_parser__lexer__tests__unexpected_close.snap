@@ -1,5 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: "x + y}"
----
-Error at 5: UnexpectedClose(GroupEnd)

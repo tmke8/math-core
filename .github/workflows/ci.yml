@@ -47,10 +47,10 @@ jobs:
           node-version: 20
       - uses: qmaru/wasm-pack-action@v0.5.0
       - uses: Swatinem/rust-cache@v2
-      # - name: "Run wasm-pack test"
-      #   working-directory: ./pr-branch
-      #   run: |
-      #     wasm-pack test --node math-core-wasm
+      - name: "Run wasm-pack test"
+        working-directory: ./pr-branch
+        run: |
+          wasm-pack test --node math-core-wasm
       - name: "Get wasm size on PR"
         working-directory: ./pr-branch
         run: |

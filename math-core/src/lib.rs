@@ -25,18 +25,29 @@
 //!
 //! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
 //!
+mod atof;
+mod character_class;
+mod color_defs;
+mod commands;
+mod environments;
+mod error;
 mod html_utils;
-mod latex_parser;
-mod mathml_renderer;
+mod lexer;
+mod parse;
+mod predefined;
+mod specifications;
+mod text_parser;
+mod token;
+mod token_manager;
 
 use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use self::latex_parser::{LatexErrKind, Token};
-use self::mathml_renderer::arena::Arena;
+use mathml_renderer::{arena::Arena, ast::Node};
 
-pub use self::latex_parser::LatexError;
+pub use self::error::LatexError;
+use self::{error::LatexErrKind, lexer::Lexer, parse::Parser, token::Token};
 
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -288,20 +299,20 @@ fn parse<'arena, 'source>(
     arena: &'arena Arena,
     custom_cmds: Option<&'source CustomCmds>,
     equation_count: &mut u16,
-) -> Result<Vec<&'arena mathml_renderer::ast::Node<'arena>>, LatexError<'source>>
+) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
     let error_slot = std::cell::OnceCell::new();
     let mut string_literal_store = String::new();
-    let lexer = latex_parser::Lexer::new(
+    let lexer = Lexer::new(
         latex,
         false,
         custom_cmds,
         &error_slot,
         &mut string_literal_store,
     );
-    let mut p = latex_parser::Parser::new(lexer, arena, equation_count).map_err(|e| *e)?;
+    let mut p = Parser::new(lexer, arena, equation_count).map_err(|e| *e)?;
     let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
 }
@@ -317,7 +328,7 @@ fn parse_custom_commands<'source>(
             return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
         let error_slot = std::cell::OnceCell::new();
-        let mut lexer: latex_parser::Lexer<'static, '_, '_> = latex_parser::Lexer::new(
+        let mut lexer: Lexer<'static, '_, '_> = Lexer::new(
             definition,
             true,
             None,

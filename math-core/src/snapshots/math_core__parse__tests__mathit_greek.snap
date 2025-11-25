@@ -1,0 +1,7 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathit{\\Alpha\\Beta}"
+---
+[
+  IdentifierStr(true, "𝛢𝛣"),
+]
