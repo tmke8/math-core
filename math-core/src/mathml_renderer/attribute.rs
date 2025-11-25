@@ -110,7 +110,6 @@ pub enum MathSpacing {
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum RowAttr {
-    None,
     Style(Style),
     Color(u8, u8, u8),
 }

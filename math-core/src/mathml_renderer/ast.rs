@@ -95,7 +95,7 @@ pub enum Node<'arena> {
     /// `<mrow>...</mrow>`
     Row {
         nodes: &'arena [&'arena Node<'arena>],
-        attr: RowAttr,
+        attr: Option<RowAttr>,
     },
     Fenced {
         style: Option<Style>,
@@ -368,13 +368,13 @@ impl Node<'_> {
             }
             Node::Row { nodes, attr: style } => {
                 match style {
-                    RowAttr::None => {
+                    None => {
                         write!(s, "<mrow>")?;
                     }
-                    RowAttr::Style(style) => {
+                    Some(RowAttr::Style(style)) => {
                         write!(s, "<mrow{}>", <&str>::from(style))?;
                     }
-                    RowAttr::Color(r, g, b) => {
+                    Some(RowAttr::Color(r, g, b)) => {
                         write!(s, "<mrow style=\"color:#")?;
                         append_u8_as_hex(s, *r);
                         append_u8_as_hex(s, *g);
@@ -1130,7 +1130,7 @@ mod tests {
         assert_eq!(
             render(&Node::Row {
                 nodes,
-                attr: RowAttr::Style(Style::Display)
+                attr: Some(RowAttr::Style(Style::Display))
             }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
@@ -1138,7 +1138,7 @@ mod tests {
         assert_eq!(
             render(&Node::Row {
                 nodes,
-                attr: RowAttr::Color(0, 0, 0)
+                attr: Some(RowAttr::Color(0, 0, 0))
             }),
             "<mrow style=\"color:#000000;\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
@@ -1310,7 +1310,7 @@ mod tests {
                 &Node::IdentifierChar('b', LetterAttr::Default),
                 &Node::IdentifierChar('c', LetterAttr::Default),
             ],
-            attr: RowAttr::None,
+            attr: None,
         };
 
         assert_eq!(

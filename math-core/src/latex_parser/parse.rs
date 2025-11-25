@@ -1053,7 +1053,7 @@ where
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    attr: color,
+                    attr: Some(color),
                 })
             }
             Token::Style(style) => {
@@ -1065,13 +1065,13 @@ where
                 self.state.script_style = old_script_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    attr: RowAttr::Style(style),
+                    attr: Some(RowAttr::Style(style)),
                 })
             }
             Token::Prime => {
                 let target = self.commit(Node::Row {
                     nodes: &[],
-                    attr: RowAttr::None,
+                    attr: None,
                 });
                 let symbol = self.commit(Node::Operator {
                     op: symbol::PRIME.as_op(),
@@ -1097,7 +1097,7 @@ where
                 } else {
                     let empty_row = self.commit(Node::Row {
                         nodes: &[],
-                        attr: RowAttr::None,
+                        attr: None,
                     });
                     if matches!(tok, Token::Underscore) {
                         Ok(Node::Subscript {
@@ -1527,10 +1527,7 @@ pub(crate) fn node_vec_to_node<'arena>(
         }
     } else {
         let nodes = arena.push_slice(&nodes);
-        arena.push(Node::Row {
-            nodes,
-            attr: RowAttr::None,
-        })
+        arena.push(Node::Row { nodes, attr: None })
     }
 }
 

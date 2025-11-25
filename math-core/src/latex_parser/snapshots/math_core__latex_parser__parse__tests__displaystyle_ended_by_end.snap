@@ -22,7 +22,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
             right: Some(Zero),
           ),
         ],
-        attr: Style(Display),
+        attr: Some(Style(Display)),
       ),
     ],
   ),

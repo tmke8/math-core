@@ -16,7 +16,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
           right: Some(Zero),
         ),
       ],
-      attr: Style(Display),
+      attr: Some(Style(Display)),
     ),
   ),
   Operator(
