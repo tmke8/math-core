@@ -1,0 +1,9 @@
+---
+source: math-core/src/lexer.rs
+expression: "{x\\hspace{2em}}"
+---
+0: GroupBegin
+1: Letter('x')
+2: CustomSpace
+9: StringLiteral("2em")
+14: GroupEnd

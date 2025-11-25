@@ -1,7 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: "\\begin{array}{c|c}"
----
-0: Begin
-6: EnvName(Array)
-13: StringLiteral("c|c")

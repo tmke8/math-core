@@ -1,0 +1,22 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\genfrac{}]{0pt}{2}{a+b}{c+d}"
+---
+0: Genfrac
+8: GroupBegin
+9: GroupEnd
+10: SquareBracketClose
+11: StringLiteral("0pt")
+16: GroupBegin
+17: Digit('2')
+18: GroupEnd
+19: GroupBegin
+20: Letter('a')
+21: BinaryOp(Bin { char: '+', cat: BD })
+22: Letter('b')
+23: GroupEnd
+24: GroupBegin
+25: Letter('c')
+26: BinaryOp(Bin { char: '+', cat: BD })
+27: Letter('d')
+28: GroupEnd

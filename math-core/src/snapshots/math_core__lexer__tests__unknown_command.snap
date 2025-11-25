@@ -1,0 +1,5 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\unknowncmd + x"
+---
+Error at 0: UnknownCommand("unknowncmd")

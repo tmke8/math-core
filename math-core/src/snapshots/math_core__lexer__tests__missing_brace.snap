@@ -1,0 +1,5 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\begin x + y"
+---
+Error at 7: UnknownEnvironment("x")

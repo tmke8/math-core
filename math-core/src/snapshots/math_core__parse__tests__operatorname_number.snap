@@ -1,0 +1,13 @@
+---
+source: math-core/src/parse.rs
+expression: "\\operatorname123"
+---
+[
+  PseudoOp(
+    attr: None,
+    left: Some(Zero),
+    right: Some(ThreeMu),
+    name: "1",
+  ),
+  Number("23"),
+]

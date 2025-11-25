@@ -1,0 +1,31 @@
+---
+source: math-core/src/parse.rs
+expression: ":2=:="
+---
+[
+  Operator(
+    op: ':',
+    attr: None,
+    left: Some(Zero),
+    right: Some(FiveMu),
+  ),
+  Number("2"),
+  Operator(
+    op: '=',
+    attr: None,
+    left: None,
+    right: Some(Zero),
+  ),
+  Operator(
+    op: ':',
+    attr: None,
+    left: Some(Zero),
+    right: Some(Zero),
+  ),
+  Operator(
+    op: '=',
+    attr: None,
+    left: Some(Zero),
+    right: Some(Zero),
+  ),
+]

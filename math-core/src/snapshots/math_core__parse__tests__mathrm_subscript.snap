@@ -1,0 +1,19 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathrm{x_x y_y}"
+---
+[
+  Row(
+    nodes: [
+      Subscript(
+        target: IdentifierChar('x', ForcedUpright),
+        symbol: IdentifierChar('x', ForcedUpright),
+      ),
+      Subscript(
+        target: IdentifierChar('y', ForcedUpright),
+        symbol: IdentifierChar('y', ForcedUpright),
+      ),
+    ],
+    attr: None,
+  ),
+]

@@ -1,0 +1,8 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\prod\\text\\o\\sum"
+---
+0: BigOp(BigOp { char: '∏', cat: OnlyJ })
+5: Text(None)
+10: Letter('ø')
+12: BigOp(BigOp { char: '∑', cat: OnlyJ })

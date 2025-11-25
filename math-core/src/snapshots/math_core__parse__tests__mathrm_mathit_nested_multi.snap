@@ -1,0 +1,14 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathrm{ab\\mathit{cd}ef}"
+---
+[
+  Row(
+    nodes: [
+      IdentifierStr(false, "ab"),
+      IdentifierStr(true, "𝑐𝑑"),
+      IdentifierStr(false, "ef"),
+    ],
+    attr: None,
+  ),
+]

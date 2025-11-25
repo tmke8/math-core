@@ -3,7 +3,7 @@
 use fantoccini::{ClientBuilder, Locator};
 use image::{ImageFormat, ImageReader};
 use libfuzzer_sys::fuzz_target;
-use math_core::latex_to_mathml;
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 use std::io::Cursor;
 use std::io::Write;
 use std::process::Stdio;
@@ -12,7 +12,9 @@ use std::time::Duration;
 fuzz_target!(|data: &str| {
     // Parse with our parser
     let l2m = {
-        if let Ok(l2m) = latex_to_mathml(data, math_core::Display::Block, false) {
+        let config: MathCoreConfig = Default::default();
+        let converter = LatexToMathML::new(&config).unwrap();
+        if let Ok(l2m) = converter.convert_with_local_counter(data, MathDisplay::Block) {
             let l2m = l2m
                 .strip_prefix(r#"<math display="block">"#)
                 .unwrap()
@@ -25,7 +27,9 @@ fuzz_target!(|data: &str| {
                 .replace(r##" lspace="0em""##, "")
                 .replace(r##" rspace="0em""##, "")
                 .replace(r##" mathvariant="normal""##, "");
-            format!(r##"<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow>{l2m}</mrow><annotation encoding="application/x-tex">{data}</annotation></semantics></math>"##)
+            format!(
+                r##"<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow>{l2m}</mrow><annotation encoding="application/x-tex">{data}</annotation></semantics></math>"##
+            )
         } else {
             return;
         }
@@ -35,16 +39,14 @@ fuzz_target!(|data: &str| {
     //return;
 
     // Parse with katex
-    let katex = if let Ok(katex) =
-        katex::render_with_opts(
-            data,
-            &katex::Opts::builder()
-                .output_type(katex::OutputType::Mathml)
-                .display_mode(true)
-                .build()
-                .unwrap()
-        )
-    {
+    let katex = if let Ok(katex) = katex::render_with_opts(
+        data,
+        &katex::Opts::builder()
+            .output_type(katex::OutputType::Mathml)
+            .display_mode(true)
+            .build()
+            .unwrap(),
+    ) {
         katex
             // remove pointless wrappers
             .strip_prefix("<span class=\"katex\">")
@@ -79,82 +81,85 @@ fuzz_target!(|data: &str| {
 
     // Now pipe both of these out to Firefox, and see if they produce identical results.
     // For speed, the fuzz tester only checks with one browser.
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
-        let port = 4445;
-        let mut process = tokio::process::Command::new("geckodriver")
-            .args(["--port", port.to_string().as_str()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true)
-            .spawn()?;
-        let client = ClientBuilder::native()
-            .connect(&format!("http://localhost:{}", port))
-            .await?;
+    tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(async {
+            let port = 4445;
+            let mut process = tokio::process::Command::new("geckodriver")
+                .args(["--port", port.to_string().as_str()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .kill_on_drop(true)
+                .spawn()?;
+            let client = ClientBuilder::native()
+                .connect(&format!("http://localhost:{}", port))
+                .await?;
 
-        // Wait for Firefox to start.
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            // Wait for Firefox to start.
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
-        // Write l2m mathml to HTML template
-        let mut tmp = tempfile::Builder::new().suffix(".html").tempfile()?;
-        let path = format!("file://{}", tmp.path().to_str().unwrap());
-        html_template(
-            tmp.as_file_mut(),
-            "l2m",
-            |file: &mut std::fs::File| {
+            // Write l2m mathml to HTML template
+            let mut tmp = tempfile::Builder::new().suffix(".html").tempfile()?;
+            let path = format!("file://{}", tmp.path().to_str().unwrap());
+            html_template(tmp.as_file_mut(), "l2m", |file: &mut std::fs::File| {
                 file.write_all(l2m.as_bytes())?;
                 Ok(())
-            },
-        )?;
+            })?;
 
-        // Get l2m screenshot
-        client.goto(&path).await?;
-        let elem = client
-            .wait()
-            .at_most(Duration::from_secs(10))
-            .for_element(Locator::XPath("/html/body"))
-            .await?;
-        let screenshot_l2m = elem.screenshot().await.ok().and_then(|screenshot| {
-            ImageReader::new(Cursor::new(screenshot)).with_guessed_format().ok()?.decode().ok()
-        });
+            // Get l2m screenshot
+            client.goto(&path).await?;
+            let elem = client
+                .wait()
+                .at_most(Duration::from_secs(10))
+                .for_element(Locator::XPath("/html/body"))
+                .await?;
+            let screenshot_l2m = elem.screenshot().await.ok().and_then(|screenshot| {
+                ImageReader::new(Cursor::new(screenshot))
+                    .with_guessed_format()
+                    .ok()?
+                    .decode()
+                    .ok()
+            });
 
-        // Write katex mathml to HTML template
-        let mut tmp = tempfile::Builder::new().suffix(".html").tempfile()?;
-        let path = format!("file://{}", tmp.path().to_str().unwrap());
-        html_template(
-            tmp.as_file_mut(),
-            "katex",
-            |file: &mut std::fs::File| {
+            // Write katex mathml to HTML template
+            let mut tmp = tempfile::Builder::new().suffix(".html").tempfile()?;
+            let path = format!("file://{}", tmp.path().to_str().unwrap());
+            html_template(tmp.as_file_mut(), "katex", |file: &mut std::fs::File| {
                 file.write_all(katex.as_bytes())?;
                 Ok(())
-            },
-        )?;
+            })?;
 
-        // Get katex screenshot
-        client.goto(&path).await?;
-        let elem = client
-            .wait()
-            .at_most(Duration::from_secs(10))
-            .for_element(Locator::XPath("/html/body"))
-            .await?;
-        let screenshot_katex = elem.screenshot().await.ok().and_then(|screenshot| {
-            ImageReader::new(Cursor::new(screenshot)).with_guessed_format().ok()?.decode().ok()
-        });
+            // Get katex screenshot
+            client.goto(&path).await?;
+            let elem = client
+                .wait()
+                .at_most(Duration::from_secs(10))
+                .for_element(Locator::XPath("/html/body"))
+                .await?;
+            let screenshot_katex = elem.screenshot().await.ok().and_then(|screenshot| {
+                ImageReader::new(Cursor::new(screenshot))
+                    .with_guessed_format()
+                    .ok()?
+                    .decode()
+                    .ok()
+            });
 
-        client.close().await?;
-        process.kill().await?;
+            client.close().await?;
+            process.kill().await?;
 
-        if screenshot_l2m != screenshot_katex {
-            if let Some(screenshot_katex) = screenshot_katex {
-                screenshot_katex.save_with_format("katex.png", ImageFormat::Png)?;
+            if screenshot_l2m != screenshot_katex {
+                if let Some(screenshot_katex) = screenshot_katex {
+                    screenshot_katex.save_with_format("katex.png", ImageFormat::Png)?;
+                }
+                if let Some(screenshot_l2m) = screenshot_l2m {
+                    screenshot_l2m.save_with_format("l2m.png", ImageFormat::Png)?;
+                }
+                panic!();
             }
-            if let Some(screenshot_l2m) = screenshot_l2m {
-                screenshot_l2m.save_with_format("l2m.png", ImageFormat::Png)?;
-            }
-            panic!();
-        }
 
-        Result::<(), Box<dyn std::error::Error>>::Ok(())
-    }).unwrap();
+            Result::<(), Box<dyn std::error::Error>>::Ok(())
+        })
+        .unwrap();
 });
 
 fn html_template(

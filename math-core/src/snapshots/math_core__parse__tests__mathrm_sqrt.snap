@@ -1,0 +1,13 @@
+---
+source: math-core/src/parse.rs
+expression: "\\mathrm{\\sqrt xy}"
+---
+[
+  Row(
+    nodes: [
+      Sqrt(IdentifierChar('x', ForcedUpright)),
+      IdentifierChar('y', ForcedUpright),
+    ],
+    attr: None,
+  ),
+]

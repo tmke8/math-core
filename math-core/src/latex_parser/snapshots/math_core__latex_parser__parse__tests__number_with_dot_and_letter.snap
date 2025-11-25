@@ -1,9 +1,0 @@
----
-source: math-core/src/latex_parser/parse.rs
-expression: 4.x
----
-[
-  Number("4"),
-  IdentifierChar('.', Default),
-  IdentifierChar('x', Default),
-]

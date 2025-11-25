@@ -1,0 +1,28 @@
+[package]
+name = "math-core-renderer-internal"
+authors = [
+    "Hiromu Sugiura <h.sugiura0705@outlook.com>",
+    "Thomas MK <tmke8@posteo.net>",
+]
+version = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+resolver = "2"
+
+description = "Internal crate used by math-core"
+readme = "README.md"
+license = { workspace = true }
+repository = { workspace = true }
+
+[dependencies]
+stable-arena = { version = "0.2.0", default-features = false }
+serde = { workspace = true, optional = true }
+dtoa = { version = "1.0" }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+bitflags = "2.10.0"
+
+[dev-dependencies]
+
+[features]
+serde = ["dep:serde"]

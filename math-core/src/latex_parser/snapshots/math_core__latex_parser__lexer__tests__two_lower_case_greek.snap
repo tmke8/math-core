@@ -1,6 +1,0 @@
----
-source: math-core/src/latex_parser/lexer.rs
-expression: "\\alpha\\beta"
----
-0: Letter('α')
-6: Letter('β')
