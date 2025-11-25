@@ -811,7 +811,7 @@ where
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc)?.0)
+                    Some(self.extract_delimiter(tok_loc)?)
                 };
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::Right), Class::Open, false)?;
@@ -819,7 +819,7 @@ where
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc)?.0)
+                    Some(self.extract_delimiter(tok_loc)?)
                 };
                 Ok(Node::Fenced {
                     open: open_paren,
@@ -830,13 +830,14 @@ where
             }
             Token::Middle => {
                 let tok_loc = self.next_token()?;
-                let op = self.extract_delimiter(tok_loc)?.0;
+                let op = self.extract_delimiter(tok_loc)?;
                 Ok(Node::StretchableOp(op, StretchMode::Middle))
             }
             Token::Big(size, cls) => {
                 let tok_loc = self.next_token()?;
-                let (paren, symbol_class) = self.extract_delimiter(tok_loc)?;
-                class = cls.unwrap_or(symbol_class);
+                let paren = self.extract_delimiter(tok_loc)?;
+                // `\big` commands without the "l" or "r" really produce `Class::Default`.
+                class = cls.unwrap_or(Class::Default);
                 Ok(Node::SizedParen(size, paren))
             }
             Token::Begin => 'begin_env: {
@@ -1375,16 +1376,16 @@ where
     fn extract_delimiter(
         &mut self,
         tok: TokLoc<'source>,
-    ) -> ParseResult<'cell, 'source, (StretchableOp, Class)> {
+    ) -> ParseResult<'cell, 'source, StretchableOp> {
         let TokLoc(loc, tok) = tok;
-        let (delim, class) = match tok {
-            Token::Open(paren) => (Some(paren.as_op()), Class::Open),
-            Token::Close(paren) => (Some(paren.as_op()), Class::Close),
-            Token::Ord(ord) => (ord.as_stretchable_op(), Class::Default),
-            Token::Relation(rel) => (rel.as_stretchable_op(), Class::Relation),
-            Token::SquareBracketOpen => (Some(symbol::LEFT_SQUARE_BRACKET.as_op()), Class::Open),
-            Token::SquareBracketClose => (Some(symbol::RIGHT_SQUARE_BRACKET.as_op()), Class::Close),
-            _ => (None, Class::Default),
+        let delim = match tok {
+            Token::Open(paren) => Some(paren.as_op()),
+            Token::Close(paren) => Some(paren.as_op()),
+            Token::Ord(ord) => ord.as_stretchable_op(),
+            Token::Relation(rel) => rel.as_stretchable_op(),
+            Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
+            Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+            _ => None,
         };
         let Some(delim) = delim else {
             return Err(self.alloc_err(LatexError(
@@ -1395,7 +1396,7 @@ where
                 },
             )));
         };
-        Ok((delim, class))
+        Ok(delim)
     }
 
     #[inline]

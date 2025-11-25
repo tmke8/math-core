@@ -158,6 +158,7 @@ impl Token<'_> {
             Token::End | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }
+            // `\big` commands without the "l" or "r" really produce `Class::Default`.
             Token::Big(_, Some(cls)) => *cls,
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
