@@ -32,6 +32,7 @@ fn main() {
         ("unclosed_brace", r"{"),
         ("unclosed_left", r"\left( x"),
         ("unclosed_env", r"\begin{matrix} x"),
+        ("unclosed_begin", r"\begin{matrix"),
         ("unclosed_text", r"\text{hello"),
         ("unexpected_limits", r"\text{hello}\limits_0^1"),
         ("unsupported_not", r"\not\text{hello}"),

@@ -128,7 +128,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
 
     /// Read ASCII alphanumeric characters (and a few others) until the next `}`.
     ///
-    /// Returns `None` if there are any disallowed characters before the `}`.
+    /// Returns `Err` if there are any disallowed characters before the `}`.
+    /// The `Err` contains the location and character of the first disallowed character.
+    /// If the end of the input is reached before finding a `}`, the `Err` contains
+    /// the location and `'\u{0}'`.
     #[inline]
     fn read_ascii_text_group(&mut self) -> Result<&'source str, (usize, char)> {
         // Next character must be `{`.
@@ -248,6 +251,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 let string_literal = match self.read_ascii_text_group() {
                     Ok(lit) => lit,
                     Err((loc, ch)) => {
+                        if ch == '\u{0}' {
+                            break 'str_literal Err(LatexError(loc, LatexErrKind::UnexpectedEOF));
+                        }
                         break 'str_literal Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
                     }
                 };
