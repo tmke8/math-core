@@ -31,6 +31,7 @@ fn main() {
         ("text_with_weird_o", r"\text{x\o y}"),
         ("text_with_group", r"\text{x{y}z{}p{}}"),
         ("text_with_special_symbols", r"\text{':,=-}"),
+        ("text_html_escape", r"\text{<\&>}"),
         ("textbackslash", r"\text{\textbackslash}"),
         ("textit", r"\textit{x}"),
         ("textbf", r"\textbf{x}"),

@@ -34,16 +34,27 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                 Token::Relation(op) => Ok(op.as_op().into()),
                 Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
                 Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
-                Token::Digit(digit) => Ok(digit as u8 as char),
+                Token::Digit(digit) => Ok(digit),
                 Token::Prime => Ok('’'),
                 Token::ForceRelation(op) => Ok(op.as_char()),
                 Token::Punctuation(op) => Ok(op.as_op().into()),
-                Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => {
+                tok @ (Token::OpGreaterThan
+                | Token::OpLessThan
+                | Token::OpAmpersand
+                | Token::PseudoOperator(_)
+                | Token::PseudoOperatorLimits(_)) => {
+                    let output = match tok {
+                        Token::OpGreaterThan => "&gt;",
+                        Token::OpLessThan => "&lt;",
+                        Token::OpAmpersand => "&amp;",
+                        Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => name,
+                        _ => unreachable!(),
+                    };
                     if let Some(str_builder) = &mut str_builder {
-                        str_builder.push_str(name);
+                        str_builder.push_str(output);
                         continue;
                     } else {
-                        snippets.push((current_style, name));
+                        snippets.push((current_style, output));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
                         if !style_stack.is_empty() {
