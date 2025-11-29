@@ -18,7 +18,7 @@ where
     'source: 'cell,
 {
     input: CharIndices<'source>,
-    peek: (usize, char),
+    peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
     mode: Mode,
@@ -40,7 +40,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
-            peek: (0, '\u{0}'),
+            peek: (0, None),
             input_string: input,
             input_length: input.len(),
             mode: Mode::default(),
@@ -66,6 +66,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
 
     #[inline]
     pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+        debug_assert!(
+            self.error_slot.get().is_none(),
+            "A previous error was already allocated and not returned"
+        );
         self.error_slot.get_or_init(|| err)
     }
 
@@ -80,17 +84,20 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     /// One character progresses.
-    fn read_char(&mut self) -> (usize, char) {
+    fn read_char(&mut self) -> (usize, Option<char>) {
         mem::replace(
             &mut self.peek,
-            self.input.next().unwrap_or((self.input_length, '\u{0}')),
+            self.input
+                .next()
+                .map(|(idx, ch)| (idx, Some(ch)))
+                .unwrap_or((self.input_length, None)),
         )
     }
 
     /// Skip whitespace characters.
     fn skip_whitespace(&mut self) -> Option<NonZeroUsize> {
         let mut skipped = None;
-        while self.peek.1.is_ascii_whitespace() {
+        while self.peek.1.is_some_and(|ch| ch.is_ascii_whitespace()) {
             let (loc, _) = self.read_char();
             // This is technically wrong because there can be whitespace at position 0,
             // but we are only recording whitespace in text mode, which is started by
@@ -106,12 +113,12 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         let start = self.peek.0;
 
         // Read in all ASCII alphabetic characters.
-        while self.peek.1.is_ascii_alphabetic() {
+        while self.peek.1.is_some_and(|ch| ch.is_ascii_alphabetic()) {
             self.read_char();
         }
 
         // Commands may end with a "*".
-        if self.peek.1 == '*' {
+        if self.peek.1 == Some('*') {
             self.read_char();
         }
 
@@ -131,16 +138,15 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     /// Returns `Err` if there are any disallowed characters before the `}`.
     /// The `Err` contains the location and character of the first disallowed character.
     /// If the end of the input is reached before finding a `}`, the `Err` contains
-    /// the location and `'\u{0}'`.
+    /// the location and `None`.
     #[inline]
-    fn read_ascii_text_group(&mut self) -> Result<&'source str, (usize, char)> {
-        // Next character must be `{`.
+    fn read_ascii_text_group(&mut self) -> Result<&'source str, (usize, Option<char>)> {
+        // If the first character is not `{`, we read a single character.
         let first = self.read_char();
-        if first.1 != '{' {
-            return if first.1.is_ascii_alphanumeric()
-                || first.1.is_ascii_whitespace()
-                || matches!(first.1, '|' | '.' | '-' | ',' | '*' | ':')
-            {
+        if first.1 != Some('{') {
+            return if first.1.is_some_and(|ch| {
+                ch.is_ascii_alphanumeric() || matches!(ch, '|' | '.' | '-' | ',' | '*' | ':')
+            }) {
                 // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
                 Ok(self.input_string.get_unwrap(first.0..self.peek.0))
             } else {
@@ -149,16 +155,17 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
         let start = self.peek.0;
 
-        while self.peek.1.is_ascii_alphanumeric()
-            || self.peek.1.is_ascii_whitespace()
-            || matches!(self.peek.1, '|' | '.' | '-' | ',' | '*' | ':')
-        {
+        while self.peek.1.is_some_and(|ch| {
+            ch.is_ascii_alphanumeric()
+                || ch.is_ascii_whitespace()
+                || matches!(ch, '|' | '.' | '-' | ',' | '*' | ':')
+        }) {
             self.read_char();
         }
 
         // Verify that the environment name is followed by a `}`.
         let closing = self.read_char();
-        if closing.1 == '}' {
+        if closing.1 == Some('}') {
             let end = closing.0;
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
             Ok(self.input_string.get_unwrap(start..end))
@@ -250,12 +257,17 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 // Read the string literal.
                 let string_literal = match self.read_ascii_text_group() {
                     Ok(lit) => lit,
-                    Err((loc, ch)) => {
-                        if ch == '\u{0}' {
+                    Err((loc, ch)) => match ch {
+                        None => {
                             break 'str_literal Err(LatexError(loc, LatexErrKind::UnexpectedEOF));
                         }
-                        break 'str_literal Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
-                    }
+                        Some(ch) => {
+                            break 'str_literal Err(LatexError(
+                                loc,
+                                LatexErrKind::DisallowedChar(ch),
+                            ));
+                        }
+                    },
                 };
                 if let Mode::EnvName { is_begin } = mode {
                     // Convert the environment name to the `Env` enum.
@@ -296,21 +308,28 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
 
         let (loc, ch) = self.read_char();
+        let Some(ch) = ch else {
+            return Ok(LexResult::Token(TokLoc(loc, Token::Eof)));
+        };
         if ch == '%' {
             // Skip comments.
-            while self.peek.1 != '\n' && self.peek.1 != '\u{0}' {
+            while self.peek.1 != Some('\n') && self.peek.1.is_some() {
                 self.read_char();
             }
             return self.next_token_or_string_literal();
         }
         let tok = match ch {
-            '\u{0}' => Token::Eof,
+            '\u{0}' => {
+                return Err(self.alloc_err(LatexError(loc, LatexErrKind::DisallowedChar(ch))));
+            }
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::ForceClose(symbol::EXCLAMATION_MARK),
             '#' => {
-                if self.parse_cmd_args.is_some() && self.peek.1.is_ascii_digit() {
+                if let Some(num) = &mut self.parse_cmd_args
+                    && let Some(next) = self.peek.1
+                    && next.is_ascii_digit()
+                {
                     // In pre-defined commands, `#` is used to denote a parameter.
-                    let next = self.read_char().1;
                     let param_num = (next as u32).wrapping_sub('1' as u32);
                     if !(0..=8).contains(&param_num) {
                         return Err(
@@ -318,11 +337,11 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                         );
                     }
                     let param_num = param_num as u8;
-                    if let Some(num) = self.parse_cmd_args.as_mut()
-                        && (param_num + 1) > *num
-                    {
+                    if (param_num + 1) > *num {
                         *num = param_num + 1;
                     }
+                    // Discard the digit after `#`.
+                    self.read_char();
                     Token::CustomCmdArg(param_num)
                 } else {
                     Token::Letter('#')
@@ -560,6 +579,8 @@ mod tests {
                 r"\begin{unknownenv} x + y \end{unknownenv}",
             ),
             ("unexpected_close_in_group", r"{x + y}}"),
+            ("null_character_in_input", "x + \u{0} + y"),
+            ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
