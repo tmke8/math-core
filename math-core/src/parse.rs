@@ -702,7 +702,7 @@ where
                 }
             }
             Token::Transform(tf) => {
-                let old_tf = mem::replace(&mut self.state.transform, Some(tf));
+                let old_tf = self.state.transform.replace(tf);
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
                 return Ok((Class::Close, content));

@@ -3,13 +3,11 @@ use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
 #[test]
 fn test_zero_arg() {
-    let macros = [
+    let macros = vec![
         ("half".to_string(), r"\frac{1}{2}".to_string()),
         ("mycmd".to_string(), r"\sqrt{3}".to_string()),
         ("withText".to_string(), r"\text{a b}\sum".to_string()),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let config = MathCoreConfig {
         macros,
@@ -28,12 +26,10 @@ fn test_zero_arg() {
 }
 #[test]
 fn test_one_arg() {
-    let macros = [
+    let macros = vec![
         ("half".to_string(), r"\frac{1}{2}\mspace{3mu}".to_string()),
         ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let config = MathCoreConfig {
         macros,
@@ -52,7 +48,7 @@ fn test_one_arg() {
 }
 #[test]
 fn test_spacing() {
-    let macros = [("eq".to_string(), r"=".to_string())].into_iter().collect();
+    let macros = vec![("eq".to_string(), r"=".to_string())];
 
     let config = MathCoreConfig {
         macros,
