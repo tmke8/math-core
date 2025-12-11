@@ -6,7 +6,6 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString};
 
 use math_core::{MathCoreConfig, MathDisplay, PrettyPrint};
-use rustc_hash::FxHashMap;
 
 create_exception!(_math_core_rust, LatexError, PyException);
 
@@ -40,7 +39,7 @@ impl LatexToMathML {
         let config = MathCoreConfig {
             pretty_print,
             macros: if let Some(macros_dict) = macros {
-                dict_to_hashmap(macros_dict)?
+                dict_to_tuple_vec(macros_dict)?
             } else {
                 Default::default()
             },
@@ -139,14 +138,14 @@ fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-fn dict_to_hashmap(dict: &Bound<'_, PyDict>) -> PyResult<FxHashMap<String, String>> {
-    let mut map = FxHashMap::with_capacity_and_hasher(dict.len(), Default::default());
+fn dict_to_tuple_vec(dict: &Bound<'_, PyDict>) -> PyResult<Vec<(String, String)>> {
+    let mut vec = Vec::with_capacity(dict.len());
 
     for (key, value) in dict.iter() {
         let key_str = key.extract::<String>()?;
         let value_str = value.extract::<String>()?;
-        map.insert(key_str, value_str);
+        vec.push((key_str, value_str));
     }
 
-    Ok(map)
+    Ok(vec)
 }

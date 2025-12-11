@@ -82,7 +82,6 @@ pub enum PrettyPrint {
 ///
 /// ```rust
 /// use math_core::{MathCoreConfig, PrettyPrint};
-/// use rustc_hash::FxHashMap;
 ///
 /// // Default values
 /// let config = MathCoreConfig::default();
@@ -94,15 +93,10 @@ pub enum PrettyPrint {
 ///  };
 ///
 /// // Specifying pretty-print behavior and custom macros
-/// let mut macros: FxHashMap<String, String> = Default::default();
-/// macros.insert(
-///     "d".to_string(),
-///     r"\mathrm{d}".to_string(),
-/// );
-/// macros.insert(
-///     "bb".to_string(),
-///     r"\mathbb{#1}".to_string(), // with argument
-/// );
+/// let macros = vec![
+///     ("d".to_string(), r"\mathrm{d}".to_string()),
+///     ("bb".to_string(), r"\mathbb{#1}".to_string()), // with argument
+/// ];
 /// let config = MathCoreConfig {
 ///     pretty_print: PrettyPrint::Auto,
 ///     macros,
@@ -116,8 +110,9 @@ pub enum PrettyPrint {
 pub struct MathCoreConfig {
     /// A configuration for pretty-printing the MathML output. See [`PrettyPrint`] for details.
     pub pretty_print: PrettyPrint,
-    /// A map of LaTeX macros; the keys are macro names and the values are their definitions.
-    pub macros: FxHashMap<String, String>,
+    /// A list of LaTeX macros; each tuple contains (macro_name, macro_definition).
+    #[cfg_attr(feature = "serde", serde(with = "tuple_vec_map"))]
+    pub macros: Vec<(String, String)>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
     pub xml_namespace: bool,
 }
@@ -277,7 +272,7 @@ where
     if matches!(display, MathDisplay::Block) {
         output.push_str(" display=\"block\"");
     };
-    output.push_str(">");
+    output.push('>');
 
     let pretty_print = matches!(flags.pretty_print, PrettyPrint::Always)
         || (matches!(flags.pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
@@ -318,7 +313,7 @@ where
 }
 
 fn parse_custom_commands<'source>(
-    macros: &'source FxHashMap<String, String>,
+    macros: &'source [(String, String)],
 ) -> Result<CustomCmds, LatexError<'source>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();

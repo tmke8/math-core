@@ -105,7 +105,7 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                             continue;
                         } else {
                             if !builder.is_empty() {
-                                let text = builder.finish(&self.arena);
+                                let text = builder.finish(self.arena);
                                 snippets.push((current_style, text));
                             }
                             style_stack.pop();
@@ -131,7 +131,7 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                     if let Some(builder) = str_builder.take()
                         && !builder.is_empty()
                     {
-                        let text = builder.finish(&self.arena);
+                        let text = builder.finish(self.arena);
                         snippets.push((current_style, text));
                     }
                     style_stack.push((brace_nesting, style));

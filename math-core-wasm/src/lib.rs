@@ -11,7 +11,6 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
 
 use js_sys::{Array, Map};
 use math_core::{MathDisplay, PrettyPrint};
-use rustc_hash::FxHashMap;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -60,8 +59,7 @@ impl LatexToMathML {
     pub fn new(js_config: &MathCoreOptions) -> Result<LatexToMathML, LatexError> {
         // This is the poor man's `serde_wasm_bindgen::from_value`.
         let macros = js_config.macros().map(|macro_map| {
-            let mut macros =
-                FxHashMap::with_capacity_and_hasher(macro_map.size() as usize, Default::default());
+            let mut macros = Vec::with_capacity(macro_map.size() as usize);
             let macro_iter = macro_map.entries();
             loop {
                 let Ok(entry) = macro_iter.next() else {
@@ -79,7 +77,7 @@ impl LatexToMathML {
                 let Some(value) = value.get(1).as_string() else {
                     continue; // Skip if the second element is not a string.
                 };
-                macros.insert(key, value);
+                macros.push((key, value));
             }
             macros
         });
