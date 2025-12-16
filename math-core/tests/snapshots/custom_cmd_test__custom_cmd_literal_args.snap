@@ -1,0 +1,9 @@
+---
+source: math-core/tests/custom_cmd_test.rs
+expression: "x \\hs{3em} y"
+---
+<math>
+    <mi>x</mi>
+    <mspace width="3em"/>
+    <mi>y</mi>
+</math>

@@ -1472,7 +1472,41 @@ where
             tokens.push(TokLoc(first_loc, first));
         };
         let mut builder = self.buffer.get_builder();
-        for TokLoc(loc, tok) in tokens {
+        let mut token_iter = tokens.into_iter();
+        let mut custom_arg_iter: Option<std::slice::Iter<TokLoc<'source>>> = None;
+        loop {
+            let TokLoc(loc, tok) = if let Some(iter) = &mut custom_arg_iter {
+                if let Some(tokloc) = iter.next() {
+                    *tokloc
+                } else {
+                    // Finished reading the custom command argument.
+                    custom_arg_iter = None;
+                    continue;
+                }
+            } else if let Some(tokloc) = token_iter.next() {
+                tokloc
+            } else {
+                break;
+            };
+            if let Token::CustomCmdArg(arg_num) = tok {
+                // Queue the custom command argument tokens.
+                let start = self
+                    .state
+                    .cmd_arg_offsets
+                    .get(arg_num.wrapping_sub(1) as usize)
+                    .copied()
+                    .unwrap_or(0);
+                let end = self
+                    .state
+                    .cmd_arg_offsets
+                    .get(arg_num as usize)
+                    .copied()
+                    .unwrap_or(self.state.cmd_args.len());
+                if let Some(arg) = self.state.cmd_args.get(start..end) {
+                    custom_arg_iter = Some(arg.iter());
+                }
+                continue;
+            }
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(self.alloc_err(LatexError(
                     loc,

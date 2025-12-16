@@ -65,3 +65,23 @@ fn test_spacing() {
 
     assert_snapshot!("custom_cmd_spacing", mathml, latex);
 }
+
+#[test]
+fn test_literal_args() {
+    let macros = vec![("hs".to_string(), r"\hspace{#1}".to_string())];
+
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+
+    let converter = LatexToMathML::new(&config).unwrap();
+
+    let latex = r"x \hs{3em} y";
+    let mathml = converter
+        .convert_with_local_counter(latex, MathDisplay::Inline)
+        .unwrap();
+
+    assert_snapshot!("custom_cmd_literal_args", mathml, latex);
+}
