@@ -1,0 +1,10 @@
+---
+source: math-core/src/lexer.rs
+expression: "{x\\color r y}"
+---
+0: GroupBegin
+1: Letter('x')
+2: Color
+9: Letter('r')
+11: Letter('y')
+12: GroupEnd

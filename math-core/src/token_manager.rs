@@ -84,21 +84,84 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         }
     }
 
-    pub(super) fn parse_string_literal(
+    /// Read a group of tokens, ending with (an unopened) `}`.
+    pub(super) fn read_group(
         &mut self,
-    ) -> Result<(usize, &'source str), &'cell LatexError<'source>> {
-        let TokLoc(loc, string) = self.next()?;
-        let string = match string {
-            Token::StringLiteral(s) => Some(s),
-            Token::StoredStringLiteral(start, end) => self.lexer.get_str(start, end),
-            _ => None,
-        };
-        if let Some(string) = string {
-            Ok((loc, string))
-        } else {
-            Err(self
-                .lexer
-                .alloc_err(LatexError(loc, LatexErrKind::Internal)))
+        tokens: &mut Vec<TokLoc<'source>>,
+    ) -> Result<(), &'cell LatexError<'source>> {
+        let mut nesting_level = 0usize;
+        loop {
+            let TokLoc(loc, tok) = self.next()?;
+            match tok {
+                Token::GroupBegin => {
+                    nesting_level += 1;
+                }
+                Token::GroupEnd => {
+                    // If the nesting level reaches one below where we started, we
+                    // stop reading.
+                    let Some(new_level) = nesting_level.checked_sub(1) else {
+                        // We break directly without pushing the `}` token.
+                        break;
+                    };
+                    nesting_level = new_level;
+                }
+                Token::Eof => {
+                    return Err(self.lexer.alloc_err(LatexError(
+                        loc,
+                        LatexErrKind::UnclosedGroup(Token::GroupEnd),
+                    )));
+                }
+                _ => {}
+            }
+            tokens.push(TokLoc(loc, tok));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::OnceCell;
+    use std::fmt::Write;
+
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn test_read_group() {
+        let problems = [
+            ("simple_group", r"{x+y}"),
+            ("group_followed", r"{x+y} b"),
+            ("nested_group", r"{x + {y - z}} c"),
+            ("unclosed_group", r"{x + y"),
+            ("unclosed_nested_group", r"{x + {y + z}"),
+            ("too_many_closes", r"{x + y} + z}"),
+            ("empty_group", r"{} d"),
+            ("group_with_begin", r"{\begin{matrix}}"),
+            ("early_error", r"{x + \unknowncmd + y}"),
+        ];
+
+        for (name, problem) in problems.into_iter() {
+            let error_slot = OnceCell::new();
+            let lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut manager = TokenManager::new(lexer).expect("Failed to create TokenManager");
+            // Load up some tokens to ensure the code can deal with that.
+            manager.ensure(3).unwrap();
+            // Check that the first token is `GroupBegin`.
+            assert!(matches!(manager.next().unwrap().1, Token::GroupBegin));
+            let mut tokens = Vec::new();
+            let tokens = match manager.read_group(&mut tokens) {
+                Ok(()) => {
+                    let mut token_str = String::new();
+                    for TokLoc(loc, tok) in tokens {
+                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+                    }
+                    token_str
+                }
+                Err(err) => format!("Error at {}: {:?}", err.0, err.1),
+            };
+            assert_snapshot!(name, &tokens, problem);
         }
     }
 }

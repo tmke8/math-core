@@ -30,7 +30,7 @@ pub enum LatexErrKind<'source> {
     DisallowedChar(char),
     UnknownEnvironment(&'source str),
     UnknownCommand(&'source str),
-    UnknownColor(&'source str),
+    UnknownColor,
     MismatchedEnvironment {
         expected: Env,
         got: Env,
@@ -40,9 +40,9 @@ pub enum LatexErrKind<'source> {
         correct_place: Place,
     },
     ExpectedText(&'static str),
-    ExpectedLength(&'source str),
-    ExpectedColSpec(&'source str),
-    ExpectedNumber(&'source str),
+    ExpectedLength,
+    ExpectedColSpec,
+    ExpectedNumber,
     RenderError,
     NotValidInTextMode(Token<'source>),
     InvalidMacroName(&'source str),
@@ -104,7 +104,7 @@ impl LatexErrKind<'_> {
                 "Unknown environment \"".to_string() + environment + "\"."
             }
             LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
-            LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
+            LatexErrKind::UnknownColor => "Unknown color.".to_string(),
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 "Expected \"\\end{".to_string()
                     + expected.as_str()
@@ -120,12 +120,12 @@ impl LatexErrKind<'_> {
                     + "."
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
-            LatexErrKind::ExpectedLength(got) => {
-                "Expected length with units, got \"".to_string() + got + "\"."
+            LatexErrKind::ExpectedLength => {
+                "Expected length with units.".to_string()
             }
-            LatexErrKind::ExpectedNumber(got) => "Expected a number, got \"".to_string() + got + "\".",
-            LatexErrKind::ExpectedColSpec(got) => {
-                "Expected column specification, got \"".to_string() + got + "\"."
+            LatexErrKind::ExpectedNumber => "Expected a number.".to_string(),
+            LatexErrKind::ExpectedColSpec => {
+                "Expected column specification.".to_string()
             }
             LatexErrKind::RenderError => "Render error".to_string(),
             LatexErrKind::NotValidInTextMode(got) => {

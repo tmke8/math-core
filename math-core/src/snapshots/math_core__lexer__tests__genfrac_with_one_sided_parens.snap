@@ -6,7 +6,11 @@ expression: "\\genfrac{}]{0pt}{2}{a+b}{c+d}"
 8: GroupBegin
 9: GroupEnd
 10: SquareBracketClose
-11: StringLiteral("0pt")
+11: GroupBegin
+12: Digit('0')
+13: Letter('p')
+14: Letter('t')
+15: GroupEnd
 16: GroupBegin
 17: Digit('2')
 18: GroupEnd

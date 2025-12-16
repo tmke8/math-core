@@ -3,6 +3,4 @@ source: math-core/tests/error_test.rs
 expression: "\\hspace{2ly}"
 ---
 Position: 7
-ExpectedLength(
-    "2ly",
-)
+ExpectedLength

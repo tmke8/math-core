@@ -1,9 +1,9 @@
 use std::cell::OnceCell;
 use std::mem;
-use std::num::{NonZeroU8, NonZeroUsize};
+use std::num::NonZeroUsize;
 use std::str::CharIndices;
 
-use mathml_renderer::symbol;
+use mathml_renderer::symbol::{self, MathMLOperator};
 
 use crate::CustomCmds;
 use crate::commands::{get_command, get_text_command};
@@ -26,7 +26,6 @@ where
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
     error_slot: &'cell OnceCell<LatexError<'source>>,
-    string_storage: &'cell mut String,
 }
 
 impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
@@ -36,7 +35,6 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
         error_slot: &'cell OnceCell<LatexError<'source>>,
-        string_storage: &'cell mut String,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -52,16 +50,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             },
             custom_cmds,
             error_slot,
-            string_storage,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
-    }
-
-    #[inline]
-    pub(super) fn get_str(&self, start: usize, end: usize) -> Option<&'config str> {
-        self.custom_cmds
-            .and_then(|cmds| cmds.get_string_literal(start, end))
     }
 
     #[inline]
@@ -174,81 +165,32 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
     }
 
-    /// Read a group of tokens, ending with (an unopened) `}`.
-    pub(super) fn read_group(
-        &mut self,
-        tokens: &mut Vec<TokLoc<'source>>,
-    ) -> Result<(), &'cell LatexError<'source>> {
-        let start_nesting_level = self.brace_nesting_level;
-        loop {
-            let TokLoc(loc, tok) = self.next_token()?;
-            match tok {
-                Token::GroupEnd => {
-                    // If the nesting level reaches one below where we started, we
-                    // stop reading.
-                    if self.brace_nesting_level + 1 == start_nesting_level {
-                        // We break directly without pushing the `}` token.
-                        break;
-                    }
-                }
-                Token::Eof => {
-                    return Err(self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(tok))));
-                }
-                _ => {}
-            }
-            tokens.push(TokLoc(loc, tok));
-        }
-        Ok(())
-    }
-
-    /// Generate the next token.
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
-        // Put the string literal in a token.
-        match self.next_token_or_string_literal()? {
-            LexResult::StringLiteral(loc, s) => Ok(TokLoc(loc, Token::StringLiteral(s))),
-            LexResult::Token(tokloc) => Ok(tokloc),
-        }
-    }
-
-    /// Generate the next token, without references to the source string.
-    pub(crate) fn next_static_token(
-        &mut self,
-    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
-        // Put the string literal in a token.
-        match self.next_token_or_string_literal()? {
-            LexResult::StringLiteral(loc, s) => {
-                let start = self.string_storage.len();
-                self.string_storage.push_str(s);
-                let end = self.string_storage.len();
-                Ok(TokLoc(loc, Token::StoredStringLiteral(start, end)))
-            }
-            LexResult::Token(tokloc) => Ok(tokloc),
-        }
-    }
-
-    fn next_token_or_string_literal(
-        &mut self,
-    ) -> Result<LexResult<'config, 'source>, &'cell LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
         let mut is_string_literal = false;
         if let Mode::StringLiteral {
             ref mut arg_num,
             nesting,
         } = self.mode
-            // We check the nesting here in order to count a `{...}` group as one
-            // argument.
-            && nesting == self.brace_nesting_level
         {
             // Try subtracting 1 from `arg_num`.
-            let new_val = NonZeroU8::new(arg_num.get() - 1);
-            if let Some(new_val) = new_val {
-                // If successful, the value must have been > 1.
-                *arg_num = new_val;
+            // If successful, the value must have been > 1.
+            if let Some(new_val) = arg_num.checked_sub(1) {
+                // We check the nesting here in order to count a `{...}` group as one
+                // argument.
+                if nesting == self.brace_nesting_level {
+                    *arg_num = new_val;
+                }
             } else {
-                is_string_literal = true;
+                if nesting < self.brace_nesting_level {
+                    is_string_literal = true;
+                } else {
+                    // Finished reading the string literal.
+                    self.mode = Mode::default();
+                }
             }
         };
-        if matches!(self.mode, Mode::EnvName { .. }) || is_string_literal {
-            let mode = mem::take(&mut self.mode);
+        if let Mode::EnvName { is_begin } = self.mode {
+            mem::take(&mut self.mode);
             // Read the string literal.
             let result = 'str_literal: {
                 // First skip any whitespace.
@@ -269,27 +211,22 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                         }
                     },
                 };
-                if let Mode::EnvName { is_begin } = mode {
-                    // Convert the environment name to the `Env` enum.
-                    let Some(env) = Env::from_str(string_literal) else {
-                        break 'str_literal Err(LatexError(
-                            group_loc,
-                            LatexErrKind::UnknownEnvironment(string_literal),
-                        ));
+                // Convert the environment name to the `Env` enum.
+                let Some(env) = Env::from_str(string_literal) else {
+                    break 'str_literal Err(LatexError(
+                        group_loc,
+                        LatexErrKind::UnknownEnvironment(string_literal),
+                    ));
+                };
+                if is_begin && env.needs_string_literal() {
+                    // Some environments need a string literal after `\begin{...}`.
+                    self.mode = Mode::StringLiteral {
+                        arg_num: 1,
+                        nesting: self.brace_nesting_level,
                     };
-                    if is_begin && env.needs_string_literal() {
-                        // Some environments need a string literal after `\begin{...}`.
-                        const ONE: NonZeroU8 = NonZeroU8::new(1).unwrap();
-                        self.mode = Mode::StringLiteral {
-                            arg_num: ONE,
-                            nesting: self.brace_nesting_level,
-                        };
-                    }
-                    // Return an `EnvName` token.
-                    Ok(LexResult::Token(TokLoc(group_loc, Token::EnvName(env))))
-                } else {
-                    Ok(LexResult::StringLiteral(group_loc, string_literal))
                 }
+                // Return an `EnvName` token.
+                Ok(TokLoc(group_loc, Token::EnvName(env)))
             };
             match result {
                 Ok(tok) => {
@@ -302,21 +239,21 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(loc) = self.skip_whitespace()
-            && text_mode
+            && (text_mode || is_string_literal)
         {
-            return Ok(LexResult::Token(TokLoc(loc.get(), Token::Whitespace)));
+            return Ok(TokLoc(loc.get(), Token::Whitespace));
         }
 
         let (loc, ch) = self.read_char();
         let Some(ch) = ch else {
-            return Ok(LexResult::Token(TokLoc(loc, Token::Eof)));
+            return Ok(TokLoc(loc, Token::Eof));
         };
         if ch == '%' {
             // Skip comments.
             while self.peek.1 != Some('\n') && self.peek.1.is_some() {
                 self.read_char();
             }
-            return self.next_token_or_string_literal();
+            return self.next_token();
         }
         let tok = match ch {
             '\u{0}' => {
@@ -412,7 +349,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     // mode we need to do it manually.
                     self.skip_whitespace();
                 }
-                return self.parse_command(loc, cmd_string).map(LexResult::Token);
+                return self.parse_command(loc, cmd_string);
             }
             c => {
                 if c.is_ascii_digit() {
@@ -431,7 +368,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        Ok(LexResult::Token(TokLoc(loc, tok)))
+        Ok(TokLoc(loc, tok))
     }
 
     fn parse_command(
@@ -469,7 +406,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 self.mode = Mode::EnvName { is_begin: false };
             } else if let Some(arg_num) = tok.needs_string_literal() {
                 self.mode = Mode::StringLiteral {
-                    arg_num,
+                    arg_num: arg_num.get(),
                     nesting: self.brace_nesting_level,
                 };
             }
@@ -497,16 +434,26 @@ enum Mode {
     },
     StringLiteral {
         /// 1-based index of the argument that is a string literal.
-        arg_num: NonZeroU8,
+        /// If it is 0, then we are inside the string literal.
+        arg_num: u8,
         /// The nesting level of `{` when the string literal was requested.
         nesting: usize,
     },
 }
 
-#[derive(Debug)]
-enum LexResult<'config, 'source> {
-    Token(TokLoc<'config>),
-    StringLiteral(usize, &'source str), // The string and its starting location.
+pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
+    const COLON: MathMLOperator = symbol::COLON.as_op();
+    match tok {
+        Token::Letter(ch) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
+        Token::Whitespace => Some(' '),
+        Token::Ord(symbol::VERTICAL_LINE) => Some('|'),
+        Token::Punctuation(symbol::COMMA) => Some(','),
+        Token::BinaryOp(symbol::MINUS_SIGN) => Some('-'),
+        Token::BinaryOp(symbol::ASTERISK_OPERATOR) => Some('*'),
+        Token::ForceRelation(COLON) => Some(':'),
+        Token::Digit(ch) => Some(ch),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -536,9 +483,11 @@ mod tests {
             ("switch_to_text_mode", r"\prod\text\o\sum"),
             ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
             ("custom_space", r"{x\hspace{2em}}"),
+            ("hspace_whitespace_in_between", r"\hspace {  4  em } x"),
             ("color", r"{x\color{red} y}"),
             ("color_whitespace", r"{x\color     {red} y}"),
             ("color_newline", "{x\\color\n{red} y}"),
+            ("color_one_letter", "{x\\color r y}"),
             ("genfrac_with_parens", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
             (
                 "genfrac_with_one_sided_parens",
@@ -549,10 +498,9 @@ mod tests {
             ("end_array", r"\end{array}{c|c}"),
         ];
 
-        let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
+            let mut lexer = Lexer::new(problem, false, None, &error_slot);
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
             loop {
@@ -582,10 +530,9 @@ mod tests {
             ("null_character_in_input", "x + \u{0} + y"),
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
-        let string_storage = &mut String::new();
         for (name, problem) in problems.into_iter() {
             let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
+            let mut lexer = Lexer::new(problem, false, None, &error_slot);
             let mut tokens = String::new();
             let err = loop {
                 match lexer.next_token() {
@@ -608,53 +555,11 @@ mod tests {
     }
 
     #[test]
-    fn test_read_group() {
-        let problems = [
-            ("simple_group", r"{x+y}"),
-            ("group_followed", r"{x+y} b"),
-            ("nested_group", r"{x + {y - z}} c"),
-            ("unclosed_group", r"{x + y"),
-            ("unclosed_nested_group", r"{x + {y + z}"),
-            ("too_many_closes", r"{x + y} + z}"),
-            ("empty_group", r"{} d"),
-            ("group_with_begin", r"{\begin{matrix}}"),
-            ("early_error", r"{x + \unknowncmd + y}"),
-        ];
-
-        let string_storage = &mut String::new();
-        for (name, problem) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot, string_storage);
-            // Check that the first token is `GroupBegin`.
-            assert!(matches!(lexer.next_token().unwrap().1, Token::GroupBegin));
-            let mut tokens = Vec::new();
-            let tokens = match lexer.read_group(&mut tokens) {
-                Ok(()) => {
-                    let mut token_str = String::new();
-                    for TokLoc(loc, tok) in tokens {
-                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
-                    }
-                    token_str
-                }
-                Err(err) => format!("Error at {}: {:?}", err.0, err.1),
-            };
-            assert_snapshot!(name, &tokens, problem);
-        }
-    }
-
-    #[test]
     fn test_parsing_custom_commands() {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
         let error_slot = OnceCell::new();
-        let mut string_storage = String::new();
-        let mut lexer = Lexer::new(
-            problem,
-            parsing_custom_cmds,
-            None,
-            &error_slot,
-            &mut string_storage,
-        );
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None, &error_slot);
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
@@ -666,5 +571,24 @@ mod tests {
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));
         assert_snapshot!("parsing_custom_commands", tokens, problem);
+    }
+
+    #[test]
+    fn test_recover_limited_ascii() {
+        let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:|";
+        let error_slot = OnceCell::new();
+        let mut lexer = Lexer::new(input, false, None, &error_slot);
+
+        let mut output = String::new();
+        while let Ok(tokloc) = lexer.next_token() {
+            let TokLoc(_, tok) = tokloc;
+            if let Some(ch) = recover_limited_ascii(tok) {
+                output.push(ch);
+            }
+            if matches!(tok, Token::Eof) {
+                break;
+            }
+        }
+        assert_eq!(input, output);
     }
 }

@@ -121,7 +121,6 @@ pub struct MathCoreConfig {
 struct CustomCmds {
     tokens: Box<[Token<'static>]>,
     map: FxHashMap<String, (u8, (usize, usize))>,
-    string_literal_store: Box<str>,
 }
 
 impl CustomCmds {
@@ -135,10 +134,6 @@ impl CustomCmds {
         let (num_args, slice) = *self.map.get(command)?;
         let tokens = self.tokens.get(slice.0..slice.1)?;
         Some(Token::CustomCmd(num_args, tokens))
-    }
-
-    pub fn get_string_literal(&self, start: usize, end: usize) -> Option<&str> {
-        self.string_literal_store.get(start..end)
     }
 }
 
@@ -299,14 +294,7 @@ where
     'source: 'arena, // 'source outlives 'arena
 {
     let error_slot = std::cell::OnceCell::new();
-    let mut string_literal_store = String::new();
-    let lexer = Lexer::new(
-        latex,
-        false,
-        custom_cmds,
-        &error_slot,
-        &mut string_literal_store,
-    );
+    let lexer = Lexer::new(latex, false, custom_cmds, &error_slot);
     let mut p = Parser::new(lexer, arena, equation_count).map_err(|e| *e)?;
     let nodes = p.parse().map_err(|e| *e)?;
     Ok(nodes)
@@ -317,22 +305,15 @@ fn parse_custom_commands<'source>(
 ) -> Result<CustomCmds, LatexError<'source>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
-    let mut string_literal_store = String::new();
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
             return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
         }
         let error_slot = std::cell::OnceCell::new();
-        let mut lexer: Lexer<'static, '_, '_> = Lexer::new(
-            definition,
-            true,
-            None,
-            &error_slot,
-            &mut string_literal_store,
-        );
+        let mut lexer: Lexer<'static, '_, '_> = Lexer::new(definition, true, None, &error_slot);
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_static_token().map_err(|e| *e)?;
+            let tokloc = lexer.next_token().map_err(|e| *e)?;
             if matches!(&tokloc.1, Token::Eof) {
                 break;
             }
@@ -347,7 +328,6 @@ fn parse_custom_commands<'source>(
     Ok(CustomCmds {
         tokens: tokens.into_boxed_slice(),
         map,
-        string_literal_store: string_literal_store.into_boxed_str(),
     })
 }
 

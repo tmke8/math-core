@@ -16,7 +16,7 @@ use crate::{
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
     error::{LatexErrKind, LatexError, Place},
-    lexer::Lexer,
+    lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
     token_manager::TokenManager,
@@ -415,10 +415,10 @@ where
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
-                let (loc, length) = self.tokens.parse_string_literal()?;
+                let (loc, length) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
-                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length))),
+                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength)),
                 }
             }
             Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
@@ -485,11 +485,11 @@ where
                     Node::Row { nodes: [], .. } => None,
                     _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
                 };
-                let (loc, length) = self.tokens.parse_string_literal()?;
+                let (loc, length) = self.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
-                        self.alloc_err(LatexError(loc, LatexErrKind::ExpectedLength(decimal)))
+                        self.alloc_err(LatexError(loc, LatexErrKind::ExpectedLength))
                     })?,
                 };
                 let style = match self.parse_next(ParseAs::Arg)? {
@@ -850,12 +850,9 @@ where
                 };
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (loc, options) = self.tokens.parse_string_literal()?;
+                    let (loc, options) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
-                        break 'begin_env Err(LatexError(
-                            loc,
-                            LatexErrKind::ExpectedColSpec(options.trim()),
-                        ));
+                        break 'begin_env Err(LatexError(loc, LatexErrKind::ExpectedColSpec));
                     };
                     if matches!(env, Env::Subarray) {
                         spec.is_sub = true;
@@ -1021,7 +1018,7 @@ where
             Token::Tag => {
                 // We always need to collect the string literal here, even if we don't use it,
                 // because otherwise we'd have an orphaned string literal in the token stream.
-                let (literal_loc, tag_name) = self.tokens.parse_string_literal()?;
+                let (literal_loc, tag_name) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
                     if let Ok(tag_num) = tag_name.trim().parse::<u16>()
@@ -1031,10 +1028,7 @@ where
                         class = prev_class;
                         Ok(Node::Dummy)
                     } else {
-                        Err(LatexError(
-                            literal_loc,
-                            LatexErrKind::ExpectedNumber(tag_name),
-                        ))
+                        Err(LatexError(literal_loc, LatexErrKind::ExpectedNumber))
                     }
                 } else {
                     Err(LatexError(
@@ -1047,9 +1041,9 @@ where
                 }
             }
             Token::Color => 'color: {
-                let (loc, color_name) = self.tokens.parse_string_literal()?;
+                let (loc, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
-                    break 'color Err(LatexError(loc, LatexErrKind::UnknownColor(color_name)));
+                    break 'color Err(LatexError(loc, LatexErrKind::UnknownColor));
                 };
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {
@@ -1124,9 +1118,9 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::EnvName(_) | Token::StringLiteral(_) | Token::StoredStringLiteral(_, _) => {
-                // A string literal (or env name) token that is not expected by the
-                // parser should never occur. We report an internal error here.
+            Token::EnvName(_) => {
+                // An env name token that is not expected by the parser should never occur.
+                // We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
@@ -1137,11 +1131,11 @@ where
                     self.state.cmd_args.clear();
                 }
                 for arg_num in 0..num_args {
-                    if matches!(self.tokens.peek().token(), Token::GroupBegin) {
-                        self.tokens.lexer.read_group(&mut self.state.cmd_args)?;
-                        self.next_token()?; // Discard the opening `{` token.
+                    let tokloc = self.next_token()?;
+                    if matches!(tokloc.token(), Token::GroupBegin) {
+                        self.tokens.read_group(&mut self.state.cmd_args)?;
                     } else {
-                        self.state.cmd_args.push(self.tokens.next()?);
+                        self.state.cmd_args.push(tokloc);
                     }
                     if let Some(offset) = self.state.cmd_arg_offsets.get_mut(arg_num as usize) {
                         *offset = self.state.cmd_args.len();
@@ -1465,6 +1459,30 @@ where
         });
         Ok(Some((Class::Default, node)))
     }
+
+    pub(super) fn parse_string_literal(
+        &mut self,
+    ) -> Result<(usize, &'arena str), &'cell LatexError<'source>> {
+        let TokLoc(first_loc, first) = self.tokens.next()?;
+        let mut tokens = Vec::new();
+        if matches!(first, Token::GroupBegin) {
+            // Read until the matching `}`.
+            self.tokens.read_group(&mut tokens)?;
+        } else {
+            tokens.push(TokLoc(first_loc, first));
+        };
+        let mut builder = self.buffer.get_builder();
+        for TokLoc(loc, tok) in tokens {
+            let Some(ch) = recover_limited_ascii(tok) else {
+                return Err(self.alloc_err(LatexError(
+                    loc,
+                    LatexErrKind::ExpectedText("string literal"),
+                )));
+            };
+            builder.push_char(ch);
+        }
+        Ok((first_loc, builder.finish(self.arena)))
+    }
 }
 
 impl<'source> ParserState<'source> {
@@ -1603,8 +1621,7 @@ mod tests {
             let arena = Arena::new();
             let error_slot = std::cell::OnceCell::new();
             let mut equation_counter = 0u16;
-            let string_literal_store = &mut String::new();
-            let l = Lexer::new(problem, false, None, &error_slot, string_literal_store);
+            let l = Lexer::new(problem, false, None, &error_slot);
             let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

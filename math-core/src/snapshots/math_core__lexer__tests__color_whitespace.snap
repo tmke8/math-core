@@ -5,6 +5,10 @@ expression: "{x\\color     {red} y}"
 0: GroupBegin
 1: Letter('x')
 2: Color
-13: StringLiteral("red")
+13: GroupBegin
+14: Letter('r')
+15: Letter('e')
+16: Letter('d')
+17: GroupEnd
 19: Letter('y')
 20: GroupEnd

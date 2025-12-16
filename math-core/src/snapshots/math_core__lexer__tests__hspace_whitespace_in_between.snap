@@ -1,0 +1,14 @@
+---
+source: math-core/src/lexer.rs
+expression: "\\hspace {  4  em } x"
+---
+0: CustomSpace
+8: GroupBegin
+10: Whitespace
+11: Digit('4')
+13: Whitespace
+14: Letter('e')
+15: Letter('m')
+16: Whitespace
+17: GroupEnd
+19: Letter('x')

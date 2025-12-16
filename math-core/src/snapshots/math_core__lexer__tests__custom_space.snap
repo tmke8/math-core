@@ -5,5 +5,9 @@ expression: "{x\\hspace{2em}}"
 0: GroupBegin
 1: Letter('x')
 2: CustomSpace
-9: StringLiteral("2em")
+9: GroupBegin
+10: Digit('2')
+11: Letter('e')
+12: Letter('m')
+13: GroupEnd
 14: GroupEnd

@@ -14,7 +14,7 @@ use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
 #[repr(u32)]
-pub enum Token<'source> {
+pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin")]
@@ -126,11 +126,9 @@ pub enum Token<'source> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    CustomCmd(u8, &'source [Token<'static>]),
+    CustomCmd(u8, &'config [Token<'static>]),
     HardcodedMathML(&'static str),
     TextModeAccent(char),
-    StringLiteral(&'source str),
-    StoredStringLiteral(usize, usize),
 }
 
 impl Token<'_> {
@@ -176,21 +174,21 @@ impl Token<'_> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'source>(pub usize, pub Token<'source>);
+pub struct TokLoc<'config>(pub usize, pub Token<'config>);
 
-impl<'source> TokLoc<'source> {
+impl<'config> TokLoc<'config> {
     #[inline]
-    pub fn token(&self) -> &Token<'source> {
+    pub fn token(&self) -> &Token<'config> {
         &self.1
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'source> {
+    pub fn into_token(self) -> Token<'config> {
         self.1
     }
 
     // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'source> {
+    // pub fn token_mut(&mut self) -> &mut Token<'config> {
     //     &mut self.1
     // }
 
@@ -205,9 +203,9 @@ impl<'source> TokLoc<'source> {
     }
 }
 
-impl<'source> From<Token<'source>> for TokLoc<'source> {
+impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
-    fn from(token: Token<'source>) -> Self {
+    fn from(token: Token<'config>) -> Self {
         TokLoc(0, token)
     }
 }
