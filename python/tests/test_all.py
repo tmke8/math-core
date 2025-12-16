@@ -77,6 +77,6 @@ def test_continue_on_error():
         == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf &lt;b&gt;</code></span>'
     )
     assert (
-        converter.convert_with_local_counter("\\hspace{\"} '&", displaystyle=True)
-        == '<p class="math-core-error" title="8: Disallowed character in text group: \'&quot;\'."><code>\\hspace{"} \'&amp;</code></p>'
+        converter.convert_with_local_counter("\\begin{\"} '&", displaystyle=True)
+        == '<p class="math-core-error" title="7: Disallowed character in text group: \'&quot;\'."><code>\\begin{"} \'&amp;</code></p>'
     )

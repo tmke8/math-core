@@ -4,4 +4,8 @@ expression: "\\begin{array}{c|c}"
 ---
 0: Begin
 6: EnvName(Array)
-13: StringLiteral("c|c")
+13: GroupBegin
+14: Letter('c')
+15: Ord(OrdLike { char: '|', cat: FG })
+16: Letter('c')
+17: GroupEnd

@@ -3,6 +3,6 @@ source: math-core/tests/error_test.rs
 expression: "\\hspace{22öm}"
 ---
 Position: 10
-DisallowedChar(
-    'ö',
+ExpectedText(
+    "string literal",
 )

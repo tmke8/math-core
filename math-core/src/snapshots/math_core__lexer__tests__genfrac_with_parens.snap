@@ -5,7 +5,11 @@ expression: "\\genfrac(]{0pt}{2}{a+b}{c+d}"
 0: Genfrac
 8: Open(Fence('('))
 9: SquareBracketClose
-10: StringLiteral("0pt")
+10: GroupBegin
+11: Digit('0')
+12: Letter('p')
+13: Letter('t')
+14: GroupEnd
 15: GroupBegin
 16: Digit('2')
 17: GroupEnd
