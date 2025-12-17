@@ -12,6 +12,7 @@ function initializeCachedValues() {
   const blockRadio = document.querySelector(
     '#displaystyle input[type="radio"]:checked',
   );
+  console.assert(blockRadio instanceof HTMLInputElement || blockRadio === null);
   cachedIsBlock = blockRadio ? blockRadio.value === "block" : true;
 }
 
@@ -67,6 +68,7 @@ function isBlock() {
 
 async function generateLink() {
   const inputField = document.getElementById("inputField");
+  console.assert(inputField instanceof HTMLTextAreaElement);
   const content = inputField.value;
 
   if (content.trim() === "") {
@@ -100,6 +102,7 @@ async function loadFromUrl() {
       const compressedContent = base64UrlToUint8Array(encodedContent);
       const decodedContent = await decompressText(compressedContent);
       const inputField = document.getElementById("inputField");
+      console.assert(inputField instanceof HTMLTextAreaElement);
       inputField.value = decodedContent;
       // Trigger input event to update output
       inputField.dispatchEvent(new Event("input", { bubbles: true }));
@@ -295,7 +298,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const fontSelect = document.getElementById("math-font");
   const styleElement = document.getElementById("math-font-style");
   const fontFeaturesMap = {
-    "Libertinus Math Regular": 'font-feature-settings: "ss09";',
+    "Libertinus Math Regular": `font-feature-settings: "ss09";
+    mtext {
+        font-family: "Libertinus Serif", serif;
+        code {
+            font-family: "Libertinus Mono", monospace;
+        }
+    }`,
     "NewComputerModernMath Book": `
     mtext {
         font-family: "NewComputerModern Book", serif;

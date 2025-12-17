@@ -49,6 +49,44 @@ body {
 }
 
 @font-face {
+    font-family: "Libertinus Serif";
+    src: url("./LibertinusSerif-Regular.woff2") format("woff2");
+    font-display: swap;
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    src: url("./LibertinusSerif-Bold.woff2") format("woff2");
+    font-display: swap;
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    src: url("./LibertinusSerif-Italic.woff2") format("woff2");
+    font-display: swap;
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    src: url("./LibertinusSerif-BoldItalic.woff2") format("woff2");
+    font-display: swap;
+    font-weight: bold;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "Libertinus Mono";
+    src: url("./LibertinusMono-Regular.woff2") format("woff2");
+    font-display: swap;
+}
+
+@font-face {
     font-family: "NewComputerModernMath Book";
     src: url("./NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
     font-display: swap;
