@@ -295,7 +295,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const fontSelect = document.getElementById("math-font");
   const styleElement = document.getElementById("math-font-style");
   const fontFeaturesMap = {
-    "Libertinus Math Regular": 'font-feature-settings: "ss09";',
+    "Libertinus Math Regular": `font-feature-settings: "ss09";
+    mtext {
+        font-family: "Libertinus Serif", serif;
+        code {
+            font-family: "Libertinus Mono", monospace;
+        }
+    }`,
     "NewComputerModernMath Book": `
     mtext {
         font-family: "NewComputerModern Book", serif;
