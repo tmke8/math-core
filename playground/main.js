@@ -312,6 +312,13 @@ document.addEventListener("DOMContentLoaded", () => {
             font-family: "NewComputerModern Mono", monospace;
         }
     }`,
+    "Noto Sans Math Regular": `
+    mtext {
+        font-family: "Noto Sans", sans-serif;
+        code {
+            font-family: "Noto Sans Mono", monospace;
+        }
+    }`,
   };
 
   // Update the style rule when selection changes
