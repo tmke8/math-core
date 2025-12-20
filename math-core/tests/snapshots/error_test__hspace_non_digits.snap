@@ -3,4 +3,6 @@ source: math-core/tests/error_test.rs
 expression: "\\hspace{2b2cm}"
 ---
 Position: 7
-ExpectedLength
+ExpectedLength(
+    "2b2cm",
+)

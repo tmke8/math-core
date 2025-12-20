@@ -418,7 +418,7 @@ where
                 let (loc, length) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
-                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength)),
+                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length.into()))),
                 }
             }
             Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
@@ -489,7 +489,10 @@ where
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
-                        self.alloc_err(LatexError(loc, LatexErrKind::ExpectedLength))
+                        self.alloc_err(LatexError(
+                            loc,
+                            LatexErrKind::ExpectedLength(decimal.into()),
+                        ))
                     })?,
                 };
                 let style = match self.parse_next(ParseAs::Arg)? {
@@ -852,7 +855,10 @@ where
                     // Parse the array options.
                     let (loc, options) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
-                        break 'begin_env Err(LatexError(loc, LatexErrKind::ExpectedColSpec));
+                        break 'begin_env Err(LatexError(
+                            loc,
+                            LatexErrKind::ExpectedColSpec(options.into()),
+                        ));
                     };
                     if matches!(env, Env::Subarray) {
                         spec.is_sub = true;
@@ -1028,7 +1034,10 @@ where
                         class = prev_class;
                         Ok(Node::Dummy)
                     } else {
-                        Err(LatexError(literal_loc, LatexErrKind::ExpectedNumber))
+                        Err(LatexError(
+                            literal_loc,
+                            LatexErrKind::ExpectedNumber(tag_name.into()),
+                        ))
                     }
                 } else {
                     Err(LatexError(
@@ -1043,7 +1052,10 @@ where
             Token::Color => 'color: {
                 let (loc, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
-                    break 'color Err(LatexError(loc, LatexErrKind::UnknownColor));
+                    break 'color Err(LatexError(
+                        loc,
+                        LatexErrKind::UnknownColor(color_name.into()),
+                    ));
                 };
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {

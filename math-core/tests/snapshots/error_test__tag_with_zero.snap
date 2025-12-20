@@ -3,4 +3,6 @@ source: math-core/tests/error_test.rs
 expression: "\\begin{align} x \\tag{0} \\\\ y \\end{align}"
 ---
 Position: 20
-ExpectedNumber
+ExpectedNumber(
+    "0",
+)
