@@ -23,7 +23,7 @@ use crate::{
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source> {
-    pub(super) tokens: TokenManager<'cell, 'source>,
+    pub(super) tokens: TokenManager<'source>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
@@ -87,7 +87,7 @@ impl ParseAs {
     }
 }
 
-pub(super) type ParseResult<'cell, 'source, T> = Result<T, &'cell LatexError<'source>>;
+pub(super) type ParseResult<'source, T> = Result<T, Box<LatexError<'source>>>;
 
 impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source>
 where
@@ -95,10 +95,10 @@ where
     'arena: 'cell,   // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
-        lexer: Lexer<'source, 'source, 'cell>,
+        lexer: Lexer<'source, 'source>,
         arena: &'arena Arena,
         equation_counter: &'cell mut u16,
-    ) -> ParseResult<'cell, 'source, Self> {
+    ) -> ParseResult<'source, Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
             tokens: TokenManager::new(lexer)?,
@@ -119,17 +119,17 @@ where
     }
 
     #[inline]
-    fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
-        self.tokens.lexer.alloc_err(err)
+    fn alloc_err(&mut self, err: LatexError<'source>) -> Box<LatexError<'source>> {
+        Box::new(err)
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> ParseResult<'cell, 'source, TokLoc<'source>> {
+    fn next_token(&mut self) -> ParseResult<'source, TokLoc<'source>> {
         self.tokens.next()
     }
 
     #[inline]
-    pub(crate) fn parse(&mut self) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
+    pub(crate) fn parse(&mut self) -> ParseResult<'source, Vec<&'arena Node<'arena>>> {
         self.parse_sequence(SequenceEnd::Token(Token::Eof), Class::Open, true)
     }
 
@@ -143,7 +143,7 @@ where
         sequence_end: SequenceEnd,
         prev_class: Class,
         keep_end_token: bool,
-    ) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
+    ) -> ParseResult<'source, Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
 
         let mut prev_class = prev_class;
@@ -209,10 +209,10 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: ParseResult<'cell, 'source, TokLoc<'source>>,
+        cur_tokloc: ParseResult<'source, TokLoc<'source>>,
         parse_as: ParseAs,
         prev_class: Class,
-    ) -> ParseResult<'cell, 'source, (Class, &'arena Node<'arena>)> {
+    ) -> ParseResult<'source, (Class, &'arena Node<'arena>)> {
         let TokLoc(loc, cur_token) = cur_tokloc?;
         let mut class: Class = Default::default();
         let next_class = self
@@ -1188,10 +1188,7 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(
-        &mut self,
-        parse_as: ParseAs,
-    ) -> ParseResult<'cell, 'source, &'arena Node<'arena>> {
+    fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<'source, &'arena Node<'arena>> {
         let token = self.next_token();
         self.parse_token(token, parse_as, Class::Default)
             .map(|(_, node)| node)
@@ -1199,7 +1196,7 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> ParseResult<'cell, 'source, Bounds<'arena>> {
+    fn get_bounds(&mut self) -> ParseResult<'source, Bounds<'arena>> {
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
@@ -1260,7 +1257,7 @@ where
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> ParseResult<'cell, 'source, Vec<&'arena Node<'arena>>> {
+    fn prime_check(&mut self) -> ParseResult<'source, Vec<&'arena Node<'arena>>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1297,10 +1294,7 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(
-        &mut self,
-        is_sup: bool,
-    ) -> ParseResult<'cell, 'source, &'arena Node<'arena>> {
+    fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<'source, &'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(TokLoc(loc, tok @ (Token::Underscore | Token::Circumflex | Token::Prime))) = next
@@ -1367,10 +1361,7 @@ where
         )
     }
 
-    fn extract_delimiter(
-        &mut self,
-        tok: TokLoc<'source>,
-    ) -> ParseResult<'cell, 'source, StretchableOp> {
+    fn extract_delimiter(&mut self, tok: TokLoc<'source>) -> ParseResult<'source, StretchableOp> {
         let TokLoc(loc, tok) = tok;
         let delim = match tok {
             Token::Open(paren) => Some(paren.as_op()),
@@ -1396,7 +1387,7 @@ where
     #[inline]
     fn merge_and_transform_letters(
         &mut self,
-    ) -> ParseResult<'cell, 'source, Option<(Class, &'arena Node<'arena>)>> {
+    ) -> ParseResult<'source, Option<(Class, &'arena Node<'arena>)>> {
         let Some(tf) = self.state.transform else {
             return Ok(None);
         };
@@ -1462,7 +1453,7 @@ where
 
     pub(super) fn parse_string_literal(
         &mut self,
-    ) -> Result<(usize, &'arena str), &'cell LatexError<'source>> {
+    ) -> Result<(usize, &'arena str), Box<LatexError<'source>>> {
         let TokLoc(first_loc, first) = self.tokens.next()?;
         let mut tokens = Vec::new();
         if matches!(first, Token::GroupBegin) {
@@ -1653,9 +1644,8 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let error_slot = std::cell::OnceCell::new();
             let mut equation_counter = 0u16;
-            let l = Lexer::new(problem, false, None, &error_slot);
+            let l = Lexer::new(problem, false, None);
             let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);

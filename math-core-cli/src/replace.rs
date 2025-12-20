@@ -110,7 +110,12 @@ impl<'args> Replacer<'args> {
         f: F,
     ) -> Result<String, ConversionError<'source, 'buf>>
     where
-        F: for<'a> Fn(&'a mut S, &mut String, &'a str, MathDisplay) -> Result<(), LatexError<'a>>,
+        F: for<'a> Fn(
+            &'a mut S,
+            &mut String,
+            &'a str,
+            MathDisplay,
+        ) -> Result<(), Box<LatexError<'a>>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
@@ -194,7 +199,7 @@ impl<'args> Replacer<'args> {
                 let latex_error = f(state, &mut result, replaced, open_typ).unwrap_err();
                 return Err(ConversionError(
                     start,
-                    ConvErrKind::LatexError(latex_error, replaced),
+                    ConvErrKind::LatexError(*latex_error, replaced),
                     input,
                 ));
             }
@@ -294,7 +299,7 @@ mod tests {
         buf: &mut String,
         content: &'source str,
         typ: MathDisplay,
-    ) -> Result<(), LatexError<'source>> {
+    ) -> Result<(), Box<LatexError<'source>>> {
         match typ {
             MathDisplay::Inline => write!(buf, "[T1:{}]", content).unwrap(),
             MathDisplay::Block => write!(buf, "[T2:{}]", content).unwrap(),

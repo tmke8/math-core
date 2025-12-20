@@ -6,18 +6,16 @@ use crate::{
     token::{TokLoc, Token},
 };
 
-pub(super) struct TokenManager<'cell, 'source> {
-    pub lexer: Lexer<'source, 'source, 'cell>,
+pub(super) struct TokenManager<'source> {
+    pub lexer: Lexer<'source, 'source>,
     buf: VecDeque<TokLoc<'source>>,
     is_eof: bool,
 }
 
 static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
 
-impl<'cell, 'source> TokenManager<'cell, 'source> {
-    pub(super) fn new(
-        lexer: Lexer<'source, 'source, 'cell>,
-    ) -> Result<Self, &'cell LatexError<'source>> {
+impl<'source> TokenManager<'source> {
+    pub(super) fn new(lexer: Lexer<'source, 'source>) -> Result<Self, Box<LatexError<'source>>> {
         let mut tm = TokenManager {
             lexer,
             buf: VecDeque::new(),
@@ -30,7 +28,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
 
     /// Ensure that there are at least `n` tokens in the buffer.
     /// If the end of the input is reached, this will stop early.
-    pub(super) fn ensure(&mut self, n: usize) -> Result<(), &'cell LatexError<'source>> {
+    pub(super) fn ensure(&mut self, n: usize) -> Result<(), Box<LatexError<'source>>> {
         if self.is_eof {
             return Ok(());
         }
@@ -61,7 +59,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
         self.buf.front().unwrap_or(&EOF_TOK)
     }
 
-    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'source>, &'cell LatexError<'source>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'source>, Box<LatexError<'source>>> {
         self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
         Ok(self.buf.get(1).unwrap_or(&EOF_TOK))
@@ -70,7 +68,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
     /// Get the next token.
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokLoc<'source>, &'cell LatexError<'source>> {
+    pub(super) fn next(&mut self) -> Result<TokLoc<'source>, Box<LatexError<'source>>> {
         // We ensure two tokens here, so that we can always peek.
         self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
@@ -88,7 +86,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
     pub(super) fn read_group(
         &mut self,
         tokens: &mut Vec<TokLoc<'source>>,
-    ) -> Result<(), &'cell LatexError<'source>> {
+    ) -> Result<(), Box<LatexError<'source>>> {
         let mut nesting_level = 0usize;
         loop {
             let TokLoc(loc, tok) = self.next()?;
@@ -106,7 +104,7 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
                     nesting_level = new_level;
                 }
                 Token::Eof => {
-                    return Err(self.lexer.alloc_err(LatexError(
+                    return Err(Box::new(LatexError(
                         loc,
                         LatexErrKind::UnclosedGroup(Token::GroupEnd),
                     )));
@@ -121,7 +119,6 @@ impl<'cell, 'source> TokenManager<'cell, 'source> {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::OnceCell;
     use std::fmt::Write;
 
     use insta::assert_snapshot;
@@ -143,8 +140,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let lexer = Lexer::new(problem, false, None, &error_slot);
+            let lexer = Lexer::new(problem, false, None);
             let mut manager = TokenManager::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.ensure(3).unwrap();

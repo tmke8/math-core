@@ -168,7 +168,7 @@ impl LatexToMathML {
     ///
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed.
-    pub fn new(config: &MathCoreConfig) -> Result<Self, LatexError<'_>> {
+    pub fn new(config: &MathCoreConfig) -> Result<Self, Box<LatexError<'_>>> {
         Ok(Self {
             flags: Flags::from(config),
             equation_count: 0,
@@ -188,7 +188,7 @@ impl LatexToMathML {
         &'config mut self,
         latex: &'source str,
         display: MathDisplay,
-    ) -> Result<String, LatexError<'source>>
+    ) -> Result<String, Box<LatexError<'source>>>
     where
         'config: 'source,
     {
@@ -224,7 +224,7 @@ impl LatexToMathML {
         &'config self,
         latex: &'source str,
         display: MathDisplay,
-    ) -> Result<String, LatexError<'source>>
+    ) -> Result<String, Box<LatexError<'source>>>
     where
         'config: 'source,
     {
@@ -252,7 +252,7 @@ fn convert<'config, 'source>(
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut u16,
     flags: &Flags,
-) -> Result<String, LatexError<'source>>
+) -> Result<String, Box<LatexError<'source>>>
 where
     'config: 'source,
 {
@@ -289,32 +289,32 @@ fn parse<'arena, 'source>(
     arena: &'arena Arena,
     custom_cmds: Option<&'source CustomCmds>,
     equation_count: &mut u16,
-) -> Result<Vec<&'arena Node<'arena>>, LatexError<'source>>
+) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'source>>>
 where
     'source: 'arena, // 'source outlives 'arena
 {
-    let error_slot = std::cell::OnceCell::new();
-    let lexer = Lexer::new(latex, false, custom_cmds, &error_slot);
-    let mut p = Parser::new(lexer, arena, equation_count).map_err(|e| e.clone())?;
-    let nodes = p.parse().map_err(|e| e.clone())?;
+    let lexer = Lexer::new(latex, false, custom_cmds);
+    let mut p = Parser::new(lexer, arena, equation_count)?;
+    let nodes = p.parse()?;
     Ok(nodes)
 }
 
-fn parse_custom_commands(macros: &[(String, String)]) -> Result<CustomCmds, LatexError<'static>> {
+fn parse_custom_commands(
+    macros: &[(String, String)],
+) -> Result<CustomCmds, Box<LatexError<'static>>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
-            return Err(LatexError(
+            return Err(Box::new(LatexError(
                 0,
                 LatexErrKind::InvalidMacroName(name.as_str().into()),
-            ));
+            )));
         }
-        let error_slot = std::cell::OnceCell::new();
-        let mut lexer: Lexer<'static, '_, '_> = Lexer::new(definition, true, None, &error_slot);
+        let mut lexer: Lexer<'static, '_> = Lexer::new(definition, true, None);
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_token().map_err(|e| e.clone())?;
+            let tokloc = lexer.next_token()?;
             if matches!(&tokloc.1, Token::Eof) {
                 break;
             }
