@@ -11,10 +11,7 @@ use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{TokLoc, Token};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source>
-where
-    'config: 'source,
-{
+pub(crate) struct Lexer<'config, 'source> {
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,

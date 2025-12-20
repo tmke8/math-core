@@ -124,13 +124,7 @@ struct CustomCmds {
 }
 
 impl CustomCmds {
-    pub fn get_command<'config, 'source>(
-        &'config self,
-        command: &'source str,
-    ) -> Option<Token<'config>>
-    where
-        'config: 'source,
-    {
+    pub fn get_command<'config>(&'config self, command: &str) -> Option<Token<'config>> {
         let (num_args, slice) = *self.map.get(command)?;
         let tokens = self.tokens.get(slice.0..slice.1)?;
         Some(Token::CustomCmd(num_args, tokens))
@@ -184,14 +178,11 @@ impl LatexToMathML {
     /// different calls to this function.
     ///
     /// The counter can be reset with [`reset_global_counter`].
-    pub fn convert_with_global_counter<'config, 'source>(
+    pub fn convert_with_global_counter<'config>(
         &'config mut self,
-        latex: &'source str,
+        latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError<'config>>>
-    where
-        'config: 'source,
-    {
+    ) -> Result<String, Box<LatexError<'config>>> {
         convert(
             latex,
             display,
@@ -220,14 +211,11 @@ impl LatexToMathML {
     /// ```
     ///
     #[inline]
-    pub fn convert_with_local_counter<'config, 'source>(
+    pub fn convert_with_local_counter<'config>(
         &'config self,
-        latex: &'source str,
+        latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError<'source>>>
-    where
-        'config: 'source,
-    {
+    ) -> Result<String, Box<LatexError<'config>>> {
         let mut equation_count = 0;
         convert(
             latex,
@@ -246,16 +234,13 @@ impl LatexToMathML {
     }
 }
 
-fn convert<'config, 'source>(
-    latex: &'source str,
+fn convert<'config>(
+    latex: &str,
     display: MathDisplay,
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut u16,
     flags: &Flags,
-) -> Result<String, Box<LatexError<'config>>>
-where
-    'config: 'source,
-{
+) -> Result<String, Box<LatexError<'config>>> {
     let arena = Arena::new();
     let ast = parse(latex, &arena, custom_cmds, equation_count)?;
 
@@ -284,16 +269,12 @@ where
     Ok(output)
 }
 
-fn parse<'arena, 'source, 'config>(
-    latex: &'source str,
+fn parse<'arena, 'config>(
+    latex: &str,
     arena: &'arena Arena,
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut u16,
-) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'config>>>
-where
-    'config: 'source, // 'config outlives 'source
-    'source: 'arena,  // 'source outlives 'arena
-{
+) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'config>>> {
     let lexer = Lexer::new(latex, false, custom_cmds);
     let mut p = Parser::new(lexer, arena, equation_count)?;
     let nodes = p.parse()?;

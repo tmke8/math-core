@@ -91,9 +91,7 @@ pub(super) type ParseResult<'config, T> = Result<T, Box<LatexError<'config>>>;
 
 impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config>
 where
-    'config: 'source, // The configuration lives at least as long as the source string.
-    'source: 'arena,  // The reference to the source string will live as long as the arena.
-    'arena: 'cell,    // The arena will live as long as the cell that holds the error.
+    'arena: 'cell, // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
