@@ -25,7 +25,7 @@ where
     brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
-    error_slot: &'cell OnceCell<LatexError<'source>>,
+    error_slot: &'cell OnceCell<LatexError<'config>>,
 }
 
 impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
@@ -34,7 +34,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
-        error_slot: &'cell OnceCell<LatexError<'source>>,
+        error_slot: &'cell OnceCell<LatexError<'config>>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -56,7 +56,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
     }
 
     #[inline]
-    pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
+    pub(super) fn alloc_err(&mut self, err: LatexError<'config>) -> &'cell LatexError<'config> {
         debug_assert!(
             self.error_slot.get().is_none(),
             "A previous error was already allocated and not returned"
@@ -165,7 +165,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'config>> {
         let mut is_string_literal = false;
         if let Mode::StringLiteral {
             ref mut arg_num,
@@ -215,7 +215,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 let Some(env) = Env::from_str(string_literal) else {
                     break 'str_literal Err(LatexError(
                         group_loc,
-                        LatexErrKind::UnknownEnvironment(string_literal),
+                        LatexErrKind::UnknownEnvironment(string_literal.into()),
                     ));
                 };
                 if is_begin && env.needs_string_literal() {
@@ -375,13 +375,16 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
-        let tok: Result<Token<'config>, LatexError<'source>> =
+    ) -> Result<TokLoc<'config>, &'cell LatexError<'config>> {
+        let tok: Result<Token<'config>, LatexError<'config>> =
             if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
                 if let Some(tok) = get_text_command(cmd_string) {
                     Ok(tok)
                 } else {
-                    Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
+                    Err(LatexError(
+                        loc,
+                        LatexErrKind::UnknownCommand(cmd_string.into()),
+                    ))
                 }
             } else if let Some(tok) = self
                 .custom_cmds
@@ -390,7 +393,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             {
                 Ok(tok)
             } else {
-                Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
+                Err(LatexError(
+                    loc,
+                    LatexErrKind::UnknownCommand(cmd_string.into()),
+                ))
             };
         if matches!(self.mode, Mode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),

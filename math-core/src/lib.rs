@@ -295,25 +295,26 @@ where
 {
     let error_slot = std::cell::OnceCell::new();
     let lexer = Lexer::new(latex, false, custom_cmds, &error_slot);
-    let mut p = Parser::new(lexer, arena, equation_count).map_err(|e| *e)?;
-    let nodes = p.parse().map_err(|e| *e)?;
+    let mut p = Parser::new(lexer, arena, equation_count).map_err(|e| e.clone())?;
+    let nodes = p.parse().map_err(|e| e.clone())?;
     Ok(nodes)
 }
 
-fn parse_custom_commands<'source>(
-    macros: &'source [(String, String)],
-) -> Result<CustomCmds, LatexError<'source>> {
+fn parse_custom_commands(macros: &[(String, String)]) -> Result<CustomCmds, LatexError<'static>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
     for (name, definition) in macros.iter() {
         if !is_valid_macro_name(name) {
-            return Err(LatexError(0, LatexErrKind::InvalidMacroName(name)));
+            return Err(LatexError(
+                0,
+                LatexErrKind::InvalidMacroName(name.as_str().into()),
+            ));
         }
         let error_slot = std::cell::OnceCell::new();
         let mut lexer: Lexer<'static, '_, '_> = Lexer::new(definition, true, None, &error_slot);
         let start = tokens.len();
         loop {
-            let tokloc = lexer.next_token().map_err(|e| *e)?;
+            let tokloc = lexer.next_token().map_err(|e| e.clone())?;
             if matches!(&tokloc.1, Token::Eof) {
                 break;
             }

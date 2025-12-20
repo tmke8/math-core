@@ -10,33 +10,33 @@ use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content
 use crate::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum LatexErrKind<'source> {
+pub enum LatexErrKind<'config> {
     UnexpectedToken {
         expected: &'static Token<'static>,
-        got: Token<'source>,
+        got: Token<'config>,
     },
-    UnclosedGroup(Token<'source>),
-    UnexpectedClose(Token<'source>),
+    UnclosedGroup(Token<'config>),
+    UnexpectedClose(Token<'config>),
     UnexpectedEOF,
     MissingParenthesis {
         location: &'static Token<'static>,
-        got: Token<'source>,
+        got: Token<'config>,
     },
     DisallowedChar(char),
-    UnknownEnvironment(&'source str),
-    UnknownCommand(&'source str),
+    UnknownEnvironment(Box<str>),
+    UnknownCommand(Box<str>),
     UnknownColor,
     MismatchedEnvironment {
         expected: Env,
         got: Env,
     },
     CannotBeUsedHere {
-        got: Token<'source>,
+        got: Token<'config>,
         correct_place: Place,
     },
     ExpectedText(&'static str),
@@ -44,8 +44,8 @@ pub enum LatexErrKind<'source> {
     ExpectedColSpec,
     ExpectedNumber,
     RenderError,
-    NotValidInTextMode(Token<'source>),
-    InvalidMacroName(&'source str),
+    NotValidInTextMode(Token<'config>),
+    InvalidMacroName(Box<str>),
     InvalidParameterNumber,
     HardLimitExceeded,
     Internal,
