@@ -48,7 +48,7 @@ impl LatexToMathML {
 
         Ok(LatexToMathML {
             inner: RwLock::new(
-                math_core::LatexToMathML::new(&config)
+                math_core::LatexToMathML::new(config)
                     .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?,
             ),
             raise_on_error,

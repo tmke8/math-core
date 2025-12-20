@@ -3,4 +3,6 @@ source: math-core/tests/error_test.rs
 expression: "\\genfrac(]{1pg}{2}{a+b}{c+d}"
 ---
 Position: 10
-ExpectedLength
+ExpectedLength(
+    "1pg",
+)

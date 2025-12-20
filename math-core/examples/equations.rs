@@ -63,7 +63,7 @@ fn main() {
         r"\oint_C \vec{B}\circ {\mathrm{d}\hspace{0em}}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{{\mathrm{d}\hspace{0em}} t} \int_S {\vec{E} \circ \hat{n}}\; {\mathrm{d}\hspace{0em}} a \right)",
     ];
 
-    let converter = LatexToMathML::new(&MathCoreConfig {
+    let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     })

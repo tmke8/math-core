@@ -10,42 +10,42 @@ use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content
 use crate::token::Token;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum LatexErrKind<'source> {
+pub enum LatexErrKind<'config> {
     UnexpectedToken {
         expected: &'static Token<'static>,
-        got: Token<'source>,
+        got: Token<'config>,
     },
-    UnclosedGroup(Token<'source>),
-    UnexpectedClose(Token<'source>),
+    UnclosedGroup(Token<'config>),
+    UnexpectedClose(Token<'config>),
     UnexpectedEOF,
     MissingParenthesis {
         location: &'static Token<'static>,
-        got: Token<'source>,
+        got: Token<'config>,
     },
     DisallowedChar(char),
-    UnknownEnvironment(&'source str),
-    UnknownCommand(&'source str),
-    UnknownColor,
+    UnknownEnvironment(Box<str>),
+    UnknownCommand(Box<str>),
+    UnknownColor(Box<str>),
     MismatchedEnvironment {
         expected: Env,
         got: Env,
     },
     CannotBeUsedHere {
-        got: Token<'source>,
+        got: Token<'config>,
         correct_place: Place,
     },
     ExpectedText(&'static str),
-    ExpectedLength,
-    ExpectedColSpec,
-    ExpectedNumber,
+    ExpectedLength(Box<str>),
+    ExpectedColSpec(Box<str>),
+    ExpectedNumber(Box<str>),
     RenderError,
-    NotValidInTextMode(Token<'source>),
-    InvalidMacroName(&'source str),
+    NotValidInTextMode(Token<'config>),
+    InvalidMacroName(Box<str>),
     InvalidParameterNumber,
     HardLimitExceeded,
     Internal,
@@ -104,7 +104,7 @@ impl LatexErrKind<'_> {
                 "Unknown environment \"".to_string() + environment + "\"."
             }
             LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
-            LatexErrKind::UnknownColor => "Unknown color.".to_string(),
+            LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 "Expected \"\\end{".to_string()
                     + expected.as_str()
@@ -120,12 +120,12 @@ impl LatexErrKind<'_> {
                     + "."
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
-            LatexErrKind::ExpectedLength => {
-                "Expected length with units.".to_string()
+            LatexErrKind::ExpectedLength(got) => {
+                "Expected length with units, got \"".to_string() + got + "\"."
             }
-            LatexErrKind::ExpectedNumber => "Expected a number.".to_string(),
-            LatexErrKind::ExpectedColSpec => {
-                "Expected column specification.".to_string()
+            LatexErrKind::ExpectedNumber(got) => "Expected a number, got \"".to_string() + got + "\".",
+            LatexErrKind::ExpectedColSpec(got) => {
+                "Expected column specification, got \"".to_string() + got + "\"."
             }
             LatexErrKind::RenderError => "Render error".to_string(),
             LatexErrKind::NotValidInTextMode(got) => {

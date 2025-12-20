@@ -15,7 +15,7 @@ fn test_zero_arg() {
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
 
     let latex = r"x = \half, \withText 3";
     let mathml = converter
@@ -37,7 +37,7 @@ fn test_one_arg() {
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
 
     let latex = r"x = \mycmd{3} + \half";
     let mathml = converter
@@ -56,7 +56,7 @@ fn test_spacing() {
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
 
     let latex = r"x + \eq 3";
     let mathml = converter
@@ -76,7 +76,7 @@ fn test_literal_args() {
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
 
     let latex = r"x \hs{3em} y";
     let mathml = converter

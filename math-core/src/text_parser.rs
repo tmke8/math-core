@@ -12,11 +12,11 @@ use crate::{
     token::{TokLoc, Token},
 };
 
-impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
+impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
     pub(super) fn parse_in_text_mode(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
-    ) -> ParseResult<'cell, 'source, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
+    ) -> ParseResult<'config, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
         let mut style_stack = vec![(0usize, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<(Option<HtmlTextStyle>, &'arena str)> = Vec::new();
@@ -146,7 +146,7 @@ impl<'cell, 'arena, 'source> Parser<'cell, 'arena, 'source> {
                 Token::End | Token::Right => Err(LatexErrKind::UnexpectedClose(token)),
                 _ => Err(LatexErrKind::NotValidInTextMode(token)),
             };
-            let c = c.map_err(|err| self.tokens.lexer.alloc_err(LatexError(loc, err)))?;
+            let c = c.map_err(|err| Box::new(LatexError(loc, err)))?;
             if let Some(builder) = &mut str_builder {
                 builder.push_char(c);
                 if let Some(accent) = accent_to_insert.take() {

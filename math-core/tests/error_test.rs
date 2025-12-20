@@ -71,10 +71,11 @@ fn main() {
         pretty_print: PrettyPrint::Never,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
     for (name, problem) in problems.into_iter() {
-        let Err(LatexError(loc, error)) =
-            converter.convert_with_local_counter(problem, MathDisplay::Inline)
+        let Err(LatexError(loc, error)) = converter
+            .convert_with_local_counter(problem, MathDisplay::Inline)
+            .map_err(|e| *e)
         else {
             panic!("problem `{}` did not return an error", problem);
         };

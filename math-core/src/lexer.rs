@@ -1,4 +1,3 @@
-use std::cell::OnceCell;
 use std::mem;
 use std::num::NonZeroUsize;
 use std::str::CharIndices;
@@ -12,11 +11,7 @@ use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{TokLoc, Token};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source, 'cell>
-where
-    'config: 'source,
-    'source: 'cell,
-{
+pub(crate) struct Lexer<'config, 'source> {
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,
@@ -25,16 +20,14 @@ where
     brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     custom_cmds: Option<&'config CustomCmds>,
-    error_slot: &'cell OnceCell<LatexError<'source>>,
 }
 
-impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
+impl<'config, 'source> Lexer<'config, 'source> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
         custom_cmds: Option<&'config CustomCmds>,
-        error_slot: &'cell OnceCell<LatexError<'source>>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -49,19 +42,9 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 None
             },
             custom_cmds,
-            error_slot,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
-    }
-
-    #[inline]
-    pub(super) fn alloc_err(&mut self, err: LatexError<'source>) -> &'cell LatexError<'source> {
-        debug_assert!(
-            self.error_slot.get().is_none(),
-            "A previous error was already allocated and not returned"
-        );
-        self.error_slot.get_or_init(|| err)
     }
 
     #[inline]
@@ -165,7 +148,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
         let mut is_string_literal = false;
         if let Mode::StringLiteral {
             ref mut arg_num,
@@ -215,7 +198,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                 let Some(env) = Env::from_str(string_literal) else {
                     break 'str_literal Err(LatexError(
                         group_loc,
-                        LatexErrKind::UnknownEnvironment(string_literal),
+                        LatexErrKind::UnknownEnvironment(string_literal.into()),
                     ));
                 };
                 if is_begin && env.needs_string_literal() {
@@ -233,7 +216,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     return Ok(tok);
                 }
                 Err(err) => {
-                    return Err(self.alloc_err(err));
+                    return Err(Box::new(err));
                 }
             }
         }
@@ -257,7 +240,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
         let tok = match ch {
             '\u{0}' => {
-                return Err(self.alloc_err(LatexError(loc, LatexErrKind::DisallowedChar(ch))));
+                return Err(Box::new(LatexError(loc, LatexErrKind::DisallowedChar(ch))));
             }
             ' ' => Token::Letter('\u{A0}'),
             '!' => Token::ForceClose(symbol::EXCLAMATION_MARK),
@@ -269,9 +252,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
                     // In pre-defined commands, `#` is used to denote a parameter.
                     let param_num = (next as u32).wrapping_sub('1' as u32);
                     if !(0..=8).contains(&param_num) {
-                        return Err(
-                            self.alloc_err(LatexError(loc, LatexErrKind::InvalidParameterNumber))
-                        );
+                        return Err(Box::new(LatexError(
+                            loc,
+                            LatexErrKind::InvalidParameterNumber,
+                        )));
                     }
                     let param_num = param_num as u8;
                     if (param_num + 1) > *num {
@@ -326,7 +310,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
-                    return Err(self.alloc_err(LatexError(
+                    return Err(Box::new(LatexError(
                         loc,
                         LatexErrKind::UnexpectedClose(Token::GroupEnd),
                     )));
@@ -375,13 +359,16 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         &mut self,
         loc: usize,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, &'cell LatexError<'source>> {
-        let tok: Result<Token<'config>, LatexError<'source>> =
+    ) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
+        let tok: Result<Token<'config>, LatexError<'config>> =
             if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
                 if let Some(tok) = get_text_command(cmd_string) {
                     Ok(tok)
                 } else {
-                    Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
+                    Err(LatexError(
+                        loc,
+                        LatexErrKind::UnknownCommand(cmd_string.into()),
+                    ))
                 }
             } else if let Some(tok) = self
                 .custom_cmds
@@ -390,7 +377,10 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
             {
                 Ok(tok)
             } else {
-                Err(LatexError(loc, LatexErrKind::UnknownCommand(cmd_string)))
+                Err(LatexError(
+                    loc,
+                    LatexErrKind::UnknownCommand(cmd_string.into()),
+                ))
             };
         if matches!(self.mode, Mode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),
@@ -413,7 +403,7 @@ impl<'config, 'source, 'cell> Lexer<'config, 'source, 'cell> {
         }
         match tok {
             Ok(tok) => Ok(TokLoc(loc, tok)),
-            Err(err) => Err(self.alloc_err(err)),
+            Err(err) => Err(Box::new(err)),
         }
     }
 }
@@ -499,8 +489,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None);
             // Call `lexer.next_token(false)` until we get `Token::EOF`.
             let mut tokens = String::new();
             loop {
@@ -531,8 +520,7 @@ mod tests {
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
-            let error_slot = OnceCell::new();
-            let mut lexer = Lexer::new(problem, false, None, &error_slot);
+            let mut lexer = Lexer::new(problem, false, None);
             let mut tokens = String::new();
             let err = loop {
                 match lexer.next_token() {
@@ -558,8 +546,7 @@ mod tests {
     fn test_parsing_custom_commands() {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let error_slot = OnceCell::new();
-        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None, &error_slot);
+        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
@@ -576,8 +563,7 @@ mod tests {
     #[test]
     fn test_recover_limited_ascii() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:|";
-        let error_slot = OnceCell::new();
-        let mut lexer = Lexer::new(input, false, None, &error_slot);
+        let mut lexer = Lexer::new(input, false, None);
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {
