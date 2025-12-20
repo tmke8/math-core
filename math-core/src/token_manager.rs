@@ -6,16 +6,16 @@ use crate::{
     token::{TokLoc, Token},
 };
 
-pub(super) struct TokenManager<'source> {
-    pub lexer: Lexer<'source, 'source>,
-    buf: VecDeque<TokLoc<'source>>,
+pub(super) struct TokenManager<'source, 'config> {
+    pub lexer: Lexer<'config, 'source>,
+    buf: VecDeque<TokLoc<'config>>,
     is_eof: bool,
 }
 
 static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
 
-impl<'source> TokenManager<'source> {
-    pub(super) fn new(lexer: Lexer<'source, 'source>) -> Result<Self, Box<LatexError<'source>>> {
+impl<'source, 'config> TokenManager<'source, 'config> {
+    pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
         let mut tm = TokenManager {
             lexer,
             buf: VecDeque::new(),
@@ -28,7 +28,7 @@ impl<'source> TokenManager<'source> {
 
     /// Ensure that there are at least `n` tokens in the buffer.
     /// If the end of the input is reached, this will stop early.
-    pub(super) fn ensure(&mut self, n: usize) -> Result<(), Box<LatexError<'source>>> {
+    pub(super) fn ensure(&mut self, n: usize) -> Result<(), Box<LatexError<'config>>> {
         if self.is_eof {
             return Ok(());
         }
@@ -51,7 +51,7 @@ impl<'source> TokenManager<'source> {
     /// always at least one token in the buffer when this is called, unless EOF has
     /// been reached.
     #[inline]
-    pub(super) fn peek(&self) -> &TokLoc<'source> {
+    pub(super) fn peek(&self) -> &TokLoc<'config> {
         if !self.is_eof {
             debug_assert!(!self.buf.is_empty(), "peek called without ensure");
         }
@@ -59,7 +59,7 @@ impl<'source> TokenManager<'source> {
         self.buf.front().unwrap_or(&EOF_TOK)
     }
 
-    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'source>, Box<LatexError<'source>>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
         self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
         Ok(self.buf.get(1).unwrap_or(&EOF_TOK))
@@ -68,14 +68,14 @@ impl<'source> TokenManager<'source> {
     /// Get the next token.
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokLoc<'source>, Box<LatexError<'source>>> {
+    pub(super) fn next(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
         // We ensure two tokens here, so that we can always peek.
         self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
         Ok(self.buf.pop_front().unwrap_or(EOF_TOK))
     }
 
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'source>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'config>> + Copy]) {
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
             self.buf.push_front((*tok).into());
@@ -85,8 +85,8 @@ impl<'source> TokenManager<'source> {
     /// Read a group of tokens, ending with (an unopened) `}`.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokLoc<'source>>,
-    ) -> Result<(), Box<LatexError<'source>>> {
+        tokens: &mut Vec<TokLoc<'config>>,
+    ) -> Result<(), Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
         loop {
             let TokLoc(loc, tok) = self.next()?;

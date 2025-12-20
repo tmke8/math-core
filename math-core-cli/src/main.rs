@@ -147,7 +147,7 @@ fn main() {
     };
 
     let mut converter =
-        LatexToMathML::new(&config.math_core).unwrap_or_else(|err| exit_latex_error(err, None));
+        LatexToMathML::new(config.math_core).unwrap_or_else(|err| exit_latex_error(err, None));
 
     if let Some(fpath) = &args.file {
         let inline_delim: (&str, &str) = if let Some(open) = &args.inline_open {
@@ -337,7 +337,7 @@ condition — when considered from the stationary system, the figure of a rotati
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
         let mut converter =
-            math_core::LatexToMathML::new(&math_core::MathCoreConfig::default()).unwrap();
+            math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
         let mut replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let mathml = crate::replace(&mut replacer, text, &mut converter, false).unwrap();
         println!("{}", mathml);

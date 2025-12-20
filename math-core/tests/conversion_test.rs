@@ -326,7 +326,7 @@ fn main() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(&config).unwrap();
+    let converter = LatexToMathML::new(config).unwrap();
     for (name, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_counter(problem, MathDisplay::Inline)

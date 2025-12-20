@@ -16,7 +16,7 @@
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
 //! let config = MathCoreConfig::default();
-//! let converter = LatexToMathML::new(&config).unwrap();
+//! let converter = LatexToMathML::new(config).unwrap();
 //! let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
@@ -168,11 +168,11 @@ impl LatexToMathML {
     ///
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed.
-    pub fn new(config: &MathCoreConfig) -> Result<Self, Box<LatexError<'_>>> {
+    pub fn new(config: MathCoreConfig) -> Result<Self, Box<LatexError<'static>>> {
         Ok(Self {
-            flags: Flags::from(config),
+            flags: Flags::from(&config),
             equation_count: 0,
-            custom_cmds: Some(parse_custom_commands(&config.macros)?),
+            custom_cmds: Some(parse_custom_commands(config.macros)?),
         })
     }
 
@@ -188,7 +188,7 @@ impl LatexToMathML {
         &'config mut self,
         latex: &'source str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError<'source>>>
+    ) -> Result<String, Box<LatexError<'config>>>
     where
         'config: 'source,
     {
@@ -210,7 +210,7 @@ impl LatexToMathML {
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
     /// let config = MathCoreConfig::default();
-    /// let converter = LatexToMathML::new(&config).unwrap();
+    /// let converter = LatexToMathML::new(config).unwrap();
     /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", mathml);
     ///
@@ -252,7 +252,7 @@ fn convert<'config, 'source>(
     custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut u16,
     flags: &Flags,
-) -> Result<String, Box<LatexError<'source>>>
+) -> Result<String, Box<LatexError<'config>>>
 where
     'config: 'source,
 {
@@ -284,14 +284,15 @@ where
     Ok(output)
 }
 
-fn parse<'arena, 'source>(
+fn parse<'arena, 'source, 'config>(
     latex: &'source str,
     arena: &'arena Arena,
-    custom_cmds: Option<&'source CustomCmds>,
+    custom_cmds: Option<&'config CustomCmds>,
     equation_count: &mut u16,
-) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'source>>>
+) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'config>>>
 where
-    'source: 'arena, // 'source outlives 'arena
+    'config: 'source, // 'config outlives 'source
+    'source: 'arena,  // 'source outlives 'arena
 {
     let lexer = Lexer::new(latex, false, custom_cmds);
     let mut p = Parser::new(lexer, arena, equation_count)?;
@@ -300,18 +301,18 @@ where
 }
 
 fn parse_custom_commands(
-    macros: &[(String, String)],
+    macros: Vec<(String, String)>,
 ) -> Result<CustomCmds, Box<LatexError<'static>>> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
-    for (name, definition) in macros.iter() {
-        if !is_valid_macro_name(name) {
+    for (name, definition) in macros {
+        if !is_valid_macro_name(name.as_str()) {
             return Err(Box::new(LatexError(
                 0,
                 LatexErrKind::InvalidMacroName(name.as_str().into()),
             )));
         }
-        let mut lexer: Lexer<'static, '_> = Lexer::new(definition, true, None);
+        let mut lexer: Lexer<'static, '_> = Lexer::new(definition.as_str(), true, None);
         let start = tokens.len();
         loop {
             let tokloc = lexer.next_token()?;
@@ -323,8 +324,7 @@ fn parse_custom_commands(
         let end = tokens.len();
         let num_args = lexer.parse_cmd_args().unwrap_or(0);
 
-        // TODO: avoid cloning `name` here
-        map.insert(name.clone(), (num_args, (start, end)));
+        map.insert(name, (num_args, (start, end)));
     }
     Ok(CustomCmds {
         tokens: tokens.into_boxed_slice(),

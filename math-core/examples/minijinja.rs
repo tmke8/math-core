@@ -23,7 +23,7 @@ struct Converter {
 }
 
 impl Converter {
-    fn load(config: &MathCoreConfig) -> Converter {
+    fn load(config: MathCoreConfig) -> Converter {
         eprintln!("[info] loading converter");
         let converter = LatexToMathML::new(config).unwrap();
         eprintln!("[info] converter loaded");
@@ -41,7 +41,7 @@ fn mathml(state: &State, latex: &str) -> Option<Value> {
         let config = state.lookup("mathcore_config").unwrap();
         let config = MathCoreConfig::deserialize(config).unwrap();
         eprintln!("[info] Config: {:?}", config);
-        Converter::load(&config)
+        Converter::load(config)
     });
     converter
         .inner
