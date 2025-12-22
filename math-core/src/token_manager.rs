@@ -18,27 +18,26 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
         let mut tm = TokenManager {
             lexer,
-            buf: VecDeque::new(),
+            buf: VecDeque::with_capacity(2),
             is_eof: false,
         };
         // Ensure that we have at least one token in the buffer for peeking.
-        tm.ensure(1)?;
+        tm.ensure_peek_token()?;
         Ok(tm)
     }
 
-    /// Ensure that there are at least `n` tokens in the buffer.
-    /// If the end of the input is reached, this will stop early.
-    pub(super) fn ensure(&mut self, n: usize) -> Result<(), Box<LatexError<'config>>> {
+    /// Ensure that there is at least one token in the buffer.
+    /// If the end of the input is reached, this will return early.
+    pub(super) fn ensure_peek_token(&mut self) -> Result<(), Box<LatexError<'config>>> {
         if self.is_eof {
             return Ok(());
         }
-        while self.buf.len() < n {
+        if self.buf.len() == 0 {
             let tok = self.lexer.next_token()?;
-            let is_eof = matches!(tok.1, Token::Eof);
+            let is_eof = matches!(tok.token(), Token::Eof);
             self.buf.push_back(tok);
             if is_eof {
                 self.is_eof = true;
-                break;
             }
         }
         Ok(())
@@ -60,7 +59,8 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     }
 
     pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
-        self.ensure(2)?;
+        let next = self.next()?;
+        self.buf.push_front(next);
         // The queue can only be empty if we reached EOF.
         Ok(self.buf.get(1).unwrap_or(&EOF_TOK))
     }
@@ -69,10 +69,15 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     ///
     /// This method also ensures that there is always a peekable token after this one.
     pub(super) fn next(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
-        // We ensure two tokens here, so that we can always peek.
-        self.ensure(2)?;
         // The queue can only be empty if we reached EOF.
-        Ok(self.buf.pop_front().unwrap_or(EOF_TOK))
+        if let Some(ret) = self.buf.pop_front() {
+            // We ensure a token in the queue here, so that we can always peek.
+            self.ensure_peek_token()?;
+            Ok(ret)
+        } else {
+            // We must have reached EOF previously.
+            Ok(EOF_TOK)
+        }
     }
 
     pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'config>> + Copy]) {
@@ -143,7 +148,7 @@ mod tests {
             let lexer = Lexer::new(problem, false, None);
             let mut manager = TokenManager::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
-            manager.ensure(3).unwrap();
+            // manager.ensure(3).unwrap();
             // Check that the first token is `GroupBegin`.
             assert!(matches!(manager.next().unwrap().1, Token::GroupBegin));
             let mut tokens = Vec::new();
