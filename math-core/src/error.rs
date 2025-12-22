@@ -39,6 +39,8 @@ pub enum LatexErrKind<'config> {
         got: Token<'config>,
         correct_place: Place,
     },
+    BoundFollowedByBound,
+    DuplicateSubOrSup,
     ExpectedText(&'static str),
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
@@ -118,6 +120,12 @@ impl LatexErrKind<'_> {
                     + "\", which may only appear "
                     + <&str>::from(correct_place)
                     + "."
+            }
+            LatexErrKind::BoundFollowedByBound => {
+                "'^' or '_' directly followed by '^', '_' or prime.".to_string()
+            }
+            LatexErrKind::DuplicateSubOrSup => {
+                "Duplicate subscript or superscript.".to_string()
             }
             LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
             LatexErrKind::ExpectedLength(got) => {
