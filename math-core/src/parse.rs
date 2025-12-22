@@ -1227,14 +1227,8 @@ where
             let second_circumflex = matches!(self.tokens.peek().token(), Token::Circumflex);
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
-                let TokLoc(loc, token) = self.next_token()?;
-                return Err(self.alloc_err(LatexError(
-                    loc,
-                    LatexErrKind::CannotBeUsedHere {
-                        got: token,
-                        correct_place: Place::AfterOpOrIdent,
-                    },
-                )));
+                let TokLoc(loc, _) = self.next_token()?;
+                return Err(self.alloc_err(LatexError(loc, LatexErrKind::DuplicateSubOrSup)));
             }
 
             if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
@@ -1308,15 +1302,8 @@ where
     fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<'config, &'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
-        if let Ok(TokLoc(loc, tok @ (Token::Underscore | Token::Circumflex | Token::Prime))) = next
-        {
-            return Err(self.alloc_err(LatexError(
-                loc,
-                LatexErrKind::CannotBeUsedHere {
-                    got: tok,
-                    correct_place: Place::AfterOpOrIdent,
-                },
-            )));
+        if let Ok(TokLoc(loc, Token::Underscore | Token::Circumflex | Token::Prime)) = next {
+            return Err(self.alloc_err(LatexError(loc, LatexErrKind::BoundFollowedByBound)));
         }
         let old_script_style = mem::replace(&mut self.state.script_style, true);
         let node = self.parse_token(next, ParseAs::Arg, Class::Default);
@@ -1326,10 +1313,7 @@ where
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
             return Err(self.alloc_err(LatexError(
                 self.tokens.peek().location(),
-                LatexErrKind::CannotBeUsedHere {
-                    got: Token::Prime,
-                    correct_place: Place::AfterOpOrIdent,
-                },
+                LatexErrKind::DuplicateSubOrSup,
             )));
         }
 
