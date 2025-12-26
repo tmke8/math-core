@@ -964,8 +964,11 @@ where
             }
             Token::Text(transform) => {
                 // Discard any whitespace that immediately follows the `Text` token.
-                if matches!(self.tokens.peek().token(), Token::Whitespace) {
-                    self.next_token()?;
+                if matches!(
+                    self.tokens.peek_with_whitespace().token(),
+                    Token::Whitespace
+                ) {
+                    self.tokens.next_with_whitespace()?;
                 }
                 let snippets = self.parse_in_text_mode(transform)?;
                 let nodes = snippets
@@ -1144,7 +1147,7 @@ where
                 for arg_num in 0..num_args {
                     let tokloc = self.next_token()?;
                     if matches!(tokloc.token(), Token::GroupBegin) {
-                        self.tokens.read_group(&mut self.state.cmd_args)?;
+                        self.tokens.read_group(&mut self.state.cmd_args, false)?;
                     } else {
                         self.state.cmd_args.push(tokloc);
                     }
@@ -1453,7 +1456,7 @@ where
         let mut tokens = Vec::new();
         if matches!(first, Token::GroupBegin) {
             // Read until the matching `}`.
-            self.tokens.read_group(&mut tokens)?;
+            self.tokens.read_group(&mut tokens, true)?;
         } else {
             tokens.push(TokLoc(first_loc, first));
         };
