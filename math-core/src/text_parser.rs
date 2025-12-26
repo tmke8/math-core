@@ -16,6 +16,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
     pub(super) fn parse_in_text_mode(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
+        with_whitespace: bool,
     ) -> ParseResult<'config, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
         let mut style_stack = vec![(0usize, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
@@ -24,7 +25,12 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
         let mut brace_nesting = 0usize;
 
         while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
-            let TokLoc(loc, token) = self.tokens.next_with_whitespace()?;
+            let tokloc = if with_whitespace {
+                self.tokens.next_with_whitespace()
+            } else {
+                self.tokens.next()
+            };
+            let TokLoc(loc, token) = tokloc?;
             let c: Result<char, LatexErrKind> = match token {
                 Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
                 Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
@@ -135,13 +141,6 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                     }
                     style_stack.push((brace_nesting, style));
                     brace_nesting = 0;
-                    // Discard any whitespace that immediately follows the `Text` token.
-                    if matches!(
-                        self.tokens.peek_with_whitespace().token(),
-                        Token::Whitespace
-                    ) {
-                        self.tokens.next_with_whitespace()?;
-                    }
                     continue;
                 }
                 Token::Eof => Err(LatexErrKind::UnexpectedEOF),

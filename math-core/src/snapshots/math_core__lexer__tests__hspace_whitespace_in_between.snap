@@ -11,4 +11,5 @@ expression: "\\hspace {  4  em } x"
 15: Letter('m')
 16: Whitespace
 17: GroupEnd
+18: Whitespace
 19: Letter('x')

@@ -96,19 +96,6 @@ impl<'source, 'config> TokenManager<'source, 'config> {
         }
     }
 
-    /// Peek at the next token which may be whitespace.
-    pub(super) fn peek_with_whitespace(&self) -> &TokLoc<'config> {
-        if let Some(tok) = self.buf.front() {
-            tok
-        } else {
-            debug_assert!(
-                self.lexer_is_eof,
-                "peek_with_whitespace called without ensure"
-            );
-            &EOF_TOK
-        }
-    }
-
     pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
         match self.find_second_non_whitespace() {
             Some(tok_idx) => Ok(self.buf.get(tok_idx).unwrap_or(&EOF_TOK)),
@@ -208,11 +195,12 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     ) -> Result<(), Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
         loop {
-            let TokLoc(loc, tok) = if with_whitespace {
-                self.next_with_whitespace()?
+            let tokloc = if with_whitespace {
+                self.next_with_whitespace()
             } else {
-                self.next()?
+                self.next()
             };
+            let TokLoc(loc, tok) = tokloc?;
             match tok {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -295,9 +283,7 @@ mod tests {
         let mut token_str = String::new();
 
         loop {
-            let peeked = *manager.peek_with_whitespace();
             let TokLoc(loc, tok) = manager.next_with_whitespace().unwrap();
-            assert!(peeked.token().is_same_kind_as(&tok));
             if matches!(tok, Token::Eof) {
                 break;
             }

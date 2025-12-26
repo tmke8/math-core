@@ -1,5 +1,4 @@
 use std::mem::discriminant;
-use std::num::NonZeroU8;
 
 use strum_macros::IntoStaticStr;
 
@@ -160,15 +159,6 @@ impl Token<'_> {
             Token::Big(_, Some(cls)) => *cls,
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
-        }
-    }
-
-    #[inline]
-    pub(super) fn needs_string_literal(&self) -> Option<NonZeroU8> {
-        match self {
-            Token::CustomSpace | Token::Color | Token::Tag => NonZeroU8::new(1),
-            Token::Genfrac => NonZeroU8::new(3),
-            _ => None,
         }
     }
 }

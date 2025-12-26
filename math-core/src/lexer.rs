@@ -149,30 +149,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
-        let mut is_string_literal = false;
-        if let Mode::StringLiteral {
-            ref mut arg_num,
-            nesting,
-        } = self.mode
-        {
-            // Try subtracting 1 from `arg_num`.
-            // If successful, the value must have been > 1.
-            if let Some(new_val) = arg_num.checked_sub(1) {
-                // We check the nesting here in order to count a `{...}` group as one
-                // argument.
-                if nesting == self.brace_nesting_level {
-                    *arg_num = new_val;
-                }
-            } else {
-                if nesting < self.brace_nesting_level {
-                    is_string_literal = true;
-                } else {
-                    // Finished reading the string literal.
-                    self.mode = Mode::default();
-                }
-            }
-        };
-        if let Mode::EnvName { is_begin } = self.mode {
+        if matches!(self.mode, Mode::EnvName) {
             mem::take(&mut self.mode);
             // Read the string literal.
             let result = 'str_literal: {
@@ -201,13 +178,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         LatexErrKind::UnknownEnvironment(string_literal.into()),
                     ));
                 };
-                if is_begin && env.needs_string_literal() {
-                    // Some environments need a string literal after `\begin{...}`.
-                    self.mode = Mode::StringLiteral {
-                        arg_num: 1,
-                        nesting: self.brace_nesting_level,
-                    };
-                }
                 // Return an `EnvName` token.
                 Ok(TokLoc(group_loc, Token::EnvName(env)))
             };
@@ -221,9 +191,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
         }
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
-        if let Some(loc) = self.skip_whitespace()
-            && (text_mode || is_string_literal)
-        {
+        if let Some(loc) = self.skip_whitespace() {
             return Ok(TokLoc(loc.get(), Token::Whitespace));
         }
 
@@ -236,6 +204,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             while self.peek.1 != Some('\n') && self.peek.1.is_some() {
                 self.read_char();
             }
+            self.read_char(); // Consume the newline character.
+            // TODO: use `become` here when stabilized.
             return self.next_token();
         }
         let tok = match ch {
@@ -327,12 +297,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let cmd_string = self.read_command();
-                if text_mode {
-                    // After a command, all whitespace is skipped, even in text mode.
-                    // This is done automatically in non-text-mode, but for text
-                    // mode we need to do it manually.
-                    self.skip_whitespace();
-                }
+                // After a command, all whitespace is skipped, even in text mode.
+                self.skip_whitespace();
                 return self.parse_command(loc, cmd_string);
             }
             c => {
@@ -390,15 +356,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
         if let Ok(tok) = &tok {
             if matches!(tok, Token::Text(_)) {
                 self.mode = Mode::TextStart;
-            } else if matches!(tok, Token::Begin) {
-                self.mode = Mode::EnvName { is_begin: true };
-            } else if matches!(tok, Token::End) {
-                self.mode = Mode::EnvName { is_begin: false };
-            } else if let Some(arg_num) = tok.needs_string_literal() {
-                self.mode = Mode::StringLiteral {
-                    arg_num: arg_num.get(),
-                    nesting: self.brace_nesting_level,
-                };
+            } else if matches!(tok, Token::Begin | Token::End) {
+                self.mode = Mode::EnvName;
             }
         }
         match tok {
@@ -419,16 +378,7 @@ enum Mode {
     TextGroup {
         nesting: usize, // The nesting level of `{` in the text group.
     },
-    EnvName {
-        is_begin: bool, // `true` if it's `\begin`, `false` if it's `\end`.
-    },
-    StringLiteral {
-        /// 1-based index of the argument that is a string literal.
-        /// If it is 0, then we are inside the string literal.
-        arg_num: u8,
-        /// The nesting level of `{` when the string literal was requested.
-        nesting: usize,
-    },
+    EnvName,
 }
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
