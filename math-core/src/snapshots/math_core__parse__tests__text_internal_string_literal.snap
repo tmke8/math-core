@@ -1,0 +1,7 @@
+---
+source: math-core/src/parse.rs
+expression: "[Text(None), InternalStringLiteral(\"hi\")]"
+---
+[
+  Text(None, "hi"),
+]
