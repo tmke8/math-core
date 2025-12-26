@@ -22,6 +22,7 @@ fn main() {
             "incorrect_bracket_in_begin",
             r"\begin{matrix] 1 \end{matrix}",
         ),
+        ("incomplete_sqrt", r"\sqrt  "),
         ("incomplete_sup", r"x^"),
         ("invalid_sup", r"x^^"),
         ("invalid_sub_sup", r"x^_"),
