@@ -1,0 +1,14 @@
+---
+source: math-core/src/token_manager.rs
+expression: "\\text{  x +   y }"
+---
+0: Text(None)
+5: GroupBegin
+7: Whitespace
+8: Letter('x')
+9: Whitespace
+10: BinaryOp(Bin { char: '+', cat: BD })
+13: Whitespace
+14: Letter('y')
+15: Whitespace
+16: GroupEnd

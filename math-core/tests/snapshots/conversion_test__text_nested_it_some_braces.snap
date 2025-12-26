@@ -6,6 +6,6 @@ expression: "\\text{ {\\textit a b}c}"
     <mrow>
         <mtext> </mtext>
         <mtext><i>a</i></mtext>
-        <mtext>bc</mtext>
+        <mtext> bc</mtext>
     </mrow>
 </math>

@@ -931,7 +931,7 @@ where
                 )
             }
             Token::OperatorName(with_limits) => {
-                let snippets = self.parse_in_text_mode(None)?;
+                let snippets = self.parse_in_text_mode(None, false)?;
                 let mut builder = self.buffer.get_builder();
                 for (_style, text) in snippets {
                     builder.push_str(text);
@@ -963,11 +963,7 @@ where
                 }
             }
             Token::Text(transform) => {
-                // Discard any whitespace that immediately follows the `Text` token.
-                if matches!(self.tokens.peek().token(), Token::Whitespace) {
-                    self.next_token()?;
-                }
-                let snippets = self.parse_in_text_mode(transform)?;
+                let snippets = self.parse_in_text_mode(transform, true)?;
                 let nodes = snippets
                     .into_iter()
                     .map(|(style, text)| self.commit(Node::Text(style, text)))
@@ -1129,7 +1125,7 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::EnvName(_) => {
+            Token::Whitespace | Token::EnvName(_) => {
                 // An env name token that is not expected by the parser should never occur.
                 // We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))
@@ -1144,7 +1140,7 @@ where
                 for arg_num in 0..num_args {
                     let tokloc = self.next_token()?;
                     if matches!(tokloc.token(), Token::GroupBegin) {
-                        self.tokens.read_group(&mut self.state.cmd_args)?;
+                        self.tokens.read_group(&mut self.state.cmd_args, false)?;
                     } else {
                         self.state.cmd_args.push(tokloc);
                     }
@@ -1180,7 +1176,7 @@ where
             }
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             // The following are text-mode-only tokens.
-            Token::Whitespace | Token::TextModeAccent(_) => {
+            Token::TextModeAccent(_) => {
                 Err(LatexError(
                     loc,
                     // TODO: Find a better error.
@@ -1453,7 +1449,7 @@ where
         let mut tokens = Vec::new();
         if matches!(first, Token::GroupBegin) {
             // Read until the matching `}`.
-            self.tokens.read_group(&mut tokens)?;
+            self.tokens.read_group(&mut tokens, true)?;
         } else {
             tokens.push(TokLoc(first_loc, first));
         };

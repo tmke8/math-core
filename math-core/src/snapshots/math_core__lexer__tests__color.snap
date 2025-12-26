@@ -10,5 +10,6 @@ expression: "{x\\color{red} y}"
 10: Letter('e')
 11: Letter('d')
 12: GroupEnd
+13: Whitespace
 14: Letter('y')
 15: GroupEnd

@@ -64,11 +64,6 @@ impl Env {
     }
 
     #[inline]
-    pub(super) fn needs_string_literal(&self) -> bool {
-        matches!(self, Env::Array | Env::Subarray)
-    }
-
-    #[inline]
     pub(super) fn allows_columns(&self) -> bool {
         !matches!(
             self,
