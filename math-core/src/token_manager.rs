@@ -29,10 +29,12 @@ impl<'source, 'config> TokenManager<'source, 'config> {
         Ok(tm)
     }
 
-    /// Load the next token from the lexer into the buffer.
+    /// Load the next non-whitespace token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
     fn load_token(&mut self) -> Result<usize, Box<LatexError<'config>>> {
         if self.lexer_is_eof {
+            // Returning here with offset 0 is the right thing to do,
+            // because it will result in an index that is one past the end of the buffer.
             return Ok(0);
         }
         let mut non_whitespace_offset = 0usize;
@@ -43,14 +45,14 @@ impl<'source, 'config> TokenManager<'source, 'config> {
             self.buf.push_back(tok);
             if !is_whitespace {
                 break;
-            } else if is_eof {
-                self.lexer_is_eof = true;
-                // Return the offset for one past the EOF token.
-                // This is needed to ensure that peek() works correctly.
-                non_whitespace_offset += 1;
-                break;
             }
             non_whitespace_offset += 1;
+            if is_eof {
+                self.lexer_is_eof = true;
+                // We return with the offset for one past the EOF token.
+                // This is needed to ensure that peek() works correctly.
+                break;
+            }
         }
         Ok(non_whitespace_offset)
     }
@@ -78,12 +80,12 @@ impl<'source, 'config> TokenManager<'source, 'config> {
         Ok(())
     }
 
-    /// Peek at the next token without consuming it.
+    /// Peek at the next non-whitespace token without consuming it.
     ///
     /// If the lexer has reached the end of the input, this will return an EOF token.
     /// The public interface of `TokenManager` enforces the invariant that there is
-    /// always at least one token in the buffer when this is called, unless EOF has
-    /// been reached.
+    /// always at least one non-whitespace token in the buffer when this is called,
+    /// unless EOF has been reached.
     #[inline]
     pub(super) fn peek(&self) -> &TokLoc<'config> {
         // `next_non_whitespace` points to the next non-whitespace token,
@@ -116,7 +118,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     /// Find the index of the second non-whitespace token in the buffer.
     ///
     /// This function returns an index instead of a reference to the token
-    /// to avoid issues with the borrow checker.
+    /// in order to avoid issues with the borrow checker.
     fn find_second_non_whitespace(&self) -> Option<usize> {
         // Ensure that the compiler can tell that `self.buf.range(next_non_whitespace..)`
         // cannot panic due to being out of bounds.
@@ -184,6 +186,11 @@ impl<'source, 'config> TokenManager<'source, 'config> {
         // Update the next_non_whitespace position.
         if let Some(pos) = self.find_next_non_whitespace() {
             self.next_non_whitespace = pos;
+        } else {
+            // There is only one scenario in which we wouldn't find a non-whitespace token:
+            // We reached EOF previously and all queued tokens are whitespace.
+            debug_assert!(self.lexer_is_eof, "queue_in_front called without ensure");
+            self.next_non_whitespace = self.buf.len();
         }
     }
 

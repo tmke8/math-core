@@ -107,14 +107,16 @@ impl<'config, 'source> Lexer<'config, 'source> {
         self.input_string.get_unwrap(start..end)
     }
 
-    /// Read ASCII alphanumeric characters (and a few others) until the next `}`.
+    /// Read an environment name.
+    ///
+    /// Reads ASCII alphanumeric characters (and a few others) until the next `}`.
     ///
     /// Returns `Err` if there are any disallowed characters before the `}`.
     /// The `Err` contains the location and character of the first disallowed character.
     /// If the end of the input is reached before finding a `}`, the `Err` contains
     /// the location and `None`.
     #[inline]
-    fn read_ascii_text_group(&mut self) -> Result<&'source str, (usize, Option<char>)> {
+    fn read_env_name(&mut self) -> Result<&'source str, (usize, Option<char>)> {
         // If the first character is not `{`, we read a single character.
         let first = self.read_char();
         if first.1 != Some('{') {
@@ -150,32 +152,29 @@ impl<'config, 'source> Lexer<'config, 'source> {
 
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
         if matches!(self.mode, Mode::EnvName) {
+            // Reset the mode.
             mem::take(&mut self.mode);
-            // Read the string literal.
-            let result = 'str_literal: {
+            let result = 'env_name: {
                 // First skip any whitespace.
                 self.skip_whitespace();
                 let group_loc = self.peek.0;
-                // Read the string literal.
-                let string_literal = match self.read_ascii_text_group() {
+                // Read the environment name.
+                let name = match self.read_env_name() {
                     Ok(lit) => lit,
                     Err((loc, ch)) => match ch {
                         None => {
-                            break 'str_literal Err(LatexError(loc, LatexErrKind::UnexpectedEOF));
+                            break 'env_name Err(LatexError(loc, LatexErrKind::UnexpectedEOF));
                         }
                         Some(ch) => {
-                            break 'str_literal Err(LatexError(
-                                loc,
-                                LatexErrKind::DisallowedChar(ch),
-                            ));
+                            break 'env_name Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
                         }
                     },
                 };
                 // Convert the environment name to the `Env` enum.
-                let Some(env) = Env::from_str(string_literal) else {
-                    break 'str_literal Err(LatexError(
+                let Some(env) = Env::from_str(name) else {
+                    break 'env_name Err(LatexError(
                         group_loc,
-                        LatexErrKind::UnknownEnvironment(string_literal.into()),
+                        LatexErrKind::UnknownEnvironment(name.into()),
                     ));
                 };
                 // Return an `EnvName` token.
