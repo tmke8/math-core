@@ -38,6 +38,7 @@ pub enum Node<'arena> {
         name: &'arena str,
     },
     /// `<mi>...</mi>` for a string.
+    /// The boolean indicates whether a transform was applied.
     IdentifierStr(bool, &'arena str),
     /// `<mspace width="..."/>`
     Space(Length),

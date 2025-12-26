@@ -178,6 +178,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     }
 
     pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'config>> + Copy]) {
+        self.buf.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
             self.buf.push_front((*tok).into());

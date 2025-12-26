@@ -1125,8 +1125,8 @@ where
             Token::End | Token::Right | Token::GroupEnd => {
                 Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
             }
-            Token::Whitespace | Token::EnvName(_) => {
-                // An env name token that is not expected by the parser should never occur.
+            Token::Whitespace | Token::EnvName(_) | Token::TextModeAccent(_) => {
+                // That these tokens are not expected by the parser should never occur.
                 // We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))
             }
@@ -1175,16 +1175,16 @@ where
                 }
             }
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
-            // The following are text-mode-only tokens.
-            Token::TextModeAccent(_) => {
-                Err(LatexError(
-                    loc,
-                    // TODO: Find a better error.
-                    LatexErrKind::CannotBeUsedHere {
-                        got: cur_token,
-                        correct_place: Place::BeforeSomeOps,
-                    },
-                ))
+            Token::InternalStringLiteral(content) => {
+                if let Some(MathVariant::Transform(tf)) = self.state.transform {
+                    let mut builder = self.buffer.get_builder();
+                    for c in content.chars() {
+                        builder.push_char(tf.transform(c, false));
+                    }
+                    Ok(Node::IdentifierStr(true, builder.finish(self.arena)))
+                } else {
+                    Ok(Node::IdentifierStr(false, content))
+                }
             }
         };
         match node {
@@ -1445,14 +1445,18 @@ where
     pub(super) fn parse_string_literal(
         &mut self,
     ) -> Result<(usize, &'arena str), Box<LatexError<'config>>> {
-        let TokLoc(first_loc, first) = self.tokens.next()?;
+        let TokLoc(loc, first) = self.tokens.next()?;
         let mut tokens = Vec::new();
-        if matches!(first, Token::GroupBegin) {
-            // Read until the matching `}`.
-            self.tokens.read_group(&mut tokens, true)?;
-        } else {
-            tokens.push(TokLoc(first_loc, first));
-        };
+        match first {
+            Token::GroupBegin => {
+                // Read until the matching `}`.
+                self.tokens.read_group(&mut tokens, true)?
+            }
+            Token::InternalStringLiteral(content) => {
+                return Ok((loc, content));
+            }
+            _ => tokens.push(TokLoc(loc, first)),
+        }
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
         let mut custom_arg_iter: Option<std::slice::Iter<TokLoc<'config>>> = None;
@@ -1497,7 +1501,7 @@ where
             };
             builder.push_char(ch);
         }
-        Ok((first_loc, builder.finish(self.arena)))
+        Ok((loc, builder.finish(self.arena)))
     }
 }
 
@@ -1640,6 +1644,31 @@ mod tests {
             let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
+        }
+    }
+
+    #[test]
+    fn ast_from_token_stream_test() {
+        use crate::token::Token::*;
+        let problems = [
+            (
+                "text_internal_string_literal",
+                &[Text(None), InternalStringLiteral("hi")],
+            ),
+            (
+                "space_internal_string_literal",
+                &[CustomSpace, InternalStringLiteral("3em")],
+            ),
+        ];
+        for (name, problem) in problems.into_iter() {
+            let arena = Arena::new();
+            let mut equation_counter = 0u16;
+            let l = Lexer::new("", false, None);
+            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
+            p.tokens.queue_in_front(problem);
+            let ast = p.parse().expect("Parsing failed");
+            let problem = format!("{:?}", problem);
+            assert_ron_snapshot!(name, &ast, &problem);
         }
     }
 }

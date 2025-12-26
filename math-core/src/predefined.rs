@@ -91,37 +91,25 @@ pub static IMPLIES: [Token<'static>; 3] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
-pub static BMOD: [Token<'static>; 8] = [
+pub static BMOD: [Token<'static>; 4] = [
     Space(LatexUnit::Mu.length_with_unit(4.0)),
-    Text(None),
-    GroupBegin,
-    Letter('m'),
-    Letter('o'),
-    Letter('d'),
-    GroupEnd,
+    Transform(MathVariant::Normal),
+    InternalStringLiteral("mod"),
     Space(LatexUnit::Mu.length_with_unit(4.0)),
 ];
 
-pub static MOD: [Token<'static>; 8] = [
+pub static MOD: [Token<'static>; 4] = [
     Space(LatexUnit::Em.length_with_unit(1.0)),
-    Text(None),
-    GroupBegin,
-    Letter('m'),
-    Letter('o'),
-    Letter('d'),
-    GroupEnd,
+    Transform(MathVariant::Normal),
+    InternalStringLiteral("mod"),
     Space(LatexUnit::Mu.length_with_unit(6.0)),
 ];
 
-pub static PMOD: [Token<'static>; 11] = [
+pub static PMOD: [Token<'static>; 7] = [
     Space(LatexUnit::Em.length_with_unit(1.0)),
     Open(symbol::LEFT_PARENTHESIS),
-    Text(None),
-    GroupBegin,
-    Letter('m'),
-    Letter('o'),
-    Letter('d'),
-    GroupEnd,
+    Transform(MathVariant::Normal),
+    InternalStringLiteral("mod"),
     Space(LatexUnit::Mu.length_with_unit(6.0)),
     CustomCmdArg(0),
     Close(symbol::RIGHT_PARENTHESIS),

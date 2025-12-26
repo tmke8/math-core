@@ -128,6 +128,9 @@ pub enum Token<'config> {
     CustomCmd(u8, &'config [Token<'static>]),
     HardcodedMathML(&'static str),
     TextModeAccent(char),
+    /// This token is intended to be used in predefined token streams.
+    /// It is equivalent to `{abc}`, but has a much more compact representation.
+    InternalStringLiteral(&'static str),
 }
 
 impl Token<'_> {

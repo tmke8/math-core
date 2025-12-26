@@ -47,12 +47,15 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                 | Token::OpLessThan
                 | Token::OpAmpersand
                 | Token::PseudoOperator(_)
-                | Token::PseudoOperatorLimits(_)) => {
+                | Token::PseudoOperatorLimits(_)
+                | Token::InternalStringLiteral(_)) => {
                     let output = match tok {
                         Token::OpGreaterThan => "&gt;",
                         Token::OpLessThan => "&lt;",
                         Token::OpAmpersand => "&amp;",
-                        Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name) => name,
+                        Token::PseudoOperator(content)
+                        | Token::PseudoOperatorLimits(content)
+                        | Token::InternalStringLiteral(content) => content,
                         _ => unreachable!(),
                     };
                     if let Some(str_builder) = &mut str_builder {

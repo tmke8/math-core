@@ -8,7 +8,7 @@ expression: "\\pmod{3}_4"
     unit: Em,
   )),
   StretchableOp(StretchableOp('(', Always), NoStretch),
-  Text(None, "mod"),
+  IdentifierStr(false, "mod"),
   Space(Length(
     value: 0.33333334,
     unit: Em,
