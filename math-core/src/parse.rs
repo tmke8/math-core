@@ -1650,10 +1650,20 @@ mod tests {
     #[test]
     fn ast_from_token_stream_test() {
         use crate::token::Token::*;
-        let problems = [
+        let problems: [(&'static str, &'static [Token]); 3] = [
             (
                 "text_internal_string_literal",
                 &[Text(None), InternalStringLiteral("hi")],
+            ),
+            (
+                "text_internal_string_literal_and_other",
+                &[
+                    Text(None),
+                    GroupBegin,
+                    Letter('a'),
+                    InternalStringLiteral("hi"),
+                    GroupEnd,
+                ],
             ),
             (
                 "space_internal_string_literal",

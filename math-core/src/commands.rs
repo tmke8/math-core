@@ -756,9 +756,9 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "textyen" => Letter('¥'),
     "u" => TextModeAccent(symbol::COMBINING_BREVE),
     "v" => TextModeAccent(symbol::COMBINING_CARON.as_op().as_char()),
-    "{" => Open(symbol::LEFT_CURLY_BRACKET),
-    "|" => Ord(symbol::DOUBLE_VERTICAL_LINE),
-    "}" => Close(symbol::RIGHT_CURLY_BRACKET),
+    "{" => Letter('{'),
+    "|" => Letter('|'),
+    "}" => Letter('}'),
     "~" => TextModeAccent(symbol::COMBINING_TILDE.as_op().as_char()),
 };
 
