@@ -37,6 +37,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                 Token::Open(op) | Token::Close(op) => Ok(op.as_op().into()),
                 Token::BinaryOp(op) => Ok(op.as_op().into()),
                 Token::Relation(op) => Ok(op.as_op().into()),
+                Token::Ord(op) => Ok(op.as_op().into()),
                 Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
                 Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
                 Token::Digit(digit) => Ok(digit),

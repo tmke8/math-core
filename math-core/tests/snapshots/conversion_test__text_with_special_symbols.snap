@@ -1,7 +1,7 @@
 ---
 source: math-core/tests/conversion_test.rs
-expression: "\\text{':,=-}"
+expression: "\\text{!\"\\#\\$\\%'()*+,-./:;=?@[]`|}"
 ---
 <math>
-    <mtext>’:,=-</mtext>
+    <mtext>!"#$%’()*+,-./:;=?@[]‘|</mtext>
 </math>

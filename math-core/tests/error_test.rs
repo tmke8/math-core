@@ -54,6 +54,7 @@ fn main() {
         ("hspace_non_digits", r"\hspace{2b2cm}"),
         ("hspace_non_ascii", r"\hspace{22öm}"),
         ("ampersand_outside_array", r"x & y"),
+        ("hash_outside_macro_definition", r"x # y"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),
