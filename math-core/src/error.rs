@@ -49,6 +49,7 @@ pub enum LatexErrKind<'config> {
     NotValidInTextMode(Token<'config>),
     InvalidMacroName(Box<str>),
     InvalidParameterNumber,
+    MacroParameterOutsideCustomCommand,
     HardLimitExceeded,
     Internal,
 }
@@ -144,6 +145,9 @@ impl LatexErrKind<'_> {
             }
             LatexErrKind::InvalidParameterNumber => {
                 "Invalid parameter number. Must be 1-9.".to_string()
+            }
+            LatexErrKind::MacroParameterOutsideCustomCommand => {
+                "Macro parameter found outside of custom command definition.".to_string()
             }
             LatexErrKind::HardLimitExceeded => {
                 "Hard limit exceeded. Please simplify your equation.".to_string()

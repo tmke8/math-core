@@ -212,29 +212,44 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 return Err(Box::new(LatexError(loc, LatexErrKind::DisallowedChar(ch))));
             }
             ' ' => Token::Letter('\u{A0}'),
-            '!' => Token::ForceClose(symbol::EXCLAMATION_MARK),
+            '!' => {
+                if text_mode {
+                    Token::Letter(ch)
+                } else {
+                    Token::ForceClose(symbol::EXCLAMATION_MARK)
+                }
+            }
             '#' => {
-                if let Some(num) = &mut self.parse_cmd_args
-                    && let Some(next) = self.peek.1
-                    && next.is_ascii_digit()
-                {
-                    // In pre-defined commands, `#` is used to denote a parameter.
-                    let param_num = (next as u32).wrapping_sub('1' as u32);
-                    if !(0..=8).contains(&param_num) {
+                if let Some(num) = &mut self.parse_cmd_args {
+                    if let Some(next) = self.peek.1
+                        && next.is_ascii_digit()
+                    {
+                        // In pre-defined commands, `#` is used to denote a parameter.
+                        let param_num = (next as u32).wrapping_sub('1' as u32);
+                        if !(0..=8).contains(&param_num) {
+                            return Err(Box::new(LatexError(
+                                loc,
+                                LatexErrKind::InvalidParameterNumber,
+                            )));
+                        }
+                        let param_num = param_num as u8;
+                        if (param_num + 1) > *num {
+                            *num = param_num + 1;
+                        }
+                        // Discard the digit after `#`.
+                        self.read_char();
+                        Token::CustomCmdArg(param_num)
+                    } else {
                         return Err(Box::new(LatexError(
                             loc,
                             LatexErrKind::InvalidParameterNumber,
                         )));
                     }
-                    let param_num = param_num as u8;
-                    if (param_num + 1) > *num {
-                        *num = param_num + 1;
-                    }
-                    // Discard the digit after `#`.
-                    self.read_char();
-                    Token::CustomCmdArg(param_num)
                 } else {
-                    Token::Letter('#')
+                    return Err(Box::new(LatexError(
+                        loc,
+                        LatexErrKind::MacroParameterOutsideCustomCommand,
+                    )));
                 }
             }
             '&' => Token::NewColumn,
@@ -267,6 +282,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
+            '`' => Token::Letter('‘'),
             '{' => {
                 if matches!(self.mode, Mode::TextStart) {
                     self.mode = Mode::TextGroup {

@@ -24,6 +24,7 @@ fn test_zero_arg() {
 
     assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
 }
+
 #[test]
 fn test_one_arg() {
     let macros = vec![
@@ -46,6 +47,25 @@ fn test_one_arg() {
 
     assert_snapshot!("custom_cmd_one_arg", mathml, latex);
 }
+
+#[test]
+fn test_error() {
+    let macros = vec![("mycmd".to_string(), r"\sqrt{#}".to_string())];
+
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+
+    let error = LatexToMathML::new(config).unwrap_err();
+
+    assert!(matches!(
+        error.1,
+        math_core::LatexErrKind::InvalidParameterNumber,
+    ));
+}
+
 #[test]
 fn test_spacing() {
     let macros = vec![("eq".to_string(), r"=".to_string())];
