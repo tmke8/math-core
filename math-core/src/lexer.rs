@@ -219,6 +219,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     Token::ForceClose(symbol::EXCLAMATION_MARK)
                 }
             }
+            '"' => Token::Letter('”'),
             '#' => {
                 if let Some(num) = &mut self.parse_cmd_args {
                     if let Some(next) = self.peek.1
