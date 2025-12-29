@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::{
-    error::{LatexErrKind, LatexError},
+    error::{EndToken, LatexErrKind, LatexError},
     lexer::Lexer,
     token::{TokLoc, Token},
 };
@@ -225,7 +225,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
                 Token::Eof => {
                     return Err(Box::new(LatexError(
                         loc,
-                        LatexErrKind::UnclosedGroup(Token::GroupEnd),
+                        LatexErrKind::UnclosedGroup(EndToken::GroupClose),
                     )));
                 }
                 _ => {}

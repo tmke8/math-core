@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\left x 1 \\right)"
+---
+Position: 6
+ExpectedDelimiter {
+    location: Left,
+    got: Letter(
+        'x',
+    ),
+}

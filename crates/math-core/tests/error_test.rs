@@ -23,7 +23,9 @@ fn main() {
             r"\begin{matrix] 1 \end{matrix}",
         ),
         ("incomplete_sqrt", r"\sqrt  "),
+        ("sqrt_closed", r"{\sqrt}"),
         ("incomplete_sup", r"x^"),
+        ("sup_closed", r"{x^}"),
         ("invalid_sup", r"x^^"),
         ("invalid_sub_sup", r"x^_"),
         ("double_sub", r"x__3"),
@@ -38,11 +40,20 @@ fn main() {
         ("unexpected_limits", r"\text{hello}\limits_0^1"),
         ("unsupported_not", r"\not\text{hello}"),
         ("text_with_unclosed_group", r"\text{x{}"),
+        ("text_in_group", r"{\text}"),
         ("text_with_math_command", r"\text{\max}"),
         ("text_at_eof", r"\sum\text"),
         ("operatorname_with_end", r"\operatorname{\end{matrix}}"),
+        (
+            "operatorname_with_end_after_begin",
+            r"\begin{matrix}\operatorname{\end{matrix}}",
+        ),
         ("operatorname_with_begin", r"\operatorname{\begin{matrix}}"),
         ("operatorname_with_text_command", r"\operatorname{\ae}"),
+        (
+            "operatorname_left_right",
+            r"\left(\operatorname{hello\right)",
+        ),
         ("super_then_prime", "f^2'"),
         ("sub_super_then_prime", "f_5^2'"),
         ("sup_sup", "x^2^3 y"),
@@ -67,6 +78,10 @@ fn main() {
             r#"\begin{multline}1&1\end{multline}"#,
         ),
         ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
+        ("left_with_non_delimiter", r"\left x 1 \right)"),
+        ("right_with_non_delimiter", r"\left( 1 \right x"),
+        ("middle_with_non_delimiter", r"\left( 1 \middle x \right)"),
+        ("bigl_with_non_delimiter", r"\bigl x 1 \bigr)"),
     ];
 
     let config = MathCoreConfig {

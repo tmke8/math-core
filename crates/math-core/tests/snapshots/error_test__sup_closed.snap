@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\operatorname{\\end{matrix}}"
+expression: "{x^}"
 ---
-Position: 14
+Position: 3
 ExpectedArgumentGotClose

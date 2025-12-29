@@ -16,15 +16,12 @@ pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum LatexErrKind<'config> {
-    UnexpectedToken {
-        expected: &'static Token<'static>,
-        got: Token<'config>,
-    },
-    UnclosedGroup(Token<'config>),
-    UnexpectedClose(Token<'config>),
-    UnexpectedEOF,
-    MissingParenthesis {
-        location: &'static Token<'static>,
+    UnclosedGroup(EndToken),
+    UnmatchedClose(EndToken),
+    ExpectedArgumentGotClose,
+    ExpectedArgumentGotEOF,
+    ExpectedDelimiter {
+        location: DelimiterModifier,
         got: Token<'config>,
     },
     DisallowedChar(char),
@@ -55,14 +52,36 @@ pub enum LatexErrKind<'config> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+pub enum EndToken {
+    #[strum(serialize = r"\end{...}")]
+    End,
+    #[strum(serialize = r"}")]
+    GroupClose,
+    #[strum(serialize = r"\right")]
+    Right,
+    #[strum(serialize = r"]")]
+    SquareBracketClose,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+pub enum DelimiterModifier {
+    #[strum(serialize = r"\left")]
+    Left,
+    #[strum(serialize = r"\right")]
+    Right,
+    #[strum(serialize = r"\middle")]
+    Middle,
+    #[strum(serialize = r"\big, \Big, ...")]
+    Big,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[repr(u32)] // A different value here somehow increases code size on WASM enormously.
 pub enum Place {
     #[strum(serialize = r"after \int, \sum, ...")]
     AfterBigOp,
     #[strum(serialize = r"before supported operators")]
     BeforeSomeOps,
-    #[strum(serialize = r"after an identifier or operator")]
-    AfterOpOrIdent,
     #[strum(serialize = r"in a table-like environment")]
     TableEnv,
     #[strum(serialize = r"in a numbered equation environment")]
@@ -76,21 +95,17 @@ impl LatexErrKind<'_> {
     /// but produces more compact WASM code.
     pub fn string(&self) -> String {
         match self {
-            LatexErrKind::UnexpectedToken { expected, got } => {
-                "Expected token \"".to_string()
-                    + <&str>::from(*expected)
-                    + "\", but found token \""
-                    + <&str>::from(got)
-                    + "\"."
-            }
             LatexErrKind::UnclosedGroup(expected) => {
                 "Expected token \"".to_string() + <&str>::from(expected) + "\", but not found."
             }
-            LatexErrKind::UnexpectedClose(got) => {
-                "Unexpected closing token: \"".to_string() + <&str>::from(got) + "\"."
+            LatexErrKind::UnmatchedClose(got) => {
+                "Unmatched closing token: \"".to_string() + <&str>::from(got) + "\"."
             }
-            LatexErrKind::UnexpectedEOF => "Unexpected end of file.".to_string(),
-            LatexErrKind::MissingParenthesis { location, got } => {
+            LatexErrKind::ExpectedArgumentGotClose => {
+                r"Expected argument but got closing token (`}`, `\end`, `\right`).".to_string()
+            }
+            LatexErrKind::ExpectedArgumentGotEOF => "Expected argument but reached end of input.".to_string(),
+            LatexErrKind::ExpectedDelimiter { location, got } => {
                 "There must be a parenthesis after \"".to_string()
                     + <&str>::from(*location)
                     + "\", but not found. Instead, \""

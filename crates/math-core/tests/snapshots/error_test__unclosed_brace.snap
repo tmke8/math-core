@@ -4,5 +4,5 @@ expression: "{"
 ---
 Position: 1
 UnclosedGroup(
-    GroupEnd,
+    GroupClose,
 )
