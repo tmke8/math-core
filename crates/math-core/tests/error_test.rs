@@ -50,7 +50,10 @@ fn main() {
         ),
         ("operatorname_with_begin", r"\operatorname{\begin{matrix}}"),
         ("operatorname_with_text_command", r"\operatorname{\ae}"),
-        ("operatorname_left_right", r"\left(\operatorname{hello\right)"),
+        (
+            "operatorname_left_right",
+            r"\left(\operatorname{hello\right)",
+        ),
         ("super_then_prime", "f^2'"),
         ("sub_super_then_prime", "f_5^2'"),
         ("sup_sup", "x^2^3 y"),
@@ -75,6 +78,10 @@ fn main() {
             r#"\begin{multline}1&1\end{multline}"#,
         ),
         ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
+        ("left_with_non_delimiter", r"\left x 1 \right)"),
+        ("right_with_non_delimiter", r"\left( 1 \right x"),
+        ("middle_with_non_delimiter", r"\left( 1 \middle x \right)"),
+        ("bigl_with_non_delimiter", r"\bigl x 1 \bigr)"),
     ];
 
     let config = MathCoreConfig {
