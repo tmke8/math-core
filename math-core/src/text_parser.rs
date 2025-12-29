@@ -7,7 +7,7 @@ use mathml_renderer::{
 
 use crate::{
     error::{LatexErrKind, LatexError},
-    parse::{ParseResult, Parser},
+    parser::{ParseResult, Parser},
     specifications::LatexUnit,
     token::{TokLoc, Token},
 };

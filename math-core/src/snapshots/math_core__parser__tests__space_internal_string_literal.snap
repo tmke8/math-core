@@ -1,0 +1,10 @@
+---
+source: math-core/src/parser.rs
+expression: "[CustomSpace, InternalStringLiteral(\"3em\")]"
+---
+[
+  Space(Length(
+    value: 3.0,
+    unit: Em,
+  )),
+]

@@ -33,7 +33,7 @@ mod environments;
 mod error;
 mod html_utils;
 mod lexer;
-mod parse;
+mod parser;
 mod predefined;
 mod specifications;
 mod text_parser;
@@ -47,7 +47,7 @@ use serde::{Deserialize, Serialize};
 use mathml_renderer::{arena::Arena, ast::Node};
 
 pub use self::error::{LatexErrKind, LatexError};
-use self::{lexer::Lexer, parse::Parser, token::Token};
+use self::{lexer::Lexer, parser::Parser, token::Token};
 
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,0 +1,42 @@
+---
+source: math-core/src/parser.rs
+expression: "x_:\\equiv, x_:="
+---
+[
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
+      op: ':',
+      attr: None,
+      left: None,
+      right: None,
+    ),
+  ),
+  Operator(
+    op: '≡',
+    attr: None,
+    left: None,
+    right: Some(Zero),
+  ),
+  Operator(
+    op: ',',
+    attr: None,
+    left: None,
+    right: None,
+  ),
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: Operator(
+      op: ':',
+      attr: None,
+      left: None,
+      right: None,
+    ),
+  ),
+  Operator(
+    op: '=',
+    attr: None,
+    left: None,
+    right: Some(Zero),
+  ),
+]

@@ -1,0 +1,13 @@
+---
+source: math-core/src/parser.rs
+expression: "\\mathit{\\mathrm{a}b}"
+---
+[
+  Row(
+    nodes: [
+      IdentifierChar('a', ForcedUpright),
+      IdentifierChar('𝑏', Default),
+    ],
+    attr: None,
+  ),
+]

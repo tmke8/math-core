@@ -1,0 +1,28 @@
+---
+source: math-core/src/parser.rs
+expression: "{\\int_0^\\infty = 4}"
+---
+[
+  Row(
+    nodes: [
+      SubSup(
+        target: Operator(
+          op: '∫',
+          attr: None,
+          left: Some(Zero),
+          right: Some(Zero),
+        ),
+        sub: Number("0"),
+        sup: IdentifierChar('∞', Default),
+      ),
+      Operator(
+        op: '=',
+        attr: None,
+        left: None,
+        right: None,
+      ),
+      Number("4"),
+    ],
+    attr: None,
+  ),
+]

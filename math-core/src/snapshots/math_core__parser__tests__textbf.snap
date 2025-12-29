@@ -1,0 +1,7 @@
+---
+source: math-core/src/parser.rs
+expression: "\\textbf{abc}"
+---
+[
+  Text(Some(Bold), "abc"),
+]

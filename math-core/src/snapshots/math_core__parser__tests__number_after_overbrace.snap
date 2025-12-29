@@ -1,0 +1,16 @@
+---
+source: math-core/src/parser.rs
+expression: "\\overbrace12"
+---
+[
+  Overset(
+    symbol: Operator(
+      op: '⏞',
+      attr: None,
+      left: None,
+      right: None,
+    ),
+    target: Number("1"),
+  ),
+  Number("2"),
+]

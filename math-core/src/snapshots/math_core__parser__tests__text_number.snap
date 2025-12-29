@@ -1,0 +1,8 @@
+---
+source: math-core/src/parser.rs
+expression: "\\text123"
+---
+[
+  Text(None, "1"),
+  Number("23"),
+]
