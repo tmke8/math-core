@@ -2,4 +2,4 @@
 source: crates/math-core/src/token_manager.rs
 expression: "{x + {y + z}"
 ---
-Error at 12: UnclosedGroup(GroupEnd)
+Error at 12: UnclosedGroup(GroupClose)

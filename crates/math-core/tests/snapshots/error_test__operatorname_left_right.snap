@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\operatorname{\\end{matrix}}"
+expression: "\\left(\\operatorname{hello\\right)"
 ---
-Position: 14
+Position: 25
 ExpectedArgumentGotClose

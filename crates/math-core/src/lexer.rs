@@ -7,7 +7,7 @@ use mathml_renderer::symbol::{self, MathMLOperator};
 use crate::CustomCmds;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
-use crate::error::{GetUnwrap, LatexErrKind, LatexError};
+use crate::error::{EndToken, GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{TokLoc, Token};
 
 /// Lexer
@@ -163,7 +163,10 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     Ok(lit) => lit,
                     Err((loc, ch)) => match ch {
                         None => {
-                            break 'env_name Err(LatexError(loc, LatexErrKind::UnexpectedEOF));
+                            break 'env_name Err(LatexError(
+                                loc,
+                                LatexErrKind::UnclosedGroup(EndToken::GroupClose),
+                            ));
                         }
                         Some(ch) => {
                             break 'env_name Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
@@ -298,7 +301,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return Err(Box::new(LatexError(
                         loc,
-                        LatexErrKind::UnexpectedClose(Token::GroupEnd),
+                        LatexErrKind::UnmatchedClose(EndToken::GroupClose),
                     )));
                 };
                 self.brace_nesting_level = new_level;

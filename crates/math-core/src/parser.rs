@@ -15,7 +15,7 @@ use crate::{
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
-    error::{LatexErrKind, LatexError, Place},
+    error::{DelimiterModifier, EndToken, LatexErrKind, LatexError, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{TokLoc, Token},
@@ -150,25 +150,33 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
             // Check whether we need to collect letters.
-            let (class, target) = if let Some(collected_letters) =
-                self.merge_and_transform_letters()?
-            {
-                collected_letters
-            } else {
-                // Get the current token.
-                let cur_tokloc = self.next_token();
-                // Check here for EOF, so we know to end the loop prematurely.
-                if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
-                    // When the input ends without the closing token.
-                    if let SequenceEnd::Token(end_token) = sequence_end {
-                        return Err(
-                            self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
-                        );
+            let (class, target) =
+                if let Some(collected_letters) = self.merge_and_transform_letters()? {
+                    collected_letters
+                } else {
+                    // Get the current token.
+                    let cur_tokloc = self.next_token();
+                    // Check here for EOF, so we know to end the loop prematurely.
+                    if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
+                        // When the input ends without the closing token.
+                        if let SequenceEnd::Token(end_token) = sequence_end {
+                            let end = match end_token {
+                                Token::GroupEnd => EndToken::GroupClose,
+                                Token::Right => EndToken::Right,
+                                Token::SquareBracketClose => EndToken::SquareBracketClose,
+                                _ => {
+                                    debug_assert!(matches!(end_token, Token::End));
+                                    EndToken::End
+                                }
+                            };
+                            return Err(
+                                self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end)))
+                            );
+                        }
                     }
-                }
-                // Parse the token.
-                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
-            };
+                    // Parse the token.
+                    self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+                };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -477,12 +485,12 @@ where
                 let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
                 };
                 let (loc, length) = self.parse_string_literal()?;
                 let lt = match length.trim() {
@@ -501,11 +509,11 @@ where
                         b"2" => Some(Style::Script),
                         b"3" => Some(Style::ScriptScript),
                         _ => {
-                            break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF));
+                            break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::UnexpectedEOF)),
+                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
@@ -813,7 +821,7 @@ where
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc)?)
+                    Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
                 let content =
                     self.parse_sequence(SequenceEnd::Token(Token::Right), Class::Open, false)?;
@@ -821,7 +829,7 @@ where
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc)?)
+                    Some(self.extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
                 Ok(Node::Fenced {
                     open: open_paren,
@@ -832,12 +840,12 @@ where
             }
             Token::Middle => {
                 let tok_loc = self.next_token()?;
-                let op = self.extract_delimiter(tok_loc)?;
+                let op = self.extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
                 Ok(Node::StretchableOp(op, StretchMode::Middle))
             }
             Token::Big(size, cls) => {
                 let tok_loc = self.next_token()?;
-                let paren = self.extract_delimiter(tok_loc)?;
+                let paren = self.extract_delimiter(tok_loc, DelimiterModifier::Big)?;
                 // `\big` commands without the "l" or "r" really produce `Class::Default`.
                 class = cls.unwrap_or(Class::Default);
                 Ok(Node::SizedParen(size, paren))
@@ -1121,9 +1129,19 @@ where
                     correct_place: Place::AfterBigOp,
                 },
             )),
-            Token::Eof => Err(LatexError(loc, LatexErrKind::UnexpectedEOF)),
-            Token::End | Token::Right | Token::GroupEnd => {
-                Err(LatexError(loc, LatexErrKind::UnexpectedClose(cur_token)))
+            Token::Eof => Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotEOF)),
+            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
+                if parse_as.in_sequence() {
+                    let end = match tok {
+                        Token::GroupEnd => EndToken::GroupClose,
+                        Token::Right => EndToken::Right,
+                        Token::End => EndToken::End,
+                        _ => unreachable!(),
+                    };
+                    Err(LatexError(loc, LatexErrKind::UnmatchedClose(end)))
+                } else {
+                    Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotClose))
+                }
             }
             Token::Whitespace | Token::EnvName(_) | Token::TextModeAccent(_) => {
                 // That these tokens are not expected by the parser should never occur.
@@ -1352,7 +1370,11 @@ where
         )
     }
 
-    fn extract_delimiter(&mut self, tok: TokLoc<'config>) -> ParseResult<'config, StretchableOp> {
+    fn extract_delimiter(
+        &mut self,
+        tok: TokLoc<'config>,
+        location: DelimiterModifier,
+    ) -> ParseResult<'config, StretchableOp> {
         let TokLoc(loc, tok) = tok;
         let delim = match tok {
             Token::Open(paren) => Some(paren.as_op()),
@@ -1366,10 +1388,7 @@ where
         let Some(delim) = delim else {
             return Err(self.alloc_err(LatexError(
                 loc,
-                LatexErrKind::UnexpectedToken {
-                    expected: &Token::Open(symbol::LEFT_PARENTHESIS),
-                    got: tok,
-                },
+                LatexErrKind::ExpectedDelimiter { location, got: tok },
             )));
         };
         Ok(delim)

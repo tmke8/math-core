@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\operatorname{\\end{matrix}}"
+expression: "\\begin{matrix}\\operatorname{\\end{matrix}}"
 ---
-Position: 14
+Position: 28
 ExpectedArgumentGotClose

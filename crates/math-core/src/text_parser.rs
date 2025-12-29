@@ -6,7 +6,7 @@ use mathml_renderer::{
 };
 
 use crate::{
-    error::{LatexErrKind, LatexError},
+    error::{EndToken, LatexErrKind, LatexError},
     parser::{ParseResult, Parser},
     specifications::LatexUnit,
     token::{TokLoc, Token},
@@ -125,7 +125,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                             continue;
                         }
                     } else {
-                        Err(LatexErrKind::UnexpectedClose(token))
+                        Err(LatexErrKind::ExpectedArgumentGotClose)
                     }
                 }
                 Token::TextModeAccent(accent) => {
@@ -133,7 +133,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         accent_to_insert = Some(accent);
                         continue;
                     } else {
-                        Err(LatexErrKind::UnexpectedEOF)
+                        Err(LatexErrKind::ExpectedArgumentGotEOF)
                     }
                 }
                 Token::Text(style) => {
@@ -147,8 +147,14 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                     brace_nesting = 0;
                     continue;
                 }
-                Token::Eof => Err(LatexErrKind::UnexpectedEOF),
-                Token::End | Token::Right => Err(LatexErrKind::UnexpectedClose(token)),
+                Token::Eof => {
+                    if str_builder.is_some() {
+                        Err(LatexErrKind::UnclosedGroup(EndToken::GroupClose))
+                    } else {
+                        Err(LatexErrKind::ExpectedArgumentGotEOF)
+                    }
+                }
+                Token::Right | Token::End => Err(LatexErrKind::ExpectedArgumentGotClose),
                 _ => Err(LatexErrKind::NotValidInTextMode(token)),
             };
             let c = c.map_err(|err| Box::new(LatexError(loc, err)))?;
