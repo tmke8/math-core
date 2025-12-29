@@ -2,12 +2,28 @@
     <meta charset="UTF-8">
     <style>
         @font-face {
-            font-family: NewComputerModernMath Book;
+            font-family: "NewComputerModernMath Book";
             src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
             font-display: swap;
         }
+        @font-face {
+            font-family: "NewComputerModern Book";
+            src: url("./NewCM10-Book.woff2") format("woff2");
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "NewComputerModern Mono";
+            src: url("./NewCMMono10-Book.woff2") format("woff2");
+            font-display: swap;
+        }
         math {
-          font-family: "NewComputerModernMath Book", math;
+            font-family: "NewComputerModernMath Book", math;
+            mtext {
+                font-family: "NewComputerModern Book", serif;
+                code {
+                    font-family: "NewComputerModern Mono", monospace;
+                }
+            }
         }
     </style>
 <body>
@@ -104,19 +120,19 @@
 <div><code>\angle \mathrm{OAB} = \arccos \left\{ \overrightarrow{\mathrm{OA}} \cdot \overrightarrow{\mathrm{OB}} \right\}</code><p>
 <math display="block">
     <mi>∠</mi>
-    <mi>OAB</mi>
+    <mpadded><mi>OAB</mi></mpadded>
     <mo>=</mo>
     <mo lspace="0" rspace="0">arccos</mo>
     <mrow>
         <mo>{</mo>
         <mrow>
             <mover accent="true">
-                <mi>OA</mi>
+                <mpadded><mi>OA</mi></mpadded>
                 <mo>→</mo>
             </mover>
             <mo lspace="0.2222em" rspace="0.2222em">·</mo>
             <mover accent="true">
-                <mi>OB</mi>
+                <mpadded><mi>OB</mi></mpadded>
                 <mo>→</mo>
             </mover>
         </mrow>
@@ -154,7 +170,7 @@
     <mo stretchy="false">)</mo>
     <mo>=</mo>
     <munder>
-        <mo movablelimits="true" lspace="0.1667em" rspace="0.1667em">lim</mo>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
         <mrow>
             <mi>h</mi>
             <mo lspace="0" rspace="0">→</mo>
@@ -781,7 +797,7 @@
     <mo lspace="0.1667em" rspace="0.1667em">ker</mo>
     <mi>f</mi>
     <mo>≅</mo>
-    <mi>im</mi>
+    <mpadded><mi>im</mi></mpadded>
     <mspace width="0.16666667em"/>
     <mi>f</mi>
 </math>
@@ -819,7 +835,7 @@
     <mi>x</mi>
     <mo>=</mo>
     <munder>
-        <mo movablelimits="true" lspace="0.1667em" rspace="0.1667em">lim</mo>
+        <mo movablelimits="true" lspace="0" rspace="0">lim</mo>
         <mrow>
             <mi>N</mi>
             <mo lspace="0" rspace="0">→</mo>
@@ -836,7 +852,7 @@
                     <mi>π</mi>
                     <mi>i</mi>
                     <mi>ℏ</mi>
-                    <mi mathvariant="normal">Δ</mi>
+                    <mpadded><mi mathvariant="normal">Δ</mi></mpadded>
                     <mi>t</mi>
                 </mrow>
             </mfrac>
@@ -888,7 +904,7 @@
     <mi>μ</mi>
     <mo>≤</mo>
     <munder>
-        <mo movablelimits="true" lspace="0.1667em" rspace="0.1667em">lim inf</mo>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim inf</mo>
         <mrow>
             <mi>n</mi>
             <mo lspace="0" rspace="0">→</mo>
@@ -911,7 +927,7 @@
 <div><code>\lim_{n \to \infty} P \left( \frac{ S_n - n \mu }{ \sqrt{ n } \sigma } \leq \alpha \right) = \frac{ 1 }{ \sqrt{ 2 \pi } } \int_{- \infty}^\alpha \exp \left( - \frac{ x^2 }{ 2 } \right) \, dx</code><p>
 <math display="block">
     <munder>
-        <mo movablelimits="true" lspace="0.1667em" rspace="0.1667em">lim</mo>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
         <mrow>
             <mi>n</mi>
             <mo lspace="0" rspace="0">→</mo>
@@ -1006,7 +1022,7 @@
     <mo>∀</mo>
     <mi>λ</mi>
     <mo>∈</mo>
-    <mi mathvariant="normal">Λ</mi>
+    <mpadded><mi mathvariant="normal">Λ</mi></mpadded>
     <mo stretchy="false">)</mo>
     <mo stretchy="false">[</mo>
     <msub>
@@ -1014,7 +1030,7 @@
         <mi>λ</mi>
     </msub>
     <mo>≠</mo>
-    <mi>∅︀</mi>
+    <mpadded><mi>∅︀</mi></mpadded>
     <mo stretchy="false">]</mo>
     <mo>⇒</mo>
     <munder>
@@ -1022,7 +1038,7 @@
         <mrow>
             <mi>λ</mi>
             <mo lspace="0" rspace="0">∈</mo>
-            <mi mathvariant="normal">Λ</mi>
+            <mpadded><mi mathvariant="normal">Λ</mi></mpadded>
         </mrow>
     </munder>
     <msub>
@@ -1030,7 +1046,7 @@
         <mi>λ</mi>
     </msub>
     <mo>≠</mo>
-    <mi>∅︀</mi>
+    <mpadded><mi>∅︀</mi></mpadded>
 </math>
 </p></div>
 <div><code>A = \left\{z \in \mathbb{C} \;\middle|\; \zeta \left( z \right) = 0 \; \text{and} \; \Re z \neq \frac12 \right\}</code><p>
@@ -1129,7 +1145,7 @@
         <mi>𝐒𝐞𝐭</mi>
         <msup>
             <mi>𝒞︁</mi>
-            <mi>op</mi>
+            <mpadded><mi>op</mi></mpadded>
         </msup>
     </msup>
 </math>
@@ -1183,7 +1199,7 @@
 </p></div>
 <div><code>\Xi = \sum_\mathbf{n} \exp \left\{ - \beta ( E_\mathbf{n} - \mu N_\mathbf{n} ) \right\}</code><p>
 <math display="block">
-    <mi mathvariant="normal">Ξ</mi>
+    <mpadded><mi mathvariant="normal">Ξ</mi></mpadded>
     <mo>=</mo>
     <munder>
         <mo lspace="0">∑</mo>
@@ -1319,7 +1335,7 @@
     <mo>=</mo>
     <mi>D</mi>
     <msup>
-        <mi mathvariant="normal">∇</mi>
+        <mpadded><mi mathvariant="normal">∇</mi></mpadded>
         <mn>2</mn>
     </msup>
     <mi>ϕ</mi>
@@ -1385,7 +1401,7 @@
 <math display="block">
     <mrow>
         <mo>(</mo>
-        <mtable>
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mfrac>
@@ -1456,7 +1472,7 @@
         <mo>)</mo>
     </mrow>
     <mo>,</mo>
-    <mtable>
+    <mtable displaystyle="true" scriptlevel="0">
         <mtr>
             <mtd>
                 <mi>a</mi>
@@ -1477,7 +1493,7 @@
     <mo>,</mo>
     <mrow>
         <mo>[</mo>
-        <mtable>
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mi>a</mi>
@@ -1500,7 +1516,7 @@
     <mo>,</mo>
     <mrow>
         <mo>|</mo>
-        <mtable>
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mi>a</mi>
@@ -1524,7 +1540,7 @@
 </p></div>
 <div><code>\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}</code><p>
 <math display="block">
-    <mtable displaystyle="true" style="width: 100%">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
@@ -1573,7 +1589,7 @@
 </p></div>
 <div><code>\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}</code><p>
 <math display="block">
-    <mtable displaystyle="true" style="width: 100%">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
@@ -1604,11 +1620,11 @@
     </mtable>
 </math>
 </p></div>
-<div><code>\lambda_\text{Compton} = \frac{ 2 \pi \hbar }{ m c }</code><p>
+<div><code>\lambda_\mathrm{Compton} = \frac{ 2 \pi \hbar }{ m c }</code><p>
 <math display="block">
     <msub>
         <mi>λ</mi>
-        <mtext>Compton</mtext>
+        <mpadded><mi>Compton</mi></mpadded>
     </msub>
     <mo>=</mo>
     <mfrac>
@@ -1635,7 +1651,7 @@
         </mrow>
     </msub>
     <mo stretchy="false">(</mo>
-    <mi mathvariant="normal">Ω</mi>
+    <mpadded><mi mathvariant="normal">Ω</mi></mpadded>
     <mo stretchy="false">)</mo>
     <msub>
         <mi>Y</mi>
@@ -1651,14 +1667,14 @@
         </mrow>
     </msub>
     <mo stretchy="false">(</mo>
-    <mi mathvariant="normal">Ω</mi>
+    <mpadded><mi mathvariant="normal">Ω</mi></mpadded>
     <mo stretchy="false">)</mo>
     <mspace width="0.16666667em"/>
     <msup>
         <mi>d</mi>
         <mn>2</mn>
     </msup>
-    <mi mathvariant="normal">Ω</mi>
+    <mpadded><mi mathvariant="normal">Ω</mi></mpadded>
     <mo>=</mo>
     <msub>
         <mi>δ</mi>
@@ -1691,9 +1707,9 @@
     <mtext> </mtext>
     <mi>𝑓𝑖</mi>
     <mtext> </mtext>
-    <mi>fi</mi>
+    <mpadded><mi>fi</mi></mpadded>
     <mtext> </mtext>
-    <mtext>𝚏𝚒</mtext>
+    <mtext><code>fi</code></mtext>
     <mtext> </mtext>
     <mi>∅</mi>
 </math>
@@ -1761,7 +1777,7 @@
     </mrow>
 </math>
 </p></div>
-<div><code>\oint_C \vec{B}\circ {\mathrm{d}\hspace{0em}}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{{\mathrm{d}\hspace{0em}} t} \int_S {\vec{E} \circ \hat{n}}\; {\mathrm{d}\hspace{0em}} a \right)</code><p>
+<div><code>\oint_C \vec{B}\circ \mathrm{d}\vec{l} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)</code><p>
 <math display="block">
     <msub>
         <mo lspace="0">∮</mo>
@@ -1772,10 +1788,7 @@
         <mo stretchy="false">⃗</mo>
     </mover>
     <mo lspace="0.2222em" rspace="0.2222em">∘</mo>
-    <mrow>
-        <mi mathvariant="normal">d</mi>
-        <mspace width="0"/>
-    </mrow>
+    <mpadded><mi mathvariant="normal">d</mi></mpadded>
     <mover accent="true">
         <mi>l</mi>
         <mo stretchy="false">⃗</mo>
@@ -1790,7 +1803,7 @@
         <mrow>
             <msub>
                 <mi>I</mi>
-                <mtext>enc</mtext>
+                <mpadded><mi>enc</mi></mpadded>
             </msub>
             <mo>+</mo>
             <msub>
@@ -1798,12 +1811,9 @@
                 <mn>0</mn>
             </msub>
             <mfrac>
-                <mi mathvariant="normal">d</mi>
+                <mpadded><mi mathvariant="normal">d</mi></mpadded>
                 <mrow>
-                    <mrow>
-                        <mi mathvariant="normal">d</mi>
-                        <mspace width="0"/>
-                    </mrow>
+                    <mpadded><mi mathvariant="normal">d</mi></mpadded>
                     <mi>t</mi>
                 </mrow>
             </mfrac>
@@ -1823,10 +1833,7 @@
                 </mover>
             </mrow>
             <mspace width="0.2777778em"/>
-            <mrow>
-                <mi mathvariant="normal">d</mi>
-                <mspace width="0"/>
-            </mrow>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
             <mi>a</mi>
         </mrow>
         <mo>)</mo>

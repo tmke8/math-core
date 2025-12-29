@@ -54,13 +54,13 @@ fn main() {
         \begin{vmatrix} a & b \\ c & d \end{vmatrix}"#,
         r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
         r#"\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}"#,
-        r#"\lambda_\text{Compton} = \frac{ 2 \pi \hbar }{ m c }"#,
+        r#"\lambda_\mathrm{Compton} = \frac{ 2 \pi \hbar }{ m c }"#,
         r#"\int Y_{\ell m} ( \Omega ) Y_{\ell' m'} ( \Omega ) \, d^2 \Omega = \delta_{\ell \ell'} \delta_{m m'}"#,
         r#"{fi}~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing"#,
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
         r"a := 2 \land b :\equiv 3 \land f : X\to Y",
         r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
-        r"\oint_C \vec{B}\circ {\mathrm{d}\hspace{0em}}\vec{l} = \mu_0 \left( I_{\text{enc}} + \varepsilon_0 \frac{\mathrm{d}}{{\mathrm{d}\hspace{0em}} t} \int_S {\vec{E} \circ \hat{n}}\; {\mathrm{d}\hspace{0em}} a \right)",
+        r"\oint_C \vec{B}\circ \mathrm{d}\vec{l} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)",
     ];
 
     let converter = LatexToMathML::new(MathCoreConfig {
@@ -87,12 +87,28 @@ fn main() {
     <meta charset="UTF-8">
     <style>
         @font-face {{
-            font-family: NewComputerModernMath Book;
+            font-family: "NewComputerModernMath Book";
             src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
             font-display: swap;
         }}
+        @font-face {{
+            font-family: "NewComputerModern Book";
+            src: url("./NewCM10-Book.woff2") format("woff2");
+            font-display: swap;
+        }}
+        @font-face {{
+            font-family: "NewComputerModern Mono";
+            src: url("./NewCMMono10-Book.woff2") format("woff2");
+            font-display: swap;
+        }}
         math {{
-          font-family: "NewComputerModernMath Book", math;
+            font-family: "NewComputerModernMath Book", math;
+            mtext {{
+                font-family: "NewComputerModern Book", serif;
+                code {{
+                    font-family: "NewComputerModern Mono", monospace;
+                }}
+            }}
         }}
     </style>
 <body>
