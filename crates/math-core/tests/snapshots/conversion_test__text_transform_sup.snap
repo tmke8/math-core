@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathbb{N} \\cup \\mathbb{N}^+"
+---
+<math>
+    <mi>ℕ</mi>
+    <mo>∪</mo>
+    <msup>
+        <mi>ℕ</mi>
+        <mo>+</mo>
+    </msup>
+</math>

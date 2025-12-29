@@ -1,0 +1,28 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\cfrac{x}{1 + \\cfrac{\\cancel{y}} {\\cancel{y}}} = \\cfrac{x}{2}"
+---
+<math>
+    <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+        <mi>x</mi>
+        <mrow>
+            <mn>1</mn>
+            <mo>+</mo>
+            <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+                <menclose notation="updiagonalstrike">
+                    <mi>y</mi>
+                    <mrow class="menclose-updiagonalstrike"></mrow>
+                </menclose>
+                <menclose notation="updiagonalstrike">
+                    <mi>y</mi>
+                    <mrow class="menclose-updiagonalstrike"></mrow>
+                </menclose>
+            </mfrac>
+        </mrow>
+    </mfrac>
+    <mo>=</mo>
+    <mfrac displaystyle="true" scriptlevel="0" style="padding-top: 0.1667em">
+        <mi>x</mi>
+        <mn>2</mn>
+    </mfrac>
+</math>

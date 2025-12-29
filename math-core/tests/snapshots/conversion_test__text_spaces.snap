@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\text{x\\;x\\:x\\,x\\>x\\ x~x}"
----
-<math>
-    <mtext>x x x x x x x</mtext>
-</math>

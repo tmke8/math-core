@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{x{y}z{}p{}}"
+---
+<math>
+    <mtext>xyzp</mtext>
+</math>

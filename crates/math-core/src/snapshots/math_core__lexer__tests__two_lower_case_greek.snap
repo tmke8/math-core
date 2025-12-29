@@ -1,0 +1,6 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "\\alpha\\beta"
+---
+0: Letter('α')
+6: Letter('β')

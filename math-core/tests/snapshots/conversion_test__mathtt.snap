@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\mathtt{x}"
----
-<math>
-    <mi>𝚡</mi>
-</math>

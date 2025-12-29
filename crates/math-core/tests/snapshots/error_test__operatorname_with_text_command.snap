@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\operatorname{\\ae}"
+---
+Position: 14
+UnknownCommand(
+    "ae",
+)

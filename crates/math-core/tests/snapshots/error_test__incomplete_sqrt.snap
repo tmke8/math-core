@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt  "
+---
+Position: 7
+UnexpectedEOF

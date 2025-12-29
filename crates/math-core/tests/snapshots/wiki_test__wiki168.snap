@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\boldsymbol{\\rho \\sigma \\tau \\upsilon \\phi \\chi \\psi \\omega}"
+---
+<math>
+    <mi>𝝆𝝈𝝉𝝊𝝓𝝌𝝍𝝎</mi>
+</math>

@@ -6,7 +6,7 @@ UNICODE_PATTERN = re.compile(
     r"^pub const [^:]+: \S+ =[^']+'\\u\{([0-9A-Fa-f]+)\}'[^;]*;", re.MULTILINE
 )
 DOTTED_CIRCLE = "◌"
-SYMBOLS_PATH = "mathml-renderer/src/symbol.rs"
+SYMBOLS_PATH = "crates/mathml-renderer/src/symbol.rs"
 OUTPUT_PATH = "scripts/all_symbols.txt"
 
 

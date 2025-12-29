@@ -1,0 +1,5 @@
+---
+source: crates/math-core/src/token_manager.rs
+expression: "{} d"
+---
+

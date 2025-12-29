@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "| \\uparrow \\rangle"
+---
+<math>
+    <mi>|</mi>
+    <mo stretchy="false">↑</mo>
+    <mo stretchy="false">⟩</mo>
+</math>

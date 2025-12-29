@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "(\\notag + 1)"
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mn>1</mn>
+    <mo stretchy="false">)</mo>
+</math>

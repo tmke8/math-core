@@ -1,0 +1,23 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\left [ \\frac{a}{b} \\right ] \\quad \\left \\lbrack \\frac{a}{b} \\right \\rbrack"
+---
+<math>
+    <mrow>
+        <mo>[</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>]</mo>
+    </mrow>
+    <mspace width="1em"/>
+    <mrow>
+        <mo>[</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>]</mo>
+    </mrow>
+</math>

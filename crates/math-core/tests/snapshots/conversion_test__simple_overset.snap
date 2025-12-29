@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\overset{n}{X}"
+---
+<math>
+    <mover>
+        <mi>X</mi>
+        <mi>n</mi>
+    </mover>
+</math>

@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\operatorname{\\begin{matrix}}"
+---
+Position: 14
+NotValidInTextMode(
+    Begin,
+)

@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathrm{x}^2"
+---
+<math>
+    <msup>
+        <mpadded><mi mathvariant="normal">x</mi></mpadded>
+        <mn>2</mn>
+    </msup>
+</math>

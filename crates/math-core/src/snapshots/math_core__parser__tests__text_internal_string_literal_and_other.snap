@@ -1,0 +1,7 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "[Text(None), GroupBegin, Letter('a'), InternalStringLiteral(\"hi\"), GroupEnd]"
+---
+[
+  Text(None, "ahi"),
+]

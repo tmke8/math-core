@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\succ, \\nsucc, \\succeq, \\nsucceq, \\succneqq"
+---
+<math>
+    <mo lspace="0" rspace="0">≻</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⊁</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⪰</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⋡</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⪶</mo>
+</math>

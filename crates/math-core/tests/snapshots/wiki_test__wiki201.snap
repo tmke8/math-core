@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\wideparen{AB}"
+---
+<math>
+    <mover>
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>⏜</mo>
+    </mover>
+</math>

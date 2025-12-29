@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "f^\\prime"
+---
+<math>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+</math>

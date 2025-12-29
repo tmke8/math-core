@@ -1,6 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: x_2_3 y
----
-Position: 3
-DuplicateSubOrSup

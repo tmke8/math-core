@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\left(\\sin x\\right)"
+---
+<math>
+    <mi>x</mi>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <mo lspace="0" rspace="0.1667em">sin</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+</math>

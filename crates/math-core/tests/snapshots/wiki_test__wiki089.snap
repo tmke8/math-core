@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\uparrow, \\downarrow, \\updownarrow"
+---
+<math>
+    <mo stretchy="false">↑</mo>
+    <mo>,</mo>
+    <mo stretchy="false">↓</mo>
+    <mo>,</mo>
+    <mo stretchy="false">↕</mo>
+</math>

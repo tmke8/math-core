@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{xmatrix} 1 \\end{xmatrix}"
+---
+Position: 6
+UnknownEnvironment(
+    "xmatrix",
+)

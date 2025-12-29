@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "<, \\nless, \\ll, \\not\\ll, \\lll, \\not\\lll, \\lessdot"
+---
+<math>
+    <mo lspace="0" rspace="0">&lt;</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">≮</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">≪</mo>
+    <mo>,</mo>
+    <mo>≪</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⋘</mo>
+    <mo>,</mo>
+    <mo>⋘</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⋖</mo>
+</math>

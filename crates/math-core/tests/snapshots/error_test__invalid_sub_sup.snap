@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: x^_
+---
+Position: 2
+BoundFollowedByBound

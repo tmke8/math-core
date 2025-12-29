@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: x y z
+---
+<math>
+    <mi>x</mi>
+    <mi>y</mi>
+    <mi>z</mi>
+</math>

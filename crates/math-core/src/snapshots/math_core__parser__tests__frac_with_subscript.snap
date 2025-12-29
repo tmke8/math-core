@@ -1,0 +1,16 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\frac12_x"
+---
+[
+  Subscript(
+    target: Frac(
+      num: Number("1"),
+      denom: Number("2"),
+      lt_value: NaN,
+      lt_unit: Rem,
+      attr: None,
+    ),
+    symbol: IdentifierChar('x', Default),
+  ),
+]

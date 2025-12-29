@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt12"
+---
+<math>
+    <msqrt>
+        <mn>1</mn>
+    </msqrt>
+    <mn>2</mn>
+</math>

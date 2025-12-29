@@ -8,7 +8,7 @@ authors = [
     {name = "Thomas MK", email = "tmke8@posteo.net"},
 ]
 description = "Convert LaTeX math to MathML Core"
-readme = "math-core-python/README.md"
+readme = "crates/math-core-python/README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
@@ -25,7 +25,7 @@ repository = "https://github.com/tmke8/math-core.git"
 tests = ["pytest"]
 
 [tool.maturin]
-manifest-path = "math-core-python/Cargo.toml"
+manifest-path = "crates/math-core-python/Cargo.toml"
 python-source = "python"
 python-packages = ["math_core"]
 include = ["python/math_core/py.typed", "python/math_core/_math_core_rust.pyi"]

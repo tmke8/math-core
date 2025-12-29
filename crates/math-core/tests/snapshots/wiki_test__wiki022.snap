@@ -1,0 +1,59 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "dy/dx, \\mathrm{d}y/\\mathrm{d}x, \\frac{dy}{dx}, \\frac{\\mathrm{d}y}{\\mathrm{d}x}, \\frac{\\partial^2} {\\partial x_1\\partial x_2}y"
+---
+<math>
+    <mi>d</mi>
+    <mi>y</mi>
+    <mi>/</mi>
+    <mi>d</mi>
+    <mi>x</mi>
+    <mo>,</mo>
+    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+    <mi>y</mi>
+    <mi>/</mi>
+    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+    <mi>x</mi>
+    <mo>,</mo>
+    <mfrac>
+        <mrow>
+            <mi>d</mi>
+            <mi>y</mi>
+        </mrow>
+        <mrow>
+            <mi>d</mi>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+    <mo>,</mo>
+    <mfrac>
+        <mrow>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mi>y</mi>
+        </mrow>
+        <mrow>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+    <mo>,</mo>
+    <mfrac>
+        <msup>
+            <mi>∂</mi>
+            <mn>2</mn>
+        </msup>
+        <mrow>
+            <mi>∂</mi>
+            <msub>
+                <mi>x</mi>
+                <mn>1</mn>
+            </msub>
+            <mi>∂</mi>
+            <msub>
+                <mi>x</mi>
+                <mn>2</mn>
+            </msub>
+        </mrow>
+    </mfrac>
+    <mi>y</mi>
+</math>

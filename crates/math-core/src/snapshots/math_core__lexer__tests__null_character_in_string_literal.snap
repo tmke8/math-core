@@ -1,0 +1,5 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "\\text{\u0000}"
+---
+Error at 6: DisallowedChar('\0')

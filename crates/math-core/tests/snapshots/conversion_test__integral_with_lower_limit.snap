@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\int\\limits_0 dx"
+---
+<math>
+    <munder>
+        <mo lspace="0">∫</mo>
+        <mn>0</mn>
+    </munder>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

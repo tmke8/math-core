@@ -1,0 +1,26 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{array}{ ||::|l } 10\\\\ 2 \\end{array}"
+---
+<math>
+    <mtable style="border-left: 0.05em solid currentcolor">
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="text-align: left;justify-items: start;">
+                <mn>10</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="text-align: left;justify-items: start;">
+                <mn>2</mn>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -1,9 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\mathcal A, \\mathscr A"
----
-<math>
-    <mpadded><mi>𝒜︀</mi></mpadded>
-    <mo>,</mo>
-    <mpadded><mi>𝒜︁</mi></mpadded>
-</math>

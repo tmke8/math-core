@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "0"
----
-<math>
-    <mn>0</mn>
-</math>

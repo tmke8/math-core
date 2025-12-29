@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{equation*}x\\\\=1\\end{equation*}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+                <mo>=</mo>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%"></mtd>
+        </mtr>
+    </mtable>
+</math>

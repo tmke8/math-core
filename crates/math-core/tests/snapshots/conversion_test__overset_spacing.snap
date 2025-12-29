@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\overset{!}{=}x"
+---
+<math>
+    <mi>x</mi>
+    <mover>
+        <mo>=</mo>
+        <mo>!</mo>
+    </mover>
+    <mi>x</mi>
+</math>

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: x+(x)
+---
+<math>
+    <mi>x</mi>
+    <mo>+</mo>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+</math>

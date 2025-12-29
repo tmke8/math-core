@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\text{if}~n\\ \\text{is even}"
+---
+<math>
+    <mtext>if</mtext>
+    <mtext> </mtext>
+    <mi>n</mi>
+    <mtext> </mtext>
+    <mtext>is even</mtext>
+</math>

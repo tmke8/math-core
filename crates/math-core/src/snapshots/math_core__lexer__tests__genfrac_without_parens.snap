@@ -1,0 +1,27 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "\\genfrac{}{}{0pt}{2}{a+b}{c+d}"
+---
+0: Genfrac
+8: GroupBegin
+9: GroupEnd
+10: GroupBegin
+11: GroupEnd
+12: GroupBegin
+13: Digit('0')
+14: Letter('p')
+15: Letter('t')
+16: GroupEnd
+17: GroupBegin
+18: Digit('2')
+19: GroupEnd
+20: GroupBegin
+21: Letter('a')
+22: BinaryOp(Bin { char: '+', cat: BD })
+23: Letter('b')
+24: GroupEnd
+25: GroupBegin
+26: Letter('c')
+27: BinaryOp(Bin { char: '+', cat: BD })
+28: Letter('d')
+29: GroupEnd

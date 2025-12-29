@@ -1,7 +1,0 @@
----
-source: math-core/src/parser.rs
-expression: "\\boldsymbol{\\Gamma\\varGamma}"
----
-[
-  IdentifierStr(true, "𝚪𝜞"),
-]

@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{matrix} x"
+---
+Position: 16
+UnclosedGroup(
+    End,
+)

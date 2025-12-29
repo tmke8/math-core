@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\begin{matrix} x & y \\\\ z & v \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>x</mi>
+            </mtd>
+            <mtd>
+                <mi>y</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mi>z</mi>
+            </mtd>
+            <mtd>
+                <mi>v</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

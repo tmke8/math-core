@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{matrix"
+---
+Position: 13
+UnexpectedEOF

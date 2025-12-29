@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\forall, \\exists, \\nexists"
+---
+<math>
+    <mo>∀</mo>
+    <mo>,</mo>
+    <mo>∃</mo>
+    <mo>,</mo>
+    <mo>∄</mo>
+</math>

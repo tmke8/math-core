@@ -1,0 +1,25 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
+---
+<math>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">ˇ</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo>˘</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="true">̃</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">¯</mo>
+    </mover>
+</math>

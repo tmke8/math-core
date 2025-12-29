@@ -1,0 +1,5 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "\\begin{unknownenv} x + y \\end{unknownenv}"
+---
+Error at 6: UnknownEnvironment("unknownenv")

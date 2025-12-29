@@ -1,0 +1,10 @@
+---
+source: crates/math-core/src/parser.rs
+expression: 3..14
+---
+[
+  Number("3"),
+  IdentifierChar('.', Default),
+  IdentifierChar('.', Default),
+  Number("14"),
+]

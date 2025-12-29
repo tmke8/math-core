@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\sout{q}"
+---
+<math>
+    <menclose notation="horizontalstrike">
+        <mi>q</mi>
+        <mrow class="menclose-horizontalstrike"></mrow>
+    </menclose>
+</math>

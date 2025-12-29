@@ -1,5 +1,0 @@
----
-source: math-core/src/lexer.rs
-expression: "\\begin{matrix x + y}"
----
-Error at 16: DisallowedChar('+')

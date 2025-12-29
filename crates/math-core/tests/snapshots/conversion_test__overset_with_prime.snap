@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\overset{!}{=}'x"
+---
+<math>
+    <msup>
+        <mover>
+            <mo lspace="0">=</mo>
+            <mo>!</mo>
+        </mover>
+        <mo>′</mo>
+    </msup>
+    <mi>x</mi>
+</math>

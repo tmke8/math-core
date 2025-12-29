@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{ {\\textit{a}b}c}"
+---
+<math>
+    <mrow>
+        <mtext> </mtext>
+        <mtext><i>a</i></mtext>
+        <mtext>bc</mtext>
+    </mrow>
+</math>

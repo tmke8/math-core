@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\textbf{x}"
----
-<math>
-    <mtext><b>x</b></mtext>
-</math>

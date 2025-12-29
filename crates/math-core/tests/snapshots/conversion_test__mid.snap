@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "P(x\\mid y)"
+---
+<math>
+    <mi>P</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo>∣</mo>
+    <mi>y</mi>
+    <mo stretchy="false">)</mo>
+</math>

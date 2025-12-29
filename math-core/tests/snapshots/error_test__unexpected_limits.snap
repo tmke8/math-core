@@ -1,9 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: "\\text{hello}\\limits_0^1"
----
-Position: 12
-CannotBeUsedHere {
-    got: Limits,
-    correct_place: AfterBigOp,
-}

@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{ \\text{a}}"
+---
+<math>
+    <mrow>
+        <mtext> </mtext>
+        <mtext>a</mtext>
+    </mrow>
+</math>

@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\binom{n}{k}"
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0">
+            <mi>n</mi>
+            <mi>k</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+</math>

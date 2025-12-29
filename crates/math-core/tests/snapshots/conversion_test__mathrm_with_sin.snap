@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathrm{x\\sin}"
+---
+<math>
+    <mrow>
+        <mpadded><mi mathvariant="normal">x</mi></mpadded>
+        <mo lspace="0.1667em" rspace="0">sin</mo>
+    </mrow>
+</math>

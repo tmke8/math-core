@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{\\scriptstyle 1=1}"
+---
+<math>
+    <mrow displaystyle="false" scriptlevel="1">
+        <mn>1</mn>
+        <mo lspace="0" rspace="0">=</mo>
+        <mn>1</mn>
+    </mrow>
+</math>

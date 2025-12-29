@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\mathfrak{ABCDEFGHI} \\\\ \\mathfrak{JKLMNOPQR} \\\\ \\mathfrak{STUVWXYZ} \\\\ \\mathfrak{abcdefghi} \\\\ \\mathfrak{jklmnopqr} \\\\ \\mathfrak{stuvwxyz}"
+---
+<math>
+    <mi>𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℍ</mi>
+    <mi>𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ</mi>
+    <mi>𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ</mi>
+    <mi>𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦</mi>
+    <mi>𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯</mi>
+    <mi>𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷</mi>
+</math>

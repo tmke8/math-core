@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x{=x}"
+---
+<math>
+    <mi>x</mi>
+    <mrow>
+        <mo lspace="0">=</mo>
+        <mi>x</mi>
+    </mrow>
+</math>

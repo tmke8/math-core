@@ -1,9 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: "\\not\\text{hello}"
----
-Position: 0
-CannotBeUsedHere {
-    got: Not,
-    correct_place: BeforeSomeOps,
-}

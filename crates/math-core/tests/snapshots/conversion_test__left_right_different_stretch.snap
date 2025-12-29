@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\left/\\frac12\\right)"
+---
+<math>
+    <mrow>
+        <mo stretchy="true">/</mo>
+        <mfrac>
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+</math>

@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\dot{x}, \\ddot{x}"
+---
+<math>
+    <mover accent="true">
+        <mi>x</mi>
+        <mo>˙</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>x</mi>
+        <mo stretchy="false">¨</mo>
+    </mover>
+</math>

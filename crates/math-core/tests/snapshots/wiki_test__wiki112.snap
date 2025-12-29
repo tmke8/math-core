@@ -1,0 +1,60 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overleftarrow{c d}\\\\ \\widehat{d e f} \\\\ \\overline{g h i} \\ \\underline{j k l}"
+---
+<math>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">̂</mo>
+    </mover>
+    <mtext> </mtext>
+    <mover accent="true">
+        <mi>b</mi>
+        <mo stretchy="false">¯</mo>
+    </mover>
+    <mtext> </mtext>
+    <mover accent="true">
+        <mi>c</mi>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+    <mover accent="true">
+        <mrow>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mrow>
+        <mo>→</mo>
+    </mover>
+    <mtext> </mtext>
+    <mover accent="true">
+        <mrow>
+            <mi>c</mi>
+            <mi>d</mi>
+        </mrow>
+        <mo>←</mo>
+    </mover>
+    <mover accent="true">
+        <mrow>
+            <mi>d</mi>
+            <mi>e</mi>
+            <mi>f</mi>
+        </mrow>
+        <mo stretchy="true">̂</mo>
+    </mover>
+    <mover accent="true">
+        <mrow>
+            <mi>g</mi>
+            <mi>h</mi>
+            <mi>i</mi>
+        </mrow>
+        <mo>‾</mo>
+    </mover>
+    <mtext> </mtext>
+    <munder accentunder="true">
+        <mrow>
+            <mi>j</mi>
+            <mi>k</mi>
+            <mi>l</mi>
+        </mrow>
+        <mo>_</mo>
+    </munder>
+</math>

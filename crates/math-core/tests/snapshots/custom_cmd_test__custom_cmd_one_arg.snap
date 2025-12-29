@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "x = \\mycmd{3} + \\half"
+---
+<math>
+    <mi>x</mi>
+    <mo>=</mo>
+    <msqrt>
+        <mn>3</mn>
+    </msqrt>
+    <mo>+</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+    </mfrac>
+    <mspace width="0.16666667em"/>
+</math>

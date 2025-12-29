@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\dot{x}"
+---
+<math>
+    <mover accent="true">
+        <mi>x</mi>
+        <mo>˙</mo>
+    </mover>
+</math>

@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\overbrace{a+b+c}^{d}"
+---
+<math>
+    <mover>
+        <mover>
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+                <mo>+</mo>
+                <mi>c</mi>
+            </mrow>
+            <mo>⏞</mo>
+        </mover>
+        <mi>d</mi>
+    </mover>
+</math>

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "a \\bmod b"
+---
+<math>
+    <mi>a</mi>
+    <mspace width="0.22222222em"/>
+    <mpadded><mi>mod</mi></mpadded>
+    <mspace width="0.22222222em"/>
+    <mi>b</mi>
+</math>

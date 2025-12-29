@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\cdot, * \\ast, \\star, \\circ, \\bullet"
+---
+<math>
+    <mo lspace="0" rspace="0">·</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">∗</mo>
+    <mo lspace="0" rspace="0">∗</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">⋆</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">∘</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">∙</mo>
+</math>

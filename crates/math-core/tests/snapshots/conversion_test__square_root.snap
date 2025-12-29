@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt 2"
+---
+<math>
+    <msqrt>
+        <mn>2</mn>
+    </msqrt>
+</math>

@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text x y"
+---
+<math>
+    <mtext>x</mtext>
+    <mi>y</mi>
+</math>

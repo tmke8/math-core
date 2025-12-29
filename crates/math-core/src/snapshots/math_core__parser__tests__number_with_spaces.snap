@@ -1,0 +1,7 @@
+---
+source: crates/math-core/src/parser.rs
+expression: 1 2  3    4
+---
+[
+  Number("1234"),
+]

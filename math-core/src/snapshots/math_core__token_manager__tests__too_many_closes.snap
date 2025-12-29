@@ -1,7 +1,0 @@
----
-source: math-core/src/token_manager.rs
-expression: "{x + y} + z}"
----
-1: Letter('x')
-3: BinaryOp(Bin { char: '+', cat: BD })
-5: Letter('y')

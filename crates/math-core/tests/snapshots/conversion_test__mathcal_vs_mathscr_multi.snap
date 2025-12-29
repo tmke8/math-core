@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathcal{AB}, \\mathscr{AB}"
+---
+<math>
+    <mi>𝒜︀ℬ︀</mi>
+    <mo>,</mo>
+    <mi>𝒜︁ℬ︁</mi>
+</math>

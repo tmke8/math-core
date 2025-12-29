@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\varGamma \\varDelta \\varTheta \\varLambda \\varXi \\varPi \\varSigma \\varPhi \\varUpsilon \\varOmega"
+---
+<math>
+    <mi>Γ</mi>
+    <mi>Δ</mi>
+    <mi>Θ</mi>
+    <mi>Λ</mi>
+    <mi>Ξ</mi>
+    <mi>Π</mi>
+    <mi>Σ</mi>
+    <mi>Φ</mi>
+    <mi>Υ</mi>
+    <mi>Ω</mi>
+</math>

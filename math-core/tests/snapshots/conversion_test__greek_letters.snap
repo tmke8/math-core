@@ -1,9 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\phi/\\varphi"
----
-<math>
-    <mi>ϕ</mi>
-    <mi>/</mi>
-    <mi>φ</mi>
-</math>

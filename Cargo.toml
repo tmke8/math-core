@@ -1,7 +1,7 @@
 [workspace]
-members = ["math-core", "mathml-renderer", "math-core-cli", "math-core-python", "math-core-wasm"]
+members = ["crates/*"]
 exclude = ["fuzz"]
-default-members = ["math-core-cli"]
+default-members = ["crates/math-core-cli"]
 resolver = "2"
 
 [workspace.package]
