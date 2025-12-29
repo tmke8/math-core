@@ -74,7 +74,9 @@ impl LatexToMathML {
             .map_err(|_| LatexError::new_err("Failed to acquire write lock"))?
             .convert_with_global_counter(latex, display)
         {
-            Err(latex_error) => {
+            Err(mut latex_error) => {
+                // Rust uses byte offsets, but Python uses character offsets.
+                latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
                 if self.raise_on_error {
                     Err(LatexError::new_err(latex_error.to_string()))
                 } else {
@@ -107,7 +109,9 @@ impl LatexToMathML {
             .map_err(|_| LatexError::new_err("Failed to acquire read lock"))?
             .convert_with_local_counter(latex, display)
         {
-            Err(latex_error) => {
+            Err(mut latex_error) => {
+                // Rust uses byte offsets, but Python uses character offsets.
+                latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
                 if self.raise_on_error {
                     Err(LatexError::new_err(latex_error.to_string()))
                 } else {
@@ -148,4 +152,11 @@ fn dict_to_tuple_vec(dict: &Bound<'_, PyDict>) -> PyResult<Vec<(String, String)>
     }
 
     Ok(vec)
+}
+
+/// Convert a byte offset in a UTF-8 string to a character offset.
+///
+/// Panics if the byte offset is not on a character boundary.
+fn byte_offset_to_char_offset(s: &str, byte_offset: usize) -> usize {
+    s[..byte_offset].chars().count()
 }

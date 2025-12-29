@@ -88,11 +88,11 @@ describe("Convert Tests", function () {
       const converter = new LatexToMathML({
         throwOnError: false,
       });
-      const latex = "\\asdf";
+      const latex = "𐌸\\asdf";
       const displayStyle = false;
       assert.equal(
         converter.convert_with_local_counter(latex, displayStyle),
-        '<span class="math-core-error" title="0: Unknown command &quot;\\asdf&quot;."><code>\\asdf</code></span>',
+        '<span class="math-core-error" title="2: Unknown command &quot;\\asdf&quot;."><code>𐌸\\asdf</code></span>',
       );
     });
   });

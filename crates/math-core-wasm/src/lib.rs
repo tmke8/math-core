@@ -126,7 +126,9 @@ impl LatexToMathML {
         };
         match self.inner.convert_with_local_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
-            Err(e) => {
+            Err(mut e) => {
+                // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
+                e.0 = byte_offset_to_utf16_offset(content, e.0);
                 if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
@@ -152,7 +154,9 @@ impl LatexToMathML {
         };
         match self.inner.convert_with_global_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
-            Err(e) => {
+            Err(mut e) => {
+                // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
+                e.0 = byte_offset_to_utf16_offset(content, e.0);
                 if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
@@ -168,4 +172,16 @@ impl LatexToMathML {
     pub fn reset_global_counter(&mut self) {
         self.inner.reset_global_counter();
     }
+}
+
+/// Converts a byte offset in a UTF-8 string to a UTF-16 code unit offset.
+/// This is useful for mapping error locations from Rust (which uses UTF-8) to
+/// JavaScript (which uses UTF-16).
+///
+/// If the byte offset is not a valid character boundary, the original byte
+/// offset is returned.
+fn byte_offset_to_utf16_offset(s: &str, byte_offset: usize) -> usize {
+    s.get(..byte_offset)
+        .map(|s| s.chars().map(|c| c.len_utf16()).sum())
+        .unwrap_or(byte_offset)
 }
