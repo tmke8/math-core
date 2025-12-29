@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\genfrac(]{0.4pt}{2}{a+b}{c+d}"
+---
+<math>
+    <mrow displaystyle="false" scriptlevel="1">
+        <mo>(</mo>
+        <mfrac linethickness="0.040000003rem">
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+            </mrow>
+            <mrow>
+                <mi>c</mi>
+                <mo>+</mo>
+                <mi>d</mi>
+            </mrow>
+        </mfrac>
+        <mo>]</mo>
+    </mrow>
+</math>

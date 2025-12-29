@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: _2F_3
+---
+<math>
+    <msub>
+        <mmultiscripts>
+            <mi>F</mi>
+            <mprescripts/>
+            <mn>2</mn>
+            <mrow></mrow>
+        </mmultiscripts>
+        <mn>3</mn>
+    </msub>
+</math>

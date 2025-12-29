@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{array}{lcr} 0 & 1 & 2 \\end{array}"
+---
+<math>
+    <mtable>
+        <mtr>
+            <mtd style="text-align: left;justify-items: start;">
+                <mn>0</mn>
+            </mtd>
+            <mtd>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="text-align: right;justify-items: end;">
+                <mn>2</mn>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\textbf{1234}"
----
-<math>
-    <mtext><b>1234</b></mtext>
-</math>

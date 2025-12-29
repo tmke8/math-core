@@ -1,8 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: "\\operatorname[lim}"
----
-Position: 17
-UnexpectedClose(
-    GroupEnd,
-)

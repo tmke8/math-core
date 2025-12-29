@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x # y"
+---
+Position: 2
+MacroParameterOutsideCustomCommand

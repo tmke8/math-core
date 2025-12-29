@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\éx"
+---
+Position: 0
+UnknownCommand(
+    "é",
+)

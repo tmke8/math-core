@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\operatorname{a}"
----
-<math>
-    <mo lspace="0" rspace="0">a</mo>
-</math>

@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\mathit{\\mathrm{a}}"
----
-<math>
-    <mpadded><mi mathvariant="normal">a</mi></mpadded>
-</math>

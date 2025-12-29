@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\textit{x}"
----
-<math>
-    <mtext><i>x</i></mtext>
-</math>

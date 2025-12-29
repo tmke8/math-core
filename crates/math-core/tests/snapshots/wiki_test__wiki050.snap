@@ -1,0 +1,21 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\doteq, \\doteqdot, \\overset{\\underset{\\mathrm{def}}{}}{=}, :="
+---
+<math>
+    <mo lspace="0" rspace="0">≐</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">≑</mo>
+    <mo>,</mo>
+    <mover>
+        <mo lspace="0">=</mo>
+        <munder>
+            <mrow>
+            </mrow>
+            <mpadded><mi>def</mi></mpadded>
+        </munder>
+    </mover>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">:</mo>
+    <mo lspace="0" rspace="0">=</mo>
+</math>

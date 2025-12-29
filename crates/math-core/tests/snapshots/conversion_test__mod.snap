@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a \\equiv r \\mod n"
+---
+<math>
+    <mi>a</mi>
+    <mo>≡</mo>
+    <mi>r</mi>
+    <mspace width="1em"/>
+    <mpadded><mi>mod</mi></mpadded>
+    <mspace width="0.33333334em"/>
+    <mi>n</mi>
+</math>

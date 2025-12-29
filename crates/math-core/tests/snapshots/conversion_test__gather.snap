@@ -1,0 +1,30 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{gather}x=1\\\\y=2\\end{gather}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+                <mo>=</mo>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>y</mi>
+                <mo>=</mo>
+                <mn>2</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(2)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: x^2^3 y
+---
+Position: 3
+DuplicateSubOrSup

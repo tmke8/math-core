@@ -38,7 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: "Run wasm-pack"
         run: |
-          wasm-pack build --target web --out-dir ../playground/pkg --no-typescript --no-pack math-core-wasm
+          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

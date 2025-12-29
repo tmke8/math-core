@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi"
+---
+<math>
+    <mpadded><mi mathvariant="normal">Ι</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Κ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Λ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Μ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ν</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ξ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ο</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Π</mi></mpadded>
+</math>

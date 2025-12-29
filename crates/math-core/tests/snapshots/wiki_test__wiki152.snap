@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta"
+---
+<math>
+    <mpadded><mi mathvariant="normal">Α</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Β</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Γ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Δ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ε</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Ζ</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Η</mi></mpadded>
+    <mpadded><mi mathvariant="normal">Θ</mi></mpadded>
+</math>

@@ -1,8 +1,0 @@
----
-source: math-core/tests/wiki_test.rs
-expression: α π
----
-<math>
-    <mi>α</mi>
-    <mi>π</mi>
-</math>

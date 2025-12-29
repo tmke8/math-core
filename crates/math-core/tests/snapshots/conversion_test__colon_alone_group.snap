@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x{:}x"
+---
+<math>
+    <mi>x</mi>
+    <mo lspace="0" rspace="0">:</mo>
+    <mi>x</mi>
+</math>

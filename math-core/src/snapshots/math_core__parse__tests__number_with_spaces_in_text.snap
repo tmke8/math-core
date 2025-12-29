@@ -1,7 +1,0 @@
----
-source: math-core/src/parse.rs
-expression: "\\text{1 2  3    4}"
----
-[
-  Text(None, "1\u{a0}2\u{a0}3\u{a0}4"),
-]

@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: a_2
+---
+<math>
+    <msub>
+        <mi>a</mi>
+        <mn>2</mn>
+    </msub>
+</math>

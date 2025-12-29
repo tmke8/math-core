@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\mathit{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
+---
+<math>
+    <mi>𝛢𝛣𝛤𝛥𝛦𝛧𝛨𝛩</mi>
+</math>

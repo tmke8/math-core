@@ -1,0 +1,10 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\sqrt x_i"
+---
+[
+  Subscript(
+    target: Sqrt(IdentifierChar('x', Default)),
+    symbol: IdentifierChar('i', Default),
+  ),
+]

@@ -1,0 +1,53 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \\\\ 0 & \\cdots & 0 \\end{bmatrix}"
+---
+<math>
+    <mrow>
+        <mo>[</mo>
+        <mtable displaystyle="true" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mrow>
+                        <mo>·</mo>
+                        <mo lspace="0" rspace="0">·</mo>
+                        <mo>·</mo>
+                    </mrow>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mo rspace="0">⋮</mo>
+                </mtd>
+                <mtd>
+                    <mo rspace="0">⋱</mo>
+                </mtd>
+                <mtd>
+                    <mo>⋮</mo>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mrow>
+                        <mo>·</mo>
+                        <mo lspace="0" rspace="0">·</mo>
+                        <mo>·</mo>
+                    </mrow>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>]</mo>
+    </mrow>
+</math>

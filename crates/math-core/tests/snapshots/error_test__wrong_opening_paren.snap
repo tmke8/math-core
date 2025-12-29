@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin[matrix} x \\end{matrix}"
+---
+Position: 6
+DisallowedChar(
+    '[',
+)

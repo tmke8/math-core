@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\operatorname{sn} x"
+---
+<math>
+    <mo lspace="0" rspace="0.1667em">sn</mo>
+    <mi>x</mi>
+</math>

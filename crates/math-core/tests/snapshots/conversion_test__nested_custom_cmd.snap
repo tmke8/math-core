@@ -1,0 +1,25 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\odv{\\odv f x} x"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mfrac>
+                <mrow>
+                    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+                    <mi>f</mi>
+                </mrow>
+                <mrow>
+                    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+                    <mi>x</mi>
+                </mrow>
+            </mfrac>
+        </mrow>
+        <mrow>
+            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+</math>

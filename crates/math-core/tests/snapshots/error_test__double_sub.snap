@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: x__3
+---
+Position: 2
+BoundFollowedByBound

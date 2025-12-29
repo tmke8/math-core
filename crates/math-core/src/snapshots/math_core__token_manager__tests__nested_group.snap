@@ -1,0 +1,11 @@
+---
+source: crates/math-core/src/token_manager.rs
+expression: "{x + {y - z}} c"
+---
+1: Letter('x')
+3: BinaryOp(Bin { char: '+', cat: BD })
+5: GroupBegin
+6: Letter('y')
+8: BinaryOp(Bin { char: '−', cat: BD })
+10: Letter('z')
+11: GroupEnd

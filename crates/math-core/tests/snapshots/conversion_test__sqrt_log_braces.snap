@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt{\\log}"
+---
+<math>
+    <msqrt>
+        <mo lspace="0" rspace="0">log</mo>
+    </msqrt>
+</math>

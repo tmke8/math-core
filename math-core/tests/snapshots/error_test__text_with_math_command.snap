@@ -1,8 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: "\\text{\\max}"
----
-Position: 6
-UnknownCommand(
-    "max",
-)

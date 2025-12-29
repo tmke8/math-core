@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: x=!=x
+---
+<math>
+    <mi>x</mi>
+    <mo rspace="0">=</mo>
+    <mo>!</mo>
+    <mo>=</mo>
+    <mi>x</mi>
+</math>

@@ -1,0 +1,13 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "\\text{  x   y z}"
+---
+0: Text(None)
+5: GroupBegin
+7: Whitespace
+8: Letter('x')
+11: Whitespace
+12: Letter('y')
+13: Whitespace
+14: Letter('z')
+15: GroupEnd

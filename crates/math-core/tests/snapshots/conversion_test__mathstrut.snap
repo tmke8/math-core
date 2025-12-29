@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathstrut"
+---
+<math>
+    <mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>
+</math>

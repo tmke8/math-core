@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x = 3+\\alpha"
+---
+<math>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mn>3</mn>
+    <mo>+</mo>
+    <mi>α</mi>
+</math>

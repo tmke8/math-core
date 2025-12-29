@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{  pmatrix   } x \\\\ y \\end{pmatrix}"
+---
+Position: 6
+UnknownEnvironment(
+    "  pmatrix   ",
+)

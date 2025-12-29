@@ -1,0 +1,14 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\frac123"
+---
+[
+  Frac(
+    num: Number("1"),
+    denom: Number("2"),
+    lt_value: NaN,
+    lt_unit: Rem,
+    attr: None,
+  ),
+  Number("3"),
+]

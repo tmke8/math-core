@@ -1,9 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\text{hi}xx"
----
-<math>
-    <mtext>hi</mtext>
-    <mi>x</mi>
-    <mi>x</mi>
-</math>

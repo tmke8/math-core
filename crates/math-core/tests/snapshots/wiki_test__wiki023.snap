@@ -1,0 +1,43 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\prime, \\backprime, f^\\prime, f', f'', f^{(3)}, \\dot y, \\ddot y"
+---
+<math>
+    <mo>′</mo>
+    <mo>,</mo>
+    <mo>‵</mo>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mo>″</mo>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mi>f</mi>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mn>3</mn>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </msup>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>y</mi>
+        <mo>˙</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>y</mi>
+        <mo stretchy="false">¨</mo>
+    </mover>
+</math>

@@ -1,0 +1,6 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sum\\text"
+---
+Position: 9
+UnexpectedEOF

@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\xrightarrow{x}"
+---
+<math>
+    <mspace width="0.2777778em"/>
+    <mover>
+        <mo lspace="0">→</mo>
+        <mover>
+            <mrow>
+                <mspace width="0.4286em"/>
+                <mi>x</mi>
+                <mspace width="0.4286em"/>
+            </mrow>
+            <mspace width="3.5em"/>
+        </mover>
+    </mover>
+    <mspace width="0.2777778em"/>
+</math>

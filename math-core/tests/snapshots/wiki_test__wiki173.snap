@@ -1,7 +1,0 @@
----
-source: math-core/tests/wiki_test.rs
-expression: "\\mathit{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
----
-<math>
-    <mi>𝛪𝛫𝛬𝛭𝛮𝛯𝛰𝛱</mi>
-</math>

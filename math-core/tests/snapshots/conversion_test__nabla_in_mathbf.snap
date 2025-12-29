@@ -1,9 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\mathbf{\\nabla} + \\nabla"
----
-<math>
-    <mi>𝛁</mi>
-    <mo>+</mo>
-    <mpadded><mi mathvariant="normal">∇</mi></mpadded>
-</math>

@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathbf{1234.5}"
+---
+<math>
+    <mi>𝟏𝟐𝟑𝟒.𝟓</mi>
+</math>

@@ -1,0 +1,25 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\dot{a}, \\ddot{a}, \\acute{a}, \\grave{a}"
+---
+<math>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo>˙</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">¨</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo>´</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo>`</mo>
+    </mover>
+</math>

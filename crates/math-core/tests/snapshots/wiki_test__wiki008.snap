@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
+---
+<math>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">̂</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="true">̂</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>a</mi>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+</math>

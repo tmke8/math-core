@@ -1,9 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\sum + 4"
----
-<math>
-    <mo lspace="0">∑</mo>
-    <mo lspace="0" rspace="0">+</mo>
-    <mn>4</mn>
-</math>

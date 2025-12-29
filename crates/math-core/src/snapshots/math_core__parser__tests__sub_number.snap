@@ -1,0 +1,11 @@
+---
+source: crates/math-core/src/parser.rs
+expression: x_123
+---
+[
+  Subscript(
+    target: IdentifierChar('x', Default),
+    symbol: Number("1"),
+  ),
+  Number("23"),
+]

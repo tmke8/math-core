@@ -1,0 +1,33 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{multline}x=\\tag{4}\\\\1+\\\\2\\end{multline}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: left;justify-items: start;">
+                <mi>x</mi>
+                <mo>=</mo>
+            </mtd>
+            <mtd style="width: 7.5%"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd>
+                <mn>1</mn>
+                <mo>+</mo>
+            </mtd>
+            <mtd style="width: 7.5%"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: right;justify-items: end;">
+                <mn>2</mn>
+            </mtd>
+            <mtd style="width: 7.5%;text-align: right;justify-items: end;">
+                <mtext>(4)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

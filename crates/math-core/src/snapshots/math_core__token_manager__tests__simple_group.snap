@@ -1,0 +1,7 @@
+---
+source: crates/math-core/src/token_manager.rs
+expression: "{x+y}"
+---
+1: Letter('x')
+2: BinaryOp(Bin { char: '+', cat: BD })
+3: Letter('y')

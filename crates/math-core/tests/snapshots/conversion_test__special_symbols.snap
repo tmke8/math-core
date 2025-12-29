@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\%\\$\\#"
+---
+<math>
+    <mi>%</mi>
+    <mi>$</mi>
+    <mi>#</mi>
+</math>

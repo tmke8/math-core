@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\int_0^1 dx"
+---
+<math>
+    <msubsup>
+        <mo lspace="0">∫</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </msubsup>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

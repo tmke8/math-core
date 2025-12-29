@@ -1,9 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: x & y
----
-Position: 2
-CannotBeUsedHere {
-    got: NewColumn,
-    correct_place: TableEnv,
-}

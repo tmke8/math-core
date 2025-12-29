@@ -1,0 +1,6 @@
+---
+source: crates/math-core/src/token_manager.rs
+expression: "{\\begin{matrix}}"
+---
+1: Begin
+7: EnvName(Matrix)

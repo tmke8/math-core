@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\hspace{  4  em }"
+---
+<math>
+    <mspace width="4em"/>
+</math>

@@ -1,7 +1,0 @@
----
-source: math-core/tests/conversion_test.rs
-expression: "\\text{\\'{aa} \\`{aa}}"
----
-<math>
-    <mtext>áa àa</mtext>
-</math>

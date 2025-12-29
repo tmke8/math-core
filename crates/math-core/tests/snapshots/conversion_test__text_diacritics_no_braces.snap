@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\'a \\`a \\\"a \\^a}"
+---
+<math>
+    <mtext>á à ä â</mtext>
+</math>

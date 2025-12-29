@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "( \\frac{1}{2} )^n"
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+    </mfrac>
+    <msup>
+        <mo stretchy="false">)</mo>
+        <mi>n</mi>
+    </msup>
+</math>

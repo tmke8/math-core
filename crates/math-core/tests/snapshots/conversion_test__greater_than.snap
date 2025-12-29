@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: x > y
+---
+<math>
+    <mi>x</mi>
+    <mo>&gt;</mo>
+    <mi>y</mi>
+</math>

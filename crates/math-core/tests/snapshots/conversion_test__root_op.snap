@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt[+]{x}"
+---
+<math>
+    <mroot>
+        <mi>x</mi>
+        <mo>+</mo>
+    </mroot>
+</math>

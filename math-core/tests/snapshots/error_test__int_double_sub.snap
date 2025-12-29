@@ -1,6 +1,0 @@
----
-source: math-core/tests/error_test.rs
-expression: "\\int__3 x dx"
----
-Position: 5
-BoundFollowedByBound

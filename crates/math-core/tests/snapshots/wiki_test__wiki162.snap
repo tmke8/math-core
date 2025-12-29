@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\mathbf{ABCDEFGHI} \\\\ \\mathbf{JKLMNOPQR} \\\\ \\mathbf{STUVWXYZ} \\\\ \\mathbf{abcdefghijklm} \\\\ \\mathbf{nopqrstuvwxyz} \\\\ \\mathbf{0123456789}"
+---
+<math>
+    <mi>𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈</mi>
+    <mi>𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑</mi>
+    <mi>𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙</mi>
+    <mi>𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦</mi>
+    <mi>𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳</mi>
+    <mi>𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗</mi>
+</math>

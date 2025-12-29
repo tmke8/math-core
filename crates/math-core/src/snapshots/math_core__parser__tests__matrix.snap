@@ -1,0 +1,20 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
+---
+[
+  Fenced(
+    style: None,
+    open: Some(StretchableOp('(', Always)),
+    close: Some(StretchableOp(')', Always)),
+    content: Table(
+      align: Centered,
+      style: Some(Display),
+      content: [
+        IdentifierChar('x', Default),
+        RowSeparator(None),
+        IdentifierChar('y', Default),
+      ],
+    ),
+  ),
+]
