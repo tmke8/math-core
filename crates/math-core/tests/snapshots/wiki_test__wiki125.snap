@@ -5,7 +5,7 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
 <math>
     <mrow>
         <mo>[</mo>
-        <mtable displaystyle="true" scriptlevel="0">
+        <mtable displaystyle="false" scriptlevel="0">
             <mtr>
                 <mtd>
                     <mn>0</mn>

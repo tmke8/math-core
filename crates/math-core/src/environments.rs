@@ -218,7 +218,7 @@ impl Env {
                     // SAFETY: `matrix_variant` is one of the strings above.
                     _ => unsafe { std::hint::unreachable_unchecked() },
                 };
-                let style = Some(Style::Display);
+                let style = Some(Style::Text);
                 Node::Fenced {
                     open: Some(open),
                     close: Some(close),
