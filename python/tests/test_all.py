@@ -20,6 +20,8 @@ def test_exception():
     converter = LatexToMathML(pretty_print="never")
     with raises(LatexError):
         converter.convert_with_local_counter(r"\nonexistentcommand", displaystyle=False)
+    with raises(LatexError, match="^6: "):
+        converter.convert_with_local_counter(r"öäüßx^", displaystyle=False)
 
     with raises(ValueError):
         _ = LatexToMathML(pretty_print="sometimes")  # type: ignore
