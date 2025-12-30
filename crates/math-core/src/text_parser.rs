@@ -32,7 +32,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
             };
             let TokLoc(loc, token) = tokloc?;
             let c: Result<char, LatexErrKind> = match token {
-                Token::Letter(c) | Token::UprightLetter(c) => Ok(c),
+                Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
                 Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
                 Token::Open(op) | Token::Close(op) => Ok(op.as_op().into()),
                 Token::BinaryOp(op) => Ok(op.as_op().into()),

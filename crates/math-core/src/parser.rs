@@ -18,7 +18,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, TokLoc, Token},
+    token::{EndToken, FromAscii, TokLoc, Token},
     token_manager::TokenManager,
 };
 
@@ -236,7 +236,10 @@ where
                         let ch = if let Token::Digit(number) = self.tokens.peek().token() {
                             *number
                         } else {
-                            let ch = if matches!(self.tokens.peek().token(), Token::Letter('.')) {
+                            let ch = if matches!(
+                                self.tokens.peek().token(),
+                                Token::Letter('.', FromAscii::True)
+                            ) {
                                 Some('.')
                             } else {
                                 None
@@ -257,7 +260,7 @@ where
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            tok @ (Token::Letter(c) | Token::UprightLetter(c)) => {
+            tok @ (Token::Letter(c, _) | Token::UprightLetter(c)) => {
                 let mut is_upright = matches!(tok, Token::UprightLetter(_));
                 let mut with_tf = false;
                 let ch = if let Some(tf) = self.state.transform {
@@ -691,7 +694,7 @@ where
                         left: None,
                         right: None,
                     }),
-                    Token::Letter(char) | Token::UprightLetter(char) => {
+                    Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
@@ -813,15 +816,19 @@ where
             )),
             Token::Left => {
                 let tok_loc = self.next_token()?;
-                let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True)) {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
-                let content =
-                    self.parse_sequence(SequenceEnd::EndToken(EndToken::Right), Class::Open, false)?;
+                let content = self.parse_sequence(
+                    SequenceEnd::EndToken(EndToken::Right),
+                    Class::Open,
+                    false,
+                )?;
                 let tok_loc = self.next_token()?;
-                let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True))
+                {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Right)?)
@@ -1403,7 +1410,7 @@ where
         let mut first_char: Option<char> = None;
 
         // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
+        while let tok @ (Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch)) =
             self.tokens.peek().token()
         {
             if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
@@ -1674,7 +1681,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    Letter('a'),
+                    Letter('a', FromAscii::True),
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],

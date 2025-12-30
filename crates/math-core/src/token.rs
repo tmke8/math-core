@@ -107,7 +107,7 @@ pub enum Token<'config> {
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
     ForceClose(MathMLOperator),
-    Letter(char),
+    Letter(char, FromAscii),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Digit(char),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
@@ -156,6 +156,13 @@ impl Token<'_> {
             _ => Class::Default,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum FromAscii {
+    #[default]
+    False,
+    True,
 }
 
 #[derive(Debug, Clone, Copy)]
