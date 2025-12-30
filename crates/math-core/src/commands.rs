@@ -728,6 +728,7 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "TH" => Letter('Þ', FromAscii::False),
     "\"" => TextModeAccent(symbol::COMBINING_DIAERESIS),
     "^" => TextModeAccent(symbol::COMBINING_CIRCUMFLEX_ACCENT.as_op().as_char()),
+    "_" => Letter('_', FromAscii::False),
     "`" => TextModeAccent(symbol::COMBINING_GRAVE_ACCENT),
     "aa" => Letter('å', FromAscii::False),
     "ae" => Letter('æ', FromAscii::False),

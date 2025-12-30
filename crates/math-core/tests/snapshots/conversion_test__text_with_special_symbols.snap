@@ -1,7 +1,7 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\text{!\"\\#\\$\\%'()*+,-./:;=?@[]`|}"
+expression: "\\text{!\"\\#\\$\\%'()*+,-./:;=?@[]\\_`|}"
 ---
 <math>
-    <mtext>!”#$%’()*+,-./:;=?@[]‘|</mtext>
+    <mtext>!”#$%’()*+,-./:;=?@[]_‘|</mtext>
 </math>
