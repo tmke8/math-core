@@ -7,5 +7,6 @@ ExpectedDelimiter {
     location: Middle,
     got: Letter(
         'x',
+        True,
     ),
 }

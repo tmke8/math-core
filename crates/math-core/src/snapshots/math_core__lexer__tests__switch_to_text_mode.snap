@@ -4,5 +4,5 @@ expression: "\\prod\\text\\o\\sum"
 ---
 0: BigOp(BigOp { char: '∏', cat: OnlyJ })
 5: Text(None)
-10: Letter('ø')
+10: Letter('ø', False)
 12: BigOp(BigOp { char: '∑', cat: OnlyJ })

@@ -8,19 +8,19 @@ expression: "\\genfrac{}]{0pt}{2}{a+b}{c+d}"
 10: SquareBracketClose
 11: GroupBegin
 12: Digit('0')
-13: Letter('p')
-14: Letter('t')
+13: Letter('p', True)
+14: Letter('t', True)
 15: GroupEnd
 16: GroupBegin
 17: Digit('2')
 18: GroupEnd
 19: GroupBegin
-20: Letter('a')
+20: Letter('a', True)
 21: BinaryOp(Bin { char: '+', cat: BD })
-22: Letter('b')
+22: Letter('b', True)
 23: GroupEnd
 24: GroupBegin
-25: Letter('c')
+25: Letter('c', True)
 26: BinaryOp(Bin { char: '+', cat: BD })
-27: Letter('d')
+27: Letter('d', True)
 28: GroupEnd

@@ -3,13 +3,13 @@ source: crates/math-core/src/lexer.rs
 expression: "{x\\color     {red} y}"
 ---
 0: GroupBegin
-1: Letter('x')
+1: Letter('x', True)
 2: Color
 13: GroupBegin
-14: Letter('r')
-15: Letter('e')
-16: Letter('d')
+14: Letter('r', True)
+15: Letter('e', True)
+16: Letter('d', True)
 17: GroupEnd
 18: Whitespace
-19: Letter('y')
+19: Letter('y', True)
 20: GroupEnd
