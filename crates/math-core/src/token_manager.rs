@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 
 use crate::{
-    error::{EndToken, LatexErrKind, LatexError},
+    error::{LatexErrKind, LatexError},
     lexer::Lexer,
-    token::{TokLoc, Token},
+    token::{EndToken, TokLoc, Token},
 };
 
 pub(super) struct TokenManager<'source, 'config> {

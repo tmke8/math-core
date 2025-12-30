@@ -7,7 +7,7 @@ use strum_macros::IntoStaticStr;
 use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
-use crate::token::Token;
+use crate::token::{EndToken, Token};
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug, Clone)]
@@ -49,18 +49,6 @@ pub enum LatexErrKind<'config> {
     MacroParameterOutsideCustomCommand,
     HardLimitExceeded,
     Internal,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
-pub enum EndToken {
-    #[strum(serialize = r"\end{...}")]
-    End,
-    #[strum(serialize = r"}")]
-    GroupClose,
-    #[strum(serialize = r"\right")]
-    Right,
-    #[strum(serialize = r"]")]
-    SquareBracketClose,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]

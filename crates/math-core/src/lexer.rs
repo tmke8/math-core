@@ -7,8 +7,8 @@ use mathml_renderer::symbol::{self, MathMLOperator};
 use crate::CustomCmds;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
-use crate::error::{EndToken, GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{TokLoc, Token};
+use crate::error::{GetUnwrap, LatexErrKind, LatexError};
+use crate::token::{EndToken, TokLoc, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source> {

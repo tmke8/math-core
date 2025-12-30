@@ -1,5 +1,3 @@
-use std::mem::discriminant;
-
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::attribute::{
@@ -134,12 +132,6 @@ pub enum Token<'config> {
 }
 
 impl Token<'_> {
-    /// Returns `true` if `self` and `other` are of the same kind.
-    /// Note that this does not compare the content of the tokens.
-    pub(crate) fn is_same_kind_as(&self, other: &Token) -> bool {
-        discriminant(self) == discriminant(other)
-    }
-
     /// Returns the character class of this token.
     pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
         if !in_sequence {
@@ -200,6 +192,33 @@ impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
         TokLoc(0, token)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+pub enum EndToken {
+    #[strum(serialize = r"\end{...}")]
+    End,
+    #[strum(serialize = r"}")]
+    GroupClose,
+    #[strum(serialize = r"\right")]
+    Right,
+    #[strum(serialize = r"]")]
+    SquareBracketClose,
+    #[strum(serialize = r"end of input")]
+    Eof,
+}
+
+impl EndToken {
+    pub fn matches(&self, other: &Token) -> bool {
+        matches!(
+            (self, other),
+            (EndToken::End, Token::End)
+                | (EndToken::GroupClose, Token::GroupEnd)
+                | (EndToken::Right, Token::Right)
+                | (EndToken::SquareBracketClose, Token::SquareBracketClose)
+                | (EndToken::Eof, Token::Eof)
+        )
     }
 }
 

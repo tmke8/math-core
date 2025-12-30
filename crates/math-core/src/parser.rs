@@ -15,10 +15,10 @@ use crate::{
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
-    error::{DelimiterModifier, EndToken, LatexErrKind, LatexError, Place},
+    error::{DelimiterModifier, LatexErrKind, LatexError, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{TokLoc, Token},
+    token::{EndToken, TokLoc, Token},
     token_manager::TokenManager,
 };
 
@@ -49,7 +49,7 @@ struct ParserState<'config> {
 
 #[derive(Debug)]
 enum SequenceEnd {
-    Token(Token<'static>),
+    EndToken(EndToken),
     AnyEndToken,
 }
 
@@ -57,7 +57,7 @@ impl SequenceEnd {
     #[inline]
     fn matches(&self, other: &Token<'_>) -> bool {
         match self {
-            SequenceEnd::Token(token) => token.is_same_kind_as(other),
+            SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
                 Token::Eof | Token::GroupEnd | Token::End | Token::Right
@@ -129,7 +129,7 @@ where
 
     #[inline]
     pub(crate) fn parse(&mut self) -> ParseResult<'config, Vec<&'arena Node<'arena>>> {
-        self.parse_sequence(SequenceEnd::Token(Token::Eof), Class::Open, true)
+        self.parse_sequence(SequenceEnd::EndToken(EndToken::Eof), Class::Open, true)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
@@ -150,33 +150,25 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
             // Check whether we need to collect letters.
-            let (class, target) =
-                if let Some(collected_letters) = self.merge_and_transform_letters()? {
-                    collected_letters
-                } else {
-                    // Get the current token.
-                    let cur_tokloc = self.next_token();
-                    // Check here for EOF, so we know to end the loop prematurely.
-                    if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
-                        // When the input ends without the closing token.
-                        if let SequenceEnd::Token(end_token) = sequence_end {
-                            let end = match end_token {
-                                Token::GroupEnd => EndToken::GroupClose,
-                                Token::Right => EndToken::Right,
-                                Token::SquareBracketClose => EndToken::SquareBracketClose,
-                                _ => {
-                                    debug_assert!(matches!(end_token, Token::End));
-                                    EndToken::End
-                                }
-                            };
-                            return Err(
-                                self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end)))
-                            );
-                        }
+            let (class, target) = if let Some(collected_letters) =
+                self.merge_and_transform_letters()?
+            {
+                collected_letters
+            } else {
+                // Get the current token.
+                let cur_tokloc = self.next_token();
+                // Check here for EOF, so we know to end the loop prematurely.
+                if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
+                    // When the input ends without the closing token.
+                    if let SequenceEnd::EndToken(end_token) = sequence_end {
+                        return Err(
+                            self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
+                        );
                     }
-                    // Parse the token.
-                    self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
-                };
+                }
+                // Parse the token.
+                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+            };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -434,7 +426,7 @@ where
                 if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
                     let degree = self.parse_sequence(
-                        SequenceEnd::Token(Token::SquareBracketClose),
+                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
                         Class::Open,
                         false,
                     )?;
@@ -509,7 +501,10 @@ where
                         b"2" => Some(Style::Script),
                         b"3" => Some(Style::ScriptScript),
                         _ => {
-                            break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF));
+                            break 'genfrac Err(LatexError(
+                                0,
+                                LatexErrKind::ExpectedArgumentGotEOF,
+                            ));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
@@ -786,7 +781,7 @@ where
             }
             Token::GroupBegin => {
                 let content = self.parse_sequence(
-                    SequenceEnd::Token(Token::GroupEnd),
+                    SequenceEnd::EndToken(EndToken::GroupClose),
                     if matches!(parse_as, ParseAs::ContinueSequence) {
                         prev_class
                     } else {
@@ -824,7 +819,7 @@ where
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
                 let content =
-                    self.parse_sequence(SequenceEnd::Token(Token::Right), Class::Open, false)?;
+                    self.parse_sequence(SequenceEnd::EndToken(EndToken::Right), Class::Open, false)?;
                 let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
@@ -887,9 +882,9 @@ where
                     mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
                 let content = self.arena.push_slice(&self.parse_sequence(
-                    SequenceEnd::Token(Token::End),
+                    SequenceEnd::EndToken(EndToken::End),
                     Class::Open,
-                    false,
+                    false, // keep_end_token
                 )?);
 
                 self.state.allow_columns = old_allow_columns;
