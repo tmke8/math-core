@@ -32,7 +32,7 @@ fn main() {
         ("text_with_group", r"\text{x{y}z{}p{}}"),
         (
             "text_with_special_symbols",
-            r#"\text{!"\#\$\%'()*+,-./:;=?@[]`|}"#,
+            r#"\text{!"\#\$\%'()*+,-./:;=?@[]\_`|}"#,
         ),
         ("text_html_escape", r"\text{<\&>}"),
         ("textbackslash", r"\text{\textbackslash}"),
