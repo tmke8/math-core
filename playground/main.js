@@ -233,6 +233,56 @@ export function base64UrlToUint8Array(base64String) {
   return Uint8Array.from(globalThis.atob(base64), (x) => x.codePointAt(0));
 }
 
+/**
+ * Formats a error message with context and a caret indicating the error position.
+ * 
+ * @param {string} input - The original input string.
+ * @param {number} errorIndex - The UTF-16 index of the error in the input string.
+ * @param {string} errorMessage - The error message to display.
+ * @returns {string} The formatted error message.
+ */
+function formatError(input, errorIndex, errorMessage) {
+  const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+  const graphemes = [...segmenter.segment(input)].map(s => s.segment);
+  
+  // Find which grapheme cluster the UTF-16 index falls into
+  let graphemeIndex = 0;
+  for (let utf16Pos = 0; utf16Pos < errorIndex && graphemeIndex < graphemes.length; graphemeIndex++) {
+    utf16Pos += graphemes[graphemeIndex].length;
+  }
+  
+  // Find context bounds, stopping at newlines
+  const isNewline = (s) => s === '\n' || s === '\r';
+  const contextSize = 15;
+  
+  let start = graphemeIndex;
+  for (let i = 0; i < contextSize && start > 0 && !isNewline(graphemes[start - 1]); i++) {
+    start--;
+  }
+  
+  let end = graphemeIndex;
+  for (let i = 0; i < contextSize && end < graphemes.length && !isNewline(graphemes[end]); i++) {
+    end++;
+  }
+  
+  // Check if there's more content on this line beyond our window
+  const hasMoreBefore = start > 0 && !isNewline(graphemes[start - 1]);
+  const hasMoreAfter = end < graphemes.length && !isNewline(graphemes[end]);
+  
+  const prefix = hasMoreBefore ? '...' : '';
+  const suffix = hasMoreAfter ? '...' : '';
+  const contextString = prefix + graphemes.slice(start, end).join('') + suffix;
+  const caretLine = ' '.repeat(prefix.length + graphemeIndex - start) + '^';
+  
+  return [
+    `Error: ${errorMessage}`,
+    '|',
+    `| ${contextString}`,
+    `| ${caretLine}`,
+    '|'
+  ].join('\n');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   init().then(async () => {
     console.log("WASM module initialized");
@@ -249,8 +299,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const configField = document.getElementById("configField");
 
   function updateOutput() {
+    const input = inputField.value;
     try {
-      const input = inputField.value;
       const output = cachedConverter.convert_with_local_counter(
         input,
         isBlock(),
@@ -259,7 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
       outputCode.textContent = output;
     } catch (error) {
       outputField.innerHTML = "";
-      outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
+      // outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
+      outputCode.textContent = formatError(input, error.location, error.message);
     }
   }
 
