@@ -6,10 +6,10 @@ use mathml_renderer::{
 };
 
 use crate::{
-    error::{EndToken, LatexErrKind, LatexError},
+    error::{LatexErrKind, LatexError},
     parser::{ParseResult, Parser},
     specifications::LatexUnit,
-    token::{TokLoc, Token},
+    token::{EndToken, TokLoc, Token},
 };
 
 impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
