@@ -117,7 +117,7 @@ pub struct MathCoreConfig {
     pub xml_namespace: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct CustomCmds {
     tokens: Box<[Token<'static>]>,
     map: FxHashMap<String, (u8, (usize, usize))>,
@@ -132,7 +132,7 @@ impl CustomCmds {
 }
 
 /// This struct contains those fields from `MathCoreConfig` that are simple flags.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Flags {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
@@ -149,7 +149,7 @@ impl From<&MathCoreConfig> for Flags {
 }
 
 /// A converter that transforms LaTeX math equations into MathML Core.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LatexToMathML {
     flags: Flags,
     /// This is used for numbering equations in the document.
