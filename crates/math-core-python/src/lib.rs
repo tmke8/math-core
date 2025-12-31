@@ -1,30 +1,47 @@
 use std::sync::RwLock;
 
-use pyo3::create_exception;
 use pyo3::exceptions::PyException;
-use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::{PyDict, PyString, PyType};
+use pyo3::{IntoPyObjectExt, create_exception, prelude::*};
 
 use math_core::{MathCoreConfig, MathDisplay, PrettyPrint};
 
-create_exception!(_math_core_rust, LatexError, PyException);
+create_exception!(_math_core_rust, LockError, PyException);
+
+#[pyclass(frozen)]
+struct LatexError {
+    #[pyo3(get)]
+    message: String,
+    #[pyo3(get)]
+    location: usize,
+}
+
+#[pymethods]
+impl LatexError {
+    #[classattr]
+    fn __match_args__() -> (String, String) {
+        ("message".to_string(), "location".to_string())
+    }
+}
 
 #[pyclass(frozen)]
 struct LatexToMathML {
     inner: RwLock<math_core::LatexToMathML>,
-    raise_on_error: bool,
+    continue_on_error: bool,
 }
 
 #[pymethods]
 impl LatexToMathML {
-    #[new]
-    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, raise_on_error=true))]
-    fn new(
+    #[classmethod]
+    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false))]
+    fn with_config<'a>(
+        _cls: &Bound<'_, PyType>,
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
         xml_namespace: bool,
-        raise_on_error: bool,
-    ) -> PyResult<Self> {
+        continue_on_error: bool,
+        py: Python<'a>,
+    ) -> PyResult<Bound<'a, PyAny>> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
             "always" => PrettyPrint::Always,
@@ -46,13 +63,27 @@ impl LatexToMathML {
             xml_namespace,
         };
 
-        Ok(LatexToMathML {
-            inner: RwLock::new(
-                math_core::LatexToMathML::new(config)
-                    .map_err(|latex_error| LatexError::new_err(latex_error.to_string()))?,
-            ),
-            raise_on_error,
-        })
+        let inner = math_core::LatexToMathML::new(config);
+        match inner {
+            Ok(inner) => LatexToMathML {
+                inner: RwLock::new(inner),
+                continue_on_error,
+            }
+            .into_bound_py_any(py),
+            Err(latex_error) => LatexError {
+                message: latex_error.to_string(),
+                location: latex_error.0,
+            }
+            .into_bound_py_any(py),
+        }
+    }
+
+    #[new]
+    fn new() -> Self {
+        LatexToMathML {
+            inner: RwLock::new(math_core::LatexToMathML::default()),
+            continue_on_error: Default::default(),
+        }
     }
 
     /// Convert LaTeX equation to MathML.
@@ -62,7 +93,7 @@ impl LatexToMathML {
         latex: &str,
         displaystyle: bool,
         py: Python<'a>,
-    ) -> PyResult<Bound<'a, PyString>> {
+    ) -> PyResult<Bound<'a, PyAny>> {
         let display = if displaystyle {
             MathDisplay::Block
         } else {
@@ -71,22 +102,23 @@ impl LatexToMathML {
         match self
             .inner
             .write()
-            .map_err(|_| LatexError::new_err("Failed to acquire write lock"))?
+            .map_err(|_| LockError::new_err("Failed to acquire write lock"))?
             .convert_with_global_counter(latex, display)
         {
             Err(mut latex_error) => {
                 // Rust uses byte offsets, but Python uses character offsets.
                 latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
-                if self.raise_on_error {
-                    Err(LatexError::new_err(latex_error.to_string()))
+                if self.continue_on_error {
+                    Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
                 } else {
-                    Ok(PyString::new(
-                        py,
-                        &latex_error.to_html(latex, display, None),
-                    ))
+                    LatexError {
+                        message: latex_error.to_string(),
+                        location: latex_error.0,
+                    }
+                    .into_bound_py_any(py)
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output)),
+            Ok(output) => Ok(PyString::new(py, &output).into_any()),
         }
     }
 
@@ -97,7 +129,7 @@ impl LatexToMathML {
         latex: &str,
         displaystyle: bool,
         py: Python<'a>,
-    ) -> PyResult<Bound<'a, PyString>> {
+    ) -> PyResult<Bound<'a, PyAny>> {
         let display = if displaystyle {
             MathDisplay::Block
         } else {
@@ -106,29 +138,30 @@ impl LatexToMathML {
         match self
             .inner
             .write()
-            .map_err(|_| LatexError::new_err("Failed to acquire read lock"))?
+            .map_err(|_| LockError::new_err("Failed to acquire read lock"))?
             .convert_with_local_counter(latex, display)
         {
             Err(mut latex_error) => {
                 // Rust uses byte offsets, but Python uses character offsets.
                 latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
-                if self.raise_on_error {
-                    Err(LatexError::new_err(latex_error.to_string()))
+                if self.continue_on_error {
+                    Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
                 } else {
-                    Ok(PyString::new(
-                        py,
-                        &latex_error.to_html(latex, display, None),
-                    ))
+                    LatexError {
+                        message: latex_error.to_string(),
+                        location: latex_error.0,
+                    }
+                    .into_bound_py_any(py)
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output)),
+            Ok(output) => Ok(PyString::new(py, &output).into_any()),
         }
     }
 
     fn reset_global_counter(&self) -> PyResult<()> {
         self.inner
             .write()
-            .map_err(|_| LatexError::new_err("Failed to acquire write lock"))?
+            .map_err(|_| LockError::new_err("Failed to acquire write lock"))?
             .reset_global_counter();
         Ok(())
     }
@@ -137,7 +170,8 @@ impl LatexToMathML {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("LatexError", m.py().get_type::<LatexError>())?;
+    m.add("LockError", m.py().get_type::<LockError>())?;
+    m.add_class::<LatexError>()?;
     m.add_class::<LatexToMathML>()?;
     Ok(())
 }
