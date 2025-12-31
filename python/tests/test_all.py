@@ -71,7 +71,7 @@ def test_signature():
     )
     assert (
         str(inspect.signature(LatexToMathML.with_config))
-        == "(*, pretty_print='never', macros=None, xml_namespace=False, raise_on_error=True)"
+        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False)"
     )
     converter = LatexToMathML()
     assert (
@@ -90,7 +90,7 @@ def test_xml():
 
 
 def test_continue_on_error():
-    converter = LatexToMathML.with_config(raise_on_error=False)
+    converter = LatexToMathML.with_config(continue_on_error=True)
     assert isinstance(converter, LatexToMathML)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)

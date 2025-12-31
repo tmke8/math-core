@@ -12,7 +12,7 @@ class LatexToMathML:
         pretty_print: Literal["never", "always", "auto"] = "never",
         macros: dict[str, str] | None = None,
         xml_namespace: bool = False,
-        raise_on_error: bool = True,
+        continue_on_error: bool = False,
     ) -> Self | LatexError:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -30,9 +30,10 @@ class LatexToMathML:
 
             xml_namespace: A boolean indicating whether to include ``xmlns="..."``.
 
-            raise_on_error: A boolean indicating whether to raise an exception for
-                conversion errors. If conversion fails and this is ``False``, an HTML
-                snippet describing the error will be returned.
+            continue_on_error: A boolean indicating whether to return an error for
+                conversion errors. If conversion fails and this is ``True``, an HTML
+                snippet describing the error will be returned, instead of returning
+                ``LatexError``.
         """
     def convert_with_global_counter(
         self, latex: str, *, displaystyle: bool

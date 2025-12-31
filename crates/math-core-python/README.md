@@ -133,7 +133,7 @@ The main converter class.
 - `pretty_print` (`str`, optional): A string indicating whether to pretty print the MathML output. Options are “never”, “always”, or “auto”. “auto” means that all block equations will be pretty printed. Default: “never”.
 - `macros` (`dict[str, str]`, optional): Dictionary of LaTeX macros for custom commands.
 - `xml_namespace` (`bool`, optional): A boolean indicating whether to include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag. Default: `False`.
-- `raise_on_error` (`bool`, optional): A boolean indicating whether to return an error for conversion errors. If conversion fails and this is `False`, an HTML snippet describing the error will be returned. Default: `True`.
+- `continue_on_error` (`bool`, optional): A boolean indicating whether to return an error for conversion errors. If conversion fails and this is `True`, an HTML snippet describing the error will be returned, instead of returning `LatexError`. Default: `False`.
 
 **Methods:**
 - `convert_with_global_counter(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using a global equation counter.
