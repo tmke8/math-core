@@ -34,19 +34,48 @@ impl From<&MathMLOperator> for char {
     }
 }
 
+/// A UTF-16-like representation of a character.
+///
+/// This can only store characters in the BMP (i.e., code points U+0000 to U+FFFF).
+/// `PseudoUtf16::new` will panic if a character outside this range is provided.
+#[derive(Clone, PartialEq, Eq, Copy)]
+struct PseudoUtf16 {
+    char: u16,
+}
+
+impl PseudoUtf16 {
+    const fn new(ch: char) -> Self {
+        assert!(ch as u32 <= u16::MAX as u32);
+        PseudoUtf16 { char: ch as u16 }
+    }
+
+    #[inline(always)]
+    pub const fn as_char(&self) -> char {
+        debug_assert!(char::from_u32(self.char as u32).is_some());
+        unsafe { char::from_u32_unchecked(self.char as u32) }
+    }
+}
+
+// We use a custom `Debug` implementation to render the character as a `char`.
+impl Debug for PseudoUtf16 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.as_char()))
+    }
+}
+
 macro_rules! make_character_class {
     ($(#[$meta:meta])* $struct_name:ident, $cat_type:ty, $const_fn_name:ident) => {
         $(#[$meta])*
-        #[derive(Clone, PartialEq, Eq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Eq, Copy)]
         pub struct $struct_name {
-            char: u16,
+            char: PseudoUtf16,
             pub cat: $cat_type,
         }
 
+        // TODO: Replace this with a `new` associated constant function.
         const fn $const_fn_name(ch: char, cat: $cat_type) -> $struct_name {
-            assert!(ch as u32 <= u16::MAX as u32);
             $struct_name {
-                char: ch as u16,
+                char: PseudoUtf16::new(ch),
                 cat,
             }
         }
@@ -54,18 +83,7 @@ macro_rules! make_character_class {
         impl $struct_name {
             #[inline(always)]
             pub const fn as_op(&self) -> MathMLOperator {
-                debug_assert!(char::from_u32(self.char as u32).is_some());
-                MathMLOperator(unsafe { char::from_u32_unchecked(self.char as u32) })
-            }
-        }
-
-        // We use a custom `Debug` implementation to render the character as a `char`.
-        impl Debug for $struct_name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_struct(stringify!($struct_name))
-                    .field("char", &self.as_op().0)
-                    .field("cat", &self.cat)
-                    .finish()
+                MathMLOperator(self.char.as_char())
             }
         }
     };
@@ -184,9 +202,8 @@ pub struct Fence(char);
 impl Fence {
     #[inline(always)]
     pub const fn as_op(&self) -> StretchableOp {
-        assert!(self.0 as u32 <= u16::MAX as u32);
         StretchableOp {
-            char: self.0 as u16,
+            char: PseudoUtf16::new(self.0),
             stretchy: Stretchy::Always,
         }
     }
@@ -207,7 +224,7 @@ pub enum Stretchy {
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct StretchableOp {
-    char: u16,
+    char: PseudoUtf16,
     pub stretchy: Stretchy,
 }
 
@@ -238,8 +255,7 @@ impl StretchableOp {
 impl From<StretchableOp> for char {
     #[inline]
     fn from(op: StretchableOp) -> Self {
-        debug_assert!(char::from_u32(op.char as u32).is_some());
-        unsafe { char::from_u32_unchecked(op.char as u32) }
+        op.char.as_char()
     }
 }
 
