@@ -60,7 +60,7 @@ impl SequenceEnd {
             SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
-                Token::Eof | Token::GroupEnd | Token::End | Token::Right
+                Token::Eof | Token::GroupEnd | Token::End(_) | Token::Right
             ),
         }
     }
@@ -852,14 +852,7 @@ where
                 class = cls.unwrap_or(Class::Default);
                 Ok(Node::SizedParen(size, paren))
             }
-            Token::Begin => 'begin_env: {
-                let TokLoc(loc, env) = self.next_token()?;
-                let Token::EnvName(env) = env else {
-                    // This should never happen because the tokenizer guarantees that
-                    // `\begin` is always followed by an environment name.
-                    // We report an internal error here.
-                    break 'begin_env Err(LatexError(loc, LatexErrKind::Internal));
-                };
+            Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
                     let (loc, options) = self.parse_string_literal()?;
@@ -891,7 +884,7 @@ where
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::EndToken(EndToken::End),
                     Class::Open,
-                    false, // keep_end_token
+                    true, // keep_end_token
                 )?);
 
                 self.state.allow_columns = old_allow_columns;
@@ -899,11 +892,11 @@ where
                 self.state.script_style = old_script_style;
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
-                // Get the environment name after `\end`.
+                // Get the \end{env} token in order to verify that it matches the \begin{env}.
                 let TokLoc(end_loc, end_env) = self.next_token()?;
-                let Token::EnvName(end_env) = end_env else {
-                    // This should never happen because the tokenizer guarantees that
-                    // `\end` is always followed by an environment name.
+                let Token::End(end_env) = end_env else {
+                    // This should never happen because `parse_sequence` should have
+                    // stopped at the `\end` token.
                     // We report an internal error here.
                     break 'begin_env Err(LatexError(end_loc, LatexErrKind::Internal));
                 };
@@ -1097,7 +1090,7 @@ where
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 if !matches!(
                     self.tokens.peek().token(),
-                    Token::Eof | Token::GroupEnd | Token::End
+                    Token::Eof | Token::GroupEnd | Token::End(_)
                 ) {
                     let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
@@ -1132,12 +1125,12 @@ where
                 },
             )),
             Token::Eof => Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotEOF)),
-            tok @ (Token::End | Token::Right | Token::GroupEnd) => {
+            tok @ (Token::End(_) | Token::Right | Token::GroupEnd) => {
                 if parse_as.in_sequence() {
                     let end = match tok {
                         Token::GroupEnd => EndToken::GroupClose,
                         Token::Right => EndToken::Right,
-                        Token::End => EndToken::End,
+                        Token::End(_) => EndToken::End,
                         _ => unreachable!(),
                     };
                     Err(LatexError(loc, LatexErrKind::UnmatchedClose(end)))
@@ -1145,7 +1138,7 @@ where
                     Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotClose))
                 }
             }
-            Token::Whitespace | Token::EnvName(_) | Token::TextModeAccent(_) => {
+            Token::Whitespace | Token::TextModeAccent(_) => {
                 // That these tokens are not expected by the parser should never occur.
                 // We report an internal error here.
                 Err(LatexError(loc, LatexErrKind::Internal))

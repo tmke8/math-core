@@ -127,7 +127,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "barwedge" => BinaryOp(symbol::NAND),
     "bcancel" => Enclose(Notation::DOWN_DIAGONAL),
     "because" => Relation(symbol::BECAUSE),
-    "begin" => Begin,
     "beta" => Letter(symbol::GREEK_SMALL_LETTER_BETA, FromAscii::False),
     "beth" => Letter(symbol::BET_SYMBOL, FromAscii::False),
     "between" => Relation(symbol::BETWEEN),
@@ -255,7 +254,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
         Transform(MathVariant::Normal),
         InternalStringLiteral("∅\u{FE00}"), // Unicode variation selector
     ]),
-    "end" => End,
     "epsilon" => Letter(symbol::GREEK_LUNATE_EPSILON_SYMBOL, FromAscii::False),
     "eqcirc" => Relation(symbol::RING_IN_EQUAL_TO),
     "eqcolon" => Relation(symbol::EQUALS_COLON),

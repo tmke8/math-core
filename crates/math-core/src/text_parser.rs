@@ -154,7 +154,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         Err(LatexErrKind::ExpectedArgumentGotEOF)
                     }
                 }
-                Token::Right | Token::End => Err(LatexErrKind::ExpectedArgumentGotClose),
+                Token::Right | Token::End(_) => Err(LatexErrKind::ExpectedArgumentGotClose),
                 _ => Err(LatexErrKind::NotValidInTextMode(token)),
             };
             let c = c.map_err(|err| Box::new(LatexError(loc, err)))?;

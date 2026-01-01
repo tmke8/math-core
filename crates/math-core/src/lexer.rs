@@ -151,47 +151,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
-        if matches!(self.mode, Mode::EnvName) {
-            // Reset the mode.
-            mem::take(&mut self.mode);
-            let result = 'env_name: {
-                // First skip any whitespace.
-                self.skip_whitespace();
-                let group_loc = self.peek.0;
-                // Read the environment name.
-                let name = match self.read_env_name() {
-                    Ok(lit) => lit,
-                    Err((loc, ch)) => match ch {
-                        None => {
-                            break 'env_name Err(LatexError(
-                                loc,
-                                LatexErrKind::UnclosedGroup(EndToken::GroupClose),
-                            ));
-                        }
-                        Some(ch) => {
-                            break 'env_name Err(LatexError(loc, LatexErrKind::DisallowedChar(ch)));
-                        }
-                    },
-                };
-                // Convert the environment name to the `Env` enum.
-                let Some(env) = Env::from_str(name) else {
-                    break 'env_name Err(LatexError(
-                        group_loc,
-                        LatexErrKind::UnknownEnvironment(name.into()),
-                    ));
-                };
-                // Return an `EnvName` token.
-                Ok(TokLoc(group_loc, Token::EnvName(env)))
-            };
-            match result {
-                Ok(tok) => {
-                    return Ok(tok);
-                }
-                Err(err) => {
-                    return Err(Box::new(err));
-                }
-            }
-        }
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(loc) = self.skip_whitespace() {
             return Ok(TokLoc(loc.get(), Token::Whitespace));
@@ -363,22 +322,60 @@ impl<'config, 'source> Lexer<'config, 'source> {
             {
                 Ok(tok)
             } else {
-                Err(LatexError(
-                    loc,
-                    LatexErrKind::UnknownCommand(cmd_string.into()),
-                ))
+                let env_marker = match cmd_string {
+                    "begin" => Some(EnvMarker::Begin),
+                    "end" => Some(EnvMarker::End),
+                    _ => None,
+                };
+                if let Some(env_marker) = env_marker {
+                    'env_name: {
+                        // First skip any whitespace.
+                        self.skip_whitespace();
+                        let group_loc = self.peek.0;
+                        // Read the environment name.
+                        let name = match self.read_env_name() {
+                            Ok(lit) => lit,
+                            Err((loc, ch)) => match ch {
+                                None => {
+                                    break 'env_name Err(LatexError(
+                                        loc,
+                                        LatexErrKind::UnclosedGroup(EndToken::GroupClose),
+                                    ));
+                                }
+                                Some(ch) => {
+                                    break 'env_name Err(LatexError(
+                                        loc,
+                                        LatexErrKind::DisallowedChar(ch),
+                                    ));
+                                }
+                            },
+                        };
+                        // Convert the environment name to the `Env` enum.
+                        let Some(env) = Env::from_str(name) else {
+                            break 'env_name Err(LatexError(
+                                group_loc,
+                                LatexErrKind::UnknownEnvironment(name.into()),
+                            ));
+                        };
+                        Ok(match env_marker {
+                            EnvMarker::Begin => Token::Begin(env),
+                            EnvMarker::End => Token::End(env),
+                        })
+                    }
+                } else {
+                    Err(LatexError(
+                        loc,
+                        LatexErrKind::UnknownCommand(cmd_string.into()),
+                    ))
+                }
             };
         if matches!(self.mode, Mode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        if let Ok(tok) = &tok {
-            if matches!(tok, Token::Text(_)) {
-                self.mode = Mode::TextStart;
-            } else if matches!(tok, Token::Begin | Token::End) {
-                self.mode = Mode::EnvName;
-            }
+        if matches!(tok, Ok(Token::Text(_))) {
+            self.mode = Mode::TextStart;
         }
         match tok {
             Ok(tok) => Ok(TokLoc(loc, tok)),
@@ -398,7 +395,11 @@ enum Mode {
     TextGroup {
         nesting: usize, // The nesting level of `{` in the text group.
     },
-    EnvName,
+}
+
+enum EnvMarker {
+    Begin = 1,
+    End = 2,
 }
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
