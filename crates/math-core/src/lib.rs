@@ -47,7 +47,8 @@ use serde::{Deserialize, Serialize};
 use mathml_renderer::{arena::Arena, ast::Node};
 
 pub use self::error::{LatexErrKind, LatexError};
-use self::{lexer::Lexer, parser::Parser, token::Token};
+pub use self::token::Token;
+use self::{lexer::Lexer, parser::Parser};
 
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
