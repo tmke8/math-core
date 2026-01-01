@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix} 1 \\end{bmatrix}"
 ---
-Position: 21
+Position: 17
 MismatchedEnvironment {
     expected: Matrix,
     got: BMatrix,

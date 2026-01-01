@@ -15,11 +15,9 @@ pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,
     #[strum(serialize = r"\begin")]
-    Begin,
+    Begin(Env),
     #[strum(serialize = r"\end")]
-    End,
-    /// For `\begin{...}` and `\end{...}`.
-    EnvName(Env),
+    End(Env),
     #[strum(serialize = "&")]
     NewColumn,
     #[strum(serialize = r"\\")]
@@ -147,7 +145,7 @@ impl Token<'_> {
             | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
             Token::BigOp(_) | Token::Integral(_) => Class::Operator,
-            Token::End | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
+            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }
             // `\big` commands without the "l" or "r" really produce `Class::Default`.
@@ -220,7 +218,7 @@ impl EndToken {
     pub fn matches(&self, other: &Token) -> bool {
         matches!(
             (self, other),
-            (EndToken::End, Token::End)
+            (EndToken::End, Token::End(_))
                 | (EndToken::GroupClose, Token::GroupEnd)
                 | (EndToken::Right, Token::Right)
                 | (EndToken::SquareBracketClose, Token::SquareBracketClose)

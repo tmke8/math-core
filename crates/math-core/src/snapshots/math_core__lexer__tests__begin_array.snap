@@ -2,8 +2,7 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\begin{array}{c|c}"
 ---
-0: Begin
-6: EnvName(Array)
+0: Begin(Array)
 13: GroupBegin
 14: Letter('c', True)
 15: Ord(OrdLike { char: '|', cat: FG })
