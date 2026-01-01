@@ -71,8 +71,8 @@ impl LatexToMathML {
             }
             .into_bound_py_any(py),
             Err(latex_error) => LatexError {
-                message: latex_error.to_string(),
-                location: latex_error.0,
+                message: latex_error.0.to_string(),
+                location: latex_error.0.0,
             }
             .into_bound_py_any(py),
         }

@@ -147,7 +147,7 @@ fn main() {
     };
 
     let mut converter =
-        LatexToMathML::new(config.math_core).unwrap_or_else(|err| exit_latex_error(err, None));
+        LatexToMathML::new(config.math_core).unwrap_or_else(|err| exit_latex_error(err.0, None));
 
     if let Some(fpath) = &args.file {
         let inline_delim: (&str, &str) = if let Some(open) = &args.inline_open {
