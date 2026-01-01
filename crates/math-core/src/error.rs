@@ -44,7 +44,7 @@ pub enum LatexErrKind<'config> {
     ExpectedNumber(Box<str>),
     RenderError,
     NotValidInTextMode(Token<'config>),
-    InvalidMacroName(Box<str>),
+    InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
     HardLimitExceeded,

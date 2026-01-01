@@ -104,8 +104,8 @@ impl LatexToMathML {
             xml_namespace: xml_namespace.unwrap_or_default(),
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
-            message: JsValue::from_str(&e.1.string()),
-            location: e.0 as u32,
+            message: JsValue::from_str(&e.0.1.string()),
+            location: e.0.0 as u32,
         })?;
         Ok(LatexToMathML {
             inner: convert,

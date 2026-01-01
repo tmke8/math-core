@@ -161,8 +161,9 @@ impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with the given configuration.
     ///
     /// This function returns an error if the custom macros in the given configuration could not
-    /// be parsed.
-    pub fn new(config: MathCoreConfig) -> Result<Self, Box<LatexError<'static>>> {
+    /// be parsed. The error contains both the parsing error and the macro definition that caused
+    /// the error.
+    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError<'static>>, String)> {
         Ok(Self {
             flags: Flags::from(&config),
             equation_count: 0,
@@ -283,29 +284,49 @@ fn parse<'arena, 'config>(
 
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
-) -> Result<CustomCmds, Box<LatexError<'static>>> {
+) -> Result<CustomCmds, (Box<LatexError<'static>>, String)> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
     for (name, definition) in macros {
         if !is_valid_macro_name(name.as_str()) {
-            return Err(Box::new(LatexError(
-                0,
-                LatexErrKind::InvalidMacroName(name.as_str().into()),
-            )));
+            return Err((
+                Box::new(LatexError(0, LatexErrKind::InvalidMacroName(name))),
+                definition,
+            ));
         }
-        let mut lexer: Lexer<'static, '_> = Lexer::new(definition.as_str(), true, None);
-        let start = tokens.len();
-        loop {
-            let tokloc = lexer.next_token()?;
-            if matches!(&tokloc.1, Token::Eof) {
-                break;
-            }
-            tokens.push(tokloc.1);
-        }
-        let end = tokens.len();
-        let num_args = lexer.parse_cmd_args().unwrap_or(0);
 
-        map.insert(name, (num_args, (start, end)));
+        // In order to be able to return `definition` in case of an error, we need to ensure
+        // that the lexer (which borrows `definition`) is dropped before we return the error.
+        // Therefore, we put the whole lexing process into its own block.
+        let value = 'value: {
+            let mut lexer: Lexer<'static, '_> = Lexer::new(definition.as_str(), true, None);
+            let start = tokens.len();
+            loop {
+                match lexer.next_token() {
+                    Ok(tokloc) => {
+                        if matches!(tokloc.token(), Token::Eof) {
+                            break;
+                        }
+                        tokens.push(tokloc.into_token());
+                    }
+                    Err(err) => {
+                        break 'value Err(err);
+                    }
+                }
+            }
+            let end = tokens.len();
+            let num_args = lexer.parse_cmd_args().unwrap_or(0);
+            Ok((num_args, (start, end)))
+        };
+
+        match value {
+            Err(err) => {
+                return Err((err, definition));
+            }
+            Ok(v) => {
+                map.insert(name, v);
+            }
+        };
     }
     Ok(CustomCmds {
         tokens: tokens.into_boxed_slice(),

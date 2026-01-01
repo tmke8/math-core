@@ -61,9 +61,10 @@ fn test_error() {
     let error = LatexToMathML::new(config).unwrap_err();
 
     assert!(matches!(
-        error.1,
+        error.0.1,
         math_core::LatexErrKind::InvalidParameterNumber,
     ));
+    assert_eq!(error.1, r"\sqrt{#}");
 }
 
 #[test]
