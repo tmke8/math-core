@@ -10,7 +10,6 @@ use crate::character_class::Class;
 use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
-#[repr(u32)]
 pub enum Token<'config> {
     #[strum(serialize = "end of document")]
     Eof,

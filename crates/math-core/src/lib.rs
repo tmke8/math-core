@@ -119,7 +119,7 @@ pub struct MathCoreConfig {
 
 #[derive(Debug, Default)]
 struct CustomCmds {
-    tokens: Box<[Token<'static>]>,
+    tokens: Vec<Token<'static>>,
     map: FxHashMap<String, (u8, (usize, usize))>,
 }
 
@@ -328,10 +328,7 @@ fn parse_custom_commands(
             }
         };
     }
-    Ok(CustomCmds {
-        tokens: tokens.into_boxed_slice(),
-        map,
-    })
+    Ok(CustomCmds { tokens, map })
 }
 
 fn is_valid_macro_name(s: &str) -> bool {
