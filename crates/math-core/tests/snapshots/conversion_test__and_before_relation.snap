@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\And =x"
+---
+<math>
+    <mi>x</mi>
+    <mspace width="0.2777778em"/>
+    <mo lspace="0.2778em" rspace="0">&</mo>
+    <mspace width="0.2777778em"/>
+    <mo lspace="0">=</mo>
+    <mi>x</mi>
+</math>

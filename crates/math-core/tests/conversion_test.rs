@@ -128,6 +128,7 @@ fn main() {
             "align",
             r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
         ),
+        ("align_rel_then_amp", r#"\begin{align}&x\\=\;&2\end{align}"#),
         ("notag", r#"\begin{align} 1\notag\\2\end{align}"#),
         ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
         ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
@@ -281,6 +282,7 @@ fn main() {
         ("plus_after_closing_paren", r"(x)+x"),
         ("plus_before_closing_paren", r"(x+)"),
         ("equal_after_plus", r"x+ = 4"),
+        ("equal_after_plus_and_space", r"x+ \,= 4"),
         ("plus_in_braces", r"4{+}4"),
         ("plus_before_punctuation", r"4+,"),
         ("plus_before_eof", r"4+"),
@@ -303,6 +305,7 @@ fn main() {
         ("plus_after_equal_subscript2", r"x =_2 +4"),
         ("plus_after_equal_subscript3", r"x =_{2} + 4"),
         ("equal_equal", r"4==4"),
+        ("equal_equal_with_space", r"4=\;=4"),
         ("subscript_equal_equal", r"x_==4"),
         ("color", r"{\color{Blue}x^2}"),
         ("hspace", r"\hspace{1cm}"),
@@ -323,6 +326,8 @@ fn main() {
         ),
         ("mod", r"a \equiv r \mod n"),
         ("nested_custom_cmd", r"\odv{\odv f x} x"),
+        ("and_between_letters", r"x\And x"),
+        ("and_before_relation", r"x\And =x"),
     ];
 
     let config = MathCoreConfig {

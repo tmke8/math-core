@@ -149,6 +149,7 @@ impl Token<'_> {
             }
             // `\big` commands without the "l" or "r" really produce `Class::Default`.
             Token::Big(_, Some(cls)) => *cls,
+            // TODO: This needs to skip spaces and other non-class tokens in the token sequence.
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
         }

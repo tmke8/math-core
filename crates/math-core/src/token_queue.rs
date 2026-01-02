@@ -25,29 +25,33 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             next_non_whitespace: 0,
         };
         // Ensure that we have at least one non-whitespace token in the buffer for peeking.
-        let offset = tm.load_token()?;
+        let offset = tm.load_token(SkipMode::Whitespace)?;
         tm.next_non_whitespace = offset;
         Ok(tm)
     }
 
-    /// Load the next non-whitespace token from the lexer into the buffer.
+    /// Load the next not-skipped token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
-    fn load_token(&mut self) -> Result<usize, Box<LatexError<'config>>> {
+    fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError<'config>>> {
         if self.lexer_is_eof {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
             return Ok(0);
         }
-        let mut non_whitespace_offset = 0usize;
+        let mut non_skipped_offset = 0usize;
+        let predicate = match skip_mode {
+            SkipMode::Whitespace => is_not_whitespace,
+            SkipMode::NoClass => has_class,
+        };
         loop {
             let tok = self.lexer.next_token()?;
-            let is_whitespace = matches!(tok.token(), Token::Whitespace);
+            let not_skipped = predicate(&tok);
             let is_eof = matches!(tok.token(), Token::Eof);
             self.queue.push_back(tok);
-            if !is_whitespace {
+            if not_skipped {
                 break;
             }
-            non_whitespace_offset += 1;
+            non_skipped_offset += 1;
             if is_eof {
                 self.lexer_is_eof = true;
                 // We return with the offset for one past the EOF token.
@@ -55,14 +59,12 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 break;
             }
         }
-        Ok(non_whitespace_offset)
+        Ok(non_skipped_offset)
     }
 
     /// Perform a linear search to find the next non-whitespace token in the buffer.
     fn find_next_non_whitespace(&self) -> Option<usize> {
-        self.queue
-            .iter()
-            .position(|tokloc| !matches!(tokloc.token(), Token::Whitespace))
+        self.queue.iter().position(is_not_whitespace)
     }
 
     fn ensure_next_non_whitespace(&mut self) -> Result<(), Box<LatexError<'config>>> {
@@ -75,7 +77,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             };
             // Then, try to load more tokens until we find one or reach EOF.
             let starting_len = self.queue.len();
-            starting_len + self.load_token()?
+            starting_len + self.load_token(SkipMode::Whitespace)?
         };
         self.next_non_whitespace = pos;
         Ok(())
@@ -99,40 +101,74 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
-        match self.find_second_non_whitespace() {
+    /// Find or load a token which is not skipped according to `skip_mode`.
+    ///
+    /// This function starts its search after `next_non_whitespace` (i.e., it skips
+    /// the first non-whitespace token). The idea is that the caller has already
+    /// checked `next_non_whitespace` or is not interested in it.
+    ///
+    /// This function returns an index instead of a reference to the token
+    /// in order to avoid issues with the borrow checker.
+    fn find_or_load_after_next(
+        &mut self,
+        skip_mode: SkipMode,
+    ) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+        // We use a block here which returns an index to avoid borrow checker issues.
+        let tok_idx = {
+            // Ensure that the compiler can tell that `self.queue.range(start..)`
+            // cannot panic due to being out of bounds.
+            let start = self.next_non_whitespace;
+            if start < self.queue.len() {
+                let mut range = self.queue.range(start..);
+                range.next(); // Skip `next_non_whitespace`.
+                let predicate = match skip_mode {
+                    SkipMode::Whitespace => is_not_whitespace,
+                    SkipMode::NoClass => has_class,
+                };
+                range.position(predicate).map(|pos| start + 1 + pos)
+            } else {
+                debug_assert!(
+                    self.lexer_is_eof,
+                    "find_or_load_after_next called without ensure"
+                );
+                Some(self.queue.len())
+            }
+        };
+
+        match tok_idx {
             Some(tok_idx) => Ok(self.queue.get(tok_idx).unwrap_or(&EOF_TOK)),
             None => {
                 // Otherwise, load more tokens until we find one or reach EOF.
                 let starting_len = self.queue.len();
-                let offset = self.load_token()?;
+                let offset = self.load_token(skip_mode)?;
                 if let Some(tok) = self.queue.get(starting_len + offset) {
                     Ok(tok)
                 } else {
-                    debug_assert!(self.lexer_is_eof, "peek_second called without ensure");
+                    debug_assert!(
+                        self.lexer_is_eof,
+                        "find_or_load_after_next called without ensure"
+                    );
                     Ok(&EOF_TOK)
                 }
             }
         }
     }
 
-    /// Find the index of the second non-whitespace token in the buffer.
+    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+        self.find_or_load_after_next(SkipMode::Whitespace)
+    }
+
+    /// Peek at the first token which has a character class.
     ///
-    /// This function returns an index instead of a reference to the token
-    /// in order to avoid issues with the borrow checker.
-    fn find_second_non_whitespace(&self) -> Option<usize> {
-        // Ensure that the compiler can tell that `self.buf.range(next_non_whitespace..)`
-        // cannot panic due to being out of bounds.
-        let next_non_whitespace = self.next_non_whitespace;
-        if next_non_whitespace < self.queue.len() {
-            let mut range = self.queue.range(next_non_whitespace..);
-            range.next(); // Skip the first non-whitespace token.
-            // If there is a second non-whitespace token in the buffer, return it.
-            range.position(|tokloc| !matches!(tokloc.token(), Token::Whitespace))
-        } else {
-            debug_assert!(self.lexer_is_eof, "peek_second called without ensure");
-            Some(self.queue.len())
+    /// This excludes, for example, `Space` tokens.
+    pub(super) fn peek_class_token(
+        &mut self,
+    ) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+        // First check the common case where the next token is already a token with class.
+        if has_class(self.peek()) {
+            return Ok(self.peek());
         }
+        self.find_or_load_after_next(SkipMode::NoClass)
     }
 
     /// Get the next non-whitespace token.
@@ -200,16 +236,10 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn read_group(
         &mut self,
         tokens: &mut Vec<TokLoc<'config>>,
-        with_whitespace: bool,
     ) -> Result<(), Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
         loop {
-            let tokloc = if with_whitespace {
-                self.next_with_whitespace()
-            } else {
-                self.next()
-            };
-            let TokLoc(loc, tok) = tokloc?;
+            let TokLoc(loc, tok) = self.next_with_whitespace()?;
             match tok {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -235,6 +265,22 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
         Ok(())
     }
+}
+
+fn is_not_whitespace(tok: &TokLoc) -> bool {
+    !matches!(tok.token(), Token::Whitespace)
+}
+
+fn has_class(tok: &TokLoc) -> bool {
+    !matches!(
+        tok.token(),
+        Token::Whitespace | Token::Space(_) | Token::Not
+    )
+}
+
+enum SkipMode {
+    Whitespace,
+    NoClass,
 }
 
 #[cfg(test)]
@@ -263,12 +309,12 @@ mod tests {
             let lexer = Lexer::new(problem, false, None);
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
-            manager.load_token().unwrap();
-            manager.load_token().unwrap();
+            manager.load_token(SkipMode::Whitespace).unwrap();
+            manager.load_token(SkipMode::Whitespace).unwrap();
             // Check that the first token is `GroupBegin`.
             assert!(matches!(manager.next().unwrap().1, Token::GroupBegin));
             let mut tokens = Vec::new();
-            let tokens = match manager.read_group(&mut tokens, false) {
+            let tokens = match manager.read_group(&mut tokens) {
                 Ok(()) => {
                     let mut token_str = String::new();
                     for TokLoc(loc, tok) in tokens {
@@ -300,5 +346,32 @@ mod tests {
         }
 
         assert_snapshot!("next_with_whitespace", &token_str, input);
+    }
+
+    #[test]
+    fn test_find_or_load_after_next() {
+        let input = r"x y z";
+        // let input = r"\text  xy";
+        let lexer = Lexer::new(input, false, None);
+        let mut queue = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+        queue.next().unwrap(); // Consume 'x'
+        assert_eq!(queue.next_non_whitespace, 1);
+        assert_eq!(queue.queue.len(), 2);
+        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
+        assert!(matches!(queue.peek().token(), Token::Letter('y', _)));
+
+        // Test the branch that needs to load more tokens.
+        let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
+        assert!(matches!(tok.token(), Token::Letter('z', _)));
+        assert_eq!(queue.queue.len(), 4);
+        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
+        assert!(matches!(queue.queue[2].token(), Token::Whitespace));
+
+        // Test the branch that finds the token in the existing buffer.
+        let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
+        assert!(matches!(tok.token(), Token::Letter('z', _)));
+        assert_eq!(queue.queue.len(), 4);
+        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
+        assert!(matches!(queue.queue[2].token(), Token::Whitespace));
     }
 }
