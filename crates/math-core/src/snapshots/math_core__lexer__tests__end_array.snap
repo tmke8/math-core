@@ -5,6 +5,6 @@ expression: "\\end{array}{c|c}"
 0: End(Array)
 11: GroupBegin
 12: Letter('c', True)
-13: Ord(OrdLike { char: '|', cat: FG })
+13: Ord(OrdLike { char: '|', cat: FGandForceDefault })
 14: Letter('c', True)
 15: GroupEnd

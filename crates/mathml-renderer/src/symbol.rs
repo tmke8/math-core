@@ -92,15 +92,20 @@ macro_rules! make_character_class {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrdCategory {
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
-    /// (e.g. `|`).
+    /// (e.g. `‖`).
     FG,
+    /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// but also with an infix form with relation spacing (e.g. `|`).
+    FGandForceDefault,
+    /// Category B: Infix, binary op spacing (e.g. `/`)
+    OnlyB,
     /// Category D: Prefix, zero spacing (e.g. `¬`).
     OnlyD,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     OnlyE,
     /// Category I: Postfix, zero spacing, stretchy
     OnlyI,
-    /// Category K: Infix, zero spacing (e.g. `/`).
+    /// Category K: Infix, zero spacing (e.g. `\`).
     OnlyK,
 }
 
@@ -112,17 +117,25 @@ make_character_class!(
 impl OrdLike {
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
-        match self.cat {
-            OrdCategory::FG => Some(StretchableOp {
-                char: self.char,
-                stretchy: Stretchy::PrePostfix,
-            }),
-            OrdCategory::OnlyK => Some(StretchableOp {
-                char: self.char,
-                stretchy: Stretchy::Never,
-            }),
-            _ => None,
-        }
+        let (stretchy, nonzero_spacing) = match self.cat {
+            OrdCategory::FG => (
+                // In theory, this should be `Stretchy::Always`, but Firefox somehow needs the
+                // extra hint that it should be symmetric to render it correctly.
+                Stretchy::AlwaysAsymmetric,
+                false,
+            ),
+            OrdCategory::FGandForceDefault => (Stretchy::PrePostfix, true),
+            OrdCategory::OnlyB => (Stretchy::Never, true),
+            OrdCategory::OnlyK => (Stretchy::Never, false),
+            _ => {
+                return None;
+            }
+        };
+        Some(StretchableOp {
+            char: self.char,
+            stretchy,
+            nonzero_spacing,
+        })
     }
 }
 
@@ -175,6 +188,7 @@ impl Rel {
             RelCategory::OnlyA => Some(StretchableOp {
                 char: self.char,
                 stretchy: Stretchy::AlwaysAsymmetric,
+                nonzero_spacing: true,
             }),
             _ => None,
         }
@@ -205,6 +219,7 @@ impl Fence {
         StretchableOp {
             char: PseudoUtf16::new(self.0),
             stretchy: Stretchy::Always,
+            nonzero_spacing: false,
         }
     }
 }
@@ -226,6 +241,7 @@ pub enum Stretchy {
 pub struct StretchableOp {
     char: PseudoUtf16,
     pub stretchy: Stretchy,
+    pub nonzero_spacing: bool,
 }
 
 #[cfg(feature = "serde")]
@@ -275,7 +291,7 @@ pub const RIGHT_PARENTHESIS: Fence = Fence(')');
 pub const PLUS_SIGN: Bin = bin('+', BinCategory::BD);
 pub const COMMA: Punct = Punct(',');
 // pub const FULL_STOP: Bin = bin('.', BinCategory::OnlyC);
-pub const SOLIDUS: OrdLike = ord('/', OrdCategory::OnlyK);
+pub const SOLIDUS: OrdLike = ord('/', OrdCategory::OnlyB); // in the future in category K
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -293,7 +309,7 @@ pub const LOW_LINE: Rel = rel('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = rel('`', RelCategory::Default);
 
 pub const LEFT_CURLY_BRACKET: Fence = Fence('{');
-pub const VERTICAL_LINE: OrdLike = ord('|', OrdCategory::FG);
+pub const VERTICAL_LINE: OrdLike = ord('|', OrdCategory::FGandForceDefault);
 pub const RIGHT_CURLY_BRACKET: Fence = Fence('}');
 pub const TILDE: Rel = rel('~', RelCategory::Default);
 

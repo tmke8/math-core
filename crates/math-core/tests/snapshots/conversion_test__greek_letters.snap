@@ -4,6 +4,6 @@ expression: "\\phi/\\varphi"
 ---
 <math>
     <mi>ϕ</mi>
-    <mi>/</mi>
+    <mo lspace="0" rspace="0">/</mo>
     <mi>φ</mi>
 </math>

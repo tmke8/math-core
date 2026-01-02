@@ -9,7 +9,7 @@ expression: "\\times, \\div, \\divideontimes, /, \\backslash"
     <mo>,</mo>
     <mo lspace="0" rspace="0">⋇</mo>
     <mo>,</mo>
-    <mi>/</mi>
+    <mo lspace="0" rspace="0">/</mo>
     <mo>,</mo>
-    <mi>\</mi>
+    <mo>\</mo>
 </math>

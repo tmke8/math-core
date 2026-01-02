@@ -3,11 +3,11 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "|z + 1| \\leq 2"
 ---
 <math>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mi>z</mi>
     <mo>+</mo>
     <mn>1</mn>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo>≤</mo>
     <mn>2</mn>
 </math>

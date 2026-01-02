@@ -14,7 +14,7 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
             <mtr>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;">
                     <mi>n</mi>
-                    <mi>/</mi>
+                    <mo lspace="0" rspace="0">/</mo>
                     <mn>2</mn>
                     <mo rspace="0">,</mo>
                 </mtd>
