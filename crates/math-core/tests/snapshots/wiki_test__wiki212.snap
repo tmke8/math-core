@@ -3,18 +3,18 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
 ---
 <math>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mover accent="true">
         <mi>z</mi>
         <mo stretchy="false">¯</mo>
     </mover>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo>=</mo>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mi>z</mi>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo>,</mo>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo stretchy="false">(</mo>
     <mover accent="true">
         <mi>z</mi>
@@ -24,12 +24,12 @@ expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
         <mo stretchy="false">)</mo>
         <mi>n</mi>
     </msup>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo>=</mo>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mi>z</mi>
     <msup>
-        <mi>|</mi>
+        <mo stretchy="false" lspace="0" rspace="0">|</mo>
         <mi>n</mi>
     </msup>
     <mo>,</mo>

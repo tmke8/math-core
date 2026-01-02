@@ -421,6 +421,9 @@ impl Node<'_> {
                     }
                     _ => {}
                 }
+                if paren.nonzero_spacing {
+                    write!(s, " lspace=\"0\" rspace=\"0\"")?;
+                }
                 write!(s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
@@ -1164,7 +1167,7 @@ mod tests {
                 Size::Scale3,
                 symbol::SOLIDUS.as_stretchable_op().unwrap()
             )),
-            "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\">/</mo>"
+            "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\" lspace=\"0\" rspace=\"0\">/</mo>"
         );
     }
 

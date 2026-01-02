@@ -3,11 +3,11 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "/ \\big/ \\Big/ \\bigg/ \\Bigg/ \\dots \\Bigg\\backslash \\bigg\\backslash \\Big \\backslash \\big\\backslash \\backslash"
 ---
 <math>
-    <mi>/</mi>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">/</mo>
-    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">/</mo>
-    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">/</mo>
-    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">/</mo>
+    <mo lspace="0" rspace="0">/</mo>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">/</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true" lspace="0" rspace="0">/</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true" lspace="0" rspace="0">/</mo>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true" lspace="0" rspace="0">/</mo>
     <mrow>
         <mo>.</mo>
         <mo lspace="0" rspace="0">.</mo>
@@ -17,5 +17,5 @@ expression: "/ \\big/ \\Big/ \\bigg/ \\Bigg/ \\dots \\Bigg\\backslash \\bigg\\ba
     <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">\</mo>
     <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">\</mo>
     <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">\</mo>
-    <mi>\</mi>
+    <mo>\</mo>
 </math>

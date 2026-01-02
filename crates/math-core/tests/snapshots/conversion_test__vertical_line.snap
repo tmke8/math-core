@@ -6,7 +6,7 @@ expression: P(x|y)
     <mi>P</mi>
     <mo stretchy="false">(</mo>
     <mi>x</mi>
-    <mi>|</mi>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mi>y</mi>
     <mo stretchy="false">)</mo>
 </math>

@@ -3,19 +3,19 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\| \\big\\| \\Big\\| \\bigg\\| \\Bigg\\| \\dots \\Bigg| \\bigg| \\Big| \\big| |"
 ---
 <math>
-    <mi>‖</mi>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">‖</mo>
-    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">‖</mo>
-    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">‖</mo>
-    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">‖</mo>
+    <mo stretchy="false">‖</mo>
+    <mo maxsize="1.2em" minsize="1.2em" symmetric="true">‖</mo>
+    <mo maxsize="1.623em" minsize="1.623em" symmetric="true">‖</mo>
+    <mo maxsize="2.047em" minsize="2.047em" symmetric="true">‖</mo>
+    <mo maxsize="2.470em" minsize="2.470em" symmetric="true">‖</mo>
     <mrow>
         <mo>.</mo>
         <mo lspace="0" rspace="0">.</mo>
         <mo>.</mo>
     </mrow>
-    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true">|</mo>
-    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true">|</mo>
-    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true">|</mo>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true">|</mo>
-    <mi>|</mi>
+    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
 </math>

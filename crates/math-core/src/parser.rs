@@ -7,7 +7,7 @@ use mathml_renderer::{
         LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
     },
     length::Length,
-    symbol::{self, BinCategory, StretchableOp},
+    symbol::{self, BinCategory, OrdCategory, StretchableOp},
 };
 
 use crate::{
@@ -330,18 +330,28 @@ where
                 })
             }
             Token::Ord(ord) => {
-                if let Some(op) = ord.as_stretchable_op() {
-                    // If the operator can stretch, we prevent that by rendering it
-                    // as a normal identifier.
-                    Ok(Node::IdentifierChar(op.into(), LetterAttr::Default))
+                let attr = if matches!(ord.cat, OrdCategory::FG | OrdCategory::FGandForceDefault) {
+                    // Category F+G operators will stretch in pre- and postfix positions,
+                    // so we explicitly set the stretchy attribute to false to prevent that.
+                    // Alternatively, we could set `form="infix"` on them.
+                    Some(OpAttr::StretchyFalse)
                 } else {
-                    Ok(Node::Operator {
-                        op: ord.as_op(),
-                        attr: None,
-                        left: None,
-                        right: None,
-                    })
-                }
+                    None
+                };
+                let (left, right) =
+                    if matches!(ord.cat, OrdCategory::OnlyB | OrdCategory::FGandForceDefault) {
+                        // Category B and ForceDefault have non-zero spacing.
+                        // We suppress this by setting the spacing to zero.
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    } else {
+                        (None, None)
+                    };
+                Ok(Node::Operator {
+                    op: ord.as_op(),
+                    attr,
+                    left,
+                    right,
+                })
             }
             Token::BinaryOp(binary_op) => {
                 class = Class::BinaryOp;
