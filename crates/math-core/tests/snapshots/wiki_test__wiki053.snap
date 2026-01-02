@@ -9,11 +9,11 @@ expression: "<, \\nless, \\ll, \\not\\ll, \\lll, \\not\\lll, \\lessdot"
     <mo>,</mo>
     <mo lspace="0" rspace="0">≪</mo>
     <mo>,</mo>
-    <mo>≪</mo>
+    <mo lspace="0" rspace="0">≪</mo>
     <mo>,</mo>
     <mo lspace="0" rspace="0">⋘</mo>
     <mo>,</mo>
-    <mo>⋘</mo>
+    <mo lspace="0" rspace="0">⋘</mo>
     <mo>,</mo>
     <mo lspace="0" rspace="0">⋖</mo>
 </math>

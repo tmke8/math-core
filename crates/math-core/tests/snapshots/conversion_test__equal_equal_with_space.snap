@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "4=\\;=4"
+---
+<math>
+    <mn>4</mn>
+    <mo rspace="0">=</mo>
+    <mspace width="0.2777778em"/>
+    <mo lspace="0">=</mo>
+    <mn>4</mn>
+</math>

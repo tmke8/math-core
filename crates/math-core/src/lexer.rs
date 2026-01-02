@@ -1,5 +1,4 @@
 use std::mem;
-use std::num::NonZeroUsize;
 use std::str::CharIndices;
 
 use mathml_renderer::symbol::{self, MathMLOperator};
@@ -69,14 +68,15 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     /// Skip whitespace characters.
-    fn skip_whitespace(&mut self) -> Option<NonZeroUsize> {
-        let mut skipped = None;
+    ///
+    /// Returns the location of the first skipped whitespace character, or -1 if none were skipped.
+    fn skip_whitespace(&mut self) -> isize {
+        let mut skipped = -1;
         while self.peek.1.is_some_and(|ch| ch.is_ascii_whitespace()) {
             let (loc, _) = self.read_char();
-            // This is technically wrong because there can be whitespace at position 0,
-            // but we are only recording whitespace in text mode, which is started by
-            // the `\text` command, so at position 0 we will never we in text mode.
-            skipped = NonZeroUsize::new(loc);
+            if skipped == -1 {
+                skipped = loc as isize;
+            }
         }
         skipped
     }
@@ -152,8 +152,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
 
     pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
-        if let Some(loc) = self.skip_whitespace() {
-            return Ok(TokLoc(loc.get(), Token::Whitespace));
+        let white_space_loc = self.skip_whitespace();
+        if let Ok(loc) = usize::try_from(white_space_loc) {
+            return Ok(TokLoc(loc, Token::Whitespace));
         }
 
         let (loc, ch) = self.read_char();

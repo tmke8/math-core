@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\not\\lt"
 ---
 <math>
-    <mo>≮</mo>
+    <mo lspace="0" rspace="0">≮</mo>
 </math>

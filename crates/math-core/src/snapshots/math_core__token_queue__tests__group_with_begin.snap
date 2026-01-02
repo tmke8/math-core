@@ -1,5 +1,5 @@
 ---
-source: crates/math-core/src/token_manager.rs
+source: crates/math-core/src/token_queue.rs
 expression: "{\\begin{matrix}}"
 ---
 1: Begin(Matrix)

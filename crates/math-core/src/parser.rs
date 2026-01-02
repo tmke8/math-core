@@ -19,11 +19,11 @@ use crate::{
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, FromAscii, TokLoc, Token},
-    token_manager::TokenManager,
+    token_queue::TokenQueue,
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
-    pub(super) tokens: TokenManager<'source, 'config>,
+    pub(super) tokens: TokenQueue<'source, 'config>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
@@ -100,7 +100,7 @@ where
     ) -> ParseResult<'config, Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
-            tokens: TokenManager::new(lexer)?,
+            tokens: TokenQueue::new(lexer)?,
             buffer: Buffer::new(input_length),
             arena,
             equation_counter,
@@ -216,7 +216,7 @@ where
         let mut class: Class = Default::default();
         let next_class = self
             .tokens
-            .peek()
+            .peek_class_token()?
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
@@ -398,7 +398,7 @@ where
                 right: None,
             }),
             Token::PseudoOperator(name) => {
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 class = Class::Operator;
                 Ok(Node::PseudoOp {
                     attr: None,
@@ -592,7 +592,7 @@ where
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
                 let attr = if limits {
                     Some(OpAttr::NoMovableLimits)
                 } else {
@@ -628,7 +628,7 @@ where
                 let bounds = self.get_bounds()?;
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
                     attr: if matches!(bounds, Bounds(None, None)) {
                         None
@@ -659,34 +659,44 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                match self.next_token()?.into_token() {
+                let TokLoc(new_loc, tok) = self.next_token()?;
+                // Recompute the next class:
+                let next_class = self
+                    .tokens
+                    .peek_class_token()?
+                    .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+                match tok {
                     Token::Relation(op) => {
+                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
                         if let Some(negated) = get_negated_op(op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attr: None,
-                                left: None,
-                                right: None,
+                                left,
+                                right,
                             })
                         } else {
                             Ok(Node::Operator {
                                 op: op.as_op(),
                                 attr: None,
-                                left: None,
-                                right: None,
+                                left,
+                                right,
                             })
                         }
                     }
-                    tok @ (Token::OpLessThan | Token::OpGreaterThan) => Ok(Node::Operator {
-                        op: if matches!(tok, Token::OpLessThan) {
-                            symbol::NOT_LESS_THAN.as_op()
-                        } else {
-                            symbol::NOT_GREATER_THAN.as_op()
-                        },
-                        attr: None,
-                        left: None,
-                        right: None,
-                    }),
+                    tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
+                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                        Ok(Node::Operator {
+                            op: if matches!(tok, Token::OpLessThan) {
+                                symbol::NOT_LESS_THAN.as_op()
+                            } else {
+                                symbol::NOT_GREATER_THAN.as_op()
+                            },
+                            attr: None,
+                            left,
+                            right,
+                        })
+                    }
                     // We have to special-case `\exists` here because it is not a relation.
                     Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
                         op: symbol::THERE_DOES_NOT_EXIST.as_op(),
@@ -700,13 +710,7 @@ where
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                     }
-                    _ => Err(LatexError(
-                        loc,
-                        LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
-                            correct_place: Place::BeforeSomeOps,
-                        },
-                    )),
+                    _ => Err(LatexError(new_loc, LatexErrKind::ExpectedRelation(tok))),
                 }
             }
             Token::Transform(tf) => {
@@ -722,7 +726,7 @@ where
                     self.next_token()?; // Discard the limits token.
                 };
                 let bounds = self.get_bounds()?;
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
                 let target = self.commit(Node::Operator {
                     op: int.as_op(),
                     attr: None,
@@ -940,7 +944,7 @@ where
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
                     attr: None,
                     left,
@@ -1153,7 +1157,7 @@ where
                 for arg_num in 0..num_args {
                     let tokloc = self.next_token()?;
                     if matches!(tokloc.token(), Token::GroupBegin) {
-                        self.tokens.read_group(&mut self.state.cmd_args, false)?;
+                        self.tokens.read_group(&mut self.state.cmd_args)?;
                     } else {
                         self.state.cmd_args.push(tokloc);
                     }
@@ -1330,18 +1334,18 @@ where
     }
 
     fn big_operator_spacing(
-        &self,
+        &mut self,
         parse_as: ParseAs,
         prev_class: Class,
         explicit: bool,
-    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+    ) -> ParseResult<'config, (Option<MathSpacing>, Option<MathSpacing>)> {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
         let next_class = self
             .tokens
-            .peek()
+            .peek_class_token()?
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
-        (
+        Ok((
             if matches!(
                 prev_class,
                 Class::Relation | Class::Punctuation | Class::Operator | Class::Open
@@ -1362,7 +1366,7 @@ where
             } else {
                 None
             },
-        )
+        ))
     }
 
     fn extract_delimiter(
@@ -1464,7 +1468,7 @@ where
         match first {
             Token::GroupBegin => {
                 // Read until the matching `}`.
-                self.tokens.read_group(&mut tokens, true)?
+                self.tokens.read_group(&mut tokens)?
             }
             Token::InternalStringLiteral(content) => {
                 return Ok((loc, content));

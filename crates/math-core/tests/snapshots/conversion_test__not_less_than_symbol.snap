@@ -3,6 +3,6 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\not< x"
 ---
 <math>
-    <mo>≮</mo>
+    <mo lspace="0">≮</mo>
     <mi>x</mi>
 </math>

@@ -1,14 +1,14 @@
 ---
-source: crates/math-core/src/token_manager.rs
+source: crates/math-core/src/token_queue.rs
 expression: "\\text{  x +   y }"
 ---
 0: Text(None)
 5: GroupBegin
-7: Whitespace
+6: Whitespace
 8: Letter('x', True)
 9: Whitespace
 10: BinaryOp(Bin { char: '+', cat: BD })
-13: Whitespace
+11: Whitespace
 14: Letter('y', True)
 15: Whitespace
 16: GroupEnd
