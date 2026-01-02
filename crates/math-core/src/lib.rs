@@ -38,7 +38,7 @@ mod predefined;
 mod specifications;
 mod text_parser;
 mod token;
-mod token_manager;
+mod token_queue;
 
 use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]

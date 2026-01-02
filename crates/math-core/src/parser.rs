@@ -19,11 +19,11 @@ use crate::{
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, FromAscii, TokLoc, Token},
-    token_manager::TokenManager,
+    token_queue::TokenQueue,
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
-    pub(super) tokens: TokenManager<'source, 'config>,
+    pub(super) tokens: TokenQueue<'source, 'config>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
@@ -100,7 +100,7 @@ where
     ) -> ParseResult<'config, Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
-            tokens: TokenManager::new(lexer)?,
+            tokens: TokenQueue::new(lexer)?,
             buffer: Buffer::new(input_length),
             arena,
             equation_counter,

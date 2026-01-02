@@ -6,20 +6,21 @@ use crate::{
     token::{EndToken, TokLoc, Token},
 };
 
-pub(super) struct TokenManager<'source, 'config> {
+/// A token queue that allows peeking at the next non-whitespace token.
+pub(super) struct TokenQueue<'source, 'config> {
     pub lexer: Lexer<'config, 'source>,
-    buf: VecDeque<TokLoc<'config>>,
+    queue: VecDeque<TokLoc<'config>>,
     lexer_is_eof: bool,
     next_non_whitespace: usize,
 }
 
 static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
 
-impl<'source, 'config> TokenManager<'source, 'config> {
+impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
-        let mut tm = TokenManager {
+        let mut tm = TokenQueue {
             lexer,
-            buf: VecDeque::with_capacity(2),
+            queue: VecDeque::with_capacity(2),
             lexer_is_eof: false,
             next_non_whitespace: 0,
         };
@@ -42,7 +43,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
             let tok = self.lexer.next_token()?;
             let is_whitespace = matches!(tok.token(), Token::Whitespace);
             let is_eof = matches!(tok.token(), Token::Eof);
-            self.buf.push_back(tok);
+            self.queue.push_back(tok);
             if !is_whitespace {
                 break;
             }
@@ -59,7 +60,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
 
     /// Perform a linear search to find the next non-whitespace token in the buffer.
     fn find_next_non_whitespace(&self) -> Option<usize> {
-        self.buf
+        self.queue
             .iter()
             .position(|tokloc| !matches!(tokloc.token(), Token::Whitespace))
     }
@@ -67,13 +68,13 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     fn ensure_next_non_whitespace(&mut self) -> Result<(), Box<LatexError<'config>>> {
         let pos = 'pos_calc: {
             // First, try to find the next non-whitespace token in the existing buffer.
-            if !self.buf.is_empty()
+            if !self.queue.is_empty()
                 && let Some(pos) = self.find_next_non_whitespace()
             {
                 break 'pos_calc pos;
             };
             // Then, try to load more tokens until we find one or reach EOF.
-            let starting_len = self.buf.len();
+            let starting_len = self.queue.len();
             starting_len + self.load_token()?
         };
         self.next_non_whitespace = pos;
@@ -90,7 +91,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     pub(super) fn peek(&self) -> &TokLoc<'config> {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
-        if let Some(tok) = self.buf.get(self.next_non_whitespace) {
+        if let Some(tok) = self.queue.get(self.next_non_whitespace) {
             tok
         } else {
             debug_assert!(self.lexer_is_eof, "peek called without ensure");
@@ -100,12 +101,12 @@ impl<'source, 'config> TokenManager<'source, 'config> {
 
     pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
         match self.find_second_non_whitespace() {
-            Some(tok_idx) => Ok(self.buf.get(tok_idx).unwrap_or(&EOF_TOK)),
+            Some(tok_idx) => Ok(self.queue.get(tok_idx).unwrap_or(&EOF_TOK)),
             None => {
                 // Otherwise, load more tokens until we find one or reach EOF.
-                let starting_len = self.buf.len();
+                let starting_len = self.queue.len();
                 let offset = self.load_token()?;
-                if let Some(tok) = self.buf.get(starting_len + offset) {
+                if let Some(tok) = self.queue.get(starting_len + offset) {
                     Ok(tok)
                 } else {
                     debug_assert!(self.lexer_is_eof, "peek_second called without ensure");
@@ -123,14 +124,14 @@ impl<'source, 'config> TokenManager<'source, 'config> {
         // Ensure that the compiler can tell that `self.buf.range(next_non_whitespace..)`
         // cannot panic due to being out of bounds.
         let next_non_whitespace = self.next_non_whitespace;
-        if next_non_whitespace < self.buf.len() {
-            let mut range = self.buf.range(next_non_whitespace..);
+        if next_non_whitespace < self.queue.len() {
+            let mut range = self.queue.range(next_non_whitespace..);
             range.next(); // Skip the first non-whitespace token.
             // If there is a second non-whitespace token in the buffer, return it.
             range.position(|tokloc| !matches!(tokloc.token(), Token::Whitespace))
         } else {
             debug_assert!(self.lexer_is_eof, "peek_second called without ensure");
-            Some(self.buf.len())
+            Some(self.queue.len())
         }
     }
 
@@ -140,11 +141,11 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     pub(super) fn next(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
-            let _ = self.buf.pop_front();
+            let _ = self.queue.pop_front();
         }
 
         // Now pop the next token.
-        if let Some(ret) = self.buf.pop_front() {
+        if let Some(ret) = self.queue.pop_front() {
             self.ensure_next_non_whitespace()?;
             Ok(ret)
         } else {
@@ -158,7 +159,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     pub(super) fn next_with_whitespace(
         &mut self,
     ) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
-        if let Some(ret) = self.buf.pop_front() {
+        if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
                 self.next_non_whitespace = new_pos;
@@ -178,10 +179,10 @@ impl<'source, 'config> TokenManager<'source, 'config> {
     }
 
     pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'config>> + Copy]) {
-        self.buf.reserve(tokens.len());
+        self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            self.buf.push_front((*tok).into());
+            self.queue.push_front((*tok).into());
         }
 
         // Update the next_non_whitespace position.
@@ -191,7 +192,7 @@ impl<'source, 'config> TokenManager<'source, 'config> {
             // There is only one scenario in which we wouldn't find a non-whitespace token:
             // We reached EOF previously and all queued tokens are whitespace.
             debug_assert!(self.lexer_is_eof, "queue_in_front called without ensure");
-            self.next_non_whitespace = self.buf.len();
+            self.next_non_whitespace = self.queue.len();
         }
     }
 
@@ -260,7 +261,7 @@ mod tests {
 
         for (name, problem) in problems.into_iter() {
             let lexer = Lexer::new(problem, false, None);
-            let mut manager = TokenManager::new(lexer).expect("Failed to create TokenManager");
+            let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.load_token().unwrap();
             manager.load_token().unwrap();
@@ -286,7 +287,7 @@ mod tests {
         let input = r"\text{  x +   y }";
         // let input = r"\text  xy";
         let lexer = Lexer::new(input, false, None);
-        let mut manager = TokenManager::new(lexer).expect("Failed to create TokenManager");
+        let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
 
         let mut token_str = String::new();
 

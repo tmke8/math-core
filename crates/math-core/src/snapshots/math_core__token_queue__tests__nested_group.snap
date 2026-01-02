@@ -1,5 +1,5 @@
 ---
-source: crates/math-core/src/token_manager.rs
+source: crates/math-core/src/token_queue.rs
 expression: "{x + {y - z}} c"
 ---
 1: Letter('x', True)

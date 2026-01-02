@@ -1,6 +1,6 @@
 ---
-source: crates/math-core/src/token_manager.rs
-expression: "{x+y}"
+source: crates/math-core/src/token_queue.rs
+expression: "{x+y} b"
 ---
 1: Letter('x', True)
 2: BinaryOp(Bin { char: '+', cat: BD })
