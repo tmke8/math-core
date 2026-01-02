@@ -659,34 +659,44 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                match self.next_token()?.into_token() {
+                let TokLoc(new_loc, tok) = self.next_token()?;
+                // Recompute the next class:
+                let next_class = self
+                    .tokens
+                    .peek_class_token()?
+                    .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+                match tok {
                     Token::Relation(op) => {
+                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
                         if let Some(negated) = get_negated_op(op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attr: None,
-                                left: None,
-                                right: None,
+                                left,
+                                right,
                             })
                         } else {
                             Ok(Node::Operator {
                                 op: op.as_op(),
                                 attr: None,
-                                left: None,
-                                right: None,
+                                left,
+                                right,
                             })
                         }
                     }
-                    tok @ (Token::OpLessThan | Token::OpGreaterThan) => Ok(Node::Operator {
-                        op: if matches!(tok, Token::OpLessThan) {
-                            symbol::NOT_LESS_THAN.as_op()
-                        } else {
-                            symbol::NOT_GREATER_THAN.as_op()
-                        },
-                        attr: None,
-                        left: None,
-                        right: None,
-                    }),
+                    tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
+                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                        Ok(Node::Operator {
+                            op: if matches!(tok, Token::OpLessThan) {
+                                symbol::NOT_LESS_THAN.as_op()
+                            } else {
+                                symbol::NOT_GREATER_THAN.as_op()
+                            },
+                            attr: None,
+                            left,
+                            right,
+                        })
+                    }
                     // We have to special-case `\exists` here because it is not a relation.
                     Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
                         op: symbol::THERE_DOES_NOT_EXIST.as_op(),
@@ -700,13 +710,7 @@ where
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
                     }
-                    _ => Err(LatexError(
-                        loc,
-                        LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
-                            correct_place: Place::BeforeSomeOps,
-                        },
-                    )),
+                    _ => Err(LatexError(new_loc, LatexErrKind::ExpectedRelation(tok))),
                 }
             }
             Token::Transform(tf) => {

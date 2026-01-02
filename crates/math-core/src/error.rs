@@ -36,6 +36,7 @@ pub enum LatexErrKind<'config> {
         got: Token<'config>,
         correct_place: Place,
     },
+    ExpectedRelation(Token<'config>),
     BoundFollowedByBound,
     DuplicateSubOrSup,
     ExpectedText(&'static str),
@@ -68,8 +69,6 @@ pub enum DelimiterModifier {
 pub enum Place {
     #[strum(serialize = r"after \int, \sum, ...")]
     AfterBigOp,
-    #[strum(serialize = r"before supported operators")]
-    BeforeSomeOps,
     #[strum(serialize = r"in a table-like environment")]
     TableEnv,
     #[strum(serialize = r"in a numbered equation environment")]
@@ -124,6 +123,9 @@ impl LatexErrKind<'_> {
                     + "\", which may only appear "
                     + <&str>::from(correct_place)
                     + "."
+            }
+            LatexErrKind::ExpectedRelation(got) => {
+                "Expected a relation after \\not, got \"".to_string() + <&str>::from(got) + "\"."
             }
             LatexErrKind::BoundFollowedByBound => {
                 "'^' or '_' directly followed by '^', '_' or prime.".to_string()

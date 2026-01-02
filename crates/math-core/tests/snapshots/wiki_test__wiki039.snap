@@ -6,9 +6,9 @@ expression: "\\in, \\notin \\not\\in, \\ni, \\not\\ni"
     <mo lspace="0" rspace="0">∈</mo>
     <mo>,</mo>
     <mo lspace="0" rspace="0">∉</mo>
-    <mo>∉</mo>
+    <mo lspace="0" rspace="0">∉</mo>
     <mo>,</mo>
     <mo lspace="0" rspace="0">∋</mo>
     <mo>,</mo>
-    <mo>∋</mo>
+    <mo lspace="0" rspace="0">∋</mo>
 </math>
