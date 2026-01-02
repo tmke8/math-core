@@ -4,9 +4,9 @@ expression: "\\hspace {  4  em } x"
 ---
 0: CustomSpace
 8: GroupBegin
-10: Whitespace
+9: Whitespace
 11: Digit('4')
-13: Whitespace
+12: Whitespace
 14: Letter('e', True)
 15: Letter('m', True)
 16: Whitespace
