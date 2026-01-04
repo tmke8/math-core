@@ -289,7 +289,7 @@ where
                     } else {
                         '\u{FE01}' // VARIATION SELECTOR-2
                     });
-                    Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
+                    Ok(Node::IdentifierStr(builder.finish(self.arena)))
                 } else {
                     Ok(Node::IdentifierChar(
                         ch,
@@ -718,7 +718,7 @@ where
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
-                        Ok(Node::IdentifierStr(false, builder.finish(self.arena)))
+                        Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
                     _ => Err(LatexError(new_loc, LatexErrKind::ExpectedRelation(tok))),
                 }
@@ -1208,9 +1208,9 @@ where
                     for c in content.chars() {
                         builder.push_char(tf.transform(c, false));
                     }
-                    Ok(Node::IdentifierStr(true, builder.finish(self.arena)))
+                    Ok(Node::IdentifierStr(builder.finish(self.arena)))
                 } else {
-                    Ok(Node::IdentifierStr(false, content))
+                    Ok(Node::IdentifierStr(content))
                 }
             }
         };
@@ -1464,8 +1464,7 @@ where
             };
             Node::IdentifierChar(ch, attr)
         } else {
-            let with_tf = matches!(tf, MathVariant::Transform(_));
-            Node::IdentifierStr(with_tf, builder.finish(self.arena))
+            Node::IdentifierStr(builder.finish(self.arena))
         });
         Ok(Some((Class::Default, node)))
     }

@@ -5,14 +5,14 @@ expression: "\\mathit{ab \\log cd}"
 [
   Row(
     nodes: [
-      IdentifierStr(true, "𝑎𝑏"),
+      IdentifierStr("𝑎𝑏"),
       PseudoOp(
         attr: None,
         left: Some(ThreeMu),
         right: Some(ThreeMu),
         name: "log",
       ),
-      IdentifierStr(true, "𝑐𝑑"),
+      IdentifierStr("𝑐𝑑"),
     ],
     attr: None,
   ),

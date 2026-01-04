@@ -5,9 +5,9 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
 [
   Row(
     nodes: [
-      IdentifierStr(false, "ab"),
-      IdentifierStr(true, "𝑐𝑑"),
-      IdentifierStr(false, "ef"),
+      IdentifierStr("ab"),
+      IdentifierStr("𝑐𝑑"),
+      IdentifierStr("ef"),
     ],
     attr: None,
   ),

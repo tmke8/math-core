@@ -38,8 +38,7 @@ pub enum Node<'arena> {
         name: &'arena str,
     },
     /// `<mi>...</mi>` for a string.
-    /// The boolean indicates whether a transform was applied.
-    IdentifierStr(bool, &'arena str),
+    IdentifierStr(&'arena str),
     /// `<mspace width="..."/>`
     Space(Length),
     /// `<msub>...</msub>`
@@ -216,16 +215,16 @@ impl Node<'_> {
                 emit_operator_attributes(s, *attr, *left, *right)?;
                 write!(s, ">{text}</mo>")?;
             }
-            node @ (Node::IdentifierStr(_, letters) | Node::Text(_, letters)) => {
+            node @ (Node::IdentifierStr(letters) | Node::Text(_, letters)) => {
                 let (open, close) = match node {
-                    Node::IdentifierStr(with_tf, _) => {
-                        // This is only needed to prevent Firefox from adding extra space around
-                        // multi-letter ASCII identifiers.
-                        if *with_tf {
-                            ("<mi>", "</mi>")
-                        } else {
-                            ("<mpadded><mi>", "</mi></mpadded>")
-                        }
+                    Node::IdentifierStr(_) => {
+                        // The "<mpadded>" is needed to prevent Firefox from adding extra space
+                        // around multi-letter identifiers.
+                        debug_assert!(
+                            letters.chars().count() > 1,
+                            "single-letter IdentifierStr should be IdentifierChar"
+                        );
+                        ("<mpadded><mi>", "</mi></mpadded>")
                     }
                     Node::Text(text_style, _) => match text_style {
                         None => ("<mtext>", "</mtext>"),
@@ -882,7 +881,7 @@ mod tests {
     #[test]
     fn render_collected_letters() {
         assert_eq!(
-            render(&Node::IdentifierStr(false, "sin")),
+            render(&Node::IdentifierStr("sin")),
             "<mpadded><mi>sin</mi></mpadded>"
         );
     }
@@ -1292,7 +1291,7 @@ mod tests {
             "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
         );
         assert_eq!(
-            render(&Node::IdentifierStr(false, "abc")),
+            render(&Node::IdentifierStr("abc")),
             "<mpadded><mi>abc</mi></mpadded>"
         );
         assert_eq!(
@@ -1303,7 +1302,10 @@ mod tests {
             render(&Node::IdentifierChar('𝒂', LetterAttr::Default)),
             "<mi>𝒂</mi>"
         );
-        assert_eq!(render(&Node::IdentifierStr(true, "𝒂𝒃𝒄")), "<mi>𝒂𝒃𝒄</mi>");
+        assert_eq!(
+            render(&Node::IdentifierStr("𝒂𝒃𝒄")),
+            "<mpadded><mi>𝒂𝒃𝒄</mi></mpadded>"
+        );
     }
 
     #[test]

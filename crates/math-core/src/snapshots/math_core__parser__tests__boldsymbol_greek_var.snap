@@ -3,5 +3,5 @@ source: crates/math-core/src/parser.rs
 expression: "\\boldsymbol{\\Gamma\\varGamma}"
 ---
 [
-  IdentifierStr(true, "𝚪𝜞"),
+  IdentifierStr("𝚪𝜞"),
 ]
