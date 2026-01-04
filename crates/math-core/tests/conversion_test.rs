@@ -329,6 +329,8 @@ fn main() {
         ("nested_custom_cmd", r"\odv{\odv f x} x"),
         ("and_between_letters", r"x\And x"),
         ("and_before_relation", r"x\And =x"),
+        ("idotsint", r"x \idotsint ="),
+        ("idotsint_with_limits", r"\idotsint\limits_0^1 xy"),
     ];
 
     let config = MathCoreConfig {

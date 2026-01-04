@@ -59,13 +59,22 @@ pub static DOTS: [Token<'static>; 5] = [
 ];
 
 static CDOT: &str = "<mo>·</mo>";
+static CDOT_NO_SPACING: &str = r#"<mo lspace="0" rspace="0">·</mo>"#;
 
 pub static CDOTS: [Token<'static>; 5] = [
     GroupBegin,
     HardcodedMathML(CDOT),
-    HardcodedMathML(r#"<mo lspace="0" rspace="0">·</mo>"#),
+    HardcodedMathML(CDOT_NO_SPACING),
     HardcodedMathML(CDOT),
     GroupEnd,
+];
+
+pub static IDOTSINT: [Token<'static>; 5] = [
+    Integral(symbol::INTEGRAL),
+    HardcodedMathML(CDOT_NO_SPACING),
+    HardcodedMathML(CDOT),
+    HardcodedMathML(CDOT_NO_SPACING),
+    Integral(symbol::INTEGRAL),
 ];
 
 pub static AND: [Token<'static>; 3] = [
