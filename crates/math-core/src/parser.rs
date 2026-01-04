@@ -375,6 +375,10 @@ where
                     right: spacing,
                 })
             }
+            Token::Inner(token) => {
+                let (_, node) = self.parse_token(Ok(TokLoc(loc, *token)), parse_as, prev_class)?;
+                return Ok((Class::Inner, node));
+            }
             Token::OpGreaterThan => {
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::PseudoOp {

@@ -48,32 +48,23 @@ pub static XLEFTARROW: [Token<'static>; 7] = [
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
 
-static DOT: &str = "<mo>.</mo>";
-
 pub static DOTS: [Token<'static>; 5] = [
-    GroupBegin,
-    HardcodedMathML(DOT),
+    Inner(&GroupBegin),
+    Op(symbol::FULL_STOP),
     HardcodedMathML(r#"<mo lspace="0" rspace="0">.</mo>"#),
-    HardcodedMathML(DOT),
+    Op(symbol::FULL_STOP),
     GroupEnd,
 ];
 
-static CDOT: &str = "<mo>·</mo>";
-static CDOT_NO_SPACING: &str = r#"<mo lspace="0" rspace="0">·</mo>"#;
-
-pub static CDOTS: [Token<'static>; 5] = [
-    GroupBegin,
-    HardcodedMathML(CDOT),
-    HardcodedMathML(CDOT_NO_SPACING),
-    HardcodedMathML(CDOT),
-    GroupEnd,
+pub static CDOTS: [Token<'static>; 3] = [
+    Op(symbol::MIDDLE_DOT),
+    HardcodedMathML(r#"<mo lspace="0" rspace="0">·</mo>"#),
+    Op(symbol::MIDDLE_DOT),
 ];
 
-pub static IDOTSINT: [Token<'static>; 5] = [
+pub static IDOTSINT: [Token<'static>; 3] = [
     Integral(symbol::INTEGRAL),
-    HardcodedMathML(CDOT_NO_SPACING),
-    HardcodedMathML(CDOT),
-    HardcodedMathML(CDOT_NO_SPACING),
+    CustomCmd(0, &CDOTS),
     Integral(symbol::INTEGRAL),
 ];
 
