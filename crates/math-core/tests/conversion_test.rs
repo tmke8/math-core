@@ -301,6 +301,7 @@ fn main() {
         ("root_log", r"\sqrt[\log]{x}"),
         ("log_in_big", r"\bigl(\log\bigr) + \big(\log\big)"),
         ("plus_after_sum", r"\sum + 4"),
+        ("plus_before_sum", r"4 + \sum"),
         ("plus_after_equal_subscript", r"x =_+4"),
         ("plus_after_equal_subscript2", r"x =_2 +4"),
         ("plus_after_equal_subscript3", r"x =_{2} + 4"),
