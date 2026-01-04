@@ -311,6 +311,7 @@ fn main() {
         ("hspace", r"\hspace{1cm}"),
         ("hspace_whitespace", r"\hspace{  4em }"),
         ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
+        ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x"),
         ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         (
             "array_lines",

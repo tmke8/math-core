@@ -20,7 +20,6 @@ static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     " " => NonBreakingSpace,
-    "!" => Space(LatexUnit::Mu.length_with_unit(-3.0)),
     "#" => Letter(symbol::NUMBER_SIGN, FromAscii::False),
     "$" => Letter(symbol::DOLLAR_SIGN, FromAscii::False),
     "%" => Letter(symbol::PERCENT_SIGN, FromAscii::False),
