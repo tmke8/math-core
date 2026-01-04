@@ -5,7 +5,7 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
 <math>
     <mrow>
         <mpadded><mi>ab</mi></mpadded>
-        <mi>𝑐𝑑</mi>
+        <mpadded><mi>𝑐𝑑</mi></mpadded>
         <mpadded><mi>ef</mi></mpadded>
     </mrow>
 </math>

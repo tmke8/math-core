@@ -27,7 +27,7 @@ fn main() {
         r#"\phi = 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ \ddots } } }"#,
         r#"G / \ker f \cong \mathrm{im}\,f"#,
         r#"\iint_S ( \bm{\nabla} \times \bm{A} ) \cdot d\bm{S} = \oint_C \bm{A} \cdot d\bm{l}"#,
-        r#"\int \mathscr{D}\!x = \lim_{N \to \infty} \left( \frac{ m }{ 2 \pi i \hbar \Delta t } \right)^\frac{N}{2} \int\!\cdots\!\int \prod_{i=1}^{N-1} dx_i"#,
+        r#"\int \mathscr{D}x = \lim_{N \to \infty} \left( \frac{ m }{ 2 \pi i \hbar \Delta t } \right)^\frac{N}{2} \idotsint \prod_{i=1}^{N-1} dx_i"#,
         r#"\int_S f \, d\mu \leq \liminf_{n \to \infty} \int_S f_n \, d\mu"#,
         r#"\lim_{n \to \infty} P \left( \frac{ S_n - n \mu }{ \sqrt{ n } \sigma } \leq \alpha \right) = \frac{ 1 }{ \sqrt{ 2 \pi } } \int_{- \infty}^\alpha \exp \left( - \frac{ x^2 }{ 2 } \right) \, dx"#,
         r#"f: \mathbb{C} \to \mathbb{R} , \ z \mapsto z \bar{z}"#,

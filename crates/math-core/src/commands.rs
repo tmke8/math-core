@@ -20,7 +20,6 @@ static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     " " => NonBreakingSpace,
-    "!" => Space(LatexUnit::Mu.length_with_unit(-3.0)),
     "#" => Letter(symbol::NUMBER_SIGN, FromAscii::False),
     "$" => Letter(symbol::DOLLAR_SIGN, FromAscii::False),
     "%" => Letter(symbol::PERCENT_SIGN, FromAscii::False),
@@ -301,6 +300,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hookrightarrow" => Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hslash" => Letter(symbol::PLANCK_CONSTANT_OVER_TWO_PI, FromAscii::False),
     "hspace" => CustomSpace,
+    "idotsint" => CustomCmd(0, &predefined::IDOTSINT),
     "iff" => CustomCmd(0, &predefined::IFF),
     "iiiint" => Integral(symbol::QUADRUPLE_INTEGRAL_OPERATOR),
     "iiint" => Integral(symbol::TRIPLE_INTEGRAL),

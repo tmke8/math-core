@@ -1,0 +1,23 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\qquad x\\quad x\\;x\\:x\\>x\\,x\\ x~x"
+---
+<math>
+    <mi>x</mi>
+    <mspace width="2em"/>
+    <mi>x</mi>
+    <mspace width="1em"/>
+    <mi>x</mi>
+    <mspace width="0.2777778em"/>
+    <mi>x</mi>
+    <mspace width="0.22222222em"/>
+    <mi>x</mi>
+    <mspace width="0.22222222em"/>
+    <mi>x</mi>
+    <mspace width="0.16666667em"/>
+    <mi>x</mi>
+    <mtext> </mtext>
+    <mi>x</mi>
+    <mtext> </mtext>
+    <mi>x</mi>
+</math>

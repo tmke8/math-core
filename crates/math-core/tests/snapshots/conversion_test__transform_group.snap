@@ -5,7 +5,7 @@ expression: "\\mathit{a{bc}d}"
 <math>
     <mrow>
         <mi>𝑎</mi>
-        <mi>𝑏𝑐</mi>
+        <mpadded><mi>𝑏𝑐</mi></mpadded>
         <mi>𝑑</mi>
     </mrow>
 </math>

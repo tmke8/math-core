@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\boldsymbol{\\varrho\\varsigma\\vartheta\\varphi}"
 ---
 <math>
-    <mi>𝝔𝝇𝝑𝝋</mi>
+    <mpadded><mi>𝝔𝝇𝝑𝝋</mi></mpadded>
 </math>

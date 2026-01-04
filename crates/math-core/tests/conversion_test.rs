@@ -311,6 +311,7 @@ fn main() {
         ("hspace", r"\hspace{1cm}"),
         ("hspace_whitespace", r"\hspace{  4em }"),
         ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
+        ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x"),
         ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         (
             "array_lines",
@@ -328,6 +329,8 @@ fn main() {
         ("nested_custom_cmd", r"\odv{\odv f x} x"),
         ("and_between_letters", r"x\And x"),
         ("and_before_relation", r"x\And =x"),
+        ("idotsint", r"x \idotsint ="),
+        ("idotsint_with_limits", r"\idotsint\limits_0^1 xy"),
     ];
 
     let config = MathCoreConfig {

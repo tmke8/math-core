@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathbf{1234}"
 ---
 <math>
-    <mi>𝟏𝟐𝟑𝟒</mi>
+    <mpadded><mi>𝟏𝟐𝟑𝟒</mi></mpadded>
 </math>
