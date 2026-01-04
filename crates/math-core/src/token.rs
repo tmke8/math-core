@@ -11,7 +11,7 @@ use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
 pub enum Token<'config> {
-    #[strum(serialize = "end of document")]
+    #[strum(serialize = "end of input")]
     Eof,
     #[strum(serialize = r"\begin")]
     Begin(Env),
