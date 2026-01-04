@@ -4,7 +4,7 @@ use mathml_renderer::attribute::{
     FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style,
 };
 use mathml_renderer::length::Length;
-use mathml_renderer::symbol::{BigOp, Bin, Fence, MathMLOperator, OrdLike, Punct, Rel};
+use mathml_renderer::symbol::{Bin, Fence, MathMLOperator, Op, OrdLike, Punct, Rel};
 
 use crate::character_class::Class;
 use crate::environments::Env;
@@ -59,7 +59,7 @@ pub enum Token<'config> {
     OverUnderBrace(OrdLike, bool),
     #[strum(serialize = r"\sqrt")]
     Sqrt,
-    Integral(BigOp),
+    Integral(Op),
     #[strum(serialize = r"\limits")]
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
@@ -75,7 +75,7 @@ pub enum Token<'config> {
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
     /// A token corresponding to LaTeX's "mathop" character class (class 1).
-    BigOp(BigOp),
+    Op(Op),
     /// A token corresponding to LaTeX's "mathbin" character class (class 2).
     #[strum(serialize = "binary operator")]
     BinaryOp(Bin),
@@ -104,6 +104,10 @@ pub enum Token<'config> {
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
     ForceClose(MathMLOperator),
+    /// A token to force an operator to behave like a binary operator (mathbin).
+    /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
+    /// but in MathML Core is a "big operator" (mathop).
+    ForceBinaryOp(MathMLOperator),
     Letter(char, FromAscii),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Digit(char),
@@ -143,7 +147,7 @@ impl Token<'_> {
             | Token::NewColumn
             | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) => Class::BinaryOp,
-            Token::BigOp(_) | Token::Integral(_) => Class::Operator,
+            Token::Op(_) | Token::Integral(_) => Class::Operator,
             Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }

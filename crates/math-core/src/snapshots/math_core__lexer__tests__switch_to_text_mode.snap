@@ -2,7 +2,7 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\prod\\text\\o\\sum"
 ---
-0: BigOp(BigOp { char: '∏', cat: OnlyJ })
+0: Op(Op { char: '∏', cat: OnlyJ })
 5: Text(None)
 10: Letter('ø', False)
-12: BigOp(BigOp { char: '∑', cat: OnlyJ })
+12: Op(Op { char: '∑', cat: OnlyJ })

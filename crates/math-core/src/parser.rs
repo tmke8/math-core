@@ -7,7 +7,7 @@ use mathml_renderer::{
         LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
     },
     length::Length,
-    symbol::{self, BinCategory, OrdCategory, StretchableOp},
+    symbol::{self, OpCategory, OrdCategory, StretchableOp},
 };
 
 use crate::{
@@ -355,29 +355,21 @@ where
             }
             Token::BinaryOp(binary_op) => {
                 class = Class::BinaryOp;
-                let spacing = if !parse_as.in_sequence() {
-                    // Don't add spacing if we are in an argument.
-                    None
-                } else if matches!(
-                    prev_class,
-                    Class::Relation
-                        | Class::Punctuation
-                        | Class::BinaryOp
-                        | Class::Open
-                        | Class::Operator
-                ) || matches!(
-                    next_class,
-                    Class::Relation | Class::Punctuation | Class::Close
-                ) || self.state.script_style
-                {
-                    Some(MathSpacing::Zero)
-                } else if matches!(binary_op.cat, BinCategory::OnlyC) {
-                    Some(MathSpacing::FourMu) // force binary op spacing
-                } else {
-                    None
-                };
+                let spacing =
+                    self.bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, false);
                 Ok(Node::Operator {
                     op: binary_op.as_op(),
+                    attr: None,
+                    left: spacing,
+                    right: spacing,
+                })
+            }
+            Token::ForceBinaryOp(op) => {
+                class = Class::BinaryOp;
+                let spacing =
+                    self.bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                Ok(Node::Operator {
+                    op,
                     attr: None,
                     left: spacing,
                     right: spacing,
@@ -596,9 +588,10 @@ where
                     Ok(base)
                 }
             }
-            Token::BigOp(op) => {
+            Token::Op(op) => {
                 class = Class::Operator;
-                let limits = matches!(self.tokens.peek().token(), Token::Limits);
+                let is_big = matches!(op.cat, OpCategory::OnlyH | OpCategory::OnlyJ);
+                let limits = is_big && matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
                 };
@@ -614,6 +607,9 @@ where
                     left,
                     right,
                 });
+                if !is_big {
+                    return Ok((class, target));
+                }
                 match self.get_bounds()? {
                     Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
                         target,
@@ -1220,6 +1216,33 @@ where
         }
     }
 
+    fn bin_op_spacing(
+        &mut self,
+        in_sequence: bool,
+        prev_class: Class,
+        next_class: Class,
+        force: bool,
+    ) -> Option<MathSpacing> {
+        let spacing = if !in_sequence {
+            // Don't add spacing if we are in an argument.
+            None
+        } else if matches!(
+            prev_class,
+            Class::Relation | Class::Punctuation | Class::BinaryOp | Class::Operator | Class::Open
+        ) || matches!(
+            next_class,
+            Class::Relation | Class::Punctuation | Class::Close
+        ) || self.state.script_style
+        {
+            Some(MathSpacing::Zero)
+        } else if force {
+            Some(MathSpacing::FourMu) // force binary op spacing
+        } else {
+            None
+        };
+        spacing
+    }
+
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
     fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<'config, &'arena Node<'arena>> {
@@ -1358,7 +1381,11 @@ where
         Ok((
             if matches!(
                 prev_class,
-                Class::Relation | Class::Punctuation | Class::Operator | Class::Open
+                Class::Relation
+                    | Class::Punctuation
+                    | Class::Operator
+                    | Class::BinaryOp
+                    | Class::Open
             ) {
                 Some(MathSpacing::Zero)
             } else if explicit {
@@ -1368,7 +1395,7 @@ where
             },
             if matches!(
                 next_class,
-                Class::Punctuation | Class::Relation | Class::Open | Class::Close
+                Class::Relation | Class::Punctuation | Class::Open | Class::Close
             ) {
                 Some(MathSpacing::Zero)
             } else if explicit {
