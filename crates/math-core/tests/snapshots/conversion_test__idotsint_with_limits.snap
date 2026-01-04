@@ -4,11 +4,11 @@ expression: "\\idotsint\\limits_0^1 xy"
 ---
 <math>
     <mo lspace="0">∫</mo>
-    <mo lspace="0" rspace="0">·</mo>
-    <mo>·</mo>
-    <mo lspace="0" rspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
     <munderover>
-        <mo>∫</mo>
+        <mo lspace="0">∫</mo>
         <mn>0</mn>
         <mn>1</mn>
     </munderover>
