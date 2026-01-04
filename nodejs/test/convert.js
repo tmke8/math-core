@@ -82,6 +82,45 @@ describe("Convert Tests", function () {
         "<math><mi>ℝ</mi></math>",
       );
     });
+    it("should throw an error on invalid macro definition", function () {
+      const macros = new Map();
+      macros.set("RR", "\\mathb{R}");
+      // First assert that the error is thrown.
+      assert.throws(() => {
+        new LatexToMathML({
+          macros,
+        });
+      });
+      // Then assert that the error contains the correct context and location.
+      try {
+        new LatexToMathML({
+          macros,
+        });
+      } catch (e) {
+        assert.match(e.message, /Unknown command "\\mathb"./);
+        assert.equal(e.context, "\\mathb{R}");
+        assert.equal(e.location, 0);
+      }
+    });
+  });
+  context("Config parse errors", function () {
+    it("should throw an error on invalid prettyPrint value", function () {
+      assert.throws(() => {
+        new LatexToMathML({
+          // @ts-expect-error
+          prettyPrint: "sometimes",
+        });
+      }, /Invalid value for prettyPrint/);
+    });
+    it("should throw an error on invalid macro map", function () {
+      const macros = new Map();
+      macros.set("RR", 42);
+      assert.throws(() => {
+        new LatexToMathML({
+          macros,
+        });
+      }, /Invalid macros map/);
+    });
   });
   context("Continue on error", function () {
     it("should continue on error", function () {

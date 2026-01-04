@@ -13,10 +13,37 @@ use js_sys::{Array, Map};
 use math_core::{MathDisplay, PrettyPrint};
 use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+pub struct ConfigParseError {
+    message: &'static str,
+}
+
+#[wasm_bindgen]
+impl ConfigParseError {
+    #[wasm_bindgen(getter, unchecked_return_type = "string")]
+    pub fn message(&self) -> JsValue {
+        JsValue::from_str(&self.message)
+    }
+}
+
 #[wasm_bindgen(getter_with_clone)]
 pub struct LatexError {
-    pub message: JsValue,
+    message: JsValue,
     pub location: u32,
+    context: Option<JsValue>,
+}
+
+#[wasm_bindgen]
+impl LatexError {
+    #[wasm_bindgen(getter, unchecked_return_type = "string")]
+    pub fn message(&self) -> JsValue {
+        self.message.clone()
+    }
+
+    #[wasm_bindgen(getter, unchecked_return_type = "string | undefined")]
+    pub fn context(&self) -> Option<JsValue> {
+        self.context.clone()
+    }
 }
 
 #[wasm_bindgen]
@@ -56,41 +83,51 @@ extern "C" {
 #[wasm_bindgen]
 impl LatexToMathML {
     #[wasm_bindgen(constructor)]
-    pub fn new(js_config: &MathCoreOptions) -> Result<LatexToMathML, LatexError> {
+    pub fn new(js_config: &MathCoreOptions) -> Result<Self, JsValue> {
         // This is the poor man's `serde_wasm_bindgen::from_value`.
-        let macros = js_config.macros().map(|macro_map| {
-            let mut macros = Vec::with_capacity(macro_map.size() as usize);
-            let macro_iter = macro_map.entries();
-            loop {
-                let Ok(entry) = macro_iter.next() else {
-                    break; // Exit the loop on error.
+        let macros = match js_config.macros() {
+            Some(macro_map) => {
+                let mut macros = Vec::with_capacity(macro_map.size() as usize);
+                let macro_iter = macro_map.entries();
+                let success = loop {
+                    let Ok(entry) = macro_iter.next() else {
+                        break false; // Error getting next entry.
+                    };
+                    if entry.done() {
+                        break true; // Exit the loop when there are no more entries.
+                    }
+                    let Ok(value) = entry.value().dyn_into::<Array>() else {
+                        break false; // Error if the value is not an Array.
+                    };
+                    let Some(key) = value.get(0).as_string() else {
+                        break false; // Error if the first element is not a string.
+                    };
+                    let Some(value) = value.get(1).as_string() else {
+                        break false; // Error if the second element is not a string.
+                    };
+                    macros.push((key, value));
                 };
-                if entry.done() {
-                    break; // Exit the loop when there are no more entries.
+                if success {
+                    Some(macros)
+                } else {
+                    return Err(ConfigParseError {
+                        message: "Invalid macros map",
+                    }
+                    .into());
                 }
-                let Ok(value) = entry.value().dyn_into::<Array>() else {
-                    continue; // Skip if the value is not an Array.
-                };
-                let Some(key) = value.get(0).as_string() else {
-                    continue; // Skip if the first element is not a string.
-                };
-                let Some(value) = value.get(1).as_string() else {
-                    continue; // Skip if the second element is not a string.
-                };
-                macros.push((key, value));
             }
-            macros
-        });
+            None => None,
+        };
         let pretty_print = if let Some(pp) = js_config.prettyPrint() {
             match pp.as_str() {
                 "always" => Some(PrettyPrint::Always),
                 "never" => Some(PrettyPrint::Never),
                 "auto" => Some(PrettyPrint::Auto),
                 _ => {
-                    return Err(LatexError {
-                        message: JsValue::from_str("Invalid value for prettyPrint"),
-                        location: 0,
-                    });
+                    return Err(ConfigParseError {
+                        message: "Invalid value for prettyPrint",
+                    }
+                    .into());
                 }
             }
         } else {
@@ -106,6 +143,7 @@ impl LatexToMathML {
         let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
             message: JsValue::from_str(&e.0.1.string()),
             location: e.0.0 as u32,
+            context: Some(JsValue::from_str(&e.1)),
         })?;
         Ok(LatexToMathML {
             inner: convert,
@@ -133,6 +171,7 @@ impl LatexToMathML {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
                         location: e.0 as u32,
+                        context: None,
                     })
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))
@@ -161,6 +200,7 @@ impl LatexToMathML {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
                         location: e.0 as u32,
+                        context: None,
                     })
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))
