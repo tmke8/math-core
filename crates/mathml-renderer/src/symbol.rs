@@ -140,7 +140,9 @@ impl OrdLike {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BigOpCategory {
+pub enum OpCategory {
+    /// Category C: Infix, op spacing (e.g. `×`).
+    OnlyC,
     /// Category H: Prefix, op spacing, symmetric, largeop (e.g. `∫`).
     OnlyH,
     /// Category J: Prefix, op spacing, symmetric, largeop, movablelimits
@@ -149,8 +151,8 @@ pub enum BigOpCategory {
 }
 
 make_character_class!(
-    /// A prefix operator with operator spacing (categories H, J).
-    BigOp, BigOpCategory, big_op
+    /// An operator with operator spacing (categories C, H, J).
+    Op, OpCategory, op
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,8 +161,6 @@ pub enum BinCategory {
     OnlyB,
     /// Category B and D: Infix and prefix, binary op spacing (e.g. `+`)
     BD,
-    /// Category C: Infix, op spacing (e.g. `×`).
-    OnlyC,
 }
 
 make_character_class!(
@@ -177,7 +177,7 @@ pub enum RelCategory {
 }
 
 make_character_class!(
-    /// A operator with relation spacing.
+    /// An operator with relation spacing.
     Rel, RelCategory, rel
 );
 
@@ -290,7 +290,7 @@ pub const RIGHT_PARENTHESIS: Fence = Fence(')');
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = bin('+', BinCategory::BD);
 pub const COMMA: Punct = Punct(',');
-// pub const FULL_STOP: Bin = bin('.', BinCategory::OnlyC);
+pub const FULL_STOP: Op = op('.', OpCategory::OnlyC);
 pub const SOLIDUS: OrdLike = ord('/', OrdCategory::OnlyB); // in the future in category K
 
 pub const COLON: Punct = Punct(':');
@@ -329,9 +329,9 @@ pub const PLUS_MINUS_SIGN: Bin = bin('±', BinCategory::BD);
 pub const ACUTE_ACCENT: Rel = rel('´', RelCategory::Default);
 
 pub const PILCROW_SIGN: char = '¶';
-pub const MIDDLE_DOT: Bin = bin('·', BinCategory::OnlyC);
+pub const MIDDLE_DOT: Op = op('·', OpCategory::OnlyC);
 
-pub const MULTIPLICATION_SIGN: Bin = bin('×', BinCategory::OnlyC);
+pub const MULTIPLICATION_SIGN: Op = op('×', OpCategory::OnlyC);
 
 pub const LATIN_SMALL_LETTER_ETH: char = 'ð';
 
@@ -640,17 +640,17 @@ pub const CONTAINS_AS_MEMBER: Rel = rel('∋', RelCategory::Default);
 // pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = rel('∌', RelCategory::Default);
 // pub const SMALL_CONTAINS_AS_MEMBER: Rel = rel('∍', RelCategory::Default);
 // pub const END_OF_PROOF: Ord = ord('∎');
-pub const N_ARY_PRODUCT: BigOp = big_op('∏', BigOpCategory::OnlyJ);
-pub const N_ARY_COPRODUCT: BigOp = big_op('∐', BigOpCategory::OnlyJ);
-pub const N_ARY_SUMMATION: BigOp = big_op('∑', BigOpCategory::OnlyJ);
+pub const N_ARY_PRODUCT: Op = op('∏', OpCategory::OnlyJ);
+pub const N_ARY_COPRODUCT: Op = op('∐', OpCategory::OnlyJ);
+pub const N_ARY_SUMMATION: Op = op('∑', OpCategory::OnlyJ);
 pub const MINUS_SIGN: Bin = bin('−', BinCategory::BD);
 pub const MINUS_OR_PLUS_SIGN: Bin = bin('∓', BinCategory::BD);
 pub const DOT_PLUS: Bin = bin('∔', BinCategory::BD);
 // pub const DIVISION_SLASH: Op = Op('∕');
 pub const SET_MINUS: Bin = bin('∖', BinCategory::BD);
 pub const ASTERISK_OPERATOR: Bin = bin('∗', BinCategory::BD);
-pub const RING_OPERATOR: Bin = bin('∘', BinCategory::OnlyC);
-pub const BULLET_OPERATOR: Bin = bin('∙', BinCategory::OnlyC);
+pub const RING_OPERATOR: Op = op('∘', OpCategory::OnlyC);
+pub const BULLET_OPERATOR: Op = op('∙', OpCategory::OnlyC);
 // pub const SQUARE_ROOT: Op = Op('√');
 // pub const CUBE_ROOT: Op = Op('∛');
 // pub const FOURTH_ROOT: Op = Op('∜');
@@ -668,15 +668,15 @@ pub const LOGICAL_AND: Bin = bin('∧', BinCategory::BD);
 pub const LOGICAL_OR: Bin = bin('∨', BinCategory::BD);
 pub const INTERSECTION: Bin = bin('∩', BinCategory::BD);
 pub const UNION: Bin = bin('∪', BinCategory::BD);
-pub const INTEGRAL: BigOp = big_op('∫', BigOpCategory::OnlyH);
-pub const DOUBLE_INTEGRAL: BigOp = big_op('∬', BigOpCategory::OnlyH);
-pub const TRIPLE_INTEGRAL: BigOp = big_op('∭', BigOpCategory::OnlyH);
-pub const CONTOUR_INTEGRAL: BigOp = big_op('∮', BigOpCategory::OnlyH);
-pub const SURFACE_INTEGRAL: BigOp = big_op('∯', BigOpCategory::OnlyH);
-pub const VOLUME_INTEGRAL: BigOp = big_op('∰', BigOpCategory::OnlyH);
-pub const CLOCKWISE_INTEGRAL: BigOp = big_op('∱', BigOpCategory::OnlyH);
-pub const CLOCKWISE_CONTOUR_INTEGRAL: BigOp = big_op('∲', BigOpCategory::OnlyH);
-pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: BigOp = big_op('∳', BigOpCategory::OnlyH);
+pub const INTEGRAL: Op = op('∫', OpCategory::OnlyH);
+pub const DOUBLE_INTEGRAL: Op = op('∬', OpCategory::OnlyH);
+pub const TRIPLE_INTEGRAL: Op = op('∭', OpCategory::OnlyH);
+pub const CONTOUR_INTEGRAL: Op = op('∮', OpCategory::OnlyH);
+pub const SURFACE_INTEGRAL: Op = op('∯', OpCategory::OnlyH);
+pub const VOLUME_INTEGRAL: Op = op('∰', OpCategory::OnlyH);
+pub const CLOCKWISE_INTEGRAL: Op = op('∱', OpCategory::OnlyH);
+pub const CLOCKWISE_CONTOUR_INTEGRAL: Op = op('∲', OpCategory::OnlyH);
+pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: Op = op('∳', OpCategory::OnlyH);
 pub const THEREFORE: Rel = rel('∴', RelCategory::Default);
 pub const BECAUSE: Rel = rel('∵', RelCategory::Default);
 // pub const RATIO: Op = Op('∶');
@@ -689,7 +689,7 @@ pub const TILDE_OPERATOR: Rel = rel('∼', RelCategory::Default);
 pub const REVERSED_TILDE: Rel = rel('∽', RelCategory::Default);
 // pub const INVERTED_LAZY_S: Op = Op('∾');
 // pub const SINE_WAVE: Op = Op('∿');
-pub const WREATH_PRODUCT: Bin = bin('≀', BinCategory::OnlyC);
+pub const WREATH_PRODUCT: Op = op('≀', OpCategory::OnlyC);
 pub const NOT_TILDE: Rel = rel('≁', RelCategory::Default);
 pub const MINUS_TILDE: Rel = rel('≂', RelCategory::Default);
 pub const ASYMPTOTICALLY_EQUAL_TO: Rel = rel('≃', RelCategory::Default);
@@ -776,17 +776,17 @@ pub const SQUARE_CAP: Bin = bin('⊓', BinCategory::BD);
 pub const SQUARE_CUP: Bin = bin('⊔', BinCategory::BD);
 pub const CIRCLED_PLUS: Bin = bin('⊕', BinCategory::BD);
 pub const CIRCLED_MINUS: Bin = bin('⊖', BinCategory::BD);
-pub const CIRCLED_TIMES: Bin = bin('⊗', BinCategory::OnlyC);
+pub const CIRCLED_TIMES: Op = op('⊗', OpCategory::OnlyC);
 pub const CIRCLED_DIVISION_SLASH: Bin = bin('⊘', BinCategory::BD);
-pub const CIRCLED_DOT_OPERATOR: Bin = bin('⊙', BinCategory::OnlyC);
-pub const CIRCLED_RING_OPERATOR: Bin = bin('⊚', BinCategory::OnlyC);
-pub const CIRCLED_ASTERISK_OPERATOR: Bin = bin('⊛', BinCategory::OnlyC);
+pub const CIRCLED_DOT_OPERATOR: Op = op('⊙', OpCategory::OnlyC);
+pub const CIRCLED_RING_OPERATOR: Op = op('⊚', OpCategory::OnlyC);
+pub const CIRCLED_ASTERISK_OPERATOR: Op = op('⊛', OpCategory::OnlyC);
 // pub const CIRCLED_EQUALS: Op = Op('⊜');
 pub const CIRCLED_DASH: Bin = bin('⊝', BinCategory::BD);
 pub const SQUARED_PLUS: Bin = bin('⊞', BinCategory::BD);
 pub const SQUARED_MINUS: Bin = bin('⊟', BinCategory::BD);
-pub const SQUARED_TIMES: Bin = bin('⊠', BinCategory::OnlyC);
-pub const SQUARED_DOT_OPERATOR: Bin = bin('⊡', BinCategory::OnlyC);
+pub const SQUARED_TIMES: Op = op('⊠', OpCategory::OnlyC);
+pub const SQUARED_DOT_OPERATOR: Op = op('⊡', OpCategory::OnlyC);
 pub const RIGHT_TACK: Rel = rel('⊢', RelCategory::Default);
 pub const LEFT_TACK: Rel = rel('⊣', RelCategory::Default);
 pub const DOWN_TACK: char = '⊤';
@@ -817,19 +817,19 @@ pub const NAND: Bin = bin('⊼', BinCategory::BD);
 // pub const NOR: Op = Op('⊽');
 // pub const RIGHT_ANGLE_WITH_ARC: Op = Op('⊾');
 // pub const RIGHT_TRIANGLE: Op = Op('⊿');
-pub const N_ARY_LOGICAL_AND: BigOp = big_op('⋀', BigOpCategory::OnlyJ);
-pub const N_ARY_LOGICAL_OR: BigOp = big_op('⋁', BigOpCategory::OnlyJ);
-pub const N_ARY_INTERSECTION: BigOp = big_op('⋂', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION: BigOp = big_op('⋃', BigOpCategory::OnlyJ);
-pub const DIAMOND_OPERATOR: Bin = bin('⋄', BinCategory::OnlyC);
+pub const N_ARY_LOGICAL_AND: Op = op('⋀', OpCategory::OnlyJ);
+pub const N_ARY_LOGICAL_OR: Op = op('⋁', OpCategory::OnlyJ);
+pub const N_ARY_INTERSECTION: Op = op('⋂', OpCategory::OnlyJ);
+pub const N_ARY_UNION: Op = op('⋃', OpCategory::OnlyJ);
+pub const DIAMOND_OPERATOR: Op = op('⋄', OpCategory::OnlyC);
 // pub const DOT_OPERATOR: Bin = bin('⋅', BinCategory::BD);
-pub const STAR_OPERATOR: Bin = bin('⋆', BinCategory::OnlyC);
-pub const DIVISION_TIMES: Bin = bin('⋇', BinCategory::OnlyC);
+pub const STAR_OPERATOR: Op = op('⋆', OpCategory::OnlyC);
+pub const DIVISION_TIMES: Op = op('⋇', OpCategory::OnlyC);
 pub const BOWTIE: Rel = rel('⋈', RelCategory::Default);
-pub const LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Bin = bin('⋉', BinCategory::OnlyC);
-pub const RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Bin = bin('⋊', BinCategory::OnlyC);
-pub const LEFT_SEMIDIRECT_PRODUCT: Bin = bin('⋋', BinCategory::OnlyC);
-pub const RIGHT_SEMIDIRECT_PRODUCT: Bin = bin('⋌', BinCategory::OnlyC);
+pub const LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Op = op('⋉', OpCategory::OnlyC);
+pub const RIGHT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT: Op = op('⋊', OpCategory::OnlyC);
+pub const LEFT_SEMIDIRECT_PRODUCT: Op = op('⋋', OpCategory::OnlyC);
+pub const RIGHT_SEMIDIRECT_PRODUCT: Op = op('⋌', OpCategory::OnlyC);
 pub const REVERSED_TILDE_EQUALS: Rel = rel('⋍', RelCategory::Default);
 pub const CURLY_LOGICAL_OR: Bin = bin('⋎', BinCategory::BD);
 pub const CURLY_LOGICAL_AND: Bin = bin('⋏', BinCategory::BD);
@@ -1022,24 +1022,24 @@ pub const BLACK_LOZENGE: char = '⧫';
 //
 // Unicode Block: Supplemental Mathematical Operators
 //
-pub const N_ARY_CIRCLED_DOT_OPERATOR: BigOp = big_op('⨀', BigOpCategory::OnlyJ);
-pub const N_ARY_CIRCLED_PLUS_OPERATOR: BigOp = big_op('⨁', BigOpCategory::OnlyJ);
-pub const N_ARY_CIRCLED_TIMES_OPERATOR: BigOp = big_op('⨂', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION_OPERATOR_WITH_DOT: BigOp = big_op('⨃', BigOpCategory::OnlyJ);
-pub const N_ARY_UNION_OPERATOR_WITH_PLUS: BigOp = big_op('⨄', BigOpCategory::OnlyJ);
-pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: BigOp = big_op('⨅', BigOpCategory::OnlyJ);
-pub const N_ARY_SQUARE_UNION_OPERATOR: BigOp = big_op('⨆', BigOpCategory::OnlyJ);
-pub const TWO_LOGICAL_AND_OPERATOR: BigOp = big_op('⨇', BigOpCategory::OnlyJ);
-pub const TWO_LOGICAL_OR_OPERATOR: BigOp = big_op('⨈', BigOpCategory::OnlyJ);
-pub const N_ARY_TIMES_OPERATOR: BigOp = big_op('⨉', BigOpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_DOT_OPERATOR: Op = op('⨀', OpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_PLUS_OPERATOR: Op = op('⨁', OpCategory::OnlyJ);
+pub const N_ARY_CIRCLED_TIMES_OPERATOR: Op = op('⨂', OpCategory::OnlyJ);
+pub const N_ARY_UNION_OPERATOR_WITH_DOT: Op = op('⨃', OpCategory::OnlyJ);
+pub const N_ARY_UNION_OPERATOR_WITH_PLUS: Op = op('⨄', OpCategory::OnlyJ);
+pub const N_ARY_SQUARE_INTERSECTION_OPERATOR: Op = op('⨅', OpCategory::OnlyJ);
+pub const N_ARY_SQUARE_UNION_OPERATOR: Op = op('⨆', OpCategory::OnlyJ);
+pub const TWO_LOGICAL_AND_OPERATOR: Op = op('⨇', OpCategory::OnlyJ);
+pub const TWO_LOGICAL_OR_OPERATOR: Op = op('⨈', OpCategory::OnlyJ);
+pub const N_ARY_TIMES_OPERATOR: Op = op('⨉', OpCategory::OnlyJ);
 // pub const MODULO_TWO_SUM: Op = Op('⨊');
-pub const SUMMATION_WITH_INTEGRAL: BigOp = big_op('⨋', BigOpCategory::OnlyH);
-pub const QUADRUPLE_INTEGRAL_OPERATOR: BigOp = big_op('⨌', BigOpCategory::OnlyH);
-pub const FINITE_PARTL_INTEGRAL: BigOp = big_op('⨍', BigOpCategory::OnlyH);
-pub const INTEGRAL_WITH_DOUBLE_STROKE: BigOp = big_op('⨎', BigOpCategory::OnlyH);
-pub const INTEGRAL_AVERAGE_WITH_SLASH: BigOp = big_op('⨏', BigOpCategory::OnlyH);
-pub const CIRCULATION_FUNCTION: BigOp = big_op('⨐', BigOpCategory::OnlyH);
-pub const ANTICLOCKWISE_INTEGRATION: BigOp = big_op('⨑', BigOpCategory::OnlyH);
+pub const SUMMATION_WITH_INTEGRAL: Op = op('⨋', OpCategory::OnlyH);
+pub const QUADRUPLE_INTEGRAL_OPERATOR: Op = op('⨌', OpCategory::OnlyH);
+pub const FINITE_PARTL_INTEGRAL: Op = op('⨍', OpCategory::OnlyH);
+pub const INTEGRAL_WITH_DOUBLE_STROKE: Op = op('⨎', OpCategory::OnlyH);
+pub const INTEGRAL_AVERAGE_WITH_SLASH: Op = op('⨏', OpCategory::OnlyH);
+pub const CIRCULATION_FUNCTION: Op = op('⨐', OpCategory::OnlyH);
+pub const ANTICLOCKWISE_INTEGRATION: Op = op('⨑', OpCategory::OnlyH);
 // pub const LINE_INTEGRATION_WITH_RECTANGULAR_PATH_AROUND_POLE: Op = Op('⨒');
 // pub const LINE_INTEGRATION_WITH_SEMICIRCULAR_PATH_AROUND_POLE: Op = Op('⨓');
 // pub const LINE_INTEGRATION_NOT_INCLUDING_THE_POLE: Op = Op('⨔');
