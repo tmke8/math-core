@@ -71,9 +71,9 @@ pub static CDOTS: [Token<'static>; 5] = [
 
 pub static IDOTSINT: [Token<'static>; 5] = [
     Integral(symbol::INTEGRAL),
-    HardcodedMathML(CDOT_NO_SPACING),
-    HardcodedMathML(CDOT),
-    HardcodedMathML(CDOT_NO_SPACING),
+    Op(symbol::MIDDLE_DOT),
+    Op(symbol::MIDDLE_DOT),
+    Op(symbol::MIDDLE_DOT),
     Integral(symbol::INTEGRAL),
 ];
 

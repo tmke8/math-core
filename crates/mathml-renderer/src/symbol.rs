@@ -290,7 +290,7 @@ pub const RIGHT_PARENTHESIS: Fence = Fence(')');
 // pub const ASTERISK: Op = Op('*');
 pub const PLUS_SIGN: Bin = bin('+', BinCategory::BD);
 pub const COMMA: Punct = Punct(',');
-pub const FULL_STOP: Op = op('.', OpCategory::OnlyC);
+// pub const FULL_STOP: Op = op('.', OpCategory::OnlyC);
 pub const SOLIDUS: OrdLike = ord('/', OrdCategory::OnlyB); // in the future in category K
 
 pub const COLON: Punct = Punct(':');
