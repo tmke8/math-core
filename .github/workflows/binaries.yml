@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release binaries
 
 on:
   push:
@@ -156,5 +156,4 @@ jobs:
             artifacts/mathcore-aarch64-unknown-linux-gnu/mathcore-aarch64-unknown-linux-gnu.tar.gz
             artifacts/mathcore-x86_64-pc-windows-msvc/mathcore-x86_64-pc-windows-msvc.zip
             artifacts/mathcore-i686-pc-windows-msvc/mathcore-i686-pc-windows-msvc.zip
-            artifacts/mathcore-x86_64-apple-darwin/mathcore-x86_64-apple-darwin.tar.gz
             artifacts/mathcore-aarch64-apple-darwin/mathcore-aarch64-apple-darwin.tar.gz
