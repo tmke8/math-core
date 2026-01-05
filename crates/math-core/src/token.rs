@@ -87,6 +87,8 @@ pub enum Token<'config> {
     Close(Fence),
     /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
     Punctuation(Punct),
+    /// A token corresponding to LaTeX's "mathinner" character class (class I).
+    Inner(Op),
     #[strum(serialize = "'")]
     Prime,
     #[strum(serialize = ">")]
@@ -151,6 +153,7 @@ impl Token<'_> {
             Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }
+            Token::Inner(_) => Class::Inner,
             // `\big` commands without the "l" or "r" really produce `Class::Default`.
             Token::Big(_, Some(cls)) => *cls,
             // TODO: This needs to skip spaces and other non-class tokens in the token sequence.

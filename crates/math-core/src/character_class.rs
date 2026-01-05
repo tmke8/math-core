@@ -15,4 +15,6 @@ pub enum Class {
     Close,
     /// `mathpunct`
     Punctuation,
+    /// `mathinner`
+    Inner,
 }
