@@ -39,6 +39,6 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
                 </mtd>
             </mtr>
         </mtable>
-        <mo></mo>
+        <mo>⁣</mo>
     </mrow>
 </math>

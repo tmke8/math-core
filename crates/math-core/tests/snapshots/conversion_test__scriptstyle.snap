@@ -6,7 +6,7 @@ expression: "\\sum_{\\genfrac{}{}{0pt}{}{\\scriptstyle 0 \\le i \\le m}{\\script
     <munder>
         <mo lspace="0">∑</mo>
         <mrow>
-            <mo></mo>
+            <mo>⁣</mo>
             <mfrac linethickness="0">
                 <mrow displaystyle="false" scriptlevel="1">
                     <mn>0</mn>
@@ -23,7 +23,7 @@ expression: "\\sum_{\\genfrac{}{}{0pt}{}{\\scriptstyle 0 \\le i \\le m}{\\script
                     <mi>n</mi>
                 </mrow>
             </mfrac>
-            <mo></mo>
+            <mo>⁣</mo>
         </mrow>
     </munder>
     <mi>P</mi>

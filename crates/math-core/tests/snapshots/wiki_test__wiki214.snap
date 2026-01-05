@@ -51,6 +51,6 @@ expression: "f(x) = \\begin{cases} 1 & -1 \\le x < 0 \\\\ \\frac{1}{2} & x = 0 \
                 </mtd>
             </mtr>
         </mtable>
-        <mo></mo>
+        <mo>⁣</mo>
     </mrow>
 </math>
