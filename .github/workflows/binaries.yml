@@ -25,18 +25,18 @@ jobs:
             arch: aarch64
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform.target }}
-      
+
       - name: Install cross-compilation tools
         if: matrix.platform.arch == 'aarch64'
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
-      
+
       - name: Build
         run: |
           if [ "${{ matrix.platform.arch }}" == "aarch64" ]; then
@@ -45,13 +45,13 @@ jobs:
             export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
           fi
           cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
-      
+
       - name: Package
         run: |
           cd target/${{ matrix.platform.target }}/release
           tar czf ../../../mathcore-${{ matrix.platform.target }}.tar.gz mathcore
           cd ../../..
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -73,22 +73,22 @@ jobs:
             arch: x86
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform.target }}
-      
+
       - name: Build
         run: cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
-      
+
       - name: Package
         shell: pwsh
         run: |
           cd target\${{ matrix.platform.target }}\release
           Compress-Archive -Path mathcore.exe -DestinationPath ..\..\..\mathcore-${{ matrix.platform.target }}.zip
           cd ..\..\..
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -102,29 +102,29 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: macos-13
-            target: x86_64-apple-darwin
-            arch: x86_64
+          # - runner: macos-13
+          #   target: x86_64-apple-darwin
+          #   arch: x86_64
           - runner: macos-14
             target: aarch64-apple-darwin
             arch: aarch64
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform.target }}
-      
+
       - name: Build
         run: cargo build --bin mathcore --release --target ${{ matrix.platform.target }}
-      
+
       - name: Package
         run: |
           cd target/${{ matrix.platform.target }}/release
           tar czf ../../../mathcore-${{ matrix.platform.target }}.tar.gz mathcore
           cd ../../..
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -138,15 +138,15 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
+
       - name: Display structure of downloaded files
         run: ls -laR artifacts/
-      
+
       - name: Add binaries to release
         id: create_release
         uses: softprops/action-gh-release@v2
