@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "4 + \\cdots ()"
+---
+<math>
+    <mn>4</mn>
+    <mo>+</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo stretchy="false">(</mo>
+    <mo stretchy="false">)</mo>
+</math>

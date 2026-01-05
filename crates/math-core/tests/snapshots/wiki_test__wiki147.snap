@@ -8,11 +8,9 @@ expression: "\\| \\big\\| \\Big\\| \\bigg\\| \\Bigg\\| \\dots \\Bigg| \\bigg| \\
     <mo maxsize="1.623em" minsize="1.623em" symmetric="true">‖</mo>
     <mo maxsize="2.047em" minsize="2.047em" symmetric="true">‖</mo>
     <mo maxsize="2.470em" minsize="2.470em" symmetric="true">‖</mo>
-    <mrow>
-        <mo>.</mo>
-        <mo lspace="0" rspace="0">.</mo>
-        <mo>.</mo>
-    </mrow>
+    <mo>.</mo>
+    <mo lspace="0">.</mo>
+    <mo lspace="0">.</mo>
     <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
     <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
     <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
