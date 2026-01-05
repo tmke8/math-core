@@ -25,9 +25,10 @@ def test_exception():
     assert isinstance(err, LatexError)
     assert err.location == 0
     match converter.convert_with_local_counter(r"öäüßx^", displaystyle=False):
-        case LatexError(message, location):
+        case LatexError(message, location, context):
             assert location == 6
             assert "argument" in message
+            assert context is None
         case _:
             assert False, "Expected LatexError"
 
@@ -42,6 +43,15 @@ def test_macros():
         converter.convert_with_local_counter(r"\ab", displaystyle=False)
         == "<math><mi>c</mi><mi>d</mi></math>"
     )
+
+
+def test_macros_error():
+    error = LatexToMathML.with_config(
+        pretty_print="never", macros={"ab": r"\nonexistent"}
+    )
+    assert isinstance(error, LatexError)
+    assert error.context is not None
+    assert error.context == r"\nonexistent"
 
 
 def test_global_counter():

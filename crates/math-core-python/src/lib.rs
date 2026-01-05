@@ -14,13 +14,19 @@ struct LatexError {
     message: String,
     #[pyo3(get)]
     location: usize,
+    #[pyo3(get)]
+    context: Option<String>,
 }
 
 #[pymethods]
 impl LatexError {
     #[classattr]
-    fn __match_args__() -> (String, String) {
-        ("message".to_string(), "location".to_string())
+    fn __match_args__() -> (String, String, String) {
+        (
+            "message".to_string(),
+            "location".to_string(),
+            "context".to_string(),
+        )
     }
 }
 
@@ -73,6 +79,7 @@ impl LatexToMathML {
             Err(latex_error) => LatexError {
                 message: latex_error.0.to_string(),
                 location: latex_error.0.0,
+                context: Some(latex_error.1),
             }
             .into_bound_py_any(py),
         }
@@ -114,6 +121,7 @@ impl LatexToMathML {
                     LatexError {
                         message: latex_error.to_string(),
                         location: latex_error.0,
+                        context: None,
                     }
                     .into_bound_py_any(py)
                 }
@@ -150,6 +158,7 @@ impl LatexToMathML {
                     LatexError {
                         message: latex_error.to_string(),
                         location: latex_error.0,
+                        context: None,
                     }
                     .into_bound_py_any(py)
                 }
