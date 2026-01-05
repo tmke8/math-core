@@ -767,7 +767,9 @@ fn emit_stretchy_op(
         }
         write!(s, "{}", char::from(op))?;
     } else {
-        write!(s, "<mo>")?;
+        // An empty `<mo></mo>` produces weird spacing in some browsers.
+        // Use U+2063 (INVISIBLE SEPARATOR) to work around this. It's in Category K in MathML Core.
+        write!(s, "<mo>\u{2063}")?;
     }
     write!(s, "</mo>")?;
     Ok(())

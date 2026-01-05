@@ -4,7 +4,7 @@ expression: "\\left . \\frac{A}{B} \\right \\} \\to X"
 ---
 <math>
     <mrow>
-        <mo></mo>
+        <mo>⁣</mo>
         <mfrac>
             <mi>A</mi>
             <mi>B</mi>
