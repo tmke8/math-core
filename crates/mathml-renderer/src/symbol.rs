@@ -93,7 +93,7 @@ macro_rules! make_character_class {
 pub enum OrdCategory {
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// (e.g. `‖`).
-    FG,
+    // FG,
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// but also with an infix form with relation spacing (e.g. `|`).
     FGandForceDefault,
@@ -118,12 +118,7 @@ impl OrdLike {
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         let (stretchy, nonzero_spacing) = match self.cat {
-            OrdCategory::FG => (
-                // In theory, this should be `Stretchy::Always`, but Firefox somehow needs the
-                // extra hint that it should be symmetric to render it correctly.
-                Stretchy::AlwaysAsymmetric,
-                false,
-            ),
+            // OrdCategory::FG => (Stretchy::Always, false),
             OrdCategory::FGandForceDefault => (Stretchy::PrePostfix, true),
             OrdCategory::OnlyB => (Stretchy::Never, true),
             OrdCategory::OnlyK => (Stretchy::Never, false),
@@ -449,7 +444,7 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
-pub const DOUBLE_VERTICAL_LINE: OrdLike = ord('‖', OrdCategory::FG);
+pub const DOUBLE_VERTICAL_LINE: OrdLike = ord('‖', OrdCategory::FGandForceDefault); // should actually be FG
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';

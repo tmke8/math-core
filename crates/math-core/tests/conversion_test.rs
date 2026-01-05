@@ -334,6 +334,8 @@ fn main() {
         ("idotsint_with_limits", r"\idotsint\limits_0^1 xy"),
         ("cdots_before_open", r"4 + \cdots ()"),
         ("cdots_before_close", r"{\sum \cdots}"),
+        ("infix_double_bar", r"x \| y"),
+        ("underset_tilde", r"\underset{z\sim Z}{\mathbb{E}}"),
     ];
 
     let config = MathCoreConfig {

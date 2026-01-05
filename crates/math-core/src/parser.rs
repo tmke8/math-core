@@ -330,7 +330,7 @@ where
                 })
             }
             Token::Ord(ord) => {
-                let attr = if matches!(ord.cat, OrdCategory::FG | OrdCategory::FGandForceDefault) {
+                let attr = if matches!(ord.cat, OrdCategory::FGandForceDefault) {
                     // Category F+G operators will stretch in pre- and postfix positions,
                     // so we explicitly set the stretchy attribute to false to prevent that.
                     // Alternatively, we could set `form="infix"` on them.
@@ -576,7 +576,9 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
+                let old_script_style = mem::replace(&mut self.state.script_style, true);
                 let symbol = self.parse_next(ParseAs::Arg)?;
+                self.state.script_style = old_script_style;
                 let token = self.next_token();
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
                 let (cls, target) =
