@@ -1,0 +1,67 @@
+name: WASM CI
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  cargo-test-wasm:
+    runs-on: ubuntu-latest
+    name: "cargo test (wasm)"
+    steps:
+      - name: "Checkout PR branch"
+        uses: actions/checkout@v4
+        with:
+          path: pr-branch
+      - name: "Checkout base branch"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: base-branch
+      - name: "Install Rust toolchain"
+        run: rustup target add wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: qmaru/wasm-pack-action@v0.5.0
+      - uses: Swatinem/rust-cache@v2
+      - name: "Run wasm-pack test"
+        working-directory: ./pr-branch
+        run: |
+          wasm-pack test --node crates/math-core-wasm
+      - name: "Get wasm size on PR"
+        working-directory: ./pr-branch
+        run: |
+          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
+          SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
+          echo "Wasm size on PR: $SIZE_BYTES bytes"
+          echo "PR_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
+      - name: "Get wasm size on base branch"
+        working-directory: ./base-branch
+        run: |
+          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
+          SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
+          echo "Wasm size on base: $SIZE_BYTES bytes"
+          echo "BASE_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
+      - name: "Comment on PR with WASM sizes"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prSize = process.env.PR_SIZE_BYTES;
+            const baseSize = process.env.BASE_SIZE_BYTES;
+            const sizeDiff = prSize - baseSize;
+            const sizeDiffPercent = (sizeDiff / baseSize) * 100;
+            const sizeDiffPercentStr = sizeDiffPercent.toFixed(2);
+            const sizeDiffStr = sizeDiff > 0 ? `+${sizeDiff}` : `${sizeDiff}`;
+            const comment = `Wasm sizes:\nBase branch: ${baseSize} bytes\nPR: ${prSize} bytes\nSize diff: ${sizeDiffStr} bytes (${sizeDiffPercentStr}%)`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            })
