@@ -304,7 +304,7 @@ dependencies = [
 
 [[package]]
 name = "math-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "insta",
  "math-core",
@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "clap",
  "math-core",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-python"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "math-core",
  "pyo3",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-renderer-internal"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "bitflags",
  "dtoa",
@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-wasm"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "js-sys",
  "lol_alloc",
