@@ -47,9 +47,10 @@ class LatexToMathML:
         """Reset the global equation counter for environments like ``align``."""
 
 class LatexError:
-    __match_args__ = ("message", "location")
+    __match_args__ = ("message", "location", "context")
     message: str
     location: int
+    context: str | None
 
 class LockError(Exception):
     """Raised when a lock cannot be acquired."""
