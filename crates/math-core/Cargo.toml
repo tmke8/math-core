@@ -10,7 +10,7 @@ rust-version = { workspace = true }
 resolver = "2"
 
 description = "Convert LaTeX equations to MathML Core"
-readme = "../README.md"
+readme = "../../README.md"
 license = { workspace = true }
 repository = { workspace = true }
 keywords = ["latex", "mathml"]

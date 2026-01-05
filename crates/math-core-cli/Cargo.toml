@@ -1,9 +1,13 @@
 [package]
 name = "math-core-cli"
+description = "CLI for converting LaTeX equations to MathML Core"
 version = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
+readme = "README.md"
+keywords = ["latex", "mathml"]
+categories = ["science"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
