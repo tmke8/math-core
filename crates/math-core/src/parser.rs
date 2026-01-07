@@ -330,7 +330,7 @@ where
                 })
             }
             Token::Ord(ord) => {
-                let attr = if matches!(ord.cat, OrdCategory::FGandForceDefault) {
+                let attr = if matches!(ord.category(), OrdCategory::FGandForceDefault) {
                     // Category F+G operators will stretch in pre- and postfix positions,
                     // so we explicitly set the stretchy attribute to false to prevent that.
                     // Alternatively, we could set `form="infix"` on them.
@@ -338,14 +338,16 @@ where
                 } else {
                     None
                 };
-                let (left, right) =
-                    if matches!(ord.cat, OrdCategory::OnlyB | OrdCategory::FGandForceDefault) {
-                        // Category B and ForceDefault have non-zero spacing.
-                        // We suppress this by setting the spacing to zero.
-                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
-                    } else {
-                        (None, None)
-                    };
+                let (left, right) = if matches!(
+                    ord.category(),
+                    OrdCategory::B | OrdCategory::FGandForceDefault
+                ) {
+                    // Category B and ForceDefault have non-zero spacing.
+                    // We suppress this by setting the spacing to zero.
+                    (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                } else {
+                    (None, None)
+                };
                 Ok(Node::Operator {
                     op: ord.as_op(),
                     attr,
@@ -627,7 +629,7 @@ where
             }
             Token::Op(op) => {
                 class = Class::Operator;
-                let is_big = matches!(op.cat, OpCategory::OnlyH | OpCategory::OnlyJ);
+                let is_big = matches!(op.category(), OpCategory::H | OpCategory::J);
                 let limits = is_big && matches!(self.tokens.peek().token(), Token::Limits);
                 if limits {
                     self.next_token()?; // Discard the limits token.
