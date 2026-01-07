@@ -86,8 +86,8 @@ macro_rules! make_character_class {
             }
 
             #[inline]
-            pub fn category(&self) -> $cat_type {
-                self.cat
+            pub fn category(&self) -> &$cat_type {
+                &self.cat
             }
         }
     };
