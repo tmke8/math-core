@@ -395,6 +395,7 @@ impl Node<'_> {
                 };
                 new_line_and_indent(s, child_indent);
                 emit_stretchy_op(s, StretchMode::Fence, *open, None)?;
+                // TODO: if `content` is an `mrow`, we should flatten it before emitting.
                 content.emit(s, child_indent)?;
                 new_line_and_indent(s, child_indent);
                 emit_stretchy_op(s, StretchMode::Fence, *close, None)?;
