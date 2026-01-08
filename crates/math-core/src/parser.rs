@@ -340,7 +340,7 @@ where
                 };
                 let (left, right) = if matches!(
                     ord.category(),
-                    OrdCategory::B | OrdCategory::FGandForceDefault
+                    OrdCategory::KButUsedToBeB | OrdCategory::FGandForceDefault
                 ) {
                     // Category B and ForceDefault have non-zero spacing.
                     // We suppress this by setting the spacing to zero.
@@ -488,9 +488,13 @@ where
                 let denom = self.parse_next(ParseAs::Arg)?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
+                    const OPEN_PAREN: StretchableOp =
+                        symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap();
+                    const CLOSE_PAREN: StretchableOp =
+                        symbol::RIGHT_PARENTHESIS.as_stretchable_op().unwrap();
                     Ok(Node::Fenced {
-                        open: Some(symbol::LEFT_PARENTHESIS.as_op()),
-                        close: Some(symbol::RIGHT_PARENTHESIS.as_op()),
+                        open: Some(OPEN_PAREN),
+                        close: Some(CLOSE_PAREN),
                         content: self.commit(Node::Frac {
                             num,
                             denom,
@@ -846,23 +850,26 @@ where
                     node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
-            ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
+            ref tok @ (Token::Open(paren) | Token::Close(paren)) => 'open_close: {
                 if matches!(tok, Token::Open(_)) {
                     class = Class::Open;
                 }
-                Ok(Node::StretchableOp(paren.as_op(), StretchMode::NoStretch))
+                let Some(stretchable_op) = paren.as_stretchable_op() else {
+                    break 'open_close Err(LatexError(loc, LatexErrKind::Internal));
+                };
+                Ok(Node::StretchableOp(stretchable_op, StretchMode::NoStretch))
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
-                Ok(Node::StretchableOp(
-                    symbol::LEFT_SQUARE_BRACKET.as_op(),
-                    StretchMode::NoStretch,
-                ))
+                const SQ_L_BRACKET: StretchableOp =
+                    symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                Ok(Node::StretchableOp(SQ_L_BRACKET, StretchMode::NoStretch))
             }
-            Token::SquareBracketClose => Ok(Node::StretchableOp(
-                symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                StretchMode::NoStretch,
-            )),
+            Token::SquareBracketClose => {
+                const SQ_R_BRACKET: StretchableOp =
+                    symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                Ok(Node::StretchableOp(SQ_R_BRACKET, StretchMode::NoStretch))
+            }
             Token::Left => {
                 let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True)) {
@@ -1425,13 +1432,17 @@ where
         location: DelimiterModifier,
     ) -> ParseResult<'config, StretchableOp> {
         let TokLoc(loc, tok) = tok;
+        const SQ_L_BRACKET: StretchableOp =
+            symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+        const SQ_R_BRACKET: StretchableOp =
+            symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         let delim = match tok {
-            Token::Open(paren) => Some(paren.as_op()),
-            Token::Close(paren) => Some(paren.as_op()),
+            Token::Open(paren) => paren.as_stretchable_op(),
+            Token::Close(paren) => paren.as_stretchable_op(),
             Token::Ord(ord) => ord.as_stretchable_op(),
             Token::Relation(rel) => rel.as_stretchable_op(),
-            Token::SquareBracketOpen => Some(symbol::LEFT_SQUARE_BRACKET.as_op()),
-            Token::SquareBracketClose => Some(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+            Token::SquareBracketOpen => Some(SQ_L_BRACKET),
+            Token::SquareBracketClose => Some(SQ_R_BRACKET),
             _ => None,
         };
         let Some(delim) = delim else {
