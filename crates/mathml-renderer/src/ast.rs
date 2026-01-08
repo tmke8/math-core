@@ -22,7 +22,7 @@ pub enum Node<'arena> {
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
     IdentifierChar(char, LetterAttr),
-    StretchableOp(StretchableOp, StretchMode),
+    StretchableOp(StretchableOp, StretchMode, Option<OpAttr>),
     /// `<mo>...</mo>` for a single character.
     Operator {
         op: MathMLOperator,
@@ -190,12 +190,8 @@ impl Node<'_> {
                     write!(s, "</mpadded>")?;
                 }
             }
-            Node::StretchableOp(op, stretch_mode) => {
-                if op.ordinary_spacing() && matches!(stretch_mode, StretchMode::NoStretch) {
-                    write!(s, "<mi>{}</mi>", char::from(*op))?;
-                } else {
-                    emit_stretchy_op(s, *stretch_mode, Some(*op))?;
-                }
+            Node::StretchableOp(op, stretch_mode, attr) => {
+                emit_stretchy_op(s, *stretch_mode, Some(*op), *attr)?;
             }
             Node::Operator {
                 op,
@@ -398,10 +394,10 @@ impl Node<'_> {
                     None => write!(s, "<mrow>")?,
                 };
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *open)?;
+                emit_stretchy_op(s, StretchMode::Fence, *open, None)?;
                 content.emit(s, child_indent)?;
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *close)?;
+                emit_stretchy_op(s, StretchMode::Fence, *close, None)?;
                 writeln_indent!(s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren) => {
@@ -744,32 +740,34 @@ fn emit_stretchy_op(
     s: &mut String,
     stretch_mode: StretchMode,
     op: Option<StretchableOp>,
+    attr: Option<OpAttr>,
 ) -> std::fmt::Result {
+    emit_operator_attributes(s, attr, None, None)?;
     if let Some(op) = op {
         match (stretch_mode, op.stretchy) {
             (StretchMode::Fence, Stretchy::Never)
             | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
-                write!(s, "<mo stretchy=\"true\">")?;
+                write!(s, " stretchy=\"true\">")?;
             }
             (
                 StretchMode::NoStretch,
                 Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
             ) => {
-                write!(s, "<mo stretchy=\"false\">")?;
+                write!(s, " stretchy=\"false\">")?;
             }
 
             (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
-                write!(s, "<mo symmetric=\"true\">")?;
+                write!(s, " symmetric=\"true\">")?;
             }
             _ => {
-                write!(s, "<mo>")?;
+                write!(s, ">")?;
             }
         }
         write!(s, "{}", char::from(op))?;
     } else {
         // An empty `<mo></mo>` produces weird spacing in some browsers.
         // Use U+2063 (INVISIBLE SEPARATOR) to work around this. It's in Category K in MathML Core.
-        write!(s, "<mo>\u{2063}")?;
+        write!(s, ">\u{2063}")?;
     }
     write!(s, "</mo>")?;
     Ok(())

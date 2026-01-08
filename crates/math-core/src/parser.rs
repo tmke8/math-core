@@ -304,7 +304,7 @@ where
             Token::Relation(relation) => {
                 class = Class::Relation;
                 if let Some(op) = relation.as_stretchable_op() {
-                    Ok(Node::StretchableOp(op, StretchMode::NoStretch))
+                    Ok(Node::StretchableOp(op, StretchMode::NoStretch, None))
                 } else {
                     let (left, right) = self.state.relation_spacing(prev_class, next_class);
                     Ok(Node::Operator {
@@ -521,12 +521,12 @@ where
                 // and if that doesn't work, we try to parse it as an Operator,
                 // and if that still doesn't work, we return an error.
                 let open = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _) => Some(*op),
+                    Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _) => Some(*op),
+                    Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
                 };
@@ -851,24 +851,48 @@ where
                 ));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => 'open_close: {
-                if matches!(tok, Token::Open(_)) {
+                let open = matches!(tok, Token::Open(_));
+                if open {
                     class = Class::Open;
                 }
                 let Some(stretchable_op) = paren.as_stretchable_op() else {
                     break 'open_close Err(LatexError(loc, LatexErrKind::Internal));
                 };
-                Ok(Node::StretchableOp(stretchable_op, StretchMode::NoStretch))
+                let attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                    // For this category of symbol, we have to force the form attribute
+                    // in order to get correct spacing.
+                    if open {
+                        Some(OpAttr::FormPrefix)
+                    } else {
+                        Some(OpAttr::FormPostfix)
+                    }
+                } else {
+                    None
+                };
+                Ok(Node::StretchableOp(
+                    stretchable_op,
+                    StretchMode::NoStretch,
+                    attr,
+                ))
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
                 const SQ_L_BRACKET: StretchableOp =
                     symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(SQ_L_BRACKET, StretchMode::NoStretch))
+                Ok(Node::StretchableOp(
+                    SQ_L_BRACKET,
+                    StretchMode::NoStretch,
+                    None,
+                ))
             }
             Token::SquareBracketClose => {
                 const SQ_R_BRACKET: StretchableOp =
                     symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(SQ_R_BRACKET, StretchMode::NoStretch))
+                Ok(Node::StretchableOp(
+                    SQ_R_BRACKET,
+                    StretchMode::NoStretch,
+                    None,
+                ))
             }
             Token::Left => {
                 let tok_loc = self.next_token()?;
@@ -899,7 +923,7 @@ where
             Token::Middle => {
                 let tok_loc = self.next_token()?;
                 let op = self.extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
-                Ok(Node::StretchableOp(op, StretchMode::Middle))
+                Ok(Node::StretchableOp(op, StretchMode::Middle, None))
             }
             Token::Big(size, cls) => {
                 let tok_loc = self.next_token()?;

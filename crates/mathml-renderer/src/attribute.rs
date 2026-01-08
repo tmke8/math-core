@@ -36,6 +36,8 @@ pub enum OpAttr {
     ForceMovableLimits,
     #[strum(serialize = r#" form="prefix""#)]
     FormPrefix,
+    #[strum(serialize = r#" form="postfix""#)]
+    FormPostfix,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

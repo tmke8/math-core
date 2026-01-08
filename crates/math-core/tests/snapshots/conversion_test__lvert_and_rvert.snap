@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x + \\lvert + y + \\rvert + z"
+---
+<math>
+    <mi>x</mi>
+    <mo>+</mo>
+    <mo form="prefix" stretchy="false">|</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mi>y</mi>
+    <mo lspace="0" rspace="0">+</mo>
+    <mo form="postfix" stretchy="false">|</mo>
+    <mo>+</mo>
+    <mi>z</mi>
+</math>
