@@ -4,7 +4,7 @@ use mathml_renderer::attribute::{
     FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style,
 };
 use mathml_renderer::length::Length;
-use mathml_renderer::symbol::{Bin, Fence, MathMLOperator, Op, OrdLike, Punct, Rel};
+use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
 
 use crate::character_class::Class;
 use crate::environments::Env;
@@ -82,9 +82,9 @@ pub enum Token<'config> {
     /// A token corresponding to LaTeX's "mathrel" character class (class 3).
     Relation(Rel),
     /// A token corresponding to LaTeX's "mathopen" character class (class 4).
-    Open(Fence),
+    Open(OrdLike),
     /// A token corresponding to LaTeX's "mathclose" character class (class 5).
-    Close(Fence),
+    Close(OrdLike),
     /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
     Punctuation(Punct),
     /// A token corresponding to LaTeX's "mathinner" character class (class I).

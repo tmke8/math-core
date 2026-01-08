@@ -95,6 +95,14 @@ macro_rules! make_character_class {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrdCategory {
+    /// Category D: Prefix, zero spacing (e.g. `¬`).
+    D,
+    /// Category E: Postfix, zero spacing (e.g. `′`).
+    E,
+    /// Category F: Prefix or postfix, zero spacing, stretchy, symmetric
+    F,
+    /// Category G: Prefix or postfix, zero spacing, stretchy, symmetric
+    G,
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// (e.g. `‖`).
     // FG,
@@ -102,16 +110,14 @@ pub enum OrdCategory {
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// but also with an infix form with relation spacing (e.g. `|`).
     FGandForceDefault,
-    /// Category B: Infix, binary op spacing (e.g. `/`)
-    B,
-    /// Category D: Prefix, zero spacing (e.g. `¬`).
-    D,
-    /// Category E: Postfix, zero spacing (e.g. `′`).
-    E,
     /// Category I: Postfix, zero spacing, stretchy
     I,
     /// Category K: Infix, zero spacing (e.g. `\`).
     K,
+    /// An operator which is in category K but used to be in category B (e.g. `/`).
+    /// Unfortunately, not all browsers handle this correctly yet,
+    /// so we need to special-case it.
+    KButUsedToBeB,
 }
 
 make_character_class!(
@@ -123,10 +129,10 @@ impl OrdLike {
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         let (stretchy, nonzero_spacing) = match self.cat {
-            // OrdCategory::FG => (Stretchy::Always, false),
+            OrdCategory::F | OrdCategory::G => (Stretchy::Always, false),
             OrdCategory::FGandForceDefault => (Stretchy::PrePostfix, true),
-            OrdCategory::B => (Stretchy::Never, true),
             OrdCategory::K => (Stretchy::Never, false),
+            OrdCategory::KButUsedToBeB => (Stretchy::Never, true),
             _ => {
                 return None;
             }
@@ -207,23 +213,6 @@ impl Punct {
     }
 }
 
-/// An operator that has zero spacing and is stretchy and symmetric
-/// (category G and F).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-#[repr(transparent)]
-pub struct Fence(char);
-
-impl Fence {
-    #[inline(always)]
-    pub const fn as_op(&self) -> StretchableOp {
-        StretchableOp {
-            char: BMPChar::new(self.0),
-            stretchy: Stretchy::Always,
-            nonzero_spacing: false,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Stretchy {
@@ -285,13 +274,13 @@ pub const DOLLAR_SIGN: char = '$';
 pub const PERCENT_SIGN: char = '%';
 pub const AMPERSAND: OrdLike = OrdLike::new('&', OrdCategory::E);
 // pub const APOSTROPHE: char = '\'';
-pub const LEFT_PARENTHESIS: Fence = Fence('(');
-pub const RIGHT_PARENTHESIS: Fence = Fence(')');
+pub const LEFT_PARENTHESIS: OrdLike = OrdLike::new('(', OrdCategory::F);
+pub const RIGHT_PARENTHESIS: OrdLike = OrdLike::new(')', OrdCategory::G);
 // pub const ASTERISK: char = '*';
 pub const PLUS_SIGN: Bin = Bin::new('+', BinCategory::BD);
 pub const COMMA: Punct = Punct(',');
 pub const FULL_STOP: Op = Op::new('.', OpCategory::C);
-pub const SOLIDUS: OrdLike = OrdLike::new('/', OrdCategory::B); // in the future in category K
+pub const SOLIDUS: OrdLike = OrdLike::new('/', OrdCategory::KButUsedToBeB);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
@@ -301,16 +290,16 @@ pub const EQUALS_SIGN: Rel = Rel::new('=', RelCategory::Default);
 // pub const QUESTION_MARK: char = '?';
 // pub const COMMERCIAL_AT: char = '@';
 
-pub const LEFT_SQUARE_BRACKET: Fence = Fence('[');
+pub const LEFT_SQUARE_BRACKET: OrdLike = OrdLike::new('[', OrdCategory::F);
 pub const REVERSE_SOLIDUS: OrdLike = OrdLike::new('\\', OrdCategory::K);
-pub const RIGHT_SQUARE_BRACKET: Fence = Fence(']');
+pub const RIGHT_SQUARE_BRACKET: OrdLike = OrdLike::new(']', OrdCategory::G);
 // pub const CIRCUMFLEX_ACCENT: Rel = Rel::new('^', RelCategory::Default);
 pub const LOW_LINE: Rel = Rel::new('_', RelCategory::Default);
 pub const GRAVE_ACCENT: Rel = Rel::new('`', RelCategory::Default);
 
-pub const LEFT_CURLY_BRACKET: Fence = Fence('{');
+pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
-pub const RIGHT_CURLY_BRACKET: Fence = Fence('}');
+pub const RIGHT_CURLY_BRACKET: OrdLike = OrdLike::new('}', OrdCategory::G);
 pub const TILDE: Rel = Rel::new('~', RelCategory::Default);
 
 //
@@ -886,10 +875,10 @@ pub const DOWN_RIGHT_DIAGONAL_ELLIPSIS: Rel = Rel::new('⋱', RelCategory::Defau
 //
 // Unicode Block: Miscellaneous Technical
 //
-pub const LEFT_CEILING: Fence = Fence('⌈');
-pub const RIGHT_CEILING: Fence = Fence('⌉');
-pub const LEFT_FLOOR: Fence = Fence('⌊');
-pub const RIGHT_FLOOR: Fence = Fence('⌋');
+pub const LEFT_CEILING: OrdLike = OrdLike::new('⌈', OrdCategory::F);
+pub const RIGHT_CEILING: OrdLike = OrdLike::new('⌉', OrdCategory::G);
+pub const LEFT_FLOOR: OrdLike = OrdLike::new('⌊', OrdCategory::F);
+pub const RIGHT_FLOOR: OrdLike = OrdLike::new('⌋', OrdCategory::G);
 pub const TOP_LEFT_CORNER: char = '⌜';
 pub const TOP_RIGHT_CORNER: char = '⌝';
 pub const BOTTOM_LEFT_CORNER: char = '⌞';
@@ -972,16 +961,16 @@ pub const MALTESE_CROSS: char = '✠';
 //
 pub const PERPENDICULAR: Rel = Rel::new('⟂', RelCategory::Default);
 
-pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: Fence = Fence('⟦');
-pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: Fence = Fence('⟧');
-pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: Fence = Fence('⟨');
-pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: Fence = Fence('⟩');
-pub const MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET: Fence = Fence('⟪');
-pub const MATHEMATICAL_RIGHT_DOUBLE_ANGLE_BRACKET: Fence = Fence('⟫');
-// pub const MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET: Fence = Fence('⟬');
-// pub const MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET: Fence = Fence('⟭');
-pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: Fence = Fence('⟮');
-pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: Fence = Fence('⟯');
+pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟦', OrdCategory::F);
+pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟧', OrdCategory::G);
+pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: OrdLike = OrdLike::new('⟨', OrdCategory::F);
+pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: OrdLike = OrdLike::new('⟩', OrdCategory::G);
+pub const MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET: OrdLike = OrdLike::new('⟪', OrdCategory::F);
+pub const MATHEMATICAL_RIGHT_DOUBLE_ANGLE_BRACKET: OrdLike = OrdLike::new('⟫', OrdCategory::G);
+// pub const MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⟬', OrdCategory::F);
+// pub const MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⟭', OrdCategory::G);
+pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: OrdLike = OrdLike::new('⟮', OrdCategory::F);
+pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: OrdLike = OrdLike::new('⟯', OrdCategory::G);
 
 //
 // Unicode Block: Supplemental Arrows-A
@@ -1004,14 +993,14 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel::new('⤚', RelCategory::Default);
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
-pub const LEFT_WHITE_CURLY_BRACKET: Fence = Fence('⦃');
-pub const RIGHT_WHITE_CURLY_BRACKET: Fence = Fence('⦄');
+pub const LEFT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦃', OrdCategory::F);
+pub const RIGHT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦄', OrdCategory::G);
 // pub const LEFT_WHITE_PARENTHESIS: Fence = fence('⦅', Stretchy::Always);
 // pub const RIGHT_WHITE_PARENTHESIS: Fence = fence('⦆', false, Stretchy::Always);
-pub const Z_NOTATION_LEFT_IMAGE_BRACKET: Fence = Fence('⦇');
-pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: Fence = Fence('⦈');
-pub const Z_NOTATION_LEFT_BINDING_BRACKET: Fence = Fence('⦉');
-pub const Z_NOTATION_RIGHT_BINDING_BRACKET: Fence = Fence('⦊');
+pub const Z_NOTATION_LEFT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦇', OrdCategory::F);
+pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦈', OrdCategory::G);
+pub const Z_NOTATION_LEFT_BINDING_BRACKET: OrdLike = OrdLike::new('⦉', OrdCategory::F);
+pub const Z_NOTATION_RIGHT_BINDING_BRACKET: OrdLike = OrdLike::new('⦊', OrdCategory::G);
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin::new('⧄', BinCategory::BD);
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin::new('⧅', BinCategory::BD);

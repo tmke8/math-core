@@ -1159,7 +1159,7 @@ mod tests {
         assert_eq!(
             render(&Node::SizedParen(
                 Size::Scale1,
-                symbol::LEFT_PARENTHESIS.as_op(),
+                symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap(),
             )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );

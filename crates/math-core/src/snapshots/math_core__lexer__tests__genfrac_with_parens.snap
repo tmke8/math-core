@@ -3,7 +3,7 @@ source: crates/math-core/src/lexer.rs
 expression: "\\genfrac(]{0pt}{2}{a+b}{c+d}"
 ---
 0: Genfrac
-8: Open(Fence('('))
+8: Open(OrdLike { char: '(', cat: F })
 9: SquareBracketClose
 10: GroupBegin
 11: Digit('0')

@@ -157,8 +157,10 @@ impl Env {
                     align,
                     style: None,
                 });
+                const OPEN_BRACE: StretchableOp =
+                    symbol::LEFT_CURLY_BRACKET.as_stretchable_op().unwrap();
                 Node::Fenced {
-                    open: Some(symbol::LEFT_CURLY_BRACKET.as_op()),
+                    open: Some(OPEN_BRACE),
                     close: None,
                     content,
                     style: None,
@@ -193,18 +195,27 @@ impl Env {
             | Env::Vmatrix) => {
                 let align = Alignment::Centered;
                 let (open, close) = match matrix_variant {
-                    Env::PMatrix => (
-                        symbol::LEFT_PARENTHESIS.as_op(),
-                        symbol::RIGHT_PARENTHESIS.as_op(),
-                    ),
-                    Env::BMatrix => (
-                        symbol::LEFT_SQUARE_BRACKET.as_op(),
-                        symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                    ),
-                    Env::Bmatrix => (
-                        symbol::LEFT_CURLY_BRACKET.as_op(),
-                        symbol::RIGHT_CURLY_BRACKET.as_op(),
-                    ),
+                    Env::PMatrix => {
+                        const OPEN_PAREN: StretchableOp =
+                            symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap();
+                        const CLOSE_PAREN: StretchableOp =
+                            symbol::RIGHT_PARENTHESIS.as_stretchable_op().unwrap();
+                        (OPEN_PAREN, CLOSE_PAREN)
+                    }
+                    Env::BMatrix => {
+                        const OPEN_BRACKET: StretchableOp =
+                            symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                        const CLOSE_BRACKET: StretchableOp =
+                            symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                        (OPEN_BRACKET, CLOSE_BRACKET)
+                    }
+                    Env::Bmatrix => {
+                        const OPEN_BRACE: StretchableOp =
+                            symbol::LEFT_CURLY_BRACKET.as_stretchable_op().unwrap();
+                        const CLOSE_BRACE: StretchableOp =
+                            symbol::RIGHT_CURLY_BRACKET.as_stretchable_op().unwrap();
+                        (OPEN_BRACE, CLOSE_BRACE)
+                    }
                     Env::VMatrix => {
                         const LINE: StretchableOp =
                             symbol::VERTICAL_LINE.as_stretchable_op().unwrap();
