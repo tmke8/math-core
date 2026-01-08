@@ -248,15 +248,6 @@ impl Serialize for StretchableOp {
     }
 }
 
-impl StretchableOp {
-    /// The parenthesis behaves like a normal identifier
-    /// (which is different from an operator with reduced spacing!)
-    #[inline]
-    pub fn ordinary_spacing(&self) -> bool {
-        matches!(self.stretchy, Stretchy::Never | Stretchy::PrePostfix)
-    }
-}
-
 impl From<StretchableOp> for char {
     #[inline]
     fn from(op: StretchableOp) -> Self {

@@ -259,6 +259,7 @@ fn main() {
         ("mathcal_vs_mathscr_single", r"\mathcal A, \mathscr A"),
         ("mathcal_vs_mathscr_multi", r"\mathcal{AB}, \mathscr{AB}"),
         ("vertical_line", r"P(x|y)"),
+        ("lvert_and_rvert", r"x + \lvert + y + \rvert + z"),
         ("mid", r"P(x\mid y)"),
         ("special_symbols", r"\%\$\#"),
         ("lbrack_instead_of_bracket", r"\sqrt\lbrack 4]{2}"),
