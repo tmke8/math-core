@@ -122,7 +122,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "backsimeq" => Relation(symbol::REVERSED_TILDE_EQUALS),
     "backslash" => Ord(symbol::REVERSE_SOLIDUS),
     "backtrprime" => Ord(symbol::REVERSED_TRIPLE_PRIME),
-    "bar" => OverUnder(symbol::MACRON, true, Some(OpAttr::StretchyFalse)),
+    "bar" => OverUnder(symbol::COMBINING_OVERLINE, true, Some(OpAttr::StretchyTrue)), // should be stretchy=false, but Safari has a bug
     "barwedge" => BinaryOp(symbol::NAND),
     "bcancel" => Enclose(Notation::DOWN_DIAGONAL),
     "because" => Relation(symbol::BECAUSE),
@@ -712,7 +712,7 @@ static TEXT_COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "." => TextModeAccent(symbol::COMBINING_DOT_ABOVE),
     ":" => Letter('\u{205F}', FromAscii::False),
     ";" => Letter('\u{2004}', FromAscii::False),
-    "=" => TextModeAccent(symbol::COMBINING_OVERLINE),
+    "=" => TextModeAccent(symbol::COMBINING_OVERLINE.as_op().as_char()),
     ">" => Letter('\u{205F}', FromAscii::False),
     "AA" => Letter('Å', FromAscii::False),
     "AE" => Letter('Æ', FromAscii::False),

@@ -933,11 +933,11 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverOp(
-                symbol::MACRON.as_op(),
+                symbol::COMBINING_OVERLINE.as_op(),
                 Some(OpAttr::StretchyFalse),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
-            "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
+            "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">\u{305}</mo></mover>"
         );
         assert_eq!(
             render(&Node::OverOp(

@@ -302,7 +302,7 @@ pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: OrdLike = OrdLike::new('¬', OrdCategory::D);
 
-pub const MACRON: Rel = Rel::new('¯', RelCategory::Default);
+// pub const MACRON: Rel = Rel::new('¯', RelCategory::Default);
 
 pub const PLUS_MINUS_SIGN: Bin = Bin::new('±', BinCategory::BD);
 
@@ -344,7 +344,7 @@ pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
 pub const COMBINING_CIRCUMFLEX_ACCENT: Rel = Rel::new('\u{302}', RelCategory::Default);
 pub const COMBINING_TILDE: Rel = Rel::new('\u{303}', RelCategory::Default);
 // pub const COMBINING_MACRON: char = '\u{304}';
-pub const COMBINING_OVERLINE: char = '\u{305}';
+pub const COMBINING_OVERLINE: Rel = Rel::new('\u{305}', RelCategory::Default);
 pub const COMBINING_BREVE: char = '\u{306}';
 pub const COMBINING_DOT_ABOVE: char = '\u{307}';
 pub const COMBINING_DIAERESIS: char = '\u{308}';

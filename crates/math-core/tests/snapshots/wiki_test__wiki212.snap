@@ -6,7 +6,7 @@ expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
     <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mover accent="true">
         <mi>z</mi>
-        <mo stretchy="false">¯</mo>
+        <mo stretchy="true">̅</mo>
     </mover>
     <mo stretchy="false" lspace="0" rspace="0">|</mo>
     <mo>=</mo>
@@ -18,7 +18,7 @@ expression: "|\\bar{z}| = |z|, |(\\bar{z})^n| = |z|^n, \\arg(z^n) = n \\arg(z)"
     <mo stretchy="false">(</mo>
     <mover accent="true">
         <mi>z</mi>
-        <mo stretchy="false">¯</mo>
+        <mo stretchy="true">̅</mo>
     </mover>
     <msup>
         <mo stretchy="false">)</mo>
