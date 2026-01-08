@@ -46,7 +46,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
             <mi>h</mi>
             <mi>i</mi>
         </mrow>
-        <mo>‾</mo>
+        <mo>_</mo>
     </mover>
     <mtext> </mtext>
     <munder accentunder="true">
