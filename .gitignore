@@ -75,3 +75,5 @@ docs/_build/
 
 node_modules/
 /nodejs/dist/
+
+*.otf
