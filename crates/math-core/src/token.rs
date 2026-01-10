@@ -148,7 +148,7 @@ impl Token<'_> {
             | Token::SquareBracketClose
             | Token::NewColumn
             | Token::ForceClose(_) => Class::Close,
-            Token::BinaryOp(_) => Class::BinaryOp,
+            Token::BinaryOp(_) | Token::ForceBinaryOp(_) => Class::BinaryOp,
             Token::Op(_) | Token::Integral(_) => Class::Operator,
             Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
