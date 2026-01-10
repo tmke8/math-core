@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\boldsymbol{\\varepsilon\\digamma\\varkappa \\varpi}"
 ---
 <math>
-    <mpadded><mi>𝜺ϝ𝝒𝝕</mi></mpadded>
+    <mrow><mspace/><mi>𝜺ϝ𝝒𝝕</mi></mrow>
 </math>

@@ -3,12 +3,12 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">Ρ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Σ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Τ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Υ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Φ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Χ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ψ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ω</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">Ρ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Σ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Τ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Υ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Φ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Χ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ψ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ω</mi></mrow>
 </math>

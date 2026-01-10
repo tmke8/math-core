@@ -3,7 +3,7 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathbb{ABCDEFGHI} \\\\ \\mathbb{JKLMNOPQR} \\\\ \\mathbb{STUVWXYZ}"
 ---
 <math>
-    <mpadded><mi>𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀</mi></mpadded>
-    <mpadded><mi>𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ</mi></mpadded>
-    <mpadded><mi>𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ</mi></mpadded>
+    <mrow><mspace/><mi>𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀</mi></mrow>
+    <mrow><mspace/><mi>𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ</mi></mrow>
+    <mrow><mspace/><mi>𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ</mi></mrow>
 </math>

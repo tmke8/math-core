@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\Gamma\\varGamma\\boldsymbol{\\Gamma\\varGamma}"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">Γ</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">Γ</mi></mrow>
     <mi>Γ</mi>
-    <mpadded><mi>𝚪𝜞</mi></mpadded>
+    <mrow><mspace/><mi>𝚪𝜞</mi></mrow>
 </math>

@@ -4,8 +4,8 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
 ---
 <math>
     <mrow>
-        <mpadded><mi>𝑎𝑏</mi></mpadded>
+        <mrow><mspace/><mi>𝑎𝑏</mi></mrow>
         <mo lspace="0.1667em" rspace="0.1667em">max</mo>
-        <mpadded><mi>𝛼𝛽</mi></mpadded>
+        <mrow><mspace/><mi>𝛼𝛽</mi></mrow>
     </mrow>
 </math>

@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathit{\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega}"
 ---
 <math>
-    <mpadded><mi>𝛲𝛴𝛵𝛶𝛷𝛸𝛹𝛺</mi></mpadded>
+    <mrow><mspace/><mi>𝛲𝛴𝛵𝛶𝛷𝛸𝛹𝛺</mi></mrow>
 </math>

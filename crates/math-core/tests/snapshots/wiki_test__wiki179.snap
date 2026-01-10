@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathsf{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
 ---
 <math>
-    <mpadded><mi>ΑΒΓΔΕΖΗΘ</mi></mpadded>
+    <mrow><mspace/><mi>ΑΒΓΔΕΖΗΘ</mi></mrow>
 </math>

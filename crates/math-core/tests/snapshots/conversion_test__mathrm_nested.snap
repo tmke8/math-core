@@ -4,7 +4,7 @@ expression: "\\mathit{\\mathrm{a}b}"
 ---
 <math>
     <mrow>
-        <mpadded><mi mathvariant="normal">a</mi></mpadded>
+        <mrow><mspace/><mi mathvariant="normal">a</mi></mrow>
         <mi>𝑏</mi>
     </mrow>
 </math>

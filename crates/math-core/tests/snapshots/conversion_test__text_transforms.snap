@@ -8,9 +8,9 @@ expression: "{fi}\\ \\mathit{fi}\\ \\mathrm{fi}\\ \\texttt{fi}"
         <mi>i</mi>
     </mrow>
     <mtext> </mtext>
-    <mpadded><mi>𝑓𝑖</mi></mpadded>
+    <mrow><mspace/><mi>𝑓𝑖</mi></mrow>
     <mtext> </mtext>
-    <mpadded><mi>fi</mi></mpadded>
+    <mrow><mspace/><mi>fi</mi></mrow>
     <mtext> </mtext>
     <mtext><code>fi</code></mtext>
 </math>

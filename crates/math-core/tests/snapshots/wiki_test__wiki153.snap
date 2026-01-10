@@ -3,12 +3,12 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">Ι</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Κ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Λ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Μ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ν</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ξ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ο</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Π</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">Ι</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Κ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Λ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Μ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ν</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ξ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ο</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Π</mi></mrow>
 </math>

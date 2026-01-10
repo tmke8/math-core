@@ -7,8 +7,8 @@ expression: "\\{ \\}, \\text\\O \\empty \\emptyset, \\varnothing"
     <mo stretchy="false">}</mo>
     <mo>,</mo>
     <mtext>Ø</mtext>
-    <mpadded><mi>∅︀</mi></mpadded>
-    <mpadded><mi>∅︀</mi></mpadded>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
     <mo>,</mo>
     <mi>∅</mi>
 </math>
