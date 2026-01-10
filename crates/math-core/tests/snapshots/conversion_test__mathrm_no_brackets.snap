@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathrm x"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">x</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">x</mi></mrow>
 </math>

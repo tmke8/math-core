@@ -3,10 +3,10 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathcal{ABCDEFGHI} \\\\ \\mathcal{JKLMNOPQR} \\\\ \\mathcal{STUVWXYZ} \\\\ \\mathcal{abcdefghi} \\\\ \\mathcal{jklmnopqr} \\\\ \\mathcal{stuvwxyz}"
 ---
 <math>
-    <mpadded><mi>𝒜︀ℬ︀𝒞︀𝒟︀ℰ︀ℱ︀𝒢︀ℋ︀ℐ︀</mi></mpadded>
-    <mpadded><mi>𝒥︀𝒦︀ℒ︀ℳ︀𝒩︀𝒪︀𝒫︀𝒬︀ℛ︀</mi></mpadded>
-    <mpadded><mi>𝒮︀𝒯︀𝒰︀𝒱︀𝒲︀𝒳︀𝒴︀𝒵︀</mi></mpadded>
-    <mpadded><mi>𝒶︀𝒷︀𝒸︀𝒹︀ℯ︀𝒻︀ℊ︀𝒽︀𝒾︀</mi></mpadded>
-    <mpadded><mi>𝒿︀𝓀︀𝓁︀𝓂︀𝓃︀ℴ︀𝓅︀𝓆︀𝓇︀</mi></mpadded>
-    <mpadded><mi>𝓈︀𝓉︀𝓊︀𝓋︀𝓌︀𝓍︀𝓎︀𝓏︀</mi></mpadded>
+    <mrow><mspace/><mi>𝒜︀ℬ︀𝒞︀𝒟︀ℰ︀ℱ︀𝒢︀ℋ︀ℐ︀</mi></mrow>
+    <mrow><mspace/><mi>𝒥︀𝒦︀ℒ︀ℳ︀𝒩︀𝒪︀𝒫︀𝒬︀ℛ︀</mi></mrow>
+    <mrow><mspace/><mi>𝒮︀𝒯︀𝒰︀𝒱︀𝒲︀𝒳︀𝒴︀𝒵︀</mi></mrow>
+    <mrow><mspace/><mi>𝒶︀𝒷︀𝒸︀𝒹︀ℯ︀𝒻︀ℊ︀𝒽︀𝒾︀</mi></mrow>
+    <mrow><mspace/><mi>𝒿︀𝓀︀𝓁︀𝓂︀𝓃︀ℴ︀𝓅︀𝓆︀𝓇︀</mi></mrow>
+    <mrow><mspace/><mi>𝓈︀𝓉︀𝓊︀𝓋︀𝓌︀𝓍︀𝓎︀𝓏︀</mi></mrow>
 </math>

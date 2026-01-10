@@ -3,10 +3,10 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathsf{ABCDEFGHI} \\\\ \\mathsf{JKLMNOPQR} \\\\ \\mathsf{STUVWXYZ} \\\\ \\mathsf{abcdefghijklm} \\\\ \\mathsf{nopqrstuvwxyz} \\\\ \\mathsf{0123456789}"
 ---
 <math>
-    <mpadded><mi>𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨</mi></mpadded>
-    <mpadded><mi>𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱</mi></mpadded>
-    <mpadded><mi>𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹</mi></mpadded>
-    <mpadded><mi>𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆</mi></mpadded>
-    <mpadded><mi>𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓</mi></mpadded>
-    <mpadded><mi>𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫</mi></mpadded>
+    <mrow><mspace/><mi>𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨</mi></mrow>
+    <mrow><mspace/><mi>𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱</mi></mrow>
+    <mrow><mspace/><mi>𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹</mi></mrow>
+    <mrow><mspace/><mi>𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆</mi></mrow>
+    <mrow><mspace/><mi>𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓</mi></mrow>
+    <mrow><mspace/><mi>𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫</mi></mrow>
 </math>

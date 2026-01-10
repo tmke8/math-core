@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathrm{abc}"
 ---
 <math>
-    <mpadded><mi>abc</mi></mpadded>
+    <mrow><mspace/><mi>abc</mi></mrow>
 </math>

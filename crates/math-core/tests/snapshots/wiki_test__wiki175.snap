@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\boldsymbol{\\varGamma \\varDelta \\varTheta \\varLambda}"
 ---
 <math>
-    <mpadded><mi>𝜞𝜟𝜣𝜦</mi></mpadded>
+    <mrow><mspace/><mi>𝜞𝜟𝜣𝜦</mi></mrow>
 </math>

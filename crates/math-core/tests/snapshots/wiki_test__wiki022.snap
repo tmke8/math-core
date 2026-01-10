@@ -9,10 +9,10 @@ expression: "dy/dx, \\mathrm{d}y/\\mathrm{d}x, \\frac{dy}{dx}, \\frac{\\mathrm{d
     <mi>d</mi>
     <mi>x</mi>
     <mo>,</mo>
-    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
     <mi>y</mi>
     <mo lspace="0" rspace="0">/</mo>
-    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
     <mi>x</mi>
     <mo>,</mo>
     <mfrac>
@@ -28,11 +28,11 @@ expression: "dy/dx, \\mathrm{d}y/\\mathrm{d}x, \\frac{dy}{dx}, \\frac{\\mathrm{d
     <mo>,</mo>
     <mfrac>
         <mrow>
-            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
             <mi>y</mi>
         </mrow>
         <mrow>
-            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
             <mi>x</mi>
         </mrow>
     </mfrac>

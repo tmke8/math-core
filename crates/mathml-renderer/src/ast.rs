@@ -180,14 +180,14 @@ impl Node<'_> {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
                 if is_upright {
-                    write!(s, "<mpadded><mi mathvariant=\"normal\">")?;
+                    write!(s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
                 } else {
                     write!(s, "<mi>")?;
                 }
                 let c = *letter;
                 write!(s, "{c}</mi>")?;
                 if is_upright {
-                    write!(s, "</mpadded>")?;
+                    write!(s, "</mrow>")?;
                 }
             }
             Node::StretchableOp(op, stretch_mode, attr) => {
@@ -214,13 +214,13 @@ impl Node<'_> {
             node @ (Node::IdentifierStr(letters) | Node::Text(_, letters)) => {
                 let (open, close) = match node {
                     Node::IdentifierStr(_) => {
-                        // The "<mpadded>" is needed to prevent Firefox from adding extra space
-                        // around multi-letter identifiers.
+                        // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding
+                        // extra space around multi-letter identifiers.
                         debug_assert!(
                             letters.chars().count() > 1,
                             "single-letter IdentifierStr should be IdentifierChar"
                         );
-                        ("<mpadded><mi>", "</mi></mpadded>")
+                        ("<mrow><mspace/><mi>", "</mi></mrow>")
                     }
                     Node::Text(text_style, _) => match text_style {
                         None => ("<mtext>", "</mtext>"),
@@ -809,7 +809,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::IdentifierChar('Γ', LetterAttr::ForcedUpright)),
-            "<mpadded><mi mathvariant=\"normal\">Γ</mi></mpadded>"
+            "<mrow><mspace/><mi mathvariant=\"normal\">Γ</mi></mrow>"
         );
         assert_eq!(
             render(&Node::IdentifierChar('𝑥', LetterAttr::Default)),
@@ -883,7 +883,7 @@ mod tests {
     fn render_collected_letters() {
         assert_eq!(
             render(&Node::IdentifierStr("sin")),
-            "<mpadded><mi>sin</mi></mpadded>"
+            "<mrow><mspace/><mi>sin</mi></mrow>"
         );
     }
 
@@ -1285,15 +1285,15 @@ mod tests {
     fn render_text_transform() {
         assert_eq!(
             render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
-            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
+            "<mrow><mspace/><mi mathvariant=\"normal\">a</mi></mrow>"
         );
         assert_eq!(
             render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
-            "<mpadded><mi mathvariant=\"normal\">a</mi></mpadded>"
+            "<mrow><mspace/><mi mathvariant=\"normal\">a</mi></mrow>"
         );
         assert_eq!(
             render(&Node::IdentifierStr("abc")),
-            "<mpadded><mi>abc</mi></mpadded>"
+            "<mrow><mspace/><mi>abc</mi></mrow>"
         );
         assert_eq!(
             render(&Node::IdentifierChar('𝐚', LetterAttr::Default)),
@@ -1305,7 +1305,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::IdentifierStr("𝒂𝒃𝒄")),
-            "<mpadded><mi>𝒂𝒃𝒄</mi></mpadded>"
+            "<mrow><mspace/><mi>𝒂𝒃𝒄</mi></mrow>"
         );
     }
 

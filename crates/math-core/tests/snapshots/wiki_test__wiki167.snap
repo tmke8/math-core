@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\boldsymbol{\\iota \\kappa \\lambda \\mu \\nu \\xi \\omicron \\pi}"
 ---
 <math>
-    <mpadded><mi>𝜾𝜿𝝀𝝁𝝂𝝃𝝄𝝅</mi></mpadded>
+    <mrow><mspace/><mi>𝜾𝜿𝝀𝝁𝝂𝝃𝝄𝝅</mi></mrow>
 </math>

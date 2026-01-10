@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\mathit{0123456789}"
 ---
 <math>
-    <mpadded><mi>0123456789</mi></mpadded>
+    <mrow><mspace/><mi>0123456789</mi></mrow>
 </math>

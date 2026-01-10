@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathcal A, \\mathscr A"
 ---
 <math>
-    <mpadded><mi>𝒜︀</mi></mpadded>
+    <mrow><mspace/><mi>𝒜︀</mi></mrow>
     <mo>,</mo>
-    <mpadded><mi>𝒜︁</mi></mpadded>
+    <mrow><mspace/><mi>𝒜︁</mi></mrow>
 </math>

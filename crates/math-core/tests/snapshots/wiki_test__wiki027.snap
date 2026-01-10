@@ -5,7 +5,7 @@ expression: "a \\bmod b"
 <math>
     <mi>a</mi>
     <mspace width="0.22222222em"/>
-    <mpadded><mi>mod</mi></mpadded>
+    <mrow><mspace/><mi>mod</mi></mrow>
     <mspace width="0.22222222em"/>
     <mi>b</mi>
 </math>

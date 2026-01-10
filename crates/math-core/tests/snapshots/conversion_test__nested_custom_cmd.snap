@@ -5,20 +5,20 @@ expression: "\\odv{\\odv f x} x"
 <math>
     <mfrac>
         <mrow>
-            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
             <mfrac>
                 <mrow>
-                    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+                    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
                     <mi>f</mi>
                 </mrow>
                 <mrow>
-                    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+                    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
                     <mi>x</mi>
                 </mrow>
             </mfrac>
         </mrow>
         <mrow>
-            <mpadded><mi mathvariant="normal">d</mi></mpadded>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
             <mi>x</mi>
         </mrow>
     </mfrac>

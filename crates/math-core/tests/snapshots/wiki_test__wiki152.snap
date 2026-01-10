@@ -3,12 +3,12 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta"
 ---
 <math>
-    <mpadded><mi mathvariant="normal">Α</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Β</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Γ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Δ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ε</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Ζ</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Η</mi></mpadded>
-    <mpadded><mi mathvariant="normal">Θ</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">Α</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Β</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Γ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Δ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ε</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ζ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Η</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Θ</mi></mrow>
 </math>

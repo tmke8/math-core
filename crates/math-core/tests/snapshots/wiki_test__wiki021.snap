@@ -6,12 +6,12 @@ expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
     <mi>d</mi>
     <mi>t</mi>
     <mo>,</mo>
-    <mpadded><mi mathvariant="normal">d</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
     <mi>t</mi>
     <mo>,</mo>
     <mi>∂</mi>
     <mi>t</mi>
     <mo>,</mo>
-    <mpadded><mi mathvariant="normal">∇</mi></mpadded>
+    <mrow><mspace/><mi mathvariant="normal">∇</mi></mrow>
     <mi>ψ</mi>
 </math>
