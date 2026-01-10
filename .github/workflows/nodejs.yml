@@ -14,19 +14,38 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: latest
+          cache: 'npm'
+          cache-dependency-path: nodejs/package-lock.json
+
       - working-directory: nodejs
         run: npm install
+
       - name: Install wasm target
         run: |
           rustup target add wasm32-unknown-unknown
-      - name: Install wasm-bindgen
+
+      - name: Get wasm-bindgen version
+        id: wasm-bindgen-version
         run: |
-          WASM_BINDGEN_VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
-          cargo install wasm-bindgen-cli --version $WASM_BINDGEN_VERSION
+          VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Cache wasm-bindgen-cli
+        id: cache-wasm-bindgen
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-${{ steps.wasm-bindgen-version.outputs.version }}
+
+      - name: Install wasm-bindgen-cli
+        if: steps.cache-wasm-bindgen.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version ${{ steps.wasm-bindgen-version.outputs.version }}
+
       - name: Build the wasm module
         working-directory: nodejs
         run: |
           npm run build
+
       - name: Run the tests
         working-directory: nodejs
         run: |
