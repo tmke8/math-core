@@ -96,8 +96,8 @@ pretty-print = "always"
 xml-namespace = true
 
 [macros]
-R = "\\mathbb{R}"
-"é" = "\\acute{e}"
+R = '\mathbb{R}'
+"é" = '\acute{e}'
         "#;
         let config = parse_config(toml_content).unwrap();
         assert!(matches!(config.math_core.pretty_print, PrettyPrint::Always));
@@ -119,7 +119,7 @@ R = "\\mathbb{R}"
     fn test_partial_config() {
         let toml_content = r#"
 [macros]
-R = "\\mathbb{R}"
+R = '\mathbb{R}'
         "#;
         let config = parse_config(toml_content).unwrap();
         assert!(matches!(config.math_core.pretty_print, PrettyPrint::Never));
