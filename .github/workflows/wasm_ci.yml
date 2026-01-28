@@ -29,6 +29,8 @@ jobs:
           node-version: 20
       - uses: qmaru/wasm-pack-action@v0.5.0
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./pr-branch -> target"
       - name: "Run wasm-pack test"
         working-directory: ./pr-branch
         run: |
