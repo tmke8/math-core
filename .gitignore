@@ -77,3 +77,5 @@ node_modules/
 /nodejs/dist/
 
 *.otf
+
+/CLAUDE.md
