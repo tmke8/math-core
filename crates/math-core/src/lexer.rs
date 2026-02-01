@@ -466,7 +466,7 @@ mod tests {
             let mut tokens = String::new();
             loop {
                 let tokloc = lexer.next_token().unwrap();
-                if matches!(tokloc.1, Token::Eof) {
+                if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
                 let TokLoc(loc, tok) = tokloc;
@@ -497,7 +497,7 @@ mod tests {
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
-                        if matches!(tokloc.1, Token::Eof) {
+                        if matches!(tokloc.token(), Token::Eof) {
                             break None;
                         }
                     }
@@ -522,7 +522,7 @@ mod tests {
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
-            if matches!(tokloc.1, Token::Eof) {
+            if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
             let TokLoc(loc, tok) = tokloc;
@@ -539,7 +539,7 @@ mod tests {
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {
-            let TokLoc(_, tok) = tokloc;
+            let tok = tokloc.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
                 output.push(ch);
             }

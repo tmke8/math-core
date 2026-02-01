@@ -1316,7 +1316,7 @@ where
             let second_circumflex = matches!(self.tokens.peek().token(), Token::Circumflex);
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
-                let TokLoc(loc, _) = self.next_token()?;
+                let loc = self.next_token()?.location();
                 return Err(self.alloc_err(LatexError(loc, LatexErrKind::DuplicateSubOrSup)));
             }
 
