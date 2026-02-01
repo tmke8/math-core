@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "f_5^2'"
 ---
-Position: 5
+Position: 5, width: 1
 DuplicateSubOrSup

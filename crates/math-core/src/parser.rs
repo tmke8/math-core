@@ -18,7 +18,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, FromAscii, TokLoc, Token},
+    token::{EndToken, FromAscii, Span, TokLoc, Token},
     token_queue::TokenQueue,
 };
 
@@ -158,7 +158,9 @@ where
                 // Get the current token.
                 let cur_tokloc = self.next_token();
                 // Check here for EOF, so we know to end the loop prematurely.
-                if let Ok(TokLoc(Token::Eof, loc)) = cur_tokloc {
+                if let Ok(tokloc) = cur_tokloc
+                    && let (Token::Eof, loc) = tokloc.into_parts()
+                {
                     // When the input ends without the closing token.
                     if let SequenceEnd::EndToken(end_token) = sequence_end {
                         return Err(
@@ -212,7 +214,7 @@ where
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<'config, (Class, &'arena Node<'arena>)> {
-        let TokLoc(cur_token, loc) = cur_tokloc?;
+        let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class: Class = Default::default();
         let next_class = self
             .tokens
@@ -465,7 +467,9 @@ where
             Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
-                if matches!(next, Ok(TokLoc(Token::SquareBracketOpen, _))) {
+                if let Ok(tokloc) = next
+                    && matches!(tokloc.token(), Token::SquareBracketOpen)
+                {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
                     let degree = self.parse_sequence(
                         SequenceEnd::EndToken(EndToken::SquareBracketClose),
@@ -523,12 +527,22 @@ where
                 let open = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
+                    _ => {
+                        break 'genfrac Err(LatexError(
+                            Span(0, 0),
+                            LatexErrKind::ExpectedArgumentGotEOF,
+                        ));
+                    }
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
+                    _ => {
+                        break 'genfrac Err(LatexError(
+                            Span(0, 0),
+                            LatexErrKind::ExpectedArgumentGotEOF,
+                        ));
+                    }
                 };
                 let (loc, length) = self.parse_string_literal()?;
                 let lt = match length.trim() {
@@ -548,13 +562,18 @@ where
                         b"3" => Some(Style::ScriptScript),
                         _ => {
                             break 'genfrac Err(LatexError(
-                                0,
+                                Span(0, 0),
                                 LatexErrKind::ExpectedArgumentGotEOF,
                             ));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
-                    _ => break 'genfrac Err(LatexError(0, LatexErrKind::ExpectedArgumentGotEOF)),
+                    _ => {
+                        break 'genfrac Err(LatexError(
+                            Span(0, 0),
+                            LatexErrKind::ExpectedArgumentGotEOF,
+                        ));
+                    }
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
@@ -708,7 +727,7 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                let TokLoc(tok, new_loc) = self.next_token()?;
+                let (tok, new_loc) = self.next_token()?.into_parts();
                 // Recompute the next class:
                 let next_class = self
                     .tokens
@@ -856,7 +875,7 @@ where
                     class = Class::Open;
                 }
                 let Some(stretchable_op) = paren.as_stretchable_op() else {
-                    break 'open_close Err(LatexError(loc, LatexErrKind::Internal));
+                    break 'open_close Err(LatexError(span, LatexErrKind::Internal));
                 };
                 let attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
                     // For this category of symbol, we have to force the form attribute
@@ -973,7 +992,7 @@ where
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
-                let TokLoc(end_env, end_loc) = self.next_token()?;
+                let (end_env, end_loc) = self.next_token()?.into_parts();
                 let Token::End(end_env) = end_env else {
                     // This should never happen because `parse_sequence` should have
                     // stopped at the `\end` token.
@@ -995,7 +1014,10 @@ where
                     match n.next_equation_number(self.equation_counter, true) {
                         Ok(num) => (num, n.num_rows),
                         Err(_) => {
-                            break 'begin_env Err(LatexError(loc, LatexErrKind::HardLimitExceeded));
+                            break 'begin_env Err(LatexError(
+                                span,
+                                LatexErrKind::HardLimitExceeded,
+                            ));
                         }
                     }
                 } else {
@@ -1059,7 +1081,7 @@ where
                     Ok(Node::ColumnSeparator)
                 } else {
                     Err(LatexError(
-                        loc,
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
                             correct_place: Place::TableEnv,
@@ -1078,7 +1100,7 @@ where
                             }
                             None => {
                                 break 'new_line Err(LatexError(
-                                    loc,
+                                    span,
                                     LatexErrKind::HardLimitExceeded,
                                 ));
                             }
@@ -1086,7 +1108,7 @@ where
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
                         Ok(num) => Ok(Node::RowSeparator(num)),
-                        Err(_) => Err(LatexError(loc, LatexErrKind::HardLimitExceeded)),
+                        Err(_) => Err(LatexError(span, LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
                     Ok(Node::RowSeparator(None))
@@ -1119,7 +1141,7 @@ where
                     }
                 } else {
                     Err(LatexError(
-                        loc,
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
                             correct_place: Place::NumberedEnv,
@@ -1198,13 +1220,13 @@ where
                 }
             }
             Token::Limits => Err(LatexError(
-                loc,
+                span,
                 LatexErrKind::CannotBeUsedHere {
                     got: cur_token,
                     correct_place: Place::AfterBigOp,
                 },
             )),
-            Token::Eof => Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotEOF)),
+            Token::Eof => Err(LatexError(span, LatexErrKind::ExpectedArgumentGotEOF)),
             tok @ (Token::End(_) | Token::Right | Token::GroupEnd) => {
                 if parse_as.in_sequence() {
                     let end = match tok {
@@ -1213,15 +1235,15 @@ where
                         Token::End(_) => EndToken::End,
                         _ => unreachable!(),
                     };
-                    Err(LatexError(loc, LatexErrKind::UnmatchedClose(end)))
+                    Err(LatexError(span, LatexErrKind::UnmatchedClose(end)))
                 } else {
-                    Err(LatexError(loc, LatexErrKind::ExpectedArgumentGotClose))
+                    Err(LatexError(span, LatexErrKind::ExpectedArgumentGotClose))
                 }
             }
             Token::Whitespace | Token::TextModeAccent(_) => {
                 // That these tokens are not expected by the parser should never occur.
                 // We report an internal error here.
-                Err(LatexError(loc, LatexErrKind::Internal))
+                Err(LatexError(span, LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
@@ -1264,7 +1286,8 @@ where
                     let token = self.next_token();
                     return self.parse_token(token, parse_as, prev_class);
                 } else {
-                    Err(LatexError(loc, LatexErrKind::RenderError))
+                    // We somehow cannot find the requested argument.
+                    Err(LatexError(span, LatexErrKind::Internal))
                 }
             }
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
@@ -1391,7 +1414,9 @@ where
     fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<'config, &'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
-        if let Ok(TokLoc(Token::Underscore | Token::Circumflex | Token::Prime, loc)) = next {
+        if let Ok(tokloc) = next
+            && let (Token::Underscore | Token::Circumflex | Token::Prime, loc) = tokloc.into_parts()
+        {
             return Err(self.alloc_err(LatexError(loc, LatexErrKind::BoundFollowedByBound)));
         }
         let old_script_style = mem::replace(&mut self.state.script_style, true);
@@ -1455,7 +1480,7 @@ where
         tok: TokLoc<'config>,
         location: DelimiterModifier,
     ) -> ParseResult<'config, StretchableOp> {
-        let TokLoc(tok, loc) = tok;
+        let (tok, loc) = tok.into_parts();
         const SQ_L_BRACKET: StretchableOp =
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
@@ -1546,24 +1571,27 @@ where
 
     pub(super) fn parse_string_literal(
         &mut self,
-    ) -> Result<(usize, &'arena str), Box<LatexError<'config>>> {
-        let TokLoc(first, loc) = self.tokens.next()?;
+    ) -> Result<(Span, &'arena str), Box<LatexError<'config>>> {
+        let (first, span) = self.tokens.next()?.into_parts();
         let mut tokens = Vec::new();
-        match first {
+        let end_loc = match first {
             Token::GroupBegin => {
                 // Read until the matching `}`.
                 self.tokens.read_group(&mut tokens)?
             }
             Token::InternalStringLiteral(content) => {
-                return Ok((loc, content));
+                return Ok((span, content));
             }
-            _ => tokens.push(TokLoc(first, loc)),
-        }
+            _ => {
+                tokens.push(TokLoc::new(first, span));
+                span.end()
+            }
+        };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
         let mut custom_arg_iter: Option<std::slice::Iter<TokLoc<'config>>> = None;
         loop {
-            let TokLoc(tok, loc) = if let Some(iter) = &mut custom_arg_iter {
+            let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(tokloc) = iter.next() {
                     *tokloc
                 } else {
@@ -1576,6 +1604,7 @@ where
             } else {
                 break;
             };
+            let (tok, span) = tokloc.into_parts();
             if let Token::CustomCmdArg(arg_num) = tok {
                 // Queue the custom command argument tokens.
                 let start = self
@@ -1597,13 +1626,14 @@ where
             }
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(self.alloc_err(LatexError(
-                    loc,
+                    span,
                     LatexErrKind::ExpectedText("string literal"),
                 )));
             };
             builder.push_char(ch);
         }
-        Ok((loc, builder.finish(self.arena)))
+        let total_span = Span::from(span.start()..end_loc);
+        Ok((total_span, builder.finish(self.arena)))
     }
 }
 

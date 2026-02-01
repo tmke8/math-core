@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "{\\text}"
 ---
-Position: 6
+Position: 6, width: 1
 ExpectedArgumentGotClose

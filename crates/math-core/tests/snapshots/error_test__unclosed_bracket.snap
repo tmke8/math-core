@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sqrt[lim"
 ---
-Position: 9
+Position: 9, width: 0
 UnclosedGroup(
     SquareBracketClose,
 )

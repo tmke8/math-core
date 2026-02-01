@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::attribute::{
@@ -170,10 +172,49 @@ pub enum FromAscii {
     True,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Span(pub usize, pub u16);
+
+impl Span {
+    #[inline]
+    pub const fn zero_width(at: usize) -> Self {
+        Span(at, 0)
+    }
+
+    #[inline]
+    pub const fn start(&self) -> usize {
+        self.0
+    }
+
+    #[inline]
+    pub const fn end(&self) -> usize {
+        self.0 + self.1 as usize
+    }
+}
+
+impl From<Span> for Range<usize> {
+    #[inline]
+    fn from(span: Span) -> Self {
+        span.0..(span.0 + span.1 as usize)
+    }
+}
+
+impl From<Range<usize>> for Span {
+    #[inline]
+    fn from(range: Range<usize>) -> Self {
+        Span(range.start, (range.end - range.start) as u16)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'config>(pub Token<'config>, pub usize);
+pub struct TokLoc<'config>(pub Token<'config>, pub usize, pub u16);
 
 impl<'config> TokLoc<'config> {
+    #[inline]
+    pub const fn new(token: Token<'config>, span: Span) -> Self {
+        TokLoc(token, span.0, span.1)
+    }
+
     #[inline]
     pub fn token(&self) -> &Token<'config> {
         &self.0
@@ -184,14 +225,19 @@ impl<'config> TokLoc<'config> {
         self.0
     }
 
+    #[inline]
+    pub fn into_parts(self) -> (Token<'config>, Span) {
+        (self.0, Span(self.1, self.2))
+    }
+
     // #[inline]
     // pub fn token_mut(&mut self) -> &mut Token<'config> {
     //     &mut self.0
     // }
 
     #[inline]
-    pub fn location(&self) -> usize {
-        self.1
+    pub fn location(&self) -> Span {
+        Span(self.1, self.2)
     }
 
     #[inline]
@@ -203,7 +249,7 @@ impl<'config> TokLoc<'config> {
 impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokLoc(token, 0)
+        TokLoc(token, 0, 0)
     }
 }
 
@@ -243,10 +289,7 @@ mod tests {
     #[test]
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
-        assert!(
-            std::mem::size_of::<TokLoc>() <= 4 * WORD,
-            "size of TokResult"
-        );
+        assert!(std::mem::size_of::<TokLoc>() <= 5 * WORD, "size of TokLoc");
         assert!(
             std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
             "size of Result<Token, pointer>"

@@ -2,14 +2,14 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\hspace {  4  em } x"
 ---
-0: CustomSpace
-8: GroupBegin
-9: Whitespace
-11: Digit('4')
-12: Whitespace
-14: Letter('e', True)
-15: Letter('m', True)
-16: Whitespace
-17: GroupEnd
-18: Whitespace
-19: Letter('x', True)
+0:7: CustomSpace
+8:9: GroupBegin
+9:10: Whitespace
+11:12: Digit('4')
+12:13: Whitespace
+14:15: Letter('e', True)
+15:16: Letter('m', True)
+16:17: Whitespace
+17:18: GroupEnd
+18:19: Whitespace
+19:20: Letter('x', True)

@@ -2,12 +2,12 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\text{  x   y z}"
 ---
-0: Text(None)
-5: GroupBegin
-6: Whitespace
-8: Letter('x', True)
-9: Whitespace
-12: Letter('y', True)
-13: Whitespace
-14: Letter('z', True)
-15: GroupEnd
+0:5: Text(None)
+5:6: GroupBegin
+6:7: Whitespace
+8:9: Letter('x', True)
+9:10: Whitespace
+12:13: Letter('y', True)
+13:14: Whitespace
+14:15: Letter('z', True)
+15:16: GroupEnd

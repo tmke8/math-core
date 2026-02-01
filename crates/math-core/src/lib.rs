@@ -46,6 +46,8 @@ use serde::{Deserialize, Serialize};
 
 use mathml_renderer::{arena::Arena, ast::Node};
 
+use crate::token::Span;
+
 pub use self::error::{LatexErrKind, LatexError};
 pub use self::token::Token;
 use self::{lexer::Lexer, parser::Parser};
@@ -261,8 +263,9 @@ fn convert<'config>(
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
+        // TODO: `.emit` cannot actually fail here; we should change its signature.
         node.emit(&mut output, base_indent)
-            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+            .map_err(|_| LatexError(Span(0, 0), LatexErrKind::RenderError))?;
     }
     if pretty_print {
         output.push('\n');
@@ -291,7 +294,7 @@ fn parse_custom_commands(
     for (name, definition) in macros {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
-                Box::new(LatexError(0, LatexErrKind::InvalidMacroName(name))),
+                Box::new(LatexError(Span(0, 0), LatexErrKind::InvalidMacroName(name))),
                 definition,
             ));
         }

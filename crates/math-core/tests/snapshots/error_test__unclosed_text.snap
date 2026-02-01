@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\text{hello"
 ---
-Position: 11
+Position: 11, width: 0
 UnclosedGroup(
     GroupClose,
 )

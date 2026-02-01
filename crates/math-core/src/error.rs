@@ -7,11 +7,11 @@ use strum_macros::IntoStaticStr;
 use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
-use crate::token::{EndToken, Token};
+use crate::token::{EndToken, Span, Token};
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug, Clone)]
-pub struct LatexError<'source>(pub usize, pub LatexErrKind<'source>);
+pub struct LatexError<'source>(pub Span, pub LatexErrKind<'source>);
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -48,6 +48,7 @@ pub enum LatexErrKind<'config> {
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
+    ExpectedParamNumberGotEOF,
     HardLimitExceeded,
     Internal,
 }
@@ -154,6 +155,9 @@ impl LatexErrKind<'_> {
             LatexErrKind::MacroParameterOutsideCustomCommand => {
                 "Macro parameter found outside of custom command definition.".to_string()
             }
+            LatexErrKind::ExpectedParamNumberGotEOF => {
+                "Expected parameter number after '#', but got end of input.".to_string()
+            }
             LatexErrKind::HardLimitExceeded => {
                 "Hard limit exceeded. Please simplify your equation.".to_string()
             }
@@ -183,7 +187,7 @@ impl LatexError<'_> {
         let _ = write!(
             output,
             r#"<{} class="{}" title="{}: "#,
-            tag, css_class, self.0
+            tag, css_class, self.0.0
         );
         escape_double_quoted_html_attribute(&mut output, &self.1.string());
         output.push_str(r#""><code>"#);
@@ -195,7 +199,7 @@ impl LatexError<'_> {
 
 impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.0, self.1.string())
+        write!(f, "{}: {}", self.0.0, self.1.string())
     }
 }
 

@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{align}x\\tag{A1}\\end{align}"
 ---
-Position: 18
+Position: 18, width: 4
 ExpectedNumber(
     "A1",
 )

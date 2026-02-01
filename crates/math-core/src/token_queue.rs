@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::{
     error::{LatexErrKind, LatexError},
     lexer::Lexer,
-    token::{EndToken, TokLoc, Token},
+    token::{EndToken, Span, TokLoc, Token},
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
@@ -14,7 +14,7 @@ pub(super) struct TokenQueue<'source, 'config> {
     next_non_whitespace: usize,
 }
 
-static EOF_TOK: TokLoc = TokLoc(Token::Eof, 0);
+static EOF_TOK: TokLoc = TokLoc::new(Token::Eof, Span(0, 0));
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
@@ -233,14 +233,17 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.
+    ///
+    /// The initial `{` must have already been consumed. The closing `}` is not included
+    /// in the output token vector.
     pub(super) fn read_group(
         &mut self,
         tokens: &mut Vec<TokLoc<'config>>,
-    ) -> Result<(), Box<LatexError<'config>>> {
+    ) -> Result<usize, Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
-        loop {
-            let TokLoc(tok, loc) = self.next_with_whitespace()?;
-            match tok {
+        let end = loop {
+            let tokloc = self.next_with_whitespace()?;
+            match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
                 }
@@ -249,21 +252,21 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                     // stop reading.
                     let Some(new_level) = nesting_level.checked_sub(1) else {
                         // We break directly without pushing the `}` token.
-                        break;
+                        break tokloc.location().end();
                     };
                     nesting_level = new_level;
                 }
                 Token::Eof => {
                     return Err(Box::new(LatexError(
-                        loc,
+                        tokloc.location(),
                         LatexErrKind::UnclosedGroup(EndToken::GroupClose),
                     )));
                 }
                 _ => {}
             }
-            tokens.push(TokLoc(tok, loc));
-        }
-        Ok(())
+            tokens.push(tokloc);
+        };
+        Ok(end)
     }
 }
 
@@ -315,14 +318,15 @@ mod tests {
             assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
             let mut tokens = Vec::new();
             let tokens = match manager.read_group(&mut tokens) {
-                Ok(()) => {
+                Ok(_) => {
                     let mut token_str = String::new();
-                    for TokLoc(tok, loc) in tokens {
-                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+                    for tokloc in tokens {
+                        let (tok, loc) = tokloc.into_parts();
+                        write!(token_str, "{}:{}: {:?}\n", loc.start(), loc.end(), tok).unwrap();
                     }
                     token_str
                 }
-                Err(err) => format!("Error at {}: {:?}", err.0, err.1),
+                Err(err) => format!("Error at {}:{}: {:?}", err.0.start(), err.0.end(), err.1),
             };
             assert_snapshot!(name, &tokens, problem);
         }
@@ -338,11 +342,11 @@ mod tests {
         let mut token_str = String::new();
 
         loop {
-            let TokLoc(tok, loc) = manager.next_with_whitespace().unwrap();
+            let (tok, loc) = manager.next_with_whitespace().unwrap().into_parts();
             if matches!(tok, Token::Eof) {
                 break;
             }
-            write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+            write!(token_str, "{}:{}: {:?}\n", loc.start(), loc.end(), tok).unwrap();
         }
 
         assert_snapshot!("next_with_whitespace", &token_str, input);

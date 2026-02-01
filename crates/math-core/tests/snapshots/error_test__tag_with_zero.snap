@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{align} x \\tag{0} \\\\ y \\end{align}"
 ---
-Position: 20
+Position: 20, width: 3
 ExpectedNumber(
     "0",
 )

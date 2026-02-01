@@ -2,7 +2,7 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\prod\\text\\o\\sum"
 ---
-0: Op(Op { char: '∏', cat: J })
-5: Text(None)
-10: Letter('ø', False)
-12: Op(Op { char: '∑', cat: J })
+0:5: Op(Op { char: '∏', cat: J })
+5:10: Text(None)
+10:12: Letter('ø', False)
+12:16: Op(Op { char: '∑', cat: J })

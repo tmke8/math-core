@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{multline}1&1\\end{multline}"
 ---
-Position: 17
+Position: 17, width: 1
 CannotBeUsedHere {
     got: NewColumn,
     correct_place: TableEnv,
