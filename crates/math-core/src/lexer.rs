@@ -154,12 +154,12 @@ impl<'config, 'source> Lexer<'config, 'source> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         let white_space_loc = self.skip_whitespace();
         if let Ok(loc) = usize::try_from(white_space_loc) {
-            return Ok(TokLoc(loc, Token::Whitespace));
+            return Ok(TokLoc(Token::Whitespace, loc));
         }
 
         let (loc, ch) = self.read_char();
         let Some(ch) = ch else {
-            return Ok(TokLoc(loc, Token::Eof));
+            return Ok(TokLoc(Token::Eof, loc));
         };
         if ch == '%' {
             // Skip comments.
@@ -298,7 +298,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        Ok(TokLoc(loc, tok))
+        Ok(TokLoc(tok, loc))
     }
 
     fn parse_command(
@@ -379,7 +379,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             self.mode = Mode::TextStart;
         }
         match tok {
-            Ok(tok) => Ok(TokLoc(loc, tok)),
+            Ok(tok) => Ok(TokLoc(tok, loc)),
             Err(err) => Err(Box::new(err)),
         }
     }
@@ -469,7 +469,7 @@ mod tests {
                 if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
-                let TokLoc(loc, tok) = tokloc;
+                let TokLoc(tok, loc) = tokloc;
                 write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
@@ -525,7 +525,7 @@ mod tests {
             if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
-            let TokLoc(loc, tok) = tokloc;
+            let TokLoc(tok, loc) = tokloc;
             write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));

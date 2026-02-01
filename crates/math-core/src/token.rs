@@ -171,39 +171,39 @@ pub enum FromAscii {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'config>(pub usize, pub Token<'config>);
+pub struct TokLoc<'config>(pub Token<'config>, pub usize);
 
 impl<'config> TokLoc<'config> {
     #[inline]
     pub fn token(&self) -> &Token<'config> {
-        &self.1
+        &self.0
     }
 
     #[inline]
     pub fn into_token(self) -> Token<'config> {
-        self.1
+        self.0
     }
 
     // #[inline]
     // pub fn token_mut(&mut self) -> &mut Token<'config> {
-    //     &mut self.1
+    //     &mut self.0
     // }
 
     #[inline]
     pub fn location(&self) -> usize {
-        self.0
+        self.1
     }
 
     #[inline]
     pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
-        self.1.class(in_sequence, ignore_end_tokens)
+        self.0.class(in_sequence, ignore_end_tokens)
     }
 }
 
 impl<'config> From<Token<'config>> for TokLoc<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokLoc(0, token)
+        TokLoc(token, 0)
     }
 }
 

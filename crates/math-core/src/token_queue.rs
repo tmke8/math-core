@@ -14,7 +14,7 @@ pub(super) struct TokenQueue<'source, 'config> {
     next_non_whitespace: usize,
 }
 
-static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
+static EOF_TOK: TokLoc = TokLoc(Token::Eof, 0);
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
@@ -239,7 +239,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     ) -> Result<(), Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
         loop {
-            let TokLoc(loc, tok) = self.next_with_whitespace()?;
+            let TokLoc(tok, loc) = self.next_with_whitespace()?;
             match tok {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -261,7 +261,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 }
                 _ => {}
             }
-            tokens.push(TokLoc(loc, tok));
+            tokens.push(TokLoc(tok, loc));
         }
         Ok(())
     }
@@ -312,12 +312,12 @@ mod tests {
             manager.load_token(SkipMode::Whitespace).unwrap();
             manager.load_token(SkipMode::Whitespace).unwrap();
             // Check that the first token is `GroupBegin`.
-            assert!(matches!(manager.next().unwrap().1, Token::GroupBegin));
+            assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
             let mut tokens = Vec::new();
             let tokens = match manager.read_group(&mut tokens) {
                 Ok(()) => {
                     let mut token_str = String::new();
-                    for TokLoc(loc, tok) in tokens {
+                    for TokLoc(tok, loc) in tokens {
                         write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
                     }
                     token_str
@@ -338,7 +338,7 @@ mod tests {
         let mut token_str = String::new();
 
         loop {
-            let TokLoc(loc, tok) = manager.next_with_whitespace().unwrap();
+            let TokLoc(tok, loc) = manager.next_with_whitespace().unwrap();
             if matches!(tok, Token::Eof) {
                 break;
             }

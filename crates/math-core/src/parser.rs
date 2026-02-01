@@ -158,7 +158,7 @@ where
                 // Get the current token.
                 let cur_tokloc = self.next_token();
                 // Check here for EOF, so we know to end the loop prematurely.
-                if let Ok(TokLoc(loc, Token::Eof)) = cur_tokloc {
+                if let Ok(TokLoc(Token::Eof, loc)) = cur_tokloc {
                     // When the input ends without the closing token.
                     if let SequenceEnd::EndToken(end_token) = sequence_end {
                         return Err(
@@ -212,7 +212,7 @@ where
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<'config, (Class, &'arena Node<'arena>)> {
-        let TokLoc(loc, cur_token) = cur_tokloc?;
+        let TokLoc(cur_token, loc) = cur_tokloc?;
         let mut class: Class = Default::default();
         let next_class = self
             .tokens
@@ -465,7 +465,7 @@ where
             Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
-                if matches!(next, Ok(TokLoc(_, Token::SquareBracketOpen))) {
+                if matches!(next, Ok(TokLoc(Token::SquareBracketOpen, _))) {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
                     let degree = self.parse_sequence(
                         SequenceEnd::EndToken(EndToken::SquareBracketClose),
@@ -708,7 +708,7 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                let TokLoc(new_loc, tok) = self.next_token()?;
+                let TokLoc(tok, new_loc) = self.next_token()?;
                 // Recompute the next class:
                 let next_class = self
                     .tokens
@@ -973,7 +973,7 @@ where
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
-                let TokLoc(end_loc, end_env) = self.next_token()?;
+                let TokLoc(end_env, end_loc) = self.next_token()?;
                 let Token::End(end_env) = end_env else {
                     // This should never happen because `parse_sequence` should have
                     // stopped at the `\end` token.
@@ -1391,7 +1391,7 @@ where
     fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<'config, &'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
-        if let Ok(TokLoc(loc, Token::Underscore | Token::Circumflex | Token::Prime)) = next {
+        if let Ok(TokLoc(Token::Underscore | Token::Circumflex | Token::Prime, loc)) = next {
             return Err(self.alloc_err(LatexError(loc, LatexErrKind::BoundFollowedByBound)));
         }
         let old_script_style = mem::replace(&mut self.state.script_style, true);
@@ -1455,7 +1455,7 @@ where
         tok: TokLoc<'config>,
         location: DelimiterModifier,
     ) -> ParseResult<'config, StretchableOp> {
-        let TokLoc(loc, tok) = tok;
+        let TokLoc(tok, loc) = tok;
         const SQ_L_BRACKET: StretchableOp =
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
@@ -1547,7 +1547,7 @@ where
     pub(super) fn parse_string_literal(
         &mut self,
     ) -> Result<(usize, &'arena str), Box<LatexError<'config>>> {
-        let TokLoc(loc, first) = self.tokens.next()?;
+        let TokLoc(first, loc) = self.tokens.next()?;
         let mut tokens = Vec::new();
         match first {
             Token::GroupBegin => {
@@ -1557,13 +1557,13 @@ where
             Token::InternalStringLiteral(content) => {
                 return Ok((loc, content));
             }
-            _ => tokens.push(TokLoc(loc, first)),
+            _ => tokens.push(TokLoc(first, loc)),
         }
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
         let mut custom_arg_iter: Option<std::slice::Iter<TokLoc<'config>>> = None;
         loop {
-            let TokLoc(loc, tok) = if let Some(iter) = &mut custom_arg_iter {
+            let TokLoc(tok, loc) = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(tokloc) = iter.next() {
                     *tokloc
                 } else {

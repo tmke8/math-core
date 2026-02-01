@@ -30,7 +30,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
             } else {
                 self.tokens.next()
             };
-            let TokLoc(loc, token) = tokloc?;
+            let TokLoc(token, loc) = tokloc?;
             let c: Result<char, LatexErrKind> = match token {
                 Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
                 Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
