@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\left(\\operatorname{hello\\right)"
 ---
-Position: 25, width: 6
+Position: 25..31
 ExpectedArgumentGotClose

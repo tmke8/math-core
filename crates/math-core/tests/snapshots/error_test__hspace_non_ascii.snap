@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\hspace{22öm}"
 ---
-Position: 10, width: 2
+Position: 10..12
 ExpectedText(
     "string literal",
 )

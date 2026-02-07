@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\end{matrix}"
 ---
-Position: 0, width: 12
+Position: 0..12
 UnmatchedClose(
     End,
 )

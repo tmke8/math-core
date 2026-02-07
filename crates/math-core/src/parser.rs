@@ -1,4 +1,4 @@
-use std::{mem, num::NonZeroU16};
+use std::{mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -18,7 +18,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, FromAscii, Span, TokLoc, Token},
+    token::{EndToken, FromAscii, TokSpan, Token},
     token_queue::TokenQueue,
 };
 
@@ -31,7 +31,7 @@ pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
 }
 
 struct ParserState<'config> {
-    cmd_args: Vec<TokLoc<'config>>,
+    cmd_args: Vec<TokSpan<'config>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
@@ -123,7 +123,7 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> ParseResult<'config, TokLoc<'config>> {
+    fn next_token(&mut self) -> ParseResult<'config, TokSpan<'config>> {
         self.tokens.next()
     }
 
@@ -150,27 +150,27 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
             // Check whether we need to collect letters.
-            let (class, target) = if let Some(collected_letters) =
-                self.merge_and_transform_letters()?
-            {
-                collected_letters
-            } else {
-                // Get the current token.
-                let cur_tokloc = self.next_token();
-                // Check here for EOF, so we know to end the loop prematurely.
-                if let Ok(tokloc) = cur_tokloc
-                    && let (Token::Eof, loc) = tokloc.into_parts()
-                {
-                    // When the input ends without the closing token.
-                    if let SequenceEnd::EndToken(end_token) = sequence_end {
-                        return Err(
-                            self.alloc_err(LatexError(loc, LatexErrKind::UnclosedGroup(end_token)))
-                        );
+            let (class, target) =
+                if let Some(collected_letters) = self.merge_and_transform_letters()? {
+                    collected_letters
+                } else {
+                    // Get the current token.
+                    let cur_tokloc = self.next_token();
+                    // Check here for EOF, so we know to end the loop prematurely.
+                    if let Ok(tokloc) = cur_tokloc
+                        && let (Token::Eof, span) = tokloc.into_parts()
+                    {
+                        // When the input ends without the closing token.
+                        if let SequenceEnd::EndToken(end_token) = sequence_end {
+                            return Err(self.alloc_err(LatexError(
+                                span.into(),
+                                LatexErrKind::UnclosedGroup(end_token),
+                            )));
+                        }
                     }
-                }
-                // Parse the token.
-                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
-            };
+                    // Parse the token.
+                    self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+                };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -210,7 +210,7 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: ParseResult<'config, TokLoc<'config>>,
+        cur_tokloc: ParseResult<'config, TokSpan<'config>>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<'config, (Class, &'arena Node<'arena>)> {
@@ -458,10 +458,13 @@ where
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
-                let (loc, length) = self.parse_string_literal()?;
+                let (span, length) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
-                    None => Err(LatexError(loc, LatexErrKind::ExpectedLength(length.into()))),
+                    None => Err(LatexError(
+                        span.into(),
+                        LatexErrKind::ExpectedLength(length.into()),
+                    )),
                 }
             }
             Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
@@ -528,28 +531,22 @@ where
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(
-                            Span(0, 0),
-                            LatexErrKind::ExpectedArgumentGotEOF,
-                        ));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
                     }
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(
-                            Span(0, 0),
-                            LatexErrKind::ExpectedArgumentGotEOF,
-                        ));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
                     }
                 };
-                let (loc, length) = self.parse_string_literal()?;
+                let (span, length) = self.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
                         self.alloc_err(LatexError(
-                            loc,
+                            span.into(),
                             LatexErrKind::ExpectedLength(decimal.into()),
                         ))
                     })?,
@@ -562,17 +559,14 @@ where
                         b"3" => Some(Style::ScriptScript),
                         _ => {
                             break 'genfrac Err(LatexError(
-                                Span(0, 0),
+                                0..0,
                                 LatexErrKind::ExpectedArgumentGotEOF,
                             ));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(
-                            Span(0, 0),
-                            LatexErrKind::ExpectedArgumentGotEOF,
-                        ));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
                     }
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
@@ -727,7 +721,7 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                let (tok, new_loc) = self.next_token()?.into_parts();
+                let (tok, new_span) = self.next_token()?.into_parts();
                 // Recompute the next class:
                 let next_class = self
                     .tokens
@@ -778,7 +772,10 @@ where
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
-                    _ => Err(LatexError(new_loc, LatexErrKind::ExpectedRelation(tok))),
+                    _ => Err(LatexError(
+                        new_span.into(),
+                        LatexErrKind::ExpectedRelation(tok),
+                    )),
                 }
             }
             Token::Transform(tf) => {
@@ -875,7 +872,7 @@ where
                     class = Class::Open;
                 }
                 let Some(stretchable_op) = paren.as_stretchable_op() else {
-                    break 'open_close Err(LatexError(span, LatexErrKind::Internal));
+                    break 'open_close Err(LatexError(span.into(), LatexErrKind::Internal));
                 };
                 let attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
                     // For this category of symbol, we have to force the form attribute
@@ -954,10 +951,10 @@ where
             Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (loc, options) = self.parse_string_literal()?;
+                    let (span, options) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
-                            loc,
+                            span,
                             LatexErrKind::ExpectedColSpec(options.into()),
                         ));
                     };
@@ -992,17 +989,17 @@ where
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
-                let (end_env, end_loc) = self.next_token()?.into_parts();
+                let (end_env, end_span) = self.next_token()?.into_parts();
                 let Token::End(end_env) = end_env else {
                     // This should never happen because `parse_sequence` should have
                     // stopped at the `\end` token.
                     // We report an internal error here.
-                    break 'begin_env Err(LatexError(end_loc, LatexErrKind::Internal));
+                    break 'begin_env Err(LatexError(end_span.into(), LatexErrKind::Internal));
                 };
 
                 if end_env != env {
                     break 'begin_env Err(LatexError(
-                        end_loc,
+                        end_span.into(),
                         LatexErrKind::MismatchedEnvironment {
                             expected: env,
                             got: end_env,
@@ -1015,7 +1012,7 @@ where
                         Ok(num) => (num, n.num_rows),
                         Err(_) => {
                             break 'begin_env Err(LatexError(
-                                span,
+                                span.into(),
                                 LatexErrKind::HardLimitExceeded,
                             ));
                         }
@@ -1081,7 +1078,7 @@ where
                     Ok(Node::ColumnSeparator)
                 } else {
                     Err(LatexError(
-                        span,
+                        span.into(),
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
                             correct_place: Place::TableEnv,
@@ -1100,7 +1097,7 @@ where
                             }
                             None => {
                                 break 'new_line Err(LatexError(
-                                    span,
+                                    span.into(),
                                     LatexErrKind::HardLimitExceeded,
                                 ));
                             }
@@ -1108,7 +1105,7 @@ where
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
                         Ok(num) => Ok(Node::RowSeparator(num)),
-                        Err(_) => Err(LatexError(span, LatexErrKind::HardLimitExceeded)),
+                        Err(_) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
                     Ok(Node::RowSeparator(None))
@@ -1124,7 +1121,7 @@ where
             Token::Tag => {
                 // We always need to collect the string literal here, even if we don't use it,
                 // because otherwise we'd have an orphaned string literal in the token stream.
-                let (literal_loc, tag_name) = self.parse_string_literal()?;
+                let (literal_span, tag_name) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
                     if let Ok(tag_num) = tag_name.trim().parse::<u16>()
@@ -1135,13 +1132,13 @@ where
                         Ok(Node::Dummy)
                     } else {
                         Err(LatexError(
-                            literal_loc,
+                            literal_span,
                             LatexErrKind::ExpectedNumber(tag_name.into()),
                         ))
                     }
                 } else {
                     Err(LatexError(
-                        span,
+                        span.into(),
                         LatexErrKind::CannotBeUsedHere {
                             got: cur_token,
                             correct_place: Place::NumberedEnv,
@@ -1150,10 +1147,10 @@ where
                 }
             }
             Token::Color => 'color: {
-                let (loc, color_name) = self.parse_string_literal()?;
+                let (span, color_name) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(
-                        loc,
+                        span.into(),
                         LatexErrKind::UnknownColor(color_name.into()),
                     ));
                 };
@@ -1220,13 +1217,16 @@ where
                 }
             }
             Token::Limits => Err(LatexError(
-                span,
+                span.into(),
                 LatexErrKind::CannotBeUsedHere {
                     got: cur_token,
                     correct_place: Place::AfterBigOp,
                 },
             )),
-            Token::Eof => Err(LatexError(span, LatexErrKind::ExpectedArgumentGotEOF)),
+            Token::Eof => Err(LatexError(
+                span.into(),
+                LatexErrKind::ExpectedArgumentGotEOF,
+            )),
             tok @ (Token::End(_) | Token::Right | Token::GroupEnd) => {
                 if parse_as.in_sequence() {
                     let end = match tok {
@@ -1235,15 +1235,18 @@ where
                         Token::End(_) => EndToken::End,
                         _ => unreachable!(),
                     };
-                    Err(LatexError(span, LatexErrKind::UnmatchedClose(end)))
+                    Err(LatexError(span.into(), LatexErrKind::UnmatchedClose(end)))
                 } else {
-                    Err(LatexError(span, LatexErrKind::ExpectedArgumentGotClose))
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::ExpectedArgumentGotClose,
+                    ))
                 }
             }
             Token::Whitespace | Token::TextModeAccent(_) => {
                 // That these tokens are not expected by the parser should never occur.
                 // We report an internal error here.
-                Err(LatexError(span, LatexErrKind::Internal))
+                Err(LatexError(span.into(), LatexErrKind::Internal))
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
@@ -1287,7 +1290,7 @@ where
                     return self.parse_token(token, parse_as, prev_class);
                 } else {
                     // We somehow cannot find the requested argument.
-                    Err(LatexError(span, LatexErrKind::Internal))
+                    Err(LatexError(span.into(), LatexErrKind::Internal))
                 }
             }
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
@@ -1339,8 +1342,10 @@ where
             let second_circumflex = matches!(self.tokens.peek().token(), Token::Circumflex);
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
-                let loc = self.next_token()?.location();
-                return Err(self.alloc_err(LatexError(loc, LatexErrKind::DuplicateSubOrSup)));
+                let span = self.next_token()?.span();
+                return Err(
+                    self.alloc_err(LatexError(span.into(), LatexErrKind::DuplicateSubOrSup))
+                );
             }
 
             if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
@@ -1415,9 +1420,10 @@ where
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(tokloc) = next
-            && let (Token::Underscore | Token::Circumflex | Token::Prime, loc) = tokloc.into_parts()
+            && let (Token::Underscore | Token::Circumflex | Token::Prime, span) =
+                tokloc.into_parts()
         {
-            return Err(self.alloc_err(LatexError(loc, LatexErrKind::BoundFollowedByBound)));
+            return Err(self.alloc_err(LatexError(span.into(), LatexErrKind::BoundFollowedByBound)));
         }
         let old_script_style = mem::replace(&mut self.state.script_style, true);
         let node = self.parse_token(next, ParseAs::Arg, Class::Default);
@@ -1426,7 +1432,7 @@ where
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
             return Err(self.alloc_err(LatexError(
-                self.tokens.peek().location(),
+                self.tokens.peek().span().into(),
                 LatexErrKind::DuplicateSubOrSup,
             )));
         }
@@ -1477,10 +1483,10 @@ where
 
     fn extract_delimiter(
         &mut self,
-        tok: TokLoc<'config>,
+        tok: TokSpan<'config>,
         location: DelimiterModifier,
     ) -> ParseResult<'config, StretchableOp> {
-        let (tok, loc) = tok.into_parts();
+        let (tok, span) = tok.into_parts();
         const SQ_L_BRACKET: StretchableOp =
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
@@ -1496,7 +1502,7 @@ where
         };
         let Some(delim) = delim else {
             return Err(self.alloc_err(LatexError(
-                loc,
+                span.into(),
                 LatexErrKind::ExpectedDelimiter { location, got: tok },
             )));
         };
@@ -1571,25 +1577,26 @@ where
 
     pub(super) fn parse_string_literal(
         &mut self,
-    ) -> Result<(Span, &'arena str), Box<LatexError<'config>>> {
-        let (first, span) = self.tokens.next()?.into_parts();
+    ) -> Result<(Range<usize>, &'arena str), Box<LatexError<'config>>> {
+        let first = self.tokens.next()?;
+        let span = first.span();
         let mut tokens = Vec::new();
-        let end_loc = match first {
+        let end_loc = match first.token() {
             Token::GroupBegin => {
                 // Read until the matching `}`.
                 self.tokens.read_group(&mut tokens)?
             }
             Token::InternalStringLiteral(content) => {
-                return Ok((span, content));
+                return Ok((first.span().into(), content));
             }
             _ => {
-                tokens.push(TokLoc::new(first, span));
+                tokens.push(first);
                 span.end()
             }
         };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<std::slice::Iter<TokLoc<'config>>> = None;
+        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'config>>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(tokloc) = iter.next() {
@@ -1626,14 +1633,13 @@ where
             }
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(self.alloc_err(LatexError(
-                    span,
+                    span.into(),
                     LatexErrKind::ExpectedText("string literal"),
                 )));
             };
             builder.push_char(ch);
         }
-        let total_span = Span::from(span.start()..end_loc);
-        Ok((total_span, builder.finish(self.arena)))
+        Ok((span.start()..end_loc, builder.finish(self.arena)))
     }
 }
 

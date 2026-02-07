@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix} x"
 ---
-Position: 16, width: 0
+Position: 16..16
 UnclosedGroup(
     End,
 )

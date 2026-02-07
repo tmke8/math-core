@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin[matrix} x \\end{matrix}"
 ---
-Position: 6, width: 1
+Position: 6..7
 DisallowedChar(
     '[',
 )

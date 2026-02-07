@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\left( x"
 ---
-Position: 8, width: 0
+Position: 8..8
 UnclosedGroup(
     Right,
 )

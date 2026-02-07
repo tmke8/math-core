@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\éx"
 ---
-Position: 0, width: 3
+Position: 0..3
 UnknownCommand(
     "é",
 )

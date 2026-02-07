@@ -1,4 +1,5 @@
 use std::fmt::{self, Write};
+use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
@@ -7,11 +8,11 @@ use strum_macros::IntoStaticStr;
 use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
-use crate::token::{EndToken, Span, Token};
+use crate::token::{EndToken, Token};
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug, Clone)]
-pub struct LatexError<'source>(pub Span, pub LatexErrKind<'source>);
+pub struct LatexError<'source>(pub Range<usize>, pub LatexErrKind<'source>);
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -185,7 +186,7 @@ impl LatexError<'_> {
         let _ = write!(
             output,
             r#"<{} class="{}" title="{}: "#,
-            tag, css_class, self.0.0
+            tag, css_class, self.0.start
         );
         escape_double_quoted_html_attribute(&mut output, &self.1.string());
         output.push_str(r#""><code>"#);
@@ -197,7 +198,7 @@ impl LatexError<'_> {
 
 impl fmt::Display for LatexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.0.0, self.1.string())
+        write!(f, "{}: {}", self.0.start, self.1.string())
     }
 }
 

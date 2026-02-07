@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\bigl x 1 \\bigr)"
 ---
-Position: 6, width: 1
+Position: 6..7
 ExpectedDelimiter {
     location: Big,
     got: Letter(

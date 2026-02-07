@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\hspace{  }"
 ---
-Position: 7, width: 4
+Position: 7..11
 ExpectedLength(
     " ",
 )

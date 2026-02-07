@@ -199,20 +199,24 @@ impl From<Span> for Range<usize> {
     }
 }
 
-impl From<Range<usize>> for Span {
+impl TryFrom<Range<usize>> for Span {
+    type Error = ();
     #[inline]
-    fn from(range: Range<usize>) -> Self {
-        Span(range.start, (range.end - range.start) as u16)
+    fn try_from(range: Range<usize>) -> Result<Self, ()> {
+        let length = range.end.checked_sub(range.start).ok_or(())?;
+        let length = u16::try_from(length).map_err(|_| ())?;
+        Ok(Span(range.start, length))
     }
 }
 
+/// A token together with its span in the input string.
 #[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'config>(pub Token<'config>, pub usize, pub u16);
+pub struct TokSpan<'config>(Token<'config>, usize, u16);
 
-impl<'config> TokLoc<'config> {
+impl<'config> TokSpan<'config> {
     #[inline]
     pub const fn new(token: Token<'config>, span: Span) -> Self {
-        TokLoc(token, span.0, span.1)
+        TokSpan(token, span.0, span.1)
     }
 
     #[inline]
@@ -236,7 +240,7 @@ impl<'config> TokLoc<'config> {
     // }
 
     #[inline]
-    pub fn location(&self) -> Span {
+    pub fn span(&self) -> Span {
         Span(self.1, self.2)
     }
 
@@ -246,10 +250,10 @@ impl<'config> TokLoc<'config> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokLoc<'config> {
+impl<'config> From<Token<'config>> for TokSpan<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokLoc(token, 0, 0)
+        TokSpan(token, 0, 0)
     }
 }
 
@@ -289,7 +293,7 @@ mod tests {
     #[test]
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
-        assert!(std::mem::size_of::<TokLoc>() <= 5 * WORD, "size of TokLoc");
+        assert!(std::mem::size_of::<TokSpan>() <= 5 * WORD, "size of TokLoc");
         assert!(
             std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
             "size of Result<Token, pointer>"

@@ -46,8 +46,6 @@ use serde::{Deserialize, Serialize};
 
 use mathml_renderer::{arena::Arena, ast::Node};
 
-use crate::token::Span;
-
 pub use self::error::{LatexErrKind, LatexError};
 pub use self::token::Token;
 use self::{lexer::Lexer, parser::Parser};
@@ -296,7 +294,7 @@ fn parse_custom_commands(
     for (name, definition) in macros {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
-                Box::new(LatexError(Span(0, 0), LatexErrKind::InvalidMacroName(name))),
+                Box::new(LatexError(0..0, LatexErrKind::InvalidMacroName(name))),
                 definition,
             ));
         }
