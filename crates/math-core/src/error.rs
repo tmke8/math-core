@@ -43,7 +43,6 @@ pub enum LatexErrKind<'config> {
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
-    RenderError,
     NotValidInTextMode(Token<'config>),
     InvalidMacroName(String),
     InvalidParameterNumber,
@@ -142,7 +141,6 @@ impl LatexErrKind<'_> {
             LatexErrKind::ExpectedColSpec(got) => {
                 "Expected column specification, got \"".to_string() + got + "\"."
             }
-            LatexErrKind::RenderError => "Render error".to_string(),
             LatexErrKind::NotValidInTextMode(got) => {
                 "Got \"".to_string() + <&str>::from(got) + "\", which is not valid in text mode."
             }
