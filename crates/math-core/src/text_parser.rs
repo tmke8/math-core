@@ -9,7 +9,7 @@ use crate::{
     error::{LatexErrKind, LatexError},
     parser::{ParseResult, Parser},
     specifications::LatexUnit,
-    token::{EndToken, TokLoc, Token},
+    token::{EndToken, Token},
 };
 
 impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
@@ -30,7 +30,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
             } else {
                 self.tokens.next()
             };
-            let TokLoc(loc, token) = tokloc?;
+            let (token, span) = tokloc?.into_parts();
             let c: Result<char, LatexErrKind> = match token {
                 Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
                 Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
@@ -157,7 +157,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                 Token::Right | Token::End(_) => Err(LatexErrKind::ExpectedArgumentGotClose),
                 _ => Err(LatexErrKind::NotValidInTextMode(token)),
             };
-            let c = c.map_err(|err| Box::new(LatexError(loc, err)))?;
+            let c = c.map_err(|err| Box::new(LatexError(span.into(), err)))?;
             if let Some(builder) = &mut str_builder {
                 builder.push_char(c);
                 if let Some(accent) = accent_to_insert.take() {

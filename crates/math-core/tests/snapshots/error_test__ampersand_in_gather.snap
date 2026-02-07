@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{gather}1&1\\\\1\\end{gather}"
 ---
-Position: 15
+Position: 15..16
 CannotBeUsedHere {
     got: NewColumn,
     correct_place: TableEnv,

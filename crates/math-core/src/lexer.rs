@@ -1,4 +1,5 @@
 use std::mem;
+use std::ops::Range;
 use std::str::CharIndices;
 
 use mathml_renderer::symbol::{self, MathMLOperator};
@@ -7,7 +8,7 @@ use crate::CustomCmds;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, FromAscii, TokLoc, Token};
+use crate::token::{EndToken, FromAscii, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source> {
@@ -69,21 +70,24 @@ impl<'config, 'source> Lexer<'config, 'source> {
 
     /// Skip whitespace characters.
     ///
-    /// Returns the location of the first skipped whitespace character, or -1 if none were skipped.
-    fn skip_whitespace(&mut self) -> isize {
-        let mut skipped = -1;
-        while self.peek.1.is_some_and(|ch| ch.is_ascii_whitespace()) {
-            let (loc, _) = self.read_char();
-            if skipped == -1 {
-                skipped = loc as isize;
+    /// Returns the span of the first skipped whitespace character, or `None` if there are no
+    /// whitespace characters to skip.
+    fn skip_whitespace(&mut self) -> Option<Span> {
+        let mut span: Option<Span> = None;
+        while let (loc, Some(ch)) = self.peek
+            && ch.is_ascii_whitespace()
+        {
+            self.read_char(); // Discard the whitespace character.
+            if span.is_none() {
+                span = Some(Span(loc, len_utf8(ch)));
             }
         }
-        skipped
+        span
     }
 
     /// Read one command.
     #[inline]
-    fn read_command(&mut self) -> &'source str {
+    fn read_command(&mut self) -> (&'source str, usize) {
         let start = self.peek.0;
 
         // Read in all ASCII alphabetic characters.
@@ -104,29 +108,30 @@ impl<'config, 'source> Lexer<'config, 'source> {
         // To get the end of the command, we take the index of the next character.
         let end = self.peek.0;
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-        self.input_string.get_unwrap(start..end)
+        (self.input_string.get_unwrap(start..end), end)
     }
 
     /// Read an environment name.
     ///
     /// Reads ASCII alphanumeric characters (and a few others) until the next `}`.
+    /// On success, returns the environment name and the index of the character after the `}`.
     ///
     /// Returns `Err` if there are any disallowed characters before the `}`.
-    /// The `Err` contains the location and character of the first disallowed character.
+    /// The `Err` contains the span and value of the first disallowed character.
     /// If the end of the input is reached before finding a `}`, the `Err` contains
-    /// the location and `None`.
+    /// the span and `None`.
     #[inline]
-    fn read_env_name(&mut self) -> Result<&'source str, (usize, Option<char>)> {
+    fn read_env_name(&mut self) -> Result<(&'source str, usize), (Range<usize>, Option<char>)> {
         // If the first character is not `{`, we read a single character.
-        let first = self.read_char();
-        if first.1 != Some('{') {
-            return if first.1.is_some_and(|ch| {
+        let (loc, first) = self.read_char();
+        if first != Some('{') {
+            return if first.is_some_and(|ch| {
                 ch.is_ascii_alphanumeric() || matches!(ch, '|' | '.' | '-' | ',' | '*' | ':')
             }) {
                 // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-                Ok(self.input_string.get_unwrap(first.0..self.peek.0))
+                Ok((self.input_string.get_unwrap(loc..self.peek.0), self.peek.0))
             } else {
-                Err(first)
+                Err((loc..(loc + first.map_or(0, |ch| ch.len_utf8())), first))
             };
         }
         let start = self.peek.0;
@@ -140,26 +145,26 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
 
         // Verify that the environment name is followed by a `}`.
-        let closing = self.read_char();
-        if closing.1 == Some('}') {
-            let end = closing.0;
+        let (loc, closing) = self.read_char();
+        if closing == Some('}') {
+            let end = loc;
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-            Ok(self.input_string.get_unwrap(start..end))
+            Ok((self.input_string.get_unwrap(start..end), end + 1))
         } else {
-            Err(closing)
+            Err((loc..(loc + closing.map_or(0, |ch| ch.len_utf8())), closing))
         }
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
-        let white_space_loc = self.skip_whitespace();
-        if let Ok(loc) = usize::try_from(white_space_loc) {
-            return Ok(TokLoc(loc, Token::Whitespace));
+        if let Some(span) = self.skip_whitespace() {
+            return Ok(TokSpan::new(Token::Whitespace, span));
         }
 
         let (loc, ch) = self.read_char();
+        let ascii_span = Span(loc, 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
-            return Ok(TokLoc(loc, Token::Eof));
+            return Ok(TokSpan::new(Token::Eof, Span::zero_width(loc)));
         };
         if ch == '%' {
             // Skip comments.
@@ -170,9 +175,13 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // TODO: use `become` here when stabilized.
             return self.next_token();
         }
+        let mut span = ascii_span;
         let tok = match ch {
             '\u{0}' => {
-                return Err(Box::new(LatexError(loc, LatexErrKind::DisallowedChar(ch))));
+                return Err(Box::new(LatexError(
+                    loc..(loc + 1),
+                    LatexErrKind::DisallowedChar(ch),
+                )));
             }
             ' ' => Token::Letter('\u{A0}', FromAscii::True),
             '!' => {
@@ -192,7 +201,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         let param_num = (next as u32).wrapping_sub('1' as u32);
                         if !(0..=8).contains(&param_num) {
                             return Err(Box::new(LatexError(
-                                loc,
+                                (loc + 1)..(loc + 2),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
                         }
@@ -202,16 +211,25 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         }
                         // Discard the digit after `#`.
                         self.read_char();
+                        span = Span(span.0, 2);
                         Token::CustomCmdArg(param_num)
                     } else {
-                        return Err(Box::new(LatexError(
-                            loc,
-                            LatexErrKind::InvalidParameterNumber,
-                        )));
+                        let (loc, ch) = self.read_char();
+                        if let Some(ch) = ch {
+                            return Err(Box::new(LatexError(
+                                loc..(loc + ch.len_utf8()),
+                                LatexErrKind::InvalidParameterNumber,
+                            )));
+                        } else {
+                            return Err(Box::new(LatexError(
+                                loc..loc,
+                                LatexErrKind::ExpectedParamNumberGotEOF,
+                            )));
+                        }
                     }
                 } else {
                     return Err(Box::new(LatexError(
-                        loc,
+                        loc..(loc + 1),
                         LatexErrKind::MacroParameterOutsideCustomCommand,
                     )));
                 }
@@ -260,7 +278,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '}' => {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return Err(Box::new(LatexError(
-                        loc,
+                        loc..(loc + 1),
                         LatexErrKind::UnmatchedClose(EndToken::GroupClose),
                     )));
                 };
@@ -275,10 +293,17 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             '~' => Token::NonBreakingSpace,
             '\\' => {
-                let cmd_string = self.read_command();
+                let (cmd_string, end) = self.read_command();
+                let span = loc..end;
+                let Ok(span) = Span::try_from(span) else {
+                    return Err(Box::new(LatexError(
+                        loc..end,
+                        LatexErrKind::HardLimitExceeded,
+                    )));
+                };
                 // After a command, all whitespace is skipped, even in text mode.
                 self.skip_whitespace();
-                return self.parse_command(loc, cmd_string);
+                return self.parse_command(span, cmd_string);
             }
             c => {
                 if c.is_ascii_digit() {
@@ -289,6 +314,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     } else {
                         FromAscii::False
                     };
+                    span = Span(span.0, len_utf8(c));
                     Token::Letter(c, from_ascii)
                 }
             }
@@ -298,21 +324,21 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        Ok(TokLoc(loc, tok))
+        Ok(TokSpan::new(tok, span))
     }
 
     fn parse_command(
         &mut self,
-        loc: usize,
+        span: Span,
         cmd_string: &'source str,
-    ) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
-        let tok: Result<Token<'config>, LatexError<'config>> =
+    ) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
+        let tok: Result<(Token<'config>, Span), LatexError<'config>> =
             if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
                 if let Some(tok) = get_text_command(cmd_string) {
-                    Ok(tok)
+                    Ok((tok, span))
                 } else {
                     Err(LatexError(
-                        loc,
+                        span.into(),
                         LatexErrKind::UnknownCommand(cmd_string.into()),
                     ))
                 }
@@ -321,7 +347,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
                 .or_else(|| get_command(cmd_string))
             {
-                Ok(tok)
+                Ok((tok, span))
             } else {
                 let env_marker = match cmd_string {
                     "begin" => Some(EnvMarker::Begin),
@@ -334,18 +360,18 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         self.skip_whitespace();
                         let group_loc = self.peek.0;
                         // Read the environment name.
-                        let name = match self.read_env_name() {
+                        let (name, end) = match self.read_env_name() {
                             Ok(lit) => lit,
-                            Err((loc, ch)) => match ch {
+                            Err((span, ch)) => match ch {
                                 None => {
                                     break 'env_name Err(LatexError(
-                                        loc,
+                                        span,
                                         LatexErrKind::UnclosedGroup(EndToken::GroupClose),
                                     ));
                                 }
                                 Some(ch) => {
                                     break 'env_name Err(LatexError(
-                                        loc,
+                                        span,
                                         LatexErrKind::DisallowedChar(ch),
                                     ));
                                 }
@@ -354,18 +380,27 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         // Convert the environment name to the `Env` enum.
                         let Some(env) = Env::from_str(name) else {
                             break 'env_name Err(LatexError(
-                                group_loc,
+                                group_loc..end,
                                 LatexErrKind::UnknownEnvironment(name.into()),
                             ));
                         };
-                        Ok(match env_marker {
-                            EnvMarker::Begin => Token::Begin(env),
-                            EnvMarker::End => Token::End(env),
-                        })
+                        let Ok(span) = Span::try_from(span.0..end) else {
+                            break 'env_name Err(LatexError(
+                                span.0..end,
+                                LatexErrKind::HardLimitExceeded,
+                            ));
+                        };
+                        Ok((
+                            match env_marker {
+                                EnvMarker::Begin => Token::Begin(env),
+                                EnvMarker::End => Token::End(env),
+                            },
+                            span,
+                        ))
                     }
                 } else {
                     Err(LatexError(
-                        loc,
+                        span.into(),
                         LatexErrKind::UnknownCommand(cmd_string.into()),
                     ))
                 }
@@ -375,11 +410,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        if matches!(tok, Ok(Token::Text(_))) {
+        if matches!(tok, Ok((Token::Text(_), _))) {
             self.mode = Mode::TextStart;
         }
         match tok {
-            Ok(tok) => Ok(TokLoc(loc, tok)),
+            Ok((tok, span)) => Ok(TokSpan::new(tok, span)),
             Err(err) => Err(Box::new(err)),
         }
     }
@@ -415,6 +450,18 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
         Token::ForceRelation(COLON) => Some(':'),
         Token::Digit(ch) => Some(ch),
         _ => None,
+    }
+}
+
+fn len_utf8(ch: char) -> u16 {
+    const MAX_ONE_B: u32 = 0x80;
+    const MAX_TWO_B: u32 = 0x800;
+    const MAX_THREE_B: u32 = 0x10000;
+    match u32::from(ch) {
+        ..MAX_ONE_B => 1,
+        ..MAX_TWO_B => 2,
+        ..MAX_THREE_B => 3,
+        _ => 4,
     }
 }
 
@@ -466,11 +513,11 @@ mod tests {
             let mut tokens = String::new();
             loop {
                 let tokloc = lexer.next_token().unwrap();
-                if matches!(tokloc.1, Token::Eof) {
+                if matches!(tokloc.token(), Token::Eof) {
                     break;
                 }
-                let TokLoc(loc, tok) = tokloc;
-                write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
+                let (tok, span) = tokloc.into_parts();
+                write!(tokens, "{}:{}: {:?}\n", span.start(), span.end(), tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
         }
@@ -497,7 +544,7 @@ mod tests {
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
-                        if matches!(tokloc.1, Token::Eof) {
+                        if matches!(tokloc.token(), Token::Eof) {
                             break None;
                         }
                     }
@@ -509,7 +556,12 @@ mod tests {
             let Some(err) = err else {
                 panic!("Expected an error in problem: {}", problem);
             };
-            write!(tokens, "Error at {}: {:?}\n", err.0, err.1).unwrap();
+            write!(
+                tokens,
+                "Error at {}..{}: {:?}\n",
+                err.0.start, err.0.end, err.1
+            )
+            .unwrap();
             assert_snapshot!(name, &tokens, problem);
         }
     }
@@ -522,11 +574,11 @@ mod tests {
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
-            if matches!(tokloc.1, Token::Eof) {
+            if matches!(tokloc.token(), Token::Eof) {
                 break;
             }
-            let TokLoc(loc, tok) = tokloc;
-            write!(tokens, "{}: {:?}\n", loc, tok).unwrap();
+            let (tok, span) = tokloc.into_parts();
+            write!(tokens, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));
         assert_snapshot!("parsing_custom_commands", tokens, problem);
@@ -539,7 +591,7 @@ mod tests {
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {
-            let TokLoc(_, tok) = tokloc;
+            let tok = tokloc.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
                 output.push(ch);
             }

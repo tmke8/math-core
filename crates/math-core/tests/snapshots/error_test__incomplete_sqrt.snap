@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sqrt  "
 ---
-Position: 7
+Position: 7..7
 ExpectedArgumentGotEOF

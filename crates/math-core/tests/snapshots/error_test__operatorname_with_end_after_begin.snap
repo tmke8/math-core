@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix}\\operatorname{\\end{matrix}}"
 ---
-Position: 28
+Position: 28..40
 ExpectedArgumentGotClose

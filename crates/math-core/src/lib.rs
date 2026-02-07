@@ -261,8 +261,11 @@ fn convert<'config>(
 
     let base_indent = if pretty_print { 1 } else { 0 };
     for node in ast {
-        node.emit(&mut output, base_indent)
-            .map_err(|_| LatexError(0, LatexErrKind::RenderError))?;
+        // We ignore the result of `emit` here, because the only possible error is a formatting
+        // error when writing to the string, and that can only happen if the string's `write_str`
+        // implementation returns an error. Since `String`'s `write_str` implementation never
+        // returns an error, we can safely ignore the result of `emit`.
+        let _ = node.emit(&mut output, base_indent);
     }
     if pretty_print {
         output.push('\n');
@@ -291,7 +294,7 @@ fn parse_custom_commands(
     for (name, definition) in macros {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
-                Box::new(LatexError(0, LatexErrKind::InvalidMacroName(name))),
+                Box::new(LatexError(0..0, LatexErrKind::InvalidMacroName(name))),
                 definition,
             ));
         }

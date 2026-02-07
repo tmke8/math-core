@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{aligned}\\tag{32}1\\end{aligned}"
 ---
-Position: 15
+Position: 15..19
 CannotBeUsedHere {
     got: Tag,
     correct_place: NumberedEnv,

@@ -96,7 +96,7 @@ fn main() {
         else {
             panic!("problem `{}` did not return an error", problem);
         };
-        let output = format!("Position: {}\n{:#?}", loc, error);
+        let output = format!("Position: {}..{}\n{:#?}", loc.start, loc.end, error);
         assert_snapshot!(name, &output, problem);
     }
 }

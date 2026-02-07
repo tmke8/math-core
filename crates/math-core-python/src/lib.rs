@@ -78,7 +78,7 @@ impl LatexToMathML {
             .into_bound_py_any(py),
             Err(latex_error) => LatexError {
                 message: latex_error.0.to_string(),
-                location: latex_error.0.0,
+                location: latex_error.0.0.start,
                 context: Some(latex_error.1),
             }
             .into_bound_py_any(py),
@@ -114,13 +114,13 @@ impl LatexToMathML {
         {
             Err(mut latex_error) => {
                 // Rust uses byte offsets, but Python uses character offsets.
-                latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
+                latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
                 if self.continue_on_error {
                     Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
                 } else {
                     LatexError {
                         message: latex_error.to_string(),
-                        location: latex_error.0,
+                        location: latex_error.0.start,
                         context: None,
                     }
                     .into_bound_py_any(py)
@@ -151,13 +151,13 @@ impl LatexToMathML {
         {
             Err(mut latex_error) => {
                 // Rust uses byte offsets, but Python uses character offsets.
-                latex_error.0 = byte_offset_to_char_offset(latex, latex_error.0);
+                latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
                 if self.continue_on_error {
                     Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
                 } else {
                     LatexError {
                         message: latex_error.to_string(),
-                        location: latex_error.0,
+                        location: latex_error.0.start,
                         context: None,
                     }
                     .into_bound_py_any(py)

@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "1.1\\asdf"
 ---
-Position: 3
+Position: 3..8
 UnknownCommand(
     "asdf",
 )

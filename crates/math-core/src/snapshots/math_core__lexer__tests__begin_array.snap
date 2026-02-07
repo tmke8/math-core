@@ -2,9 +2,9 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\begin{array}{c|c}"
 ---
-0: Begin(Array)
-13: GroupBegin
-14: Letter('c', True)
-15: Ord(OrdLike { char: '|', cat: FGandForceDefault })
-16: Letter('c', True)
-17: GroupEnd
+0:13: Begin(Array)
+13:14: GroupBegin
+14:15: Letter('c', True)
+15:16: Ord(OrdLike { char: '|', cat: FGandForceDefault })
+16:17: Letter('c', True)
+17:18: GroupEnd

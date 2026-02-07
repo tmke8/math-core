@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::attribute::{
@@ -170,40 +172,88 @@ pub enum FromAscii {
     True,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct TokLoc<'config>(pub usize, pub Token<'config>);
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Span(pub usize, pub u16);
 
-impl<'config> TokLoc<'config> {
+impl Span {
     #[inline]
-    pub fn token(&self) -> &Token<'config> {
-        &self.1
+    pub const fn zero_width(at: usize) -> Self {
+        Span(at, 0)
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'config> {
-        self.1
-    }
-
-    // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'config> {
-    //     &mut self.1
-    // }
-
-    #[inline]
-    pub fn location(&self) -> usize {
+    pub const fn start(&self) -> usize {
         self.0
     }
 
     #[inline]
-    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
-        self.1.class(in_sequence, ignore_end_tokens)
+    pub const fn end(&self) -> usize {
+        self.0 + self.1 as usize
     }
 }
 
-impl<'config> From<Token<'config>> for TokLoc<'config> {
+impl From<Span> for Range<usize> {
+    #[inline]
+    fn from(span: Span) -> Self {
+        span.0..(span.0 + span.1 as usize)
+    }
+}
+
+impl TryFrom<Range<usize>> for Span {
+    type Error = ();
+    #[inline]
+    fn try_from(range: Range<usize>) -> Result<Self, ()> {
+        let length = range.end.checked_sub(range.start).ok_or(())?;
+        let length = u16::try_from(length).map_err(|_| ())?;
+        Ok(Span(range.start, length))
+    }
+}
+
+/// A token together with its span in the input string.
+#[derive(Debug, Clone, Copy)]
+pub struct TokSpan<'config>(Token<'config>, usize, u16);
+
+impl<'config> TokSpan<'config> {
+    #[inline]
+    pub const fn new(token: Token<'config>, span: Span) -> Self {
+        TokSpan(token, span.0, span.1)
+    }
+
+    #[inline]
+    pub fn token(&self) -> &Token<'config> {
+        &self.0
+    }
+
+    #[inline]
+    pub fn into_token(self) -> Token<'config> {
+        self.0
+    }
+
+    #[inline]
+    pub fn into_parts(self) -> (Token<'config>, Span) {
+        (self.0, Span(self.1, self.2))
+    }
+
+    // #[inline]
+    // pub fn token_mut(&mut self) -> &mut Token<'config> {
+    //     &mut self.0
+    // }
+
+    #[inline]
+    pub fn span(&self) -> Span {
+        Span(self.1, self.2)
+    }
+
+    #[inline]
+    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
+        self.0.class(in_sequence, ignore_end_tokens)
+    }
+}
+
+impl<'config> From<Token<'config>> for TokSpan<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokLoc(0, token)
+        TokSpan(token, 0, 0)
     }
 }
 
@@ -244,8 +294,8 @@ mod tests {
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
         assert!(
-            std::mem::size_of::<TokLoc>() <= 4 * WORD,
-            "size of TokResult"
+            std::mem::size_of::<TokSpan>() <= 5 * WORD,
+            "size of TokSpan"
         );
         assert!(
             std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,

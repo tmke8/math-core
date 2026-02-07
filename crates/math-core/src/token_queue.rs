@@ -3,18 +3,18 @@ use std::collections::VecDeque;
 use crate::{
     error::{LatexErrKind, LatexError},
     lexer::Lexer,
-    token::{EndToken, TokLoc, Token},
+    token::{EndToken, Span, TokSpan, Token},
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
 pub(super) struct TokenQueue<'source, 'config> {
     pub lexer: Lexer<'config, 'source>,
-    queue: VecDeque<TokLoc<'config>>,
+    queue: VecDeque<TokSpan<'config>>,
     lexer_is_eof: bool,
     next_non_whitespace: usize,
 }
 
-static EOF_TOK: TokLoc = TokLoc(0, Token::Eof);
+static EOF_TOK: TokSpan = TokSpan::new(Token::Eof, Span(0, 0));
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
@@ -90,7 +90,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// always at least one non-whitespace token in the buffer when this is called,
     /// unless EOF has been reached.
     #[inline]
-    pub(super) fn peek(&self) -> &TokLoc<'config> {
+    pub(super) fn peek(&self) -> &TokSpan<'config> {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
@@ -112,7 +112,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     fn find_or_load_after_next(
         &mut self,
         skip_mode: SkipMode,
-    ) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+    ) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
         // We use a block here which returns an index to avoid borrow checker issues.
         let tok_idx = {
             // Ensure that the compiler can tell that `self.queue.range(start..)`
@@ -154,7 +154,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    pub(super) fn peek_second(&mut self) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
         self.find_or_load_after_next(SkipMode::Whitespace)
     }
 
@@ -163,7 +163,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// This excludes, for example, `Space` tokens.
     pub(super) fn peek_class_token(
         &mut self,
-    ) -> Result<&TokLoc<'config>, Box<LatexError<'config>>> {
+    ) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
         // First check the common case where the next token is already a token with class.
         if has_class(self.peek()) {
             return Ok(self.peek());
@@ -174,7 +174,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// Get the next non-whitespace token.
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
+    pub(super) fn next(&mut self) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -194,7 +194,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// Get the next token which may be whitespace.
     pub(super) fn next_with_whitespace(
         &mut self,
-    ) -> Result<TokLoc<'config>, Box<LatexError<'config>>> {
+    ) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -214,7 +214,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokLoc<'config>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'config>> + Copy]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
@@ -233,14 +233,17 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.
+    ///
+    /// The initial `{` must have already been consumed. The closing `}` is not included
+    /// in the output token vector.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokLoc<'config>>,
-    ) -> Result<(), Box<LatexError<'config>>> {
+        tokens: &mut Vec<TokSpan<'config>>,
+    ) -> Result<usize, Box<LatexError<'config>>> {
         let mut nesting_level = 0usize;
-        loop {
-            let TokLoc(loc, tok) = self.next_with_whitespace()?;
-            match tok {
+        let end = loop {
+            let tokloc = self.next_with_whitespace()?;
+            match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
                 }
@@ -249,29 +252,29 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                     // stop reading.
                     let Some(new_level) = nesting_level.checked_sub(1) else {
                         // We break directly without pushing the `}` token.
-                        break;
+                        break tokloc.span().end();
                     };
                     nesting_level = new_level;
                 }
                 Token::Eof => {
                     return Err(Box::new(LatexError(
-                        loc,
+                        tokloc.span().into(),
                         LatexErrKind::UnclosedGroup(EndToken::GroupClose),
                     )));
                 }
                 _ => {}
             }
-            tokens.push(TokLoc(loc, tok));
-        }
-        Ok(())
+            tokens.push(tokloc);
+        };
+        Ok(end)
     }
 }
 
-fn is_not_whitespace(tok: &TokLoc) -> bool {
+fn is_not_whitespace(tok: &TokSpan) -> bool {
     !matches!(tok.token(), Token::Whitespace)
 }
 
-fn has_class(tok: &TokLoc) -> bool {
+fn has_class(tok: &TokSpan) -> bool {
     !matches!(
         tok.token(),
         Token::Whitespace | Token::Space(_) | Token::Not
@@ -312,17 +315,18 @@ mod tests {
             manager.load_token(SkipMode::Whitespace).unwrap();
             manager.load_token(SkipMode::Whitespace).unwrap();
             // Check that the first token is `GroupBegin`.
-            assert!(matches!(manager.next().unwrap().1, Token::GroupBegin));
+            assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
             let mut tokens = Vec::new();
             let tokens = match manager.read_group(&mut tokens) {
-                Ok(()) => {
+                Ok(_) => {
                     let mut token_str = String::new();
-                    for TokLoc(loc, tok) in tokens {
-                        write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+                    for tokloc in tokens {
+                        let (tok, span) = tokloc.into_parts();
+                        write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
                     }
                     token_str
                 }
-                Err(err) => format!("Error at {}: {:?}", err.0, err.1),
+                Err(err) => format!("Error at {}..{}: {:?}", err.0.start, err.0.end, err.1),
             };
             assert_snapshot!(name, &tokens, problem);
         }
@@ -338,11 +342,11 @@ mod tests {
         let mut token_str = String::new();
 
         loop {
-            let TokLoc(loc, tok) = manager.next_with_whitespace().unwrap();
+            let (tok, span) = manager.next_with_whitespace().unwrap().into_parts();
             if matches!(tok, Token::Eof) {
                 break;
             }
-            write!(token_str, "{}: {:?}\n", loc, tok).unwrap();
+            write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
         }
 
         assert_snapshot!("next_with_whitespace", &token_str, input);

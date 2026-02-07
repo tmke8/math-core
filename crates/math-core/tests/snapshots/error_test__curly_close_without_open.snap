@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "}"
 ---
-Position: 0
+Position: 0..1
 UnmatchedClose(
     GroupClose,
 )

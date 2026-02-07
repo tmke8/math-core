@@ -142,7 +142,7 @@ impl LatexToMathML {
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
             message: JsValue::from_str(&e.0.1.string()),
-            location: e.0.0 as u32,
+            location: e.0.0.start as u32,
             context: Some(JsValue::from_str(&e.1)),
         })?;
         Ok(LatexToMathML {
@@ -166,11 +166,11 @@ impl LatexToMathML {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(mut e) => {
                 // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
-                e.0 = byte_offset_to_utf16_offset(content, e.0);
+                e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
-                        location: e.0 as u32,
+                        location: e.0.start as u32,
                         context: None,
                     })
                 } else {
@@ -195,11 +195,11 @@ impl LatexToMathML {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(mut e) => {
                 // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
-                e.0 = byte_offset_to_utf16_offset(content, e.0);
+                e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
                     Err(LatexError {
                         message: JsValue::from_str(&e.1.string()),
-                        location: e.0 as u32,
+                        location: e.0.start as u32,
                         context: None,
                     })
                 } else {

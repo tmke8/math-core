@@ -2,5 +2,5 @@
 source: crates/math-core/tests/error_test.rs
 expression: "{x^}"
 ---
-Position: 3
+Position: 3..4
 ExpectedArgumentGotClose

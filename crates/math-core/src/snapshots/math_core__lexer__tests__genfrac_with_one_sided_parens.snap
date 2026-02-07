@@ -2,25 +2,25 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\genfrac{}]{0pt}{2}{a+b}{c+d}"
 ---
-0: Genfrac
-8: GroupBegin
-9: GroupEnd
-10: SquareBracketClose
-11: GroupBegin
-12: Digit('0')
-13: Letter('p', True)
-14: Letter('t', True)
-15: GroupEnd
-16: GroupBegin
-17: Digit('2')
-18: GroupEnd
-19: GroupBegin
-20: Letter('a', True)
-21: BinaryOp(Bin { char: '+', cat: BD })
-22: Letter('b', True)
-23: GroupEnd
-24: GroupBegin
-25: Letter('c', True)
-26: BinaryOp(Bin { char: '+', cat: BD })
-27: Letter('d', True)
-28: GroupEnd
+0:8: Genfrac
+8:9: GroupBegin
+9:10: GroupEnd
+10:11: SquareBracketClose
+11:12: GroupBegin
+12:13: Digit('0')
+13:14: Letter('p', True)
+14:15: Letter('t', True)
+15:16: GroupEnd
+16:17: GroupBegin
+17:18: Digit('2')
+18:19: GroupEnd
+19:20: GroupBegin
+20:21: Letter('a', True)
+21:22: BinaryOp(Bin { char: '+', cat: BD })
+22:23: Letter('b', True)
+23:24: GroupEnd
+24:25: GroupBegin
+25:26: Letter('c', True)
+26:27: BinaryOp(Bin { char: '+', cat: BD })
+27:28: Letter('d', True)
+28:29: GroupEnd
