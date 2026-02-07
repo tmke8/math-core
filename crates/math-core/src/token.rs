@@ -293,7 +293,10 @@ mod tests {
     #[test]
     fn test_struct_sizes() {
         assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
-        assert!(std::mem::size_of::<TokSpan>() <= 5 * WORD, "size of TokLoc");
+        assert!(
+            std::mem::size_of::<TokSpan>() <= 5 * WORD,
+            "size of TokSpan"
+        );
         assert!(
             std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
             "size of Result<Token, pointer>"

@@ -2,4 +2,4 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\text{\u0000}"
 ---
-Error at 6:7: DisallowedChar('\0')
+Error at 6..7: DisallowedChar('\0')

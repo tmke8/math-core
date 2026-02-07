@@ -322,11 +322,11 @@ mod tests {
                     let mut token_str = String::new();
                     for tokloc in tokens {
                         let (tok, span) = tokloc.into_parts();
-                        write!(token_str, "{}:{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+                        write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
                     }
                     token_str
                 }
-                Err(err) => format!("Error at {}:{}: {:?}", err.0.start, err.0.end, err.1),
+                Err(err) => format!("Error at {}..{}: {:?}", err.0.start, err.0.end, err.1),
             };
             assert_snapshot!(name, &tokens, problem);
         }
@@ -346,7 +346,7 @@ mod tests {
             if matches!(tok, Token::Eof) {
                 break;
             }
-            write!(token_str, "{}:{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+            write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
         }
 
         assert_snapshot!("next_with_whitespace", &token_str, input);

@@ -2,4 +2,4 @@
 source: crates/math-core/src/token_queue.rs
 expression: "{\\begin{matrix}}"
 ---
-1:15: Begin(Matrix)
+1..15: Begin(Matrix)

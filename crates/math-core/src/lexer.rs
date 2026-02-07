@@ -70,7 +70,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
 
     /// Skip whitespace characters.
     ///
-    /// Returns the location of the first skipped whitespace character, or -1 if none were skipped.
+    /// Returns the span of the first skipped whitespace character, or `None` if there are no
+    /// whitespace characters to skip.
     fn skip_whitespace(&mut self) -> Option<Span> {
         let mut span: Option<Span> = None;
         while let (loc, Some(ch)) = self.peek
@@ -107,17 +108,18 @@ impl<'config, 'source> Lexer<'config, 'source> {
         // To get the end of the command, we take the index of the next character.
         let end = self.peek.0;
         // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
-        (self.input_string.get_unwrap(start..end), (end - start))
+        (self.input_string.get_unwrap(start..end), end)
     }
 
     /// Read an environment name.
     ///
     /// Reads ASCII alphanumeric characters (and a few others) until the next `}`.
+    /// On success, returns the environment name and the index of the character after the `}`.
     ///
     /// Returns `Err` if there are any disallowed characters before the `}`.
-    /// The `Err` contains the location and value of the first disallowed character.
+    /// The `Err` contains the span and value of the first disallowed character.
     /// If the end of the input is reached before finding a `}`, the `Err` contains
-    /// the location and `None`.
+    /// the span and `None`.
     #[inline]
     fn read_env_name(&mut self) -> Result<(&'source str, usize), (Range<usize>, Option<char>)> {
         // If the first character is not `{`, we read a single character.
@@ -155,8 +157,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
 
     pub(crate) fn next_token(&mut self) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
-        let white_space_span = self.skip_whitespace();
-        if let Some(span) = white_space_span {
+        if let Some(span) = self.skip_whitespace() {
             return Ok(TokSpan::new(Token::Whitespace, span));
         }
 
@@ -292,17 +293,17 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             '~' => Token::NonBreakingSpace,
             '\\' => {
-                let (cmd_string, length) = self.read_command();
-                let length = length + 1; // Account for the leading `\`.
-                let Ok(length) = u16::try_from(length) else {
+                let (cmd_string, end) = self.read_command();
+                let span = loc..end;
+                let Ok(span) = Span::try_from(span) else {
                     return Err(Box::new(LatexError(
-                        loc..(loc + length),
+                        loc..end,
                         LatexErrKind::HardLimitExceeded,
                     )));
                 };
                 // After a command, all whitespace is skipped, even in text mode.
                 self.skip_whitespace();
-                return self.parse_command(Span(loc, length), cmd_string);
+                return self.parse_command(span, cmd_string);
             }
             c => {
                 if c.is_ascii_digit() {
@@ -557,7 +558,7 @@ mod tests {
             };
             write!(
                 tokens,
-                "Error at {}:{}: {:?}\n",
+                "Error at {}..{}: {:?}\n",
                 err.0.start, err.0.end, err.1
             )
             .unwrap();
@@ -577,7 +578,7 @@ mod tests {
                 break;
             }
             let (tok, span) = tokloc.into_parts();
-            write!(tokens, "{}:{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+            write!(tokens, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));
         assert_snapshot!("parsing_custom_commands", tokens, problem);

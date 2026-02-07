@@ -2,4 +2,4 @@
 source: crates/math-core/src/token_queue.rs
 expression: "{x + {y + z}"
 ---
-Error at 12:12: UnclosedGroup(GroupClose)
+Error at 12..12: UnclosedGroup(GroupClose)

@@ -2,17 +2,17 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\frac{#1}{#2} + \\sqrt{#3}"
 ---
-0:5: Frac(None)
-5:6: GroupBegin
-6:8: CustomCmdArg(0)
-8:9: GroupEnd
-9:10: GroupBegin
-10:12: CustomCmdArg(1)
-12:13: GroupEnd
-13:14: Whitespace
-14:15: BinaryOp(Bin { char: '+', cat: BD })
-15:16: Whitespace
-16:21: Sqrt
-21:22: GroupBegin
-22:24: CustomCmdArg(2)
-24:25: GroupEnd
+0..5: Frac(None)
+5..6: GroupBegin
+6..8: CustomCmdArg(0)
+8..9: GroupEnd
+9..10: GroupBegin
+10..12: CustomCmdArg(1)
+12..13: GroupEnd
+13..14: Whitespace
+14..15: BinaryOp(Bin { char: '+', cat: BD })
+15..16: Whitespace
+16..21: Sqrt
+21..22: GroupBegin
+22..24: CustomCmdArg(2)
+24..25: GroupEnd

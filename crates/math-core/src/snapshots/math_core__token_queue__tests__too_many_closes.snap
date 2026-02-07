@@ -2,8 +2,8 @@
 source: crates/math-core/src/token_queue.rs
 expression: "{x + y} + z}"
 ---
-1:2: Letter('x', True)
-2:3: Whitespace
-3:4: BinaryOp(Bin { char: '+', cat: BD })
-4:5: Whitespace
-5:6: Letter('y', True)
+1..2: Letter('x', True)
+2..3: Whitespace
+3..4: BinaryOp(Bin { char: '+', cat: BD })
+4..5: Whitespace
+5..6: Letter('y', True)
