@@ -134,7 +134,7 @@ pub enum Node<'arena> {
     ColumnSeparator,
     /// `<mtr>...</mtr>`
     RowSeparator(Option<NonZeroU16>),
-    /// <menclose>...</menclose>
+    /// `<menclose>...</menclose>`
     Enclose {
         content: &'arena Node<'arena>,
         notation: Notation,
@@ -145,6 +145,11 @@ pub enum Node<'arena> {
         sub: Option<&'arena Node<'arena>>,
         sup: Option<&'arena Node<'arena>>,
     },
+    /// This node is used for displaying unknown commands.
+    /// We are not using `<merror>` here because it's rendered with a red border and a yellow
+    /// background, which is not desirable for our use case. We'll just render it as `<mtext>`
+    /// with a custom style.
+    UnknownCommand(&'arena str),
     HardcodedMathML(&'static str),
     /// This node is used when the parser needs to return a node,
     /// but does not want to emit anything.
@@ -572,6 +577,9 @@ impl Node<'_> {
                     );
                 }
                 writeln_indent!(s, base_indent, "</menclose>");
+            }
+            Node::UnknownCommand(cmd_name) => {
+                write!(s, "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>")?;
             }
             Node::HardcodedMathML(mathml) => {
                 write!(s, "{mathml}")?;

@@ -3,10 +3,6 @@ source: crates/math-core/tests/error_test.rs
 expression: "\\left( 1 \\right x"
 ---
 Position: 16..17
-ExpectedDelimiter {
-    location: Right,
-    got: Letter(
-        'x',
-        True,
-    ),
-}
+ExpectedDelimiter(
+    Right,
+)

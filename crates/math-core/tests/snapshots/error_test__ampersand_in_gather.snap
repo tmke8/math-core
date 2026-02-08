@@ -4,6 +4,6 @@ expression: "\\begin{gather}1&1\\\\1\\end{gather}"
 ---
 Position: 15..16
 CannotBeUsedHere {
-    got: NewColumn,
+    got: Ampersand,
     correct_place: TableEnv,
 }

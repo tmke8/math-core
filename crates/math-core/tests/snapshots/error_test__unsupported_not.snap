@@ -3,8 +3,4 @@ source: crates/math-core/tests/error_test.rs
 expression: "\\not\\text{hello}"
 ---
 Position: 4..9
-ExpectedRelation(
-    Text(
-        None,
-    ),
-)
+ExpectedRelation

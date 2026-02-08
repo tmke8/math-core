@@ -3,8 +3,4 @@ source: crates/math-core/tests/error_test.rs
 expression: "\\operatorname{\\begin{matrix}}"
 ---
 Position: 14..28
-NotValidInTextMode(
-    Begin(
-        Matrix,
-    ),
-)
+NotValidInTextMode

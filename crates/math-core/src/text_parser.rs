@@ -17,7 +17,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
         &mut self,
         initial_style: Option<HtmlTextStyle>,
         with_whitespace: bool,
-    ) -> ParseResult<'config, Vec<(Option<HtmlTextStyle>, &'arena str)>> {
+    ) -> ParseResult<Vec<(Option<HtmlTextStyle>, &'arena str)>> {
         let mut style_stack = vec![(0usize, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<(Option<HtmlTextStyle>, &'arena str)> = Vec::new();
@@ -155,7 +155,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                     }
                 }
                 Token::Right | Token::End(_) => Err(LatexErrKind::ExpectedArgumentGotClose),
-                _ => Err(LatexErrKind::NotValidInTextMode(token)),
+                _ => Err(LatexErrKind::NotValidInTextMode),
             };
             let c = c.map_err(|err| Box::new(LatexError(span.into(), err)))?;
             if let Some(builder) = &mut str_builder {

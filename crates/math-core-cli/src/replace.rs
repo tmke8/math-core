@@ -14,7 +14,7 @@ pub enum ConvErrKind<'buf> {
     UnclosedDelimiter,
     NestedDelimiters,
     MismatchedDelimiters(usize),
-    LatexError(LatexError<'buf>, &'buf str),
+    LatexError(LatexError, &'buf str),
 }
 
 impl fmt::Display for ConversionError<'_, '_> {
@@ -110,12 +110,7 @@ impl<'args> Replacer<'args> {
         f: F,
     ) -> Result<String, ConversionError<'source, 'buf>>
     where
-        F: for<'a> Fn(
-            &'a mut S,
-            &mut String,
-            &'a str,
-            MathDisplay,
-        ) -> Result<(), Box<LatexError<'a>>>,
+        F: for<'a> Fn(&'a mut S, &mut String, &'a str, MathDisplay) -> Result<(), Box<LatexError>>,
         'source: 'buf,
     {
         let mut result = String::with_capacity(input.len());
@@ -299,7 +294,7 @@ mod tests {
         buf: &mut String,
         content: &'source str,
         typ: MathDisplay,
-    ) -> Result<(), Box<LatexError<'source>>> {
+    ) -> Result<(), Box<LatexError>> {
         match typ {
             MathDisplay::Inline => write!(buf, "[T1:{}]", content).unwrap(),
             MathDisplay::Block => write!(buf, "[T2:{}]", content).unwrap(),
