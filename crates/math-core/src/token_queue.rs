@@ -9,7 +9,7 @@ use crate::{
 /// A token queue that allows peeking at the next non-whitespace token.
 pub(super) struct TokenQueue<'source, 'config> {
     pub lexer: Lexer<'config, 'source>,
-    queue: VecDeque<TokSpan<'config>>,
+    queue: VecDeque<TokSpan<'source>>,
     lexer_is_eof: bool,
     next_non_whitespace: usize,
 }
@@ -17,7 +17,7 @@ pub(super) struct TokenQueue<'source, 'config> {
 static EOF_TOK: TokSpan = TokSpan::new(Token::Eof, Span(0, 0));
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
-    pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError<'config>>> {
+    pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
             queue: VecDeque::with_capacity(2),
@@ -32,7 +32,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
 
     /// Load the next not-skipped token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
-    fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError<'config>>> {
+    fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError>> {
         if self.lexer_is_eof {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
@@ -67,7 +67,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         self.queue.iter().position(is_not_whitespace)
     }
 
-    fn ensure_next_non_whitespace(&mut self) -> Result<(), Box<LatexError<'config>>> {
+    fn ensure_next_non_whitespace(&mut self) -> Result<(), Box<LatexError>> {
         let pos = 'pos_calc: {
             // First, try to find the next non-whitespace token in the existing buffer.
             if !self.queue.is_empty()
@@ -90,7 +90,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// always at least one non-whitespace token in the buffer when this is called,
     /// unless EOF has been reached.
     #[inline]
-    pub(super) fn peek(&self) -> &TokSpan<'config> {
+    pub(super) fn peek(&self) -> &TokSpan<'source> {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
@@ -112,7 +112,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     fn find_or_load_after_next(
         &mut self,
         skip_mode: SkipMode,
-    ) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
+    ) -> Result<&TokSpan<'source>, Box<LatexError>> {
         // We use a block here which returns an index to avoid borrow checker issues.
         let tok_idx = {
             // Ensure that the compiler can tell that `self.queue.range(start..)`
@@ -154,16 +154,14 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'source>, Box<LatexError>> {
         self.find_or_load_after_next(SkipMode::Whitespace)
     }
 
     /// Peek at the first token which has a character class.
     ///
     /// This excludes, for example, `Space` tokens.
-    pub(super) fn peek_class_token(
-        &mut self,
-    ) -> Result<&TokSpan<'config>, Box<LatexError<'config>>> {
+    pub(super) fn peek_class_token(&mut self) -> Result<&TokSpan<'source>, Box<LatexError>> {
         // First check the common case where the next token is already a token with class.
         if has_class(self.peek()) {
             return Ok(self.peek());
@@ -174,7 +172,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// Get the next non-whitespace token.
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
+    pub(super) fn next(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -192,9 +190,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 
     /// Get the next token which may be whitespace.
-    pub(super) fn next_with_whitespace(
-        &mut self,
-    ) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
+    pub(super) fn next_with_whitespace(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -214,7 +210,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'config>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'source>> + Copy]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
@@ -238,8 +234,8 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// in the output token vector.
     pub(super) fn read_group(
         &mut self,
-        tokens: &mut Vec<TokSpan<'config>>,
-    ) -> Result<usize, Box<LatexError<'config>>> {
+        tokens: &mut Vec<TokSpan<'source>>,
+    ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
         let end = loop {
             let tokloc = self.next_with_whitespace()?;

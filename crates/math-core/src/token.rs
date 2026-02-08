@@ -12,7 +12,7 @@ use crate::character_class::Class;
 use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy, IntoStaticStr)]
-pub enum Token<'config> {
+pub enum Token<'source> {
     #[strum(serialize = "end of input")]
     Eof,
     #[strum(serialize = r"\begin")]
@@ -128,9 +128,10 @@ pub enum Token<'config> {
     Style(Style),
     Color,
     CustomCmdArg(u8),
-    CustomCmd(u8, &'config [Token<'static>]),
+    CustomCmd(u8, &'source [Token<'static>]),
     HardcodedMathML(&'static str),
     TextModeAccent(char),
+    UnknownCommand(&'source str),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),

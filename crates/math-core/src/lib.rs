@@ -116,18 +116,22 @@ pub struct MathCoreConfig {
     pub macros: Vec<(String, String)>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
     pub xml_namespace: bool,
+    /// If `true`, unknown commands will be rendered as red text in the output, instead of
+    /// returning an error.
+    pub ignore_unknown_commands: bool,
 }
 
 #[derive(Debug, Default)]
-struct CustomCmds {
-    tokens: Vec<Token<'static>>,
-    map: FxHashMap<String, (u8, (usize, usize))>,
+struct CommandConfig {
+    custom_cmd_tokens: Vec<Token<'static>>,
+    custom_cmd_map: FxHashMap<String, (u8, (usize, usize))>,
+    ignore_unknown_commands: bool,
 }
 
-impl CustomCmds {
+impl CommandConfig {
     pub fn get_command<'config>(&'config self, command: &str) -> Option<Token<'config>> {
-        let (num_args, slice) = *self.map.get(command)?;
-        let tokens = self.tokens.get(slice.0..slice.1)?;
+        let (num_args, slice) = *self.custom_cmd_map.get(command)?;
+        let tokens = self.custom_cmd_tokens.get(slice.0..slice.1)?;
         Some(Token::CustomCmd(num_args, tokens))
     }
 }
@@ -155,7 +159,7 @@ pub struct LatexToMathML {
     flags: Flags,
     /// This is used for numbering equations in the document.
     equation_count: u16,
-    custom_cmds: Option<CustomCmds>,
+    cmd_cfg: Option<CommandConfig>,
 }
 
 impl LatexToMathML {
@@ -164,11 +168,14 @@ impl LatexToMathML {
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed. The error contains both the parsing error and the macro definition that caused
     /// the error.
-    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError<'static>>, String)> {
+    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError>, String)> {
         Ok(Self {
             flags: Flags::from(&config),
             equation_count: 0,
-            custom_cmds: Some(parse_custom_commands(config.macros)?),
+            cmd_cfg: Some(parse_custom_commands(
+                config.macros,
+                config.ignore_unknown_commands,
+            )?),
         })
     }
 
@@ -180,15 +187,15 @@ impl LatexToMathML {
     /// different calls to this function.
     ///
     /// The counter can be reset with [`reset_global_counter`].
-    pub fn convert_with_global_counter<'config>(
-        &'config mut self,
+    pub fn convert_with_global_counter(
+        &mut self,
         latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError<'config>>> {
+    ) -> Result<String, Box<LatexError>> {
         convert(
             latex,
             display,
-            self.custom_cmds.as_ref(),
+            self.cmd_cfg.as_ref(),
             &mut self.equation_count,
             &self.flags,
         )
@@ -213,16 +220,16 @@ impl LatexToMathML {
     /// ```
     ///
     #[inline]
-    pub fn convert_with_local_counter<'config>(
-        &'config self,
+    pub fn convert_with_local_counter(
+        &self,
         latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError<'config>>> {
+    ) -> Result<String, Box<LatexError>> {
         let mut equation_count = 0;
         convert(
             latex,
             display,
-            self.custom_cmds.as_ref(),
+            self.cmd_cfg.as_ref(),
             &mut equation_count,
             &self.flags,
         )
@@ -236,15 +243,15 @@ impl LatexToMathML {
     }
 }
 
-fn convert<'config>(
+fn convert(
     latex: &str,
     display: MathDisplay,
-    custom_cmds: Option<&'config CustomCmds>,
+    cmd_cfg: Option<&CommandConfig>,
     equation_count: &mut u16,
     flags: &Flags,
-) -> Result<String, Box<LatexError<'config>>> {
+) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, custom_cmds, equation_count)?;
+    let ast = parse(latex, &arena, cmd_cfg, equation_count)?;
 
     let mut output = String::new();
     output.push_str("<math");
@@ -274,13 +281,17 @@ fn convert<'config>(
     Ok(output)
 }
 
-fn parse<'arena, 'config>(
-    latex: &str,
+fn parse<'arena, 'source, 'config>(
+    latex: &'source str,
     arena: &'arena Arena,
-    custom_cmds: Option<&'config CustomCmds>,
+    cmd_cfg: Option<&'config CommandConfig>,
     equation_count: &mut u16,
-) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError<'config>>> {
-    let lexer = Lexer::new(latex, false, custom_cmds);
+) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
+where
+    'config: 'source,
+    'source: 'arena,
+{
+    let lexer = Lexer::new(latex, false, cmd_cfg);
     let mut p = Parser::new(lexer, arena, equation_count)?;
     let nodes = p.parse()?;
     Ok(nodes)
@@ -288,7 +299,8 @@ fn parse<'arena, 'config>(
 
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
-) -> Result<CustomCmds, (Box<LatexError<'static>>, String)> {
+    ignore_unknown_commands: bool,
+) -> Result<CommandConfig, (Box<LatexError>, String)> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
     for (name, definition) in macros {
@@ -306,7 +318,7 @@ fn parse_custom_commands(
             let mut lexer: Lexer<'static, '_> = Lexer::new(definition.as_str(), true, None);
             let start = tokens.len();
             loop {
-                match lexer.next_token() {
+                match lexer.next_token_no_unknown_command() {
                     Ok(tokloc) => {
                         if matches!(tokloc.token(), Token::Eof) {
                             break;
@@ -332,7 +344,11 @@ fn parse_custom_commands(
             }
         };
     }
-    Ok(CustomCmds { tokens, map })
+    Ok(CommandConfig {
+        custom_cmd_tokens: tokens,
+        custom_cmd_map: map,
+        ignore_unknown_commands,
+    })
 }
 
 fn is_valid_macro_name(s: &str) -> bool {

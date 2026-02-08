@@ -81,7 +81,7 @@ def test_signature():
     )
     assert (
         str(inspect.signature(LatexToMathML.with_config))
-        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False)"
+        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False, ignore_unknown_commands=False)"
     )
     converter = LatexToMathML()
     assert (
@@ -109,4 +109,13 @@ def test_continue_on_error():
     assert (
         converter.convert_with_local_counter("\\begin{\"} '&", displaystyle=True)
         == '<p class="math-core-error" title="7: Disallowed character in text group: \'&quot;\'."><code>\\begin{"} \'&amp;</code></p>'
+    )
+
+
+def test_ignore_unknown_commands():
+    converter = LatexToMathML.with_config(ignore_unknown_commands=True)
+    assert isinstance(converter, LatexToMathML)
+    assert (
+        converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
+        == r'<math><mtext style="color:#b22222">\asdf</mtext><mo>&lt;</mo><mi>b</mi><mo rspace="0">&gt;</mo></math>'
     )

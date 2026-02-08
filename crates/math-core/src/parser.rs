@@ -15,7 +15,7 @@ use crate::{
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
-    error::{DelimiterModifier, LatexErrKind, LatexError, Place},
+    error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, FromAscii, TokSpan, Token},
@@ -27,11 +27,11 @@ pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
-    state: ParserState<'config>,
+    state: ParserState<'source>,
 }
 
-struct ParserState<'config> {
-    cmd_args: Vec<TokSpan<'config>>,
+struct ParserState<'source> {
+    cmd_args: Vec<TokSpan<'source>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
@@ -87,17 +87,19 @@ impl ParseAs {
     }
 }
 
-pub(super) type ParseResult<'config, T> = Result<T, Box<LatexError<'config>>>;
+pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config>
 where
+    'config: 'source, // The config will live as long as the source.
+    'source: 'arena,
     'arena: 'cell, // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
         equation_counter: &'cell mut u16,
-    ) -> ParseResult<'config, Self> {
+    ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
             tokens: TokenQueue::new(lexer)?,
@@ -118,17 +120,17 @@ where
     }
 
     #[inline]
-    fn alloc_err(&mut self, err: LatexError<'config>) -> Box<LatexError<'config>> {
+    fn alloc_err(&mut self, err: LatexError) -> Box<LatexError> {
         Box::new(err)
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> ParseResult<'config, TokSpan<'config>> {
+    fn next_token(&mut self) -> ParseResult<TokSpan<'source>> {
         self.tokens.next()
     }
 
     #[inline]
-    pub(crate) fn parse(&mut self) -> ParseResult<'config, Vec<&'arena Node<'arena>>> {
+    pub(crate) fn parse(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
         self.parse_sequence(SequenceEnd::EndToken(EndToken::Eof), Class::Open, true)
     }
 
@@ -142,7 +144,7 @@ where
         sequence_end: SequenceEnd,
         prev_class: Class,
         keep_end_token: bool,
-    ) -> ParseResult<'config, Vec<&'arena Node<'arena>>> {
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
 
         let mut prev_class = prev_class;
@@ -210,10 +212,10 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: ParseResult<'config, TokSpan<'config>>,
+        cur_tokloc: ParseResult<TokSpan<'source>>,
         parse_as: ParseAs,
         prev_class: Class,
-    ) -> ParseResult<'config, (Class, &'arena Node<'arena>)> {
+    ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class: Class = Default::default();
         let next_class = self
@@ -772,10 +774,7 @@ where
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
-                    _ => Err(LatexError(
-                        new_span.into(),
-                        LatexErrKind::ExpectedRelation(tok),
-                    )),
+                    _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
                 }
             }
             Token::Transform(tf) => {
@@ -1080,7 +1079,7 @@ where
                     Err(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
+                            got: LimitedUsabilityToken::Ampersand,
                             correct_place: Place::TableEnv,
                         },
                     ))
@@ -1140,7 +1139,7 @@ where
                     Err(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
-                            got: cur_token,
+                            got: LimitedUsabilityToken::Tag,
                             correct_place: Place::NumberedEnv,
                         },
                     ))
@@ -1219,7 +1218,7 @@ where
             Token::Limits => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedHere {
-                    got: cur_token,
+                    got: LimitedUsabilityToken::Limits,
                     correct_place: Place::AfterBigOp,
                 },
             )),
@@ -1293,6 +1292,7 @@ where
                     Err(LatexError(span.into(), LatexErrKind::Internal))
                 }
             }
+            Token::UnknownCommand(name) => Ok(Node::UnknownCommand(name)),
             Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -1314,7 +1314,7 @@ where
 
     /// Same as `parse_token`, but also gets the next token.
     #[inline]
-    fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<'config, &'arena Node<'arena>> {
+    fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<&'arena Node<'arena>> {
         let token = self.next_token();
         self.parse_token(token, parse_as, Class::Default)
             .map(|(_, node)| node)
@@ -1322,7 +1322,7 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> ParseResult<'config, Bounds<'arena>> {
+    fn get_bounds(&mut self) -> ParseResult<Bounds<'arena>> {
         let mut primes = self.prime_check()?;
         // Check whether the first bound is specified and is a lower bound.
         let first_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
@@ -1379,7 +1379,7 @@ where
     }
 
     /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> ParseResult<'config, Vec<&'arena Node<'arena>>> {
+    fn prime_check(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut primes = Vec::new();
         let mut prime_count = 0usize;
         while matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1416,7 +1416,7 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<'config, &'arena Node<'arena>> {
+    fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<&'arena Node<'arena>> {
         self.next_token()?; // Discard the underscore or circumflex token.
         let next = self.next_token();
         if let Ok(tokloc) = next
@@ -1445,7 +1445,7 @@ where
         parse_as: ParseAs,
         prev_class: Class,
         explicit: bool,
-    ) -> ParseResult<'config, (Option<MathSpacing>, Option<MathSpacing>)> {
+    ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds or limits tokens.
         let next_class = self
@@ -1483,9 +1483,9 @@ where
 
     fn extract_delimiter(
         &mut self,
-        tok: TokSpan<'config>,
+        tok: TokSpan<'source>,
         location: DelimiterModifier,
-    ) -> ParseResult<'config, StretchableOp> {
+    ) -> ParseResult<StretchableOp> {
         let (tok, span) = tok.into_parts();
         const SQ_L_BRACKET: StretchableOp =
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
@@ -1503,7 +1503,7 @@ where
         let Some(delim) = delim else {
             return Err(self.alloc_err(LatexError(
                 span.into(),
-                LatexErrKind::ExpectedDelimiter { location, got: tok },
+                LatexErrKind::ExpectedDelimiter(location),
             )));
         };
         Ok(delim)
@@ -1512,7 +1512,7 @@ where
     #[inline]
     fn merge_and_transform_letters(
         &mut self,
-    ) -> ParseResult<'config, Option<(Class, &'arena Node<'arena>)>> {
+    ) -> ParseResult<Option<(Class, &'arena Node<'arena>)>> {
         let Some(tf) = self.state.transform else {
             return Ok(None);
         };
@@ -1577,7 +1577,7 @@ where
 
     pub(super) fn parse_string_literal(
         &mut self,
-    ) -> Result<(Range<usize>, &'arena str), Box<LatexError<'config>>> {
+    ) -> Result<(Range<usize>, &'arena str), Box<LatexError>> {
         let first = self.tokens.next()?;
         let span = first.span();
         let mut tokens = Vec::new();
@@ -1596,7 +1596,7 @@ where
         };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'config>>> = None;
+        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'source>>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(tokloc) = iter.next() {
@@ -1643,7 +1643,7 @@ where
     }
 }
 
-impl<'config> ParserState<'config> {
+impl<'source> ParserState<'source> {
     fn relation_spacing(
         &self,
         prev_class: Class,

@@ -4,6 +4,6 @@ expression: "\\begin{multline}1&1\\end{multline}"
 ---
 Position: 17..18
 CannotBeUsedHere {
-    got: NewColumn,
+    got: Ampersand,
     correct_place: TableEnv,
 }

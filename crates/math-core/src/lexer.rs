@@ -4,14 +4,17 @@ use std::str::CharIndices;
 
 use mathml_renderer::symbol::{self, MathMLOperator};
 
-use crate::CustomCmds;
+use crate::CommandConfig;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{EndToken, FromAscii, Span, TokSpan, Token};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source> {
+pub(crate) struct Lexer<'config, 'source>
+where
+    'config: 'source,
+{
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,
@@ -19,7 +22,7 @@ pub(crate) struct Lexer<'config, 'source> {
     mode: Mode,
     brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
-    custom_cmds: Option<&'config CustomCmds>,
+    cmd_cfg: Option<&'config CommandConfig>,
 }
 
 impl<'config, 'source> Lexer<'config, 'source> {
@@ -27,7 +30,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
-        custom_cmds: Option<&'config CustomCmds>,
+        cmd_cfg: Option<&'config CommandConfig>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -41,7 +44,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             } else {
                 None
             },
-            custom_cmds,
+            cmd_cfg,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -155,16 +158,46 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
+        match self.next_token_internal() {
+            LexerResult::Tok(tok) => Ok(tok),
+            LexerResult::UnknownCommand(cmd, span) => {
+                if self.cmd_cfg.is_some_and(|cfg| cfg.ignore_unknown_commands) {
+                    Ok(TokSpan::new(Token::UnknownCommand(cmd), span))
+                } else {
+                    Err(Box::new(LatexError(
+                        span.into(),
+                        LatexErrKind::UnknownCommand(cmd.into()),
+                    )))
+                }
+            }
+            LexerResult::Err(err) => Err(err),
+        }
+    }
+
+    pub(crate) fn next_token_no_unknown_command(
+        &mut self,
+    ) -> Result<TokSpan<'config>, Box<LatexError>> {
+        match self.next_token_internal() {
+            LexerResult::Tok(tok) => Ok(tok),
+            LexerResult::UnknownCommand(cmd, span) => Err(Box::new(LatexError(
+                span.into(),
+                LatexErrKind::UnknownCommand(cmd.into()),
+            ))),
+            LexerResult::Err(err) => Err(err),
+        }
+    }
+
+    fn next_token_internal(&mut self) -> LexerResult<'config, 'source> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(span) = self.skip_whitespace() {
-            return Ok(TokSpan::new(Token::Whitespace, span));
+            return LexerResult::Tok(TokSpan::new(Token::Whitespace, span));
         }
 
         let (loc, ch) = self.read_char();
         let ascii_span = Span(loc, 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
-            return Ok(TokSpan::new(Token::Eof, Span::zero_width(loc)));
+            return LexerResult::Tok(TokSpan::new(Token::Eof, Span::zero_width(loc)));
         };
         if ch == '%' {
             // Skip comments.
@@ -173,12 +206,12 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             self.read_char(); // Consume the newline character.
             // TODO: use `become` here when stabilized.
-            return self.next_token();
+            return self.next_token_internal();
         }
         let mut span = ascii_span;
         let tok = match ch {
             '\u{0}' => {
-                return Err(Box::new(LatexError(
+                return LexerResult::Err(Box::new(LatexError(
                     loc..(loc + 1),
                     LatexErrKind::DisallowedChar(ch),
                 )));
@@ -200,7 +233,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         // In pre-defined commands, `#` is used to denote a parameter.
                         let param_num = (next as u32).wrapping_sub('1' as u32);
                         if !(0..=8).contains(&param_num) {
-                            return Err(Box::new(LatexError(
+                            return LexerResult::Err(Box::new(LatexError(
                                 (loc + 1)..(loc + 2),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
@@ -216,19 +249,19 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     } else {
                         let (loc, ch) = self.read_char();
                         if let Some(ch) = ch {
-                            return Err(Box::new(LatexError(
+                            return LexerResult::Err(Box::new(LatexError(
                                 loc..(loc + ch.len_utf8()),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
                         } else {
-                            return Err(Box::new(LatexError(
+                            return LexerResult::Err(Box::new(LatexError(
                                 loc..loc,
                                 LatexErrKind::ExpectedParamNumberGotEOF,
                             )));
                         }
                     }
                 } else {
-                    return Err(Box::new(LatexError(
+                    return LexerResult::Err(Box::new(LatexError(
                         loc..(loc + 1),
                         LatexErrKind::MacroParameterOutsideCustomCommand,
                     )));
@@ -277,7 +310,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
-                    return Err(Box::new(LatexError(
+                    return LexerResult::Err(Box::new(LatexError(
                         loc..(loc + 1),
                         LatexErrKind::UnmatchedClose(EndToken::GroupClose),
                     )));
@@ -296,7 +329,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 let (cmd_string, end) = self.read_command();
                 let span = loc..end;
                 let Ok(span) = Span::try_from(span) else {
-                    return Err(Box::new(LatexError(
+                    return LexerResult::Err(Box::new(LatexError(
                         loc..end,
                         LatexErrKind::HardLimitExceeded,
                     )));
@@ -324,26 +357,23 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        Ok(TokSpan::new(tok, span))
+        LexerResult::Tok(TokSpan::new(tok, span))
     }
 
     fn parse_command(
         &mut self,
         span: Span,
         cmd_string: &'source str,
-    ) -> Result<TokSpan<'config>, Box<LatexError<'config>>> {
-        let tok: Result<(Token<'config>, Span), LatexError<'config>> =
+    ) -> LexerResult<'config, 'source> {
+        let tok: Result<(Token<'config>, Span), LatexError> =
             if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
                 if let Some(tok) = get_text_command(cmd_string) {
                     Ok((tok, span))
                 } else {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::UnknownCommand(cmd_string.into()),
-                    ))
+                    return LexerResult::UnknownCommand(cmd_string, span);
                 }
             } else if let Some(tok) = self
-                .custom_cmds
+                .cmd_cfg
                 .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
                 .or_else(|| get_command(cmd_string))
             {
@@ -399,10 +429,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         ))
                     }
                 } else {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::UnknownCommand(cmd_string.into()),
-                    ))
+                    return LexerResult::UnknownCommand(cmd_string, span);
                 }
             };
         if matches!(self.mode, Mode::TextStart) {
@@ -414,8 +441,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             self.mode = Mode::TextStart;
         }
         match tok {
-            Ok((tok, span)) => Ok(TokSpan::new(tok, span)),
-            Err(err) => Err(Box::new(err)),
+            Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span)),
+            Err(err) => LexerResult::Err(Box::new(err)),
         }
     }
 }
@@ -463,6 +490,12 @@ fn len_utf8(ch: char) -> u16 {
         ..MAX_THREE_B => 3,
         _ => 4,
     }
+}
+
+enum LexerResult<'config, 'source> {
+    Tok(TokSpan<'config>),
+    UnknownCommand(&'source str, Span),
+    Err(Box<LatexError>),
 }
 
 #[cfg(test)]

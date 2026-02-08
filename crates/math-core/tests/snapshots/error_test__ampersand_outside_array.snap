@@ -4,6 +4,6 @@ expression: x & y
 ---
 Position: 2..3
 CannotBeUsedHere {
-    got: NewColumn,
+    got: Ampersand,
     correct_place: TableEnv,
 }

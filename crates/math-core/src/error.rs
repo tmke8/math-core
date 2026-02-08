@@ -8,23 +8,20 @@ use strum_macros::IntoStaticStr;
 use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
-use crate::token::{EndToken, Token};
+use crate::token::EndToken;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug, Clone)]
-pub struct LatexError<'source>(pub Range<usize>, pub LatexErrKind<'source>);
+pub struct LatexError(pub Range<usize>, pub LatexErrKind);
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum LatexErrKind<'config> {
+pub enum LatexErrKind {
     UnclosedGroup(EndToken),
     UnmatchedClose(EndToken),
     ExpectedArgumentGotClose,
     ExpectedArgumentGotEOF,
-    ExpectedDelimiter {
-        location: DelimiterModifier,
-        got: Token<'config>,
-    },
+    ExpectedDelimiter(DelimiterModifier),
     DisallowedChar(char),
     UnknownEnvironment(Box<str>),
     UnknownCommand(Box<str>),
@@ -34,17 +31,17 @@ pub enum LatexErrKind<'config> {
         got: Env,
     },
     CannotBeUsedHere {
-        got: Token<'config>,
+        got: LimitedUsabilityToken,
         correct_place: Place,
     },
-    ExpectedRelation(Token<'config>),
+    ExpectedRelation,
     BoundFollowedByBound,
     DuplicateSubOrSup,
     ExpectedText(&'static str),
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
-    NotValidInTextMode(Token<'config>),
+    NotValidInTextMode,
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
@@ -76,7 +73,17 @@ pub enum Place {
     NumberedEnv,
 }
 
-impl LatexErrKind<'_> {
+#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+pub enum LimitedUsabilityToken {
+    #[strum(serialize = "&")]
+    Ampersand,
+    #[strum(serialize = r"\tag")]
+    Tag,
+    #[strum(serialize = r"\limits")]
+    Limits,
+}
+
+impl LatexErrKind {
     /// Returns the error message as a string.
     ///
     /// This serves the same purpose as the `Display` implementation,
@@ -93,12 +100,10 @@ impl LatexErrKind<'_> {
                 r"Expected argument but got closing token (`}`, `\end`, `\right`).".to_string()
             }
             LatexErrKind::ExpectedArgumentGotEOF => "Expected argument but reached end of input.".to_string(),
-            LatexErrKind::ExpectedDelimiter { location, got } => {
+            LatexErrKind::ExpectedDelimiter(location) => {
                 "There must be a parenthesis after \"".to_string()
                     + <&str>::from(*location)
-                    + "\", but not found. Instead, \""
-                    + <&str>::from(got)
-                    + "\" was found."
+                    + "\", but not found."
             }
             LatexErrKind::DisallowedChar(got) => {
                 let mut text = "Disallowed character in text group: '".to_string();
@@ -125,8 +130,8 @@ impl LatexErrKind<'_> {
                     + <&str>::from(correct_place)
                     + "."
             }
-            LatexErrKind::ExpectedRelation(got) => {
-                "Expected a relation after \\not, got \"".to_string() + <&str>::from(got) + "\"."
+            LatexErrKind::ExpectedRelation => {
+                "Expected a relation after \\not.".to_string()
             }
             LatexErrKind::BoundFollowedByBound => {
                 "'^' or '_' directly followed by '^', '_' or prime.".to_string()
@@ -142,8 +147,8 @@ impl LatexErrKind<'_> {
             LatexErrKind::ExpectedColSpec(got) => {
                 "Expected column specification, got \"".to_string() + got + "\"."
             }
-            LatexErrKind::NotValidInTextMode(got) => {
-                "Got \"".to_string() + <&str>::from(got) + "\", which is not valid in text mode."
+            LatexErrKind::NotValidInTextMode => {
+                "Not valid in text mode.".to_string()
             }
             LatexErrKind::InvalidMacroName(name) => {
                 "Invalid macro name: \"\\".to_string() + name + "\"."
@@ -167,7 +172,7 @@ impl LatexErrKind<'_> {
     }
 }
 
-impl LatexError<'_> {
+impl LatexError {
     /// Format a LaTeX error as an HTML snippet.
     ///
     /// # Arguments
@@ -196,13 +201,13 @@ impl LatexError<'_> {
     }
 }
 
-impl fmt::Display for LatexError<'_> {
+impl fmt::Display for LatexError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.0.start, self.1.string())
     }
 }
 
-impl std::error::Error for LatexError<'_> {}
+impl std::error::Error for LatexError {}
 
 pub trait GetUnwrap {
     /// `str::get` with `Option::unwrap`.

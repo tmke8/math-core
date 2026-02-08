@@ -13,6 +13,7 @@ class LatexToMathML:
         macros: dict[str, str] | None = None,
         xml_namespace: bool = False,
         continue_on_error: bool = False,
+        ignore_unknown_commands: bool = False,
     ) -> Self | LatexError:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -34,6 +35,10 @@ class LatexToMathML:
                 conversion errors. If conversion fails and this is ``True``, an HTML
                 snippet describing the error will be returned, instead of returning
                 ``LatexError``.
+
+            ignore_unknown_commands: A boolean indicating whether to ignore unknown
+                LaTeX commands. If ``True``, unknown commands will be displayed as red text
+                and the conversion will continue, instead of returning an error.
         """
     def convert_with_global_counter(
         self, latex: str, *, displaystyle: bool
