@@ -11,64 +11,42 @@ use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
 use crate::character_class::Class;
 use crate::environments::Env;
 
-#[derive(Debug, Clone, Copy, IntoStaticStr)]
+#[derive(Debug, Clone, Copy)]
 pub enum Token<'source> {
-    #[strum(serialize = "end of input")]
     Eof,
-    #[strum(serialize = r"\begin")]
     Begin(Env),
-    #[strum(serialize = r"\end")]
     End(Env),
-    #[strum(serialize = "&")]
     NewColumn,
-    #[strum(serialize = r"\\")]
     NewLine,
-    #[strum(serialize = r"\nonumber/\notag")]
     NoNumber,
-    #[strum(serialize = r"\tag")]
     Tag,
-    #[strum(serialize = r"\left")]
     Left,
-    #[strum(serialize = r"\right")]
     Right,
-    #[strum(serialize = r"\middle")]
     Middle,
     /// The opening square bracket has its own token because we need to
     /// distinguish it from `\lbrack` after `\sqrt`.
-    #[strum(serialize = "[")]
     SquareBracketOpen,
     /// The closing square bracket has its own token because we often
     /// need to search for it.
     /// Additionally, it's useful to distinguish this from `\rbrack`.
-    #[strum(serialize = "]")]
     SquareBracketClose,
-    #[strum(serialize = "{")]
     GroupBegin,
-    #[strum(serialize = "}")]
     GroupEnd,
     Frac(Option<FracAttr>),
-    #[strum(serialize = r"\genfrac")]
     Genfrac,
-    #[strum(serialize = "_")]
     Underscore,
-    #[strum(serialize = "^")]
     Circumflex,
     Binom(Option<FracAttr>),
-    #[strum(serialize = r"\overset")]
     Overset,
-    #[strum(serialize = r"\underset")]
     Underset,
     OverUnderBrace(OrdLike, bool),
-    #[strum(serialize = r"\sqrt")]
     Sqrt,
     Integral(Op),
-    #[strum(serialize = r"\limits")]
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
     PseudoOperatorLimits(&'static str),
     Space(Length),
     CustomSpace,
-    #[strum(serialize = "~")]
     NonBreakingSpace,
     Whitespace,
     Transform(MathVariant),
@@ -79,7 +57,6 @@ pub enum Token<'source> {
     /// A token corresponding to LaTeX's "mathop" character class (class 1).
     Op(Op),
     /// A token corresponding to LaTeX's "mathbin" character class (class 2).
-    #[strum(serialize = "binary operator")]
     BinaryOp(Bin),
     /// A token corresponding to LaTeX's "mathrel" character class (class 3).
     Relation(Rel),
@@ -91,15 +68,10 @@ pub enum Token<'source> {
     Punctuation(Punct),
     /// A token corresponding to LaTeX's "mathinner" character class (class I).
     Inner(Op),
-    #[strum(serialize = "'")]
     Prime,
-    #[strum(serialize = ">")]
     OpGreaterThan,
-    #[strum(serialize = "<")]
     OpLessThan,
-    #[strum(serialize = r"\&")]
     OpAmpersand,
-    #[strum(serialize = ":")]
     /// A token to force an operator to behave like a relation (mathrel).
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
@@ -118,12 +90,9 @@ pub enum Token<'source> {
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
     PseudoOperator(&'static str),
     Enclose(Notation),
-    #[strum(serialize = r"\operatorname")]
     OperatorName(bool),
     Slashed,
-    #[strum(serialize = r"\not")]
     Not,
-    #[strum(serialize = r"\text*")]
     Text(Option<HtmlTextStyle>),
     Style(Style),
     Color,
