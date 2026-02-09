@@ -1,9 +1,8 @@
 use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style, TextTransform,
+    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, ParenType, Size, Style, TextTransform,
 };
 use mathml_renderer::symbol::{self, Rel};
 
-use crate::character_class::Class;
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
@@ -35,10 +34,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Beta" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_BETA),
     "Big" => Big(Size::Scale2, None),
     "Bigg" => Big(Size::Scale4, None),
-    "Biggl" => Big(Size::Scale4, Some(Class::Open)),
-    "Biggr" => Big(Size::Scale4, Some(Class::Close)),
-    "Bigl" => Big(Size::Scale2, Some(Class::Open)),
-    "Bigr" => Big(Size::Scale2, Some(Class::Close)),
+    "Biggl" => Big(Size::Scale4, Some(ParenType::Open)),
+    "Biggr" => Big(Size::Scale4, Some(ParenType::Close)),
+    "Bigl" => Big(Size::Scale2, Some(ParenType::Open)),
+    "Bigr" => Big(Size::Scale2, Some(ParenType::Close)),
     "Box" => Letter(symbol::WHITE_MEDIUM_SQUARE, FromAscii::False),
     "Bumpeq" => Relation(symbol::GEOMETRICALLY_EQUIVALENT_TO),
     "Cap" => BinaryOp(symbol::DOUBLE_INTERSECTION),
@@ -137,13 +136,13 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "bigdoublevee" => Op(symbol::TWO_LOGICAL_OR_OPERATOR),
     "bigdoublewedge" => Op(symbol::TWO_LOGICAL_AND_OPERATOR),
     "bigg" => Big(Size::Scale3, None),
-    "biggl" => Big(Size::Scale3, Some(Class::Open)),
-    "biggr" => Big(Size::Scale3, Some(Class::Close)),
-    "bigl" => Big(Size::Scale1, Some(Class::Open)),
+    "biggl" => Big(Size::Scale3, Some(ParenType::Open)),
+    "biggr" => Big(Size::Scale3, Some(ParenType::Close)),
+    "bigl" => Big(Size::Scale1, Some(ParenType::Open)),
     "bigodot" => Op(symbol::N_ARY_CIRCLED_DOT_OPERATOR),
     "bigoplus" => Op(symbol::N_ARY_CIRCLED_PLUS_OPERATOR),
     "bigotimes" => Op(symbol::N_ARY_CIRCLED_TIMES_OPERATOR),
-    "bigr" => Big(Size::Scale1, Some(Class::Close)),
+    "bigr" => Big(Size::Scale1, Some(ParenType::Close)),
     "bigsqcap" => Op(symbol::N_ARY_SQUARE_INTERSECTION_OPERATOR),
     "bigsqcup" => Op(symbol::N_ARY_SQUARE_UNION_OPERATOR),
     "bigstar" => Letter(symbol::BLACK_STAR, FromAscii::False),

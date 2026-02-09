@@ -5,13 +5,13 @@ use std::num::NonZeroU16;
 use serde::Serialize;
 
 use crate::attribute::{
-    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttr, RowAttr, Size, StretchMode,
-    Style,
+    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttr, ParenType, RowAttr, Size,
+    StretchMode, Style,
 };
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
-use crate::symbol::{MathMLOperator, StretchableOp, Stretchy};
+use crate::symbol::{DelimiterSpacing, MathMLOperator, StretchableOp, Stretchy};
 use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
@@ -103,7 +103,7 @@ pub enum Node<'arena> {
         close: Option<StretchableOp>,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, StretchableOp),
+    SizedParen(Size, StretchableOp, Option<ParenType>),
     /// `<mtext>...</mtext>`
     Text(Option<HtmlTextStyle>, &'arena str),
     /// `<mtable>...</mtable>` for matrices and similar constructs
@@ -406,7 +406,7 @@ impl Node<'_> {
                 emit_stretchy_op(s, StretchMode::Fence, *close, None)?;
                 writeln_indent!(s, base_indent, "</mrow>");
             }
-            Node::SizedParen(size, paren) => {
+            Node::SizedParen(size, paren, paren_type) => {
                 write!(
                     s,
                     "<mo maxsize=\"{}\" minsize=\"{}\"",
@@ -422,7 +422,14 @@ impl Node<'_> {
                     }
                     _ => {}
                 }
-                if paren.nonzero_spacing {
+                if let Some(paren_type) = paren_type
+                    && matches!(paren.spacing, DelimiterSpacing::InfixNonZero)
+                {
+                    write!(s, "{}", <&str>::from(paren_type))?;
+                } else if matches!(
+                    paren.spacing,
+                    DelimiterSpacing::InfixNonZero | DelimiterSpacing::NonZero
+                ) {
                     write!(s, " lspace=\"0\" rspace=\"0\"")?;
                 }
                 write!(s, ">{}</mo>", char::from(*paren))?;
@@ -1167,13 +1174,15 @@ mod tests {
             render(&Node::SizedParen(
                 Size::Scale1,
                 symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap(),
+                None,
             )),
             "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
             render(&Node::SizedParen(
                 Size::Scale3,
-                symbol::SOLIDUS.as_stretchable_op().unwrap()
+                symbol::SOLIDUS.as_stretchable_op().unwrap(),
+                None,
             )),
             "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\" lspace=\"0\" rspace=\"0\">/</mo>"
         );

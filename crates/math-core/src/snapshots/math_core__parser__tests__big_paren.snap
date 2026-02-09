@@ -3,5 +3,5 @@ source: crates/math-core/src/parser.rs
 expression: "\\big("
 ---
 [
-  SizedParen(Scale1, StretchableOp('(', Always)),
+  SizedParen(Scale1, StretchableOp('(', Always), None),
 ]

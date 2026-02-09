@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\big| x \\big|"
+---
+<math>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mi>x</mi>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+</math>
