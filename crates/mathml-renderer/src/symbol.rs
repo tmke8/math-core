@@ -128,11 +128,13 @@ make_character_class!(
 impl OrdLike {
     #[inline(always)]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
-        let (stretchy, nonzero_spacing) = match self.cat {
-            OrdCategory::F | OrdCategory::G => (Stretchy::Always, false),
-            OrdCategory::FGandForceDefault => (Stretchy::PrePostfix, true),
-            OrdCategory::K => (Stretchy::Never, false),
-            OrdCategory::KButUsedToBeB => (Stretchy::Never, true),
+        let (stretchy, spacing) = match self.cat {
+            OrdCategory::F | OrdCategory::G => (Stretchy::Always, DelimiterSpacing::Zero),
+            OrdCategory::FGandForceDefault => {
+                (Stretchy::PrePostfix, DelimiterSpacing::InfixNonZero)
+            }
+            OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
+            OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::NonZero),
             _ => {
                 return None;
             }
@@ -140,7 +142,7 @@ impl OrdLike {
         Some(StretchableOp {
             char: self.char,
             stretchy,
-            nonzero_spacing,
+            spacing,
         })
     }
 }
@@ -194,7 +196,7 @@ impl Rel {
             RelCategory::A => Some(StretchableOp {
                 char: self.char,
                 stretchy: Stretchy::AlwaysAsymmetric,
-                nonzero_spacing: true,
+                spacing: DelimiterSpacing::NonZero,
             }),
             _ => None,
         }
@@ -226,11 +228,22 @@ pub enum Stretchy {
     AlwaysAsymmetric,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DelimiterSpacing {
+    /// Never has any spacing, even when used as an infix operator (e.g. `(`, `)`).
+    Zero,
+    /// Has spacing when used as an infix operator, but not when used as a prefix or postfix
+    /// operator (e.g. `|`).
+    InfixNonZero,
+    /// Always has spacing, even when used as a prefix or postfix operator (e.g. `/`).
+    NonZero,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct StretchableOp {
     char: BMPChar,
     pub stretchy: Stretchy,
-    pub nonzero_spacing: bool,
+    pub spacing: DelimiterSpacing,
 }
 
 #[cfg(feature = "serde")]

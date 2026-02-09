@@ -3,7 +3,7 @@ use std::ops::Range;
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, Size, Style,
+    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, ParenType, Size, Style,
 };
 use mathml_renderer::length::Length;
 use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
@@ -50,7 +50,7 @@ pub enum Token<'source> {
     NonBreakingSpace,
     Whitespace,
     Transform(MathVariant),
-    Big(Size, Option<Class>),
+    Big(Size, Option<ParenType>),
     OverUnder(Rel, bool, Option<OpAttr>),
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
@@ -127,7 +127,13 @@ impl Token<'_> {
             }
             Token::Inner(_) => Class::Inner,
             // `\big` commands without the "l" or "r" really produce `Class::Default`.
-            Token::Big(_, Some(cls)) => *cls,
+            Token::Big(_, Some(paren_type)) => {
+                if matches!(paren_type, ParenType::Open) {
+                    Class::Open
+                } else {
+                    Class::Close
+                }
+            }
             // TODO: This needs to skip spaces and other non-class tokens in the token sequence.
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,

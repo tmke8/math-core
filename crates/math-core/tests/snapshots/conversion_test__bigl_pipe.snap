@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\bigl| x \\bigr|"
+---
+<math>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" form="prefix">|</mo>
+    <mi>x</mi>
+    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" form="postfix">|</mo>
+</math>

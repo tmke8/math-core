@@ -4,7 +4,8 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
     attribute::{
-        LetterAttr, MathSpacing, MathVariant, OpAttr, RowAttr, StretchMode, Style, TextTransform,
+        LetterAttr, MathSpacing, MathVariant, OpAttr, ParenType, RowAttr, StretchMode, Style,
+        TextTransform,
     },
     length::Length,
     symbol::{self, OpCategory, OrdCategory, StretchableOp},
@@ -940,12 +941,16 @@ where
                 let op = self.extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
                 Ok(Node::StretchableOp(op, StretchMode::Middle, None))
             }
-            Token::Big(size, cls) => {
+            Token::Big(size, paren_type) => {
                 let tok_loc = self.next_token()?;
                 let paren = self.extract_delimiter(tok_loc, DelimiterModifier::Big)?;
                 // `\big` commands without the "l" or "r" really produce `Class::Default`.
-                class = cls.unwrap_or(Class::Default);
-                Ok(Node::SizedParen(size, paren))
+                class = match paren_type {
+                    Some(ParenType::Open) => Class::Open,
+                    Some(ParenType::Close) => Class::Close,
+                    None => Class::Default,
+                };
+                Ok(Node::SizedParen(size, paren, paren_type))
             }
             Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
