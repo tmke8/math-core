@@ -10,8 +10,11 @@ jobs:
     name: Release-plz release
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'tmke8' }}
+    environment: release
     permissions:
+      # Used to upload release artifacts
       contents: write
+      # Use to sign the release artifacts
       id-token: write
     steps:
       - name: Checkout repository
