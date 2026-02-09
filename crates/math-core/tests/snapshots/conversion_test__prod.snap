@@ -17,7 +17,7 @@ expression: "\\prod_i \\prod^n \\prod^n_i \\prod_i^n"
         <mi>n</mi>
     </munderover>
     <munderover>
-        <mo lspace="0">∏</mo>
+        <mo lspace="0" rspace="0">∏</mo>
         <mi>i</mi>
         <mi>n</mi>
     </munderover>

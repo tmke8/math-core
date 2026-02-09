@@ -41,7 +41,6 @@ pub enum Token<'source> {
     Underset,
     OverUnderBrace(OrdLike, bool),
     Sqrt,
-    Integral(Op),
     Limits,
     // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
     PseudoOperatorLimits(&'static str),
@@ -121,7 +120,7 @@ impl Token<'_> {
             | Token::NewColumn
             | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) | Token::ForceBinaryOp(_) => Class::BinaryOp,
-            Token::Op(_) | Token::Integral(_) => Class::Operator,
+            Token::Op(_) => Class::Operator,
             Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
                 Class::Close
             }
