@@ -649,81 +649,48 @@ where
             }
             Token::Op(op) => {
                 class = Class::Operator;
-                if matches!(op.category(), OpCategory::C | OpCategory::J) {
-                    let has_movable_limits = matches!(op.category(), OpCategory::J);
-                    let limits =
-                        has_movable_limits && matches!(self.tokens.peek().token(), Token::Limits);
-                    if limits {
-                        self.next_token()?; // Discard the limits token.
-                    };
-                    let bounds = if has_movable_limits {
-                        Some(self.get_bounds()?)
-                    } else {
-                        None
-                    };
-                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                    let attr = if limits {
-                        Some(OpAttr::NoMovableLimits)
-                    } else {
-                        None
-                    };
-                    let target = self.commit(Node::Operator {
-                        op: op.as_op(),
-                        attr,
-                        left,
-                        right,
-                    });
-                    if let Some(bounds) = bounds {
-                        match bounds {
-                            Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                                target,
-                                under,
-                                over,
-                            }),
-                            Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                            Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
-                            Bounds(None, None) => {
-                                return Ok((class, target));
-                            }
-                        }
-                    } else {
-                        return Ok((class, target));
+                let has_movable_limits = matches!(op.category(), OpCategory::J);
+                let has_bounds = !matches!(op.category(), OpCategory::C);
+
+                let limits = has_bounds && matches!(self.tokens.peek().token(), Token::Limits);
+                if limits {
+                    self.next_token()?; // Discard the limits token.
+                }
+                let bounds = if has_bounds {
+                    self.get_bounds()?
+                } else {
+                    Bounds(None, None)
+                };
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                let attr = if has_movable_limits && limits {
+                    Some(OpAttr::NoMovableLimits)
+                } else {
+                    None
+                };
+                let target = self.commit(Node::Operator {
+                    op: op.as_op(),
+                    attr,
+                    left,
+                    right,
+                });
+                let use_underover = has_movable_limits || limits;
+                if use_underover {
+                    match bounds {
+                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                            target,
+                            under,
+                            over,
+                        }),
+                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
+                        Bounds(None, None) => return Ok((class, target)),
                     }
                 } else {
-                    let limits = matches!(self.tokens.peek().token(), Token::Limits);
-                    if limits {
-                        self.next_token()?; // Discard the limits token.
-                    };
-                    let bounds = self.get_bounds()?;
-                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                    let target = self.commit(Node::Operator {
-                        op: op.as_op(),
-                        attr: None,
-                        left,
-                        right,
-                    });
-                    if limits {
-                        match bounds {
-                            Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                                target,
-                                under,
-                                over,
-                            }),
-                            Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                            Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
-                            Bounds(None, None) => {
-                                return Ok((class, target));
-                            }
-                        }
-                    } else {
-                        match bounds {
-                            Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                            Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
-                            Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
-                            Bounds(None, None) => {
-                                return Ok((class, target));
-                            }
-                        }
+                    match bounds {
+                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                        Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
+                        Bounds(None, None) => return Ok((class, target)),
                     }
                 }
             }
