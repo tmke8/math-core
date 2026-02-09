@@ -1,0 +1,19 @@
+# release-plz configuration
+# https://release-plz.dev/docs/config
+
+[workspace]
+# Use a single changelog at the root
+changelog_path = "CHANGELOG.md"
+
+# Crates to publish (in dependency order)
+[[package]]
+name = "math-core-renderer-internal"
+version_group = "math-core"
+
+[[package]]
+name = "math-core"
+version_group = "math-core"
+
+[[package]]
+name = "math-core-cli"
+version_group = "math-core"
