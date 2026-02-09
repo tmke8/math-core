@@ -16,7 +16,7 @@ name = "mathcore"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.56", features = ["derive"] }
+clap = { version = "4.5.57", features = ["derive"] }
 math-core = { path = "../math-core", features = ["serde"], version = "0.3.0" }
 memchr = { workspace = true }
 phf = { version = "0.13.1", features = ["macros"] }
