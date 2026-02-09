@@ -4,6 +4,10 @@
 [workspace]
 # Use a single changelog at the root
 changelog_path = "CHANGELOG.md"
+# Disable git releases for all packages by default
+git_release_enable = false
+# Disable git tags for all packages by default
+git_tag_enable = false
 
 # Crates to publish (in dependency order)
 [[package]]
@@ -13,6 +17,12 @@ version_group = "math-core"
 [[package]]
 name = "math-core"
 version_group = "math-core"
+# Customize the git tag name to remove the `math-core` prefix.
+git_tag_name = "v{{ version }}"
+# Enable git tags for this package
+git_tag_enable = true
+# Enable git releases for this package
+git_release_enable = true
 
 [[package]]
 name = "math-core-cli"
