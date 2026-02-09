@@ -650,10 +650,16 @@ where
             Token::Op(op) => {
                 class = Class::Operator;
                 if matches!(op.category(), OpCategory::C | OpCategory::J) {
-                    let is_big = matches!(op.category(), OpCategory::J);
-                    let limits = is_big && matches!(self.tokens.peek().token(), Token::Limits);
+                    let has_movable_limits = matches!(op.category(), OpCategory::J);
+                    let limits =
+                        has_movable_limits && matches!(self.tokens.peek().token(), Token::Limits);
                     if limits {
                         self.next_token()?; // Discard the limits token.
+                    };
+                    let bounds = if has_movable_limits {
+                        Some(self.get_bounds()?)
+                    } else {
+                        None
                     };
                     let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
                     let attr = if limits {
@@ -667,20 +673,21 @@ where
                         left,
                         right,
                     });
-                    if !is_big {
-                        return Ok((class, target));
-                    }
-                    match self.get_bounds()? {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
-                        Bounds(None, None) => {
-                            return Ok((class, target));
+                    if let Some(bounds) = bounds {
+                        match bounds {
+                            Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                                target,
+                                under,
+                                over,
+                            }),
+                            Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                            Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
+                            Bounds(None, None) => {
+                                return Ok((class, target));
+                            }
                         }
+                    } else {
+                        return Ok((class, target));
                     }
                 } else {
                     let limits = matches!(self.tokens.peek().token(), Token::Limits);

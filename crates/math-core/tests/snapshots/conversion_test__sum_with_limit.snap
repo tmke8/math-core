@@ -4,7 +4,7 @@ expression: "\\sum\\limits_{i=1}^N"
 ---
 <math>
     <munderover>
-        <mo movablelimits="false" lspace="0">∑</mo>
+        <mo movablelimits="false" lspace="0" rspace="0">∑</mo>
         <mrow>
             <mi>i</mi>
             <mo lspace="0" rspace="0">=</mo>

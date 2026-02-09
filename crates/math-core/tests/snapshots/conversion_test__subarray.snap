@@ -4,7 +4,7 @@ expression: "\\sum_{\\begin{subarray}{c} 0 \\le i \\le m\\\\ 0 < j < n \\end{sub
 ---
 <math>
     <munder>
-        <mo lspace="0">∑</mo>
+        <mo lspace="0" rspace="0">∑</mo>
         <mtable displaystyle="false" scriptlevel="1">
             <mtr>
                 <mtd style="padding-top: 0;padding-bottom: 0;">

@@ -4,7 +4,7 @@ expression: "\\sum'"
 ---
 <math>
     <mover>
-        <mo lspace="0">∑</mo>
+        <mo lspace="0" rspace="0">∑</mo>
         <mo>′</mo>
     </mover>
 </math>
