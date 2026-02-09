@@ -61,9 +61,9 @@ pub static CDOTS: [Token<'static>; 3] = [
 ];
 
 pub static IDOTSINT: [Token<'static>; 3] = [
-    Integral(symbol::INTEGRAL),
+    Op(symbol::INTEGRAL),
     CustomCmd(0, &CDOTS),
-    Integral(symbol::INTEGRAL),
+    Op(symbol::INTEGRAL),
 ];
 
 pub static AND: [Token<'static>; 3] = [

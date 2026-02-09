@@ -649,36 +649,74 @@ where
             }
             Token::Op(op) => {
                 class = Class::Operator;
-                let is_big = matches!(op.category(), OpCategory::H | OpCategory::J);
-                let limits = is_big && matches!(self.tokens.peek().token(), Token::Limits);
-                if limits {
-                    self.next_token()?; // Discard the limits token.
-                };
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                let attr = if limits {
-                    Some(OpAttr::NoMovableLimits)
-                } else {
-                    None
-                };
-                let target = self.commit(Node::Operator {
-                    op: op.as_op(),
-                    attr,
-                    left,
-                    right,
-                });
-                if !is_big {
-                    return Ok((class, target));
-                }
-                match self.get_bounds()? {
-                    Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                        target,
-                        under,
-                        over,
-                    }),
-                    Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                    Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
-                    Bounds(None, None) => {
+                if matches!(op.category(), OpCategory::C | OpCategory::J) {
+                    let is_big = matches!(op.category(), OpCategory::J);
+                    let limits = is_big && matches!(self.tokens.peek().token(), Token::Limits);
+                    if limits {
+                        self.next_token()?; // Discard the limits token.
+                    };
+                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                    let attr = if limits {
+                        Some(OpAttr::NoMovableLimits)
+                    } else {
+                        None
+                    };
+                    let target = self.commit(Node::Operator {
+                        op: op.as_op(),
+                        attr,
+                        left,
+                        right,
+                    });
+                    if !is_big {
                         return Ok((class, target));
+                    }
+                    match self.get_bounds()? {
+                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                            target,
+                            under,
+                            over,
+                        }),
+                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
+                        Bounds(None, None) => {
+                            return Ok((class, target));
+                        }
+                    }
+                } else {
+                    let limits = matches!(self.tokens.peek().token(), Token::Limits);
+                    if limits {
+                        self.next_token()?; // Discard the limits token.
+                    };
+                    let bounds = self.get_bounds()?;
+                    let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                    let target = self.commit(Node::Operator {
+                        op: op.as_op(),
+                        attr: None,
+                        left,
+                        right,
+                    });
+                    if limits {
+                        match bounds {
+                            Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                                target,
+                                under,
+                                over,
+                            }),
+                            Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
+                            Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
+                            Bounds(None, None) => {
+                                return Ok((class, target));
+                            }
+                        }
+                    } else {
+                        match bounds {
+                            Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                            Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
+                            Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
+                            Bounds(None, None) => {
+                                return Ok((class, target));
+                            }
+                        }
                     }
                 }
             }
@@ -783,44 +821,6 @@ where
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
                 return Ok((Class::Close, content));
-            }
-            Token::Integral(int) => {
-                class = Class::Operator;
-                let limits = matches!(self.tokens.peek().token(), Token::Limits);
-                if limits {
-                    self.next_token()?; // Discard the limits token.
-                };
-                let bounds = self.get_bounds()?;
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                let target = self.commit(Node::Operator {
-                    op: int.as_op(),
-                    attr: None,
-                    left,
-                    right,
-                });
-                if limits {
-                    match bounds {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
-                        Bounds(None, None) => {
-                            return Ok((class, target));
-                        }
-                    }
-                } else {
-                    match bounds {
-                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
-                        Bounds(None, None) => {
-                            return Ok((class, target));
-                        }
-                    }
-                }
             }
             Token::ForceRelation(op) => {
                 class = Class::Relation;
