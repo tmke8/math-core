@@ -14,6 +14,7 @@ class LatexToMathML:
         xml_namespace: bool = False,
         continue_on_error: bool = False,
         ignore_unknown_commands: bool = False,
+        annotation: bool = False,
     ) -> Self | LatexError:
         r"""Create a LatexToMathML converter with the specified configuration.
 

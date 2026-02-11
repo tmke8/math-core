@@ -35,7 +35,7 @@
 pub mod arena;
 pub mod ast;
 pub mod attribute;
-mod fmt;
+pub mod fmt;
 mod itoa;
 pub mod length;
 pub mod symbol;
