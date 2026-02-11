@@ -6,6 +6,6 @@ Error: Unknown command "\é".
    ╭─[ <input>:1:1 ]
    │
  1 │ \éx
-   │ ─┬─  
-   │  ╰─── unknown command
+   │ ─┬  
+   │  ╰── unknown command
 ───╯

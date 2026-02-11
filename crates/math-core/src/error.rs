@@ -252,12 +252,12 @@ impl LatexError {
             LatexErrKind::Internal => "internal error".into(),
         };
 
-        let mut builder =
-            Report::build(ReportKind::Error, (source_name, self.0.start..self.0.start));
+        let mut config = ariadne::Config::default().with_index_type(ariadne::IndexType::Byte);
         if !with_color {
-            builder = builder.with_config(ariadne::Config::default().with_color(false));
+            config = config.with_color(false);
         }
-        builder
+        Report::build(ReportKind::Error, (source_name, self.0.start..self.0.start))
+            .with_config(config)
             .with_message(self.1.string())
             .with_label(Label::new((source_name, self.0.clone())).with_message(label_msg))
             .finish()
