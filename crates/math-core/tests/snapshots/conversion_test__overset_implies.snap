@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\overset{\\implies}{xxxxxxx}"
+---
+<math>
+    <mover>
+        <mrow>
+            <mi>x</mi>
+            <mi>x</mi>
+            <mi>x</mi>
+            <mi>x</mi>
+            <mi>x</mi>
+            <mi>x</mi>
+            <mi>x</mi>
+        </mrow>
+        <mrow>
+            <mspace width="0.2777778em"/>
+            <mo stretchy="false" lspace="0" rspace="0">⟹</mo>
+            <mspace width="0.2777778em"/>
+        </mrow>
+    </mover>
+</math>

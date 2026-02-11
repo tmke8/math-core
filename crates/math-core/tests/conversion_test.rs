@@ -249,6 +249,7 @@ fn main() {
         ("overset_prime", r"\overset{'}{=}x"),
         ("overset_real_prime", r"\overset{\prime}{=}x"),
         ("overset_plus", r"\overset{!}{+}"),
+        ("overset_implies", r"\overset{\implies}{xxxxxxx}"),
         ("exclamation_mark_spacing", r"x=!=x"),
         ("int_limit_prime", r"\int\limits'"),
         ("prime_command", r"f^\prime"),

@@ -4,6 +4,6 @@ expression: "| {\\uparrow} \\rangle"
 ---
 <math>
     <mo stretchy="false" lspace="0" rspace="0">|</mo>
-    <mo stretchy="false">↑</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↑</mo>
     <mo stretchy="false">⟩</mo>
 </math>

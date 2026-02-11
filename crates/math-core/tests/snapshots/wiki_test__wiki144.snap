@@ -11,6 +11,6 @@ expression: "\\left . \\frac{A}{B} \\right \\} \\to X"
         </mfrac>
         <mo>}</mo>
     </mrow>
-    <mo>→</mo>
+    <mo stretchy="false">→</mo>
     <mi>X</mi>
 </math>

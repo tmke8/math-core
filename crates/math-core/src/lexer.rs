@@ -275,7 +275,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if text_mode {
                     Token::Letter(ch, FromAscii::True)
                 } else {
-                    Token::BinaryOp(symbol::ASTERISK_OPERATOR)
+                    Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op())
                 }
             }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
@@ -467,13 +467,14 @@ enum EnvMarker {
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     const COLON: MathMLOperator = symbol::COLON.as_op();
+    const ASTERISK: MathMLOperator = symbol::ASTERISK_OPERATOR.as_op();
     match tok {
         Token::Letter(ch, FromAscii::True) => Some(ch),
         Token::Whitespace => Some(' '),
         Token::Ord(symbol::VERTICAL_LINE) => Some('|'),
         Token::Punctuation(symbol::COMMA) => Some(','),
         Token::BinaryOp(symbol::MINUS_SIGN) => Some('-'),
-        Token::BinaryOp(symbol::ASTERISK_OPERATOR) => Some('*'),
+        Token::ForceBinaryOp(ASTERISK) => Some('*'),
         Token::ForceRelation(COLON) => Some(':'),
         Token::Digit(ch) => Some(ch),
         _ => None,

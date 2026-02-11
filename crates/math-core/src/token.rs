@@ -83,6 +83,7 @@ pub enum Token<'source> {
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
     ForceBinaryOp(MathMLOperator),
+    StretchyRel(Rel),
     Letter(char, FromAscii),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Digit(char),

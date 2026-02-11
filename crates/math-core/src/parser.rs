@@ -8,7 +8,7 @@ use mathml_renderer::{
         TextTransform,
     },
     length::Length,
-    symbol::{self, OpCategory, OrdCategory, StretchableOp},
+    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp},
 };
 
 use crate::{
@@ -306,19 +306,27 @@ where
                     ))
                 }
             }
-            Token::Relation(relation) => {
+            ref tok @ (Token::Relation(relation) | Token::StretchyRel(relation)) => {
                 class = Class::Relation;
-                if let Some(op) = relation.as_stretchable_op() {
-                    Ok(Node::StretchableOp(op, StretchMode::NoStretch, None))
-                } else {
-                    let (left, right) = self.state.relation_spacing(prev_class, next_class);
-                    Ok(Node::Operator {
-                        op: relation.as_op(),
-                        attr: None,
-                        left,
-                        right,
-                    })
-                }
+                let attr = match relation.category() {
+                    // Category A relations are stretchy by default
+                    RelCategory::A => {
+                        // We let it be stretchy if it's explicitly marked as stretchy
+                        if matches!(tok, Token::StretchyRel(_)) {
+                            None
+                        } else {
+                            Some(OpAttr::StretchyFalse)
+                        }
+                    }
+                    RelCategory::Default => None,
+                };
+                let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                Ok(Node::Operator {
+                    op: relation.as_op(),
+                    attr,
+                    left,
+                    right,
+                })
             }
             Token::Punctuation(punc) => {
                 class = Class::Punctuation;
