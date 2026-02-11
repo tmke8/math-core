@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\left( 1 \\middle x \\right)"
 ---
-Position: 17..18
-ExpectedDelimiter(
-    Middle,
-)
+Error: There must be a parenthesis after "\middle", but not found.
+   ╭─[ <input>:1:18 ]
+   │
+ 1 │ \left( 1 \middle x \right)
+   │                  ┬  
+   │                  ╰── expected a delimiter after "\middle"
+───╯

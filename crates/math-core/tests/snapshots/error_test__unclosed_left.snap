@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\left( x"
 ---
-Position: 8..8
-UnclosedGroup(
-    Right,
-)
+Error: Expected token "\right", but not found.
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ \left( x
+   │         │ 
+   │         ╰─ expected "\right" to close this group
+───╯

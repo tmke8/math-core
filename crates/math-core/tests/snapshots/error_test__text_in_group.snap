@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "{\\text}"
 ---
-Position: 6..7
-ExpectedArgumentGotClose
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ {\text}
+   │       ┬  
+   │       ╰── expected an argument here
+───╯

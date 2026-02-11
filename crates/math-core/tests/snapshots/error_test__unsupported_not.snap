@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\not\\text{hello}"
 ---
-Position: 4..9
-ExpectedRelation
+Error: Expected a relation after \not.
+   ╭─[ <input>:1:5 ]
+   │
+ 1 │ \not\text{hello}
+   │     ──┬──  
+   │       ╰──── expected a relation
+───╯

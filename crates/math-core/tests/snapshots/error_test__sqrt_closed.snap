@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "{\\sqrt}"
 ---
-Position: 6..7
-ExpectedArgumentGotClose
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ {\sqrt}
+   │       ┬  
+   │       ╰── expected an argument here
+───╯

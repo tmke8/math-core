@@ -201,6 +201,69 @@ impl LatexError {
     }
 }
 
+#[cfg(feature = "ariadne")]
+impl LatexError {
+    /// Convert this error into an [`ariadne::Report`] for pretty-printing.
+    pub fn to_report<'name>(
+        &self,
+        source_name: &'name str,
+        with_color: bool,
+    ) -> ariadne::Report<'static, (&'name str, Range<usize>)> {
+        use ariadne::{Label, Report, ReportKind};
+
+        let label_msg = match &self.1 {
+            LatexErrKind::UnclosedGroup(expected) => {
+                format!(
+                    "expected \"{}\" to close this group",
+                    <&str>::from(expected)
+                )
+            }
+            LatexErrKind::UnmatchedClose(got) => {
+                format!("unmatched \"{}\"", <&str>::from(got))
+            }
+            LatexErrKind::ExpectedArgumentGotClose => "expected an argument here".into(),
+            LatexErrKind::ExpectedArgumentGotEOF => "expected an argument here".into(),
+            LatexErrKind::ExpectedDelimiter(modifier) => {
+                format!("expected a delimiter after \"{}\"", <&str>::from(*modifier))
+            }
+            LatexErrKind::DisallowedChar(_) => "disallowed character".into(),
+            LatexErrKind::UnknownEnvironment(_) => "unknown environment".into(),
+            LatexErrKind::UnknownCommand(_) => "unknown command".into(),
+            LatexErrKind::UnknownColor(_) => "unknown color".into(),
+            LatexErrKind::MismatchedEnvironment { expected, .. } => {
+                format!("expected \"\\end{{{}}}\" here", expected.as_str(),)
+            }
+            LatexErrKind::CannotBeUsedHere { correct_place, .. } => {
+                format!("may only appear {}", <&str>::from(correct_place))
+            }
+            LatexErrKind::ExpectedRelation => "expected a relation".into(),
+            LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
+            LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
+            LatexErrKind::ExpectedText(place) => format!("expected text in {place}"),
+            LatexErrKind::ExpectedLength(_) => "expected length here".into(),
+            LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
+            LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
+            LatexErrKind::NotValidInTextMode => "not valid in text mode".into(),
+            LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
+            LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
+            LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),
+            LatexErrKind::ExpectedParamNumberGotEOF => "expected parameter number".into(),
+            LatexErrKind::HardLimitExceeded => "limit exceeded".into(),
+            LatexErrKind::Internal => "internal error".into(),
+        };
+
+        let mut config = ariadne::Config::default().with_index_type(ariadne::IndexType::Byte);
+        if !with_color {
+            config = config.with_color(false);
+        }
+        Report::build(ReportKind::Error, (source_name, self.0.start..self.0.start))
+            .with_config(config)
+            .with_message(self.1.string())
+            .with_label(Label::new((source_name, self.0.clone())).with_message(label_msg))
+            .finish()
+    }
+}
+
 impl fmt::Display for LatexError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.0.start, self.1.string())

@@ -1,5 +1,5 @@
 use insta::assert_snapshot;
-use math_core::{LatexError, LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
 #[test]
 fn main() {
@@ -90,13 +90,18 @@ fn main() {
     };
     let converter = LatexToMathML::new(config).unwrap();
     for (name, problem) in problems.into_iter() {
-        let Err(LatexError(loc, error)) = converter
+        let Err(error) = converter
             .convert_with_local_counter(problem, MathDisplay::Inline)
             .map_err(|e| *e)
         else {
             panic!("problem `{}` did not return an error", problem);
         };
-        let output = format!("Position: {}..{}\n{:#?}", loc.start, loc.end, error);
+        let report = error.to_report("<input>", false);
+        let mut buf = Vec::new();
+        report
+            .write(("<input>", ariadne::Source::from(problem)), &mut buf)
+            .expect("failed to write report");
+        let output = String::from_utf8(buf).expect("report should be valid UTF-8");
         assert_snapshot!(name, &output, problem);
     }
 }

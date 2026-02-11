@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\left(\\operatorname{hello\\right)"
 ---
-Position: 25..31
-ExpectedArgumentGotClose
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:26 ]
+   │
+ 1 │ \left(\operatorname{hello\right)
+   │                          ───┬──  
+   │                             ╰──── expected an argument here
+───╯

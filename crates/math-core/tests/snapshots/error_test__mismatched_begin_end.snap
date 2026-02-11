@@ -2,8 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix} 1 \\end{bmatrix}"
 ---
-Position: 17..30
-MismatchedEnvironment {
-    expected: Matrix,
-    got: BMatrix,
-}
+Error: Expected "\end{matrix}", but got "\end{bmatrix}".
+   ╭─[ <input>:1:18 ]
+   │
+ 1 │ \begin{matrix} 1 \end{bmatrix}
+   │                  ──────┬──────  
+   │                        ╰──────── expected "\end{matrix}" here
+───╯

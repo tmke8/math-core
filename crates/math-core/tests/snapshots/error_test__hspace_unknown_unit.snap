@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\hspace{2ly}"
 ---
-Position: 7..12
-ExpectedLength(
-    "2ly",
-)
+Error: Expected length with units, got "2ly".
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \hspace{2ly}
+   │        ──┬──  
+   │          ╰──── expected length here
+───╯

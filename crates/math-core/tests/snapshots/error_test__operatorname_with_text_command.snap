@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\operatorname{\\ae}"
 ---
-Position: 14..17
-UnknownCommand(
-    "ae",
-)
+Error: Unknown command "\ae".
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \operatorname{\ae}
+   │               ─┬─  
+   │                ╰─── unknown command
+───╯

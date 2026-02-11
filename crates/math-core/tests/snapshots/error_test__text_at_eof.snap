@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sum\\text"
 ---
-Position: 9..9
-ExpectedArgumentGotEOF
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \sum\text
+   │          │ 
+   │          ╰─ expected an argument here
+───╯

@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sqrt[lim"
 ---
-Position: 9..9
-UnclosedGroup(
-    SquareBracketClose,
-)
+Error: Expected token "]", but not found.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \sqrt[lim
+   │          │ 
+   │          ╰─ expected "]" to close this group
+───╯

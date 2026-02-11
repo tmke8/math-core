@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: x^2^3 y
 ---
-Position: 3..4
-DuplicateSubOrSup
+Error: Duplicate subscript or superscript.
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ x^2^3 y
+   │    ┬  
+   │    ╰── duplicate
+───╯

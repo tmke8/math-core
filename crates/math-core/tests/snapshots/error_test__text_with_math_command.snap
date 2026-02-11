@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\text{\\max}"
 ---
-Position: 6..10
-UnknownCommand(
-    "max",
-)
+Error: Unknown command "\max".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \text{\max}
+   │       ──┬─  
+   │         ╰─── unknown command
+───╯

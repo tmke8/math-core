@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sqrt[3]\\asdf 3"
 ---
-Position: 8..13
-UnknownCommand(
-    "asdf",
-)
+Error: Unknown command "\asdf".
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ \sqrt[3]\asdf 3
+   │         ──┬──  
+   │           ╰──── unknown command
+───╯

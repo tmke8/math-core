@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\end{matrix}"
 ---
-Position: 0..12
-UnmatchedClose(
-    End,
-)
+Error: Unmatched closing token: "\end{...}".
+   ╭─[ <input>:1:1 ]
+   │
+ 1 │ \end{matrix}
+   │ ──────┬─────  
+   │       ╰─────── unmatched "\end{...}"
+───╯

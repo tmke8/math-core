@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\hspace{22öm}"
 ---
-Position: 10..12
-ExpectedText(
-    "string literal",
-)
+Error: Expected text in string literal.
+   ╭─[ <input>:1:11 ]
+   │
+ 1 │ \hspace{22öm}
+   │           ┬  
+   │           ╰── expected text in string literal
+───╯

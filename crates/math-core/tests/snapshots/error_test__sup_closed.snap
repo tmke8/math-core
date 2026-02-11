@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "{x^}"
 ---
-Position: 3..4
-ExpectedArgumentGotClose
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ {x^}
+   │    ┬  
+   │    ╰── expected an argument here
+───╯
