@@ -105,6 +105,11 @@ pub enum Token<'source> {
     InternalStringLiteral(&'static str),
 }
 
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(Result<Token<'_>, &'static i32>, [usize; 3]);
+
 impl Token<'_> {
     /// Returns the character class of this token.
     pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
@@ -188,6 +193,9 @@ impl TryFrom<Range<usize>> for Span {
 #[derive(Debug, Clone, Copy)]
 pub struct TokSpan<'config>(Token<'config>, usize, u16);
 
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
+
 impl<'config> TokSpan<'config> {
     #[inline]
     pub const fn new(token: Token<'config>, span: Span) -> Self {
@@ -256,25 +264,5 @@ impl EndToken {
                 | (EndToken::SquareBracketClose, Token::SquareBracketClose)
                 | (EndToken::Eof, Token::Eof)
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const WORD: usize = std::mem::size_of::<usize>();
-
-    #[test]
-    fn test_struct_sizes() {
-        assert!(std::mem::size_of::<Token>() <= 3 * WORD, "size of Token");
-        assert!(
-            std::mem::size_of::<TokSpan>() <= 5 * WORD,
-            "size of TokSpan"
-        );
-        assert!(
-            std::mem::size_of::<Result<Token, &'static i32>>() <= 3 * WORD,
-            "size of Result<Token, pointer>"
-        );
     }
 }

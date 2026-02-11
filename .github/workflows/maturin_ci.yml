@@ -7,9 +7,9 @@ name: Maturin CI
 
 on:
   push:
-    branches:
-      - main
-      - master
+    # branches:
+    #   - main
+    #   - master
     tags:
       - "*"
   pull_request:

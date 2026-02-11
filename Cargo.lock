@@ -364,6 +364,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde-tuple-vec-map",
+ "static_assertions",
  "strum",
  "strum_macros",
 ]
@@ -397,6 +398,7 @@ dependencies = [
  "dtoa",
  "serde",
  "stable-arena",
+ "static_assertions",
  "strum",
  "strum_macros",
 ]
@@ -408,7 +410,6 @@ dependencies = [
  "js-sys",
  "lol_alloc",
  "math-core",
- "math-core-renderer-internal",
  "rustc-hash",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -795,6 +796,12 @@ name = "stable-arena"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a6572b16faf73db61fab0b1d848ce108e20d026dc20dcb043a3f83c73ad1c09"
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
