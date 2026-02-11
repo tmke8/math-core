@@ -5,7 +5,7 @@ expression: "\\left| \\uparrow \\right\\rangle"
 <math>
     <mrow>
         <mo>|</mo>
-        <mo stretchy="false">↑</mo>
+        <mo stretchy="false" lspace="0" rspace="0">↑</mo>
         <mo>⟩</mo>
     </mrow>
 </math>

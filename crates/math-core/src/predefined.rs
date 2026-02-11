@@ -33,7 +33,7 @@ pub static XRIGHTARROW: [Token<'static>; 7] = [
     Overset,
     CustomCmd(0, &XARROW_SPACING_HACK),
     GroupBegin,
-    Relation(symbol::RIGHTWARDS_ARROW),
+    StretchyRel(symbol::RIGHTWARDS_ARROW),
     GroupEnd,
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];
@@ -43,7 +43,7 @@ pub static XLEFTARROW: [Token<'static>; 7] = [
     Overset,
     CustomCmd(0, &XARROW_SPACING_HACK),
     GroupBegin,
-    Relation(symbol::LEFTWARDS_ARROW),
+    StretchyRel(symbol::LEFTWARDS_ARROW),
     GroupEnd,
     Space(LatexUnit::Mu.length_with_unit(5.0)),
 ];

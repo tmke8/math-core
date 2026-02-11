@@ -3,7 +3,7 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\updownarrow\\big\\updownarrow\\Big\\updownarrow \\bigg\\updownarrow \\Bigg\\updownarrow \\dots \\Bigg\\Updownarrow \\bigg\\Updownarrow \\Big \\Updownarrow \\big\\Updownarrow \\Updownarrow"
 ---
 <math>
-    <mo stretchy="false">↕</mo>
+    <mo stretchy="false" lspace="0">↕</mo>
     <mo maxsize="1.2em" minsize="1.2em" symmetric="true" lspace="0" rspace="0">↕</mo>
     <mo maxsize="1.623em" minsize="1.623em" symmetric="true" lspace="0" rspace="0">↕</mo>
     <mo maxsize="2.047em" minsize="2.047em" symmetric="true" lspace="0" rspace="0">↕</mo>
@@ -15,5 +15,5 @@ expression: "\\updownarrow\\big\\updownarrow\\Big\\updownarrow \\bigg\\updownarr
     <mo maxsize="2.047em" minsize="2.047em" symmetric="true" lspace="0" rspace="0">⇕</mo>
     <mo maxsize="1.623em" minsize="1.623em" symmetric="true" lspace="0" rspace="0">⇕</mo>
     <mo maxsize="1.2em" minsize="1.2em" symmetric="true" lspace="0" rspace="0">⇕</mo>
-    <mo stretchy="false">⇕</mo>
+    <mo stretchy="false" rspace="0">⇕</mo>
 </math>
