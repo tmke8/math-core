@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{xmatrix} 1 \\end{xmatrix}"
 ---
-Position: 6..15
-UnknownEnvironment(
-    "xmatrix",
-)
+Error: Unknown environment "xmatrix".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \begin{xmatrix} 1 \end{xmatrix}
+   │       ────┬────  
+   │           ╰────── unknown environment
+───╯

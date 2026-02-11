@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\int__3 x dx"
 ---
-Position: 5..6
-BoundFollowedByBound
+Error: '^' or '_' directly followed by '^', '_' or prime.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \int__3 x dx
+   │      ┬  
+   │      ╰── unexpected bound
+───╯

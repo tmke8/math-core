@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{  pmatrix   } x \\\\ y \\end{pmatrix}"
 ---
-Position: 6..20
-UnknownEnvironment(
-    "  pmatrix   ",
-)
+Error: Unknown environment "  pmatrix   ".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \begin{  pmatrix   } x \\ y \end{pmatrix}
+   │       ───────┬──────  
+   │              ╰──────── unknown environment
+───╯

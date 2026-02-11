@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix] 1 \\end{matrix}"
 ---
-Position: 13..14
-DisallowedChar(
-    ']',
-)
+Error: Disallowed character in text group: ']'.
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ \begin{matrix] 1 \end{matrix}
+   │              ┬  
+   │              ╰── disallowed character
+───╯

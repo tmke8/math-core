@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\operatorname{\\begin{matrix}}"
 ---
-Position: 14..28
-NotValidInTextMode
+Error: Not valid in text mode.
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \operatorname{\begin{matrix}}
+   │               ───────┬──────  
+   │                      ╰──────── not valid in text mode
+───╯

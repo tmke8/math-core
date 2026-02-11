@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\bigl x 1 \\bigr)"
 ---
-Position: 6..7
-ExpectedDelimiter(
-    Big,
-)
+Error: There must be a parenthesis after "\big, \Big, ...", but not found.
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \bigl x 1 \bigr)
+   │       ┬  
+   │       ╰── expected a delimiter after "\big, \Big, ..."
+───╯

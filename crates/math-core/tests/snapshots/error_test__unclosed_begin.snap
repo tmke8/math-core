@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix"
 ---
-Position: 13..13
-UnclosedGroup(
-    GroupClose,
-)
+Error: Expected token "}", but not found.
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ \begin{matrix
+   │              │ 
+   │              ╰─ expected "}" to close this group
+───╯

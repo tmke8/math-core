@@ -2,8 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{gather}1&1\\\\1\\end{gather}"
 ---
-Position: 15..16
-CannotBeUsedHere {
-    got: Ampersand,
-    correct_place: TableEnv,
-}
+Error: Got "&", which may only appear in a table-like environment.
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \begin{gather}1&1\\1\end{gather}
+   │                ┬  
+   │                ╰── may only appear in a table-like environment
+───╯

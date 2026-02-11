@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\éx"
 ---
-Position: 0..3
-UnknownCommand(
-    "é",
-)
+Error: Unknown command "\é".
+   ╭─[ <input>:1:1 ]
+   │
+ 1 │ \éx
+   │ ─┬─  
+   │  ╰─── unknown command
+───╯

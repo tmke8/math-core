@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{align} x \\tag{0} \\\\ y \\end{align}"
 ---
-Position: 20..23
-ExpectedNumber(
-    "0",
-)
+Error: Expected a number, got "0".
+   ╭─[ <input>:1:21 ]
+   │
+ 1 │ \begin{align} x \tag{0} \\ y \end{align}
+   │                     ─┬─  
+   │                      ╰─── expected a number here
+───╯

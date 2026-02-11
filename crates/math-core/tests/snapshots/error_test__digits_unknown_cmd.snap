@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "1.1\\asdf"
 ---
-Position: 3..8
-UnknownCommand(
-    "asdf",
-)
+Error: Unknown command "\asdf".
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ 1.1\asdf
+   │    ──┬──  
+   │      ╰──── unknown command
+───╯

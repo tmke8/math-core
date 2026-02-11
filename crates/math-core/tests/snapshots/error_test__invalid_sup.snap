@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: x^^
 ---
-Position: 2..3
-BoundFollowedByBound
+Error: '^' or '_' directly followed by '^', '_' or prime.
+   ╭─[ <input>:1:3 ]
+   │
+ 1 │ x^^
+   │   ┬  
+   │   ╰── unexpected bound
+───╯

@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\hspace{2b2cm}"
 ---
-Position: 7..14
-ExpectedLength(
-    "2b2cm",
-)
+Error: Expected length with units, got "2b2cm".
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \hspace{2b2cm}
+   │        ───┬───  
+   │           ╰───── expected length here
+───╯

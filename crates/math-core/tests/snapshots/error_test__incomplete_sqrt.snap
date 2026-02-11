@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\sqrt  "
 ---
-Position: 7..7
-ExpectedArgumentGotEOF
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \sqrt
+   │        │ 
+   │        ╰─ expected an argument here
+───╯

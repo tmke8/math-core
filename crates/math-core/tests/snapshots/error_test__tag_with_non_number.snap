@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{align}x\\tag{A1}\\end{align}"
 ---
-Position: 18..22
-ExpectedNumber(
-    "A1",
-)
+Error: Expected a number, got "A1".
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \begin{align}x\tag{A1}\end{align}
+   │                   ──┬─  
+   │                     ╰─── expected a number here
+───╯

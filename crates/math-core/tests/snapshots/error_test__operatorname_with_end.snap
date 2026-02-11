@@ -2,5 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\operatorname{\\end{matrix}}"
 ---
-Position: 14..26
-ExpectedArgumentGotClose
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \operatorname{\end{matrix}}
+   │               ──────┬─────  
+   │                     ╰─────── expected an argument here
+───╯

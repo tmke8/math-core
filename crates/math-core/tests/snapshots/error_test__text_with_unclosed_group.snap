@@ -2,7 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\text{x{}"
 ---
-Position: 9..9
-UnclosedGroup(
-    GroupClose,
-)
+Error: Expected token "}", but not found.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \text{x{}
+   │          │ 
+   │          ╰─ expected "}" to close this group
+───╯
