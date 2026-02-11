@@ -13,6 +13,8 @@ git_tag_enable = false
 [[package]]
 name = "math-core-renderer-internal"
 version_group = "math-core"
+# Skip semver check for this package since it's internal and only meant to be used by other packages in the workspace.
+semver_check = false
 
 [[package]]
 name = "math-core"
