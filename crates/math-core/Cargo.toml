@@ -25,6 +25,7 @@ serde-tuple-vec-map = { version = "1.0.1", optional = true }
 phf = { version = "0.13.1", features = ["macros"] }
 strum = { workspace = true }
 strum_macros = { workspace = true }
+static_assertions  = { workspace = true }
 rustc-hash = { workspace = true }
 memchr = { workspace = true }
 

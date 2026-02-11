@@ -156,6 +156,9 @@ pub enum Node<'arena> {
     Dummy,
 }
 
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(Node<'_>, [usize; 4]);
+
 macro_rules! writeln_indent {
     ($buf:expr, $indent:expr, $($tail:tt)+) => {
         new_line_and_indent($buf, $indent);
