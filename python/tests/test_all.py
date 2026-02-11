@@ -81,7 +81,7 @@ def test_signature():
     )
     assert (
         str(inspect.signature(LatexToMathML.with_config))
-        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False, ignore_unknown_commands=False)"
+        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False, ignore_unknown_commands=False, annotation=False)"
     )
     converter = LatexToMathML()
     assert (
@@ -110,6 +110,29 @@ def test_continue_on_error():
         converter.convert_with_local_counter("\\begin{\"} '&", displaystyle=True)
         == '<p class="math-core-error" title="7: Disallowed character in text group: \'&quot;\'."><code>\\begin{"} \'&amp;</code></p>'
     )
+
+
+def test_annotation():
+    converter = LatexToMathML.with_config(annotation=True, pretty_print="always")
+    assert isinstance(converter, LatexToMathML)
+    result = converter.convert_with_local_counter("x", displaystyle=False)
+    assert result == (
+        "<math>\n"
+        "    <semantics>\n"
+        "        <mi>x</mi>\n"
+        '        <annotation encoding="application/x-tex">x</annotation>\n'
+        "    </semantics>\n"
+        "</math>"
+    )
+
+
+def test_annotation_escaping():
+    converter = LatexToMathML.with_config(annotation=True)
+    assert isinstance(converter, LatexToMathML)
+    latex = r"a < b \& c > d"
+    result = converter.convert_with_local_counter(latex, displaystyle=False)
+    assert isinstance(result, str)
+    assert r"a &lt; b \&amp; c &gt; d</annotation>" in result
 
 
 def test_ignore_unknown_commands():

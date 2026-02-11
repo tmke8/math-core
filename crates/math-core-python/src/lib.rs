@@ -39,7 +39,7 @@ struct LatexToMathML {
 #[pymethods]
 impl LatexToMathML {
     #[classmethod]
-    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false))]
+    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false, annotation=false))]
     fn with_config<'a>(
         _cls: &Bound<'_, PyType>,
         pretty_print: &str,
@@ -47,6 +47,7 @@ impl LatexToMathML {
         xml_namespace: bool,
         continue_on_error: bool,
         ignore_unknown_commands: bool,
+        annotation: bool,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let pretty_print = match pretty_print {
@@ -69,6 +70,7 @@ impl LatexToMathML {
             },
             xml_namespace,
             ignore_unknown_commands,
+            annotation,
         };
 
         let inner = math_core::LatexToMathML::new(config);

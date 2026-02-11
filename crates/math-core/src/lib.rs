@@ -44,7 +44,7 @@ use rustc_hash::FxHashMap;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use mathml_renderer::{arena::Arena, ast::Node};
+use mathml_renderer::{arena::Arena, ast::Node, fmt::new_line_and_indent};
 
 pub use self::error::{LatexErrKind, LatexError};
 pub use self::token::Token;
@@ -119,6 +119,9 @@ pub struct MathCoreConfig {
     /// If `true`, unknown commands will be rendered as red text in the output, instead of
     /// returning an error.
     pub ignore_unknown_commands: bool,
+    /// If `true`, wrap the MathML output in `<semantics>` tags with an
+    /// `<annotation encoding="application/x-tex">` child containing the original LaTeX source.
+    pub annotation: bool,
 }
 
 #[derive(Debug, Default)]
@@ -141,6 +144,7 @@ impl CommandConfig {
 struct Flags {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
+    annotation: bool,
 }
 
 impl From<&MathCoreConfig> for Flags {
@@ -149,6 +153,7 @@ impl From<&MathCoreConfig> for Flags {
         Self {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,
+            annotation: config.annotation,
         }
     }
 }
@@ -267,12 +272,25 @@ fn convert(
         || (matches!(flags.pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
 
     let base_indent = if pretty_print { 1 } else { 0 };
-    for node in ast {
-        // We ignore the result of `emit` here, because the only possible error is a formatting
-        // error when writing to the string, and that can only happen if the string's `write_str`
-        // implementation returns an error. Since `String`'s `write_str` implementation never
-        // returns an error, we can safely ignore the result of `emit`.
-        let _ = node.emit(&mut output, base_indent);
+    if flags.annotation {
+        new_line_and_indent(&mut output, base_indent);
+        output.push_str("<semantics>");
+        let node = parser::node_vec_to_node(&arena, ast, false);
+        let _ = node.emit(&mut output, base_indent + 1);
+        new_line_and_indent(&mut output, base_indent + 1);
+        output.push_str("<annotation encoding=\"application/x-tex\">");
+        html_utils::escape_html_content(&mut output, latex);
+        output.push_str("</annotation>");
+        new_line_and_indent(&mut output, base_indent);
+        output.push_str("</semantics>");
+    } else {
+        for node in ast {
+            // We ignore the result of `emit` here, because the only possible error is a formatting
+            // error when writing to the string, and that can only happen if the string's `write_str`
+            // implementation returns an error. Since `String`'s `write_str` implementation never
+            // returns an error, we can safely ignore the result of `emit`.
+            let _ = node.emit(&mut output, base_indent);
+        }
     }
     if pretty_print {
         output.push('\n');

@@ -60,6 +60,7 @@ interface MathCoreOptions {
     xmlNamespace?: boolean;
     throwOnError?: boolean;
     ignoreUnknownCommands?: boolean;
+    annotation?: boolean;
 }
 "#;
 
@@ -82,6 +83,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn ignoreUnknownCommands(this: &MathCoreOptions) -> Option<bool>;
+
+    #[wasm_bindgen(method, getter)]
+    fn annotation(this: &MathCoreOptions) -> Option<bool>;
 }
 
 #[wasm_bindgen]
@@ -140,11 +144,13 @@ impl LatexToMathML {
         let xml_namespace = js_config.xmlNamespace().unwrap_or_default();
         let throw_on_error = js_config.throwOnError();
         let ignore_unknown_commands = js_config.ignoreUnknownCommands().unwrap_or_default();
+        let annotation = js_config.annotation().unwrap_or_default();
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             macros: macros.unwrap_or_default(),
             xml_namespace,
             ignore_unknown_commands,
+            annotation,
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
             message: JsValue::from_str(&e.0.1.string()),
