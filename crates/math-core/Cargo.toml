@@ -19,7 +19,7 @@ categories = ["science"]
 exclude = ["/src/snapshots", "/tests/snapshots"]
 
 [dependencies]
-mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.3.0" }
+mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.4.0" }
 serde = { workspace = true, optional = true }
 serde-tuple-vec-map = { version = "1.0.1", optional = true }
 phf = { version = "0.13.1", features = ["macros"] }
@@ -30,7 +30,7 @@ memchr = { workspace = true }
 
 [dev-dependencies]
 math-core = { path = ".", features = ["serde"] }
-mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.3.0", features = ["serde"] }
+mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.4.0", features = ["serde"] }
 insta = { version = "1.46.3", features = ["default", "ron"] }
 regex = "1.12.3"
 minijinja = "2.15.1"
