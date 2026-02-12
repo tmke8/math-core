@@ -152,12 +152,14 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
         };
-        let convert =
-            math_core::LatexToMathML::new(config).map_err(|(e, _, context)| LatexError {
+        let convert = math_core::LatexToMathML::new(config).map_err(|(mut e, _, context)| {
+            e.0.start = byte_offset_to_utf16_offset(&context, e.0.start);
+            LatexError {
                 message: JsValue::from_str(&e.error_message()),
                 location: e.0.start as u32,
                 context: Some(JsValue::from_str(&context)),
-            })?;
+            }
+        })?;
         Ok(LatexToMathML {
             inner: convert,
             throw_on_error: throw_on_error.unwrap_or(true),
