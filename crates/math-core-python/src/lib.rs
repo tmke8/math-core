@@ -1,34 +1,13 @@
 use std::sync::RwLock;
 
 use pyo3::exceptions::PyException;
-use pyo3::types::{PyDict, PyString, PyType};
-use pyo3::{IntoPyObjectExt, create_exception, prelude::*};
+use pyo3::types::{PyDict, PyString};
+use pyo3::{create_exception, prelude::*};
 
 use math_core::{MathCoreConfig, MathDisplay, PrettyPrint};
 
+create_exception!(_math_core_rust, LatexError, PyException);
 create_exception!(_math_core_rust, LockError, PyException);
-
-#[pyclass(frozen)]
-struct LatexError {
-    #[pyo3(get)]
-    message: String,
-    #[pyo3(get)]
-    location: usize,
-    #[pyo3(get)]
-    context: Option<String>,
-}
-
-#[pymethods]
-impl LatexError {
-    #[classattr]
-    fn __match_args__() -> (String, String, String) {
-        (
-            "message".to_string(),
-            "location".to_string(),
-            "context".to_string(),
-        )
-    }
-}
 
 #[pyclass(frozen)]
 struct LatexToMathML {
@@ -38,18 +17,16 @@ struct LatexToMathML {
 
 #[pymethods]
 impl LatexToMathML {
-    #[classmethod]
+    #[new]
     #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false, annotation=false))]
-    fn with_config<'a>(
-        _cls: &Bound<'_, PyType>,
+    fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
         xml_namespace: bool,
         continue_on_error: bool,
         ignore_unknown_commands: bool,
         annotation: bool,
-        py: Python<'a>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
             "always" => PrettyPrint::Always,
@@ -75,25 +52,15 @@ impl LatexToMathML {
 
         let inner = math_core::LatexToMathML::new(config);
         match inner {
-            Ok(inner) => LatexToMathML {
+            Ok(inner) => Ok(LatexToMathML {
                 inner: RwLock::new(inner),
                 continue_on_error,
+            }),
+            Err((latex_error, idx, _)) => {
+                let mut err = format!("macro{}:", idx);
+                err += &latex_error.to_string();
+                Err(LatexError::new_err(err))
             }
-            .into_bound_py_any(py),
-            Err(latex_error) => LatexError {
-                message: latex_error.0.to_string(),
-                location: latex_error.0.0.start,
-                context: Some(latex_error.1),
-            }
-            .into_bound_py_any(py),
-        }
-    }
-
-    #[new]
-    fn new() -> Self {
-        LatexToMathML {
-            inner: RwLock::new(math_core::LatexToMathML::default()),
-            continue_on_error: Default::default(),
         }
     }
 
@@ -104,7 +71,7 @@ impl LatexToMathML {
         latex: &str,
         displaystyle: bool,
         py: Python<'a>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<Bound<'a, PyString>> {
         let display = if displaystyle {
             MathDisplay::Block
         } else {
@@ -120,17 +87,15 @@ impl LatexToMathML {
                 // Rust uses byte offsets, but Python uses character offsets.
                 latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
                 if self.continue_on_error {
-                    Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
+                    Ok(PyString::new(
+                        py,
+                        &latex_error.to_html(latex, display, None),
+                    ))
                 } else {
-                    LatexError {
-                        message: latex_error.to_string(),
-                        location: latex_error.0.start,
-                        context: None,
-                    }
-                    .into_bound_py_any(py)
+                    Err(LatexError::new_err(latex_error.to_string()))
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output).into_any()),
+            Ok(output) => Ok(PyString::new(py, &output)),
         }
     }
 
@@ -141,7 +106,7 @@ impl LatexToMathML {
         latex: &str,
         displaystyle: bool,
         py: Python<'a>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<Bound<'a, PyString>> {
         let display = if displaystyle {
             MathDisplay::Block
         } else {
@@ -157,17 +122,15 @@ impl LatexToMathML {
                 // Rust uses byte offsets, but Python uses character offsets.
                 latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
                 if self.continue_on_error {
-                    Ok(PyString::new(py, &latex_error.to_html(latex, display, None)).into_any())
+                    Ok(PyString::new(
+                        py,
+                        &latex_error.to_html(latex, display, None),
+                    ))
                 } else {
-                    LatexError {
-                        message: latex_error.to_string(),
-                        location: latex_error.0.start,
-                        context: None,
-                    }
-                    .into_bound_py_any(py)
+                    Err(LatexError::new_err(latex_error.to_string()))
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output).into_any()),
+            Ok(output) => Ok(PyString::new(py, &output)),
         }
     }
 
@@ -184,7 +147,7 @@ impl LatexToMathML {
 #[pymodule]
 fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LockError", m.py().get_type::<LockError>())?;
-    m.add_class::<LatexError>()?;
+    m.add("LatexError", m.py().get_type::<LatexError>())?;
     m.add_class::<LatexToMathML>()?;
     Ok(())
 }

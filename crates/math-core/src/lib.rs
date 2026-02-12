@@ -170,9 +170,9 @@ impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with the given configuration.
     ///
     /// This function returns an error if the custom macros in the given configuration could not
-    /// be parsed. The error contains both the parsing error and the macro definition that caused
-    /// the error.
-    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError>, String)> {
+    /// be parsed. The error contains the parsing error, the macro index and the macro definition
+    /// that caused the error.
+    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError>, usize, String)> {
         Ok(Self {
             flags: Flags::from(&config),
             equation_count: 0,
@@ -317,13 +317,14 @@ where
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     ignore_unknown_commands: bool,
-) -> Result<CommandConfig, (Box<LatexError>, String)> {
+) -> Result<CommandConfig, (Box<LatexError>, usize, String)> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
     let mut tokens = Vec::new();
-    for (name, definition) in macros {
+    for (idx, (name, definition)) in macros.into_iter().enumerate() {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
                 Box::new(LatexError(0..0, LatexErrKind::InvalidMacroName(name))),
+                idx,
                 definition,
             ));
         }
@@ -354,7 +355,7 @@ fn parse_custom_commands(
 
         match value {
             Err(err) => {
-                return Err((err, definition));
+                return Err((err, idx, definition));
             }
             Ok(v) => {
                 map.insert(name, v);

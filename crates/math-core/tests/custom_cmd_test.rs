@@ -50,7 +50,10 @@ fn test_one_arg() {
 
 #[test]
 fn test_error() {
-    let macros = vec![("mycmd".to_string(), r"\sqrt{#}".to_string())];
+    let macros = vec![
+        ("x".to_string(), "x".to_string()),
+        ("mycmd".to_string(), r"\sqrt{#}".to_string()),
+    ];
 
     let config = MathCoreConfig {
         macros,
@@ -64,7 +67,8 @@ fn test_error() {
         error.0.1,
         math_core::LatexErrKind::InvalidParameterNumber,
     ));
-    assert_eq!(error.1, r"\sqrt{#}");
+    assert_eq!(error.1, 1);
+    assert_eq!(error.2, r"\sqrt{#}");
 }
 
 #[test]

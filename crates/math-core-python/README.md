@@ -48,11 +48,14 @@ print(mathml)
 from math_core import LatexToMathML, LatexError
 
 # Initialize converter
-converter = LatexToMathML.with_config(pretty_print="always")
+converter = LatexToMathML(pretty_print="always")
 
 # Convert LaTeX to MathML
-mathml = converter.convert_with_local_counter(r"\sqrt{x^2 + 1}", displaystyle=False)
-print(mathml)
+try:
+    mathml = converter.convert_with_local_counter(r"\sqrt{x^2 + 1}", displaystyle=False)
+    print(mathml)
+except LatexError as e:
+    print(f"Conversion error: {e}")
 ```
 
 ### Custom LaTeX Macros
@@ -67,7 +70,7 @@ macros = {
     "vec": r"\mathbf{#1}"    # Vector notation
 }
 
-converter = LatexToMathML.with_config(macros=macros)
+converter = LatexToMathML(macros=macros)
 mathml = converter.convert_with_local_counter(r"\d x", displaystyle=False)
 ```
 
@@ -125,15 +128,13 @@ doc2 = converter.convert_with_local_counter(
 
 The main converter class.
 
-**Constructors:**
-- The default constructor, `LatexToMathML()`, creates an instance with default configuration.
-- `LatexToMathML.with_config(**config) -> LatexToMathML | LatexError`: Create a `LatexToMathML` instance with specified configuration options. See below for available configuration options. This method may return a `LatexError` when parsing macro definitions.
-
-**Configuration values:**
+**Constructor parameters:**
 - `pretty_print` (`str`, optional): A string indicating whether to pretty print the MathML output. Options are “never”, “always”, or “auto”. “auto” means that all block equations will be pretty printed. Default: “never”.
 - `macros` (`dict[str, str]`, optional): Dictionary of LaTeX macros for custom commands.
 - `xml_namespace` (`bool`, optional): A boolean indicating whether to include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag. Default: `False`.
-- `continue_on_error` (`bool`, optional): A boolean indicating whether to return an error for conversion errors. If conversion fails and this is `True`, an HTML snippet describing the error will be returned, instead of returning `LatexError`. Default: `False`.
+- `continue_on_error` (`bool`, optional): A boolean indicating whether to raise an exception for conversion errors. If conversion fails and this is `True`, an HTML snippet describing the error will be returned, instead of raising `LatexError`. Default: `False`.
+- `ignore_unknown_commands` (`bool`, optional): A boolean indicating whether to ignore unknown LaTeX commands. If `True`, unknown commands be rendered as red text and the conversion will continue. Default: `False`.
+- `annotation` (`bool`, optional): A boolean indicating whether to include the original LaTeX as an annotation in the MathML output. Default: `False`.
 
 **Methods:**
 - `convert_with_global_counter(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using a global equation counter.
@@ -142,15 +143,16 @@ The main converter class.
 
 ### LatexError
 
-Error returned when LaTeX parsing or conversion fails.
+Exception raised when LaTeX parsing or conversion fails.
 
 ```python
 from math_core import LatexToMathML, LatexError
 
 converter = LatexToMathML()
-result = converter.convert_with_local_counter(r"\invalid", displaystyle=False)
-if isinstance(result, LatexError):
-    print(f"Conversion failed: {result.message}")
+try:
+    result = converter.convert_with_local_counter(r"\invalid")
+except LatexError as e
+    print(f"Conversion failed: {e}")
 ```
 
 ## Use Cases
@@ -196,13 +198,13 @@ converter = LatexToMathML()
 
 @app.route("/equation/<latex>")
 def render_equation(latex):
-    match converter.convert_with_local_counter(latex, displaystyle=True):
-        case str() as mathml:
-            return render_template_string(
-                "<html><body>{{ mathml|safe }}</body></html>", mathml=mathml
-            )
-        case LatexError():
-            return "Invalid equation", 400
+    try:
+        mathml = converter.convert_with_local_counter(latex, displaystyle=True)
+        return render_template_string(
+            "<html><body>{{ mathml|safe }}</body></html>", mathml=mathml
+        )
+    except LatexError:
+        return "Invalid equation", 400
 ```
 
 ## Why MathML Core?

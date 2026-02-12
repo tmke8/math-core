@@ -155,7 +155,7 @@ impl LatexToMathML {
         let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
             message: JsValue::from_str(&e.0.1.string()),
             location: e.0.0.start as u32,
-            context: Some(JsValue::from_str(&e.1)),
+            context: Some(JsValue::from_str(&e.2)),
         })?;
         Ok(LatexToMathML {
             inner: convert,
