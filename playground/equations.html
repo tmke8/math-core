@@ -1,0 +1,1815 @@
+<!DOCTYPE html><html lang="en">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="./mathmlfixes.css" />
+    <style>
+        @font-face {
+            font-family: "NewComputerModernMath Book";
+            src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "NewComputerModern Book";
+            src: url("./NewCM10-Book.woff2") format("woff2");
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "NewComputerModern Mono";
+            src: url("./NewCMMono10-Book.woff2") format("woff2");
+            font-display: swap;
+        }
+        math {
+            font-family: "NewComputerModernMath Book", math;
+            mtext {
+                font-family: "NewComputerModern Book", serif;
+                code {
+                    font-family: "NewComputerModern Mono", monospace;
+                }
+            }
+        }
+    </style>
+<body>
+    <div><code>f ( x ) := a x^2 + b x + c</code><p>
+<math display="block">
+    <mi>f</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
+    <mi>a</mi>
+    <msup>
+        <mi>x</mi>
+        <mn>2</mn>
+    </msup>
+    <mo>+</mo>
+    <mi>b</mi>
+    <mi>x</mi>
+    <mo>+</mo>
+    <mi>c</mi>
+</math>
+</p></div>
+<div><code>x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }</code><p>
+<math display="block">
+    <mi>x</mi>
+    <mo>=</mo>
+    <mfrac>
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <mi>b</mi>
+            <mo>±</mo>
+            <msqrt>
+                <mrow>
+                    <msup>
+                        <mi>b</mi>
+                        <mn>2</mn>
+                    </msup>
+                    <mo>−</mo>
+                    <mn>4</mn>
+                    <mi>a</mi>
+                    <mi>c</mi>
+                </mrow>
+            </msqrt>
+        </mrow>
+        <mrow>
+            <mn>2</mn>
+            <mi>a</mi>
+        </mrow>
+    </mfrac>
+</math>
+</p></div>
+<div><code>\cos^2 \theta + \sin^2 \theta = 1</code><p>
+<math display="block">
+    <msup>
+        <mo lspace="0" rspace="0.1667em">cos</mo>
+        <mn>2</mn>
+    </msup>
+    <mi>θ</mi>
+    <mo>+</mo>
+    <msup>
+        <mo lspace="0" rspace="0.1667em">sin</mo>
+        <mn>2</mn>
+    </msup>
+    <mi>θ</mi>
+    <mo>=</mo>
+    <mn>1</mn>
+</math>
+</p></div>
+<div><code>\frac{ d }{ d x } \tan x = \frac{ 1 }{ \cos^2 x }</code><p>
+<math display="block">
+    <mfrac>
+        <mi>d</mi>
+        <mrow>
+            <mi>d</mi>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+    <mo lspace="0.1667em" rspace="0.1667em">tan</mo>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mrow>
+            <msup>
+                <mo lspace="0" rspace="0.1667em">cos</mo>
+                <mn>2</mn>
+            </msup>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+</math>
+</p></div>
+<div><code>\angle \mathrm{OAB} = \arccos \left\{ \overrightarrow{\mathrm{OA}} \cdot \overrightarrow{\mathrm{OB}} \right\}</code><p>
+<math display="block">
+    <mi>∠</mi>
+    <mrow><mspace/><mi>OAB</mi></mrow>
+    <mo>=</mo>
+    <mo lspace="0" rspace="0">arccos</mo>
+    <mrow>
+        <mo>{</mo>
+        <mrow>
+            <mover accent="true">
+                <mrow><mspace/><mi>OA</mi></mrow>
+                <mo>→</mo>
+            </mover>
+            <mo lspace="0.2222em" rspace="0.2222em">·</mo>
+            <mover accent="true">
+                <mrow><mspace/><mi>OB</mi></mrow>
+                <mo>→</mo>
+            </mover>
+        </mrow>
+        <mo>}</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>p \perp q \; \text{and} \; r \perp q \ \Rightarrow \ p \parallel r</code><p>
+<math display="block">
+    <mi>p</mi>
+    <mo>⟂</mo>
+    <mi>q</mi>
+    <mspace width="0.2777778em"/>
+    <mtext>and</mtext>
+    <mspace width="0.2777778em"/>
+    <mi>r</mi>
+    <mo>⟂</mo>
+    <mi>q</mi>
+    <mtext> </mtext>
+    <mo stretchy="false">⇒</mo>
+    <mtext> </mtext>
+    <mi>p</mi>
+    <mo>∥</mo>
+    <mi>r</mi>
+</math>
+</p></div>
+<div><code>f' ( x ) = \lim_{h \to 0} \frac{ f ( x + h ) - f ( x ) }{ h }</code><p>
+<math display="block">
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <munder>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
+        <mrow>
+            <mi>h</mi>
+            <mo stretchy="false" lspace="0" rspace="0">→</mo>
+            <mn>0</mn>
+        </mrow>
+    </munder>
+    <mfrac>
+        <mrow>
+            <mi>f</mi>
+            <mo stretchy="false">(</mo>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mi>h</mi>
+            <mo stretchy="false">)</mo>
+            <mo>−</mo>
+            <mi>f</mi>
+            <mo stretchy="false">(</mo>
+            <mi>x</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+        <mi>h</mi>
+    </mfrac>
+</math>
+</p></div>
+<div><code>\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt</code><p>
+<math display="block">
+    <mo lspace="0" rspace="0">erf</mo>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <mfrac>
+        <mn>2</mn>
+        <msqrt>
+            <mi>π</mi>
+        </msqrt>
+    </mfrac>
+    <msubsup>
+        <mo>∫</mo>
+        <mn>0</mn>
+        <mi>x</mi>
+    </msubsup>
+    <msup>
+        <mi>e</mi>
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <msup>
+                <mi>t</mi>
+                <mn>2</mn>
+            </msup>
+        </mrow>
+    </msup>
+    <mspace width="0.16666667em"/>
+    <mi>d</mi>
+    <mi>t</mi>
+</math>
+</p></div>
+<div><code>\sum_{n = 1}^\infty \frac{ 1 }{ n^2 } = \frac{ \pi^2 }{ 6 }</code><p>
+<math display="block">
+    <munderover>
+        <mo lspace="0">∑</mo>
+        <mrow>
+            <mi>n</mi>
+            <mo lspace="0" rspace="0">=</mo>
+            <mn>1</mn>
+        </mrow>
+        <mi>∞</mi>
+    </munderover>
+    <mfrac>
+        <mn>1</mn>
+        <msup>
+            <mi>n</mi>
+            <mn>2</mn>
+        </msup>
+    </mfrac>
+    <mo>=</mo>
+    <mfrac>
+        <msup>
+            <mi>π</mi>
+            <mn>2</mn>
+        </msup>
+        <mn>6</mn>
+    </mfrac>
+</math>
+</p></div>
+<div><code>F_{n+1} = F_n + F_{n-1}</code><p>
+<math display="block">
+    <msub>
+        <mi>F</mi>
+        <mrow>
+            <mi>n</mi>
+            <mo lspace="0" rspace="0">+</mo>
+            <mn>1</mn>
+        </mrow>
+    </msub>
+    <mo>=</mo>
+    <msub>
+        <mi>F</mi>
+        <mi>n</mi>
+    </msub>
+    <mo>+</mo>
+    <msub>
+        <mi>F</mi>
+        <mrow>
+            <mi>n</mi>
+            <mo lspace="0" rspace="0">−</mo>
+            <mn>1</mn>
+        </mrow>
+    </msub>
+</math>
+</p></div>
+<div><code>x \in \mathbb{R}, \ \ z \in \mathbb{C}</code><p>
+<math display="block">
+    <mi>x</mi>
+    <mo>∈</mo>
+    <mi>ℝ</mi>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mtext> </mtext>
+    <mi>z</mi>
+    <mo>∈</mo>
+    <mi>ℂ</mi>
+</math>
+</p></div>
+<div><code>\overset{(n)}{X}, \underset{(n)}{X},
+        \overbrace{x\times\cdots\times x}, \overbrace{x\times\cdots\times x}^{n}, \underbrace{x\times\cdots\times x}, \underbrace{x\times\cdots\times x}_{n}</code><p>
+<math display="block">
+    <mover>
+        <mi>X</mi>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mi>n</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </mover>
+    <mo>,</mo>
+    <munder>
+        <mi>X</mi>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mi>n</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </munder>
+    <mo>,</mo>
+    <mover>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⏞</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mover>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⏞</mo>
+        </mover>
+        <mi>n</mi>
+    </mover>
+    <mo>,</mo>
+    <munder>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⏟</mo>
+    </munder>
+    <mo>,</mo>
+    <munder>
+        <munder>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⏟</mo>
+        </munder>
+        <mi>n</mi>
+    </munder>
+</math>
+</p></div>
+<div><code>\overparen{x\times\cdots\times x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} ,
+        \overbracket{x\times\cdots\times x}, \overbracket{x\times\cdots\times x}^{n}, \underbracket{x\times\cdots\times x}, \underbracket{x\times\cdots\times x}_{n}</code><p>
+<math display="block">
+    <mover>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⏜</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mover>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⏜</mo>
+        </mover>
+        <mi>n</mi>
+    </mover>
+    <mo>,</mo>
+    <munder>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⏝</mo>
+    </munder>
+    <mo>,</mo>
+    <munder>
+        <munder>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⏝</mo>
+        </munder>
+        <mi>n</mi>
+    </munder>
+    <mo>,</mo>
+    <mover>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⎴</mo>
+    </mover>
+    <mo>,</mo>
+    <mover>
+        <mover>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⎴</mo>
+        </mover>
+        <mi>n</mi>
+    </mover>
+    <mo>,</mo>
+    <munder>
+        <mrow>
+            <mi>x</mi>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0">·</mo>
+            <mo lspace="0" rspace="0">·</mo>
+            <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+            <mi>x</mi>
+        </mrow>
+        <mo>⎵</mo>
+    </munder>
+    <mo>,</mo>
+    <munder>
+        <munder>
+            <mrow>
+                <mi>x</mi>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+                <mi>x</mi>
+            </mrow>
+            <mo>⎵</mo>
+        </munder>
+        <mi>n</mi>
+    </munder>
+</math>
+</p></div>
+<div><code>X \overset{f}{\rightarrow} Y \underset{g}{\rightarrow} Z , \ h \eqdef g \circ f</code><p>
+<math display="block">
+    <mi>X</mi>
+    <mover>
+        <mo stretchy="false">→</mo>
+        <mi>f</mi>
+    </mover>
+    <mi>Y</mi>
+    <munder>
+        <mo stretchy="false">→</mo>
+        <mi>g</mi>
+    </munder>
+    <mi>Z</mi>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mi>h</mi>
+    <mo>≝</mo>
+    <mi>g</mi>
+    <mo lspace="0.2222em" rspace="0.2222em">∘</mo>
+    <mi>f</mi>
+</math>
+</p></div>
+<div><code>\overline{x + y} , \underline{x + y}, \widehat{x + y}, \widetilde{x + y} , \overrightarrow{A + B} , \overleftarrow{A + B}</code><p>
+<math display="block">
+    <mover accent="true">
+        <mrow>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mi>y</mi>
+        </mrow>
+        <mo>_</mo>
+    </mover>
+    <mo>,</mo>
+    <munder accentunder="true">
+        <mrow>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mi>y</mi>
+        </mrow>
+        <mo>_</mo>
+    </munder>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mi>y</mi>
+        </mrow>
+        <mo stretchy="true">̂</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>x</mi>
+            <mo>+</mo>
+            <mi>y</mi>
+        </mrow>
+        <mo>~</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mo>+</mo>
+            <mi>B</mi>
+        </mrow>
+        <mo>→</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mo>+</mo>
+            <mi>B</mi>
+        </mrow>
+        <mo>←</mo>
+    </mover>
+</math>
+</p></div>
+<div><code>\left. \frac{\pi}{2} \right\} \, \left( x \right) \, \left\{ \frac12 \right.</code><p>
+<math display="block">
+    <mrow>
+        <mo>⁣</mo>
+        <mfrac>
+            <mi>π</mi>
+            <mn>2</mn>
+        </mfrac>
+        <mo>}</mo>
+    </mrow>
+    <mspace width="0.16666667em"/>
+    <mrow>
+        <mo>(</mo>
+        <mi>x</mi>
+        <mo>)</mo>
+    </mrow>
+    <mspace width="0.16666667em"/>
+    <mrow>
+        <mo>{</mo>
+        <mfrac>
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo>⁣</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\Biggl( \biggl( \Bigl( \bigl( ( ) \bigr) \Bigr) \biggr) \Biggr)</code><p>
+<math display="block">
+    <mo maxsize="2.470em" minsize="2.470em">(</mo>
+    <mo maxsize="2.047em" minsize="2.047em">(</mo>
+    <mo maxsize="1.623em" minsize="1.623em">(</mo>
+    <mo maxsize="1.2em" minsize="1.2em">(</mo>
+    <mo stretchy="false">(</mo>
+    <mo stretchy="false">)</mo>
+    <mo maxsize="1.2em" minsize="1.2em">)</mo>
+    <mo maxsize="1.623em" minsize="1.623em">)</mo>
+    <mo maxsize="2.047em" minsize="2.047em">)</mo>
+    <mo maxsize="2.470em" minsize="2.470em">)</mo>
+</math>
+</p></div>
+<div><code>\mu \left( \bigcup_i E_i \right) = \sum_i \mu ( E_i )</code><p>
+<math display="block">
+    <mi>μ</mi>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <munder>
+                <mo lspace="0">⋃</mo>
+                <mi>i</mi>
+            </munder>
+            <msub>
+                <mi>E</mi>
+                <mi>i</mi>
+            </msub>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+    <mo>=</mo>
+    <munder>
+        <mo lspace="0">∑</mo>
+        <mi>i</mi>
+    </munder>
+    <mi>μ</mi>
+    <mo stretchy="false">(</mo>
+    <msub>
+        <mi>E</mi>
+        <mi>i</mi>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>_nC_k , \ \binom{n}{k} , \ \binom12 , \ \tbinom{n}{k} , \ \dbinom{n}{k}</code><p>
+<math display="block">
+    <msub>
+        <mmultiscripts>
+            <mi>C</mi>
+            <mprescripts/>
+            <mi>n</mi>
+            <mrow></mrow>
+        </mmultiscripts>
+        <mi>k</mi>
+    </msub>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0">
+            <mi>n</mi>
+            <mi>k</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0">
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0" displaystyle="false">
+            <mi>n</mi>
+            <mi>k</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0" displaystyle="true">
+            <mi>n</mi>
+            <mi>k</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\forall \epsilon > 0 \exists \delta > 0 \forall y \left[ | y - x | < \delta \Rightarrow | f ( y ) - f ( x ) | < \epsilon \right]</code><p>
+<math display="block">
+    <mo>∀</mo>
+    <mi>ϵ</mi>
+    <mo>&gt;</mo>
+    <mn>0</mn>
+    <mo>∃</mo>
+    <mi>δ</mi>
+    <mo>&gt;</mo>
+    <mn>0</mn>
+    <mo>∀</mo>
+    <mi>y</mi>
+    <mrow>
+        <mo>[</mo>
+        <mrow>
+            <mo stretchy="false" lspace="0" rspace="0">|</mo>
+            <mi>y</mi>
+            <mo>−</mo>
+            <mi>x</mi>
+            <mo stretchy="false" lspace="0" rspace="0">|</mo>
+            <mo>&lt;</mo>
+            <mi>δ</mi>
+            <mo stretchy="false">⇒</mo>
+            <mo stretchy="false" lspace="0" rspace="0">|</mo>
+            <mi>f</mi>
+            <mo stretchy="false">(</mo>
+            <mi>y</mi>
+            <mo stretchy="false">)</mo>
+            <mo>−</mo>
+            <mi>f</mi>
+            <mo stretchy="false">(</mo>
+            <mi>x</mi>
+            <mo stretchy="false">)</mo>
+            <mo stretchy="false" lspace="0" rspace="0">|</mo>
+            <mo>&lt;</mo>
+            <mi>ϵ</mi>
+        </mrow>
+        <mo>]</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\phi = 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ 1 + \frac{ 1 }{ \ddots } } }</code><p>
+<math display="block">
+    <mi>ϕ</mi>
+    <mo>=</mo>
+    <mn>1</mn>
+    <mo>+</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mrow>
+            <mn>1</mn>
+            <mo>+</mo>
+            <mfrac>
+                <mn>1</mn>
+                <mrow>
+                    <mn>1</mn>
+                    <mo>+</mo>
+                    <mfrac>
+                        <mn>1</mn>
+                        <mo>⋱</mo>
+                    </mfrac>
+                </mrow>
+            </mfrac>
+        </mrow>
+    </mfrac>
+</math>
+</p></div>
+<div><code>G / \ker f \cong \mathrm{im}\,f</code><p>
+<math display="block">
+    <mi>G</mi>
+    <mo lspace="0" rspace="0">/</mo>
+    <mo lspace="0.1667em" rspace="0.1667em">ker</mo>
+    <mi>f</mi>
+    <mo>≅</mo>
+    <mrow><mspace/><mi>im</mi></mrow>
+    <mspace width="0.16666667em"/>
+    <mi>f</mi>
+</math>
+</p></div>
+<div><code>\iint_S ( \bm{\nabla} \times \bm{A} ) \cdot d\bm{S} = \oint_C \bm{A} \cdot d\bm{l}</code><p>
+<math display="block">
+    <msub>
+        <mo lspace="0" rspace="0">∬</mo>
+        <mi>S</mi>
+    </msub>
+    <mo stretchy="false">(</mo>
+    <mi>𝛁</mi>
+    <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+    <mi>𝑨</mi>
+    <mo stretchy="false">)</mo>
+    <mo lspace="0.2222em" rspace="0.2222em">·</mo>
+    <mi>d</mi>
+    <mi>𝑺</mi>
+    <mo>=</mo>
+    <msub>
+        <mo lspace="0">∮</mo>
+        <mi>C</mi>
+    </msub>
+    <mi>𝑨</mi>
+    <mo lspace="0.2222em" rspace="0.2222em">·</mo>
+    <mi>d</mi>
+    <mi>𝒍</mi>
+</math>
+</p></div>
+<div><code>\int \mathscr{D}x = \lim_{N \to \infty} \left( \frac{ m }{ 2 \pi i \hbar \Delta t } \right)^\frac{N}{2} \idotsint \prod_{i=1}^{N-1} dx_i</code><p>
+<math display="block">
+    <mo lspace="0">∫</mo>
+    <mrow><mspace/><mi>𝒟︁</mi></mrow>
+    <mi>x</mi>
+    <mo>=</mo>
+    <munder>
+        <mo movablelimits="true" lspace="0" rspace="0">lim</mo>
+        <mrow>
+            <mi>N</mi>
+            <mo stretchy="false" lspace="0" rspace="0">→</mo>
+            <mi>∞</mi>
+        </mrow>
+    </munder>
+    <msup>
+        <mrow>
+            <mo>(</mo>
+            <mfrac>
+                <mi>m</mi>
+                <mrow>
+                    <mn>2</mn>
+                    <mi>π</mi>
+                    <mi>i</mi>
+                    <mi>ℏ</mi>
+                    <mrow><mspace/><mi mathvariant="normal">Δ</mi></mrow>
+                    <mi>t</mi>
+                </mrow>
+            </mfrac>
+            <mo>)</mo>
+        </mrow>
+        <mfrac>
+            <mi>N</mi>
+            <mn>2</mn>
+        </mfrac>
+    </msup>
+    <mo>∫</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">·</mo>
+    <mo lspace="0">∫</mo>
+    <munderover>
+        <mo lspace="0">∏</mo>
+        <mrow>
+            <mi>i</mi>
+            <mo lspace="0" rspace="0">=</mo>
+            <mn>1</mn>
+        </mrow>
+        <mrow>
+            <mi>N</mi>
+            <mo lspace="0" rspace="0">−</mo>
+            <mn>1</mn>
+        </mrow>
+    </munderover>
+    <mi>d</mi>
+    <msub>
+        <mi>x</mi>
+        <mi>i</mi>
+    </msub>
+</math>
+</p></div>
+<div><code>\int_S f \, d\mu \leq \liminf_{n \to \infty} \int_S f_n \, d\mu</code><p>
+<math display="block">
+    <msub>
+        <mo lspace="0">∫</mo>
+        <mi>S</mi>
+    </msub>
+    <mi>f</mi>
+    <mspace width="0.16666667em"/>
+    <mi>d</mi>
+    <mi>μ</mi>
+    <mo>≤</mo>
+    <munder>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim inf</mo>
+        <mrow>
+            <mi>n</mi>
+            <mo stretchy="false" lspace="0" rspace="0">→</mo>
+            <mi>∞</mi>
+        </mrow>
+    </munder>
+    <msub>
+        <mo lspace="0">∫</mo>
+        <mi>S</mi>
+    </msub>
+    <msub>
+        <mi>f</mi>
+        <mi>n</mi>
+    </msub>
+    <mspace width="0.16666667em"/>
+    <mi>d</mi>
+    <mi>μ</mi>
+</math>
+</p></div>
+<div><code>\lim_{n \to \infty} P \left( \frac{ S_n - n \mu }{ \sqrt{ n } \sigma } \leq \alpha \right) = \frac{ 1 }{ \sqrt{ 2 \pi } } \int_{- \infty}^\alpha \exp \left( - \frac{ x^2 }{ 2 } \right) \, dx</code><p>
+<math display="block">
+    <munder>
+        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
+        <mrow>
+            <mi>n</mi>
+            <mo stretchy="false" lspace="0" rspace="0">→</mo>
+            <mi>∞</mi>
+        </mrow>
+    </munder>
+    <mi>P</mi>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <mfrac>
+                <mrow>
+                    <msub>
+                        <mi>S</mi>
+                        <mi>n</mi>
+                    </msub>
+                    <mo>−</mo>
+                    <mi>n</mi>
+                    <mi>μ</mi>
+                </mrow>
+                <mrow>
+                    <msqrt>
+                        <mi>n</mi>
+                    </msqrt>
+                    <mi>σ</mi>
+                </mrow>
+            </mfrac>
+            <mo>≤</mo>
+            <mi>α</mi>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+    <mo>=</mo>
+    <mfrac>
+        <mn>1</mn>
+        <msqrt>
+            <mrow>
+                <mn>2</mn>
+                <mi>π</mi>
+            </mrow>
+        </msqrt>
+    </mfrac>
+    <msubsup>
+        <mo>∫</mo>
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <mi>∞</mi>
+        </mrow>
+        <mi>α</mi>
+    </msubsup>
+    <mo lspace="0" rspace="0">exp</mo>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <mfrac>
+                <msup>
+                    <mi>x</mi>
+                    <mn>2</mn>
+                </msup>
+                <mn>2</mn>
+            </mfrac>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+    <mspace width="0.16666667em"/>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>
+</p></div>
+<div><code>f: \mathbb{C} \to \mathbb{R} , \ z \mapsto z \bar{z}</code><p>
+<math display="block">
+    <mi>f</mi>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
+    <mi>ℂ</mi>
+    <mo stretchy="false">→</mo>
+    <mi>ℝ</mi>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mi>z</mi>
+    <mo stretchy="false">↦</mo>
+    <mi>z</mi>
+    <mover accent="true">
+        <mi>z</mi>
+        <mo stretchy="false">¯</mo>
+    </mover>
+</math>
+</p></div>
+<div><code>( \forall \lambda \in \Lambda ) [ A_\lambda \neq \emptyset ] \Rightarrow \prod_{\lambda \in \Lambda} A_\lambda \neq \emptyset</code><p>
+<math display="block">
+    <mo stretchy="false">(</mo>
+    <mo>∀</mo>
+    <mi>λ</mi>
+    <mo>∈</mo>
+    <mrow><mspace/><mi mathvariant="normal">Λ</mi></mrow>
+    <mo stretchy="false">)</mo>
+    <mo stretchy="false">[</mo>
+    <msub>
+        <mi>A</mi>
+        <mi>λ</mi>
+    </msub>
+    <mo>≠</mo>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
+    <mo stretchy="false">]</mo>
+    <mo stretchy="false">⇒</mo>
+    <munder>
+        <mo lspace="0">∏</mo>
+        <mrow>
+            <mi>λ</mi>
+            <mo lspace="0" rspace="0">∈</mo>
+            <mrow><mspace/><mi mathvariant="normal">Λ</mi></mrow>
+        </mrow>
+    </munder>
+    <msub>
+        <mi>A</mi>
+        <mi>λ</mi>
+    </msub>
+    <mo>≠</mo>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
+</math>
+</p></div>
+<div><code>A = \left\{z \in \mathbb{C} \;\middle|\; \zeta \left( z \right) = 0 \; \text{and} \; \Re z \neq \frac12 \right\}</code><p>
+<math display="block">
+    <mi>A</mi>
+    <mo>=</mo>
+    <mrow>
+        <mo>{</mo>
+        <mrow>
+            <mi>z</mi>
+            <mo>∈</mo>
+            <mi>ℂ</mi>
+            <mspace width="0.2777778em"/>
+            <mo stretchy="true">|</mo>
+            <mspace width="0.2777778em"/>
+            <mi>ζ</mi>
+            <mrow>
+                <mo>(</mo>
+                <mi>z</mi>
+                <mo>)</mo>
+            </mrow>
+            <mo>=</mo>
+            <mn>0</mn>
+            <mspace width="0.2777778em"/>
+            <mtext>and</mtext>
+            <mspace width="0.2777778em"/>
+            <mi>ℜ</mi>
+            <mi>z</mi>
+            <mo>≠</mo>
+            <mfrac>
+                <mn>1</mn>
+                <mn>2</mn>
+            </mfrac>
+        </mrow>
+        <mo>}</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\# \mathbb{N} = \aleph_0</code><p>
+<math display="block">
+    <mi>#</mi>
+    <mi>ℕ</mi>
+    <mo>=</mo>
+    <msub>
+        <mi>ℵ</mi>
+        <mn>0</mn>
+    </msub>
+</math>
+</p></div>
+<div><code>\lnot ( P \lor Q) \Leftrightarrow ( \lnot P ) \land ( \lnot Q )</code><p>
+<math display="block">
+    <mo>¬</mo>
+    <mo stretchy="false">(</mo>
+    <mi>P</mi>
+    <mo>∨</mo>
+    <mi>Q</mi>
+    <mo stretchy="false">)</mo>
+    <mo stretchy="false">⇔</mo>
+    <mo stretchy="false">(</mo>
+    <mo>¬</mo>
+    <mi>P</mi>
+    <mo stretchy="false">)</mo>
+    <mo>∧</mo>
+    <mo stretchy="false">(</mo>
+    <mo>¬</mo>
+    <mi>Q</mi>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>0 \longrightarrow L \overset{\phi}{\longrightarrow} M \overset{\psi}{\longrightarrow} N \longrightarrow 0</code><p>
+<math display="block">
+    <mn>0</mn>
+    <mo stretchy="false">⟶</mo>
+    <mi>L</mi>
+    <mover>
+        <mo stretchy="false">⟶</mo>
+        <mi>ϕ</mi>
+    </mover>
+    <mi>M</mi>
+    <mover>
+        <mo stretchy="false">⟶</mo>
+        <mi>ψ</mi>
+    </mover>
+    <mi>N</mi>
+    <mo stretchy="false">⟶</mo>
+    <mn>0</mn>
+</math>
+</p></div>
+<div><code>よ: \mathscr{C} \rightarrow {\mathbf{Set}}^{{\mathscr{C}}^\mathrm{op}}</code><p>
+<math display="block">
+    <mi>よ</mi>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
+    <mrow><mspace/><mi>𝒞︁</mi></mrow>
+    <mo stretchy="false">→</mo>
+    <msup>
+        <mrow><mspace/><mi>𝐒𝐞𝐭</mi></mrow>
+        <msup>
+            <mrow><mspace/><mi>𝒞︁</mi></mrow>
+            <mrow><mspace/><mi>op</mi></mrow>
+        </msup>
+    </msup>
+</math>
+</p></div>
+<div><code>\operatorname{sn} x , \ \vartheta ( z, \tau ) , \ \wp ( z ; \omega_1, \omega_2 )</code><p>
+<math display="block">
+    <mo lspace="0" rspace="0.1667em">sn</mo>
+    <mi>x</mi>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mi>ϑ</mi>
+    <mo stretchy="false">(</mo>
+    <mi>z</mi>
+    <mo>,</mo>
+    <mi>τ</mi>
+    <mo stretchy="false">)</mo>
+    <mo>,</mo>
+    <mtext> </mtext>
+    <mi>℘</mi>
+    <mo stretchy="false">(</mo>
+    <mi>z</mi>
+    <mo>;</mo>
+    <msub>
+        <mi>ω</mi>
+        <mn>1</mn>
+    </msub>
+    <mo>,</mo>
+    <msub>
+        <mi>ω</mi>
+        <mn>2</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>m \ddot{\bm{x}} = - m \bm{\nabla} \phi ( \bm{x} )</code><p>
+<math display="block">
+    <mi>m</mi>
+    <mover accent="true">
+        <mi>𝒙</mi>
+        <mo stretchy="false">¨</mo>
+    </mover>
+    <mo>=</mo>
+    <mo lspace="0" rspace="0">−</mo>
+    <mi>m</mi>
+    <mi>𝛁</mi>
+    <mi>ϕ</mi>
+    <mo stretchy="false">(</mo>
+    <mi>𝒙</mi>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>\Xi = \sum_\mathbf{n} \exp \left\{ - \beta ( E_\mathbf{n} - \mu N_\mathbf{n} ) \right\}</code><p>
+<math display="block">
+    <mrow><mspace/><mi mathvariant="normal">Ξ</mi></mrow>
+    <mo>=</mo>
+    <munder>
+        <mo lspace="0">∑</mo>
+        <mi>𝐧</mi>
+    </munder>
+    <mo lspace="0" rspace="0">exp</mo>
+    <mrow>
+        <mo>{</mo>
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <mi>β</mi>
+            <mo stretchy="false">(</mo>
+            <msub>
+                <mi>E</mi>
+                <mi>𝐧</mi>
+            </msub>
+            <mo>−</mo>
+            <mi>μ</mi>
+            <msub>
+                <mi>N</mi>
+                <mi>𝐧</mi>
+            </msub>
+            <mo stretchy="false">)</mo>
+        </mrow>
+        <mo>}</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>i \hbar \frac{ d }{ d t } | \psi \rangle = \hat{H} | \psi \rangle</code><p>
+<math display="block">
+    <mi>i</mi>
+    <mi>ℏ</mi>
+    <mfrac>
+        <mi>d</mi>
+        <mrow>
+            <mi>d</mi>
+            <mi>t</mi>
+        </mrow>
+    </mfrac>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
+    <mi>ψ</mi>
+    <mo stretchy="false">⟩</mo>
+    <mo>=</mo>
+    <mover accent="true">
+        <mi>H</mi>
+        <mo stretchy="false">̂</mo>
+    </mover>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
+    <mi>ψ</mi>
+    <mo stretchy="false">⟩</mo>
+</math>
+</p></div>
+<div><code>R_{\mu \nu} - \frac{ 1 }{ 2 } R g_{\mu \nu} = \frac{ 8 \pi G }{ c^4 } T_{\mu \nu}</code><p>
+<math display="block">
+    <msub>
+        <mi>R</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msub>
+    <mo>−</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+    </mfrac>
+    <mi>R</mi>
+    <msub>
+        <mi>g</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msub>
+    <mo>=</mo>
+    <mfrac>
+        <mrow>
+            <mn>8</mn>
+            <mi>π</mi>
+            <mi>G</mi>
+        </mrow>
+        <msup>
+            <mi>c</mi>
+            <mn>4</mn>
+        </msup>
+    </mfrac>
+    <msub>
+        <mi>T</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msub>
+</math>
+</p></div>
+<div><code>- \frac{ 1 }{ 2 } g^{\mu \nu} \partial_\mu \partial_\nu \phi</code><p>
+<math display="block">
+    <mo lspace="0" rspace="0">−</mo>
+    <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+    </mfrac>
+    <msup>
+        <mi>g</mi>
+        <mrow>
+            <mi>μ</mi>
+            <mi>ν</mi>
+        </mrow>
+    </msup>
+    <msub>
+        <mi>∂</mi>
+        <mi>μ</mi>
+    </msub>
+    <msub>
+        <mi>∂</mi>
+        <mi>ν</mi>
+    </msub>
+    <mi>ϕ</mi>
+</math>
+</p></div>
+<div><code>\frac{ \partial \phi }{ \partial t } = D \nabla^2 \phi</code><p>
+<math display="block">
+    <mfrac>
+        <mrow>
+            <mi>∂</mi>
+            <mi>ϕ</mi>
+        </mrow>
+        <mrow>
+            <mi>∂</mi>
+            <mi>t</mi>
+        </mrow>
+    </mfrac>
+    <mo>=</mo>
+    <mi>D</mi>
+    <msup>
+        <mrow><mspace/><mi mathvariant="normal">∇</mi></mrow>
+        <mn>2</mn>
+    </msup>
+    <mi>ϕ</mi>
+</math>
+</p></div>
+<div><code>i \slashed{\partial} \psi - m \psi = 0</code><p>
+<math display="block">
+    <mi>i</mi>
+    <mi>∂&#x0338;</mi>
+    <mi>ψ</mi>
+    <mo>−</mo>
+    <mi>m</mi>
+    <mi>ψ</mi>
+    <mo>=</mo>
+    <mn>0</mn>
+</math>
+</p></div>
+<div><code>\mathscr{O} ( N \ln N )</code><p>
+<math display="block">
+    <mrow><mspace/><mi>𝒪︁</mi></mrow>
+    <mo stretchy="false">(</mo>
+    <mi>N</mi>
+    <mo lspace="0.1667em" rspace="0.1667em">ln</mo>
+    <mi>N</mi>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>\mathfrak{su}(2) \times \mathfrak{u}(1)</code><p>
+<math display="block">
+    <mrow><mspace/><mi>𝔰𝔲</mi></mrow>
+    <mo stretchy="false">(</mo>
+    <mn>2</mn>
+    <mo stretchy="false">)</mo>
+    <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+    <mi>𝔲</mi>
+    <mo stretchy="false">(</mo>
+    <mn>1</mn>
+    <mo stretchy="false">)</mo>
+</math>
+</p></div>
+<div><code>U^\dagger \, U = U U^\dagger = 1</code><p>
+<math display="block">
+    <msup>
+        <mi>U</mi>
+        <mi>†</mi>
+    </msup>
+    <mspace width="0.16666667em"/>
+    <mi>U</mi>
+    <mo>=</mo>
+    <mi>U</mi>
+    <msup>
+        <mi>U</mi>
+        <mi>†</mi>
+    </msup>
+    <mo>=</mo>
+    <mn>1</mn>
+</math>
+</p></div>
+<div><code>\begin{pmatrix}\frac{1}{\sqrt{1-\beta^2}} & -\frac{\beta}{\sqrt{1-\beta^2}} \\ - \frac{\beta}{\sqrt{1-\beta^2}} & \frac{1}{\sqrt{1-\beta^2}}\end{pmatrix} ,
+        \begin{matrix} a & b \\ c & d \end{matrix} ,
+        \begin{bmatrix} a & b \\ c & d \end{bmatrix} ,
+        \begin{vmatrix} a & b \\ c & d \end{vmatrix}</code><p>
+<math display="block">
+    <mrow>
+        <mo>(</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mfrac>
+                        <mn>1</mn>
+                        <msqrt>
+                            <mrow>
+                                <mn>1</mn>
+                                <mo>−</mo>
+                                <msup>
+                                    <mi>β</mi>
+                                    <mn>2</mn>
+                                </msup>
+                            </mrow>
+                        </msqrt>
+                    </mfrac>
+                </mtd>
+                <mtd>
+                    <mo>−</mo>
+                    <mfrac>
+                        <mi>β</mi>
+                        <msqrt>
+                            <mrow>
+                                <mn>1</mn>
+                                <mo>−</mo>
+                                <msup>
+                                    <mi>β</mi>
+                                    <mn>2</mn>
+                                </msup>
+                            </mrow>
+                        </msqrt>
+                    </mfrac>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mo>−</mo>
+                    <mfrac>
+                        <mi>β</mi>
+                        <msqrt>
+                            <mrow>
+                                <mn>1</mn>
+                                <mo>−</mo>
+                                <msup>
+                                    <mi>β</mi>
+                                    <mn>2</mn>
+                                </msup>
+                            </mrow>
+                        </msqrt>
+                    </mfrac>
+                </mtd>
+                <mtd>
+                    <mfrac>
+                        <mn>1</mn>
+                        <msqrt>
+                            <mrow>
+                                <mn>1</mn>
+                                <mo>−</mo>
+                                <msup>
+                                    <mi>β</mi>
+                                    <mn>2</mn>
+                                </msup>
+                            </mrow>
+                        </msqrt>
+                    </mfrac>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>)</mo>
+    </mrow>
+    <mo>,</mo>
+    <mtable displaystyle="true" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mi>c</mi>
+            </mtd>
+            <mtd>
+                <mi>d</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+    <mo>,</mo>
+    <mrow>
+        <mo>[</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>a</mi>
+                </mtd>
+                <mtd>
+                    <mi>b</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>c</mi>
+                </mtd>
+                <mtd>
+                    <mi>d</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>]</mo>
+    </mrow>
+    <mo>,</mo>
+    <mrow>
+        <mo>|</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>a</mi>
+                </mtd>
+                <mtd>
+                    <mi>b</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>c</mi>
+                </mtd>
+                <mtd>
+                    <mi>d</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>|</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}</code><p>
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>f</mi>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo stretchy="false">)</mo>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <msup>
+                    <mi>x</mi>
+                    <mn>2</mn>
+                </msup>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mi>x</mi>
+                <mo>+</mo>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo>+</mo>
+                <mn>1</mn>
+                <msup>
+                    <mo stretchy="false">)</mo>
+                    <mn>2</mn>
+                </msup>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(2)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
+</p></div>
+<div><code>\begin{align} x &= 93  & y &= 64 & z &= 61 \end{align}</code><p>
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>x</mi>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <mn>93</mn>
+            </mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>y</mi>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <mn>64</mn>
+            </mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>z</mi>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mo>=</mo>
+                <mn>61</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
+</p></div>
+<div><code>\lambda_\mathrm{Compton} = \frac{ 2 \pi \hbar }{ m c }</code><p>
+<math display="block">
+    <msub>
+        <mi>λ</mi>
+        <mrow><mspace/><mi>Compton</mi></mrow>
+    </msub>
+    <mo>=</mo>
+    <mfrac>
+        <mrow>
+            <mn>2</mn>
+            <mi>π</mi>
+            <mi>ℏ</mi>
+        </mrow>
+        <mrow>
+            <mi>m</mi>
+            <mi>c</mi>
+        </mrow>
+    </mfrac>
+</math>
+</p></div>
+<div><code>\int Y_{\ell m} ( \Omega ) Y_{\ell' m'} ( \Omega ) \, d^2 \Omega = \delta_{\ell \ell'} \delta_{m m'}</code><p>
+<math display="block">
+    <mo lspace="0">∫</mo>
+    <msub>
+        <mi>Y</mi>
+        <mrow>
+            <mi>ℓ</mi>
+            <mi>m</mi>
+        </mrow>
+    </msub>
+    <mo stretchy="false">(</mo>
+    <mrow><mspace/><mi mathvariant="normal">Ω</mi></mrow>
+    <mo stretchy="false">)</mo>
+    <msub>
+        <mi>Y</mi>
+        <mrow>
+            <msup>
+                <mi>ℓ</mi>
+                <mo>′</mo>
+            </msup>
+            <msup>
+                <mi>m</mi>
+                <mo>′</mo>
+            </msup>
+        </mrow>
+    </msub>
+    <mo stretchy="false">(</mo>
+    <mrow><mspace/><mi mathvariant="normal">Ω</mi></mrow>
+    <mo stretchy="false">)</mo>
+    <mspace width="0.16666667em"/>
+    <msup>
+        <mi>d</mi>
+        <mn>2</mn>
+    </msup>
+    <mrow><mspace/><mi mathvariant="normal">Ω</mi></mrow>
+    <mo>=</mo>
+    <msub>
+        <mi>δ</mi>
+        <mrow>
+            <mi>ℓ</mi>
+            <msup>
+                <mi>ℓ</mi>
+                <mo>′</mo>
+            </msup>
+        </mrow>
+    </msub>
+    <msub>
+        <mi>δ</mi>
+        <mrow>
+            <mi>m</mi>
+            <msup>
+                <mi>m</mi>
+                <mo>′</mo>
+            </msup>
+        </mrow>
+    </msub>
+</math>
+</p></div>
+<div><code>{fi}~\mathit{fi}~\mathrm{fi}~\texttt{fi}~\varnothing</code><p>
+<math display="block">
+    <mrow>
+        <mi>f</mi>
+        <mi>i</mi>
+    </mrow>
+    <mtext> </mtext>
+    <mrow><mspace/><mi>𝑓𝑖</mi></mrow>
+    <mtext> </mtext>
+    <mrow><mspace/><mi>fi</mi></mrow>
+    <mtext> </mtext>
+    <mtext><code>fi</code></mtext>
+    <mtext> </mtext>
+    <mi>∅</mi>
+</math>
+</p></div>
+<div><code>\mathcal{C} \times \mathcal{Y}\times\mathcal{P}</code><p>
+<math display="block">
+    <mrow><mspace/><mi>𝒞︀</mi></mrow>
+    <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+    <mrow><mspace/><mi>𝒴︀</mi></mrow>
+    <mo lspace="0.2222em" rspace="0.2222em">×</mo>
+    <mrow><mspace/><mi>𝒫︀</mi></mrow>
+</math>
+</p></div>
+<div><code>a := 2 \land b :\equiv 3 \land f : X\to Y</code><p>
+<math display="block">
+    <mi>a</mi>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
+    <mn>2</mn>
+    <mo>∧</mo>
+    <mi>b</mi>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">≡</mo>
+    <mn>3</mn>
+    <mo>∧</mo>
+    <mi>f</mi>
+    <mo lspace="0.2778em" rspace="0.2778em">:</mo>
+    <mi>X</mi>
+    <mo stretchy="false">→</mo>
+    <mi>Y</mi>
+</math>
+</p></div>
+<div><code>f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}</code><p>
+<math display="block">
+    <mi>f</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo lspace="0.2778em" rspace="0">:</mo>
+    <mo lspace="0">=</mo>
+    <mrow>
+        <mo>{</mo>
+        <mtable>
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mn>0</mn>
+                </mtd>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;padding-left:1em;">
+                    <mtext>if </mtext>
+                    <mi>x</mi>
+                    <mo>≥</mo>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mn>1</mn>
+                </mtd>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;padding-left:1em;">
+                    <mtext>otherwise</mtext>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>⁣</mo>
+    </mrow>
+</math>
+</p></div>
+<div><code>\oint_C \vec{B}\circ \mathrm{d}\vec{l} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)</code><p>
+<math display="block">
+    <msub>
+        <mo lspace="0">∮</mo>
+        <mi>C</mi>
+    </msub>
+    <mover accent="true">
+        <mi>B</mi>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+    <mo lspace="0.2222em" rspace="0.2222em">∘</mo>
+    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+    <mover accent="true">
+        <mi>l</mi>
+        <mo stretchy="false">⃗</mo>
+    </mover>
+    <mo>=</mo>
+    <msub>
+        <mi>μ</mi>
+        <mn>0</mn>
+    </msub>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <msub>
+                <mi>I</mi>
+                <mrow><mspace/><mi>enc</mi></mrow>
+            </msub>
+            <mo>+</mo>
+            <msub>
+                <mi>ε</mi>
+                <mn>0</mn>
+            </msub>
+            <mfrac>
+                <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+                <mrow>
+                    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+                    <mi>t</mi>
+                </mrow>
+            </mfrac>
+            <msub>
+                <mo>∫</mo>
+                <mi>S</mi>
+            </msub>
+            <mrow>
+                <mover accent="true">
+                    <mi>E</mi>
+                    <mo stretchy="false">⃗</mo>
+                </mover>
+                <mo lspace="0.2222em" rspace="0.2222em">∘</mo>
+                <mover accent="true">
+                    <mi>n</mi>
+                    <mo stretchy="false">̂</mo>
+                </mover>
+            </mrow>
+            <mspace width="0.2777778em"/>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+            <mi>a</mi>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+</math>
+</p></div>
+</body></html>

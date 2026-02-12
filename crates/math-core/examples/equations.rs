@@ -85,6 +85,7 @@ fn main() {
     println!(
         r#"<!DOCTYPE html><html lang="en">
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="./mathmlfixes.css" />
     <style>
         @font-face {{
             font-family: "NewComputerModernMath Book";

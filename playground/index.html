@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Math Core: LaTeX to MathML</title>
         <link rel="stylesheet" href="./style.css" />
+        <link rel="stylesheet" href="./mathmlfixes.css" />
         <script type="module" src="./main.js"></script>
         <script src="./clipboard.js"></script>
         <!-- This style tag is updated by the JS code -->
@@ -20,39 +21,8 @@
             }
         </style>
         <style>
-            .hidden { display: none; }
-            /* Styles for Chromium only */
-            @supports (not (-webkit-backdrop-filter: blur(1px))) and (not (-moz-appearance: none)) {
-                menclose {
-                    position: relative;
-                    padding: 0.5ex 0;
-                }
-                mrow.menclose-updiagonalstrike,
-                mrow.menclose-downdiagonalstrike,
-                mrow.menclose-horizontalstrike {
-                    display: inline-block;
-                    position: absolute;
-                    left: 0.5px;
-                    bottom: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: currentcolor;
-                }
-                mrow.menclose-updiagonalstrike {
-                    clip-path: polygon(0.05em 100%, 0 calc(100% - 0.05em), calc(100% - 0.05em) 0, 100% 0.05em);
-                }
-                mrow.menclose-downdiagonalstrike {
-                    clip-path: polygon(0em 0.05em, 0.05em 0em, 100% calc(100% - 0.05em), calc(100% - 0.05em) 100%);
-                }
-                mrow.menclose-horizontalstrike {
-                    clip-path: polygon(0em calc(55% + 0.0333em), 0em calc(55% - 0.0333em), 100% calc(55% - 0.0333em), 100% calc(55% + 0.0333em));
-                }
-            }
-            /* Styles for Chromium and Safari */
-            @supports (not (-moz-appearance: none)) {
-                mover[accent="true" i] > mo:nth-child(2) {
-                    margin-bottom: 0.15ex;
-                }
+            .hidden {
+                display: none;
             }
         </style>
     </head>
@@ -60,7 +30,7 @@
         <div class="container">
             <h1>MathCore: LaTeX to MathML</h1>
             <p class="explanation-link">
-                <a href="#what-is-this">What is this?</a> / <a href="https://github.com/tmke8/math-core">GitHub</a>
+            <a href="#what-is-this">What is this?</a> / <a href="./equations.html">Examples</a> / <a href="https://github.com/tmke8/math-core">GitHub</a>
             </p>
             <div class="converter">
                 <div id="outputField"></div>
