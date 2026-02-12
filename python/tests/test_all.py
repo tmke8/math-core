@@ -17,28 +17,20 @@ def test_identifier():
 
 
 def test_exception():
-    converter = LatexToMathML.with_config(pretty_print="never")
-    assert isinstance(converter, LatexToMathML)
-    err = converter.convert_with_local_counter(
-        r"\nonexistentcommand", displaystyle=False
-    )
-    assert isinstance(err, LatexError)
-    assert err.location == 0
-    match converter.convert_with_local_counter(r"öäüßx^", displaystyle=False):
-        case LatexError(message, location, context):
-            assert location == 6
-            assert "argument" in message
-            assert context is None
-        case _:
-            assert False, "Expected LatexError"
+    converter = LatexToMathML(pretty_print="never")
+    with raises(LatexError, match=r"^0: Unknown command \"\\nonexistentcommand\"."):
+        _ = converter.convert_with_local_counter(
+            r"\nonexistentcommand", displaystyle=False
+        )
+    with raises(LatexError, match=r"^6:.*argument"):
+        _ = converter.convert_with_local_counter(r"öäüßx^", displaystyle=False)
 
     with raises(ValueError):
-        _ = LatexToMathML.with_config(pretty_print="sometimes")  # type: ignore
+        _ = LatexToMathML(pretty_print="sometimes")  # type: ignore
 
 
 def test_macros():
-    converter = LatexToMathML.with_config(pretty_print="never", macros={"ab": "cd"})
-    assert isinstance(converter, LatexToMathML)
+    converter = LatexToMathML(pretty_print="never", macros={"ab": "cd"})
     assert (
         converter.convert_with_local_counter(r"\ab", displaystyle=False)
         == "<math><mi>c</mi><mi>d</mi></math>"
@@ -46,12 +38,8 @@ def test_macros():
 
 
 def test_macros_error():
-    error = LatexToMathML.with_config(
-        pretty_print="never", macros={"ab": r"\nonexistent"}
-    )
-    assert isinstance(error, LatexError)
-    assert error.context is not None
-    assert error.context == r"\nonexistent"
+    with raises(LatexError, match=r"^macro0:0: Unknown command \"\\nonexistent\"."):
+        _ = LatexToMathML(pretty_print="never", macros={"ab": r"\nonexistent"})
 
 
 def test_global_counter():
@@ -79,10 +67,6 @@ def test_signature():
     assert (
         str(inspect.signature(LatexToMathML.__init__)) == "(self, /, *args, **kwargs)"
     )
-    assert (
-        str(inspect.signature(LatexToMathML.with_config))
-        == "(*, pretty_print='never', macros=None, xml_namespace=False, continue_on_error=False, ignore_unknown_commands=False, annotation=False)"
-    )
     converter = LatexToMathML()
     assert (
         str(inspect.signature(converter.convert_with_local_counter))
@@ -91,8 +75,7 @@ def test_signature():
 
 
 def test_xml():
-    converter = LatexToMathML.with_config(xml_namespace=True)
-    assert isinstance(converter, LatexToMathML)
+    converter = LatexToMathML(xml_namespace=True)
     assert (
         converter.convert_with_local_counter("x", displaystyle=False)
         == '<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'
@@ -100,8 +83,7 @@ def test_xml():
 
 
 def test_continue_on_error():
-    converter = LatexToMathML.with_config(continue_on_error=True)
-    assert isinstance(converter, LatexToMathML)
+    converter = LatexToMathML(continue_on_error=True)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
         == r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf &lt;b&gt;</code></span>'
@@ -113,8 +95,7 @@ def test_continue_on_error():
 
 
 def test_annotation():
-    converter = LatexToMathML.with_config(annotation=True, pretty_print="always")
-    assert isinstance(converter, LatexToMathML)
+    converter = LatexToMathML(annotation=True, pretty_print="always")
     result = converter.convert_with_local_counter("x", displaystyle=False)
     assert result == (
         "<math>\n"
@@ -127,8 +108,7 @@ def test_annotation():
 
 
 def test_annotation_escaping():
-    converter = LatexToMathML.with_config(annotation=True)
-    assert isinstance(converter, LatexToMathML)
+    converter = LatexToMathML(annotation=True)
     latex = r"a < b \& c > d"
     result = converter.convert_with_local_counter(latex, displaystyle=False)
     assert isinstance(result, str)
@@ -136,7 +116,7 @@ def test_annotation_escaping():
 
 
 def test_ignore_unknown_commands():
-    converter = LatexToMathML.with_config(ignore_unknown_commands=True)
+    converter = LatexToMathML(ignore_unknown_commands=True)
     assert isinstance(converter, LatexToMathML)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)

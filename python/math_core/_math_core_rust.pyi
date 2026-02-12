@@ -1,13 +1,9 @@
 from typing import Literal
 
-from typing_extensions import Self
-
 class LatexToMathML:
     """Convert LaTeX to MathML Core."""
-    def __init__(self) -> None: ...
-    @classmethod
-    def with_config(
-        cls,
+    def __init__(
+        self,
         *,
         pretty_print: Literal["never", "always", "auto"] = "never",
         macros: dict[str, str] | None = None,
@@ -15,7 +11,7 @@ class LatexToMathML:
         continue_on_error: bool = False,
         ignore_unknown_commands: bool = False,
         annotation: bool = False,
-    ) -> Self | LatexError:
+    ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
         Args:
@@ -52,11 +48,8 @@ class LatexToMathML:
     def reset_global_counter(self) -> None:
         """Reset the global equation counter for environments like ``align``."""
 
-class LatexError:
-    __match_args__ = ("message", "location", "context")
-    message: str
-    location: int
-    context: str | None
+class LatexError(Exception):
+    """Raised when a LaTeX conversion error occurs."""
 
 class LockError(Exception):
     """Raised when a lock cannot be acquired."""
