@@ -3,19 +3,16 @@ use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
-// use no_panic::no_panic;
-
 use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
 use crate::token::EndToken;
 
-/// Represents an error that occurred during LaTeX parsing or rendering.
+/// Represents an error that occurred during LaTeX parsing.
 #[derive(Debug, Clone)]
 pub struct LatexError(pub Range<usize>, pub(crate) LatexErrKind);
 
 #[derive(Debug, Clone)]
-#[non_exhaustive]
 pub(crate) enum LatexErrKind {
     UnclosedGroup(EndToken),
     UnmatchedClose(EndToken),
