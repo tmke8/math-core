@@ -2,9 +2,7 @@
 # https://release-plz.dev/docs/config
 
 [workspace]
-# Use a single changelog at the root
-changelog_path = "CHANGELOG.md"
-# Disable git releases for all packages by default
+changelog_update = false
 git_release_enable = false
 # Disable git tags for all packages by default
 git_tag_enable = false
@@ -23,8 +21,6 @@ version_group = "math-core"
 git_tag_name = "v{{ version }}"
 # Enable git tags for this package
 git_tag_enable = true
-# Enable git releases for this package
-git_release_enable = true
 
 [[package]]
 name = "math-core-cli"
