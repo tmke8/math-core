@@ -21,3 +21,9 @@ optimize: bindgen
 
 clean:
 	rm -rf $(PKG_DIR)/*.wasm $(PKG_DIR)/*.js
+
+equationpage:
+	cargo run --example equations --package math-core > playground/equations.html
+
+testpage:
+	cargo run --example browser_test --package math-core > playground/test.html

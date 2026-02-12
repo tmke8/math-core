@@ -1,0 +1,50 @@
+/* Styles for Chromium only */
+@supports (not (-webkit-backdrop-filter: blur(1px))) and
+    (not (-moz-appearance: none)) {
+    menclose {
+        position: relative;
+        padding: 0.5ex 0;
+    }
+    mrow.menclose-updiagonalstrike,
+    mrow.menclose-downdiagonalstrike,
+    mrow.menclose-horizontalstrike {
+        display: inline-block;
+        position: absolute;
+        left: 0.5px;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: currentcolor;
+    }
+    mrow.menclose-updiagonalstrike {
+        clip-path: polygon(
+            0.05em 100%,
+            0 calc(100% - 0.05em),
+            calc(100% - 0.05em) 0,
+            100% 0.05em
+        );
+    }
+    mrow.menclose-downdiagonalstrike {
+        clip-path: polygon(
+            0em 0.05em,
+            0.05em 0em,
+            100% calc(100% - 0.05em),
+            calc(100% - 0.05em) 100%
+        );
+    }
+    mrow.menclose-horizontalstrike {
+        clip-path: polygon(
+            0em calc(55% + 0.0333em),
+            0em calc(55% - 0.0333em),
+            100% calc(55% - 0.0333em),
+            100% calc(55% + 0.0333em)
+        );
+    }
+}
+
+/* Styles for Chromium and Safari */
+@supports (not (-moz-appearance: none)) {
+    mover[accent="true" i] > mo:nth-child(2) {
+        margin-bottom: 0.15ex;
+    }
+}
