@@ -152,11 +152,12 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
         };
-        let convert = math_core::LatexToMathML::new(config).map_err(|e| LatexError {
-            message: JsValue::from_str(&e.0.1.string()),
-            location: e.0.0.start as u32,
-            context: Some(JsValue::from_str(&e.2)),
-        })?;
+        let convert =
+            math_core::LatexToMathML::new(config).map_err(|(e, _, context)| LatexError {
+                message: JsValue::from_str(&e.error_message()),
+                location: e.0.start as u32,
+                context: Some(JsValue::from_str(&context)),
+            })?;
         Ok(LatexToMathML {
             inner: convert,
             throw_on_error: throw_on_error.unwrap_or(true),
@@ -181,7 +182,7 @@ impl LatexToMathML {
                 e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
                     Err(LatexError {
-                        message: JsValue::from_str(&e.1.string()),
+                        message: JsValue::from_str(&e.error_message()),
                         location: e.0.start as u32,
                         context: None,
                     })
@@ -210,7 +211,7 @@ impl LatexToMathML {
                 e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
                     Err(LatexError {
-                        message: JsValue::from_str(&e.1.string()),
+                        message: JsValue::from_str(&e.error_message()),
                         location: e.0.start as u32,
                         context: None,
                     })
