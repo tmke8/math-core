@@ -12,11 +12,11 @@ use crate::token::EndToken;
 
 /// Represents an error that occurred during LaTeX parsing or rendering.
 #[derive(Debug, Clone)]
-pub struct LatexError(pub Range<usize>, pub LatexErrKind);
+pub struct LatexError(pub Range<usize>, pub(crate) LatexErrKind);
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum LatexErrKind {
+pub(crate) enum LatexErrKind {
     UnclosedGroup(EndToken),
     UnmatchedClose(EndToken),
     ExpectedArgumentGotClose,
@@ -199,6 +199,10 @@ impl LatexError {
         let _ = write!(output, "</code></{tag}>");
         output
     }
+
+    pub fn error_message(&self) -> String {
+        self.1.string()
+    }
 }
 
 #[cfg(feature = "ariadne")]
@@ -291,41 +295,3 @@ impl GetUnwrap for str {
         self.get(range).expect("valid range")
     }
 }
-
-/* fn itoa(val: u64, buf: &mut [u8; 20]) -> &str {
-    let start = if val == 0 {
-        buf[19] = b'0';
-        19
-    } else {
-        let mut val = val;
-        let mut i = 20;
-
-        // The `i > 0` check is technically redundant but it allows the compiler to
-        // prove that `buf` is always validly indexed.
-        while val != 0 && i > 0 {
-            i -= 1;
-            buf[i] = (val % 10) as u8 + b'0';
-            val /= 10;
-        }
-        i
-    };
-
-    // This is safe because we know the buffer contains valid ASCII.
-    // This unsafe block wouldn't be necessary if the `ascii_char` feature were stable.
-    unsafe { std::str::from_utf8_unchecked(&buf[start..]) }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn itoa_test() {
-        let mut buf = [0u8; 20];
-        assert_eq!(itoa(0, &mut buf), "0");
-        assert_eq!(itoa(1, &mut buf), "1");
-        assert_eq!(itoa(10, &mut buf), "10");
-        assert_eq!(itoa(1234567890, &mut buf), "1234567890");
-        assert_eq!(itoa(u64::MAX, &mut buf), "18446744073709551615");
-    }
-} */
