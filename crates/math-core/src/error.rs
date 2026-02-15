@@ -227,6 +227,21 @@ impl LatexError {
         let _ = self.1.write_msg(&mut s);
         s
     }
+
+    /// Format a LaTeX error as a plain text message, including the source name and position.
+    ///
+    /// # Arguments
+    /// - `source_name`: The name of the source (e.g., filename) where the error occurred.
+    /// - `input`: The original LaTeX input that caused the error; used to
+    ///    calculate the character offset for the error position.
+    pub fn to_message(&self, source_name: &str, input: &str) -> String {
+        let mut s = String::new();
+        let loc = input.floor_char_boundary(self.0.start);
+        let codepoint_offset = input[..loc].chars().count();
+        let _ = write!(s, "{}:{}: ", source_name, codepoint_offset);
+        let _ = self.1.write_msg(&mut s);
+        s
+    }
 }
 
 #[cfg(feature = "ariadne")]
@@ -237,37 +252,38 @@ impl LatexError {
         source_name: &'name str,
         with_color: bool,
     ) -> ariadne::Report<'static, (&'name str, Range<usize>)> {
+        use std::borrow::Cow;
+
         use ariadne::{Label, Report, ReportKind};
 
-        let label_msg = match &self.1 {
-            LatexErrKind::UnclosedGroup(expected) => {
-                format!(
-                    "expected \"{}\" to close this group",
-                    <&str>::from(expected)
-                )
-            }
+        let label_msg: Cow<'_, str> = match &self.1 {
+            LatexErrKind::UnclosedGroup(expected) => format!(
+                "expected \"{}\" to close this group",
+                <&str>::from(expected)
+            )
+            .into(),
             LatexErrKind::UnmatchedClose(got) => {
-                format!("unmatched \"{}\"", <&str>::from(got))
+                format!("unmatched \"{}\"", <&str>::from(got)).into()
             }
             LatexErrKind::ExpectedArgumentGotClose => "expected an argument here".into(),
             LatexErrKind::ExpectedArgumentGotEOF => "expected an argument here".into(),
             LatexErrKind::ExpectedDelimiter(modifier) => {
-                format!("expected a delimiter after \"{}\"", <&str>::from(*modifier))
+                format!("expected a delimiter after \"{}\"", <&str>::from(*modifier)).into()
             }
             LatexErrKind::DisallowedChar(_) => "disallowed character".into(),
             LatexErrKind::UnknownEnvironment(_) => "unknown environment".into(),
             LatexErrKind::UnknownCommand(_) => "unknown command".into(),
             LatexErrKind::UnknownColor(_) => "unknown color".into(),
             LatexErrKind::MismatchedEnvironment { expected, .. } => {
-                format!("expected \"\\end{{{}}}\" here", expected.as_str(),)
+                format!("expected \"\\end{{{}}}\" here", expected.as_str()).into()
             }
             LatexErrKind::CannotBeUsedHere { correct_place, .. } => {
-                format!("may only appear {}", <&str>::from(correct_place))
+                format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
-            LatexErrKind::ExpectedText(place) => format!("expected text in {place}"),
+            LatexErrKind::ExpectedText(place) => format!("expected text in {place}").into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),

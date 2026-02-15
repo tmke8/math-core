@@ -56,9 +56,9 @@ impl LatexToMathML {
                 inner: RwLock::new(inner),
                 continue_on_error,
             }),
-            Err((latex_error, idx, _)) => {
-                let mut err = format!("macro{}:", idx);
-                err += &latex_error.to_string();
+            Err((latex_error, idx, source)) => {
+                let source_name = format!("macro{}", idx);
+                let err = latex_error.to_message(&source_name, &source);
                 Err(LatexError::new_err(err))
             }
         }
