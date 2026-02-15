@@ -227,6 +227,21 @@ impl LatexError {
         let _ = self.1.write_msg(&mut s);
         s
     }
+
+    /// Format a LaTeX error as a plain text message, including the source name and position.
+    ///
+    /// # Arguments
+    /// - `source_name`: The name of the source (e.g., filename) where the error occurred.
+    /// - `input`: The original LaTeX input that caused the error; used to
+    ///    calculate the character offset for the error position.
+    pub fn to_message(&self, source_name: &str, input: &str) -> String {
+        let mut s = String::new();
+        let loc = input.floor_char_boundary(self.0.start);
+        let codepoint_offset = input[..loc].chars().count();
+        let _ = write!(s, "{}:{}: ", source_name, codepoint_offset);
+        let _ = self.1.write_msg(&mut s);
+        s
+    }
 }
 
 #[cfg(feature = "ariadne")]
