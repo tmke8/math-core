@@ -82,90 +82,115 @@ pub enum LimitedUsabilityToken {
 
 impl LatexErrKind {
     /// Returns the error message as a string.
-    ///
-    /// This serves the same purpose as the `Display` implementation,
-    /// but produces more compact WASM code.
-    pub fn string(&self) -> String {
+    fn write_msg(&self, s: &mut String) -> std::fmt::Result {
         match self {
             LatexErrKind::UnclosedGroup(expected) => {
-                "Expected token \"".to_string() + <&str>::from(expected) + "\", but not found."
+                write!(
+                    s,
+                    "Expected token \"{}\", but not found.",
+                    <&str>::from(expected)
+                )?;
             }
             LatexErrKind::UnmatchedClose(got) => {
-                "Unmatched closing token: \"".to_string() + <&str>::from(got) + "\"."
+                write!(s, "Unmatched closing token: \"{}\".", <&str>::from(got))?;
             }
             LatexErrKind::ExpectedArgumentGotClose => {
-                r"Expected argument but got closing token (`}`, `\end`, `\right`).".to_string()
+                write!(
+                    s,
+                    r"Expected argument but got closing token (`}}`, `\end`, `\right`)."
+                )?;
             }
-            LatexErrKind::ExpectedArgumentGotEOF => "Expected argument but reached end of input.".to_string(),
+            LatexErrKind::ExpectedArgumentGotEOF => {
+                write!(s, "Expected argument but reached end of input.")?;
+            }
             LatexErrKind::ExpectedDelimiter(location) => {
-                "There must be a parenthesis after \"".to_string()
-                    + <&str>::from(*location)
-                    + "\", but not found."
+                write!(
+                    s,
+                    "There must be a parenthesis after \"{}\", but not found.",
+                    <&str>::from(*location)
+                )?;
             }
             LatexErrKind::DisallowedChar(got) => {
-                let mut text = "Disallowed character in text group: '".to_string();
-                text.push(*got);
-                text += "'.";
-                text
+                write!(s, "Disallowed character in text group: '{}'.", got)?;
             }
             LatexErrKind::UnknownEnvironment(environment) => {
-                "Unknown environment \"".to_string() + environment + "\"."
+                write!(s, "Unknown environment \"{}\".", environment)?;
             }
-            LatexErrKind::UnknownCommand(cmd) => "Unknown command \"\\".to_string() + cmd + "\".",
-            LatexErrKind::UnknownColor(color) => "Unknown color \"".to_string() + color + "\".",
+            LatexErrKind::UnknownCommand(cmd) => {
+                write!(s, "Unknown command \"\\{}\".", cmd)?;
+            }
+            LatexErrKind::UnknownColor(color) => {
+                write!(s, "Unknown color \"{}\".", color)?;
+            }
             LatexErrKind::MismatchedEnvironment { expected, got } => {
-                "Expected \"\\end{".to_string()
-                    + expected.as_str()
-                    + "}\", but got \"\\end{"
-                    + got.as_str()
-                    + "}\"."
+                write!(
+                    s,
+                    "Expected \"\\end{{{}}}\", but got \"\\end{{{}}}\".",
+                    expected.as_str(),
+                    got.as_str()
+                )?;
             }
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
-                "Got \"".to_string()
-                    + <&str>::from(got)
-                    + "\", which may only appear "
-                    + <&str>::from(correct_place)
-                    + "."
+                write!(
+                    s,
+                    "Got \"{}\", which may only appear {}.",
+                    <&str>::from(got),
+                    <&str>::from(correct_place)
+                )?;
             }
             LatexErrKind::ExpectedRelation => {
-                "Expected a relation after \\not.".to_string()
+                write!(s, "Expected a relation after \\not.")?;
             }
             LatexErrKind::BoundFollowedByBound => {
-                "'^' or '_' directly followed by '^', '_' or prime.".to_string()
+                write!(s, "'^' or '_' directly followed by '^', '_' or prime.")?;
             }
             LatexErrKind::DuplicateSubOrSup => {
-                "Duplicate subscript or superscript.".to_string()
+                write!(s, "Duplicate subscript or superscript.")?;
             }
-            LatexErrKind::ExpectedText(place) => "Expected text in ".to_string() + place + ".",
+            LatexErrKind::ExpectedText(place) => {
+                write!(s, "Expected text in {}.", place)?;
+            }
             LatexErrKind::ExpectedLength(got) => {
-                "Expected length with units, got \"".to_string() + got + "\"."
+                write!(s, "Expected length with units, got \"{}\".", got)?;
             }
-            LatexErrKind::ExpectedNumber(got) => "Expected a number, got \"".to_string() + got + "\".",
+            LatexErrKind::ExpectedNumber(got) => {
+                write!(s, "Expected a number, got \"{}\".", got)?;
+            }
             LatexErrKind::ExpectedColSpec(got) => {
-                "Expected column specification, got \"".to_string() + got + "\"."
+                write!(s, "Expected column specification, got \"{}\".", got)?;
             }
             LatexErrKind::NotValidInTextMode => {
-                "Not valid in text mode.".to_string()
+                write!(s, "Not valid in text mode.")?;
             }
             LatexErrKind::InvalidMacroName(name) => {
-                "Invalid macro name: \"\\".to_string() + name + "\"."
+                write!(s, "Invalid macro name: \"\\{}\".", name)?;
             }
             LatexErrKind::InvalidParameterNumber => {
-                "Invalid parameter number. Must be 1-9.".to_string()
+                write!(s, "Invalid parameter number. Must be 1-9.")?;
             }
             LatexErrKind::MacroParameterOutsideCustomCommand => {
-                "Macro parameter found outside of custom command definition.".to_string()
+                write!(
+                    s,
+                    "Macro parameter found outside of custom command definition."
+                )?;
             }
             LatexErrKind::ExpectedParamNumberGotEOF => {
-                "Expected parameter number after '#', but got end of input.".to_string()
+                write!(
+                    s,
+                    "Expected parameter number after '#', but got end of input."
+                )?;
             }
             LatexErrKind::HardLimitExceeded => {
-                "Hard limit exceeded. Please simplify your equation.".to_string()
+                write!(s, "Hard limit exceeded. Please simplify your equation.")?;
             }
             LatexErrKind::Internal => {
-                "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues".to_string()
-            },
+                write!(
+                    s,
+                    "Internal parser error. Please report this bug at https://github.com/tmke8/math-core/issues"
+                )?;
+            }
         }
+        Ok(())
     }
 }
 
@@ -190,7 +215,7 @@ impl LatexError {
             r#"<{} class="{}" title="{}: "#,
             tag, css_class, self.0.start
         );
-        escape_double_quoted_html_attribute(&mut output, &self.1.string());
+        escape_double_quoted_html_attribute(&mut output, &self.error_message());
         output.push_str(r#""><code>"#);
         escape_html_content(&mut output, latex);
         let _ = write!(output, "</code></{tag}>");
@@ -198,7 +223,9 @@ impl LatexError {
     }
 
     pub fn error_message(&self) -> String {
-        self.1.string()
+        let mut s = String::new();
+        let _ = self.1.write_msg(&mut s);
+        s
     }
 }
 
@@ -259,7 +286,7 @@ impl LatexError {
         }
         Report::build(ReportKind::Error, (source_name, self.0.start..self.0.start))
             .with_config(config)
-            .with_message(self.1.string())
+            .with_message(self.error_message())
             .with_label(Label::new((source_name, self.0.clone())).with_message(label_msg))
             .finish()
     }
@@ -267,7 +294,7 @@ impl LatexError {
 
 impl fmt::Display for LatexError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.0.start, self.1.string())
+        write!(f, "{}: {}", self.0.start, self.error_message())
     }
 }
 
