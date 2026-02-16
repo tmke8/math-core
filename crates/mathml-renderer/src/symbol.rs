@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::num::NonZeroU16;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -39,20 +40,36 @@ impl From<&MathMLOperator> for char {
 /// This can only store characters in the BMP (i.e., code points U+0000 to U+FFFF).
 /// `BMPChar::new` will panic if a character outside this range is provided.
 #[derive(Clone, PartialEq, Eq, Copy)]
-struct BMPChar {
-    char: u16,
+pub struct BMPChar {
+    char: NonZeroU16,
 }
 
 impl BMPChar {
-    const fn new(ch: char) -> Self {
+    const fn new_const(ch: char) -> Self {
         assert!(ch as u32 <= u16::MAX as u32, "Character is outside the BMP");
-        BMPChar { char: ch as u16 }
+        BMPChar {
+            char: NonZeroU16::new(ch as u16).expect("Character should not be null"),
+        }
+    }
+
+    /// Checks that the character is graphic ASCII and creates a `BMPChar` if so.
+    pub fn new_ascii_graphic(ch: char) -> Option<Self> {
+        if ch.is_ascii_graphic()
+            && let Some(inner) = NonZeroU16::new(ch as u16)
+        {
+            Some(BMPChar { char: inner })
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
     pub const fn as_char(&self) -> char {
-        debug_assert!(char::from_u32(self.char as u32).is_some(), "Invalid char.");
-        unsafe { char::from_u32_unchecked(self.char as u32) }
+        debug_assert!(
+            char::from_u32(self.char.get() as u32).is_some(),
+            "Invalid char."
+        );
+        unsafe { char::from_u32_unchecked(self.char.get() as u32) }
     }
 }
 
@@ -75,7 +92,7 @@ macro_rules! make_character_class {
         impl $struct_name {
             const fn new(ch: char, cat: $cat_type) -> $struct_name {
                 $struct_name {
-                    char: BMPChar::new(ch),
+                    char: BMPChar::new_const(ch),
                     cat,
                 }
             }

@@ -6,7 +6,7 @@ use mathml_renderer::attribute::{
     FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, ParenType, Size, Style,
 };
 use mathml_renderer::length::Length;
-use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
+use mathml_renderer::symbol::{BMPChar, Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
 
 use crate::character_class::Class;
 use crate::environments::Env;
@@ -185,7 +185,7 @@ impl TryFrom<Range<usize>> for Span {
 
 /// A token together with its span in the input string.
 #[derive(Debug, Clone, Copy)]
-pub struct TokSpan<'config>(Token<'config>, usize, u16);
+pub struct TokSpan<'config>(Token<'config>, usize, u16, Option<BMPChar>);
 
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
@@ -193,7 +193,12 @@ static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
 impl<'config> TokSpan<'config> {
     #[inline]
     pub const fn new(token: Token<'config>, span: Span) -> Self {
-        TokSpan(token, span.0, span.1)
+        TokSpan(token, span.0, span.1, None)
+    }
+
+    #[inline]
+    pub const fn new_with_fallback(token: Token<'config>, span: Span, ch: Option<BMPChar>) -> Self {
+        TokSpan(token, span.0, span.1, ch)
     }
 
     #[inline]
@@ -211,10 +216,10 @@ impl<'config> TokSpan<'config> {
         (self.0, Span(self.1, self.2))
     }
 
-    // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'config> {
-    //     &mut self.0
-    // }
+    #[inline]
+    pub fn text_fallback(&self) -> Option<BMPChar> {
+        self.3
+    }
 
     #[inline]
     pub fn span(&self) -> Span {
@@ -230,7 +235,7 @@ impl<'config> TokSpan<'config> {
 impl<'config> From<Token<'config>> for TokSpan<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokSpan(token, 0, 0)
+        TokSpan(token, 0, 0, None)
     }
 }
 
