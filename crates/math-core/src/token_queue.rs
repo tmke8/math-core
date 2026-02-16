@@ -358,18 +358,18 @@ mod tests {
         assert_eq!(queue.next_non_whitespace, 1);
         assert_eq!(queue.queue.len(), 2);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
-        assert!(matches!(queue.peek().token(), Token::Letter('y', _)));
+        assert!(matches!(queue.peek().token(), Token::Letter('y')));
 
         // Test the branch that needs to load more tokens.
         let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
-        assert!(matches!(tok.token(), Token::Letter('z', _)));
+        assert!(matches!(tok.token(), Token::Letter('z')));
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));
 
         // Test the branch that finds the token in the existing buffer.
         let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
-        assert!(matches!(tok.token(), Token::Letter('z', _)));
+        assert!(matches!(tok.token(), Token::Letter('z')));
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));

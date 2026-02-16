@@ -19,7 +19,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, FromAscii, TokSpan, Token},
+    token::{EndToken, TokSpan, Token},
     token_queue::TokenQueue,
 };
 
@@ -241,10 +241,7 @@ where
                         let ch = if let Token::Digit(number) = self.tokens.peek().token() {
                             *number
                         } else {
-                            let ch = if matches!(
-                                self.tokens.peek().token(),
-                                Token::Letter('.', FromAscii::True)
-                            ) {
+                            let ch = if matches!(self.tokens.peek().token(), Token::Letter('.')) {
                                 Some('.')
                             } else {
                                 None
@@ -265,7 +262,7 @@ where
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            tok @ (Token::Letter(c, _) | Token::UprightLetter(c)) => {
+            tok @ (Token::Letter(c) | Token::UprightLetter(c)) => {
                 let mut is_upright = matches!(tok, Token::UprightLetter(_));
                 let mut with_tf = false;
                 let ch = if let Some(tf) = self.state.transform {
@@ -789,7 +786,7 @@ where
                         left: None,
                         right: None,
                     }),
-                    Token::Letter(char, _) | Token::UprightLetter(char) => {
+                    Token::Letter(char) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
@@ -894,7 +891,7 @@ where
             }
             Token::Left => {
                 let tok_loc = self.next_token()?;
-                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True)) {
+                let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
@@ -905,8 +902,7 @@ where
                     false,
                 )?;
                 let tok_loc = self.next_token()?;
-                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True))
-                {
+                let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Right)?)
@@ -1510,7 +1506,7 @@ where
         let mut first_char: Option<char> = None;
 
         // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch)) =
+        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
             self.tokens.peek().token()
         {
             if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
@@ -1598,6 +1594,7 @@ where
             } else {
                 break;
             };
+            let fallback = tokloc.text_fallback();
             let (tok, span) = tokloc.into_parts();
             if let Token::CustomCmdArg(arg_num) = tok {
                 // Queue the custom command argument tokens.
@@ -1618,7 +1615,11 @@ where
                 }
                 continue;
             }
-            let Some(ch) = recover_limited_ascii(tok) else {
+            let ch = if let Some(ch) = fallback {
+                ch.as_char()
+            } else if let Some(ch) = recover_limited_ascii(tok) {
+                ch
+            } else {
                 return Err(self.alloc_err(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedText("string literal"),
@@ -1812,7 +1813,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    Letter('a', FromAscii::True),
+                    Letter('a'),
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],
