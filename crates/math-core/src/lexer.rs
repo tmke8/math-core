@@ -8,7 +8,7 @@ use crate::CommandConfig;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, FromAscii, Span, TokSpan, Token};
+use crate::token::{EndToken, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>
@@ -216,15 +216,14 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     LatexErrKind::DisallowedChar(ch),
                 )));
             }
-            ' ' => Token::Letter('\u{A0}', FromAscii::True),
             '!' => {
                 if text_mode {
-                    Token::Letter(ch, FromAscii::True)
+                    Token::Letter(ch)
                 } else {
                     Token::ForceClose(symbol::EXCLAMATION_MARK)
                 }
             }
-            '"' => Token::Letter('”', FromAscii::True),
+            '"' => Token::Letter('”'),
             '#' => {
                 if let Some(num) = &mut self.parse_cmd_args {
                     if let Some(next) = self.peek.1
@@ -273,7 +272,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             ')' => Token::Close(symbol::RIGHT_PARENTHESIS),
             '*' => {
                 if text_mode {
-                    Token::Letter(ch, FromAscii::True)
+                    Token::Letter(ch)
                 } else {
                     Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op())
                 }
@@ -282,7 +281,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             ',' => Token::Punctuation(symbol::COMMA),
             '-' => {
                 if text_mode {
-                    Token::Letter(ch, FromAscii::True)
+                    Token::Letter(ch)
                 } else {
                     Token::BinaryOp(symbol::MINUS_SIGN)
                 }
@@ -297,7 +296,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '`' => Token::Letter('‘', FromAscii::True),
+            '`' => Token::Letter('‘'),
             '{' => {
                 if matches!(self.mode, Mode::TextStart) {
                     self.mode = Mode::TextGroup {
@@ -342,13 +341,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if c.is_ascii_digit() {
                     Token::Digit(c)
                 } else {
-                    let from_ascii = if (' '..='~').contains(&c) {
-                        FromAscii::True
-                    } else {
-                        FromAscii::False
-                    };
                     span = Span(span.0, len_utf8(c));
-                    Token::Letter(c, from_ascii)
+                    Token::Letter(c)
                 }
             }
         };
@@ -469,7 +463,7 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     const COLON: MathMLOperator = symbol::COLON.as_op();
     const ASTERISK: MathMLOperator = symbol::ASTERISK_OPERATOR.as_op();
     match tok {
-        Token::Letter(ch, FromAscii::True) => Some(ch),
+        Token::Letter(ch) if (' '..='~').contains(&ch) => Some(ch),
         Token::Whitespace => Some(' '),
         Token::Ord(symbol::VERTICAL_LINE) => Some('|'),
         Token::Punctuation(symbol::COMMA) => Some(','),

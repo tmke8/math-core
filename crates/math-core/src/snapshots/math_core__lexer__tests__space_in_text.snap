@@ -5,9 +5,9 @@ expression: "\\text{  x   y z}"
 0:5: Text(None)
 5:6: GroupBegin
 6:7: Whitespace
-8:9: Letter('x', True)
+8:9: Letter('x')
 9:10: Whitespace
-12:13: Letter('y', True)
+12:13: Letter('y')
 13:14: Whitespace
-14:15: Letter('z', True)
+14:15: Letter('z')
 15:16: GroupEnd

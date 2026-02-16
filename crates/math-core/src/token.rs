@@ -84,7 +84,7 @@ pub enum Token<'source> {
     /// but in MathML Core is a "big operator" (mathop).
     ForceBinaryOp(MathMLOperator),
     StretchyRel(Rel),
-    Letter(char, FromAscii),
+    Letter(char),
     UprightLetter(char), // letter for which we need `mathvariant="normal"`
     Digit(char),
     // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
@@ -144,13 +144,6 @@ impl Token<'_> {
             _ => Class::Default,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub enum FromAscii {
-    #[default]
-    False,
-    True,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
