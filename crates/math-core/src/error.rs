@@ -210,12 +210,10 @@ impl LatexError {
             "span"
         };
         let css_class = css_class.unwrap_or("math-core-error");
-        let _ = write!(
-            output,
-            r#"<{} class="{}" title="{}: "#,
-            tag, css_class, self.0.start
-        );
-        escape_double_quoted_html_attribute(&mut output, &self.error_message());
+        let _ = write!(output, r#"<{} class="{}" title=""#, tag, css_class);
+        let mut err_msg = String::new();
+        self.to_message(&mut err_msg, latex);
+        escape_double_quoted_html_attribute(&mut output, &err_msg);
         output.push_str(r#""><code>"#);
         escape_html_content(&mut output, latex);
         let _ = write!(output, "</code></{tag}>");
@@ -231,16 +229,14 @@ impl LatexError {
     /// Format a LaTeX error as a plain text message, including the source name and position.
     ///
     /// # Arguments
-    /// - `source_name`: The name of the source (e.g., filename) where the error occurred.
+    /// - `s`: The string to write the message into.
     /// - `input`: The original LaTeX input that caused the error; used to
     ///    calculate the character offset for the error position.
-    pub fn to_message(&self, source_name: &str, input: &str) -> String {
-        let mut s = String::new();
+    pub fn to_message(&self, s: &mut String, input: &str) {
         let loc = input.floor_char_boundary(self.0.start);
         let codepoint_offset = input[..loc].chars().count();
-        let _ = write!(s, "{}:{}: ", source_name, codepoint_offset);
-        let _ = self.1.write_msg(&mut s);
-        s
+        let _ = write!(s, "{}: ", codepoint_offset);
+        let _ = self.1.write_msg(s);
     }
 }
 
@@ -310,7 +306,7 @@ impl LatexError {
 
 impl fmt::Display for LatexError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.0.start, self.error_message())
+        write!(f, "{}", self.error_message())
     }
 }
 
