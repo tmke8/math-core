@@ -131,7 +131,7 @@ describe("Convert Tests", function () {
       const displayStyle = false;
       assert.equal(
         converter.convert_with_local_counter(latex, displayStyle),
-        '<span class="math-core-error" title="2: Unknown command &quot;\\asdf&quot;."><code>𐌸\\asdf</code></span>',
+        '<span class="math-core-error" title="1: Unknown command &quot;\\asdf&quot;."><code>𐌸\\asdf</code></span>',
       );
     });
   });

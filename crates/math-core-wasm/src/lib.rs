@@ -180,9 +180,9 @@ impl LatexToMathML {
         match self.inner.convert_with_local_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(mut e) => {
-                // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
-                e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
+                    // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
+                    e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
                         location: e.0.start as u32,
@@ -209,9 +209,9 @@ impl LatexToMathML {
         match self.inner.convert_with_global_counter(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(mut e) => {
-                // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
-                e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                 if self.throw_on_error {
+                    // Convert the byte offset to a UTF-16 code unit offset for JavaScript.
+                    e.0.start = byte_offset_to_utf16_offset(content, e.0.start);
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
                         location: e.0.start as u32,

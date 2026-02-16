@@ -57,8 +57,8 @@ impl LatexToMathML {
                 continue_on_error,
             }),
             Err((latex_error, idx, source)) => {
-                let source_name = format!("macro{}", idx);
-                let err = latex_error.to_message(&source_name, &source);
+                let mut err = format!("macro{}:", idx);
+                latex_error.to_message(&mut err, &source);
                 Err(LatexError::new_err(err))
             }
         }
@@ -83,16 +83,16 @@ impl LatexToMathML {
             .map_err(|_| LockError::new_err("Failed to acquire write lock"))?
             .convert_with_global_counter(latex, display)
         {
-            Err(mut latex_error) => {
-                // Rust uses byte offsets, but Python uses character offsets.
-                latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
+            Err(latex_error) => {
                 if self.continue_on_error {
                     Ok(PyString::new(
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
                 } else {
-                    Err(LatexError::new_err(latex_error.to_string()))
+                    let mut err = String::new();
+                    latex_error.to_message(&mut err, latex);
+                    Err(LatexError::new_err(err))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output)),
@@ -118,16 +118,16 @@ impl LatexToMathML {
             .map_err(|_| LockError::new_err("Failed to acquire read lock"))?
             .convert_with_local_counter(latex, display)
         {
-            Err(mut latex_error) => {
-                // Rust uses byte offsets, but Python uses character offsets.
-                latex_error.0.start = byte_offset_to_char_offset(latex, latex_error.0.start);
+            Err(latex_error) => {
                 if self.continue_on_error {
                     Ok(PyString::new(
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
                 } else {
-                    Err(LatexError::new_err(latex_error.to_string()))
+                    let mut err = String::new();
+                    latex_error.to_message(&mut err, latex);
+                    Err(LatexError::new_err(err))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output)),
@@ -162,11 +162,4 @@ fn dict_to_tuple_vec(dict: &Bound<'_, PyDict>) -> PyResult<Vec<(String, String)>
     }
 
     Ok(vec)
-}
-
-/// Convert a byte offset in a UTF-8 string to a character offset.
-///
-/// Panics if the byte offset is not on a character boundary.
-fn byte_offset_to_char_offset(s: &str, byte_offset: usize) -> usize {
-    s[..byte_offset].chars().count()
 }
