@@ -192,12 +192,7 @@ static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
 
 impl<'config> TokSpan<'config> {
     #[inline]
-    pub const fn new(token: Token<'config>, span: Span) -> Self {
-        TokSpan(token, span.0, span.1, None)
-    }
-
-    #[inline]
-    pub const fn new_with_fallback(token: Token<'config>, span: Span, ch: Option<BMPChar>) -> Self {
+    pub const fn new(token: Token<'config>, span: Span, ch: Option<BMPChar>) -> Self {
         TokSpan(token, span.0, span.1, ch)
     }
 

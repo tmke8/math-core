@@ -163,7 +163,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             LexerResult::Tok(tok) => Ok(tok),
             LexerResult::UnknownCommand(cmd, span) => {
                 if self.cmd_cfg.is_some_and(|cfg| cfg.ignore_unknown_commands) {
-                    Ok(TokSpan::new(Token::UnknownCommand(cmd), span))
+                    Ok(TokSpan::new(Token::UnknownCommand(cmd), span, None))
                 } else {
                     Err(Box::new(LatexError(
                         span.into(),
@@ -191,13 +191,13 @@ impl<'config, 'source> Lexer<'config, 'source> {
     fn next_token_internal(&mut self) -> LexerResult<'config, 'source> {
         let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(span) = self.skip_whitespace() {
-            return LexerResult::Tok(TokSpan::new(Token::Whitespace, span));
+            return LexerResult::Tok(TokSpan::new(Token::Whitespace, span, None));
         }
 
         let (loc, ch) = self.read_char();
         let ascii_span = Span(loc, 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
-            return LexerResult::Tok(TokSpan::new(Token::Eof, Span::zero_width(loc)));
+            return LexerResult::Tok(TokSpan::new(Token::Eof, Span::zero_width(loc), None));
         };
         if ch == '%' {
             // Skip comments.
@@ -209,7 +209,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
             return self.next_token_internal();
         }
         let mut span = ascii_span;
-        let mut text_fallback: Option<char> = None;
         let tok = match ch {
             '\u{0}' => {
                 return LexerResult::Err(Box::new(LatexError(
@@ -218,7 +217,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 )));
             }
             '!' => {
-                text_fallback = Some('!');
                 if text_mode {
                     Token::Letter(ch)
                 } else {
@@ -273,7 +271,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '(' => Token::Open(symbol::LEFT_PARENTHESIS),
             ')' => Token::Close(symbol::RIGHT_PARENTHESIS),
             '*' => {
-                text_fallback = Some(ch);
                 if text_mode {
                     Token::Letter(ch)
                 } else {
@@ -281,12 +278,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
             }
             '+' => Token::BinaryOp(symbol::PLUS_SIGN),
-            ',' => {
-                text_fallback = Some(ch);
-                Token::Punctuation(symbol::COMMA)
-            }
+            ',' => Token::Punctuation(symbol::COMMA),
             '-' => {
-                text_fallback = Some(ch);
                 if text_mode {
                     Token::Letter(ch)
                 } else {
@@ -294,10 +287,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
             }
             '/' => Token::Ord(symbol::SOLIDUS),
-            ':' => {
-                text_fallback = Some(ch);
-                Token::ForceRelation(symbol::COLON.as_op())
-            }
+            ':' => Token::ForceRelation(symbol::COLON.as_op()),
             ';' => Token::Punctuation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
             '=' => Token::Relation(symbol::EQUALS_SIGN),
@@ -316,10 +306,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 self.brace_nesting_level += 1;
                 Token::GroupBegin
             }
-            '|' => {
-                text_fallback = Some(ch);
-                Token::Ord(symbol::VERTICAL_LINE)
-            }
+            '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return LexerResult::Err(Box::new(LatexError(
@@ -364,8 +351,30 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // we go back to math mode after reading one token.
             self.mode = Mode::Math;
         }
-        let fallback = text_fallback.and_then(|ch| BMPChar::new_ascii_graphic(ch));
-        LexerResult::Tok(TokSpan::new_with_fallback(tok, span, fallback))
+        // Determine the fallback character for use in text mode.
+        let fallback = match ch {
+            // For these input characters, the output in text mode differs from the characters
+            // themselves.
+            '\'' => BMPChar::new('’'),
+            '"' => BMPChar::new('”'),
+            '`' => BMPChar::new('‘'),
+            // Check for special character in LaTeX:
+            // - `#`: macro parameter character
+            // - `$`: math shift character
+            // - `%`: comment character
+            // - `&`: alignment tab character
+            // - `\`: escape character
+            // - `^`: superscript character
+            // - `_`: subscript character
+            // - `{`: begin group character
+            // - `}`: end group character
+            // - `~`: non-breaking space character
+            '#'..='&' | '\\' | '^' | '_' | '{' | '}' | '~' => None,
+            // `<` and `>` are treated specially because they have to be escaped in HTML.
+            '<' | '>' => None,
+            ch => BMPChar::new(ch),
+        };
+        LexerResult::Tok(TokSpan::new(tok, span, fallback))
     }
 
     fn parse_command(
@@ -449,7 +458,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             self.mode = Mode::TextStart;
         }
         match tok {
-            Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span)),
+            Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span, None)),
             Err(err) => LexerResult::Err(Box::new(err)),
         }
     }
@@ -471,15 +480,6 @@ enum Mode {
 enum EnvMarker {
     Begin = 1,
     End = 2,
-}
-
-pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
-    match tok {
-        Token::Letter(ch) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
-        Token::Whitespace => Some(' '),
-        Token::Digit(ch) => Some(ch),
-        _ => None,
-    }
 }
 
 fn len_utf8(ch: char) -> u16 {
@@ -620,26 +620,8 @@ mod tests {
     }
 
     #[test]
-    fn test_recover_limited_ascii() {
-        let input = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.";
-        let mut lexer = Lexer::new(input, false, None);
-
-        let mut output = String::new();
-        while let Ok(tokloc) = lexer.next_token() {
-            let tok = tokloc.into_token();
-            if let Some(ch) = recover_limited_ascii(tok) {
-                output.push(ch);
-            }
-            if matches!(tok, Token::Eof) {
-                break;
-            }
-        }
-        assert_eq!(input, output);
-    }
-
-    #[test]
     fn test_text_fallback() {
-        let input = ",-:|*";
+        let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-:|*";
         let mut lexer = Lexer::new(input, false, None);
 
         let mut output = String::new();

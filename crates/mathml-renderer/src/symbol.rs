@@ -37,14 +37,15 @@ impl From<&MathMLOperator> for char {
 
 /// A character from the Basic Multilingual Plane (BMP), stored as a single UTF-16 code unit.
 ///
-/// This can only store characters in the BMP (i.e., code points U+0000 to U+FFFF).
-/// `BMPChar::new` will panic if a character outside this range is provided.
+/// This can only store characters in the BMP, apart from the null character (so, code points
+/// U+0001 to U+FFFF).
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct BMPChar {
     char: NonZeroU16,
 }
 
 impl BMPChar {
+    /// Creates a new `BMPChar` from a `char`, panicking if the character is outside the BMP.
     const fn new_const(ch: char) -> Self {
         assert!(ch as u32 <= u16::MAX as u32, "Character is outside the BMP");
         BMPChar {
@@ -52,10 +53,10 @@ impl BMPChar {
         }
     }
 
-    /// Checks that the character is graphic ASCII and creates a `BMPChar` if so.
-    pub fn new_ascii_graphic(ch: char) -> Option<Self> {
-        if ch.is_ascii_graphic()
-            && let Some(inner) = NonZeroU16::new(ch as u16)
+    /// Creates a new `BMPChar` from a `char`, returning `None` if the character is outside the BMP.
+    pub fn new(ch: char) -> Option<Self> {
+        if let Ok(ch) = u16::try_from(ch)
+            && let Some(inner) = NonZeroU16::new(ch)
         {
             Some(BMPChar { char: inner })
         } else {
