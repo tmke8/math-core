@@ -1594,7 +1594,6 @@ where
             } else {
                 break;
             };
-            let fallback = tokloc.text_fallback();
             let (tok, span) = tokloc.into_parts();
             if let Token::CustomCmdArg(arg_num) = tok {
                 // Queue the custom command argument tokens.
@@ -1615,11 +1614,7 @@ where
                 }
                 continue;
             }
-            let ch = if let Some(ch) = fallback {
-                ch.as_char()
-            } else if let Some(ch) = recover_limited_ascii(tok) {
-                ch
-            } else {
+            let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(self.alloc_err(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedText("string literal"),
