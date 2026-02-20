@@ -74,6 +74,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Psi" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_PSI),
     "R" => Letter(symbol::DOUBLE_STRUCK_CAPITAL_R),
     "Re" => Letter(symbol::BLACK_LETTER_CAPITAL_R),
+    "Reals" => Letter(symbol::DOUBLE_STRUCK_CAPITAL_R),
     "Rho" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_RHO),
     "Rightarrow" => Relation(symbol::RIGHTWARDS_DOUBLE_ARROW),
     "Rrightarrow" => Relation(symbol::RIGHTWARDS_TRIPLE_ARROW),
