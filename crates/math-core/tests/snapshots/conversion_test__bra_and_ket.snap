@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\bra{\\uparrow} + \\ket{\\downarrow}y"
+---
+<math>
+    <mi>x</mi>
+    <mo stretchy="false">⟨</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↑</mo>
+    <mo form="postfix" stretchy="false">|</mo>
+    <mo>+</mo>
+    <mo form="prefix" stretchy="false">|</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↓</mo>
+    <mo stretchy="false">⟩</mo>
+    <mi>y</mi>
+</math>

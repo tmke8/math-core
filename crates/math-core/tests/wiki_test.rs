@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 182);
-    assert_eq!(n_fail, 26);
+    assert_eq!(n_diff, 183);
+    assert_eq!(n_fail, 25);
 }
 
 /// Prettify HTML input
@@ -1358,7 +1358,7 @@ fn test_nonfailing_wiki_tests() {
         (202, r"\dddot{x}"),
         (203, r"\sout{q}"),
         // (204, r"\mathrlap{\,/}{=}"),
-        // (205, r"\text{\textsf{textual description}}"),
+        (205, r"\text{\textsf{textual description}}"),
         (206, r"α π"),
         (207, r"ax^2 + bx + c = 0"),
         (208, r"x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}"),

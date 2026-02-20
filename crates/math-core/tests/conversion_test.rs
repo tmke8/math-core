@@ -272,7 +272,7 @@ fn main() {
         ),
         ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
         ("left_right_different_stretch", r"\left/\frac12\right)"),
-        ("RR_command", r"\RR"),
+        ("double_struck_cmds", r"\N\R\Z"),
         ("odv", r"\odv{f}{x}"),
         ("xrightarrow", r"\xrightarrow{x}"),
         ("slashed", r"\slashed{\partial}"),
@@ -318,7 +318,7 @@ fn main() {
         ("hspace", r"\hspace{1cm}"),
         ("hspace_whitespace", r"\hspace{  4em }"),
         ("hspace_whitespace_in_between", r"\hspace{  4  em }"),
-        ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x"),
+        ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x\space x"),
         ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         (
             "array_lines",
@@ -342,6 +342,7 @@ fn main() {
         ("cdots_before_close", r"{\sum \cdots}"),
         ("infix_double_bar", r"x \| y"),
         ("underset_tilde", r"\underset{z\sim Z}{\mathbb{E}}"),
+        ("bra_and_ket", r"x\bra{\uparrow} + \ket{\downarrow}y"),
     ];
 
     let config = MathCoreConfig {

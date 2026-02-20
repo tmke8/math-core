@@ -1,7 +1,9 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\RR"
+expression: "\\N\\R\\Z"
 ---
 <math>
+    <mi>ℕ</mi>
     <mi>ℝ</mi>
+    <mi>ℤ</mi>
 </math>

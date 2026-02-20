@@ -355,6 +355,12 @@ document.addEventListener("DOMContentLoaded", () => {
         code {
             font-family: "Libertinus Mono", monospace;
         }
+        span.math-core-serif-font {
+            font-family: "Libertinus Serif", serif;
+        }
+        span.math-core-sans-serif-font {
+            font-family: "Libertinus Sans", sans-serif;
+        }
     }`,
     "NewComputerModernMath Book": `
     mtext {
@@ -362,12 +368,24 @@ document.addEventListener("DOMContentLoaded", () => {
         code {
             font-family: "NewComputerModern Mono", monospace;
         }
+        span.math-core-serif-font {
+            font-family: "NewComputerModern Book", serif;
+        }
+        span.math-core-sans-serif-font {
+            font-family: "NewComputerModern Sans", sans-serif;
+        }
     }`,
     "Noto Sans Math Regular": `
     mtext {
         font-family: "Noto Sans", sans-serif;
         code {
             font-family: "Noto Sans Mono", monospace;
+        }
+        span.math-core-serif-font {
+            font-family: "Noto Serif", serif;
+        }
+        span.math-core-sans-serif-font {
+            font-family: "Noto Sans", sans-serif;
         }
     }`,
   };
