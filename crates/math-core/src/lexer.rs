@@ -463,7 +463,7 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     const COLON: MathMLOperator = symbol::COLON.as_op();
     const ASTERISK: MathMLOperator = symbol::ASTERISK_OPERATOR.as_op();
     match tok {
-        Token::Letter(ch) if (' '..='~').contains(&ch) => Some(ch),
+        Token::Letter(ch) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
         Token::Whitespace => Some(' '),
         Token::Ord(symbol::VERTICAL_LINE) => Some('|'),
         Token::Punctuation(symbol::COMMA) => Some(','),
