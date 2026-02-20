@@ -4,9 +4,9 @@ use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 #[test]
 fn test_zero_arg() {
     let macros = vec![
-        ("half".to_string(), r"\frac{1}{2}".to_string()),
-        ("mycmd".to_string(), r"\sqrt{3}".to_string()),
-        ("withText".to_string(), r"\text{a b}\sum".to_string()),
+        ("half".to_owned(), r"\frac{1}{2}".to_owned()),
+        ("mycmd".to_owned(), r"\sqrt{3}".to_owned()),
+        ("withText".to_owned(), r"\text{a b}\sum".to_owned()),
     ];
 
     let config = MathCoreConfig {
@@ -28,8 +28,8 @@ fn test_zero_arg() {
 #[test]
 fn test_one_arg() {
     let macros = vec![
-        ("half".to_string(), r"\frac{1}{2}\mspace{3mu}".to_string()),
-        ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
+        ("half".to_owned(), r"\frac{1}{2}\mspace{3mu}".to_owned()),
+        ("mycmd".to_owned(), r"\sqrt{#1}".to_owned()),
     ];
 
     let config = MathCoreConfig {
@@ -51,8 +51,8 @@ fn test_one_arg() {
 #[test]
 fn test_error() {
     let macros = vec![
-        ("x".to_string(), "x".to_string()),
-        ("mycmd".to_string(), r"\sqrt{#}".to_string()),
+        ("x".to_owned(), "x".to_owned()),
+        ("mycmd".to_owned(), r"\sqrt{#}".to_owned()),
     ];
 
     let config = MathCoreConfig {
@@ -69,7 +69,7 @@ fn test_error() {
 
 #[test]
 fn test_spacing() {
-    let macros = vec![("eq".to_string(), r"=".to_string())];
+    let macros = vec![("eq".to_owned(), r"=".to_owned())];
 
     let config = MathCoreConfig {
         macros,
@@ -89,7 +89,7 @@ fn test_spacing() {
 
 #[test]
 fn test_literal_args() {
-    let macros = vec![("hs".to_string(), r"\hspace{#1}".to_string())];
+    let macros = vec![("hs".to_owned(), r"\hspace{#1}".to_owned())];
 
     let config = MathCoreConfig {
         macros,

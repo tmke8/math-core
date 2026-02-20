@@ -14,7 +14,7 @@ pub(super) struct TokenQueue<'source, 'config> {
     next_non_whitespace: usize,
 }
 
-static EOF_TOK: TokSpan = TokSpan::new(Token::Eof, Span(0, 0));
+static EOF_TOK: TokSpan = TokSpan::new(Token::Eof, Span(0, 0), None);
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError>> {

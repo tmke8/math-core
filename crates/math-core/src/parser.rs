@@ -17,7 +17,7 @@ use crate::{
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
-    lexer::{Lexer, recover_limited_ascii},
+    lexer::Lexer,
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, TokSpan, Token},
     token_queue::TokenQueue,
@@ -1594,6 +1594,7 @@ where
             } else {
                 break;
             };
+            let fallback = tokloc.text_fallback();
             let (tok, span) = tokloc.into_parts();
             if let Token::CustomCmdArg(arg_num) = tok {
                 // Queue the custom command argument tokens.
@@ -1614,7 +1615,11 @@ where
                 }
                 continue;
             }
-            let Some(ch) = recover_limited_ascii(tok) else {
+            let ch = if let Some(ch) = fallback {
+                ch.as_char()
+            } else if matches!(tok, Token::Whitespace) {
+                ' '
+            } else {
                 return Err(self.alloc_err(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedText("string literal"),
