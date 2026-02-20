@@ -141,9 +141,12 @@ bitflags! {
 pub enum HtmlTextStyle {
     Bold = 1,
     Italic,
+    BoldItalic,
     Emphasis,
     Typewriter,
     SmallCaps,
+    SansSerif,
+    Serif,
 }
 
 // Transform of unicode characters.

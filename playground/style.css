@@ -87,6 +87,12 @@ body {
 }
 
 @font-face {
+    font-family: "Libertinus Sans";
+    src: url("./LibertinusSans-Regular.woff2") format("woff2");
+    font-display: swap;
+}
+
+@font-face {
     font-family: "NewComputerModernMath Book";
     src: url("./NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
     font-display: swap;
@@ -127,6 +133,12 @@ body {
 @font-face {
     font-family: "NewComputerModern Mono";
     src: url("./NewCMMono10-Book.woff2") format("woff2");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "NewComputerModern Sans";
+    src: url("./NewCMSans10-Book.woff2") format("woff2");
     font-display: swap;
 }
 

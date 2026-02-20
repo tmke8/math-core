@@ -234,10 +234,19 @@ impl Node<'_> {
                         None => ("<mtext>", "</mtext>"),
                         Some(HtmlTextStyle::Bold) => ("<mtext><b>", "</b></mtext>"),
                         Some(HtmlTextStyle::Italic) => ("<mtext><i>", "</i></mtext>"),
+                        Some(HtmlTextStyle::BoldItalic) => ("<mtext><b><i>", "</i></b></mtext>"),
                         Some(HtmlTextStyle::Emphasis) => ("<mtext><em>", "</em></mtext>"),
                         Some(HtmlTextStyle::Typewriter) => ("<mtext><code>", "</code></mtext>"),
                         Some(HtmlTextStyle::SmallCaps) => (
                             "<mtext><span style=\"font-variant-caps: small-caps\">",
+                            "</span></mtext>",
+                        ),
+                        Some(HtmlTextStyle::SansSerif) => (
+                            "<mtext><span class=\"math-core-sans-serif-font\">",
+                            "</span></mtext>",
+                        ),
+                        Some(HtmlTextStyle::Serif) => (
+                            "<mtext><span class=\"math-core-serif-font\">",
                             "</span></mtext>",
                         ),
                     },

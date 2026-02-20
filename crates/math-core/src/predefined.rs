@@ -112,3 +112,15 @@ pub static PMOD: [Token<'static>; 7] = [
     CustomCmdArg(0),
     Close(symbol::RIGHT_PARENTHESIS),
 ];
+
+pub static BRA: [Token<'static>; 3] = [
+    Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
+    CustomCmdArg(0),
+    Close(symbol::VERTICAL_LINE),
+];
+
+pub static KET: [Token<'static>; 3] = [
+    Open(symbol::VERTICAL_LINE),
+    CustomCmdArg(0),
+    Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
+];
