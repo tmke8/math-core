@@ -401,6 +401,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "max" => PseudoOperatorLimits("max"),
     "measeq" => Relation(symbol::MEASURED_BY), // from "stix"
     "measuredangle" => Letter(symbol::MEASURED_ANGLE),
+    "medspace" => Space(LatexUnit::Mu.length_with_unit(4.0)),
     "mercury" => Letter(symbol::MERCURY),
     "mho" => Letter(symbol::INVERTED_OHM_SIGN),
     "mid" => Relation(symbol::DIVIDES),
@@ -596,6 +597,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "th" => Letter(symbol::LATIN_SMALL_LETTER_THORN),
     "therefore" => Relation(symbol::THEREFORE),
     "theta" => Letter(symbol::GREEK_SMALL_LETTER_THETA),
+    "thickspace" => Space(LatexUnit::Mu.length_with_unit(5.0)),
+    "thinspace" => Space(LatexUnit::Mu.length_with_unit(3.0)),
     "tilde" => OverUnder(symbol::COMBINING_TILDE, true, Some(OpAttr::StretchyTrue)), // should be stretchy=false, but Safari has a bug
     "times" => ForceBinaryOp(symbol::MULTIPLICATION_SIGN.as_op()),
     "to" => Relation(symbol::RIGHTWARDS_ARROW),
