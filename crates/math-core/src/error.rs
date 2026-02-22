@@ -17,7 +17,7 @@ pub(crate) enum LatexErrKind {
     UnclosedGroup(EndToken),
     UnmatchedClose(EndToken),
     ExpectedArgumentGotClose,
-    ExpectedArgumentGotEOF,
+    ExpectedArgumentGotEOI,
     ExpectedDelimiter(DelimiterModifier),
     DisallowedChar(char),
     UnknownEnvironment(Box<str>),
@@ -42,7 +42,7 @@ pub(crate) enum LatexErrKind {
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
-    ExpectedParamNumberGotEOF,
+    ExpectedParamNumberGotEOI,
     HardLimitExceeded,
     Internal,
 }
@@ -100,7 +100,7 @@ impl LatexErrKind {
                     r"Expected argument but got closing token (`}}`, `\end`, `\right`)."
                 )?;
             }
-            LatexErrKind::ExpectedArgumentGotEOF => {
+            LatexErrKind::ExpectedArgumentGotEOI => {
                 write!(s, "Expected argument but reached end of input.")?;
             }
             LatexErrKind::ExpectedDelimiter(location) => {
@@ -174,7 +174,7 @@ impl LatexErrKind {
                     "Macro parameter found outside of custom command definition."
                 )?;
             }
-            LatexErrKind::ExpectedParamNumberGotEOF => {
+            LatexErrKind::ExpectedParamNumberGotEOI => {
                 write!(
                     s,
                     "Expected parameter number after '#', but got end of input."
@@ -262,7 +262,7 @@ impl LatexError {
                 format!("unmatched \"{}\"", <&str>::from(got)).into()
             }
             LatexErrKind::ExpectedArgumentGotClose => "expected an argument here".into(),
-            LatexErrKind::ExpectedArgumentGotEOF => "expected an argument here".into(),
+            LatexErrKind::ExpectedArgumentGotEOI => "expected an argument here".into(),
             LatexErrKind::ExpectedDelimiter(modifier) => {
                 format!("expected a delimiter after \"{}\"", <&str>::from(*modifier)).into()
             }
@@ -287,7 +287,7 @@ impl LatexError {
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),
-            LatexErrKind::ExpectedParamNumberGotEOF => "expected parameter number".into(),
+            LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number".into(),
             LatexErrKind::HardLimitExceeded => "limit exceeded".into(),
             LatexErrKind::Internal => "internal error".into(),
         };

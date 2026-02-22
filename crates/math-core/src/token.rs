@@ -13,44 +13,74 @@ use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'source> {
-    Eof,
+    /// End of input.
+    Eoi,
+    /// The beginning of an environment, e.g. `\begin{matrix}`.
     Begin(Env),
+    /// The end of an environment, e.g. `\end{matrix}`.
     End(Env),
+    /// A new column in an array or matrix, e.g. `&` in `\begin{matrix} a & b\\c & d \end{matrix}`.
     NewColumn,
+    /// A new line in an array or matrix, e.g. `\\` in `\begin{matrix} a & b\\c & d \end{matrix}`.
     NewLine,
+    /// Suppresses numbering for the current equation.
     NoNumber,
+    /// A tag for the current equation.
     Tag,
+    /// A left delimiter, e.g. `\left(`.
     Left,
+    /// A right delimiter, e.g. `\right)`.
     Right,
+    /// A middle delimiter, e.g. `\middle|`.
     Middle,
-    /// The opening square bracket has its own token because we need to
-    /// distinguish it from `\lbrack` after `\sqrt`.
+    /// The character `[`. It has its own token because we need to
+    /// distinguish it from `\lbrack` after, e.g., `\sqrt`.
     SquareBracketOpen,
-    /// The closing square bracket has its own token because we often
-    /// need to search for it.
+    /// The character `]`. It has its own token because we often need to search for it.
     /// Additionally, it's useful to distinguish this from `\rbrack`.
     SquareBracketClose,
+    /// The character `{`.
     GroupBegin,
+    /// The character `}`.
     GroupEnd,
+    /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
+    /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
+    /// `\genfrac`
     Genfrac,
+    /// The character `_` for subscripts.
     Underscore,
+    /// The character `^` for superscripts.
     Circumflex,
+    /// A token for `\binom`, `\dbinom` and `\tbinom`. The `Option<FracAttr>` is `None` for
+    /// `\binom` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dbinom`.
     Binom(Option<FracAttr>),
+    /// `\overset`
     Overset,
+    /// `\underset`
     Underset,
+    /// `\overbrace` and `\underbrace`. The `bool` is `true` for overbraces and `false` for
+    /// underbraces.
     OverUnderBrace(OrdLike, bool),
+    /// `\sqrt` and `\sqrt[n]{...}`
     Sqrt,
+    /// `\limits`
     Limits,
-    // For `\lim`, `\sup`, `\inf`, `\max`, `\min`, etc.
-    PseudoOperatorLimits(&'static str),
+    /// Fixed-length spaces, e.g. `\,`, `\;`, `\quad`, etc.
     Space(Length),
+    /// A custom space specified by the user, e.g. `\hspace{1em}`.
     CustomSpace,
+    /// A non-breaking space, e.g. `~`.
     NonBreakingSpace,
+    /// A whitespace character, e.g. ` `.
     Whitespace,
+    /// A token for transforming the math variant, e.g. `\mathbf`.
     Transform(MathVariant),
+    /// A sized parenthesis, e.g. `\bigl(`, `\Biggr)`.
     Big(Size, Option<ParenType>),
-    OverUnder(Rel, bool, Option<OpAttr>),
+    /// Stretchy and non-stretchy accents, e.g. `\hat`, `\widehat`, `\bar`, `\overline`, etc.
+    /// The `bool` is `true` for over-accents and `false` for under-accents.
+    Accent(Rel, bool, Option<OpAttr>),
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
     /// A token corresponding to LaTeX's "mathop" character class (class 1).
@@ -67,9 +97,16 @@ pub enum Token<'source> {
     Punctuation(Punct),
     /// A token corresponding to LaTeX's "mathinner" character class (class I).
     Inner(Op),
+    /// The character `'`.
     Prime,
+    /// The character `>`.
+    /// It has its own token because we need to escape it for the HTML output.
     OpGreaterThan,
+    /// The character `<`.
+    /// It has its own token because we need to escape it for the HTML output.
     OpLessThan,
+    /// The character `&`.
+    /// It has its own token because we need to escape it for the HTML output.
     OpAmpersand,
     /// A token to force an operator to behave like a relation (mathrel).
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
@@ -83,23 +120,52 @@ pub enum Token<'source> {
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
     ForceBinaryOp(MathMLOperator),
+    /// A token to allow a relation to stretch.
+    /// Used in, e.g., `\xrightarrow` and `\xleftarrow`.
     StretchyRel(Rel),
+    /// An ordinary letter, e.g. `a`, `b`, `c`.
     Letter(char),
-    UprightLetter(char), // letter for which we need `mathvariant="normal"`
+    /// A letter for which we need `mathvariant="normal"`.
+    /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
+    UprightLetter(char),
+    /// A digit, e.g. `0`, `1`, `2`.
     Digit(char),
-    // For `\log`, `\exp`, `\sin`, `\cos`, `\tan`, etc.
+    /// Text-based operators without limits.
+    /// For example, `\log`, `\exp`, `\sin`, `\cos`, `\tan`.
     PseudoOperator(&'static str),
+    /// Text-based operators with limits.
+    /// For example, `\lim`, `\sup`, `\inf`, `\max`, `\min`.
+    PseudoOperatorLimits(&'static str),
+    /// A token for enclosing notations, e.g. `\cancel`, `\xcancel`.
     Enclose(Notation),
+    /// `\operatorname` and `\operatorname*`. The `bool` is `true` for `\operatorname*` and `false`
+    /// for `\operatorname`.
     OperatorName(bool),
+    /// `\slashed`
     Slashed,
+    /// `\not`
     Not,
+    /// A token for text, e.g. `\text{...}`, `\textit{...}`.
     Text(Option<HtmlTextStyle>),
+    /// `\displaystyle`, `\textstyle`, `\scriptstyle` and `\scriptscriptstyle`.
     Style(Style),
+    /// A token for math color, e.g. `\color{red}`.
     Color,
+    /// A token used in custom commands defined by the user. The `u8` is the index of the argument,
+    /// going from 0 to 8. For example, `\#1` corresponds to `CustomCmdArg(0)`.
     CustomCmdArg(u8),
+    /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
+    /// arguments that the custom command takes.
     CustomCmd(u8, &'source [Token<'static>]),
+    /// A token for hardcoded MathML. The `&'static str` is the MathML string to be inserted into
+    /// the output.
     HardcodedMathML(&'static str),
+    /// A token for text-mode accents, e.g. `\~{n}`. The `char` is a Unicode combining character,
+    /// e.g. `\u{0303}` for the tilde accent.
     TextModeAccent(char),
+    /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
+    /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
+    /// of the unknown command.
     UnknownCommand(&'source str),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
@@ -127,7 +193,7 @@ impl Token<'_> {
             | Token::ForceClose(_) => Class::Close,
             Token::BinaryOp(_) | Token::ForceBinaryOp(_) => Class::BinaryOp,
             Token::Op(_) => Class::Operator,
-            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eof if !ignore_end_tokens => {
+            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eoi if !ignore_end_tokens => {
                 Class::Close
             }
             Token::Inner(_) => Class::Inner,
@@ -245,7 +311,7 @@ pub enum EndToken {
     #[strum(serialize = r"]")]
     SquareBracketClose,
     #[strum(serialize = r"end of input")]
-    Eof,
+    Eoi,
 }
 
 impl EndToken {
@@ -256,7 +322,7 @@ impl EndToken {
                 | (EndToken::GroupClose, Token::GroupEnd)
                 | (EndToken::Right, Token::Right)
                 | (EndToken::SquareBracketClose, Token::SquareBracketClose)
-                | (EndToken::Eof, Token::Eof)
+                | (EndToken::Eoi, Token::Eoi)
         )
     }
 }

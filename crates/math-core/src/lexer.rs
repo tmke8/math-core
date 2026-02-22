@@ -197,7 +197,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         let (loc, ch) = self.read_char();
         let ascii_span = Span(loc, 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
-            return LexerResult::Tok(TokSpan::new(Token::Eof, Span::zero_width(loc)));
+            return LexerResult::Tok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
         };
         if ch == '%' {
             // Skip comments.
@@ -255,7 +255,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         } else {
                             return LexerResult::Err(Box::new(LatexError(
                                 loc..loc,
-                                LatexErrKind::ExpectedParamNumberGotEOF,
+                                LatexErrKind::ExpectedParamNumberGotEOI,
                             )));
                         }
                     }
@@ -537,11 +537,11 @@ mod tests {
 
         for (name, problem) in problems.into_iter() {
             let mut lexer = Lexer::new(problem, false, None);
-            // Call `lexer.next_token(false)` until we get `Token::EOF`.
+            // Call `lexer.next_token(false)` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
                 let tokloc = lexer.next_token().unwrap();
-                if matches!(tokloc.token(), Token::Eof) {
+                if matches!(tokloc.token(), Token::Eoi) {
                     break;
                 }
                 let (tok, span) = tokloc.into_parts();
@@ -572,7 +572,7 @@ mod tests {
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
-                        if matches!(tokloc.token(), Token::Eof) {
+                        if matches!(tokloc.token(), Token::Eoi) {
                             break None;
                         }
                     }
@@ -602,7 +602,7 @@ mod tests {
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
-            if matches!(tokloc.token(), Token::Eof) {
+            if matches!(tokloc.token(), Token::Eoi) {
                 break;
             }
             let (tok, span) = tokloc.into_parts();
@@ -623,7 +623,7 @@ mod tests {
             if let Some(ch) = recover_limited_ascii(tok) {
                 output.push(ch);
             }
-            if matches!(tok, Token::Eof) {
+            if matches!(tok, Token::Eoi) {
                 break;
             }
         }

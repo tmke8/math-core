@@ -133,7 +133,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         accent_to_insert = Some(accent);
                         continue;
                     } else {
-                        Err(LatexErrKind::ExpectedArgumentGotEOF)
+                        Err(LatexErrKind::ExpectedArgumentGotEOI)
                     }
                 }
                 Token::Text(style) => {
@@ -147,11 +147,11 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                     brace_nesting = 0;
                     continue;
                 }
-                Token::Eof => {
+                Token::Eoi => {
                     if str_builder.is_some() {
                         Err(LatexErrKind::UnclosedGroup(EndToken::GroupClose))
                     } else {
-                        Err(LatexErrKind::ExpectedArgumentGotEOF)
+                        Err(LatexErrKind::ExpectedArgumentGotEOI)
                     }
                 }
                 Token::Right | Token::End(_) => Err(LatexErrKind::ExpectedArgumentGotClose),

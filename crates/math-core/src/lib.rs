@@ -338,7 +338,7 @@ fn parse_custom_commands(
             loop {
                 match lexer.next_token_no_unknown_command() {
                     Ok(tokloc) => {
-                        if matches!(tokloc.token(), Token::Eof) {
+                        if matches!(tokloc.token(), Token::Eoi) {
                             break;
                         }
                         tokens.push(tokloc.into_token());
