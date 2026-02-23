@@ -1,4 +1,6 @@
-# math-core – Convert LaTeX to MathML Core
+<img src="https://tmke8.github.io/math-core/logo.png" width=340 height=80/>
+
+# Convert LaTeX to MathML Core
 
 [Try it out on the playground!](https://tmke8.github.io/math-core/)
 
