@@ -35,7 +35,7 @@ math-core = { path = ".", features = ["serde", "ariadne"] }
 mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.5.1", features = ["serde"] }
 insta = { version = "1.46.3", features = ["default", "ron"] }
 regex = "1.12.3"
-minijinja = "2.15.1"
+minijinja = "2.16.0"
 
 [features]
 serde = ["dep:serde", "dep:serde-tuple-vec-map"]
