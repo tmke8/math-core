@@ -16,7 +16,7 @@ rustc-hash = "2.1.1"
 serde = { version = "1.0.228", features = ["derive"] }
 memchr = "2.8.0"
 strum = "0.27.2"
-strum_macros = "0.27.2"
+strum_macros = "0.28.0"
 static_assertions = "1.1.0"
 
 [profile.dev.package]
