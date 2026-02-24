@@ -432,6 +432,11 @@ where
                     }
                 };
                 class = Class::BinaryOp;
+                // Recompute the next class:
+                let next_class = self
+                    .tokens
+                    .peek_class_token()?
+                    .class(parse_as.in_sequence(), self.state.right_boundary_hack);
                 let spacing =
                     self.state
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);

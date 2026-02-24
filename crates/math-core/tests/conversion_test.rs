@@ -350,6 +350,7 @@ fn main() {
         ("bra_and_ket", r"x\bra{\uparrow} + \ket{\downarrow}y"),
         ("mathbin", r"x\mathbin{|}y"),
         ("mathbin_no_braces", r"x\mathbin|y"),
+        ("mathbin_paren", r"{\frac12\mathbin)y}"),
     ];
 
     let config = MathCoreConfig {
