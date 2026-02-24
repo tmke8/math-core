@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, ops::Range};
 
 use crate::{
     error::{LatexErrKind, LatexError},
@@ -232,13 +232,19 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     ///
     /// The initial `{` must have already been consumed. The closing `}` is not included
     /// in the output token vector.
-    pub(super) fn read_group(
+    pub(super) fn record_group(
         &mut self,
         tokens: &mut Vec<TokSpan<'source>>,
+        with_whitespace: bool,
     ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
         let end = loop {
-            let tokloc = self.next_with_whitespace()?;
+            let tokloc = if with_whitespace {
+                self.next_with_whitespace()
+            } else {
+                self.next()
+            };
+            let tokloc = tokloc?;
             match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -264,6 +270,25 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         };
         Ok(end)
     }
+
+    /// Get the next token, which may be a group of tokens if the next token is `{`.
+    ///
+    /// If `with_whitespace` is true, the returned tokens will include whitespace tokens.
+    /// Otherwise, they will not.
+    pub fn next_token_or_group(
+        &mut self,
+        with_whitespace: bool,
+    ) -> Result<TokenOrGroup<'source>, Box<LatexError>> {
+        let first = self.next()?;
+        if matches!(first.token(), Token::GroupBegin) {
+            let mut tokens = Vec::new();
+            // Read until the matching `}`.
+            let end_loc = self.record_group(&mut tokens, with_whitespace)?;
+            Ok(TokenOrGroup::Group(tokens, first.span().start()..end_loc))
+        } else {
+            Ok(TokenOrGroup::Token(first))
+        }
+    }
 }
 
 fn is_not_whitespace(tok: &TokSpan) -> bool {
@@ -280,6 +305,11 @@ fn has_class(tok: &TokSpan) -> bool {
 enum SkipMode {
     Whitespace,
     NoClass,
+}
+
+pub enum TokenOrGroup<'source> {
+    Token(TokSpan<'source>),
+    Group(Vec<TokSpan<'source>>, Range<usize>),
 }
 
 #[cfg(test)]
@@ -313,7 +343,7 @@ mod tests {
             // Check that the first token is `GroupBegin`.
             assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
             let mut tokens = Vec::new();
-            let tokens = match manager.read_group(&mut tokens) {
+            let tokens = match manager.record_group(&mut tokens, true) {
                 Ok(_) => {
                     let mut token_str = String::new();
                     for tokloc in tokens {

@@ -20,7 +20,7 @@ use crate::{
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, TokSpan, Token},
-    token_queue::TokenQueue,
+    token_queue::{TokenOrGroup, TokenQueue},
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
@@ -476,7 +476,7 @@ where
                 Ok(Node::Space(space))
             }
             Token::CustomSpace => {
-                let (span, length) = self.parse_string_literal()?;
+                let (length, span) = self.parse_string_literal()?;
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(
@@ -559,7 +559,7 @@ where
                         break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
                     }
                 };
-                let (span, length) = self.parse_string_literal()?;
+                let (length, span) = self.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
@@ -946,7 +946,7 @@ where
             Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {
                     // Parse the array options.
-                    let (span, options) = self.parse_string_literal()?;
+                    let (options, span) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             span,
@@ -1116,7 +1116,7 @@ where
             Token::Tag => {
                 // We always need to collect the string literal here, even if we don't use it,
                 // because otherwise we'd have an orphaned string literal in the token stream.
-                let (literal_span, tag_name) = self.parse_string_literal()?;
+                let (tag_name, literal_span) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
                     if let Ok(tag_num) = tag_name.trim().parse::<u16>()
@@ -1142,7 +1142,7 @@ where
                 }
             }
             Token::Color => 'color: {
-                let (span, color_name) = self.parse_string_literal()?;
+                let (color_name, span) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(
                         span.into(),
@@ -1253,7 +1253,7 @@ where
                 for arg_num in 0..num_args {
                     let tokloc = self.next_token()?;
                     if matches!(tokloc.token(), Token::GroupBegin) {
-                        self.tokens.read_group(&mut self.state.cmd_args)?;
+                        self.tokens.record_group(&mut self.state.cmd_args, true)?;
                     } else {
                         self.state.cmd_args.push(tokloc);
                     }
@@ -1573,21 +1573,16 @@ where
 
     pub(super) fn parse_string_literal(
         &mut self,
-    ) -> Result<(Range<usize>, &'arena str), Box<LatexError>> {
-        let first = self.tokens.next()?;
-        let span = first.span();
-        let mut tokens = Vec::new();
-        let end_loc = match first.token() {
-            Token::GroupBegin => {
-                // Read until the matching `}`.
-                self.tokens.read_group(&mut tokens)?
-            }
-            Token::InternalStringLiteral(content) => {
-                return Ok((first.span().into(), content));
-            }
-            _ => {
-                tokens.push(first);
-                span.end()
+    ) -> Result<(&'arena str, Range<usize>), Box<LatexError>> {
+        let (tokens, span) = match self.tokens.next_token_or_group(true)? {
+            TokenOrGroup::Group(tokens, span) => (tokens, span),
+            TokenOrGroup::Token(tokspan) => {
+                if let (Token::InternalStringLiteral(content), span) = tokspan.into_parts() {
+                    return Ok((content, span.into()));
+                } else {
+                    let span = tokspan.span();
+                    (vec![tokspan], span.into())
+                }
             }
         };
         let mut builder = self.buffer.get_builder();
@@ -1635,7 +1630,7 @@ where
             };
             builder.push_char(ch);
         }
-        Ok((span.start()..end_loc, builder.finish(self.arena)))
+        Ok((builder.finish(self.arena), span))
     }
 }
 
