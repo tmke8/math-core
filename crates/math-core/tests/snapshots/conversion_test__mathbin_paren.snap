@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{\\frac12\\mathbin)y}"
+---
+<math>
+    <mrow>
+        <mfrac>
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+        <mo stretchy="false" lspace="0.2222em" rspace="0.2222em">)</mo>
+        <mi>y</mi>
+    </mrow>
+</math>
