@@ -51,6 +51,7 @@ fn main() {
         ("bf_subscript", r"{\bf_2 x}"),
         ("bf_x_subscript", r"{x\bf_2 x}"),
         ("bf_spacing", r"{x+\bf x}{x\bf + x}{x+\bf)}"),
+        ("nested_style_combinations", r"\mathtt{x{\it ab\bf asbc}x}"),
         ("integer", r"0"),
         ("rational_number", r"3.14"),
         ("long_number", r"3{,}453{,}435.3453"),

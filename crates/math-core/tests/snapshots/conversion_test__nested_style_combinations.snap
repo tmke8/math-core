@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathtt{x{\\it ab\\bf asbc}x}"
+---
+<math>
+    <mrow>
+        <mi>𝚡</mi>
+        <mrow>
+            <mrow><mspace/><mi>𝑎𝑏</mi></mrow>
+            <mrow><mspace/><mi>𝐚𝐬𝐛𝐜</mi></mrow>
+        </mrow>
+        <mi>𝚡</mi>
+    </mrow>
+</math>
