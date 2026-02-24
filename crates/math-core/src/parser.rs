@@ -402,6 +402,46 @@ where
                     right: spacing,
                 })
             }
+            Token::Mathbin => 'mathbin: {
+                let tokspan = match self.tokens.next_token_or_group(false)? {
+                    TokenOrGroup::Token(tok) => tok,
+                    TokenOrGroup::Group(tok, span) => {
+                        if let Ok([tok]) = <[TokSpan; 1]>::try_from(tok) {
+                            tok
+                        } else {
+                            break 'mathbin Err(LatexError(span, LatexErrKind::ExpectedOneToken));
+                        }
+                    }
+                };
+                let op = match tokspan.token() {
+                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
+                    Token::Op(op) | Token::Inner(op) => op.as_op(),
+                    Token::BinaryOp(op) => op.as_op(),
+                    Token::Relation(op) => op.as_op(),
+                    Token::Punctuation(op) => op.as_op(),
+                    Token::ForceRelation(op) => *op,
+                    Token::ForceClose(op) => *op,
+                    Token::ForceBinaryOp(op) => *op,
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                    _ => {
+                        break 'mathbin Err(LatexError(
+                            tokspan.span().into(),
+                            LatexErrKind::ExpectedRelation,
+                        ));
+                    }
+                };
+                class = Class::BinaryOp;
+                let spacing =
+                    self.state
+                        .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                Ok(Node::Operator {
+                    op,
+                    attr: Some(OpAttr::StretchyFalse),
+                    left: spacing,
+                    right: spacing,
+                })
+            }
             Token::Inner(op) => {
                 class = Class::Inner;
                 let left = if matches!(

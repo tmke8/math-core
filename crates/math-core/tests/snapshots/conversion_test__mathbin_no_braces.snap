@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\mathbin|y"
+---
+<math>
+    <mi>x</mi>
+    <mo stretchy="false" lspace="0.2222em" rspace="0.2222em">|</mo>
+    <mi>y</mi>
+</math>
