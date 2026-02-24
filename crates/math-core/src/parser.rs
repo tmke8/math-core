@@ -581,24 +581,35 @@ where
                 }
             }
             Token::Genfrac => 'genfrac: {
-                // TODO: This should not just blindly try to parse a node.
-                // Rather, we should explicitly attempt to parse a group (aka Row),
-                // and if that doesn't work, we try to parse it as an Operator,
-                // and if that still doesn't work, we return an error.
-                let open = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _, _) => Some(*op),
-                    Node::Row { nodes: [], .. } => None,
-                    _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
-                    }
-                };
-                let close = match self.parse_next(ParseAs::Arg)? {
-                    Node::StretchableOp(op, _, _) => Some(*op),
-                    Node::Row { nodes: [], .. } => None,
-                    _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
-                    }
-                };
+                fn get_delimiter<'cell, 'arena, 'source, 'config>(
+                    parser: &mut Parser<'cell, 'arena, 'source, 'config>,
+                ) -> Result<Option<StretchableOp>, Box<LatexError>>
+                where
+                    'config: 'source,
+                    'source: 'arena,
+                    'arena: 'cell,
+                {
+                    let tok = match parser.tokens.next_token_or_group(false)? {
+                        TokenOrGroup::Token(tokspan) => tokspan,
+                        TokenOrGroup::Group(tokens, span) => {
+                            if tokens.is_empty() {
+                                return Ok(None);
+                            } else if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
+                                tokspan
+                            } else {
+                                return Err(Box::new(LatexError(
+                                    span,
+                                    LatexErrKind::ExpectedOneToken,
+                                )));
+                            }
+                        }
+                    };
+                    Ok(Some(
+                        parser.extract_delimiter(tok, DelimiterModifier::Genfrac)?,
+                    ))
+                }
+                let open = get_delimiter(self)?;
+                let close = get_delimiter(self)?;
                 let (length, span) = self.parse_string_literal()?;
                 let lt = match length.trim() {
                     "" => Length::none(),
@@ -609,23 +620,43 @@ where
                         ))
                     })?,
                 };
-                let style = match self.parse_next(ParseAs::Arg)? {
-                    Node::Number(num) => match num.as_bytes() {
-                        b"0" => Some(Style::Display),
-                        b"1" => Some(Style::Text),
-                        b"2" => Some(Style::Script),
-                        b"3" => Some(Style::ScriptScript),
-                        _ => {
+                let style_token = match self.tokens.next_token_or_group(false)? {
+                    TokenOrGroup::Token(tokspan) => Some(tokspan),
+                    TokenOrGroup::Group(tokens, span) => {
+                        if tokens.is_empty() {
+                            None
+                        } else if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
+                            Some(tokspan)
+                        } else {
                             break 'genfrac Err(LatexError(
-                                0..0,
+                                span,
                                 LatexErrKind::ExpectedArgumentGotEOI,
                             ));
                         }
-                    },
-                    Node::Row { nodes: [], .. } => None,
-                    _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
                     }
+                };
+                let style = if let Some(tokspan) = style_token {
+                    if let Token::Digit(num) = tokspan.token() {
+                        match num {
+                            '0' => Some(Style::Display),
+                            '1' => Some(Style::Text),
+                            '2' => Some(Style::Script),
+                            '3' => Some(Style::ScriptScript),
+                            _ => {
+                                break 'genfrac Err(LatexError(
+                                    tokspan.span().into(),
+                                    LatexErrKind::ExpectedArgumentGotEOI,
+                                ));
+                            }
+                        }
+                    } else {
+                        break 'genfrac Err(LatexError(
+                            tokspan.span().into(),
+                            LatexErrKind::ExpectedArgumentGotEOI,
+                        ));
+                    }
+                } else {
+                    None
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;

@@ -59,6 +59,8 @@ pub enum DelimiterModifier {
     Middle,
     #[strum(serialize = r"\big, \Big, ...")]
     Big,
+    #[strum(serialize = r"\genfrac")]
+    Genfrac,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
