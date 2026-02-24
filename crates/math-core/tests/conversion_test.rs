@@ -351,6 +351,7 @@ fn main() {
         ("mathbin", r"x\mathbin{|}y"),
         ("mathbin_no_braces", r"x\mathbin|y"),
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
+        ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
     ];
 
     let config = MathCoreConfig {
