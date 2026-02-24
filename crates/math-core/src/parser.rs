@@ -61,7 +61,7 @@ impl SequenceEnd {
             SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::AnyEndToken => matches!(
                 other,
-                Token::Eof | Token::GroupEnd | Token::End(_) | Token::Right
+                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right
             ),
         }
     }
@@ -132,7 +132,7 @@ where
 
     #[inline]
     pub(crate) fn parse(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
-        self.parse_sequence(SequenceEnd::EndToken(EndToken::Eof), Class::Open, true)
+        self.parse_sequence(SequenceEnd::EndToken(EndToken::Eoi), Class::Open, true)
     }
 
     /// Parse a sequence of tokens until the given end token is encountered.
@@ -159,9 +159,9 @@ where
                 } else {
                     // Get the current token.
                     let cur_tokloc = self.next_token();
-                    // Check here for EOF, so we know to end the loop prematurely.
+                    // Check here for EOI, so we know to end the loop prematurely.
                     if let Ok(tokloc) = cur_tokloc
-                        && let (Token::Eof, span) = tokloc.into_parts()
+                        && let (Token::Eoi, span) = tokloc.into_parts()
                     {
                         // When the input ends without the closing token.
                         if let SequenceEnd::EndToken(end_token) = sequence_end {
@@ -539,14 +539,14 @@ where
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
                     }
                 };
                 let close = match self.parse_next(ParseAs::Arg)? {
                     Node::StretchableOp(op, _, _) => Some(*op),
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
                     }
                 };
                 let (span, length) = self.parse_string_literal()?;
@@ -568,13 +568,13 @@ where
                         _ => {
                             break 'genfrac Err(LatexError(
                                 0..0,
-                                LatexErrKind::ExpectedArgumentGotEOF,
+                                LatexErrKind::ExpectedArgumentGotEOI,
                             ));
                         }
                     },
                     Node::Row { nodes: [], .. } => None,
                     _ => {
-                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOF));
+                        break 'genfrac Err(LatexError(0..0, LatexErrKind::ExpectedArgumentGotEOI));
                     }
                 };
                 let num = self.parse_next(ParseAs::Arg)?;
@@ -594,7 +594,7 @@ where
                     style,
                 })
             }
-            Token::OverUnder(op, is_over, attr) => {
+            Token::Accent(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
                     Ok(Node::OverOp(op.as_op(), attr, target))
@@ -1171,7 +1171,7 @@ where
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 if !matches!(
                     self.tokens.peek().token(),
-                    Token::Eof | Token::GroupEnd | Token::End(_)
+                    Token::Eoi | Token::GroupEnd | Token::End(_)
                 ) {
                     let base = self.parse_next(ParseAs::Sequence)?;
                     let (sub, sup) = if matches!(tok, Token::Underscore) {
@@ -1205,9 +1205,9 @@ where
                     correct_place: Place::AfterBigOp,
                 },
             )),
-            Token::Eof => Err(LatexError(
+            Token::Eoi => Err(LatexError(
                 span.into(),
-                LatexErrKind::ExpectedArgumentGotEOF,
+                LatexErrKind::ExpectedArgumentGotEOI,
             )),
             tok @ (Token::End(_) | Token::Right | Token::GroupEnd) => {
                 if parse_as.in_sequence() {

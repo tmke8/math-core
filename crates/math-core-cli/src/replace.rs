@@ -559,14 +559,14 @@ mod tests {
     //     // This conversion function always returns an error.
     //     let err = replacer
     //         .replace(input, &mut unit, |_state, _buf, _content, _typ| {
-    //             Err(LatexError(0, LatexErrKind::UnexpectedEOF))
+    //             Err(LatexError(0, LatexErrKind::UnexpectedEOI))
     //         })
     //         .unwrap_err();
     //     assert!(matches!(
     //         err,
     //         ConversionError(
     //             6,
-    //             ConvErrKind::LatexError(LatexError(0, LatexErrKind::UnexpectedEOF), "&=1"),
+    //             ConvErrKind::LatexError(LatexError(0, LatexErrKind::UnexpectedEOI), "&=1"),
     //             _
     //         )
     //     ));
@@ -580,7 +580,7 @@ mod tests {
     //     // This conversion function always returns an error.
     //     let err = replacer
     //         .replace(input, &mut unit, |_state, _buf, _content, _typ| {
-    //             Err(LatexError(0, LatexErrKind::UnexpectedEOF))
+    //             Err(LatexError(0, LatexErrKind::UnexpectedEOI))
     //         })
     //         .unwrap_err();
     //     assert!(format!("{err}").contains("line 2, column 6"));

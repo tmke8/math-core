@@ -10,18 +10,18 @@ use crate::{
 pub(super) struct TokenQueue<'source, 'config> {
     pub lexer: Lexer<'config, 'source>,
     queue: VecDeque<TokSpan<'source>>,
-    lexer_is_eof: bool,
+    lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
 
-static EOF_TOK: TokSpan = TokSpan::new(Token::Eof, Span(0, 0));
+static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span(0, 0));
 
 impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
             queue: VecDeque::with_capacity(2),
-            lexer_is_eof: false,
+            lexer_is_eoi: false,
             next_non_whitespace: 0,
         };
         // Ensure that we have at least one non-whitespace token in the buffer for peeking.
@@ -33,7 +33,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// Load the next not-skipped token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
     fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError>> {
-        if self.lexer_is_eof {
+        if self.lexer_is_eoi {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
             return Ok(0);
@@ -46,15 +46,15 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         loop {
             let tok = self.lexer.next_token()?;
             let not_skipped = predicate(&tok);
-            let is_eof = matches!(tok.token(), Token::Eof);
+            let is_eoi = matches!(tok.token(), Token::Eoi);
             self.queue.push_back(tok);
             if not_skipped {
                 break;
             }
             non_skipped_offset += 1;
-            if is_eof {
-                self.lexer_is_eof = true;
-                // We return with the offset for one past the EOF token.
+            if is_eoi {
+                self.lexer_is_eoi = true;
+                // We return with the offset for one past the EOI token.
                 // This is needed to ensure that peek() works correctly.
                 break;
             }
@@ -75,7 +75,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             {
                 break 'pos_calc pos;
             };
-            // Then, try to load more tokens until we find one or reach EOF.
+            // Then, try to load more tokens until we find one or reach EOI.
             let starting_len = self.queue.len();
             starting_len + self.load_token(SkipMode::Whitespace)?
         };
@@ -85,10 +85,10 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
 
     /// Peek at the next non-whitespace token without consuming it.
     ///
-    /// If the lexer has reached the end of the input, this will return an EOF token.
+    /// If the lexer has reached the end of the input, this will return an EOI token.
     /// The public interface of `TokenManager` enforces the invariant that there is
     /// always at least one non-whitespace token in the buffer when this is called,
-    /// unless EOF has been reached.
+    /// unless EOI has been reached.
     #[inline]
     pub(super) fn peek(&self) -> &TokSpan<'source> {
         // `next_non_whitespace` points to the next non-whitespace token,
@@ -96,8 +96,8 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
             tok
         } else {
-            debug_assert!(self.lexer_is_eof, "peek called without ensure");
-            &EOF_TOK
+            debug_assert!(self.lexer_is_eoi, "peek called without ensure");
+            &EOI_TOK
         }
     }
 
@@ -128,7 +128,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 range.position(predicate).map(|pos| start + 1 + pos)
             } else {
                 debug_assert!(
-                    self.lexer_is_eof,
+                    self.lexer_is_eoi,
                     "find_or_load_after_next called without ensure"
                 );
                 Some(self.queue.len())
@@ -136,19 +136,19 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         };
 
         match tok_idx {
-            Some(tok_idx) => Ok(self.queue.get(tok_idx).unwrap_or(&EOF_TOK)),
+            Some(tok_idx) => Ok(self.queue.get(tok_idx).unwrap_or(&EOI_TOK)),
             None => {
-                // Otherwise, load more tokens until we find one or reach EOF.
+                // Otherwise, load more tokens until we find one or reach EOI.
                 let starting_len = self.queue.len();
                 let offset = self.load_token(skip_mode)?;
                 if let Some(tok) = self.queue.get(starting_len + offset) {
                     Ok(tok)
                 } else {
                     debug_assert!(
-                        self.lexer_is_eof,
+                        self.lexer_is_eoi,
                         "find_or_load_after_next called without ensure"
                     );
-                    Ok(&EOF_TOK)
+                    Ok(&EOI_TOK)
                 }
             }
         }
@@ -183,9 +183,9 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             self.ensure_next_non_whitespace()?;
             Ok(ret)
         } else {
-            // We must have reached EOF previously.
-            debug_assert!(self.lexer_is_eof, "next called without ensure");
-            Ok(EOF_TOK)
+            // We must have reached EOI previously.
+            debug_assert!(self.lexer_is_eoi, "next called without ensure");
+            Ok(EOI_TOK)
         }
     }
 
@@ -201,12 +201,12 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             }
             Ok(ret)
         } else {
-            // We must have reached EOF previously.
+            // We must have reached EOI previously.
             debug_assert!(
-                self.lexer_is_eof,
+                self.lexer_is_eoi,
                 "next_with_whitespace called without ensure"
             );
-            Ok(EOF_TOK)
+            Ok(EOI_TOK)
         }
     }
 
@@ -222,8 +222,8 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             self.next_non_whitespace = pos;
         } else {
             // There is only one scenario in which we wouldn't find a non-whitespace token:
-            // We reached EOF previously and all queued tokens are whitespace.
-            debug_assert!(self.lexer_is_eof, "queue_in_front called without ensure");
+            // We reached EOI previously and all queued tokens are whitespace.
+            debug_assert!(self.lexer_is_eoi, "queue_in_front called without ensure");
             self.next_non_whitespace = self.queue.len();
         }
     }
@@ -252,7 +252,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                     };
                     nesting_level = new_level;
                 }
-                Token::Eof => {
+                Token::Eoi => {
                     return Err(Box::new(LatexError(
                         tokloc.span().into(),
                         LatexErrKind::UnclosedGroup(EndToken::GroupClose),
@@ -339,7 +339,7 @@ mod tests {
 
         loop {
             let (tok, span) = manager.next_with_whitespace().unwrap().into_parts();
-            if matches!(tok, Token::Eof) {
+            if matches!(tok, Token::Eoi) {
                 break;
             }
             write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
