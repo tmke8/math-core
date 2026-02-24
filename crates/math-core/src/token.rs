@@ -74,8 +74,10 @@ pub enum Token<'source> {
     NonBreakingSpace,
     /// A whitespace character, e.g. ` `.
     Whitespace,
-    /// A token for transforming the math variant, e.g. `\mathbf`.
+    /// A token for transforming to a specific math variant, e.g. `\mathbf`.
     Transform(MathVariant),
+    /// A token for switching the math variant, e.g. `\bf`.
+    TransformSwitch(MathVariant),
     /// A sized parenthesis, e.g. `\bigl(`, `\Biggr)`.
     Big(Size, Option<ParenType>),
     /// Stretchy and non-stretchy accents, e.g. `\hat`, `\widehat`, `\bar`, `\overline`, etc.

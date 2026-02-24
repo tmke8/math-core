@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "{x_\\bf x}"
+---
+Error: Math variant switch command found outside of sequence.
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ {x_\bf x}
+   │    ─┬─  
+   │     ╰─── math variant switch command as argument
+───╯

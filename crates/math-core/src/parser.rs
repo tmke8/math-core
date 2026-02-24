@@ -149,6 +149,7 @@ where
         let mut nodes = Vec::new();
 
         let mut prev_class = prev_class;
+        let old_tf = self.state.transform;
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
@@ -159,16 +160,24 @@ where
                 } else {
                     // Get the current token.
                     let cur_tokloc = self.next_token();
-                    // Check here for EOI, so we know to end the loop prematurely.
-                    if let Ok(tokloc) = cur_tokloc
-                        && let (Token::Eoi, span) = tokloc.into_parts()
-                    {
-                        // When the input ends without the closing token.
-                        if let SequenceEnd::EndToken(end_token) = sequence_end {
-                            return Err(self.alloc_err(LatexError(
-                                span.into(),
-                                LatexErrKind::UnclosedGroup(end_token),
-                            )));
+                    if let Ok(tokloc) = &cur_tokloc {
+                        let span = tokloc.span();
+                        match tokloc.token() {
+                            // Check here for EOI, so we know to end the loop prematurely.
+                            Token::Eoi => {
+                                if let SequenceEnd::EndToken(end_token) = sequence_end {
+                                    // The input has ended without the closing token.
+                                    return Err(self.alloc_err(LatexError(
+                                        span.into(),
+                                        LatexErrKind::UnclosedGroup(end_token),
+                                    )));
+                                }
+                            }
+                            Token::TransformSwitch(tf) => {
+                                self.state.transform = Some(*tf);
+                                continue;
+                            }
+                            _ => {}
                         }
                     }
                     // Parse the token.
@@ -196,6 +205,7 @@ where
             // Discard the end token.
             self.next_token()?;
         }
+        self.state.transform = old_tf;
         Ok(nodes)
     }
 
@@ -800,6 +810,9 @@ where
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
                 return Ok((Class::Close, content));
+            }
+            Token::TransformSwitch(_) => {
+                Err(LatexError(span.into(), LatexErrKind::SwitchOnlyInSequence))
             }
             Token::ForceRelation(op) => {
                 class = Class::Relation;

@@ -1,0 +1,21 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{x+\\bf x}{x\\bf + x}{x+\\bf)}"
+---
+<math>
+    <mrow>
+        <mi>x</mi>
+        <mo>+</mo>
+        <mi>𝐱</mi>
+    </mrow>
+    <mrow>
+        <mi>x</mi>
+        <mo>+</mo>
+        <mi>𝐱</mi>
+    </mrow>
+    <mrow>
+        <mi>x</mi>
+        <mo lspace="0" rspace="0">+</mo>
+        <mo stretchy="false">)</mo>
+    </mrow>
+</math>
