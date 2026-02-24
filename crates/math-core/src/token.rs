@@ -195,7 +195,7 @@ impl Token<'_> {
             | Token::SquareBracketClose
             | Token::NewColumn
             | Token::ForceClose(_) => Class::Close,
-            Token::BinaryOp(_) | Token::ForceBinaryOp(_) => Class::BinaryOp,
+            Token::BinaryOp(_) | Token::ForceBinaryOp(_) | Token::Mathbin => Class::BinaryOp,
             Token::Op(_) => Class::Operator,
             Token::End(_) | Token::Right | Token::GroupEnd | Token::Eoi if !ignore_end_tokens => {
                 Class::Close
