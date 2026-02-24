@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt\\bf"
+---
+Error: Math variant switch command found outside of sequence.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \sqrt\bf
+   │      ─┬─  
+   │       ╰─── math variant switch command as argument
+───╯

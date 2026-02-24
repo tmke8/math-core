@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{\\bf_2 x}"
+---
+<math>
+    <mmultiscripts>
+        <mi>𝐱</mi>
+        <mprescripts/>
+        <mi>𝟐</mi>
+        <mrow></mrow>
+    </mmultiscripts>
+</math>

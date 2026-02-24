@@ -34,6 +34,7 @@ pub(crate) enum LatexErrKind {
     ExpectedRelation,
     BoundFollowedByBound,
     DuplicateSubOrSup,
+    SwitchOnlyInSequence,
     ExpectedText(&'static str),
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
@@ -146,6 +147,9 @@ impl LatexErrKind {
             }
             LatexErrKind::DuplicateSubOrSup => {
                 write!(s, "Duplicate subscript or superscript.")?;
+            }
+            LatexErrKind::SwitchOnlyInSequence => {
+                write!(s, "Math variant switch command found outside of sequence.")?;
             }
             LatexErrKind::ExpectedText(place) => {
                 write!(s, "Expected text in {}.", place)?;
@@ -279,6 +283,7 @@ impl LatexError {
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
+            LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),
             LatexErrKind::ExpectedText(place) => format!("expected text in {place}").into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
