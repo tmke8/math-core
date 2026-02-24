@@ -394,6 +394,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mars" => Letter(symbol::MALE_SIGN),
     "mathbb" => Transform(MathVariant::Transform(TextTransform::DoubleStruck)),
     "mathbf" => Transform(MathVariant::Transform(TextTransform::Bold)),
+    "mathbin" => Mathbin,
     "mathcal" => Transform(MathVariant::Transform(TextTransform::ScriptChancery)),
     "mathfrak" => Transform(MathVariant::Transform(TextTransform::Fraktur)),
     "mathit" => Transform(MathVariant::Transform(TextTransform::Italic)),

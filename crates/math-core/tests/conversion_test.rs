@@ -348,6 +348,8 @@ fn main() {
         ("infix_double_bar", r"x \| y"),
         ("underset_tilde", r"\underset{z\sim Z}{\mathbb{E}}"),
         ("bra_and_ket", r"x\bra{\uparrow} + \ket{\downarrow}y"),
+        ("mathbin", r"x\mathbin{|}y"),
+        ("mathbin_no_braces", r"x\mathbin|y"),
     ];
 
     let config = MathCoreConfig {

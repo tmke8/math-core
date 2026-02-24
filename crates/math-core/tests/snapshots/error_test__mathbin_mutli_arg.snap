@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x \\mathbin{++} y"
+---
+Error: Expected exactly one token as argument.
+   ╭─[ <input>:1:11 ]
+   │
+ 1 │ x \mathbin{++} y
+   │           ──┬─  
+   │             ╰─── expected exactly one token here
+───╯

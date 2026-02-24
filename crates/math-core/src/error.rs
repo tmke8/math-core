@@ -32,6 +32,7 @@ pub(crate) enum LatexErrKind {
         correct_place: Place,
     },
     ExpectedRelation,
+    ExpectedOneToken,
     BoundFollowedByBound,
     DuplicateSubOrSup,
     SwitchOnlyInSequence,
@@ -58,6 +59,8 @@ pub enum DelimiterModifier {
     Middle,
     #[strum(serialize = r"\big, \Big, ...")]
     Big,
+    #[strum(serialize = r"\genfrac")]
+    Genfrac,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -141,6 +144,9 @@ impl LatexErrKind {
             }
             LatexErrKind::ExpectedRelation => {
                 write!(s, "Expected a relation after \\not.")?;
+            }
+            LatexErrKind::ExpectedOneToken => {
+                write!(s, "Expected exactly one token as argument.")?;
             }
             LatexErrKind::BoundFollowedByBound => {
                 write!(s, "'^' or '_' directly followed by '^', '_' or prime.")?;
@@ -281,6 +287,7 @@ impl LatexError {
                 format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
+            LatexErrKind::ExpectedOneToken => "expected exactly one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),

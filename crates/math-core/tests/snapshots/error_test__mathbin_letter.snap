@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x \\mathbin a y"
+---
+Error: Expected a relation after \not.
+   ╭─[ <input>:1:12 ]
+   │
+ 1 │ x \mathbin a y
+   │            ┬  
+   │            ╰── expected a relation
+───╯

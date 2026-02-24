@@ -122,6 +122,8 @@ pub enum Token<'source> {
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
     ForceBinaryOp(MathMLOperator),
+    /// `\mathbin`
+    Mathbin,
     /// A token to allow a relation to stretch.
     /// Used in, e.g., `\xrightarrow` and `\xleftarrow`.
     StretchyRel(Rel),
