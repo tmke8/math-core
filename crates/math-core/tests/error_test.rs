@@ -85,7 +85,9 @@ fn main() {
         ("math_variant_switch_in_arg", r"\sqrt\bf"),
         ("math_variant_switch_in_subscript", r"{x_\bf x}"),
         ("mathbin_mutli_arg", r"x \mathbin{++} y"),
+        ("mathbin_no_arg", r"x \mathbin{} y"),
         ("mathbin_letter", r"x \mathbin a y"),
+        ("genfrac_too_many_numbers", r"\genfrac[]{0pt}{00}{a}{b}"),
     ];
 
     let config = MathCoreConfig {

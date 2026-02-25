@@ -271,22 +271,23 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         Ok(end)
     }
 
-    /// Get the next token, which may be a group of tokens if the next token is `{`.
+    /// Read one macro argument, which is either a single token or a group of tokens.
     ///
-    /// If `with_whitespace` is true, the returned tokens will include whitespace tokens.
-    /// Otherwise, they will not.
-    pub fn next_token_or_group(
+    /// Any immediately following whitespace is always skipped. If the argument is a group, then
+    /// the parameter `with_whitespace` determines whether the whitespace tokens within the group
+    /// are included in the output vector or not.
+    pub fn read_argument(
         &mut self,
         with_whitespace: bool,
-    ) -> Result<TokenOrGroup<'source>, Box<LatexError>> {
+    ) -> Result<MacroArgument<'source>, Box<LatexError>> {
         let first = self.next()?;
         if matches!(first.token(), Token::GroupBegin) {
             let mut tokens = Vec::new();
             // Read until the matching `}`.
             let end_loc = self.record_group(&mut tokens, with_whitespace)?;
-            Ok(TokenOrGroup::Group(tokens, first.span().start()..end_loc))
+            Ok(MacroArgument::Group(tokens, first.span().start()..end_loc))
         } else {
-            Ok(TokenOrGroup::Token(first))
+            Ok(MacroArgument::Token(first))
         }
     }
 }
@@ -307,9 +308,46 @@ enum SkipMode {
     NoClass,
 }
 
-pub enum TokenOrGroup<'source> {
+/// A macro argument, which is either a single token or a group of tokens.
+pub enum MacroArgument<'source> {
     Token(TokSpan<'source>),
+    /// The `Range` is the range of the entire group, including the opening and closing braces.
     Group(Vec<TokSpan<'source>>, Range<usize>),
+}
+
+impl<'source> MacroArgument<'source> {
+    /// Try to interpret this macro argument as a single token.
+    pub fn as_one_or_none(self) -> Result<OneOrNone<'source>, Box<LatexError>> {
+        match self {
+            MacroArgument::Token(tok) => Ok(OneOrNone::One(tok)),
+            MacroArgument::Group(tokens, span) => {
+                if tokens.is_empty() {
+                    Ok(OneOrNone::None(span))
+                } else if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
+                    Ok(OneOrNone::One(tokspan))
+                } else {
+                    Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::ExpectedAtMostOneToken,
+                    )))
+                }
+            }
+        }
+    }
+}
+
+pub enum OneOrNone<'source> {
+    One(TokSpan<'source>),
+    None(Range<usize>),
+}
+
+impl<'source> From<OneOrNone<'source>> for Option<TokSpan<'source>> {
+    fn from(value: OneOrNone<'source>) -> Self {
+        match value {
+            OneOrNone::One(tok) => Some(tok),
+            OneOrNone::None(_) => None,
+        }
+    }
 }
 
 #[cfg(test)]

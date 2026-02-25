@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\genfrac[]{0pt}{00}{a}{b}"
+---
+Error: Expected at most one token as argument.
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \genfrac[]{0pt}{00}{a}{b}
+   │                ──┬─  
+   │                  ╰─── expected at most one token here
+───╯

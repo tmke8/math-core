@@ -32,7 +32,8 @@ pub(crate) enum LatexErrKind {
         correct_place: Place,
     },
     ExpectedRelation,
-    ExpectedOneToken,
+    ExpectedAtMostOneToken,
+    ExpectedAtLeastOneToken,
     BoundFollowedByBound,
     DuplicateSubOrSup,
     SwitchOnlyInSequence,
@@ -145,8 +146,11 @@ impl LatexErrKind {
             LatexErrKind::ExpectedRelation => {
                 write!(s, "Expected a relation after \\not.")?;
             }
-            LatexErrKind::ExpectedOneToken => {
-                write!(s, "Expected exactly one token as argument.")?;
+            LatexErrKind::ExpectedAtMostOneToken => {
+                write!(s, "Expected at most one token as argument.")?;
+            }
+            LatexErrKind::ExpectedAtLeastOneToken => {
+                write!(s, "Expected at least one token as argument.")?;
             }
             LatexErrKind::BoundFollowedByBound => {
                 write!(s, "'^' or '_' directly followed by '^', '_' or prime.")?;
@@ -287,7 +291,8 @@ impl LatexError {
                 format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
-            LatexErrKind::ExpectedOneToken => "expected exactly one token here".into(),
+            LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
+            LatexErrKind::ExpectedAtLeastOneToken => "expected at least one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),

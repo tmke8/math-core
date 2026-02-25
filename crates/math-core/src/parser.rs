@@ -20,7 +20,7 @@ use crate::{
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
     token::{EndToken, TokSpan, Token},
-    token_queue::{TokenOrGroup, TokenQueue},
+    token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
 pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
@@ -403,14 +403,13 @@ where
                 })
             }
             Token::Mathbin => 'mathbin: {
-                let tokspan = match self.tokens.next_token_or_group(false)? {
-                    TokenOrGroup::Token(tok) => tok,
-                    TokenOrGroup::Group(tok, span) => {
-                        if let Ok([tok]) = <[TokSpan; 1]>::try_from(tok) {
-                            tok
-                        } else {
-                            break 'mathbin Err(LatexError(span, LatexErrKind::ExpectedOneToken));
-                        }
+                let tokspan = match self.tokens.read_argument(false)?.as_one_or_none()? {
+                    OneOrNone::One(tokspan) => tokspan,
+                    OneOrNone::None(span) => {
+                        break 'mathbin Err(LatexError(
+                            span,
+                            LatexErrKind::ExpectedAtLeastOneToken,
+                        ));
                     }
                 };
                 let op = match tokspan.token() {
@@ -594,24 +593,13 @@ where
                     'source: 'arena,
                     'arena: 'cell,
                 {
-                    let tok = match parser.tokens.next_token_or_group(false)? {
-                        TokenOrGroup::Token(tokspan) => tokspan,
-                        TokenOrGroup::Group(tokens, span) => {
-                            if tokens.is_empty() {
-                                return Ok(None);
-                            } else if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
-                                tokspan
-                            } else {
-                                return Err(Box::new(LatexError(
-                                    span,
-                                    LatexErrKind::ExpectedOneToken,
-                                )));
-                            }
+                    let tok = parser.tokens.read_argument(false)?.as_one_or_none()?;
+                    Ok(match tok {
+                        OneOrNone::One(tok) => {
+                            Some(parser.extract_delimiter(tok, DelimiterModifier::Genfrac)?)
                         }
-                    };
-                    Ok(Some(
-                        parser.extract_delimiter(tok, DelimiterModifier::Genfrac)?,
-                    ))
+                        OneOrNone::None(_) => None,
+                    })
                 }
                 let open = get_delimiter(self)?;
                 let close = get_delimiter(self)?;
@@ -625,21 +613,8 @@ where
                         ))
                     })?,
                 };
-                let style_token = match self.tokens.next_token_or_group(false)? {
-                    TokenOrGroup::Token(tokspan) => Some(tokspan),
-                    TokenOrGroup::Group(tokens, span) => {
-                        if tokens.is_empty() {
-                            None
-                        } else if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
-                            Some(tokspan)
-                        } else {
-                            break 'genfrac Err(LatexError(
-                                span,
-                                LatexErrKind::ExpectedArgumentGotEOI,
-                            ));
-                        }
-                    }
-                };
+                let style_token: Option<TokSpan> =
+                    self.tokens.read_argument(false)?.as_one_or_none()?.into();
                 let style = if let Some(tokspan) = style_token {
                     if let Token::Digit(num) = tokspan.token() {
                         match num {
@@ -1650,9 +1625,9 @@ where
     pub(super) fn parse_string_literal(
         &mut self,
     ) -> Result<(&'arena str, Range<usize>), Box<LatexError>> {
-        let (tokens, span) = match self.tokens.next_token_or_group(true)? {
-            TokenOrGroup::Group(tokens, span) => (tokens, span),
-            TokenOrGroup::Token(tokspan) => {
+        let (tokens, span) = match self.tokens.read_argument(true)? {
+            MacroArgument::Group(tokens, span) => (tokens, span),
+            MacroArgument::Token(tokspan) => {
                 if let (Token::InternalStringLiteral(content), span) = tokspan.into_parts() {
                     return Ok((content, span.into()));
                 } else {
