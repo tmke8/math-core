@@ -362,7 +362,7 @@ dependencies = [
 
 [[package]]
 name = "math-core"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "ariadne",
  "insta",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-cli"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "clap",
  "math-core",
@@ -394,7 +394,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-python"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "math-core",
  "pyo3",
@@ -403,7 +403,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-renderer-internal"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bitflags",
  "dtoa",
@@ -416,7 +416,7 @@ dependencies = [
 
 [[package]]
 name = "math-core-wasm"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "js-sys",
  "lol_alloc",
