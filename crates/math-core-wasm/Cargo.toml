@@ -13,8 +13,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 math-core = { path = "../math-core" }
+ariadne = { workspace = true, optional = true }
 lol_alloc = "0.4.1"
 wasm-bindgen = "=0.2.108"
 js-sys = "0.3.82"
 rustc-hash = { workspace = true }
 wasm-bindgen-test = "0.3.55"
+
+[features]
+ariadne = ["dep:ariadne", "math-core/ariadne"]
