@@ -418,6 +418,7 @@ dependencies = [
 name = "math-core-wasm"
 version = "0.5.2"
 dependencies = [
+ "ariadne",
  "js-sys",
  "lol_alloc",
  "math-core",

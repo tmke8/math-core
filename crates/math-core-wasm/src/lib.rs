@@ -10,7 +10,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{MathDisplay, PrettyPrint};
+use math_core::{LatexError as CoreLatexError, MathDisplay, PrettyPrint};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -32,6 +32,7 @@ pub struct LatexError {
     pub start: u32,
     pub end: u32,
     context: Option<JsValue>,
+    report: Option<JsValue>,
 }
 
 #[wasm_bindgen]
@@ -45,6 +46,28 @@ impl LatexError {
     pub fn context(&self) -> Option<JsValue> {
         self.context.clone()
     }
+
+    #[wasm_bindgen(getter, unchecked_return_type = "string | undefined")]
+    pub fn report(&self) -> Option<JsValue> {
+        self.report.clone()
+    }
+}
+
+#[cfg(feature = "ariadne")]
+fn error_report(error: &CoreLatexError, source_name: &str, input: &str) -> Option<JsValue> {
+    let report = error.to_report(source_name, false);
+    let mut buf = Vec::new();
+    report
+        .write((source_name, ariadne::Source::from(input)), &mut buf)
+        .expect("failed to write report");
+    Some(JsValue::from_str(
+        &String::from_utf8(buf).expect("report should be valid UTF-8"),
+    ))
+}
+
+#[cfg(not(feature = "ariadne"))]
+fn error_report(_error: &CoreLatexError, _source_name: &str, _input: &str) -> Option<JsValue> {
+    None
 }
 
 #[wasm_bindgen]
@@ -161,6 +184,7 @@ impl LatexToMathML {
                 start,
                 end,
                 context: Some(JsValue::from_str(&context)),
+                report: error_report(&e, "macro", &context),
             }
         })?;
         Ok(LatexToMathML {
@@ -192,6 +216,7 @@ impl LatexToMathML {
                         start,
                         end,
                         context: None,
+                        report: error_report(&e, "input", content),
                     })
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))
@@ -223,6 +248,7 @@ impl LatexToMathML {
                         start,
                         end,
                         context: None,
+                        report: error_report(&e, "input", content),
                     })
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))

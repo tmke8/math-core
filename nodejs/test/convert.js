@@ -146,4 +146,23 @@ describe("Convert Tests", function () {
       }, /Unknown command "\\asdf"./);
     });
   });
+  context("Showing error reports", function () {
+    it("should show a report", function () {
+      try {
+        const converter = new LatexToMathML({});
+        const latex = "\\begin{foobar}";
+        const displaystyle = false;
+        converter.convert_with_local_counter(latex, displaystyle);
+      } catch (e) {
+        assert.equal(e.report, `Error: Unknown environment "foobar".
+   ╭─[ input:1:7 ]
+   │
+ 1 │ \\begin{foobar}
+   │       ────┬───  
+   │           ╰───── unknown environment
+───╯
+`);
+      }
+    });
+  });
 });
