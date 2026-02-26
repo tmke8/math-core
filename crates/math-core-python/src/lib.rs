@@ -13,12 +13,22 @@ create_exception!(_math_core_rust, LockError, PyException);
 struct LatexToMathML {
     inner: RwLock<math_core::LatexToMathML>,
     continue_on_error: bool,
+    fancy_error: bool,
+}
+
+fn render_fancy_error(error: &math_core::LatexError, source_name: &str, input: &str) -> String {
+    let report = error.to_report(source_name, true);
+    let mut buf = vec![b'\n'];
+    report
+        .write((source_name, ariadne::Source::from(input)), &mut buf)
+        .expect("failed to write report");
+    String::from_utf8(buf).expect("report should be valid UTF-8")
 }
 
 #[pymethods]
 impl LatexToMathML {
     #[new]
-    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false, annotation=false))]
+    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false, annotation=false, fancy_error=true))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -26,6 +36,7 @@ impl LatexToMathML {
         continue_on_error: bool,
         ignore_unknown_commands: bool,
         annotation: bool,
+        fancy_error: bool,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
@@ -55,11 +66,21 @@ impl LatexToMathML {
             Ok(inner) => Ok(LatexToMathML {
                 inner: RwLock::new(inner),
                 continue_on_error,
+                fancy_error,
             }),
             Err((latex_error, idx, source)) => {
-                let mut err = format!("macro{}:", idx);
-                latex_error.to_message(&mut err, &source);
-                Err(LatexError::new_err(err))
+                if fancy_error {
+                    let source_name = format!("macro{idx}");
+                    Err(LatexError::new_err(render_fancy_error(
+                        &latex_error,
+                        &source_name,
+                        &source,
+                    )))
+                } else {
+                    let mut err = format!("macro{idx}:");
+                    latex_error.to_message(&mut err, &source);
+                    Err(LatexError::new_err(err))
+                }
             }
         }
     }
@@ -89,6 +110,12 @@ impl LatexToMathML {
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
+                } else if self.fancy_error {
+                    Err(LatexError::new_err(render_fancy_error(
+                        &latex_error,
+                        "input",
+                        latex,
+                    )))
                 } else {
                     let mut err = String::new();
                     latex_error.to_message(&mut err, latex);
@@ -124,6 +151,12 @@ impl LatexToMathML {
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
+                } else if self.fancy_error {
+                    Err(LatexError::new_err(render_fancy_error(
+                        &latex_error,
+                        "input",
+                        latex,
+                    )))
                 } else {
                     let mut err = String::new();
                     latex_error.to_message(&mut err, latex);

@@ -135,6 +135,7 @@ The main converter class.
 - `continue_on_error` (`bool`, optional): A boolean indicating whether to raise an exception for conversion errors. If conversion fails and this is `True`, an HTML snippet describing the error will be returned, instead of raising `LatexError`. Default: `False`.
 - `ignore_unknown_commands` (`bool`, optional): A boolean indicating whether to ignore unknown LaTeX commands. If `True`, unknown commands be rendered as red text and the conversion will continue. Default: `False`.
 - `annotation` (`bool`, optional): A boolean indicating whether to include the original LaTeX as an annotation in the MathML output. Default: `False`.
+- `fancy_error` (`bool`, optional): A boolean indicating whether to render errors as rich Ariadne diagnostic reports. If `True` (the default), the `LatexError` message contains a formatted diagnostic with source spans. Set to `False` to use compact plain-text messages instead.
 
 **Methods:**
 - `convert_with_global_counter(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using a global equation counter.
