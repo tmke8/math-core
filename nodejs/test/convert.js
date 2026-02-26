@@ -99,7 +99,8 @@ describe("Convert Tests", function () {
       } catch (e) {
         assert.match(e.message, /Unknown command "\\mathb"./);
         assert.equal(e.context, "\\mathb{R}");
-        assert.equal(e.location, 0);
+        assert.equal(e.start, 0);
+        assert.equal(e.end, 6);
       }
     });
   });

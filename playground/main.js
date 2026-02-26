@@ -1,4 +1,4 @@
-import init, { LatexToMathML } from "./pkg/math_core_wasm.js";
+import init, { LatexError, LatexToMathML } from "./pkg/math_core_wasm.js";
 
 // Global cached values
 let cachedIsBlock = true; // default value
@@ -51,7 +51,11 @@ function updateConfig() {
   } catch (error) {
     const outputCode = document.getElementById("outputCode");
     if (outputCode) {
-      outputCode.textContent = `Error parsing config: ${error.message}`;
+      if (error instanceof LatexError) {
+        outputCode.textContent = formatError(error.context, error.start, error.end, error.message);
+      } else {
+        outputCode.textContent = `Error parsing config: ${error.message}`;
+      }
     }
     return false; // Return false to indicate failure
   }
@@ -234,48 +238,64 @@ export function base64UrlToUint8Array(base64String) {
 }
 
 /**
- * Formats a error message with context and a caret indicating the error position.
- * 
+ * Formats a error message with context and carets indicating the error span.
+ *
  * @param {string} input - The original input string.
- * @param {number} errorIndex - The UTF-16 index of the error in the input string.
+ * @param {number} errorStart - The UTF-16 index of the start of the error span.
+ * @param {number} errorEnd - The UTF-16 index of the end of the error span (exclusive).
  * @param {string} errorMessage - The error message to display.
  * @returns {string} The formatted error message.
  */
-function formatError(input, errorIndex, errorMessage) {
+function formatError(input, errorStart, errorEnd, errorMessage) {
   const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
   const graphemes = [...segmenter.segment(input)].map(s => s.segment);
-  
-  // Find which grapheme cluster the UTF-16 index falls into
-  let graphemeIndex = 0;
-  for (let utf16Pos = 0; utf16Pos < errorIndex && graphemeIndex < graphemes.length; graphemeIndex++) {
-    utf16Pos += graphemes[graphemeIndex].length;
+
+  // Find which grapheme cluster the UTF-16 start index falls into
+  let graphemeStart = 0;
+  for (let utf16Pos = 0; utf16Pos < errorStart && graphemeStart < graphemes.length; graphemeStart++) {
+    utf16Pos += graphemes[graphemeStart].length;
   }
-  
+
+  // Find which grapheme cluster the UTF-16 end index falls into
+  let graphemeEnd = graphemeStart;
+  for (let utf16Pos = errorStart; utf16Pos < errorEnd && graphemeEnd < graphemes.length; graphemeEnd++) {
+    utf16Pos += graphemes[graphemeEnd].length;
+  }
+
+  // Ensure at least one caret
+  if (graphemeEnd <= graphemeStart) {
+    graphemeEnd = graphemeStart + 1;
+  }
+
   // Find context bounds, stopping at newlines
   const isNewline = (s) => s === '\n' || s === '\r';
   const contextSize = 15;
-  
-  let start = graphemeIndex;
-  for (let i = 0; i < contextSize && start > 0 && !isNewline(graphemes[start - 1]); i++) {
-    start--;
+
+  let contextStart = graphemeStart;
+  for (let i = 0; i < contextSize && contextStart > 0 && !isNewline(graphemes[contextStart - 1]); i++) {
+    contextStart--;
   }
-  
-  let end = graphemeIndex;
-  for (let i = 0; i < contextSize && end < graphemes.length && !isNewline(graphemes[end]); i++) {
-    end++;
+
+  let contextEnd = graphemeEnd;
+  for (let i = 0; i < contextSize && contextEnd < graphemes.length && !isNewline(graphemes[contextEnd]); i++) {
+    contextEnd++;
   }
-  
+
   // Check if there's more content on this line beyond our window
-  const hasMoreBefore = start > 0 && !isNewline(graphemes[start - 1]);
-  const hasMoreAfter = end < graphemes.length && !isNewline(graphemes[end]);
-  
+  const hasMoreBefore = contextStart > 0 && !isNewline(graphemes[contextStart - 1]);
+  const hasMoreAfter = contextEnd < graphemes.length && !isNewline(graphemes[contextEnd]);
+
   const prefix = hasMoreBefore ? '...' : '';
   const suffix = hasMoreAfter ? '...' : '';
-  const contextString = prefix + graphemes.slice(start, end).join('') + suffix;
-  const caretLine = ' '.repeat(prefix.length + graphemeIndex - start) + '^';
-  
+  const contextString = prefix + graphemes.slice(contextStart, contextEnd).join('') + suffix;
+
+  // Clamp the highlighted range to the context window and draw carets
+  const highlightStart = Math.max(graphemeStart, contextStart);
+  const highlightEnd = Math.min(graphemeEnd, contextEnd);
+  const caretLine = ' '.repeat(prefix.length + highlightStart - contextStart) + '^'.repeat(highlightEnd - highlightStart);
+
   return [
-    `Error: ${errorMessage}`,
+    `${errorStart}:${errorEnd}: Error: ${errorMessage}`,
     '|',
     `| ${contextString}`,
     `| ${caretLine}`,
@@ -310,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       outputField.innerHTML = "";
       // outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
-      outputCode.textContent = formatError(input, error.location, error.message);
+      outputCode.textContent = formatError(input, error.start, error.end, error.message);
     }
   }
 
