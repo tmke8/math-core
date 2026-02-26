@@ -38,8 +38,15 @@ impl fmt::Display for ConversionError<'_, '_> {
                 )
             }
             ConvErrKind::LatexError(e, input) => {
-                // write!(f, "Error at {} in '{}':\n{}", idx, input, e)
-                write!(f, "Error at line {line}, column {col} in '{input}':\n{e}")
+                let source_name = "<input>";
+                let report = e.to_report(source_name, true);
+                let mut buf = Vec::new();
+                report
+                    .write((source_name, ariadne::Source::from(*input)), &mut buf)
+                    .expect("failed to write report");
+                f.write_str(
+                    std::str::from_utf8(&buf).expect("report should be valid UTF-8"),
+                )
             }
         }
     }

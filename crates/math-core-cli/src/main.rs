@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 
-use math_core::{LatexToMathML, MathDisplay};
+use math_core::{LatexError, LatexToMathML, MathDisplay};
 
 mod config_file;
 mod html_entities;
@@ -146,8 +146,10 @@ fn main() {
         }
     };
 
-    let mut converter =
-        LatexToMathML::new(config.math_core).unwrap_or_else(|err| exit_latex_error(err.0, None));
+    let mut converter = LatexToMathML::new(config.math_core).unwrap_or_else(|err| {
+        render_ariadne_report(&err.0, &format!("macro {}", err.1), &err.2);
+        std::process::exit(2);
+    });
 
     if let Some(fpath) = &args.file {
         let inline_delim: (&str, &str) = if let Some(open) = &args.inline_open {
@@ -172,7 +174,7 @@ fn main() {
                 Ok(mathml) => {
                     println!("{mathml}");
                 }
-                Err(e) => exit_latex_error(e, None),
+                Err(e) => exit_conversion_error(e, None),
             };
         } else if args.recursive {
             convert_html_recursive(&args, fpath, &mut replacer, &mut converter);
@@ -202,7 +204,10 @@ fn convert_and_exit(args: &Args, latex: &str, converter: &mut LatexToMathML) {
     };
     match converter.convert_with_global_counter(latex, display) {
         Ok(mathml) => println!("{mathml}"),
-        Err(e) => exit_latex_error(e, None),
+        Err(e) => {
+            render_ariadne_report(&e, "<input>", latex);
+            std::process::exit(2);
+        }
     }
 }
 
@@ -296,7 +301,7 @@ fn convert_html_recursive(
 fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML) {
     let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(e));
     let converted = replace(replacer, &original, converter, args.continue_on_error)
-        .unwrap_or_else(|e| exit_latex_error(e, Some(fp)));
+        .unwrap_or_else(|e| exit_conversion_error(e, Some(fp)));
     if !args.dry_run && original != converted {
         let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
         fp.write_all(converted.as_bytes())
@@ -304,7 +309,14 @@ fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut
     }
 }
 
-fn exit_latex_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
+fn render_ariadne_report(error: &LatexError, source_name: &str, input: &str) {
+    let report = error.to_report(source_name, true);
+    report
+        .eprint((source_name, ariadne::Source::from(input)))
+        .expect("failed to write report");
+}
+
+fn exit_conversion_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
     eprint!("Conversion error");
     if let Some(fp) = fp {
         eprint!(" in '{}'", fp.display());

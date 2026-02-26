@@ -384,6 +384,7 @@ dependencies = [
 name = "math-core-cli"
 version = "0.5.2"
 dependencies = [
+ "ariadne",
  "clap",
  "math-core",
  "memchr",
