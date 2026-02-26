@@ -11,6 +11,7 @@ class LatexToMathML:
         continue_on_error: bool = False,
         ignore_unknown_commands: bool = False,
         annotation: bool = False,
+        fancy_error: bool = True,
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -36,6 +37,11 @@ class LatexToMathML:
             ignore_unknown_commands: A boolean indicating whether to ignore unknown
                 LaTeX commands. If ``True``, unknown commands will be displayed as red text
                 and the conversion will continue, instead of returning an error.
+
+            fancy_error: A boolean indicating whether to render errors as rich Ariadne
+                reports. If ``True`` (the default), the ``LatexError`` message will contain
+                a formatted diagnostic with source spans. If ``False``, a compact plain-text
+                message is used instead.
         """
     def convert_with_global_counter(
         self, latex: str, *, displaystyle: bool

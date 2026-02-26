@@ -396,6 +396,7 @@ dependencies = [
 name = "math-core-python"
 version = "0.5.2"
 dependencies = [
+ "ariadne",
  "math-core",
  "pyo3",
  "rustc-hash",

@@ -17,7 +17,7 @@ def test_identifier():
 
 
 def test_exception():
-    converter = LatexToMathML(pretty_print="never")
+    converter = LatexToMathML(pretty_print="never", fancy_error=False)
     with raises(LatexError, match=r"^0: Unknown command \"\\nonexistentcommand\"."):
         _ = converter.convert_with_local_counter(
             r"\nonexistentcommand", displaystyle=False
@@ -27,6 +27,18 @@ def test_exception():
 
     with raises(ValueError):
         _ = LatexToMathML(pretty_print="sometimes")  # type: ignore
+
+
+def test_fancy_error():
+    converter = LatexToMathML(fancy_error=True)
+    with raises(LatexError) as exc_info:
+        _ = converter.convert_with_local_counter(
+            r"\nonexistentcommand", displaystyle=False
+        )
+    msg = str(exc_info.value)
+    assert r'Unknown command "\nonexistentcommand"' in msg
+    assert r"\nonexistentcommand" in msg
+    assert "input" in msg
 
 
 def test_macros():
@@ -39,7 +51,9 @@ def test_macros():
 
 def test_macros_error():
     with raises(LatexError, match=r"^macro0:0: Unknown command \"\\nonexistent\"."):
-        _ = LatexToMathML(pretty_print="never", macros={"ab": r"\nonexistent"})
+        _ = LatexToMathML(
+            pretty_print="never", macros={"ab": r"\nonexistent"}, fancy_error=False
+        )
 
 
 def test_global_counter():
