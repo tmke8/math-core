@@ -426,9 +426,9 @@ where
                     Token::BinaryOp(op) => op.as_op(),
                     Token::Relation(op) => op.as_op(),
                     Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) => *op,
-                    Token::ForceClose(op) => *op,
-                    Token::ForceBinaryOp(op) => *op,
+                    Token::ForceRelation(op) => op,
+                    Token::ForceClose(op) => op,
+                    Token::ForceBinaryOp(op) => op,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
@@ -819,7 +819,7 @@ where
                 match tok.unwrap_math() {
                     Token::Relation(op) => {
                         let (left, right) = self.state.relation_spacing(prev_class, next_class);
-                        if let Some(negated) = get_negated_op(*op) {
+                        if let Some(negated) = get_negated_op(op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attr: None,
@@ -857,7 +857,7 @@ where
                     }),
                     Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
-                        builder.push_char(*char);
+                        builder.push_char(char);
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
@@ -1549,12 +1549,7 @@ where
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
             symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-        let tok = if let Token::MathOrTextMode(tok, _) = tok {
-            *tok
-        } else {
-            tok
-        };
-        let delim = match tok {
+        let delim = match tok.unwrap_math() {
             Token::Open(paren) => paren.as_stretchable_op(),
             Token::Close(paren) => paren.as_stretchable_op(),
             Token::Ord(ord) => ord.as_stretchable_op(),

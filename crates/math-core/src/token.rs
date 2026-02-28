@@ -196,7 +196,7 @@ impl Token<'_> {
         if !in_sequence {
             return Class::Default;
         }
-        match self.unwrap_math() {
+        match self.unwrap_math_ref() {
             Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
@@ -228,9 +228,17 @@ impl Token<'_> {
 impl<'source> Token<'source> {
     /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
     #[inline]
-    pub fn unwrap_math(&self) -> &Self {
+    pub fn unwrap_math_ref(&self) -> &Self {
         if let Token::MathOrTextMode(tok, _) = self {
             tok
+        } else {
+            self
+        }
+    }
+    #[inline]
+    pub fn unwrap_math(self) -> Self {
+        if let Token::MathOrTextMode(tok, _) = self {
+            *tok
         } else {
             self
         }
