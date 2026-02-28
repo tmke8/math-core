@@ -29,7 +29,10 @@ fn test_zero_arg() {
 fn test_one_arg() {
     let macros = vec![
         ("half".to_string(), r"\frac{1}{2}\mspace{3mu}".to_string()),
-        ("mycmd".to_string(), r"\sqrt{#1}".to_string()),
+        (
+            "mycmd".to_string(),
+            r"\begin{array}{c|c}#1 & 0\end{array}".to_string(),
+        ),
     ];
 
     let config = MathCoreConfig {

@@ -2,13 +2,13 @@ use std::mem;
 use std::ops::Range;
 use std::str::CharIndices;
 
-use mathml_renderer::symbol::{self, MathMLOperator};
+use mathml_renderer::symbol;
 
 use crate::CommandConfig;
 use crate::commands::{get_command, get_text_command};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, FromAscii, Span, TokSpan, Token};
+use crate::token::{EndToken, Mode, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>
@@ -19,7 +19,7 @@ where
     peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
-    mode: Mode,
+    mode: LexerMode,
     brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     cmd_cfg: Option<&'config CommandConfig>,
@@ -37,7 +37,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             peek: (0, None),
             input_string: input,
             input_length: input.len(),
-            mode: Mode::default(),
+            mode: LexerMode::default(),
             brace_nesting_level: 0,
             parse_cmd_args: if parsing_custom_cmds {
                 Some(0) // Start counting command arguments.
@@ -189,13 +189,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     fn next_token_internal(&mut self) -> LexerResult<'config, 'source> {
-        let text_mode = matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. });
         if let Some(span) = self.skip_whitespace() {
             return LexerResult::Tok(TokSpan::new(Token::Whitespace, span));
         }
 
         let (loc, ch) = self.read_char();
-        let ascii_span = Span::new(loc, loc + 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
             return LexerResult::Tok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
         };
@@ -208,7 +206,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // TODO: use `become` here when stabilized.
             return self.next_token_internal();
         }
-        let mut span = ascii_span;
+        let mut span = Span::new(loc, loc + ch.len_utf8());
         let tok = match ch {
             '\u{0}' => {
                 return LexerResult::Err(Box::new(LatexError(
@@ -216,15 +214,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     LatexErrKind::DisallowedChar(ch),
                 )));
             }
-            ' ' => Token::Letter('\u{A0}', FromAscii::True),
-            '!' => {
-                if text_mode {
-                    Token::Letter(ch, FromAscii::True)
-                } else {
-                    Token::ForceClose(symbol::EXCLAMATION_MARK)
-                }
-            }
-            '"' => Token::Letter('”', FromAscii::True),
+            ' ' => Token::Letter('\u{A0}', Mode::MathOrText),
+            '"' => Token::Letter('”', Mode::MathOrText),
             '#' => {
                 if let Some(num) = &mut self.parse_cmd_args {
                     if let Some(next) = self.peek.1
@@ -269,45 +260,22 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             '&' => Token::NewColumn,
             '\'' => Token::Prime,
-            '(' => Token::Open(symbol::LEFT_PARENTHESIS),
-            ')' => Token::Close(symbol::RIGHT_PARENTHESIS),
-            '*' => {
-                if text_mode {
-                    Token::Letter(ch, FromAscii::True)
-                } else {
-                    Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op())
-                }
-            }
-            '+' => Token::BinaryOp(symbol::PLUS_SIGN),
-            ',' => Token::Punctuation(symbol::COMMA),
-            '-' => {
-                if text_mode {
-                    Token::Letter(ch, FromAscii::True)
-                } else {
-                    Token::BinaryOp(symbol::MINUS_SIGN)
-                }
-            }
-            '/' => Token::Ord(symbol::SOLIDUS),
-            ':' => Token::ForceRelation(symbol::COLON.as_op()),
-            ';' => Token::Punctuation(symbol::SEMICOLON),
             '<' => Token::OpLessThan,
-            '=' => Token::Relation(symbol::EQUALS_SIGN),
             '>' => Token::OpGreaterThan,
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '`' => Token::Letter('‘', FromAscii::True),
+            '`' => Token::Letter('‘', Mode::MathOrText),
             '{' => {
-                if matches!(self.mode, Mode::TextStart) {
-                    self.mode = Mode::TextGroup {
+                if matches!(self.mode, LexerMode::TextStart) {
+                    self.mode = LexerMode::TextGroup {
                         nesting: self.brace_nesting_level,
                     };
                 }
                 self.brace_nesting_level += 1;
                 Token::GroupBegin
             }
-            '|' => Token::Ord(symbol::VERTICAL_LINE),
             '}' => {
                 let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
                     return LexerResult::Err(Box::new(LatexError(
@@ -316,11 +284,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     )));
                 };
                 self.brace_nesting_level = new_level;
-                if let Mode::TextGroup { nesting } = self.mode
+                if let LexerMode::TextGroup { nesting } = self.mode
                     && nesting == self.brace_nesting_level
                 {
                     // We are closing a text group.
-                    self.mode = Mode::Math;
+                    self.mode = LexerMode::Math;
                 }
                 Token::GroupEnd
             }
@@ -333,23 +301,24 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 return self.parse_command(span, cmd_string);
             }
             c => {
-                if c.is_ascii_digit() {
+                if let Some(tok) = nonalpha_nonspecial_ascii_to_token(c) {
+                    tok
+                } else if c.is_ascii_digit() {
                     Token::Digit(c)
                 } else {
-                    let from_ascii = if (' '..='~').contains(&c) {
-                        FromAscii::True
+                    let mode = if (' '..='~').contains(&c) {
+                        Mode::MathOrText
                     } else {
-                        FromAscii::False
+                        Mode::Math
                     };
-                    span = span.with_length(c.len_utf8());
-                    Token::Letter(c, from_ascii)
+                    Token::Letter(c, mode)
                 }
             }
         };
-        if matches!(self.mode, Mode::TextStart) {
+        if matches!(self.mode, LexerMode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),
             // we go back to math mode after reading one token.
-            self.mode = Mode::Math;
+            self.mode = LexerMode::Math;
         }
         LexerResult::Tok(TokSpan::new(tok, span))
     }
@@ -359,75 +328,77 @@ impl<'config, 'source> Lexer<'config, 'source> {
         span: Span,
         cmd_string: &'source str,
     ) -> LexerResult<'config, 'source> {
-        let tok: Result<(Token<'config>, Span), LatexError> =
-            if matches!(self.mode, Mode::TextStart | Mode::TextGroup { .. }) {
-                if let Some(tok) = get_text_command(cmd_string) {
-                    Ok((tok, span))
-                } else {
-                    return LexerResult::UnknownCommand(cmd_string, span);
-                }
-            } else if let Some(tok) = self
-                .cmd_cfg
-                .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
-                .or_else(|| get_command(cmd_string))
-            {
+        let tok: Result<(Token<'config>, Span), LatexError> = if matches!(
+            self.mode,
+            LexerMode::TextStart | LexerMode::TextGroup { .. }
+        ) {
+            if let Some(tok) = get_text_command(cmd_string) {
                 Ok((tok, span))
             } else {
-                let env_marker = match cmd_string {
-                    "begin" => Some(EnvMarker::Begin),
-                    "end" => Some(EnvMarker::End),
-                    _ => None,
-                };
-                if let Some(env_marker) = env_marker {
-                    'env_name: {
-                        // First skip any whitespace.
-                        self.skip_whitespace();
-                        let group_loc = self.peek.0;
-                        // Read the environment name.
-                        let (name, end) = match self.read_env_name() {
-                            Ok(lit) => lit,
-                            Err((span, ch)) => match ch {
-                                None => {
-                                    break 'env_name Err(LatexError(
-                                        span,
-                                        LatexErrKind::UnclosedGroup(EndToken::GroupClose),
-                                    ));
-                                }
-                                Some(ch) => {
-                                    break 'env_name Err(LatexError(
-                                        span,
-                                        LatexErrKind::DisallowedChar(ch),
-                                    ));
-                                }
-                            },
-                        };
-                        // Convert the environment name to the `Env` enum.
-                        let Some(env) = Env::from_str(name) else {
-                            break 'env_name Err(LatexError(
-                                group_loc..end,
-                                LatexErrKind::UnknownEnvironment(name.into()),
-                            ));
-                        };
-                        let span = Span::new(span.start(), end);
-                        Ok((
-                            match env_marker {
-                                EnvMarker::Begin => Token::Begin(env),
-                                EnvMarker::End => Token::End(env),
-                            },
-                            span,
-                        ))
-                    }
-                } else {
-                    return LexerResult::UnknownCommand(cmd_string, span);
-                }
+                return LexerResult::UnknownCommand(cmd_string, span);
+            }
+        } else if let Some(tok) = self
+            .cmd_cfg
+            .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+            .or_else(|| get_command(cmd_string))
+        {
+            Ok((tok, span))
+        } else {
+            let env_marker = match cmd_string {
+                "begin" => Some(EnvMarker::Begin),
+                "end" => Some(EnvMarker::End),
+                _ => None,
             };
-        if matches!(self.mode, Mode::TextStart) {
+            if let Some(env_marker) = env_marker {
+                'env_name: {
+                    // First skip any whitespace.
+                    self.skip_whitespace();
+                    let group_loc = self.peek.0;
+                    // Read the environment name.
+                    let (name, end) = match self.read_env_name() {
+                        Ok(lit) => lit,
+                        Err((span, ch)) => match ch {
+                            None => {
+                                break 'env_name Err(LatexError(
+                                    span,
+                                    LatexErrKind::UnclosedGroup(EndToken::GroupClose),
+                                ));
+                            }
+                            Some(ch) => {
+                                break 'env_name Err(LatexError(
+                                    span,
+                                    LatexErrKind::DisallowedChar(ch),
+                                ));
+                            }
+                        },
+                    };
+                    // Convert the environment name to the `Env` enum.
+                    let Some(env) = Env::from_str(name) else {
+                        break 'env_name Err(LatexError(
+                            group_loc..end,
+                            LatexErrKind::UnknownEnvironment(name.into()),
+                        ));
+                    };
+                    let span = Span::new(span.start(), end);
+                    Ok((
+                        match env_marker {
+                            EnvMarker::Begin => Token::Begin(env),
+                            EnvMarker::End => Token::End(env),
+                        },
+                        span,
+                    ))
+                }
+            } else {
+                return LexerResult::UnknownCommand(cmd_string, span);
+            }
+        };
+        if matches!(self.mode, LexerMode::TextStart) {
             // If we didn't go into `Mode::TextGroup` (by reading a `{`),
             // we go back to math mode after reading one token.
-            self.mode = Mode::Math;
+            self.mode = LexerMode::Math;
         }
         if matches!(tok, Ok((Token::Text(_), _))) {
-            self.mode = Mode::TextStart;
+            self.mode = LexerMode::TextStart;
         }
         match tok {
             Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span)),
@@ -436,8 +407,27 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 }
 
+fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
+    let tok_ref = match ch {
+        '!' => &Token::ForceClose(symbol::EXCLAMATION_MARK),
+        '(' => &Token::Open(symbol::LEFT_PARENTHESIS),
+        ')' => &Token::Close(symbol::RIGHT_PARENTHESIS),
+        '*' => &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },
+        '+' => &Token::BinaryOp(symbol::PLUS_SIGN),
+        ',' => &Token::Punctuation(symbol::COMMA),
+        '-' => &Token::BinaryOp(symbol::MINUS_SIGN),
+        '/' => &Token::Ord(symbol::SOLIDUS),
+        ':' => &const { Token::ForceRelation(symbol::COLON.as_op()) },
+        ';' => &Token::Punctuation(symbol::SEMICOLON),
+        '=' => &Token::Relation(symbol::EQUALS_SIGN),
+        '|' => &Token::Ord(symbol::VERTICAL_LINE),
+        _ => return None,
+    };
+    Some(Token::MathOrTextMode(tok_ref, ch))
+}
+
 #[derive(Debug, Default)]
-enum Mode {
+enum LexerMode {
     #[default]
     Math,
     /// In text mode, spaces are converted to `Token::Whitespace` and
@@ -455,16 +445,10 @@ enum EnvMarker {
 }
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
-    const COLON: MathMLOperator = symbol::COLON.as_op();
-    const ASTERISK: MathMLOperator = symbol::ASTERISK_OPERATOR.as_op();
     match tok {
         Token::Letter(ch, _) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
+        Token::MathOrTextMode(_, ch) => Some(ch),
         Token::Whitespace => Some(' '),
-        Token::Ord(symbol::VERTICAL_LINE) => Some('|'),
-        Token::Punctuation(symbol::COMMA) => Some(','),
-        Token::BinaryOp(symbol::MINUS_SIGN) => Some('-'),
-        Token::ForceBinaryOp(ASTERISK) => Some('*'),
-        Token::ForceRelation(COLON) => Some(':'),
         Token::Digit(ch) => Some(ch),
         _ => None,
     }

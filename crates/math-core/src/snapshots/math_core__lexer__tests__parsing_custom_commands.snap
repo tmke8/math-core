@@ -10,7 +10,7 @@ expression: "\\frac{#1}{#2} + \\sqrt{#3}"
 10..12: CustomCmdArg(1)
 12..13: GroupEnd
 13..14: Whitespace
-14..15: BinaryOp(Bin { char: '+', cat: BD })
+14..15: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD }), '+')
 15..16: Whitespace
 16..21: Sqrt
 21..22: GroupBegin

@@ -3,7 +3,7 @@ source: crates/math-core/src/lexer.rs
 expression: 3..14
 ---
 0:1: Digit('3')
-1:2: Letter('.', True)
-2:3: Letter('.', True)
+1:2: Letter('.', MathOrText)
+2:3: Letter('.', MathOrText)
 3:4: Digit('1')
 4:5: Digit('4')

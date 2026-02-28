@@ -4,7 +4,7 @@ expression: "\\end{array}{c|c}"
 ---
 0:11: End(Array)
 11:12: GroupBegin
-12:13: Letter('c', True)
-13:14: Ord(OrdLike { char: '|', cat: FGandForceDefault })
-14:15: Letter('c', True)
+12:13: Letter('c', MathOrText)
+13:14: MathOrTextMode(Ord(OrdLike { char: '|', cat: FGandForceDefault }), '|')
+14:15: Letter('c', MathOrText)
 15:16: GroupEnd

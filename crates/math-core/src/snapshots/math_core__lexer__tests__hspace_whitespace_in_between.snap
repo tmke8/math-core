@@ -7,9 +7,9 @@ expression: "\\hspace {  4  em } x"
 9:10: Whitespace
 11:12: Digit('4')
 12:13: Whitespace
-14:15: Letter('e', True)
-15:16: Letter('m', True)
+14:15: Letter('e', MathOrText)
+15:16: Letter('m', MathOrText)
 16:17: Whitespace
 17:18: GroupEnd
 18:19: Whitespace
-19:20: Letter('x', True)
+19:20: Letter('x', MathOrText)

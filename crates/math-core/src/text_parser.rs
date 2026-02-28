@@ -9,7 +9,7 @@ use crate::{
     error::{LatexErrKind, LatexError},
     parser::{ParseResult, Parser},
     specifications::LatexUnit,
-    token::{EndToken, Token},
+    token::{EndToken, TextToken, Token},
 };
 
 impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
@@ -128,7 +128,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         Err(LatexErrKind::ExpectedArgumentGotClose)
                     }
                 }
-                Token::TextModeAccent(accent) => {
+                Token::TextMode(TextToken::Accent(accent)) => {
                     if str_builder.is_some() {
                         accent_to_insert = Some(accent);
                         continue;
@@ -136,6 +136,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         Err(LatexErrKind::ExpectedArgumentGotEOI)
                     }
                 }
+                Token::MathOrTextMode(_, ch) => Ok(ch),
                 Token::Text(style) => {
                     if let Some(builder) = str_builder.take()
                         && !builder.is_empty()

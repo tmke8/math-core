@@ -19,7 +19,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, FromAscii, TokSpan, Token},
+    token::{EndToken, Mode, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -233,6 +233,11 @@ where
             .tokens
             .peek_class_token()?
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+        let cur_token = if let Token::MathOrTextMode(tok, _) = cur_token {
+            *tok
+        } else {
+            cur_token
+        };
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -253,7 +258,7 @@ where
                         } else {
                             let ch = if matches!(
                                 self.tokens.peek().token(),
-                                Token::Letter('.', FromAscii::True)
+                                Token::Letter('.', Mode::MathOrText)
                             ) {
                                 Some('.')
                             } else {
@@ -415,20 +420,26 @@ where
                         ));
                     }
                 };
-                let op = match tokspan.token() {
+                let (tok, span) = tokspan.into_parts();
+                let tok = if let Token::MathOrTextMode(tok, _) = tok {
+                    *tok
+                } else {
+                    tok
+                };
+                let op = match tok {
                     Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
                     Token::Op(op) | Token::Inner(op) => op.as_op(),
                     Token::BinaryOp(op) => op.as_op(),
                     Token::Relation(op) => op.as_op(),
                     Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) => *op,
-                    Token::ForceClose(op) => *op,
-                    Token::ForceBinaryOp(op) => *op,
+                    Token::ForceRelation(op) => op,
+                    Token::ForceClose(op) => op,
+                    Token::ForceBinaryOp(op) => op,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
                         break 'mathbin Err(LatexError(
-                            tokspan.span().into(),
+                            span.into(),
                             LatexErrKind::ExpectedRelation,
                         ));
                     }
@@ -958,7 +969,8 @@ where
             }
             Token::Left => {
                 let tok_loc = self.next_token()?;
-                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True)) {
+                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
+                {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
@@ -969,7 +981,7 @@ where
                     false,
                 )?;
                 let tok_loc = self.next_token()?;
-                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', FromAscii::True))
+                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
                 {
                     None
                 } else {
@@ -1293,10 +1305,15 @@ where
                     ))
                 }
             }
-            Token::Whitespace | Token::TextModeAccent(_) => {
+            Token::Whitespace | Token::TextMode(_) => {
                 // That these tokens are not expected by the parser should never occur.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
+            }
+            Token::MathOrTextMode(_, _) => {
+                unreachable!(
+                    "MathOrTextMode tokens should have been converted to tokens or removed from the token at the beginning of this function",
+                );
             }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
@@ -1542,6 +1559,11 @@ where
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
             symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+        let tok = if let Token::MathOrTextMode(tok, _) = tok {
+            *tok
+        } else {
+            tok
+        };
         let delim = match tok {
             Token::Open(paren) => paren.as_stretchable_op(),
             Token::Close(paren) => paren.as_stretchable_op(),
@@ -1871,7 +1893,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    Letter('a', FromAscii::True),
+                    Letter('a', Mode::MathOrText),
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],
