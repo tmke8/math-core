@@ -196,7 +196,7 @@ impl Token<'_> {
         if !in_sequence {
             return Class::Default;
         }
-        match self {
+        match self.unwrap_math() {
             Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
@@ -218,7 +218,6 @@ impl Token<'_> {
                     Class::Close
                 }
             }
-            Token::MathOrTextMode(tok, _) => tok.class(in_sequence, ignore_end_tokens),
             // TODO: This needs to skip spaces and other non-class tokens in the token sequence.
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
