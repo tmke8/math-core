@@ -82,7 +82,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         {
             self.read_char(); // Discard the whitespace character.
             if span.is_none() {
-                span = Some(Span(loc, len_utf8(ch)));
+                span = Some(Span::new(loc, loc + ch.len_utf8()));
             }
         }
         span
@@ -195,7 +195,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
 
         let (loc, ch) = self.read_char();
-        let ascii_span = Span(loc, 1); // An ASCII character always has length 1.
+        let ascii_span = Span::new(loc, loc + 1); // An ASCII character always has length 1.
         let Some(ch) = ch else {
             return LexerResult::Tok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
         };
@@ -243,7 +243,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         }
                         // Discard the digit after `#`.
                         self.read_char();
-                        span = Span(span.0, 2);
+                        span = span.with_length(2);
                         Token::CustomCmdArg(param_num)
                     } else {
                         let (loc, ch) = self.read_char();
@@ -326,13 +326,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let (cmd_string, end) = self.read_command();
-                let span = loc..end;
-                let Ok(span) = Span::try_from(span) else {
-                    return LexerResult::Err(Box::new(LatexError(
-                        loc..end,
-                        LatexErrKind::HardLimitExceeded,
-                    )));
-                };
+                let span = Span::new(loc, end);
                 // After a command, all whitespace is skipped, even in text mode.
                 self.skip_whitespace();
                 return self.parse_command(span, cmd_string);
@@ -341,7 +335,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if c.is_ascii_digit() {
                     Token::Digit(c)
                 } else {
-                    span = Span(span.0, len_utf8(c));
+                    span = span.with_length(c.len_utf8());
                     Token::Letter(c)
                 }
             }
@@ -408,12 +402,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                                 LatexErrKind::UnknownEnvironment(name.into()),
                             ));
                         };
-                        let Ok(span) = Span::try_from(span.0..end) else {
-                            break 'env_name Err(LatexError(
-                                span.0..end,
-                                LatexErrKind::HardLimitExceeded,
-                            ));
-                        };
+                        let span = Span::new(span.start(), end);
                         Ok((
                             match env_marker {
                                 EnvMarker::Begin => Token::Begin(env),
@@ -472,18 +461,6 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
         Token::ForceRelation(COLON) => Some(':'),
         Token::Digit(ch) => Some(ch),
         _ => None,
-    }
-}
-
-fn len_utf8(ch: char) -> u16 {
-    const MAX_ONE_B: u32 = 0x80;
-    const MAX_TWO_B: u32 = 0x800;
-    const MAX_THREE_B: u32 = 0x10000;
-    match u32::from(ch) {
-        ..MAX_ONE_B => 1,
-        ..MAX_TWO_B => 2,
-        ..MAX_THREE_B => 3,
-        _ => 4,
     }
 }
 
