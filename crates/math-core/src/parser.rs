@@ -1549,12 +1549,7 @@ where
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
             symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-        let tok = if let Token::MathOrTextMode(tok, _) = tok {
-            *tok
-        } else {
-            tok
-        };
-        let delim = match tok {
+        let delim = match tok.unwrap_math() {
             Token::Open(paren) => paren.as_stretchable_op(),
             Token::Close(paren) => paren.as_stretchable_op(),
             Token::Ord(ord) => ord.as_stretchable_op(),
