@@ -735,6 +735,7 @@ pub fn get_command(command: &str) -> Option<Token<'static>> {
 
 pub fn get_negated_op(op: Rel) -> Option<Rel> {
     match op {
+        symbol::EQUALS_SIGN => Some(symbol::NOT_EQUAL_TO),
         symbol::ALMOST_EQUAL_TO => Some(symbol::NOT_ALMOST_EQUAL_TO),
         symbol::APPROXIMATELY_EQUAL_TO => Some(symbol::NOT_ASYMPTOTICALLY_EQUAL_TO),
         symbol::DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE => {

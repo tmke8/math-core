@@ -816,10 +816,10 @@ where
                     .tokens
                     .peek_class_token()?
                     .class(parse_as.in_sequence(), self.state.right_boundary_hack);
-                match tok {
+                match tok.unwrap_math() {
                     Token::Relation(op) => {
                         let (left, right) = self.state.relation_spacing(prev_class, next_class);
-                        if let Some(negated) = get_negated_op(op) {
+                        if let Some(negated) = get_negated_op(*op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attr: None,
@@ -857,7 +857,7 @@ where
                     }),
                     Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
-                        builder.push_char(char);
+                        builder.push_char(*char);
                         builder.push_char('\u{338}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
