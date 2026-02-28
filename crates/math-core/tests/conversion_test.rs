@@ -204,6 +204,7 @@ fn main() {
         ("not_subset", r"\not\subset"),
         ("not_less_than", r"\not\lt"),
         ("not_less_than_symbol", r"\not< x"),
+        ("not_equal", r"\not="),
         ("not_exists", r"\not\exists"),
         ("mathrm_with_superscript", r"\mathrm{x}^2"),
         ("mathrm_with_sin", r"\mathrm{x\sin}"),
