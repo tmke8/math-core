@@ -2,7 +2,7 @@
 source: crates/math-core/src/lexer.rs
 expression: "ab%hello\ncd"
 ---
-0:1: Letter('a')
-1:2: Letter('b')
-9:10: Letter('c')
-10:11: Letter('d')
+0:1: Letter('a', True)
+1:2: Letter('b', True)
+9:10: Letter('c', True)
+10:11: Letter('d', True)

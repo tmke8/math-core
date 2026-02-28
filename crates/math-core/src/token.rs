@@ -128,7 +128,7 @@ pub enum Token<'source> {
     /// Used in, e.g., `\xrightarrow` and `\xleftarrow`.
     StretchyRel(Rel),
     /// An ordinary letter, e.g. `a`, `b`, `c`.
-    Letter(char),
+    Letter(char, FromAscii),
     /// A letter for which we need `mathvariant="normal"`.
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
     UprightLetter(char),
@@ -214,6 +214,13 @@ impl Token<'_> {
             _ => Class::Default,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum FromAscii {
+    #[default]
+    False,
+    True,
 }
 
 #[derive(Debug, Clone, Copy, Default)]

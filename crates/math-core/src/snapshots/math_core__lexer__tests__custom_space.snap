@@ -3,11 +3,11 @@ source: crates/math-core/src/lexer.rs
 expression: "{x\\hspace{2em}}"
 ---
 0:1: GroupBegin
-1:2: Letter('x')
+1:2: Letter('x', True)
 2:9: CustomSpace
 9:10: GroupBegin
 10:11: Digit('2')
-11:12: Letter('e')
-12:13: Letter('m')
+11:12: Letter('e', True)
+12:13: Letter('m', True)
 13:14: GroupEnd
 14:15: GroupEnd
