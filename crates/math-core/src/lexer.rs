@@ -275,12 +275,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 } else if c.is_ascii_digit() {
                     Token::Digit(c)
                 } else {
-                    let mode = if (' '..='~').contains(&c) {
-                        Mode::MathOrText
-                    } else {
-                        Mode::Math
-                    };
-                    Token::Letter(c, mode)
+                    Token::Letter(c, Mode::MathOrText)
                 }
             }
         };

@@ -35,6 +35,7 @@ fn main() {
             r#"\text{!"\#\$\%'()*+,-./:;=?@[]\_`|}"#,
         ),
         ("text_html_escape", r"\text{<\&>}"),
+        ("text_greek_direct_input", r"\text{Γγ}"),
         ("textbackslash", r"\text{\textbackslash}"),
         ("textit", r"\textit{x}"),
         ("textbf", r"\textbf{x}"),
