@@ -2,6 +2,6 @@
 source: crates/math-core/src/lexer.rs
 expression: x+y
 ---
-0:1: Letter('x')
-1:2: BinaryOp(Bin { char: '+', cat: BD })
-2:3: Letter('y')
+0:1: Letter('x', MathOrText)
+1:2: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD }), '+')
+2:3: Letter('y', MathOrText)

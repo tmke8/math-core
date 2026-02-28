@@ -2,5 +2,5 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\ 1"
 ---
-0:2: NonBreakingSpace
+0:2: MathOrTextMode(NonBreakingSpace, '\u{a0}')
 2:3: Digit('1')

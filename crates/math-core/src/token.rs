@@ -128,7 +128,7 @@ pub enum Token<'source> {
     /// Used in, e.g., `\xrightarrow` and `\xleftarrow`.
     StretchyRel(Rel),
     /// An ordinary letter, e.g. `a`, `b`, `c`.
-    Letter(char),
+    Letter(char, Mode),
     /// A letter for which we need `mathvariant="normal"`.
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
     UprightLetter(char),
@@ -166,7 +166,10 @@ pub enum Token<'source> {
     HardcodedMathML(&'static str),
     /// A token for text-mode accents, e.g. `\~{n}`. The `char` is a Unicode combining character,
     /// e.g. `\u{0303}` for the tilde accent.
-    TextModeAccent(char),
+    TextMode(TextToken),
+    /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
+    /// is the character that the command produces, e.g. `{` for `\{`.
+    MathOrTextMode(&'static Token<'static>, char),
     /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
     /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
     /// of the unknown command.
@@ -174,6 +177,12 @@ pub enum Token<'source> {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TextToken {
+    Accent(char),
+    Letter(char),
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -187,7 +196,7 @@ impl Token<'_> {
         if !in_sequence {
             return Class::Default;
         }
-        match self {
+        match self.unwrap_math() {
             Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
             Token::Punctuation(_) => Class::Punctuation,
             Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
@@ -214,6 +223,25 @@ impl Token<'_> {
             _ => Class::Default,
         }
     }
+}
+
+impl<'source> Token<'source> {
+    /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
+    #[inline]
+    pub fn unwrap_math(&self) -> &Self {
+        if let Token::MathOrTextMode(tok, _) = self {
+            tok
+        } else {
+            self
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum Mode {
+    #[default]
+    Math,
+    MathOrText,
 }
 
 #[derive(Debug, Clone, Copy, Default)]

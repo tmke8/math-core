@@ -5,9 +5,16 @@ expression: "x = \\mycmd{3} + \\half"
 <math>
     <mi>x</mi>
     <mo>=</mo>
-    <msqrt>
-        <mn>3</mn>
-    </msqrt>
+    <mtable>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>3</mn>
+            </mtd>
+            <mtd>
+                <mn>0</mn>
+            </mtd>
+        </mtr>
+    </mtable>
     <mo>+</mo>
     <mfrac>
         <mn>1</mn>

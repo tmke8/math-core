@@ -7,5 +7,5 @@ Error: Unmatched closing token: "\end{...}".
    │
  1 │ \end{matrix}
    │ ──────┬─────  
-   │       ╰─────── unmatched "\end{...}"
+   │       ╰─────── no matching opening for this
 ───╯

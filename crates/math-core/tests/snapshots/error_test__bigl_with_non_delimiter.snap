@@ -7,5 +7,5 @@ Error: There must be a parenthesis after "\big, \Big, ...", but not found.
    │
  1 │ \bigl x 1 \bigr)
    │       ┬  
-   │       ╰── expected a delimiter after "\big, \Big, ..."
+   │       ╰── expected a delimiter here
 ───╯

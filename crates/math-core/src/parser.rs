@@ -19,7 +19,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, TokSpan, Token},
+    token::{EndToken, Mode, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -233,6 +233,11 @@ where
             .tokens
             .peek_class_token()?
             .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+        let cur_token = if let Token::MathOrTextMode(tok, _) = cur_token {
+            *tok
+        } else {
+            cur_token
+        };
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -251,7 +256,10 @@ where
                         let ch = if let Token::Digit(number) = self.tokens.peek().token() {
                             *number
                         } else {
-                            let ch = if matches!(self.tokens.peek().token(), Token::Letter('.')) {
+                            let ch = if matches!(
+                                self.tokens.peek().token(),
+                                Token::Letter('.', Mode::MathOrText)
+                            ) {
                                 Some('.')
                             } else {
                                 None
@@ -272,7 +280,7 @@ where
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            tok @ (Token::Letter(c) | Token::UprightLetter(c)) => {
+            tok @ (Token::Letter(c, _) | Token::UprightLetter(c)) => {
                 let mut is_upright = matches!(tok, Token::UprightLetter(_));
                 let mut with_tf = false;
                 let ch = if let Some(tf) = self.state.transform {
@@ -412,7 +420,7 @@ where
                         ));
                     }
                 };
-                let op = match tokspan.token() {
+                let op = match tokspan.token().unwrap_math() {
                     Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
                     Token::Op(op) | Token::Inner(op) => op.as_op(),
                     Token::BinaryOp(op) => op.as_op(),
@@ -847,7 +855,7 @@ where
                         left: None,
                         right: None,
                     }),
-                    Token::Letter(char) | Token::UprightLetter(char) => {
+                    Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
                         builder.push_char('\u{338}');
@@ -955,7 +963,8 @@ where
             }
             Token::Left => {
                 let tok_loc = self.next_token()?;
-                let open_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
+                {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
@@ -966,7 +975,8 @@ where
                     false,
                 )?;
                 let tok_loc = self.next_token()?;
-                let close_paren = if matches!(tok_loc.token(), Token::Letter('.')) {
+                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
+                {
                     None
                 } else {
                     Some(self.extract_delimiter(tok_loc, DelimiterModifier::Right)?)
@@ -1079,7 +1089,7 @@ where
                 )
             }
             Token::OperatorName(with_limits) => {
-                let snippets = self.parse_in_text_mode(None, false)?;
+                let snippets = self.extract_text(None, false)?;
                 let mut builder = self.buffer.get_builder();
                 for (_style, text) in snippets {
                     builder.push_str(text);
@@ -1111,7 +1121,7 @@ where
                 }
             }
             Token::Text(transform) => {
-                let snippets = self.parse_in_text_mode(transform, true)?;
+                let snippets = self.extract_text(transform, true)?;
                 let nodes = snippets
                     .into_iter()
                     .map(|(style, text)| self.commit(Node::Text(style, text)))
@@ -1289,11 +1299,12 @@ where
                     ))
                 }
             }
-            Token::Whitespace | Token::TextModeAccent(_) => {
-                // That these tokens are not expected by the parser should never occur.
+            Token::Whitespace | Token::MathOrTextMode(_, _) => {
+                // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
             }
+            Token::TextMode(_) => Err(LatexError(span.into(), LatexErrKind::NotValidInMathMode)),
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
@@ -1538,6 +1549,11 @@ where
             symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
         const SQ_R_BRACKET: StretchableOp =
             symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+        let tok = if let Token::MathOrTextMode(tok, _) = tok {
+            *tok
+        } else {
+            tok
+        };
         let delim = match tok {
             Token::Open(paren) => paren.as_stretchable_op(),
             Token::Close(paren) => paren.as_stretchable_op(),
@@ -1570,7 +1586,7 @@ where
         let mut first_char: Option<char> = None;
 
         // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch) | Token::UprightLetter(ch) | Token::Digit(ch)) =
+        while let tok @ (Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch)) =
             self.tokens.peek().token()
         {
             if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
@@ -1867,7 +1883,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    Letter('a'),
+                    Letter('a', Mode::MathOrText),
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],

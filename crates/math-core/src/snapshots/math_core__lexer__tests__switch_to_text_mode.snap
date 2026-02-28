@@ -4,5 +4,5 @@ expression: "\\prod\\text\\o\\sum"
 ---
 0:5: Op(Op { char: '∏', cat: J })
 5:10: Text(None)
-10:12: Letter('ø')
+10:12: TextMode(Letter('ø'))
 12:16: Op(Op { char: '∑', cat: J })

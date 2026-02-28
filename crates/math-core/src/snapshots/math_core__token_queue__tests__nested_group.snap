@@ -2,14 +2,14 @@
 source: crates/math-core/src/token_queue.rs
 expression: "{x + {y - z}} c"
 ---
-1..2: Letter('x')
+1..2: Letter('x', MathOrText)
 2..3: Whitespace
-3..4: BinaryOp(Bin { char: '+', cat: BD })
+3..4: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD }), '+')
 4..5: Whitespace
 5..6: GroupBegin
-6..7: Letter('y')
+6..7: Letter('y', MathOrText)
 7..8: Whitespace
-8..9: BinaryOp(Bin { char: '−', cat: BD })
+8..9: MathOrTextMode(BinaryOp(Bin { char: '−', cat: BD }), '-')
 9..10: Whitespace
-10..11: Letter('z')
+10..11: Letter('z', MathOrText)
 11..12: GroupEnd

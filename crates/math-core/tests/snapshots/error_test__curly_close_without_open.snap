@@ -7,5 +7,5 @@ Error: Unmatched closing token: "}".
    │
  1 │ }
    │ ┬  
-   │ ╰── unmatched "}"
+   │ ╰── no matching opening for this
 ───╯

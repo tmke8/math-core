@@ -3,9 +3,9 @@ source: crates/math-core/src/lexer.rs
 expression: "{x\\color r y}"
 ---
 0:1: GroupBegin
-1:2: Letter('x')
+1:2: Letter('x', MathOrText)
 2:8: Color
-9:10: Letter('r')
+9:10: Letter('r', MathOrText)
 10:11: Whitespace
-11:12: Letter('y')
+11:12: Letter('y', MathOrText)
 12:13: GroupEnd

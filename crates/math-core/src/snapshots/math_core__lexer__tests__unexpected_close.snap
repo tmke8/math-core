@@ -1,5 +1,0 @@
----
-source: crates/math-core/src/lexer.rs
-expression: "x + y}"
----
-Error at 5..6: UnmatchedClose(GroupClose)

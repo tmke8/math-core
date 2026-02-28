@@ -42,6 +42,8 @@ pub(crate) enum LatexErrKind {
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
     NotValidInTextMode,
+    NotValidInMathMode,
+    CouldNotExtractText,
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
@@ -176,6 +178,12 @@ impl LatexErrKind {
             LatexErrKind::NotValidInTextMode => {
                 write!(s, "Not valid in text mode.")?;
             }
+            LatexErrKind::NotValidInMathMode => {
+                write!(s, "Not valid in math mode.")?;
+            }
+            LatexErrKind::CouldNotExtractText => {
+                write!(s, "Could not extract text from the given macro.")?;
+            }
             LatexErrKind::InvalidMacroName(name) => {
                 write!(s, "Invalid macro name: \"\\{}\".", name)?;
             }
@@ -272,14 +280,10 @@ impl LatexError {
                 <&str>::from(expected)
             )
             .into(),
-            LatexErrKind::UnmatchedClose(got) => {
-                format!("unmatched \"{}\"", <&str>::from(got)).into()
-            }
+            LatexErrKind::UnmatchedClose(_) => "no matching opening for this".into(),
             LatexErrKind::ExpectedArgumentGotClose => "expected an argument here".into(),
             LatexErrKind::ExpectedArgumentGotEOI => "expected an argument here".into(),
-            LatexErrKind::ExpectedDelimiter(modifier) => {
-                format!("expected a delimiter after \"{}\"", <&str>::from(*modifier)).into()
-            }
+            LatexErrKind::ExpectedDelimiter(_) => "expected a delimiter here".into(),
             LatexErrKind::DisallowedChar(_) => "disallowed character".into(),
             LatexErrKind::UnknownEnvironment(_) => "unknown environment".into(),
             LatexErrKind::UnknownCommand(_) => "unknown command".into(),
@@ -296,11 +300,13 @@ impl LatexError {
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),
-            LatexErrKind::ExpectedText(place) => format!("expected text in {place}").into(),
+            LatexErrKind::ExpectedText(_) => "expected text here".into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
-            LatexErrKind::NotValidInTextMode => "not valid in text mode".into(),
+            LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),
+            LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),
+            LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),

@@ -2,4 +2,4 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\pi"
 ---
-0:3: Letter('π')
+0:3: Letter('π', Math)

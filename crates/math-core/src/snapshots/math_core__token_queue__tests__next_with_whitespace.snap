@@ -5,10 +5,10 @@ expression: "\\text{  x +   y }"
 0..5: Text(None)
 5..6: GroupBegin
 6..7: Whitespace
-8..9: Letter('x')
+8..9: Letter('x', MathOrText)
 9..10: Whitespace
-10..11: BinaryOp(Bin { char: '+', cat: BD })
+10..11: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD }), '+')
 11..12: Whitespace
-14..15: Letter('y')
+14..15: Letter('y', MathOrText)
 15..16: Whitespace
 16..17: GroupEnd

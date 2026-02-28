@@ -2,5 +2,5 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\alpha\\beta"
 ---
-0:6: Letter('α')
-6:11: Letter('β')
+0:6: Letter('α', Math)
+6:11: Letter('β', Math)
