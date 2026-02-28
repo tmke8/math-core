@@ -217,45 +217,53 @@ impl Token<'_> {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Span(pub usize, pub u16);
+pub struct Span {
+    start: usize,
+    end: usize,
+}
 
 impl Span {
     #[inline]
+    pub const fn new(start: usize, end: usize) -> Self {
+        Span { start, end }
+    }
+
+    #[inline]
     pub const fn zero_width(at: usize) -> Self {
-        Span(at, 0)
+        Span { start: at, end: at }
     }
 
     #[inline]
     pub const fn start(&self) -> usize {
-        self.0
+        self.start
     }
 
     #[inline]
     pub const fn end(&self) -> usize {
-        self.0 + self.1 as usize
+        self.end
+    }
+
+    /// Returns a new `Span` with the same start position as `self`, but with the end position set
+    /// to `self.start + length`.
+    #[inline]
+    pub const fn with_length(self, length: usize) -> Self {
+        Span {
+            start: self.start,
+            end: self.start + length,
+        }
     }
 }
 
 impl From<Span> for Range<usize> {
     #[inline]
     fn from(span: Span) -> Self {
-        span.0..(span.0 + span.1 as usize)
-    }
-}
-
-impl TryFrom<Range<usize>> for Span {
-    type Error = ();
-    #[inline]
-    fn try_from(range: Range<usize>) -> Result<Self, ()> {
-        let length = range.end.checked_sub(range.start).ok_or(())?;
-        let length = u16::try_from(length).map_err(|_| ())?;
-        Ok(Span(range.start, length))
+        span.start..span.end
     }
 }
 
 /// A token together with its span in the input string.
 #[derive(Debug, Clone, Copy)]
-pub struct TokSpan<'config>(Token<'config>, usize, u16);
+pub struct TokSpan<'config>(Token<'config>, Span);
 
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
@@ -263,7 +271,7 @@ static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
 impl<'config> TokSpan<'config> {
     #[inline]
     pub const fn new(token: Token<'config>, span: Span) -> Self {
-        TokSpan(token, span.0, span.1)
+        TokSpan(token, span)
     }
 
     #[inline]
@@ -278,7 +286,7 @@ impl<'config> TokSpan<'config> {
 
     #[inline]
     pub fn into_parts(self) -> (Token<'config>, Span) {
-        (self.0, Span(self.1, self.2))
+        (self.0, self.1)
     }
 
     // #[inline]
@@ -288,7 +296,7 @@ impl<'config> TokSpan<'config> {
 
     #[inline]
     pub fn span(&self) -> Span {
-        Span(self.1, self.2)
+        self.1
     }
 
     #[inline]
@@ -300,7 +308,7 @@ impl<'config> TokSpan<'config> {
 impl<'config> From<Token<'config>> for TokSpan<'config> {
     #[inline]
     fn from(token: Token<'config>) -> Self {
-        TokSpan(token, 0, 0)
+        TokSpan(token, Span::default())
     }
 }
 
