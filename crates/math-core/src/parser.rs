@@ -420,26 +420,20 @@ where
                         ));
                     }
                 };
-                let (tok, span) = tokspan.into_parts();
-                let tok = if let Token::MathOrTextMode(tok, _) = tok {
-                    *tok
-                } else {
-                    tok
-                };
-                let op = match tok {
+                let op = match tokspan.token().unwrap_math() {
                     Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
                     Token::Op(op) | Token::Inner(op) => op.as_op(),
                     Token::BinaryOp(op) => op.as_op(),
                     Token::Relation(op) => op.as_op(),
                     Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) => op,
-                    Token::ForceClose(op) => op,
-                    Token::ForceBinaryOp(op) => op,
+                    Token::ForceRelation(op) => *op,
+                    Token::ForceClose(op) => *op,
+                    Token::ForceBinaryOp(op) => *op,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
                         break 'mathbin Err(LatexError(
-                            span.into(),
+                            tokspan.span().into(),
                             LatexErrKind::ExpectedRelation,
                         ));
                     }
@@ -1095,7 +1089,7 @@ where
                 )
             }
             Token::OperatorName(with_limits) => {
-                let snippets = self.parse_in_text_mode(None, false)?;
+                let snippets = self.extract_text(None, false)?;
                 let mut builder = self.buffer.get_builder();
                 for (_style, text) in snippets {
                     builder.push_str(text);
@@ -1127,7 +1121,7 @@ where
                 }
             }
             Token::Text(transform) => {
-                let snippets = self.parse_in_text_mode(transform, true)?;
+                let snippets = self.extract_text(transform, true)?;
                 let nodes = snippets
                     .into_iter()
                     .map(|(style, text)| self.commit(Node::Text(style, text)))
@@ -1305,16 +1299,12 @@ where
                     ))
                 }
             }
-            Token::Whitespace | Token::TextMode(_) => {
-                // That these tokens are not expected by the parser should never occur.
+            Token::Whitespace | Token::MathOrTextMode(_, _) => {
+                // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
             }
-            Token::MathOrTextMode(_, _) => {
-                unreachable!(
-                    "MathOrTextMode tokens should have been converted to tokens or removed from the token at the beginning of this function",
-                );
-            }
+            Token::TextMode(_) => Err(LatexError(span.into(), LatexErrKind::NotValidInMathMode)),
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to

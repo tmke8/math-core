@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\operatorname{\\begin{matrix}}"
 ---
-Error: Not valid in text mode.
+Error: Could not extract text from the given macro.
    ╭─[ <input>:1:15 ]
    │
  1 │ \operatorname{\begin{matrix}}
    │               ───────┬──────  
-   │                      ╰──────── not valid in text mode
+   │                      ╰──────── could not extract text from this
 ───╯

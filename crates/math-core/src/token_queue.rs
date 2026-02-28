@@ -298,7 +298,7 @@ fn is_not_whitespace(tok: &TokSpan) -> bool {
 
 fn has_class(tok: &TokSpan) -> bool {
     !matches!(
-        tok.token(),
+        tok.token().unwrap_math(),
         Token::Whitespace | Token::Space(_) | Token::Not | Token::TransformSwitch(_)
     )
 }

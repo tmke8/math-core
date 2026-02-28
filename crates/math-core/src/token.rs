@@ -182,6 +182,7 @@ pub enum Token<'source> {
 #[derive(Debug, Clone, Copy)]
 pub enum TextToken {
     Accent(char),
+    Letter(char),
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -221,6 +222,18 @@ impl Token<'_> {
             // TODO: This needs to skip spaces and other non-class tokens in the token sequence.
             Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
             _ => Class::Default,
+        }
+    }
+}
+
+impl<'source> Token<'source> {
+    /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
+    #[inline]
+    pub fn unwrap_math(&self) -> &Self {
+        if let Token::MathOrTextMode(tok, _) = self {
+            tok
+        } else {
+            self
         }
     }
 }

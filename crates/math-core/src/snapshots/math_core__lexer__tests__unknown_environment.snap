@@ -2,4 +2,10 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\begin{unknownenv} x + y \\end{unknownenv}"
 ---
-Error at 6..18: UnknownEnvironment("unknownenv")
+Error: Unknown environment "unknownenv".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \begin{unknownenv} x + y \end{unknownenv}
+   │       ──────┬─────  
+   │             ╰─────── unknown environment
+───╯

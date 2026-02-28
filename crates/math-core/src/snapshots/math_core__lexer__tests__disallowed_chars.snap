@@ -2,4 +2,10 @@
 source: crates/math-core/src/lexer.rs
 expression: "\\begin{matrix x + y}"
 ---
-Error at 16..17: DisallowedChar('+')
+Error: Disallowed character in text group: '+'.
+   ╭─[ <input>:1:17 ]
+   │
+ 1 │ \begin{matrix x + y}
+   │                 ┬  
+   │                 ╰── disallowed character
+───╯

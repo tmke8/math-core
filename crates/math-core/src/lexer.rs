@@ -5,7 +5,7 @@ use std::str::CharIndices;
 use mathml_renderer::symbol;
 
 use crate::CommandConfig;
-use crate::commands::{get_command, get_text_command};
+use crate::commands::get_command;
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{EndToken, Mode, Span, TokSpan, Token};
@@ -19,8 +19,6 @@ where
     peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
-    mode: LexerMode,
-    brace_nesting_level: usize,
     parse_cmd_args: Option<u8>,
     cmd_cfg: Option<&'config CommandConfig>,
 }
@@ -37,8 +35,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
             peek: (0, None),
             input_string: input,
             input_length: input.len(),
-            mode: LexerMode::default(),
-            brace_nesting_level: 0,
             parse_cmd_args: if parsing_custom_cmds {
                 Some(0) // Start counting command arguments.
             } else {
@@ -128,9 +124,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         // If the first character is not `{`, we read a single character.
         let (loc, first) = self.read_char();
         if first != Some('{') {
-            return if first.is_some_and(|ch| {
-                ch.is_ascii_alphanumeric() || matches!(ch, '|' | '.' | '-' | ',' | '*' | ':')
-            }) {
+            return if first.is_some_and(|ch| ch.is_ascii_alphabetic() || matches!(ch, '*')) {
                 // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
                 Ok((self.input_string.get_unwrap(loc..self.peek.0), self.peek.0))
             } else {
@@ -140,9 +134,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         let start = self.peek.0;
 
         while self.peek.1.is_some_and(|ch| {
-            ch.is_ascii_alphanumeric()
-                || ch.is_ascii_whitespace()
-                || matches!(ch, '|' | '.' | '-' | ',' | '*' | ':')
+            ch.is_ascii_alphabetic() || ch.is_ascii_whitespace() || matches!(ch, '*')
         }) {
             self.read_char();
         }
@@ -267,31 +259,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
             '`' => Token::Letter('‘', Mode::MathOrText),
-            '{' => {
-                if matches!(self.mode, LexerMode::TextStart) {
-                    self.mode = LexerMode::TextGroup {
-                        nesting: self.brace_nesting_level,
-                    };
-                }
-                self.brace_nesting_level += 1;
-                Token::GroupBegin
-            }
-            '}' => {
-                let Some(new_level) = self.brace_nesting_level.checked_sub(1) else {
-                    return LexerResult::Err(Box::new(LatexError(
-                        loc..(loc + 1),
-                        LatexErrKind::UnmatchedClose(EndToken::GroupClose),
-                    )));
-                };
-                self.brace_nesting_level = new_level;
-                if let LexerMode::TextGroup { nesting } = self.mode
-                    && nesting == self.brace_nesting_level
-                {
-                    // We are closing a text group.
-                    self.mode = LexerMode::Math;
-                }
-                Token::GroupEnd
-            }
+            '{' => Token::GroupBegin,
+            '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
             '\\' => {
                 let (cmd_string, end) = self.read_command();
@@ -315,11 +284,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
             }
         };
-        if matches!(self.mode, LexerMode::TextStart) {
-            // If we didn't go into `Mode::TextGroup` (by reading a `{`),
-            // we go back to math mode after reading one token.
-            self.mode = LexerMode::Math;
-        }
         LexerResult::Tok(TokSpan::new(tok, span))
     }
 
@@ -328,16 +292,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         span: Span,
         cmd_string: &'source str,
     ) -> LexerResult<'config, 'source> {
-        let tok: Result<(Token<'config>, Span), LatexError> = if matches!(
-            self.mode,
-            LexerMode::TextStart | LexerMode::TextGroup { .. }
-        ) {
-            if let Some(tok) = get_text_command(cmd_string) {
-                Ok((tok, span))
-            } else {
-                return LexerResult::UnknownCommand(cmd_string, span);
-            }
-        } else if let Some(tok) = self
+        let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
             .cmd_cfg
             .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
             .or_else(|| get_command(cmd_string))
@@ -392,14 +347,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 return LexerResult::UnknownCommand(cmd_string, span);
             }
         };
-        if matches!(self.mode, LexerMode::TextStart) {
-            // If we didn't go into `Mode::TextGroup` (by reading a `{`),
-            // we go back to math mode after reading one token.
-            self.mode = LexerMode::Math;
-        }
-        if matches!(tok, Ok((Token::Text(_), _))) {
-            self.mode = LexerMode::TextStart;
-        }
         match tok {
             Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span)),
             Err(err) => LexerResult::Err(Box::new(err)),
@@ -424,19 +371,6 @@ fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
         _ => return None,
     };
     Some(Token::MathOrTextMode(tok_ref, ch))
-}
-
-#[derive(Debug, Default)]
-enum LexerMode {
-    #[default]
-    Math,
-    /// In text mode, spaces are converted to `Token::Whitespace` and
-    /// math commands (like `\sqrt`) don't work. Instead, text commands
-    /// (like `\ae`) are recognized.
-    TextStart,
-    TextGroup {
-        nesting: usize, // The nesting level of `{` in the text group.
-    },
 }
 
 enum EnvMarker {
@@ -522,20 +456,17 @@ mod tests {
     fn test_lexer_errors() {
         let problems = [
             ("unknown_command", r"\unknowncmd + x"),
-            ("unexpected_close", r"x + y}"),
             ("missing_brace", r"\begin x + y"),
             ("disallowed_chars", r"\begin{matrix x + y}"),
             (
                 "unknown_environment",
                 r"\begin{unknownenv} x + y \end{unknownenv}",
             ),
-            ("unexpected_close_in_group", r"{x + y}}"),
             ("null_character_in_input", "x + \u{0} + y"),
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
             let mut lexer = Lexer::new(problem, false, None);
-            let mut tokens = String::new();
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
@@ -548,16 +479,16 @@ mod tests {
                     }
                 }
             };
-            let Some(err) = err else {
+            let Some(error) = err else {
                 panic!("Expected an error in problem: {}", problem);
             };
-            write!(
-                tokens,
-                "Error at {}..{}: {:?}\n",
-                err.0.start, err.0.end, err.1
-            )
-            .unwrap();
-            assert_snapshot!(name, &tokens, problem);
+            let report = error.to_report("<input>", false);
+            let mut buf = Vec::new();
+            report
+                .write(("<input>", ariadne::Source::from(problem)), &mut buf)
+                .expect("failed to write report");
+            let output = String::from_utf8(buf).expect("report should be valid UTF-8");
+            assert_snapshot!(name, &output, problem);
         }
     }
 

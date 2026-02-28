@@ -7,5 +7,5 @@ Error: There must be a parenthesis after "\right", but not found.
    │
  1 │ \left( 1 \right x
    │                 ┬  
-   │                 ╰── expected a delimiter after "\right"
+   │                 ╰── expected a delimiter here
 ───╯
