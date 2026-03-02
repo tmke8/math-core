@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "\\overset12"
 ---
 [
-  Overset(
+  Over(
     symbol: Number("1"),
     target: Number("2"),
   ),

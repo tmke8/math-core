@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "x_:\\equiv, x_:="
 ---
 [
-  Subscript(
+  Sub(
     target: IdentifierChar('x', Default),
     symbol: Operator(
       op: ':',
@@ -24,7 +24,7 @@ expression: "x_:\\equiv, x_:="
     left: None,
     right: None,
   ),
-  Subscript(
+  Sub(
     target: IdentifierChar('x', Default),
     symbol: Operator(
       op: ':',

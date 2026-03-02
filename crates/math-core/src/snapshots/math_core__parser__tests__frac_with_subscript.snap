@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "\\frac12_x"
 ---
 [
-  Subscript(
+  Sub(
     target: Frac(
       num: Number("1"),
       denom: Number("2"),

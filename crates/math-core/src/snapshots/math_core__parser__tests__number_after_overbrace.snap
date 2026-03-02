@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "\\overbrace12"
 ---
 [
-  Overset(
+  Over(
     symbol: Operator(
       op: '⏞',
       attr: None,

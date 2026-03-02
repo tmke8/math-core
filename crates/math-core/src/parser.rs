@@ -192,8 +192,8 @@ where
             // one of the node types for superscripts and subscripts.
             let node = self.commit(match bounds {
                 Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                Bounds(Some(symbol), None) => Node::Subscript { target, symbol },
-                Bounds(None, Some(symbol)) => Node::Superscript { target, symbol },
+                Bounds(Some(symbol), None) => Node::Sub { target, symbol },
+                Bounds(None, Some(symbol)) => Node::Sup { target, symbol },
                 Bounds(None, None) => {
                     nodes.push(target);
                     continue;
@@ -662,9 +662,9 @@ where
             Token::Accent(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
-                    Ok(Node::OverOp(op.as_op(), attr, target))
+                    Ok(Node::OverAccent(op.as_op(), attr, target))
                 } else {
-                    Ok(Node::UnderOp(op.as_op(), target))
+                    Ok(Node::UnderAccent(op.as_op(), target))
                 }
             }
             Token::Overset | Token::Underset => {
@@ -678,9 +678,9 @@ where
                 self.state.right_boundary_hack = old_boundary_hack;
                 class = cls;
                 if matches!(cur_token, Token::Overset) {
-                    Ok(Node::Overset { symbol, target })
+                    Ok(Node::Over { symbol, target })
                 } else {
-                    Ok(Node::Underset { symbol, target })
+                    Ok(Node::Under { symbol, target })
                 }
             }
             Token::OverUnderBrace(x, is_over) => {
@@ -692,9 +692,9 @@ where
                     right: None,
                 });
                 let base = if is_over {
-                    Node::Overset { symbol, target }
+                    Node::Over { symbol, target }
                 } else {
-                    Node::Underset { symbol, target }
+                    Node::Under { symbol, target }
                 };
                 if (is_over && matches!(self.tokens.peek().token(), Token::Circumflex))
                     || (!is_over && matches!(self.tokens.peek().token(), Token::Underscore))
@@ -703,12 +703,12 @@ where
                     self.next_token()?; // Discard the circumflex or underscore token.
                     let expl = self.parse_next(ParseAs::Arg)?;
                     if is_over {
-                        Ok(Node::Overset {
+                        Ok(Node::Over {
                             symbol: expl,
                             target,
                         })
                     } else {
-                        Ok(Node::Underset {
+                        Ok(Node::Under {
                             symbol: expl,
                             target,
                         })
@@ -751,15 +751,15 @@ where
                             under,
                             over,
                         }),
-                        Bounds(Some(symbol), None) => Ok(Node::Underset { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Overset { target, symbol }),
+                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
                         Bounds(None, None) => return Ok((class, target)),
                     }
                 } else {
                     match bounds {
                         Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Subscript { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Superscript { target, symbol }),
+                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
                         Bounds(None, None) => return Ok((class, target)),
                     }
                 }
@@ -792,8 +792,8 @@ where
                         under,
                         over,
                     },
-                    Bounds(Some(symbol), None) => Node::Underset { target: op, symbol },
-                    Bounds(None, Some(symbol)) => Node::Overset { target: op, symbol },
+                    Bounds(Some(symbol), None) => Node::Under { target: op, symbol },
+                    Bounds(None, Some(symbol)) => Node::Over { target: op, symbol },
                     Bounds(None, None) => {
                         return Ok((class, op));
                     }
@@ -1105,8 +1105,8 @@ where
                             under,
                             over,
                         },
-                        Bounds(Some(symbol), None) => Node::Underset { target: op, symbol },
-                        Bounds(None, Some(symbol)) => Node::Overset { target: op, symbol },
+                        Bounds(Some(symbol), None) => Node::Under { target: op, symbol },
+                        Bounds(None, Some(symbol)) => Node::Over { target: op, symbol },
                         Bounds(None, None) => {
                             return Ok((Class::Operator, op));
                         }
@@ -1235,7 +1235,7 @@ where
                     left: None,
                     right: None,
                 });
-                Ok(Node::Superscript { target, symbol })
+                Ok(Node::Sup { target, symbol })
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
@@ -1256,12 +1256,12 @@ where
                         attr: None,
                     });
                     if matches!(tok, Token::Underscore) {
-                        Ok(Node::Subscript {
+                        Ok(Node::Sub {
                             target: empty_row,
                             symbol,
                         })
                     } else {
-                        Ok(Node::Superscript {
+                        Ok(Node::Sup {
                             target: empty_row,
                             symbol,
                         })

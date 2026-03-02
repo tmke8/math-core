@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: x^12
 ---
 [
-  Superscript(
+  Sup(
     target: IdentifierChar('x', Default),
     symbol: Number("1"),
   ),
