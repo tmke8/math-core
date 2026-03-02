@@ -169,7 +169,9 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         self.find_or_load_after_next(SkipMode::NoClass)
     }
 
-    /// Get the next non-whitespace token.
+    /// Get the next math-mode token.
+    ///
+    /// This method skips any whitespace tokens and unwraps [`Token::MathOrTextMode`].
     ///
     /// This method also ensures that there is always a peekable token after this one.
     pub(super) fn next(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
@@ -181,6 +183,12 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         // Now pop the next token.
         if let Some(ret) = self.queue.pop_front() {
             self.ensure_next_non_whitespace()?;
+            let (tok, span) = ret.into_parts();
+            let ret = TokSpan::new(tok.unwrap_math(), span);
+            debug_assert!(!matches!(
+                ret.token(),
+                Token::Whitespace | Token::MathOrTextMode(_, _)
+            ));
             Ok(ret)
         } else {
             // We must have reached EOI previously.
@@ -189,8 +197,10 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
     }
 
-    /// Get the next token which may be whitespace.
-    pub(super) fn next_with_whitespace(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
+    /// Get the next token without skipping or unwrapping anything.
+    ///
+    /// This method may return whitespace tokens and [`Token::MathOrTextMode`].
+    pub(super) fn next_any_token(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -235,12 +245,12 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     pub(super) fn record_group(
         &mut self,
         tokens: &mut Vec<TokSpan<'source>>,
-        with_whitespace: bool,
+        preserve_all: bool,
     ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
         let end = loop {
-            let tokloc = if with_whitespace {
-                self.next_with_whitespace()
+            let tokloc = if preserve_all {
+                self.next_any_token()
             } else {
                 self.next()
             };
@@ -274,17 +284,26 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// Read one macro argument, which is either a single token or a group of tokens.
     ///
     /// Any immediately following whitespace is always skipped. If the argument is a group, then
-    /// the parameter `with_whitespace` determines whether the whitespace tokens within the group
+    /// the parameter `preserve_all` determines whether the whitespace tokens within the group
     /// are included in the output vector or not.
     pub fn read_argument(
         &mut self,
-        with_whitespace: bool,
+        preserve_all: bool,
     ) -> Result<MacroArgument<'source>, Box<LatexError>> {
-        let first = self.next()?;
+        let first = if preserve_all {
+            // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
+            // perform the unwrapping that `next()` does. So we use this hack here of copying the
+            // peek token and then discarding it with `next()`.
+            let tok = *self.peek();
+            self.next()?;
+            tok
+        } else {
+            self.next()?
+        };
         if matches!(first.token(), Token::GroupBegin) {
             let mut tokens = Vec::new();
             // Read until the matching `}`.
-            let end_loc = self.record_group(&mut tokens, with_whitespace)?;
+            let end_loc = self.record_group(&mut tokens, preserve_all)?;
             Ok(MacroArgument::Group(tokens, first.span().start()..end_loc))
         } else {
             Ok(MacroArgument::Token(first))
@@ -359,7 +378,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_read_group() {
+    fn test_record_group() {
         let problems = [
             ("simple_group", r"{x+y}"),
             ("group_followed", r"{x+y} b"),
@@ -390,7 +409,14 @@ mod tests {
                     }
                     token_str
                 }
-                Err(err) => format!("Error at {}..{}: {:?}", err.0.start, err.0.end, err.1),
+                Err(error) => {
+                    let report = error.to_report("<input>", false);
+                    let mut buf = Vec::new();
+                    report
+                        .write(("<input>", ariadne::Source::from(problem)), &mut buf)
+                        .expect("failed to write report");
+                    String::from_utf8(buf).expect("report should be valid UTF-8")
+                }
             };
             assert_snapshot!(name, &tokens, problem);
         }
@@ -406,7 +432,7 @@ mod tests {
         let mut token_str = String::new();
 
         loop {
-            let (tok, span) = manager.next_with_whitespace().unwrap().into_parts();
+            let (tok, span) = manager.next_any_token().unwrap().into_parts();
             if matches!(tok, Token::Eoi) {
                 break;
             }
@@ -441,5 +467,43 @@ mod tests {
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));
+    }
+
+    #[test]
+    fn text_read_argument() {
+        let problems = [
+            ("hyphen", r"-xy", true),
+            ("hyphen_math_mode", r"-xy", false),
+            ("consecutive_whitespace", r"{x   y} z", true),
+            ("consecutive_whitespace_skip", r"{x   y} z", false),
+        ];
+
+        for (name, problem, preserve_all) in problems.into_iter() {
+            let lexer = Lexer::new(problem, false, None);
+            let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+            let tokens = match manager.read_argument(preserve_all) {
+                Ok(MacroArgument::Group(tokens, _)) => {
+                    let mut token_str = String::new();
+                    for tokloc in tokens {
+                        let (tok, span) = tokloc.into_parts();
+                        write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+                    }
+                    token_str
+                }
+                Ok(MacroArgument::Token(tok)) => {
+                    let (tok, span) = tok.into_parts();
+                    format!("{}..{}: {:?}\n", span.start(), span.end(), tok)
+                }
+                Err(error) => {
+                    let report = error.to_report("<input>", false);
+                    let mut buf = Vec::new();
+                    report
+                        .write(("<input>", ariadne::Source::from(problem)), &mut buf)
+                        .expect("failed to write report");
+                    String::from_utf8(buf).expect("report should be valid UTF-8")
+                }
+            };
+            assert_snapshot!(name, &tokens, problem);
+        }
     }
 }

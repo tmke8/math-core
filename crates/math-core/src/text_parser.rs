@@ -26,7 +26,7 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
 
         while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
             let tokloc = if text_mode {
-                self.tokens.next_with_whitespace()
+                self.tokens.next_any_token()
             } else {
                 self.tokens.next()
             };

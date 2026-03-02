@@ -89,6 +89,8 @@ fn main() {
         ("mathbin_no_arg", r"x \mathbin{} y"),
         ("mathbin_letter", r"x \mathbin a y"),
         ("genfrac_too_many_numbers", r"\genfrac[]{0pt}{00}{a}{b}"),
+        ("unknown_color", r"{\color{foobar} x}"),
+        ("unknown_color_no_braces", r"{\color - x}"),
     ];
 
     let config = MathCoreConfig {

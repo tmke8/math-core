@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "{\\color{foobar} x}"
+---
+Error: Unknown color "foobar".
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ {\color{foobar} x}
+   │        ────┬───  
+   │            ╰───── unknown color
+───╯

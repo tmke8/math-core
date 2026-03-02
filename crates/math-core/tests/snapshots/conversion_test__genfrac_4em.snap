@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\genfrac(]{4em}{2}{a+b}{c+d}"
+expression: "\\genfrac(]{4em}2{a+b}{c+d}"
 ---
 <math>
     <mrow displaystyle="false" scriptlevel="1">

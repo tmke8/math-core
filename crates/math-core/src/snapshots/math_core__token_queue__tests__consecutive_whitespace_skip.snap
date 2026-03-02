@@ -1,0 +1,6 @@
+---
+source: crates/math-core/src/token_queue.rs
+expression: "{x   y} z"
+---
+1..2: Letter('x', MathOrText)
+5..6: Letter('y', MathOrText)
