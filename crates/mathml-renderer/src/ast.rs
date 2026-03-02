@@ -22,7 +22,8 @@ pub enum Node<'arena> {
     Number(&'arena str),
     /// `<mi>...</mi>` for a single character.
     IdentifierChar(char, LetterAttr),
-    StretchableOp(StretchableOp, StretchMode, Option<OpAttr>),
+    /// `<mi>...</mi>` for a string.
+    IdentifierStr(&'arena str),
     /// `<mo>...</mo>` for a single character.
     Operator {
         op: MathMLOperator,
@@ -30,6 +31,7 @@ pub enum Node<'arena> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
+    StretchableOp(StretchableOp, StretchMode, Option<OpAttr>),
     /// `<mo>...</mo>` for a string.
     PseudoOp {
         attr: Option<OpAttr>,
@@ -37,17 +39,15 @@ pub enum Node<'arena> {
         right: Option<MathSpacing>,
         name: &'arena str,
     },
-    /// `<mi>...</mi>` for a string.
-    IdentifierStr(&'arena str),
     /// `<mspace width="..."/>`
     Space(Length),
     /// `<msub>...</msub>`
-    Subscript {
+    Sub {
         target: &'arena Node<'arena>,
         symbol: &'arena Node<'arena>,
     },
     /// `<msup>...</msup>`
-    Superscript {
+    Sup {
         target: &'arena Node<'arena>,
         symbol: &'arena Node<'arena>,
     },
@@ -58,16 +58,16 @@ pub enum Node<'arena> {
         sup: &'arena Node<'arena>,
     },
     /// `<mover accent="true">...</mover>`
-    OverOp(MathMLOperator, Option<OpAttr>, &'arena Node<'arena>),
-    /// `<munder accent="true">...</munder>`
-    UnderOp(MathMLOperator, &'arena Node<'arena>),
+    OverAccent(MathMLOperator, Option<OpAttr>, &'arena Node<'arena>),
+    /// `<munder accentunder="true">...</munder>`
+    UnderAccent(MathMLOperator, &'arena Node<'arena>),
     /// `<mover>...</mover>`
-    Overset {
+    Over {
         symbol: &'arena Node<'arena>,
         target: &'arena Node<'arena>,
     },
     /// `<munder>...</munder>`
-    Underset {
+    Under {
         symbol: &'arena Node<'arena>,
         target: &'arena Node<'arena>,
     },
@@ -266,28 +266,28 @@ impl Node<'_> {
                 write!(s, "\"/>")?;
             }
             // The following nodes have exactly two children.
-            node @ (Node::Subscript {
+            node @ (Node::Sub {
                 symbol: second,
                 target: first,
             }
-            | Node::Superscript {
+            | Node::Sup {
                 symbol: second,
                 target: first,
             }
-            | Node::Overset {
+            | Node::Over {
                 symbol: second,
                 target: first,
             }
-            | Node::Underset {
+            | Node::Under {
                 symbol: second,
                 target: first,
             }
             | Node::Root(second, first)) => {
                 let (open, close) = match node {
-                    Node::Subscript { .. } => ("<msub>", "</msub>"),
-                    Node::Superscript { .. } => ("<msup>", "</msup>"),
-                    Node::Overset { .. } => ("<mover>", "</mover>"),
-                    Node::Underset { .. } => ("<munder>", "</munder>"),
+                    Node::Sub { .. } => ("<msub>", "</msub>"),
+                    Node::Sup { .. } => ("<msup>", "</msup>"),
+                    Node::Over { .. } => ("<mover>", "</mover>"),
+                    Node::Under { .. } => ("<munder>", "</munder>"),
                     Node::Root(_, _) => ("<mroot>", "</mroot>"),
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
@@ -336,7 +336,7 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</mmultiscripts>");
             }
-            Node::OverOp(op, attr, target) => {
+            Node::OverAccent(op, attr, target) => {
                 write!(s, "<mover accent=\"true\">")?;
                 target.emit(s, child_indent)?;
                 writeln_indent!(s, child_indent, "<mo");
@@ -346,7 +346,7 @@ impl Node<'_> {
                 write!(s, ">{}</mo>", char::from(op))?;
                 writeln_indent!(s, base_indent, "</mover>");
             }
-            Node::UnderOp(op, target) => {
+            Node::UnderAccent(op, target) => {
                 write!(s, "<munder accentunder=\"true\">")?;
                 target.emit(s, child_indent)?;
                 writeln_indent!(s, child_indent, "<mo>{}</mo>", char::from(op));
@@ -925,7 +925,7 @@ mod tests {
     #[test]
     fn render_subscript() {
         assert_eq!(
-            render(&Node::Subscript {
+            render(&Node::Sub {
                 target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
@@ -936,7 +936,7 @@ mod tests {
     #[test]
     fn render_superscript() {
         assert_eq!(
-            render(&Node::Superscript {
+            render(&Node::Sup {
                 target: &Node::IdentifierChar('x', LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
@@ -959,7 +959,7 @@ mod tests {
     #[test]
     fn render_over_op() {
         assert_eq!(
-            render(&Node::OverOp(
+            render(&Node::OverAccent(
                 symbol::MACRON.as_op(),
                 Some(OpAttr::StretchyFalse),
                 &Node::IdentifierChar('x', LetterAttr::Default),
@@ -967,7 +967,7 @@ mod tests {
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
         assert_eq!(
-            render(&Node::OverOp(
+            render(&Node::OverAccent(
                 symbol::OVERLINE.as_op(),
                 None,
                 &Node::IdentifierChar('x', LetterAttr::Default),
@@ -979,7 +979,7 @@ mod tests {
     #[test]
     fn render_under_op() {
         assert_eq!(
-            render(&Node::UnderOp(
+            render(&Node::UnderAccent(
                 symbol::LOW_LINE.as_op(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
@@ -990,7 +990,7 @@ mod tests {
     #[test]
     fn render_overset() {
         assert_eq!(
-            render(&Node::Overset {
+            render(&Node::Over {
                 symbol: &Node::Operator {
                     op: symbol::EXCLAMATION_MARK,
                     attr: None,
@@ -1011,7 +1011,7 @@ mod tests {
     #[test]
     fn render_underset() {
         assert_eq!(
-            render(&Node::Underset {
+            render(&Node::Under {
                 symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
                 target: &Node::PseudoOp {
                     attr: Some(OpAttr::ForceMovableLimits),

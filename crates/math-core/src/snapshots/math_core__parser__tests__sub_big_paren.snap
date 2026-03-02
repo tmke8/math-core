@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "x_\\big("
 ---
 [
-  Subscript(
+  Sub(
     target: IdentifierChar('x', Default),
     symbol: SizedParen(Scale1, StretchableOp('(', Always), None),
   ),

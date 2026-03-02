@@ -14,7 +14,7 @@ expression: "\\pmod{3}_4"
     unit: Em,
   )),
   Number("3"),
-  Subscript(
+  Sub(
     target: StretchableOp(StretchableOp(')', Always), NoStretch, None),
     symbol: Number("4"),
   ),

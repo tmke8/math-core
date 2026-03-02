@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "\\sum\\limits_12"
 ---
 [
-  Underset(
+  Under(
     symbol: Number("1"),
     target: Operator(
       op: '∑',

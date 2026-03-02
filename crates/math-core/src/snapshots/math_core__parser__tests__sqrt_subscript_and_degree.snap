@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: "\\sqrt[3] x_i"
 ---
 [
-  Subscript(
+  Sub(
     target: Root(Number("3"), IdentifierChar('x', Default)),
     symbol: IdentifierChar('i', Default),
   ),

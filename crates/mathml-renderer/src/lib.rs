@@ -11,7 +11,7 @@
 //!
 //! let ast = Node::Row {
 //!     nodes: &[
-//!         &Node::Underset {
+//!         &Node::Under {
 //!             target: &Node::Operator {
 //!                 op: symbol::N_ARY_SUMMATION.as_op(),
 //!                 attr: None,

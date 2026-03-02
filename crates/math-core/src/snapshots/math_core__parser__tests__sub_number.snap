@@ -3,7 +3,7 @@ source: crates/math-core/src/parser.rs
 expression: x_123
 ---
 [
-  Subscript(
+  Sub(
     target: IdentifierChar('x', Default),
     symbol: Number("1"),
   ),
