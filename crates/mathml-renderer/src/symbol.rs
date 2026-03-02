@@ -99,9 +99,9 @@ pub enum OrdCategory {
     D,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     E,
-    /// Category F: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// Category F: Prefix, zero spacing, stretchy, symmetric
     F,
-    /// Category G: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// Category G: Postfix, zero spacing, stretchy, symmetric
     G,
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// (e.g. `‖`).

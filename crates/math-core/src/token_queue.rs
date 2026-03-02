@@ -336,7 +336,7 @@ pub enum MacroArgument<'source> {
 
 impl<'source> MacroArgument<'source> {
     /// Try to interpret this macro argument as a single token.
-    pub fn as_one_or_none(self) -> Result<OneOrNone<'source>, Box<LatexError>> {
+    pub fn into_one_or_none(self) -> Result<OneOrNone<'source>, Box<LatexError>> {
         match self {
             MacroArgument::Token(tok) => Ok(OneOrNone::One(tok)),
             MacroArgument::Group(tokens, span) => {

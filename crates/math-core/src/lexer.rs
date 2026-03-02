@@ -120,7 +120,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// If the end of the input is reached before finding a `}`, the `Err` contains
     /// the span and `None`.
     #[inline]
-    fn read_env_name(&mut self) -> Result<(&'source str, usize), (Range<usize>, Option<char>)> {
+    fn read_env_name(&mut self) -> Result<(&'source str, usize), CharSpan> {
         // If the first character is not `{`, we read a single character.
         let (loc, first) = self.read_char();
         if first != Some('{') {
@@ -128,7 +128,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
                 Ok((self.input_string.get_unwrap(loc..self.peek.0), self.peek.0))
             } else {
-                Err((loc..(loc + first.map_or(0, |ch| ch.len_utf8())), first))
+                Err((first, loc..(loc + first.map_or(0, |ch| ch.len_utf8()))))
             };
         }
         let start = self.peek.0;
@@ -146,7 +146,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
             Ok((self.input_string.get_unwrap(start..end), end + 1))
         } else {
-            Err((loc..(loc + closing.map_or(0, |ch| ch.len_utf8())), closing))
+            Err((closing, loc..(loc + closing.map_or(0, |ch| ch.len_utf8()))))
         }
     }
 
@@ -307,7 +307,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     // Read the environment name.
                     let (name, end) = match self.read_env_name() {
                         Ok(lit) => lit,
-                        Err((span, ch)) => match ch {
+                        Err((ch, span)) => match ch {
                             None => {
                                 break 'env_name Err(LatexError(
                                     span,
@@ -348,6 +348,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
     }
 }
+
+type CharSpan = (Option<char>, Range<usize>);
 
 fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
     let tok_ref = match ch {

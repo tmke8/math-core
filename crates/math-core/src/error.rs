@@ -253,7 +253,7 @@ impl LatexError {
     /// # Arguments
     /// - `s`: The string to write the message into.
     /// - `input`: The original LaTeX input that caused the error; used to
-    ///    calculate the character offset for the error position.
+    ///   calculate the character offset for the error position.
     pub fn to_message(&self, s: &mut String, input: &str) {
         let loc = input.floor_char_boundary(self.0.start);
         let codepoint_offset = input[..loc].chars().count();

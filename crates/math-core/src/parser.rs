@@ -406,7 +406,7 @@ where
                 })
             }
             Token::Mathbin => 'mathbin: {
-                let tokspan = match self.tokens.read_argument(false)?.as_one_or_none()? {
+                let tokspan = match self.tokens.read_argument(false)?.into_one_or_none()? {
                     OneOrNone::One(tokspan) => tokspan,
                     OneOrNone::None(span) => {
                         break 'mathbin Err(LatexError(
@@ -528,7 +528,7 @@ where
                 match parse_length_specification(length.trim()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::ExpectedLength(length.into()),
                     )),
                 }
@@ -597,7 +597,7 @@ where
                     'source: 'arena,
                     'arena: 'cell,
                 {
-                    let tok = parser.tokens.read_argument(false)?.as_one_or_none()?;
+                    let tok = parser.tokens.read_argument(false)?.into_one_or_none()?;
                     Ok(match tok {
                         OneOrNone::One(tok) => {
                             Some(parser.extract_delimiter(tok, DelimiterModifier::Genfrac)?)
@@ -612,13 +612,13 @@ where
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
                         self.alloc_err(LatexError(
-                            span.into(),
+                            span,
                             LatexErrKind::ExpectedLength(decimal.into()),
                         ))
                     })?,
                 };
                 let style_token: Option<TokSpan> =
-                    self.tokens.read_argument(false)?.as_one_or_none()?.into();
+                    self.tokens.read_argument(false)?.into_one_or_none()?.into();
                 let style = if let Some(tokspan) = style_token {
                     if let Token::Digit(num) = tokspan.token() {
                         match num {
@@ -1202,7 +1202,7 @@ where
                 let (color_name, span) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
                     break 'color Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::UnknownColor(color_name.into()),
                     ));
                 };
@@ -1727,7 +1727,7 @@ impl<'source> ParserState<'source> {
         next_class: Class,
         force: bool,
     ) -> Option<MathSpacing> {
-        let spacing = if !in_sequence {
+        if !in_sequence {
             // Don't add spacing if we are in an argument.
             None
         } else if matches!(
@@ -1743,8 +1743,7 @@ impl<'source> ParserState<'source> {
             Some(MathSpacing::FourMu) // force binary op spacing
         } else {
             None
-        };
-        spacing
+        }
     }
 }
 
