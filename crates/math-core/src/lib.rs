@@ -40,7 +40,7 @@ mod text_parser;
 mod token;
 mod token_queue;
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -264,7 +264,7 @@ fn convert(
     }
     if matches!(display, MathDisplay::Block) {
         output.push_str(" display=\"block\"");
-    };
+    }
     output.push('>');
 
     let pretty_print = matches!(flags.pretty_print, PrettyPrint::Always)
@@ -274,7 +274,7 @@ fn convert(
     if flags.annotation {
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
-        let node = parser::node_vec_to_node(&arena, ast, false);
+        let node = parser::node_vec_to_node(&arena, &ast, false);
         let _ = node.emit(&mut output, base_indent + 1);
         new_line_and_indent(&mut output, base_indent + 1);
         output.push_str("<annotation encoding=\"application/x-tex\">");
@@ -318,7 +318,7 @@ fn parse_custom_commands(
     macros: Vec<(String, String)>,
     ignore_unknown_commands: bool,
 ) -> Result<CommandConfig, (Box<LatexError>, usize, String)> {
-    let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), Default::default());
+    let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), FxBuildHasher);
     let mut tokens = Vec::new();
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
         if !is_valid_macro_name(name.as_str()) {
@@ -360,7 +360,7 @@ fn parse_custom_commands(
             Ok(v) => {
                 map.insert(name, v);
             }
-        };
+        }
     }
     Ok(CommandConfig {
         custom_cmd_tokens: tokens,

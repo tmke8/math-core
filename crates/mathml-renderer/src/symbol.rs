@@ -14,7 +14,7 @@ use serde::Serialize;
 pub struct MathMLOperator(char);
 
 impl MathMLOperator {
-    #[inline(always)]
+    #[inline]
     pub const fn as_char(&self) -> char {
         self.0
     }
@@ -49,8 +49,8 @@ impl BMPChar {
         BMPChar { char: ch as u16 }
     }
 
-    #[inline(always)]
-    pub const fn as_char(&self) -> char {
+    #[inline]
+    pub const fn as_char(self) -> char {
         debug_assert!(char::from_u32(self.char as u32).is_some(), "Invalid char.");
         unsafe { char::from_u32_unchecked(self.char as u32) }
     }
@@ -80,7 +80,7 @@ macro_rules! make_character_class {
                 }
             }
 
-            #[inline(always)]
+            #[inline]
             pub const fn as_op(&self) -> MathMLOperator {
                 MathMLOperator(self.char.as_char())
             }
@@ -99,9 +99,9 @@ pub enum OrdCategory {
     D,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     E,
-    /// Category F: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// Category F: Prefix, zero spacing, stretchy, symmetric
     F,
-    /// Category G: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// Category G: Postfix, zero spacing, stretchy, symmetric
     G,
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// (e.g. `‖`).
@@ -126,7 +126,7 @@ make_character_class!(
 );
 
 impl OrdLike {
-    #[inline(always)]
+    #[inline]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         let (stretchy, spacing) = match self.cat {
             OrdCategory::F | OrdCategory::G => (Stretchy::Always, DelimiterSpacing::Zero),
@@ -190,7 +190,7 @@ make_character_class!(
 );
 
 impl Rel {
-    #[inline(always)]
+    #[inline]
     pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
         match self.cat {
             RelCategory::A => Some(StretchableOp {
@@ -198,7 +198,7 @@ impl Rel {
                 stretchy: Stretchy::AlwaysAsymmetric,
                 spacing: DelimiterSpacing::NonZero,
             }),
-            _ => None,
+            RelCategory::Default => None,
         }
     }
 }
@@ -209,7 +209,7 @@ impl Rel {
 pub struct Punct(char);
 
 impl Punct {
-    #[inline(always)]
+    #[inline]
     pub const fn as_op(&self) -> MathMLOperator {
         MathMLOperator(self.0)
     }

@@ -62,8 +62,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             &mut self.peek,
             self.input
                 .next()
-                .map(|(idx, ch)| (idx, Some(ch)))
-                .unwrap_or((self.input_length, None)),
+                .map_or((self.input_length, None), |(idx, ch)| (idx, Some(ch))),
         )
     }
 
@@ -120,7 +119,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// If the end of the input is reached before finding a `}`, the `Err` contains
     /// the span and `None`.
     #[inline]
-    fn read_env_name(&mut self) -> Result<(&'source str, usize), (Range<usize>, Option<char>)> {
+    fn read_env_name(&mut self) -> Result<(&'source str, usize), CharSpan> {
         // If the first character is not `{`, we read a single character.
         let (loc, first) = self.read_char();
         if first != Some('{') {
@@ -128,7 +127,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
                 Ok((self.input_string.get_unwrap(loc..self.peek.0), self.peek.0))
             } else {
-                Err((loc..(loc + first.map_or(0, |ch| ch.len_utf8())), first))
+                Err((first, loc..(loc + first.map_or(0, char::len_utf8))))
             };
         }
         let start = self.peek.0;
@@ -146,7 +145,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             // SAFETY: we got `start` and `end` from `CharIndices`, so they are valid bounds.
             Ok((self.input_string.get_unwrap(start..end), end + 1))
         } else {
-            Err((loc..(loc + closing.map_or(0, |ch| ch.len_utf8())), closing))
+            Err((closing, loc..(loc + closing.map_or(0, char::len_utf8))))
         }
     }
 
@@ -215,13 +214,16 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     {
                         // In pre-defined commands, `#` is used to denote a parameter.
                         let param_num = (next as u32).wrapping_sub('1' as u32);
-                        if !(0..=8).contains(&param_num) {
+                        let param_num = if let Ok(param_num) = u8::try_from(param_num)
+                            && (0..=8).contains(&param_num)
+                        {
+                            param_num
+                        } else {
                             return LexerResult::Err(Box::new(LatexError(
                                 (loc + 1)..(loc + 2),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
-                        }
-                        let param_num = param_num as u8;
+                        };
                         if (param_num + 1) > *num {
                             *num = param_num + 1;
                         }
@@ -236,12 +238,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
                                 loc..(loc + ch.len_utf8()),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
-                        } else {
-                            return LexerResult::Err(Box::new(LatexError(
-                                loc..loc,
-                                LatexErrKind::ExpectedParamNumberGotEOI,
-                            )));
                         }
+                        return LexerResult::Err(Box::new(LatexError(
+                            loc..loc,
+                            LatexErrKind::ExpectedParamNumberGotEOI,
+                        )));
                     }
                 } else {
                     return LexerResult::Err(Box::new(LatexError(
@@ -307,7 +308,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     // Read the environment name.
                     let (name, end) = match self.read_env_name() {
                         Ok(lit) => lit,
-                        Err((span, ch)) => match ch {
+                        Err((ch, span)) => match ch {
                             None => {
                                 break 'env_name Err(LatexError(
                                     span,
@@ -349,6 +350,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 }
 
+type CharSpan = (Option<char>, Range<usize>);
+
 fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
     let tok_ref = match ch {
         '!' => &Token::ForceClose(symbol::EXCLAMATION_MARK),
@@ -376,9 +379,8 @@ enum EnvMarker {
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
         Token::Letter(ch, _) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
-        Token::MathOrTextMode(_, ch) => Some(ch),
+        Token::Digit(ch) | Token::MathOrTextMode(_, ch) => Some(ch),
         Token::Whitespace => Some(' '),
-        Token::Digit(ch) => Some(ch),
         _ => None,
     }
 }

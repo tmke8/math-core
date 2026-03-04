@@ -722,14 +722,13 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 };
 
 pub fn get_command(command: &str) -> Option<Token<'static>> {
-    match COMMANDS.get(command) {
-        Some(token) => Some(*token),
-        None => {
-            if let Some(function) = FUNCTIONS.get_key(command) {
-                return Some(PseudoOperator(function));
-            }
-            None
+    if let Some(token) = COMMANDS.get(command) {
+        Some(*token)
+    } else {
+        if let Some(function) = FUNCTIONS.get_key(command) {
+            return Some(PseudoOperator(function));
         }
+        None
     }
 }
 

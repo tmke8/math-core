@@ -204,7 +204,7 @@ impl<'arena> ColumnGenerator<'arena> {
                     write!(s, "{SIMPLE_CENTERED}")?;
                 }
             }
-        };
+        }
         Ok(())
     }
 }

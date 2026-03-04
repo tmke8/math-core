@@ -395,7 +395,7 @@ impl Node<'_> {
                         write!(s, ";\">")?;
                     }
                 }
-                for node in nodes.iter() {
+                for node in *nodes {
                     node.emit(s, child_indent)?;
                 }
                 writeln_indent!(s, base_indent, "</mrow>");
@@ -409,7 +409,7 @@ impl Node<'_> {
                 match style {
                     Some(style) => write!(s, "<mrow{}>", <&str>::from(style))?,
                     None => write!(s, "<mrow>")?,
-                };
+                }
                 new_line_and_indent(s, child_indent);
                 emit_stretchy_op(s, StretchMode::Fence, *open, None)?;
                 // TODO: if `content` is an `mrow`, we should flatten it before emitting.
@@ -432,7 +432,7 @@ impl Node<'_> {
                     Stretchy::AlwaysAsymmetric => {
                         write!(s, " symmetric=\"true\"")?;
                     }
-                    _ => {}
+                    Stretchy::Always => {}
                 }
                 if let Some(paren_type) = paren_type
                     && matches!(paren.spacing, DelimiterSpacing::InfixNonZero)
@@ -606,7 +606,7 @@ impl Node<'_> {
             Node::Dummy => {
                 // Do nothing.
             }
-        };
+        }
         Ok(())
     }
 }
@@ -620,7 +620,7 @@ fn emit_operator_attributes(
     match attr {
         Some(attributes) => write!(s, "<mo{}", <&str>::from(attributes))?,
         None => write!(s, "<mo")?,
-    };
+    }
     match (left, right) {
         (Some(left), Some(right)) => {
             write!(
@@ -637,7 +637,7 @@ fn emit_operator_attributes(
             write!(s, " rspace=\"{}\"", <&str>::from(right))?;
         }
         _ => {}
-    };
+    }
     Ok(())
 }
 
@@ -649,7 +649,7 @@ enum NumberColums {
 
 impl NumberColums {
     fn dummy_column_opening(
-        &self,
+        self,
         s: &mut String,
         child_indent2: usize,
     ) -> Result<(), std::fmt::Error> {
@@ -667,7 +667,7 @@ impl NumberColums {
     /// Initial dummy column for equation numbering for keeping alignment.
     #[inline]
     fn initial_dummy_column(
-        &self,
+        self,
         s: &mut String,
         child_indent2: usize,
     ) -> Result<(), std::fmt::Error> {
@@ -701,7 +701,7 @@ fn emit_table(
         numbering_cols.initial_dummy_column(s, child_indent2)?;
     }
     col_gen.write_next_mtd(s, child_indent2)?;
-    for node in content.iter() {
+    for node in content {
         match node {
             Node::ColumnSeparator => {
                 writeln_indent!(s, child_indent2, "</mtd>");
@@ -755,7 +755,7 @@ fn write_equation_num(
 ) -> Result<(), std::fmt::Error> {
     numbering_cols.dummy_column_opening(s, child_indent2)?;
     if let Some(equation_counter) = equation_counter {
-        write!(s, r#";{}">"#, RIGHT_ALIGN)?;
+        write!(s, r#";{RIGHT_ALIGN}">"#)?;
         writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);
         writeln_indent!(s, child_indent2, "</mtd>");
     } else {

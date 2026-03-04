@@ -118,16 +118,16 @@ impl LatexErrKind {
                 )?;
             }
             LatexErrKind::DisallowedChar(got) => {
-                write!(s, "Disallowed character in text group: '{}'.", got)?;
+                write!(s, "Disallowed character in text group: '{got}'.")?;
             }
             LatexErrKind::UnknownEnvironment(environment) => {
-                write!(s, "Unknown environment \"{}\".", environment)?;
+                write!(s, "Unknown environment \"{environment}\".")?;
             }
             LatexErrKind::UnknownCommand(cmd) => {
-                write!(s, "Unknown command \"\\{}\".", cmd)?;
+                write!(s, "Unknown command \"\\{cmd}\".")?;
             }
             LatexErrKind::UnknownColor(color) => {
-                write!(s, "Unknown color \"{}\".", color)?;
+                write!(s, "Unknown color \"{color}\".")?;
             }
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 write!(
@@ -164,16 +164,16 @@ impl LatexErrKind {
                 write!(s, "Math variant switch command found outside of sequence.")?;
             }
             LatexErrKind::ExpectedText(place) => {
-                write!(s, "Expected text in {}.", place)?;
+                write!(s, "Expected text in {place}.")?;
             }
             LatexErrKind::ExpectedLength(got) => {
-                write!(s, "Expected length with units, got \"{}\".", got)?;
+                write!(s, "Expected length with units, got \"{got}\".")?;
             }
             LatexErrKind::ExpectedNumber(got) => {
-                write!(s, "Expected a number, got \"{}\".", got)?;
+                write!(s, "Expected a number, got \"{got}\".")?;
             }
             LatexErrKind::ExpectedColSpec(got) => {
-                write!(s, "Expected column specification, got \"{}\".", got)?;
+                write!(s, "Expected column specification, got \"{got}\".")?;
             }
             LatexErrKind::NotValidInTextMode => {
                 write!(s, "Not valid in text mode.")?;
@@ -185,7 +185,7 @@ impl LatexErrKind {
                 write!(s, "Could not extract text from the given macro.")?;
             }
             LatexErrKind::InvalidMacroName(name) => {
-                write!(s, "Invalid macro name: \"\\{}\".", name)?;
+                write!(s, "Invalid macro name: \"\\{name}\".")?;
             }
             LatexErrKind::InvalidParameterNumber => {
                 write!(s, "Invalid parameter number. Must be 1-9.")?;
@@ -232,7 +232,7 @@ impl LatexError {
             "span"
         };
         let css_class = css_class.unwrap_or("math-core-error");
-        let _ = write!(output, r#"<{} class="{}" title=""#, tag, css_class);
+        let _ = write!(output, r#"<{tag} class="{css_class}" title=""#);
         let mut err_msg = String::new();
         self.to_message(&mut err_msg, latex);
         escape_double_quoted_html_attribute(&mut output, &err_msg);
@@ -253,11 +253,11 @@ impl LatexError {
     /// # Arguments
     /// - `s`: The string to write the message into.
     /// - `input`: The original LaTeX input that caused the error; used to
-    ///    calculate the character offset for the error position.
+    ///   calculate the character offset for the error position.
     pub fn to_message(&self, s: &mut String, input: &str) {
         let loc = input.floor_char_boundary(self.0.start);
         let codepoint_offset = input[..loc].chars().count();
-        let _ = write!(s, "{}: ", codepoint_offset);
+        let _ = write!(s, "{codepoint_offset}: ");
         let _ = self.1.write_msg(s);
     }
 }
@@ -281,8 +281,9 @@ impl LatexError {
             )
             .into(),
             LatexErrKind::UnmatchedClose(_) => "no matching opening for this".into(),
-            LatexErrKind::ExpectedArgumentGotClose => "expected an argument here".into(),
-            LatexErrKind::ExpectedArgumentGotEOI => "expected an argument here".into(),
+            LatexErrKind::ExpectedArgumentGotClose | LatexErrKind::ExpectedArgumentGotEOI => {
+                "expected an argument here".into()
+            }
             LatexErrKind::ExpectedDelimiter(_) => "expected a delimiter here".into(),
             LatexErrKind::DisallowedChar(_) => "disallowed character".into(),
             LatexErrKind::UnknownEnvironment(_) => "unknown environment".into(),

@@ -289,13 +289,11 @@ fn convert_html_recursive(
         for entry in dir.filter_map(Result::ok) {
             convert_html_recursive(args, entry.path().as_ref(), replacer, converter)
         }
-    } else if path.is_file() {
-        if let Some(ext) = path.extension() {
-            if ext == "html" {
+    } else if path.is_file()
+        && let Some(ext) = path.extension()
+            && ext == "html" {
                 convert_html(args, path, replacer, converter);
             }
-        }
-    }
 }
 
 fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML) {

@@ -56,15 +56,15 @@ impl Env {
         ENVIRONMENTS.get(s).copied()
     }
 
-    pub(super) fn as_str(&self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         ENVIRONMENTS
             .entries()
-            .find_map(|(k, v)| if v == self { Some(*k) } else { None })
+            .find_map(|(k, v)| if v == &self { Some(*k) } else { None })
             .unwrap_or("unknown")
     }
 
     #[inline]
-    pub(super) fn allows_columns(&self) -> bool {
+    pub(super) fn allows_columns(self) -> bool {
         !matches!(
             self,
             Env::Equation
@@ -77,12 +77,12 @@ impl Env {
     }
 
     #[inline]
-    pub(super) fn meaningful_newlines(&self) -> bool {
+    pub(super) fn meaningful_newlines(self) -> bool {
         !matches!(self, Env::Equation | Env::EquationStar)
     }
 
     #[inline]
-    pub(super) fn get_numbered_env_state(&self) -> Option<NumberedEnvState> {
+    pub(super) fn get_numbered_env_state(self) -> Option<NumberedEnvState> {
         if matches!(
             self,
             Env::Align
@@ -112,7 +112,7 @@ impl Env {
     }
 
     pub(super) fn construct_node<'arena>(
-        &self,
+        self,
         content: &'arena [&'arena Node<'arena>],
         array_spec: Option<&'arena ArraySpec<'arena>>,
         arena: &'arena Arena,
@@ -137,7 +137,7 @@ impl Env {
                     content,
                 }
             }
-            Env::Gathered => Node::Table {
+            Env::Gathered | Env::Matrix => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Display),
                 content,
@@ -166,11 +166,6 @@ impl Env {
                     style: None,
                 }
             }
-            Env::Matrix => Node::Table {
-                align: Alignment::Centered,
-                style: Some(Style::Display),
-                content,
-            },
             array_variant @ (Env::Array | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
                 // `Env::Array` and `Env::Subarray` in the caller.
