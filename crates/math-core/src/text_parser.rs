@@ -12,7 +12,7 @@ use crate::{
     token::{EndToken, Mode, TextToken, Token},
 };
 
-impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
+impl<'arena> Parser<'_, 'arena, '_, '_> {
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
@@ -157,12 +157,10 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
             } else if !text_mode {
                 // These tokens are only valid in math mode.
                 match token {
-                    Token::Letter(c, _) => Ok(c),
-                    Token::UprightLetter(c) => Ok(c),
-                    Token::Open(op) | Token::Close(op) => Ok(op.as_op().into()),
+                    Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
+                    Token::Open(op) | Token::Close(op) | Token::Ord(op) => Ok(op.as_op().into()),
                     Token::BinaryOp(op) => Ok(op.as_op().into()),
                     Token::Relation(op) => Ok(op.as_op().into()),
-                    Token::Ord(op) => Ok(op.as_op().into()),
                     Token::ForceRelation(op) => Ok(op.as_char()),
                     Token::Punctuation(op) => Ok(op.as_op().into()),
 
@@ -170,16 +168,15 @@ impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config> {
                         if let Some(str_builder) = &mut str_builder {
                             str_builder.push_str(output);
                             continue;
-                        } else {
-                            snippets.push((current_style, output));
-                            style_stack.pop();
-                            brace_nesting = previous_nesting;
-                            if !style_stack.is_empty() {
-                                // If there are still styles to process, we must have been within a group.
-                                str_builder = Some(self.buffer.get_builder());
-                            }
-                            continue;
                         }
+                        snippets.push((current_style, output));
+                        style_stack.pop();
+                        brace_nesting = previous_nesting;
+                        if !style_stack.is_empty() {
+                            // If there are still styles to process, we must have been within a group.
+                            str_builder = Some(self.buffer.get_builder());
+                        }
+                        continue;
                     }
                     Token::Space(length) => {
                         if length == Length::new(1.0, LengthUnit::Em) {

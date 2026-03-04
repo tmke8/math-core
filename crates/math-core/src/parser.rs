@@ -48,7 +48,7 @@ struct ParserState<'source> {
     script_style: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum SequenceEnd {
     EndToken(EndToken),
     AnyEndToken,
@@ -56,7 +56,7 @@ enum SequenceEnd {
 
 impl SequenceEnd {
     #[inline]
-    fn matches(&self, other: &Token<'_>) -> bool {
+    fn matches(self, other: &Token<'_>) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::AnyEndToken => matches!(
@@ -83,7 +83,7 @@ enum ParseAs {
 
 impl ParseAs {
     #[inline]
-    fn in_sequence(&self) -> bool {
+    fn in_sequence(self) -> bool {
         matches!(self, ParseAs::Sequence | ParseAs::ContinueSequence)
     }
 }
@@ -118,11 +118,6 @@ where
                 script_style: false,
             },
         })
-    }
-
-    #[inline]
-    fn alloc_err(&mut self, err: LatexError) -> Box<LatexError> {
-        Box::new(err)
     }
 
     #[inline(never)]
@@ -167,7 +162,7 @@ where
                             Token::Eoi => {
                                 if let SequenceEnd::EndToken(end_token) = sequence_end {
                                     // The input has ended without the closing token.
-                                    return Err(self.alloc_err(LatexError(
+                                    return Err(Box::new(LatexError(
                                         span.into(),
                                         LatexErrKind::UnclosedGroup(end_token),
                                     )));
@@ -228,7 +223,7 @@ where
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let (cur_token, span) = cur_tokloc?.into_parts();
-        let mut class: Class = Default::default();
+        let mut class = Class::default();
         let next_class = self
             .tokens
             .peek_class_token()?
@@ -422,9 +417,9 @@ where
                     Token::BinaryOp(op) => op.as_op(),
                     Token::Relation(op) => op.as_op(),
                     Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) => op,
-                    Token::ForceClose(op) => op,
-                    Token::ForceBinaryOp(op) => op,
+                    Token::ForceRelation(op) | Token::ForceClose(op) | Token::ForceBinaryOp(op) => {
+                        op
+                    }
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
@@ -547,7 +542,7 @@ where
                     )?;
                     let content = self.parse_next(ParseAs::Arg)?;
                     Ok(Node::Root(
-                        node_vec_to_node(self.arena, degree, true),
+                        node_vec_to_node(self.arena, &degree, true),
                         content,
                     ))
                 } else {
@@ -600,7 +595,7 @@ where
                     let tok = parser.tokens.read_argument(false)?.into_one_or_none()?;
                     Ok(match tok {
                         OneOrNone::One(tok) => {
-                            Some(parser.extract_delimiter(tok, DelimiterModifier::Genfrac)?)
+                            Some(extract_delimiter(tok, DelimiterModifier::Genfrac)?)
                         }
                         OneOrNone::None(_) => None,
                     })
@@ -611,7 +606,7 @@ where
                 let lt = match length.trim() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
-                        self.alloc_err(LatexError(
+                        Box::new(LatexError(
                             span,
                             LatexErrKind::ExpectedLength(decimal.into()),
                         ))
@@ -871,16 +866,16 @@ where
             }
             Token::ForceRelation(op) => {
                 class = Class::Relation;
-                let (left, right) = if !parse_as.in_sequence() {
-                    // Don't add spacing if we are in an argument.
-                    (None, None)
-                } else {
+                let (left, right) = if parse_as.in_sequence() {
                     let (left, right) = self.state.relation_spacing(prev_class, next_class);
                     // We have to turn `None` into explicit relation spacing.
                     (
                         left.or(Some(MathSpacing::FiveMu)),
                         right.or(Some(MathSpacing::FiveMu)),
                     )
+                } else {
+                    // Don't add spacing if we are in an argument.
+                    (None, None)
                 };
                 Ok(Node::Operator {
                     op,
@@ -910,7 +905,7 @@ where
                 )?;
                 return Ok((
                     Class::Default,
-                    node_vec_to_node(self.arena, content, matches!(parse_as, ParseAs::Arg)),
+                    node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => 'open_close: {
@@ -963,7 +958,7 @@ where
                 {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc, DelimiterModifier::Left)?)
+                    Some(extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
                 let content = self.parse_sequence(
                     SequenceEnd::EndToken(EndToken::Right),
@@ -975,23 +970,23 @@ where
                 {
                     None
                 } else {
-                    Some(self.extract_delimiter(tok_loc, DelimiterModifier::Right)?)
+                    Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
                 Ok(Node::Fenced {
                     open: open_paren,
                     close: close_paren,
-                    content: node_vec_to_node(self.arena, content, false),
+                    content: node_vec_to_node(self.arena, &content, false),
                     style: None,
                 })
             }
             Token::Middle => {
                 let tok_loc = self.next_token()?;
-                let op = self.extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
+                let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
                 Ok(Node::StretchableOp(op, StretchMode::Middle, None))
             }
             Token::Big(size, paren_type) => {
                 let tok_loc = self.next_token()?;
-                let paren = self.extract_delimiter(tok_loc, DelimiterModifier::Big)?;
+                let paren = extract_delimiter(tok_loc, DelimiterModifier::Big)?;
                 // `\big` commands without the "l" or "r" really produce `Class::Default`.
                 class = match paren_type {
                     Some(ParenType::Open) => Class::Open,
@@ -1012,7 +1007,7 @@ where
                     };
                     if matches!(env, Env::Subarray) {
                         spec.is_sub = true;
-                    };
+                    }
                     Some(self.arena.alloc_array_spec(spec))
                 } else {
                     None
@@ -1062,7 +1057,7 @@ where
                 let (last_equation_num, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_number(self.equation_counter, true) {
                         Ok(num) => (num, n.num_rows),
-                        Err(_) => {
+                        Err(()) => {
                             break 'begin_env Err(LatexError(
                                 span.into(),
                                 LatexErrKind::HardLimitExceeded,
@@ -1122,7 +1117,7 @@ where
                     .into_iter()
                     .map(|(style, text)| self.commit(Node::Text(style, text)))
                     .collect::<Vec<_>>();
-                return Ok((Class::Close, node_vec_to_node(self.arena, nodes, false)));
+                return Ok((Class::Close, node_vec_to_node(self.arena, &nodes, false)));
             }
             Token::NewColumn => {
                 if self.state.allow_columns {
@@ -1157,7 +1152,7 @@ where
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
                         Ok(num) => Ok(Node::RowSeparator(num)),
-                        Err(_) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
+                        Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
                     Ok(Node::RowSeparator(None))
@@ -1239,18 +1234,11 @@ where
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                if !matches!(
+                if matches!(
                     self.tokens.peek().token(),
                     Token::Eoi | Token::GroupEnd | Token::End(_)
                 ) {
-                    let base = self.parse_next(ParseAs::Sequence)?;
-                    let (sub, sup) = if matches!(tok, Token::Underscore) {
-                        (Some(symbol), None)
-                    } else {
-                        (None, Some(symbol))
-                    };
-                    Ok(Node::Multiscript { base, sub, sup })
-                } else {
+                    // If nothing follows the sub- or superscript, we use an empty row as the base.
                     let empty_row = self.commit(Node::Row {
                         nodes: &[],
                         attr: None,
@@ -1266,6 +1254,16 @@ where
                             symbol,
                         })
                     }
+                } else {
+                    // If something follows the sub- or superscript, we parse it as a sequence and
+                    // use it as the base.
+                    let base = self.parse_next(ParseAs::Sequence)?;
+                    let (sub, sup) = if matches!(tok, Token::Underscore) {
+                        (Some(symbol), None)
+                    } else {
+                        (None, Some(symbol))
+                    };
+                    Ok(Node::Multiscript { base, sub, sup })
                 }
             }
             Token::Limits => Err(LatexError(
@@ -1362,7 +1360,7 @@ where
         };
         match node {
             Ok(n) => Ok((class, self.commit(n))),
-            Err(e) => Err(self.alloc_err(e)),
+            Err(e) => Err(Box::new(e)),
         }
     }
 
@@ -1397,9 +1395,10 @@ where
 
             if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
                 let span = self.next_token()?.span();
-                return Err(
-                    self.alloc_err(LatexError(span.into(), LatexErrKind::DuplicateSubOrSup))
-                );
+                return Err(Box::new(LatexError(
+                    span.into(),
+                    LatexErrKind::DuplicateSubOrSup,
+                )));
             }
 
             if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
@@ -1420,13 +1419,13 @@ where
             (None, None)
         };
 
-        let sup = if !primes.is_empty() {
+        let sup = if primes.is_empty() {
+            sup
+        } else {
             if let Some(sup) = sup {
                 primes.push(sup);
             }
-            Some(node_vec_to_node(self.arena, primes, false))
-        } else {
-            sup
+            Some(node_vec_to_node(self.arena, &primes, false))
         };
 
         Ok(Bounds(sub, sup))
@@ -1477,7 +1476,10 @@ where
             && let (Token::Underscore | Token::Circumflex | Token::Prime, span) =
                 tokloc.into_parts()
         {
-            return Err(self.alloc_err(LatexError(span.into(), LatexErrKind::BoundFollowedByBound)));
+            return Err(Box::new(LatexError(
+                span.into(),
+                LatexErrKind::BoundFollowedByBound,
+            )));
         }
         let old_script_style = mem::replace(&mut self.state.script_style, true);
         let node = self.parse_token(next, ParseAs::Arg, Class::Default);
@@ -1485,7 +1487,7 @@ where
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
-            return Err(self.alloc_err(LatexError(
+            return Err(Box::new(LatexError(
                 self.tokens.peek().span().into(),
                 LatexErrKind::DuplicateSubOrSup,
             )));
@@ -1533,34 +1535,6 @@ where
                 None
             },
         ))
-    }
-
-    fn extract_delimiter(
-        &mut self,
-        tok: TokSpan<'source>,
-        location: DelimiterModifier,
-    ) -> ParseResult<StretchableOp> {
-        let (tok, span) = tok.into_parts();
-        const SQ_L_BRACKET: StretchableOp =
-            symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-        const SQ_R_BRACKET: StretchableOp =
-            symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-        let delim = match tok {
-            Token::Open(paren) => paren.as_stretchable_op(),
-            Token::Close(paren) => paren.as_stretchable_op(),
-            Token::Ord(ord) => ord.as_stretchable_op(),
-            Token::Relation(rel) => rel.as_stretchable_op(),
-            Token::SquareBracketOpen => Some(SQ_L_BRACKET),
-            Token::SquareBracketClose => Some(SQ_R_BRACKET),
-            _ => None,
-        };
-        let Some(delim) = delim else {
-            return Err(self.alloc_err(LatexError(
-                span.into(),
-                LatexErrKind::ExpectedDelimiter(location),
-            )));
-        };
-        Ok(delim)
     }
 
     #[inline]
@@ -1681,7 +1655,7 @@ where
                 continue;
             }
             let Some(ch) = recover_limited_ascii(tok) else {
-                return Err(self.alloc_err(LatexError(
+                return Err(Box::new(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedText("string literal"),
                 )));
@@ -1692,7 +1666,7 @@ where
     }
 }
 
-impl<'source> ParserState<'source> {
+impl ParserState<'_> {
     fn relation_spacing(
         &self,
         prev_class: Class,
@@ -1753,10 +1727,10 @@ impl<'source> ParserState<'source> {
 // or by creating a row node if there are multiple nodes.
 pub(crate) fn node_vec_to_node<'arena>(
     arena: &'arena Arena,
-    nodes: Vec<&'arena Node<'arena>>,
+    nodes: &[&'arena Node<'arena>],
     reset_spacing: bool,
 ) -> &'arena Node<'arena> {
-    if let [single] = &nodes[..] {
+    if let [single] = nodes {
         if reset_spacing {
             if let Node::Operator {
                 op,
@@ -1778,9 +1752,30 @@ pub(crate) fn node_vec_to_node<'arena>(
             single
         }
     } else {
-        let nodes = arena.push_slice(&nodes);
+        let nodes = arena.push_slice(nodes);
         arena.push(Node::Row { nodes, attr: None })
     }
+}
+
+fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResult<StretchableOp> {
+    let (tok, span) = tok.into_parts();
+    const SQ_L_BRACKET: StretchableOp = symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+    const SQ_R_BRACKET: StretchableOp = symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+    let delim = match tok {
+        Token::Open(paren) | Token::Close(paren) => paren.as_stretchable_op(),
+        Token::Ord(ord) => ord.as_stretchable_op(),
+        Token::Relation(rel) => rel.as_stretchable_op(),
+        Token::SquareBracketOpen => Some(SQ_L_BRACKET),
+        Token::SquareBracketClose => Some(SQ_R_BRACKET),
+        _ => None,
+    };
+    let Some(delim) = delim else {
+        return Err(Box::new(LatexError(
+            span.into(),
+            LatexErrKind::ExpectedDelimiter(location),
+        )));
+    };
+    Ok(delim)
 }
 
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);

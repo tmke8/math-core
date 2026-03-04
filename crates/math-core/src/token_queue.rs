@@ -74,7 +74,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 && let Some(pos) = self.find_next_non_whitespace()
             {
                 break 'pos_calc pos;
-            };
+            }
             // Then, try to load more tokens until we find one or reach EOI.
             let starting_len = self.queue.len();
             starting_len + self.load_token(SkipMode::Whitespace)?
@@ -135,21 +135,21 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             }
         };
 
-        match tok_idx {
-            Some(tok_idx) => Ok(self.queue.get(tok_idx).unwrap_or(&EOI_TOK)),
-            None => {
-                // Otherwise, load more tokens until we find one or reach EOI.
-                let starting_len = self.queue.len();
-                let offset = self.load_token(skip_mode)?;
-                if let Some(tok) = self.queue.get(starting_len + offset) {
-                    Ok(tok)
-                } else {
-                    debug_assert!(
-                        self.lexer_is_eoi,
-                        "find_or_load_after_next called without ensure"
-                    );
-                    Ok(&EOI_TOK)
-                }
+        if let Some(tok_idx) = tok_idx {
+            // If we found a token in the existing buffer, return it.
+            Ok(self.queue.get(tok_idx).unwrap_or(&EOI_TOK))
+        } else {
+            // Otherwise, load more tokens until we find one or reach EOI.
+            let starting_len = self.queue.len();
+            let offset = self.load_token(skip_mode)?;
+            if let Some(tok) = self.queue.get(starting_len + offset) {
+                Ok(tok)
+            } else {
+                debug_assert!(
+                    self.lexer_is_eoi,
+                    "find_or_load_after_next called without ensure"
+                );
+                Ok(&EOI_TOK)
             }
         }
     }
@@ -322,6 +322,7 @@ fn has_class(tok: &TokSpan) -> bool {
     )
 }
 
+#[derive(Debug, Clone, Copy)]
 enum SkipMode {
     Whitespace,
     NoClass,

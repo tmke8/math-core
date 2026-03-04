@@ -40,3 +40,7 @@ minijinja = "2.16.0"
 [features]
 serde = ["dep:serde", "dep:serde-tuple-vec-map"]
 ariadne = ["dep:ariadne"]
+
+[lints]
+workspace = true
+

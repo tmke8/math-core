@@ -223,9 +223,7 @@ impl Token<'_> {
             _ => Class::Default,
         }
     }
-}
 
-impl<'source> Token<'source> {
     /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
     #[inline]
     pub fn unwrap_math_ref(&self) -> &Self {
@@ -363,7 +361,7 @@ pub enum EndToken {
 }
 
 impl EndToken {
-    pub fn matches(&self, other: &Token) -> bool {
+    pub fn matches(self, other: &Token) -> bool {
         matches!(
             (self, other),
             (EndToken::End, Token::End(_))
