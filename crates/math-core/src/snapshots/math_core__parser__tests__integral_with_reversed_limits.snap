@@ -6,7 +6,7 @@ expression: "\\int\\limits^1_0 dx"
   UnderOver(
     target: Operator(
       op: '∫',
-      attr: None,
+      attrs: OpAttrs(""),
       left: Some(Zero),
       right: None,
     ),

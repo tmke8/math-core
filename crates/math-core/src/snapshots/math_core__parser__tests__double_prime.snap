@@ -7,7 +7,7 @@ expression: "f''"
     target: IdentifierChar('f', Default),
     symbol: Operator(
       op: '″',
-      attr: None,
+      attrs: OpAttrs(""),
       left: None,
       right: None,
     ),

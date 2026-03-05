@@ -7,7 +7,7 @@ expression: "\\mathit{ab \\log cd}"
     nodes: [
       IdentifierStr("𝑎𝑏"),
       PseudoOp(
-        attr: None,
+        attrs: OpAttrs(""),
         left: Some(ThreeMu),
         right: Some(ThreeMu),
         name: "log",

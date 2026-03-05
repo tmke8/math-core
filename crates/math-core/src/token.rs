@@ -3,7 +3,7 @@ use std::ops::Range;
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttr, ParenType, Size, Style,
+    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttrs, ParenType, Size, Style,
 };
 use mathml_renderer::length::Length;
 use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
@@ -82,7 +82,7 @@ pub enum Token<'source> {
     Big(Size, Option<ParenType>),
     /// Stretchy and non-stretchy accents, e.g. `\hat`, `\widehat`, `\bar`, `\overline`, etc.
     /// The `bool` is `true` for over-accents and `false` for under-accents.
-    Accent(Rel, bool, Option<OpAttr>),
+    Accent(Rel, bool, OpAttrs),
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
     /// A token corresponding to LaTeX's "mathop" character class (class 1).

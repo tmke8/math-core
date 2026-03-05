@@ -5,26 +5,26 @@ expression: ":2=:="
 [
   Operator(
     op: ':',
-    attr: None,
+    attrs: OpAttrs(""),
     left: Some(Zero),
     right: Some(FiveMu),
   ),
   Number("2"),
   Operator(
     op: '=',
-    attr: None,
+    attrs: OpAttrs(""),
     left: None,
     right: Some(Zero),
   ),
   Operator(
     op: ':',
-    attr: None,
+    attrs: OpAttrs(""),
     left: Some(Zero),
     right: Some(Zero),
   ),
   Operator(
     op: '=',
-    attr: None,
+    attrs: OpAttrs(""),
     left: Some(Zero),
     right: Some(Zero),
   ),

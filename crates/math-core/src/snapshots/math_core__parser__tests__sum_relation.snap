@@ -7,13 +7,13 @@ expression: "{\\sum = 4}"
     nodes: [
       Operator(
         op: '∑',
-        attr: None,
+        attrs: OpAttrs(""),
         left: Some(Zero),
         right: Some(Zero),
       ),
       Operator(
         op: '=',
-        attr: None,
+        attrs: OpAttrs(""),
         left: None,
         right: None,
       ),
