@@ -4,7 +4,7 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
     attribute::{
-        LetterAttr, MathSpacing, MathVariant, OpAttr, ParenType, RowAttr, StretchMode, Style,
+        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, StretchMode, Style,
         TextTransform,
     },
     length::Length,
@@ -318,17 +318,17 @@ where
                     RelCategory::A => {
                         // We let it be stretchy if it's explicitly marked as stretchy
                         if matches!(tok, Token::StretchyRel(_)) {
-                            None
+                            OpAttrs::empty()
                         } else {
-                            Some(OpAttr::StretchyFalse)
+                            OpAttrs::STRETCHY_FALSE
                         }
                     }
-                    RelCategory::Default => None,
+                    RelCategory::Default => OpAttrs::empty(),
                 };
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::Operator {
                     op: relation.as_op(),
-                    attr,
+                    attrs: attr,
                     left,
                     right,
                 })
@@ -342,7 +342,7 @@ where
                 };
                 Ok(Node::Operator {
                     op: punc.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right,
                 })
@@ -352,9 +352,9 @@ where
                     // Category F+G operators will stretch in pre- and postfix positions,
                     // so we explicitly set the stretchy attribute to false to prevent that.
                     // Alternatively, we could set `form="infix"` on them.
-                    Some(OpAttr::StretchyFalse)
+                    OpAttrs::STRETCHY_FALSE
                 } else {
-                    None
+                    OpAttrs::empty()
                 };
                 let (left, right) = if matches!(
                     ord.category(),
@@ -368,7 +368,7 @@ where
                 };
                 Ok(Node::Operator {
                     op: ord.as_op(),
-                    attr,
+                    attrs: attr,
                     left,
                     right,
                 })
@@ -383,7 +383,7 @@ where
                 );
                 Ok(Node::Operator {
                     op: binary_op.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: spacing,
                     right: spacing,
                 })
@@ -395,7 +395,7 @@ where
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
                 Ok(Node::Operator {
                     op,
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: spacing,
                     right: spacing,
                 })
@@ -440,7 +440,7 @@ where
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
                 Ok(Node::Operator {
                     op,
-                    attr: Some(OpAttr::StretchyFalse),
+                    attrs: OpAttrs::STRETCHY_FALSE,
                     left: spacing,
                     right: spacing,
                 })
@@ -470,7 +470,7 @@ where
                     };
                 Ok(Node::Operator {
                     op: op.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                 })
@@ -479,7 +479,7 @@ where
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::PseudoOp {
                     name: "&gt;",
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                 })
@@ -488,14 +488,14 @@ where
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::PseudoOp {
                     name: "&lt;",
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                 })
             }
             Token::OpAmpersand => Ok(Node::PseudoOp {
                 name: "&amp;",
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: None,
                 right: None,
             }),
@@ -503,7 +503,7 @@ where
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 class = Class::Operator;
                 Ok(Node::PseudoOp {
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                     name,
@@ -682,7 +682,7 @@ where
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 let symbol = self.commit(Node::Operator {
                     op: x.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
                 });
@@ -728,13 +728,13 @@ where
                 };
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
                 let attr = if has_movable_limits && limits {
-                    Some(OpAttr::NoMovableLimits)
+                    OpAttrs::NO_MOVABLE_LIMITS
                 } else {
-                    None
+                    OpAttrs::empty()
                 };
                 let target = self.commit(Node::Operator {
                     op: op.as_op(),
-                    attr,
+                    attrs: attr,
                     left,
                     right,
                 });
@@ -762,9 +762,9 @@ where
             Token::PseudoOperatorLimits(name) => {
                 let movablelimits = if matches!(self.tokens.peek().token(), Token::Limits) {
                     self.next_token()?; // Discard the limits token.
-                    Some(OpAttr::NoMovableLimits)
+                    OpAttrs::NO_MOVABLE_LIMITS
                 } else {
-                    Some(OpAttr::ForceMovableLimits)
+                    OpAttrs::FORCE_MOVABLE_LIMITS
                 };
                 class = Class::Operator;
                 let bounds = self.get_bounds()?;
@@ -772,8 +772,8 @@ where
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
-                    attr: if matches!(bounds, Bounds(None, None)) {
-                        None
+                    attrs: if matches!(bounds, Bounds(None, None)) {
+                        OpAttrs::empty()
                     } else {
                         movablelimits
                     },
@@ -813,14 +813,14 @@ where
                         if let Some(negated) = get_negated_op(op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
-                                attr: None,
+                                attrs: OpAttrs::empty(),
                                 left,
                                 right,
                             })
                         } else {
                             Ok(Node::Operator {
                                 op: op.as_op(),
-                                attr: None,
+                                attrs: OpAttrs::empty(),
                                 left,
                                 right,
                             })
@@ -834,7 +834,7 @@ where
                             } else {
                                 symbol::NOT_GREATER_THAN.as_op()
                             },
-                            attr: None,
+                            attrs: OpAttrs::empty(),
                             left,
                             right,
                         })
@@ -842,7 +842,7 @@ where
                     // We have to special-case `\exists` here because it is not a relation.
                     Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
                         op: symbol::THERE_DOES_NOT_EXIST.as_op(),
-                        attr: None,
+                        attrs: OpAttrs::empty(),
                         left: None,
                         right: None,
                     }),
@@ -879,7 +879,7 @@ where
                 };
                 Ok(Node::Operator {
                     op,
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                 })
@@ -888,7 +888,7 @@ where
                 class = Class::Close;
                 Ok(Node::Operator {
                     op,
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
                 })
@@ -920,12 +920,12 @@ where
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
-                        Some(OpAttr::FormPrefix)
+                        OpAttrs::FORM_PREFIX
                     } else {
-                        Some(OpAttr::FormPostfix)
+                        OpAttrs::FORM_POSTFIX
                     }
                 } else {
-                    None
+                    OpAttrs::empty()
                 };
                 Ok(Node::StretchableOp(
                     stretchable_op,
@@ -940,7 +940,7 @@ where
                 Ok(Node::StretchableOp(
                     SQ_L_BRACKET,
                     StretchMode::NoStretch,
-                    None,
+                    OpAttrs::empty(),
                 ))
             }
             Token::SquareBracketClose => {
@@ -949,7 +949,7 @@ where
                 Ok(Node::StretchableOp(
                     SQ_R_BRACKET,
                     StretchMode::NoStretch,
-                    None,
+                    OpAttrs::empty(),
                 ))
             }
             Token::Left => {
@@ -982,7 +982,11 @@ where
             Token::Middle => {
                 let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
-                Ok(Node::StretchableOp(op, StretchMode::Middle, None))
+                Ok(Node::StretchableOp(
+                    op,
+                    StretchMode::Middle,
+                    OpAttrs::empty(),
+                ))
             }
             Token::Big(size, paren_type) => {
                 let tok_loc = self.next_token()?;
@@ -1088,7 +1092,7 @@ where
                 let letters = builder.finish(self.arena);
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left,
                     right,
                     name: letters,
@@ -1226,7 +1230,7 @@ where
                 });
                 let symbol = self.commit(Node::Operator {
                     op: symbol::PRIME.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
                 });
@@ -1450,7 +1454,7 @@ where
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
                 primes.push(self.commit(Node::Operator {
                     op: op.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
                 }));
@@ -1458,7 +1462,7 @@ where
                 for _ in 0..prime_count {
                     primes.push(self.commit(Node::Operator {
                         op: symbol::PRIME.as_op(),
-                        attr: None,
+                        attrs: OpAttrs::empty(),
                         left: None,
                         right: None,
                     }));
@@ -1734,14 +1738,14 @@ pub(crate) fn node_vec_to_node<'arena>(
         if reset_spacing {
             if let Node::Operator {
                 op,
-                attr,
+                attrs: attr,
                 left: _,
                 right: _,
             } = single
             {
                 arena.push(Node::Operator {
                     op: *op,
-                    attr: *attr,
+                    attrs: *attr,
                     left: None,
                     right: None,
                 })

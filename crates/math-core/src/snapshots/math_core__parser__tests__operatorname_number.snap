@@ -4,7 +4,7 @@ expression: "\\operatorname123"
 ---
 [
   PseudoOp(
-    attr: None,
+    attrs: OpAttrs(""),
     left: Some(Zero),
     right: Some(ThreeMu),
     name: "1",

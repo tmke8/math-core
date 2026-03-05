@@ -23,21 +23,41 @@ impl MathVariant {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum OpAttr {
-    #[strum(serialize = r#" stretchy="false""#)]
-    StretchyFalse = 1,
-    #[strum(serialize = r#" stretchy="true""#)]
-    StretchyTrue,
-    #[strum(serialize = r#" movablelimits="false""#)]
-    NoMovableLimits,
-    #[strum(serialize = r#" movablelimits="true""#)]
-    ForceMovableLimits,
-    #[strum(serialize = r#" form="prefix""#)]
-    FormPrefix,
-    #[strum(serialize = r#" form="postfix""#)]
-    FormPostfix,
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[cfg_attr(feature = "serde", derive(Serialize))]
+    pub struct OpAttrs: u8 {
+        const STRETCHY_FALSE = 1;
+        const STRETCHY_TRUE = 1 << 1;
+        const NO_MOVABLE_LIMITS = 1 << 2;
+        const FORCE_MOVABLE_LIMITS = 1 << 3;
+        const FORM_PREFIX = 1 << 4;
+        const FORM_POSTFIX = 1 << 5;
+    }
+}
+
+impl OpAttrs {
+    pub fn write_to(self, s: &mut String) {
+        if self.contains(OpAttrs::STRETCHY_FALSE) {
+            s.push_str(r#" stretchy="false""#);
+        }
+        if self.contains(OpAttrs::STRETCHY_TRUE) {
+            s.push_str(r#" stretchy="true""#);
+        }
+        if self.contains(OpAttrs::NO_MOVABLE_LIMITS) {
+            s.push_str(r#" movablelimits="false""#);
+        }
+        if self.contains(OpAttrs::FORCE_MOVABLE_LIMITS) {
+            s.push_str(r#" movablelimits="true""#);
+        }
+        if self.contains(OpAttrs::FORM_PREFIX) {
+            s.push_str(r#" form="prefix""#);
+        }
+        if self.contains(OpAttrs::FORM_POSTFIX) {
+            s.push_str(r#" form="postfix""#);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

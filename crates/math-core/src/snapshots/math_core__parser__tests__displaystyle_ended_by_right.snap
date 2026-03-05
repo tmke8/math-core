@@ -11,7 +11,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
       nodes: [
         Operator(
           op: '∫',
-          attr: None,
+          attrs: OpAttrs(""),
           left: Some(Zero),
           right: Some(Zero),
         ),
@@ -21,7 +21,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
   ),
   Operator(
     op: '∫',
-    attr: None,
+    attrs: OpAttrs(""),
     left: None,
     right: Some(Zero),
   ),

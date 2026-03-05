@@ -9,7 +9,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
     content: [
       Operator(
         op: '∑',
-        attr: None,
+        attrs: OpAttrs(""),
         left: Some(Zero),
         right: None,
       ),
@@ -17,7 +17,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
         nodes: [
           Operator(
             op: '∑',
-            attr: None,
+            attrs: OpAttrs(""),
             left: Some(Zero),
             right: Some(Zero),
           ),

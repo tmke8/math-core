@@ -5,7 +5,7 @@ use std::num::NonZeroU16;
 use serde::Serialize;
 
 use crate::attribute::{
-    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttr, ParenType, RowAttr, Size,
+    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, ParenType, RowAttr, Size,
     StretchMode, Style,
 };
 use crate::fmt::new_line_and_indent;
@@ -27,14 +27,14 @@ pub enum Node<'arena> {
     /// `<mo>...</mo>` for a single character.
     Operator {
         op: MathMLOperator,
-        attr: Option<OpAttr>,
+        attrs: OpAttrs,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    StretchableOp(StretchableOp, StretchMode, Option<OpAttr>),
+    StretchableOp(StretchableOp, StretchMode, OpAttrs),
     /// `<mo>...</mo>` for a string.
     PseudoOp {
-        attr: Option<OpAttr>,
+        attrs: OpAttrs,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
         name: &'arena str,
@@ -58,7 +58,7 @@ pub enum Node<'arena> {
         sup: &'arena Node<'arena>,
     },
     /// `<mover accent="true">...</mover>`
-    OverAccent(MathMLOperator, Option<OpAttr>, &'arena Node<'arena>),
+    OverAccent(MathMLOperator, OpAttrs, &'arena Node<'arena>),
     /// `<munder accentunder="true">...</munder>`
     UnderAccent(MathMLOperator, &'arena Node<'arena>),
     /// `<mover>...</mover>`
@@ -203,7 +203,7 @@ impl Node<'_> {
             }
             Node::Operator {
                 op,
-                attr,
+                attrs: attr,
                 left,
                 right,
             } => {
@@ -211,7 +211,7 @@ impl Node<'_> {
                 write!(s, ">{}</mo>", char::from(op))?;
             }
             Node::PseudoOp {
-                attr,
+                attrs: attr,
                 left,
                 right,
                 name: text,
@@ -340,9 +340,7 @@ impl Node<'_> {
                 write!(s, "<mover accent=\"true\">")?;
                 target.emit(s, child_indent)?;
                 writeln_indent!(s, child_indent, "<mo");
-                if let Some(attr) = attr {
-                    write!(s, "{}", <&str>::from(attr))?;
-                }
+                attr.write_to(s);
                 write!(s, ">{}</mo>", char::from(op))?;
                 writeln_indent!(s, base_indent, "</mover>");
             }
@@ -411,11 +409,11 @@ impl Node<'_> {
                     None => write!(s, "<mrow>")?,
                 }
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *open, None)?;
+                emit_stretchy_op(s, StretchMode::Fence, *open, OpAttrs::empty())?;
                 // TODO: if `content` is an `mrow`, we should flatten it before emitting.
                 content.emit(s, child_indent)?;
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *close, None)?;
+                emit_stretchy_op(s, StretchMode::Fence, *close, OpAttrs::empty())?;
                 writeln_indent!(s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren, paren_type) => {
@@ -613,14 +611,12 @@ impl Node<'_> {
 
 fn emit_operator_attributes(
     s: &mut String,
-    attr: Option<OpAttr>,
+    attrs: OpAttrs,
     left: Option<MathSpacing>,
     right: Option<MathSpacing>,
 ) -> std::fmt::Result {
-    match attr {
-        Some(attributes) => write!(s, "<mo{}", <&str>::from(attributes))?,
-        None => write!(s, "<mo")?,
-    }
+    s.push_str("<mo");
+    attrs.write_to(s);
     match (left, right) {
         (Some(left), Some(right)) => {
             write!(
@@ -768,9 +764,9 @@ fn emit_stretchy_op(
     s: &mut String,
     stretch_mode: StretchMode,
     op: Option<StretchableOp>,
-    attr: Option<OpAttr>,
+    attrs: OpAttrs,
 ) -> std::fmt::Result {
-    emit_operator_attributes(s, attr, None, None)?;
+    emit_operator_attributes(s, attrs, None, None)?;
     if let Some(op) = op {
         match (stretch_mode, op.stretchy) {
             (StretchMode::Fence, Stretchy::Never)
@@ -849,7 +845,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
             }),
@@ -858,7 +854,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
             }),
@@ -867,7 +863,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::IDENTICAL_TO.as_op(),
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::Zero),
                 right: None,
             }),
@@ -876,7 +872,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::PLUS_SIGN.as_op(),
-                attr: Some(OpAttr::FormPrefix),
+                attrs: OpAttrs::FORM_PREFIX,
                 left: None,
                 right: None,
             }),
@@ -885,7 +881,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::N_ARY_SUMMATION.as_op(),
-                attr: Some(OpAttr::NoMovableLimits),
+                attrs: OpAttrs::NO_MOVABLE_LIMITS,
                 left: None,
                 right: None,
             }),
@@ -897,7 +893,7 @@ mod tests {
     fn render_pseudo_operator() {
         assert_eq!(
             render(&Node::PseudoOp {
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::ThreeMu),
                 right: Some(MathSpacing::ThreeMu),
                 name: "sin"
@@ -961,7 +957,7 @@ mod tests {
         assert_eq!(
             render(&Node::OverAccent(
                 symbol::MACRON.as_op(),
-                Some(OpAttr::StretchyFalse),
+                OpAttrs::STRETCHY_FALSE,
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
@@ -969,7 +965,7 @@ mod tests {
         assert_eq!(
             render(&Node::OverAccent(
                 symbol::OVERLINE.as_op(),
-                None,
+                OpAttrs::empty(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
@@ -993,13 +989,13 @@ mod tests {
             render(&Node::Over {
                 symbol: &Node::Operator {
                     op: symbol::EXCLAMATION_MARK,
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None
                 },
                 target: &Node::Operator {
                     op: symbol::EQUALS_SIGN.as_op(),
-                    attr: None,
+                    attrs: OpAttrs::empty(),
                     left: None,
                     right: None
                 },
@@ -1014,7 +1010,7 @@ mod tests {
             render(&Node::Under {
                 symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
                 target: &Node::PseudoOp {
-                    attr: Some(OpAttr::ForceMovableLimits),
+                    attrs: OpAttrs::FORCE_MOVABLE_LIMITS,
                     left: Some(MathSpacing::ThreeMu),
                     right: Some(MathSpacing::ThreeMu),
                     name: "min",
@@ -1151,7 +1147,7 @@ mod tests {
             &Node::IdentifierChar('x', LetterAttr::Default),
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
-                attr: None,
+                attrs: OpAttrs::empty(),
                 left: None,
                 right: None,
             },

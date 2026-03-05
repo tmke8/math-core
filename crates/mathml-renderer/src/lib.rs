@@ -7,14 +7,14 @@
 //! ```rust
 //! use math_core_renderer_internal::ast::Node;
 //! use math_core_renderer_internal::symbol;
-//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr};
+//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs};
 //!
 //! let ast = Node::Row {
 //!     nodes: &[
 //!         &Node::Under {
 //!             target: &Node::Operator {
 //!                 op: symbol::N_ARY_SUMMATION.as_op(),
-//!                 attr: None,
+//!                 attrs: OpAttrs::empty(),
 //!                 left: Some(MathSpacing::Zero),
 //!                 right: None,
 //!             },
