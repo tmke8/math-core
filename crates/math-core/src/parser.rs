@@ -4,11 +4,10 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
     attribute::{
-        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, StretchMode, Style,
-        TextTransform,
+        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, Style, TextTransform,
     },
     length::Length,
-    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp},
+    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy},
 };
 
 use crate::{
@@ -908,15 +907,12 @@ where
                     node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
-            ref tok @ (Token::Open(paren) | Token::Close(paren)) => 'open_close: {
+            ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 let open = matches!(tok, Token::Open(_));
                 if open {
                     class = Class::Open;
                 }
-                let Some(stretchable_op) = paren.as_stretchable_op() else {
-                    break 'open_close Err(LatexError(span.into(), LatexErrKind::Internal));
-                };
-                let attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                let mut attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
@@ -927,31 +923,36 @@ where
                 } else {
                     OpAttrs::empty()
                 };
-                Ok(Node::StretchableOp(
-                    stretchable_op,
-                    StretchMode::NoStretch,
-                    attr,
-                ))
+                if matches!(
+                    paren.category(),
+                    OrdCategory::F | OrdCategory::G | OrdCategory::FGandForceDefault
+                ) {
+                    // Symbols from these categories are automatically stretchy,
+                    // so we have to explicitly disable that here.
+                    attr |= OpAttrs::STRETCHY_FALSE;
+                }
+                Ok(Node::Operator {
+                    op: paren.as_op(),
+                    attrs: attr,
+                    left: None,
+                    right: None,
+                })
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
-                const SQ_L_BRACKET: StretchableOp =
-                    symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(
-                    SQ_L_BRACKET,
-                    StretchMode::NoStretch,
-                    OpAttrs::empty(),
-                ))
+                Ok(Node::Operator {
+                    op: symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    attrs: OpAttrs::STRETCHY_FALSE,
+                    left: None,
+                    right: None,
+                })
             }
-            Token::SquareBracketClose => {
-                const SQ_R_BRACKET: StretchableOp =
-                    symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(
-                    SQ_R_BRACKET,
-                    StretchMode::NoStretch,
-                    OpAttrs::empty(),
-                ))
-            }
+            Token::SquareBracketClose => Ok(Node::Operator {
+                op: symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                attrs: OpAttrs::STRETCHY_FALSE,
+                left: None,
+                right: None,
+            }),
             Token::Left => {
                 let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
@@ -982,11 +983,12 @@ where
             Token::Middle => {
                 let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
-                Ok(Node::StretchableOp(
-                    op,
-                    StretchMode::Middle,
-                    OpAttrs::empty(),
-                ))
+                Ok(Node::Operator {
+                    op: op.as_op(),
+                    attrs: middle_stretch_attrs(op),
+                    left: None,
+                    right: None,
+                })
             }
             Token::Big(size, paren_type) => {
                 let tok_loc = self.next_token()?;
@@ -1758,6 +1760,15 @@ pub(crate) fn node_vec_to_node<'arena>(
     } else {
         let nodes = arena.push_slice(nodes);
         arena.push(Node::Row { nodes, attr: None })
+    }
+}
+
+/// Get the attributes for a middle operator (which needs to stretch symmetrically).
+fn middle_stretch_attrs(op: StretchableOp) -> OpAttrs {
+    match op.stretchy {
+        Stretchy::PrePostfix | Stretchy::Never => OpAttrs::STRETCHY_TRUE,
+        Stretchy::AlwaysAsymmetric => OpAttrs::SYMMETRIC_TRUE,
+        _ => OpAttrs::empty(),
     }
 }
 

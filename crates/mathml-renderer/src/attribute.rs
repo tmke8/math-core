@@ -33,12 +33,27 @@ bitflags! {
         const NO_MOVABLE_LIMITS = 1 << 2;
         const FORCE_MOVABLE_LIMITS = 1 << 3;
         const FORM_PREFIX = 1 << 4;
-        const FORM_POSTFIX = 1 << 5;
+        // const FORM_INFIX = 1 << 5;
+        const FORM_POSTFIX = 1 << 6;
+        const SYMMETRIC_TRUE = 1 << 7;
     }
 }
 
 impl OpAttrs {
     pub fn write_to(self, s: &mut String) {
+        debug_assert!(
+            !(self.contains(OpAttrs::STRETCHY_FALSE) && self.contains(OpAttrs::STRETCHY_TRUE)),
+            "STRETCHY_FALSE and STRETCHY_TRUE cannot both be set"
+        );
+        debug_assert!(
+            !(self.contains(OpAttrs::NO_MOVABLE_LIMITS)
+                && self.contains(OpAttrs::FORCE_MOVABLE_LIMITS)),
+            "NO_MOVABLE_LIMITS and FORCE_MOVABLE_LIMITS cannot both be set"
+        );
+        debug_assert!(
+            !(self.contains(OpAttrs::FORM_PREFIX) && self.contains(OpAttrs::FORM_POSTFIX)),
+            "FORM_PREFIX and FORM_POSTFIX cannot both be set"
+        );
         if self.contains(OpAttrs::STRETCHY_FALSE) {
             s.push_str(r#" stretchy="false""#);
         }
@@ -56,6 +71,9 @@ impl OpAttrs {
         }
         if self.contains(OpAttrs::FORM_POSTFIX) {
             s.push_str(r#" form="postfix""#);
+        }
+        if self.contains(OpAttrs::SYMMETRIC_TRUE) {
+            s.push_str(r#" symmetric="true""#);
         }
     }
 }
@@ -87,17 +105,6 @@ pub enum ParenType {
     Open = 1,
     #[strum(serialize = r#" form="postfix""#)]
     Close,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum StretchMode {
-    /// Don't stretch the operator.
-    NoStretch = 1,
-    /// Operator is in a fence and should stretch.
-    Fence,
-    /// Operator is in the middle of a fenced expression and should stretch.
-    Middle,
 }
 
 /// display style

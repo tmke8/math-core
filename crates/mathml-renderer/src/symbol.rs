@@ -135,7 +135,7 @@ impl OrdLike {
             }
             OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
             OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::NonZero),
-            _ => {
+            OrdCategory::D | OrdCategory::E | OrdCategory::I => {
                 return None;
             }
         };
@@ -258,6 +258,13 @@ impl Serialize for StretchableOp {
         state.serialize_field(&char::from(*self))?;
         state.serialize_field(&self.stretchy)?;
         state.end()
+    }
+}
+
+impl StretchableOp {
+    #[inline]
+    pub const fn as_op(self) -> MathMLOperator {
+        MathMLOperator(self.char.as_char())
     }
 }
 

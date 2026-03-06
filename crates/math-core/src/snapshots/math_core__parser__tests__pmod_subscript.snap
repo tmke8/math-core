@@ -7,7 +7,12 @@ expression: "\\pmod{3}_4"
     value: 1.0,
     unit: Em,
   )),
-  StretchableOp(StretchableOp('(', Always), NoStretch, OpAttrs("")),
+  Operator(
+    op: '(',
+    attrs: OpAttrs("STRETCHY_FALSE"),
+    left: None,
+    right: None,
+  ),
   IdentifierStr("mod"),
   Space(Length(
     value: 0.33333334,
@@ -15,7 +20,12 @@ expression: "\\pmod{3}_4"
   )),
   Number("3"),
   Sub(
-    target: StretchableOp(StretchableOp(')', Always), NoStretch, OpAttrs("")),
+    target: Operator(
+      op: ')',
+      attrs: OpAttrs("STRETCHY_FALSE"),
+      left: None,
+      right: None,
+    ),
     symbol: Number("4"),
   ),
 ]

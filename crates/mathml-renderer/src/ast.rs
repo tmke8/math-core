@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::attribute::{
     FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, ParenType, RowAttr, Size,
-    StretchMode, Style,
+    Style,
 };
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
@@ -31,7 +31,6 @@ pub enum Node<'arena> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    StretchableOp(StretchableOp, StretchMode, OpAttrs),
     /// `<mo>...</mo>` for a string.
     PseudoOp {
         attrs: OpAttrs,
@@ -197,9 +196,6 @@ impl Node<'_> {
                 if is_upright {
                     write!(s, "</mrow>")?;
                 }
-            }
-            Node::StretchableOp(op, stretch_mode, attr) => {
-                emit_stretchy_op(s, *stretch_mode, Some(*op), *attr)?;
             }
             Node::Operator {
                 op,
@@ -409,11 +405,11 @@ impl Node<'_> {
                     None => write!(s, "<mrow>")?,
                 }
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *open, OpAttrs::empty())?;
+                emit_fence(s, *open, OpAttrs::empty())?;
                 // TODO: if `content` is an `mrow`, we should flatten it before emitting.
                 content.emit(s, child_indent)?;
                 new_line_and_indent(s, child_indent);
-                emit_stretchy_op(s, StretchMode::Fence, *close, OpAttrs::empty())?;
+                emit_fence(s, *close, OpAttrs::empty())?;
                 writeln_indent!(s, base_indent, "</mrow>");
             }
             Node::SizedParen(size, paren, paren_type) => {
@@ -760,34 +756,13 @@ fn write_equation_num(
     Ok(())
 }
 
-fn emit_stretchy_op(
-    s: &mut String,
-    stretch_mode: StretchMode,
-    op: Option<StretchableOp>,
-    attrs: OpAttrs,
-) -> std::fmt::Result {
+fn emit_fence(s: &mut String, op: Option<StretchableOp>, attrs: OpAttrs) -> std::fmt::Result {
     emit_operator_attributes(s, attrs, None, None)?;
     if let Some(op) = op {
-        match (stretch_mode, op.stretchy) {
-            (StretchMode::Fence, Stretchy::Never)
-            | (StretchMode::Middle, Stretchy::PrePostfix | Stretchy::Never) => {
-                write!(s, " stretchy=\"true\">")?;
-            }
-            (
-                StretchMode::NoStretch,
-                Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric,
-            ) => {
-                write!(s, " stretchy=\"false\">")?;
-            }
-
-            (StretchMode::Middle, Stretchy::AlwaysAsymmetric) => {
-                write!(s, " symmetric=\"true\">")?;
-            }
-            _ => {
-                write!(s, ">")?;
-            }
+        if matches!(op.stretchy, Stretchy::Never) {
+            write!(s, " stretchy=\"true\"")?;
         }
-        write!(s, "{}", char::from(op))?;
+        write!(s, ">{}", char::from(op))?;
     } else {
         // An empty `<mo></mo>` produces weird spacing in some browsers.
         // Use U+2063 (INVISIBLE SEPARATOR) to work around this. It's in Category K in MathML Core.
