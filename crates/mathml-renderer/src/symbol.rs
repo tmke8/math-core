@@ -261,6 +261,13 @@ impl Serialize for StretchableOp {
     }
 }
 
+impl StretchableOp {
+    #[inline]
+    pub const fn as_op(self) -> MathMLOperator {
+        MathMLOperator(self.char.as_char())
+    }
+}
+
 impl From<StretchableOp> for char {
     #[inline]
     fn from(op: StretchableOp) -> Self {

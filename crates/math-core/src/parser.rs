@@ -4,11 +4,10 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
     attribute::{
-        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, StretchMode, Style,
-        TextTransform,
+        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, Style, TextTransform,
     },
     length::Length,
-    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp},
+    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy},
 };
 
 use crate::{
@@ -927,30 +926,33 @@ where
                 } else {
                     OpAttrs::empty()
                 };
-                Ok(Node::StretchableOp(
-                    stretchable_op,
-                    StretchMode::NoStretch,
-                    attr,
-                ))
+                Ok(Node::Operator {
+                    op: stretchable_op.as_op(),
+                    attrs: attr | no_stretch_attrs(stretchable_op),
+                    left: None,
+                    right: None,
+                })
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
                 const SQ_L_BRACKET: StretchableOp =
                     symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(
-                    SQ_L_BRACKET,
-                    StretchMode::NoStretch,
-                    OpAttrs::empty(),
-                ))
+                Ok(Node::Operator {
+                    op: SQ_L_BRACKET.as_op(),
+                    attrs: no_stretch_attrs(SQ_L_BRACKET),
+                    left: None,
+                    right: None,
+                })
             }
             Token::SquareBracketClose => {
                 const SQ_R_BRACKET: StretchableOp =
                     symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::StretchableOp(
-                    SQ_R_BRACKET,
-                    StretchMode::NoStretch,
-                    OpAttrs::empty(),
-                ))
+                Ok(Node::Operator {
+                    op: SQ_R_BRACKET.as_op(),
+                    attrs: no_stretch_attrs(SQ_R_BRACKET),
+                    left: None,
+                    right: None,
+                })
             }
             Token::Left => {
                 let tok_loc = self.next_token()?;
@@ -982,11 +984,12 @@ where
             Token::Middle => {
                 let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
-                Ok(Node::StretchableOp(
-                    op,
-                    StretchMode::Middle,
-                    OpAttrs::empty(),
-                ))
+                Ok(Node::Operator {
+                    op: op.as_op(),
+                    attrs: middle_stretch_attrs(op),
+                    left: None,
+                    right: None,
+                })
             }
             Token::Big(size, paren_type) => {
                 let tok_loc = self.next_token()?;
@@ -1758,6 +1761,25 @@ pub(crate) fn node_vec_to_node<'arena>(
     } else {
         let nodes = arena.push_slice(nodes);
         arena.push(Node::Row { nodes, attr: None })
+    }
+}
+
+/// Get the attributes for an operator that we want not to stretch.
+fn no_stretch_attrs(op: StretchableOp) -> OpAttrs {
+    match op.stretchy {
+        Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric => {
+            OpAttrs::STRETCHY_FALSE
+        }
+        _ => OpAttrs::empty(),
+    }
+}
+
+/// Get the attributes for a middle operator (which needs to stretch symmetrically).
+fn middle_stretch_attrs(op: StretchableOp) -> OpAttrs {
+    match op.stretchy {
+        Stretchy::PrePostfix | Stretchy::Never => OpAttrs::STRETCHY_TRUE,
+        Stretchy::AlwaysAsymmetric => OpAttrs::SYMMETRIC_TRUE,
+        _ => OpAttrs::empty(),
     }
 }
 

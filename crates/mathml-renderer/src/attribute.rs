@@ -94,17 +94,6 @@ pub enum ParenType {
     Close,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum StretchMode {
-    /// Don't stretch the operator.
-    NoStretch = 1,
-    /// Operator is in a fence and should stretch.
-    Fence,
-    /// Operator is in the middle of a fenced expression and should stretch.
-    Middle,
-}
-
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
