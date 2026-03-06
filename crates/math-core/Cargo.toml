@@ -19,7 +19,7 @@ categories = ["science"]
 exclude = ["/src/snapshots", "/tests/snapshots"]
 
 [dependencies]
-mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.5.2" }
+mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.5.3" }
 serde = { workspace = true, optional = true }
 serde-tuple-vec-map = { version = "1.0.1", optional = true }
 phf = { version = "0.13.1", features = ["macros"] }
@@ -32,7 +32,7 @@ ariadne = { workspace = true, optional = true }
 
 [dev-dependencies]
 math-core = { path = ".", features = ["serde", "ariadne"] }
-mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.5.2", features = ["serde"] }
+mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.5.3", features = ["serde"] }
 insta = { version = "1.46.3", features = ["default", "ron"] }
 regex = "1.12.3"
 minijinja = "2.16.0"
