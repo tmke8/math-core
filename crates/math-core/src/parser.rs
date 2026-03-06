@@ -907,15 +907,12 @@ where
                     node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
                 ));
             }
-            ref tok @ (Token::Open(paren) | Token::Close(paren)) => 'open_close: {
+            ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 let open = matches!(tok, Token::Open(_));
                 if open {
                     class = Class::Open;
                 }
-                let Some(stretchable_op) = paren.as_stretchable_op() else {
-                    break 'open_close Err(LatexError(span.into(), LatexErrKind::Internal));
-                };
-                let attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                let mut attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
@@ -926,34 +923,36 @@ where
                 } else {
                     OpAttrs::empty()
                 };
+                if matches!(
+                    paren.category(),
+                    OrdCategory::F | OrdCategory::G | OrdCategory::FGandForceDefault
+                ) {
+                    // Symbols from these categories are automatically stretchy,
+                    // so we have to explicitly disable that here.
+                    attr |= OpAttrs::STRETCHY_FALSE;
+                }
                 Ok(Node::Operator {
-                    op: stretchable_op.as_op(),
-                    attrs: attr | no_stretch_attrs(stretchable_op),
+                    op: paren.as_op(),
+                    attrs: attr,
                     left: None,
                     right: None,
                 })
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
-                const SQ_L_BRACKET: StretchableOp =
-                    symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
                 Ok(Node::Operator {
-                    op: SQ_L_BRACKET.as_op(),
-                    attrs: no_stretch_attrs(SQ_L_BRACKET),
+                    op: symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    attrs: OpAttrs::STRETCHY_FALSE,
                     left: None,
                     right: None,
                 })
             }
-            Token::SquareBracketClose => {
-                const SQ_R_BRACKET: StretchableOp =
-                    symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-                Ok(Node::Operator {
-                    op: SQ_R_BRACKET.as_op(),
-                    attrs: no_stretch_attrs(SQ_R_BRACKET),
-                    left: None,
-                    right: None,
-                })
-            }
+            Token::SquareBracketClose => Ok(Node::Operator {
+                op: symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                attrs: OpAttrs::STRETCHY_FALSE,
+                left: None,
+                right: None,
+            }),
             Token::Left => {
                 let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
@@ -1761,16 +1760,6 @@ pub(crate) fn node_vec_to_node<'arena>(
     } else {
         let nodes = arena.push_slice(nodes);
         arena.push(Node::Row { nodes, attr: None })
-    }
-}
-
-/// Get the attributes for an operator that we want not to stretch.
-fn no_stretch_attrs(op: StretchableOp) -> OpAttrs {
-    match op.stretchy {
-        Stretchy::Always | Stretchy::PrePostfix | Stretchy::AlwaysAsymmetric => {
-            OpAttrs::STRETCHY_FALSE
-        }
-        _ => OpAttrs::empty(),
     }
 }
 

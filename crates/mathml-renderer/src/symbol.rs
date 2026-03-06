@@ -135,7 +135,7 @@ impl OrdLike {
             }
             OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
             OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::NonZero),
-            _ => {
+            OrdCategory::D | OrdCategory::E | OrdCategory::I => {
                 return None;
             }
         };

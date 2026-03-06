@@ -41,6 +41,19 @@ bitflags! {
 
 impl OpAttrs {
     pub fn write_to(self, s: &mut String) {
+        debug_assert!(
+            !(self.contains(OpAttrs::STRETCHY_FALSE) && self.contains(OpAttrs::STRETCHY_TRUE)),
+            "STRETCHY_FALSE and STRETCHY_TRUE cannot both be set"
+        );
+        debug_assert!(
+            !(self.contains(OpAttrs::NO_MOVABLE_LIMITS)
+                && self.contains(OpAttrs::FORCE_MOVABLE_LIMITS)),
+            "NO_MOVABLE_LIMITS and FORCE_MOVABLE_LIMITS cannot both be set"
+        );
+        debug_assert!(
+            !(self.contains(OpAttrs::FORM_PREFIX) && self.contains(OpAttrs::FORM_POSTFIX)),
+            "FORM_PREFIX and FORM_POSTFIX cannot both be set"
+        );
         if self.contains(OpAttrs::STRETCHY_FALSE) {
             s.push_str(r#" stretchy="false""#);
         }
