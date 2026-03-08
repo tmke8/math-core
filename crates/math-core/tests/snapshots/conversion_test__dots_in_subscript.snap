@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x_{\\ldots\\log}"
+---
+<math>
+    <msub>
+        <mi>x</mi>
+        <mrow>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0">.</mo>
+            <mo lspace="0" rspace="0">log</mo>
+        </mrow>
+    </msub>
+</math>

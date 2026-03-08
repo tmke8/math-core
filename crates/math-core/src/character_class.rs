@@ -17,4 +17,6 @@ pub enum Class {
     Punctuation,
     /// `mathinner`
     Inner,
+    /// A class indicating the end of the current formula.
+    End,
 }

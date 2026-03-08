@@ -6,7 +6,7 @@ expression: "4 + \\cdots ()"
     <mn>4</mn>
     <mo>+</mo>
     <mo lspace="0">·</mo>
-    <mo lspace="0">·</mo>
+    <mo lspace="0" rspace="0.1667em">·</mo>
     <mo lspace="0">·</mo>
     <mo stretchy="false">(</mo>
     <mo stretchy="false">)</mo>
