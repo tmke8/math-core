@@ -223,10 +223,12 @@ where
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
-        let next_class = self
-            .tokens
-            .peek_class_token()?
-            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
+            Class::Default
+        } else {
+            next_class
+        };
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -334,7 +336,7 @@ where
             }
             Token::Punctuation(punc) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::Close) || self.state.script_style {
+                let right = if matches!(next_class, Class::End) || self.state.script_style {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -343,6 +345,20 @@ where
                     op: punc.as_op(),
                     attrs: OpAttrs::empty(),
                     left: None,
+                    right,
+                })
+            }
+            Token::ForcePunctuation(op) => {
+                class = Class::Punctuation;
+                let right = if matches!(next_class, Class::End) || self.state.script_style {
+                    Some(MathSpacing::Zero)
+                } else {
+                    Some(MathSpacing::ThreeMu)
+                };
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    left: Some(MathSpacing::Zero),
                     right,
                 })
             }
@@ -430,10 +446,7 @@ where
                 };
                 class = Class::BinaryOp;
                 // Recompute the next class:
-                let next_class = self
-                    .tokens
-                    .peek_class_token()?
-                    .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                 let spacing =
                     self.state
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
@@ -459,14 +472,16 @@ where
                 } else {
                     None
                 };
-                let right =
-                    if matches!(next_class, Class::Relation | Class::BinaryOp | Class::Close)
-                        || (self.state.script_style && !matches!(next_class, Class::Operator))
-                    {
-                        Some(MathSpacing::Zero)
-                    } else {
-                        None
-                    };
+                let right = if matches!(
+                    next_class,
+                    Class::Relation | Class::BinaryOp | Class::Close | Class::End
+                ) || (self.state.script_style
+                    && !matches!(next_class, Class::Operator))
+                {
+                    Some(MathSpacing::Zero)
+                } else {
+                    None
+                };
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
@@ -476,6 +491,7 @@ where
             }
             Token::OpGreaterThan => {
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                class = Class::Relation;
                 Ok(Node::PseudoOp {
                     name: "&gt;",
                     attrs: OpAttrs::empty(),
@@ -485,6 +501,7 @@ where
             }
             Token::OpLessThan => {
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                class = Class::Relation;
                 Ok(Node::PseudoOp {
                     name: "&lt;",
                     attrs: OpAttrs::empty(),
@@ -802,10 +819,7 @@ where
                 // `\not` has to be followed by something:
                 let (tok, new_span) = self.next_token()?.into_parts();
                 // Recompute the next class:
-                let next_class = self
-                    .tokens
-                    .peek_class_token()?
-                    .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                 match tok {
                     Token::Relation(op) => {
                         let (left, right) = self.state.relation_spacing(prev_class, next_class);
@@ -1509,11 +1523,8 @@ where
         explicit: bool,
     ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
         // We re-determine the next class here, because the next token may have changed
-        // because we discarded bounds or limits tokens.
-        let next_class = self
-            .tokens
-            .peek_class_token()?
-            .class(parse_as.in_sequence(), self.state.right_boundary_hack);
+        // because we discarded bounds tokens.
+        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
         Ok((
             if matches!(
                 prev_class,
@@ -1532,8 +1543,9 @@ where
             },
             if matches!(
                 next_class,
-                Class::Relation | Class::Punctuation | Class::Open | Class::Close
-            ) {
+                Class::Relation | Class::Punctuation | Class::Open | Class::Close | Class::End
+            ) || (self.state.script_style && matches!(next_class, Class::Inner))
+            {
                 Some(MathSpacing::Zero)
             } else if explicit {
                 Some(MathSpacing::ThreeMu)
@@ -1690,7 +1702,7 @@ impl ParserState<'_> {
             },
             if matches!(
                 next_class,
-                Class::Relation | Class::Punctuation | Class::Close
+                Class::Relation | Class::Punctuation | Class::Close | Class::End
             ) || self.script_style
             {
                 Some(MathSpacing::Zero)
@@ -1715,7 +1727,7 @@ impl ParserState<'_> {
             Class::Relation | Class::Punctuation | Class::BinaryOp | Class::Operator | Class::Open
         ) || matches!(
             next_class,
-            Class::Relation | Class::Punctuation | Class::Close
+            Class::Relation | Class::Punctuation | Class::Close | Class::End
         ) || self.script_style
         {
             Some(MathSpacing::Zero)

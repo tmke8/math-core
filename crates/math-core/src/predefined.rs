@@ -50,13 +50,13 @@ pub static XLEFTARROW: [Token<'static>; 7] = [
 
 pub static DOTS: [Token<'static>; 3] = [
     Inner(symbol::FULL_STOP),
-    Op(symbol::FULL_STOP),
+    ForcePunctuation(symbol::FULL_STOP.as_op()),
     Inner(symbol::FULL_STOP),
 ];
 
 pub static CDOTS: [Token<'static>; 3] = [
     Inner(symbol::MIDDLE_DOT),
-    Op(symbol::MIDDLE_DOT),
+    ForcePunctuation(symbol::MIDDLE_DOT.as_op()),
     Inner(symbol::MIDDLE_DOT),
 ];
 

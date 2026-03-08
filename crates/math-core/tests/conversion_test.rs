@@ -257,6 +257,7 @@ fn main() {
         ("overset_real_prime", r"\overset{\prime}{=}x"),
         ("overset_plus", r"\overset{!}{+}"),
         ("overset_implies", r"\overset{\implies}{xxxxxxx}"),
+        ("overset_with_left_right", r"\overset{!}{\left(x+\right)}"),
         ("exclamation_mark_spacing", r"x=!=x"),
         ("int_limit_prime", r"\int\limits'"),
         ("prime_command", r"f^\prime"),
@@ -347,6 +348,7 @@ fn main() {
         ("idotsint_with_limits", r"\idotsint\limits_0^1 xy"),
         ("cdots_before_open", r"4 + \cdots ()"),
         ("cdots_before_close", r"{\sum \cdots}"),
+        ("dots_in_subscript", r"x_{\ldots\log}"),
         ("infix_double_bar", r"x \| y"),
         ("underset_tilde", r"\underset{z\sim Z}{\mathbb{E}}"),
         ("bra_and_ket", r"x\bra{\uparrow} + \ket{\downarrow}y"),
@@ -354,6 +356,7 @@ fn main() {
         ("mathbin_no_braces", r"x\mathbin|y"),
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
         ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
+        ("comma_before_close_paren", r"4,)"),
     ];
 
     let config = MathCoreConfig {

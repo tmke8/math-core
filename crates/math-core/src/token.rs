@@ -110,6 +110,10 @@ pub enum Token<'source> {
     /// The character `&`.
     /// It has its own token because we need to escape it for the HTML output.
     OpAmpersand,
+    /// A token to force an operator to behave like a binary operator (mathbin).
+    /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
+    /// but in MathML Core is a "big operator" (mathop).
+    ForceBinaryOp(MathMLOperator),
     /// A token to force an operator to behave like a relation (mathrel).
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
@@ -118,10 +122,8 @@ pub enum Token<'source> {
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
     ForceClose(MathMLOperator),
-    /// A token to force an operator to behave like a binary operator (mathbin).
-    /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
-    /// but in MathML Core is a "big operator" (mathop).
-    ForceBinaryOp(MathMLOperator),
+    /// A token to force an operator to behave like punctuation (mathpunct).
+    ForcePunctuation(MathMLOperator),
     /// `\mathbin`
     Mathbin,
     /// A token to allow a relation to stretch.
@@ -192,35 +194,61 @@ static_assertions::assert_eq_size!(Result<Token<'_>, &'static i32>, [usize; 3]);
 
 impl Token<'_> {
     /// Returns the character class of this token.
-    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
-        if !in_sequence {
-            return Class::Default;
-        }
+    pub(super) fn class(&self) -> Option<Class> {
+        use Token::*;
         match self.unwrap_math_ref() {
-            Token::Relation(_) | Token::ForceRelation(_) => Class::Relation,
-            Token::Punctuation(_) => Class::Punctuation,
-            Token::Open(_) | Token::Left | Token::SquareBracketOpen => Class::Open,
-            Token::Close(_)
-            | Token::SquareBracketClose
-            | Token::NewColumn
-            | Token::ForceClose(_) => Class::Close,
-            Token::BinaryOp(_) | Token::ForceBinaryOp(_) | Token::Mathbin => Class::BinaryOp,
-            Token::Op(_) => Class::Operator,
-            Token::End(_) | Token::Right | Token::GroupEnd | Token::Eoi if !ignore_end_tokens => {
+            Relation(_) | ForceRelation(_) | OpGreaterThan | OpLessThan | StretchyRel(_) => {
+                Some(Class::Relation)
+            }
+            Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
+            Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
+            Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
+            BinaryOp(_) | ForceBinaryOp(_) | Mathbin => Some(Class::BinaryOp),
+            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName(_) => {
+                Some(Class::Operator)
+            }
+            End(_)| NewColumn  | GroupEnd | Eoi => Some(Class::End),
+            Inner(_) => Some(Class::Inner),
+            Big(_, Some(paren_type)) => Some(if matches!(paren_type, ParenType::Open) {
+                Class::Open
+            } else {
                 Class::Close
-            }
-            Token::Inner(_) => Class::Inner,
+            }),
+            CustomCmd(_, toks) => toks.iter().find_map(|tok| tok.class()),
+            Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
+            | Limits | NonBreakingSpace => None,
+            Letter(_, _)
+            | UprightLetter(_)
+            | Digit(_)
             // `\big` commands without the "l" or "r" really produce `Class::Default`.
-            Token::Big(_, Some(paren_type)) => {
-                if matches!(paren_type, ParenType::Open) {
-                    Class::Open
-                } else {
-                    Class::Close
-                }
-            }
-            // TODO: This needs to skip spaces and other non-class tokens in the token sequence.
-            Token::CustomCmd(_, [head, ..]) => head.class(in_sequence, ignore_end_tokens),
-            _ => Class::Default,
+            | Big(_, None)
+            | NewLine
+            | Middle
+            | Frac(_)
+            | Genfrac
+            | Underscore
+            | Circumflex
+            | Binom(_)
+            | Overset
+            | Underset
+            | OverUnderBrace(_, _)
+            | Sqrt
+            | Transform(_)
+            | Ord(_)
+            | Prime
+            | Enclose(_)
+            | OpAmpersand
+            | Slashed
+            | Text(_)
+            | Style(_)
+            | Color
+            | CustomCmdArg(_)
+            | HardcodedMathML(_)
+            | TextMode(_)
+            | MathOrTextMode(_, _)
+            | UnknownCommand(_)
+            | InternalStringLiteral(_)
+            | Accent(_, _, _) => Some(Class::Default),
         }
     }
 
@@ -331,11 +359,6 @@ impl<'config> TokSpan<'config> {
     #[inline]
     pub fn span(&self) -> Span {
         self.1
-    }
-
-    #[inline]
-    pub(super) fn class(&self, in_sequence: bool, ignore_end_tokens: bool) -> Class {
-        self.0.class(in_sequence, ignore_end_tokens)
     }
 }
 

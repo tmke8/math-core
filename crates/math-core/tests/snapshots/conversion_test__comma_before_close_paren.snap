@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "4,)"
+---
+<math>
+    <mn>4</mn>
+    <mo>,</mo>
+    <mo stretchy="false">)</mo>
+</math>
