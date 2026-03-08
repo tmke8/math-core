@@ -31,7 +31,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 
     fn load_token_skip_whitespace(&mut self) -> Result<usize, Box<LatexError>> {
-        self.load_token(SkipMode::Whitespace)
+        self.load_token(is_not_whitespace)
     }
 
     /// Load the next not-skipped token from the lexer into the buffer.
@@ -39,7 +39,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     ///
     /// This function returns an index instead of a reference to the token
     /// in order to avoid issues with the borrow checker.
-    fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError>> {
+    fn load_token(&mut self, predicate: fn(&TokSpan) -> bool) -> Result<usize, Box<LatexError>> {
         if self.lexer_is_eoi {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
@@ -47,10 +47,6 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         }
         let starting_len = self.queue.len();
         let mut non_skipped_offset = 0usize;
-        let predicate = match skip_mode {
-            SkipMode::Whitespace => is_not_whitespace,
-            SkipMode::NoClass => has_class,
-        };
         loop {
             let tok = self.lexer.next_token()?;
             let not_skipped = predicate(&tok);
@@ -115,7 +111,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// checked `next_non_whitespace` or is not interested in it.
     fn find_or_load_after_next(
         &mut self,
-        skip_mode: SkipMode,
+        predicate: fn(&TokSpan) -> bool,
     ) -> Result<&TokSpan<'source>, Box<LatexError>> {
         // We use a block here which returns an index to avoid borrow checker issues.
         let tok_idx = {
@@ -125,10 +121,6 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             if start < self.queue.len() {
                 let mut range = self.queue.range(start..);
                 range.next(); // Skip `next_non_whitespace`.
-                let predicate = match skip_mode {
-                    SkipMode::Whitespace => is_not_whitespace,
-                    SkipMode::NoClass => has_class,
-                };
                 range.position(predicate).map(|pos| start + 1 + pos)
             } else {
                 debug_assert!(
@@ -144,7 +136,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             Ok(self.queue.get(tok_idx).unwrap_or(&EOI_TOK))
         } else {
             // Otherwise, load more tokens until we find one or reach EOI.
-            let idx = self.load_token(skip_mode)?;
+            let idx = self.load_token(predicate)?;
             if let Some(tok) = self.queue.get(idx) {
                 Ok(tok)
             } else {
@@ -158,7 +150,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 
     pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'source>, Box<LatexError>> {
-        self.find_or_load_after_next(SkipMode::Whitespace)
+        self.find_or_load_after_next(is_not_whitespace)
     }
 
     /// Peek at the first token which has a character class.
@@ -169,7 +161,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         if has_class(self.peek()) {
             return Ok(self.peek());
         }
-        self.find_or_load_after_next(SkipMode::NoClass)
+        self.find_or_load_after_next(has_class)
     }
 
     /// Get the next math-mode token.
@@ -325,12 +317,6 @@ fn has_class(tok: &TokSpan) -> bool {
     )
 }
 
-#[derive(Debug, Clone, Copy)]
-enum SkipMode {
-    Whitespace,
-    NoClass,
-}
-
 /// A macro argument, which is either a single token or a group of tokens.
 pub enum MacroArgument<'source> {
     Token(TokSpan<'source>),
@@ -459,14 +445,14 @@ mod tests {
         assert!(matches!(queue.peek().token(), Token::Letter('y', _)));
 
         // Test the branch that needs to load more tokens.
-        let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
+        let tok = queue.find_or_load_after_next(is_not_whitespace).unwrap();
         assert!(matches!(tok.token(), Token::Letter('z', _)));
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));
 
         // Test the branch that finds the token in the existing buffer.
-        let tok = queue.find_or_load_after_next(SkipMode::Whitespace).unwrap();
+        let tok = queue.find_or_load_after_next(is_not_whitespace).unwrap();
         assert!(matches!(tok.token(), Token::Letter('z', _)));
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
