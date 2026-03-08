@@ -257,6 +257,7 @@ fn main() {
         ("overset_real_prime", r"\overset{\prime}{=}x"),
         ("overset_plus", r"\overset{!}{+}"),
         ("overset_implies", r"\overset{\implies}{xxxxxxx}"),
+        ("overset_with_left_right", r"\overset{!}{\left(x+\right)}"),
         ("exclamation_mark_spacing", r"x=!=x"),
         ("int_limit_prime", r"\int\limits'"),
         ("prime_command", r"f^\prime"),
