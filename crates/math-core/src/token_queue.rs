@@ -25,19 +25,23 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             next_non_whitespace: 0,
         };
         // Ensure that we have at least one non-whitespace token in the buffer for peeking.
-        let offset = tm.load_token(SkipMode::Whitespace)?;
-        tm.next_non_whitespace = offset;
+        let idx = tm.load_token(SkipMode::Whitespace)?;
+        tm.next_non_whitespace = idx;
         Ok(tm)
     }
 
     /// Load the next not-skipped token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
+    ///
+    /// This function returns an index instead of a reference to the token
+    /// in order to avoid issues with the borrow checker.
     fn load_token(&mut self, skip_mode: SkipMode) -> Result<usize, Box<LatexError>> {
         if self.lexer_is_eoi {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
             return Ok(0);
         }
+        let starting_len = self.queue.len();
         let mut non_skipped_offset = 0usize;
         let predicate = match skip_mode {
             SkipMode::Whitespace => is_not_whitespace,
@@ -59,7 +63,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 break;
             }
         }
-        Ok(non_skipped_offset)
+        Ok(starting_len + non_skipped_offset)
     }
 
     /// Perform a linear search to find the next non-whitespace token in the buffer.
@@ -76,8 +80,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 break 'pos_calc pos;
             }
             // Then, try to load more tokens until we find one or reach EOI.
-            let starting_len = self.queue.len();
-            starting_len + self.load_token(SkipMode::Whitespace)?
+            self.load_token(SkipMode::Whitespace)?
         };
         self.next_non_whitespace = pos;
         Ok(())
@@ -106,9 +109,6 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// This function starts its search after `next_non_whitespace` (i.e., it skips
     /// the first non-whitespace token). The idea is that the caller has already
     /// checked `next_non_whitespace` or is not interested in it.
-    ///
-    /// This function returns an index instead of a reference to the token
-    /// in order to avoid issues with the borrow checker.
     fn find_or_load_after_next(
         &mut self,
         skip_mode: SkipMode,
@@ -140,9 +140,8 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             Ok(self.queue.get(tok_idx).unwrap_or(&EOI_TOK))
         } else {
             // Otherwise, load more tokens until we find one or reach EOI.
-            let starting_len = self.queue.len();
-            let offset = self.load_token(skip_mode)?;
-            if let Some(tok) = self.queue.get(starting_len + offset) {
+            let idx = self.load_token(skip_mode)?;
+            if let Some(tok) = self.queue.get(idx) {
                 Ok(tok)
             } else {
                 debug_assert!(
