@@ -39,7 +39,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     ///
     /// This function returns an index instead of a reference to the token
     /// in order to avoid issues with the borrow checker.
-    fn load_token(&mut self, predicate: fn(&TokSpan) -> bool) -> Result<usize, Box<LatexError>> {
+    fn load_token(&mut self, predicate: fn(&Token) -> bool) -> Result<usize, Box<LatexError>> {
         if self.lexer_is_eoi {
             // Returning here with offset 0 is the right thing to do,
             // because it will result in an index that is one past the end of the buffer.
@@ -49,7 +49,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
         let mut non_skipped_offset = 0usize;
         loop {
             let tok = self.lexer.next_token()?;
-            let not_skipped = predicate(&tok);
+            let not_skipped = predicate(tok.token());
             let is_eoi = matches!(tok.token(), Token::Eoi);
             self.queue.push_back(tok);
             if not_skipped {
@@ -68,7 +68,9 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
 
     /// Perform a linear search to find the next non-whitespace token in the buffer.
     fn find_next_non_whitespace(&self) -> Option<usize> {
-        self.queue.iter().position(is_not_whitespace)
+        self.queue
+            .iter()
+            .position(|tokspan| is_not_whitespace(tokspan.token()))
     }
 
     fn ensure_next_non_whitespace(&mut self) -> Result<(), Box<LatexError>> {
@@ -111,7 +113,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// checked `next_non_whitespace` or is not interested in it.
     fn find_or_load_after_next(
         &mut self,
-        predicate: fn(&TokSpan) -> bool,
+        predicate: fn(&Token) -> bool,
     ) -> Result<&TokSpan<'source>, Box<LatexError>> {
         // We use a block here which returns an index to avoid borrow checker issues.
         let tok_idx = {
@@ -121,7 +123,9 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             if start < self.queue.len() {
                 let mut range = self.queue.range(start..);
                 range.next(); // Skip `next_non_whitespace`.
-                range.position(predicate).map(|pos| start + 1 + pos)
+                range
+                    .position(|ts| predicate(ts.token()))
+                    .map(|pos| start + 1 + pos)
             } else {
                 debug_assert!(
                     self.lexer_is_eoi,
@@ -158,7 +162,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     /// This excludes, for example, `Space` tokens.
     pub(super) fn peek_class_token(&mut self) -> Result<&TokSpan<'source>, Box<LatexError>> {
         // First check the common case where the next token is already a token with class.
-        if has_class(self.peek()) {
+        if has_class(self.peek().token()) {
             return Ok(self.peek());
         }
         self.find_or_load_after_next(has_class)
@@ -306,13 +310,13 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     }
 }
 
-fn is_not_whitespace(tok: &TokSpan) -> bool {
-    !matches!(tok.token(), Token::Whitespace)
+fn is_not_whitespace(tok: &Token) -> bool {
+    !matches!(tok, Token::Whitespace)
 }
 
-fn has_class(tok: &TokSpan) -> bool {
+fn has_class(tok: &Token) -> bool {
     !matches!(
-        tok.token().unwrap_math_ref(),
+        tok.unwrap_math_ref(),
         Token::Whitespace | Token::Space(_) | Token::Not | Token::TransformSwitch(_)
     )
 }
