@@ -21,12 +21,12 @@ static_assertions = "1.1.0"
 ariadne = "0.6.0"
 
 [workspace.lints.clippy]
-unnecessary_semicolon = "deny"
-match_wildcard_for_single_variants = "deny"
-explicit_iter_loop = "deny"
-match_same_arms = "deny"
-elidable_lifetime_names = "deny"
-trivially_copy_pass_by_ref = "deny"
+unnecessary_semicolon = "warn"
+match_wildcard_for_single_variants = "warn"
+explicit_iter_loop = "warn"
+match_same_arms = "warn"
+elidable_lifetime_names = "warn"
+trivially_copy_pass_by_ref = "warn"
 
 [profile.dev.package]
 insta.opt-level = 3

@@ -35,7 +35,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
     fn load_token_skip_whitespace(&mut self) -> Result<usize, Box<LatexError>> {
         Ok(self
             .load_token(is_not_whitespace)?
-            .unwrap_or_else(|| self.queue.len()))
+            .unwrap_or(self.queue.len()))
     }
 
     /// Load the next not-skipped token from the lexer into the buffer.
