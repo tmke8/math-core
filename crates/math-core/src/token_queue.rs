@@ -25,9 +25,13 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
             next_non_whitespace: 0,
         };
         // Ensure that we have at least one non-whitespace token in the buffer for peeking.
-        let idx = tm.load_token(SkipMode::Whitespace)?;
+        let idx = tm.load_token_skip_whitespace()?;
         tm.next_non_whitespace = idx;
         Ok(tm)
+    }
+
+    fn load_token_skip_whitespace(&mut self) -> Result<usize, Box<LatexError>> {
+        self.load_token(SkipMode::Whitespace)
     }
 
     /// Load the next not-skipped token from the lexer into the buffer.
@@ -80,7 +84,7 @@ impl<'source, 'config> TokenQueue<'source, 'config> {
                 break 'pos_calc pos;
             }
             // Then, try to load more tokens until we find one or reach EOI.
-            self.load_token(SkipMode::Whitespace)?
+            self.load_token_skip_whitespace()?
         };
         self.next_non_whitespace = pos;
         Ok(())
@@ -395,8 +399,8 @@ mod tests {
             let lexer = Lexer::new(problem, false, None);
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
-            manager.load_token(SkipMode::Whitespace).unwrap();
-            manager.load_token(SkipMode::Whitespace).unwrap();
+            manager.load_token_skip_whitespace().unwrap();
+            manager.load_token_skip_whitespace().unwrap();
             // Check that the first token is `GroupBegin`.
             assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
             let mut tokens = Vec::new();
