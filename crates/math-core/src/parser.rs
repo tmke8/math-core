@@ -1780,7 +1780,7 @@ fn middle_stretch_attrs(op: StretchableOp) -> OpAttrs {
     match op.stretchy {
         Stretchy::PrePostfix | Stretchy::Never => OpAttrs::STRETCHY_TRUE,
         Stretchy::AlwaysAsymmetric => OpAttrs::SYMMETRIC_TRUE,
-        _ => OpAttrs::empty(),
+        Stretchy::Always => OpAttrs::empty(),
     }
 }
 
