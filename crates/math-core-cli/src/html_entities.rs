@@ -58,7 +58,7 @@ where
         } else {
             // No match, copy the original string.
             buffer.push_str(&input[next_start..=end]);
-        };
+        }
 
         // We use `end + 1` to include the `;` character.
         last_end = end + 1;

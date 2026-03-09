@@ -180,7 +180,7 @@ fn main() {
             convert_html_recursive(&args, fpath, &mut replacer, &mut converter);
         } else {
             convert_html(&args, fpath, &mut replacer, &mut converter);
-        };
+        }
     } else if let Some(formula) = &args.formula {
         convert_and_exit(&args, formula, &mut converter);
     } else {
@@ -191,7 +191,7 @@ fn main() {
 fn read_stdin() -> String {
     let mut buffer = String::new();
     if let Err(e) = std::io::stdin().read_to_string(&mut buffer) {
-        exit_io_error(e);
+        exit_io_error(&e);
     }
     buffer
 }
@@ -285,25 +285,26 @@ fn convert_html_recursive(
     converter: &mut LatexToMathML,
 ) {
     if path.is_dir() {
-        let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(e));
+        let dir = fs::read_dir(path).unwrap_or_else(|e| exit_io_error(&e));
         for entry in dir.filter_map(Result::ok) {
             convert_html_recursive(args, entry.path().as_ref(), replacer, converter)
         }
     } else if path.is_file()
         && let Some(ext) = path.extension()
-            && ext == "html" {
-                convert_html(args, path, replacer, converter);
-            }
+        && ext == "html"
+    {
+        convert_html(args, path, replacer, converter);
+    }
 }
 
 fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML) {
-    let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(e));
+    let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(&e));
     let converted = replace(replacer, &original, converter, args.continue_on_error)
         .unwrap_or_else(|e| exit_conversion_error(e, Some(fp)));
     if !args.dry_run && original != converted {
-        let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(e));
+        let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(&e));
         fp.write_all(converted.as_bytes())
-            .unwrap_or_else(|e| exit_io_error(e));
+            .unwrap_or_else(|e| exit_io_error(&e));
     }
 }
 
@@ -323,7 +324,7 @@ fn exit_conversion_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
     std::process::exit(2);
 }
 
-fn exit_io_error(e: std::io::Error) -> ! {
+fn exit_io_error(e: &std::io::Error) -> ! {
     eprintln!("IO Error: {e}");
     std::process::exit(1);
 }

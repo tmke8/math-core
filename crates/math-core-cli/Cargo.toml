@@ -23,3 +23,6 @@ memchr = { workspace = true }
 phf = { version = "0.13.1", features = ["macros"] }
 toml = "1.0.6"
 serde = { workspace = true }
+
+[lints]
+workspace = true
