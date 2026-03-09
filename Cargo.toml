@@ -27,6 +27,7 @@ explicit_iter_loop = "warn"
 match_same_arms = "warn"
 elidable_lifetime_names = "warn"
 trivially_copy_pass_by_ref = "warn"
+needless_pass_by_value = "warn"
 redundant_closure_for_method_calls = "warn"
 
 [profile.dev.package]
