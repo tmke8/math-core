@@ -37,7 +37,7 @@ pub(crate) enum LatexErrKind {
     BoundFollowedByBound,
     DuplicateSubOrSup,
     SwitchOnlyInSequence,
-    ExpectedText(&'static str),
+    ExpectedText,
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
@@ -163,8 +163,8 @@ impl LatexErrKind {
             LatexErrKind::SwitchOnlyInSequence => {
                 write!(s, "Math variant switch command found outside of sequence.")?;
             }
-            LatexErrKind::ExpectedText(place) => {
-                write!(s, "Expected text in {place}.")?;
+            LatexErrKind::ExpectedText => {
+                write!(s, "Expected text in string literal.")?;
             }
             LatexErrKind::ExpectedLength(got) => {
                 write!(s, "Expected length with units, got \"{got}\".")?;
@@ -301,7 +301,7 @@ impl LatexError {
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),
-            LatexErrKind::ExpectedText(_) => "expected text here".into(),
+            LatexErrKind::ExpectedText => "expected text here".into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
