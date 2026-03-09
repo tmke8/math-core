@@ -214,7 +214,7 @@ impl Token<'_> {
             } else {
                 Class::Close
             }),
-            CustomCmd(_, toks) => toks.iter().find_map(|tok| tok.class()),
+            CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
             | Limits | NonBreakingSpace => None,
             Letter(_, _)
