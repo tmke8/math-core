@@ -1675,7 +1675,7 @@ where
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(Box::new(LatexError(
                     span.into(),
-                    LatexErrKind::ExpectedText("string literal"),
+                    LatexErrKind::ExpectedText,
                 )));
             };
             builder.push_char(ch);
