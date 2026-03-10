@@ -23,16 +23,16 @@ use crate::{
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
-pub(crate) struct Parser<'arena, 'source, 'config> {
-    pub(super) tokens: TokenQueue<'source, 'config>,
+pub(crate) struct Parser<'config, 'source, 'arena> {
+    pub(super) tokens: TokenQueue<'config, 'source>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'arena mut u16,
     label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
-    state: ParserState<'arena, 'source>,
+    state: ParserState<'source, 'arena>,
 }
 
-struct ParserState<'arena, 'source> {
+struct ParserState<'source, 'arena> {
     cmd_args: Vec<TokSpan<'source>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
@@ -91,7 +91,7 @@ impl ParseAs {
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
-impl<'arena, 'source, 'config> Parser<'arena, 'source, 'config>
+impl<'config, 'source, 'arena> Parser<'config, 'source, 'arena>
 where
     'config: 'source, // The config will live as long as the source.
     'source: 'arena,
@@ -603,13 +603,12 @@ where
                 }
             }
             Token::Genfrac => 'genfrac: {
-                fn get_delimiter<'cell, 'arena, 'source, 'config>(
-                    parser: &mut Parser<'arena, 'source, 'config>,
+                fn get_delimiter<'config, 'source, 'arena>(
+                    parser: &mut Parser<'config, 'source, 'arena>,
                 ) -> Result<Option<StretchableOp>, Box<LatexError>>
                 where
                     'config: 'source,
                     'source: 'arena,
-                    'arena: 'cell,
                 {
                     let tok = parser.tokens.read_argument(false)?.into_one_or_none()?;
                     Ok(match tok {
