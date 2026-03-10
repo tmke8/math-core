@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
-pub(super) struct TokenQueue<'source, 'config> {
+pub(super) struct TokenQueue<'config, 'source> {
     pub lexer: Lexer<'config, 'source>,
     queue: VecDeque<TokSpan<'source>>,
     lexer_is_eoi: bool,
@@ -17,7 +17,7 @@ pub(super) struct TokenQueue<'source, 'config> {
 
 static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
 
-impl<'source, 'config> TokenQueue<'source, 'config> {
+impl<'config, 'source> TokenQueue<'config, 'source> {
     pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,

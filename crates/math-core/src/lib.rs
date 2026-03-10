@@ -307,7 +307,7 @@ fn convert(
     Ok(output)
 }
 
-fn parse<'arena, 'source, 'config>(
+fn parse<'config, 'source, 'arena>(
     latex: &'source str,
     arena: &'arena Arena,
     cmd_cfg: Option<&'config CommandConfig>,

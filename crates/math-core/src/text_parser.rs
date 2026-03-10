@@ -12,7 +12,7 @@ use crate::{
     token::{EndToken, Mode, TextToken, Token},
 };
 
-impl<'arena> Parser<'arena, '_, '_> {
+impl<'arena> Parser<'_, '_, 'arena> {
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
