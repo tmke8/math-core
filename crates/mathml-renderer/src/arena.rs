@@ -117,6 +117,20 @@ impl<'buffer> StringBuilder<'buffer> {
     }
 }
 
+impl std::fmt::Write for StringBuilder<'_> {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.push_str(s);
+        Ok(())
+    }
+
+    #[inline]
+    fn write_char(&mut self, c: char) -> std::fmt::Result {
+        self.push_char(c);
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

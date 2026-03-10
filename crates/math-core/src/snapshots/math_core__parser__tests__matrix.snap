@@ -12,7 +12,10 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
       style: Some(Text),
       content: [
         IdentifierChar('x', Default),
-        RowSeparator(None),
+        RowSeparator(
+          tag: None,
+          link_target: None,
+        ),
         IdentifierChar('y', Default),
       ],
     ),

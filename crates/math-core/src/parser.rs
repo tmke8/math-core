@@ -1,4 +1,4 @@
-use std::{mem, num::NonZeroU16, ops::Range};
+use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -9,6 +9,7 @@ use mathml_renderer::{
     length::Length,
     symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy},
 };
+use rustc_hash::FxHashMap;
 
 use crate::{
     character_class::Class,
@@ -22,15 +23,16 @@ use crate::{
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
-pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
+pub(crate) struct Parser<'arena, 'source, 'config> {
     pub(super) tokens: TokenQueue<'source, 'config>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    equation_counter: &'cell mut u16,
-    state: ParserState<'source>,
+    equation_counter: &'arena mut u16,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+    state: ParserState<'arena, 'source>,
 }
 
-struct ParserState<'source> {
+struct ParserState<'arena, 'source> {
     cmd_args: Vec<TokSpan<'source>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
@@ -42,7 +44,7 @@ struct ParserState<'source> {
     allow_columns: bool,
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     meaningful_newlines: bool,
-    numbered: Option<NumberedEnvState>,
+    numbered: Option<NumberedEnvState<'arena>>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
 }
@@ -89,16 +91,16 @@ impl ParseAs {
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
-impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config>
+impl<'arena, 'source, 'config> Parser<'arena, 'source, 'config>
 where
     'config: 'source, // The config will live as long as the source.
     'source: 'arena,
-    'arena: 'cell, // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
-        equation_counter: &'cell mut u16,
+        equation_counter: &'arena mut u16,
+        label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -106,6 +108,7 @@ where
             buffer: Buffer::new(input_length),
             arena,
             equation_counter,
+            label_map,
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
@@ -601,7 +604,7 @@ where
             }
             Token::Genfrac => 'genfrac: {
                 fn get_delimiter<'cell, 'arena, 'source, 'config>(
-                    parser: &mut Parser<'cell, 'arena, 'source, 'config>,
+                    parser: &mut Parser<'arena, 'source, 'config>,
                 ) -> Result<Option<StretchableOp>, Box<LatexError>>
                 where
                     'config: 'source,
@@ -1171,11 +1174,22 @@ where
                         }
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
-                        Ok(num) => Ok(Node::RowSeparator(num)),
+                        Ok(tag) => {
+                            let link_target = numbered_state.label.take();
+                            if let Some(label) = link_target
+                                && let Some(tag) = tag
+                            {
+                                self.label_map.insert(label.into(), tag);
+                            }
+                            Ok(Node::RowSeparator { tag, link_target })
+                        }
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
-                    Ok(Node::RowSeparator(None))
+                    Ok(Node::RowSeparator {
+                        tag: None,
+                        link_target: None,
+                    })
                 }
             }
             Token::NoNumber => {
@@ -1186,8 +1200,6 @@ where
                 Ok(Node::Dummy)
             }
             Token::Tag => {
-                // We always need to collect the string literal here, even if we don't use it,
-                // because otherwise we'd have an orphaned string literal in the token stream.
                 let (tag_name, literal_span) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
@@ -1212,6 +1224,38 @@ where
                         },
                     ))
                 }
+            }
+            Token::Label => {
+                let (label_name, _) = self.parse_string_literal()?;
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    if numbered_state.label.is_some() {
+                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
+                    } else {
+                        numbered_state.label = Some(label_name);
+                        class = prev_class;
+                        Ok(Node::Dummy)
+                    }
+                } else {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Label,
+                            correct_place: Place::NumberedEnv,
+                        },
+                    ))
+                }
+            }
+            Token::EqRef => 'eqref: {
+                let (label_name, literal_span) = self.parse_string_literal()?;
+                let Some(tag) = self.label_map.get(label_name) else {
+                    break 'eqref Err(LatexError(
+                        literal_span,
+                        LatexErrKind::UndefinedLabel(label_name.into()),
+                    ));
+                };
+                let mut builder = self.buffer.get_builder();
+                let _ = write!(builder, r##"<a href="#{label_name}">({tag})</a>"##);
+                Ok(Node::Text(None, builder.finish(self.arena)))
             }
             Token::Color => 'color: {
                 let (color_name, span) = self.parse_string_literal()?;
@@ -1684,7 +1728,7 @@ where
     }
 }
 
-impl ParserState<'_> {
+impl ParserState<'_, '_> {
     fn relation_spacing(
         &self,
         prev_class: Class,
@@ -1875,8 +1919,9 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut equation_counter = 0u16;
+            let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
+            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -1908,8 +1953,9 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut equation_counter = 0u16;
+            let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
+            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);

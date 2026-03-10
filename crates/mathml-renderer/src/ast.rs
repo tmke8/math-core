@@ -114,7 +114,7 @@ pub enum Node<'arena> {
     /// `<mtable>...</mtable>` for equation arrays like the `align` environment
     EquationArray {
         align: Alignment,
-        last_equation_num: Option<NonZeroU16>,
+        last_tag: Option<NonZeroU16>,
         content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtable>...</mtable>` for the `multline` environment
@@ -132,7 +132,10 @@ pub enum Node<'arena> {
     /// `<mtd>...</mtd>`
     ColumnSeparator,
     /// `<mtr>...</mtr>`
-    RowSeparator(Option<NonZeroU16>),
+    RowSeparator {
+        tag: Option<NonZeroU16>,
+        link_target: Option<&'arena str>,
+    },
     /// `<menclose>...</menclose>`
     Enclose {
         content: &'arena Node<'arena>,
@@ -476,7 +479,7 @@ impl Node<'_> {
                 )?;
             }
             node @ (Node::EquationArray {
-                last_equation_num,
+                last_tag: last_equation_num,
                 content,
                 ..
             }
@@ -540,7 +543,7 @@ impl Node<'_> {
                     None,
                 )?;
             }
-            Node::RowSeparator(_) | Node::ColumnSeparator => {
+            Node::RowSeparator { .. } | Node::ColumnSeparator => {
                 // This should only appear in tables where it is handled in `emit_table`.
                 if cfg!(debug_assertions) {
                     panic!("ColumnSeparator node should be handled in emit_table");
@@ -676,7 +679,7 @@ fn emit_table(
     content: &[&Node<'_>],
     mut col_gen: ColumnGenerator,
     numbering_cols: Option<NumberColums>,
-    last_equation_num: Option<NonZeroU16>,
+    last_tag: Option<NonZeroU16>,
 ) -> Result<(), std::fmt::Error> {
     let child_indent2 = if base_indent > 0 {
         child_indent.saturating_add(1)
@@ -699,14 +702,15 @@ fn emit_table(
                 writeln_indent!(s, child_indent2, "</mtd>");
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
-            Node::RowSeparator(equation_counter) => {
+            Node::RowSeparator { tag, link_target } => {
                 writeln_indent!(s, child_indent2, "</mtd>");
                 if let Some(numbering_cols) = numbering_cols {
                     write_equation_num(
                         s,
                         child_indent2,
                         child_indent3,
-                        equation_counter.as_ref().copied(),
+                        tag.as_ref().copied(),
+                        *link_target,
                         numbering_cols,
                     )?;
                 }
@@ -729,7 +733,8 @@ fn emit_table(
             s,
             child_indent2,
             child_indent3,
-            last_equation_num,
+            last_tag,
+            None,
             numbering_cols,
         )?;
     }
@@ -742,13 +747,19 @@ fn write_equation_num(
     s: &mut String,
     child_indent2: usize,
     child_indent3: usize,
-    equation_counter: Option<NonZeroU16>,
+    tag: Option<NonZeroU16>,
+    link_target: Option<&str>,
     numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
     numbering_cols.dummy_column_opening(s, child_indent2)?;
-    if let Some(equation_counter) = equation_counter {
-        write!(s, r#";{RIGHT_ALIGN}">"#)?;
-        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", equation_counter);
+    if let Some(tag) = tag {
+        write!(s, r#";{RIGHT_ALIGN}""#)?;
+        if let Some(link_target) = link_target {
+            write!(s, r#" id="{link_target}">"#)?;
+        } else {
+            write!(s, ">")?;
+        }
+        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", tag);
         writeln_indent!(s, child_indent2, "</mtd>");
     } else {
         write!(s, "\"></mtd>")?;
@@ -1182,7 +1193,10 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(None),
+            &Node::RowSeparator {
+                tag: None,
+                link_target: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1204,7 +1218,10 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(NonZeroU16::new(1)),
+            &Node::RowSeparator {
+                tag: NonZeroU16::new(1),
+                link_target: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1214,7 +1231,7 @@ mod tests {
             render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                last_equation_num: NonZeroU16::new(2),
+                last_tag: NonZeroU16::new(2),
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
@@ -1223,7 +1240,7 @@ mod tests {
             render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                last_equation_num: None,
+                last_tag: None,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
@@ -1235,7 +1252,10 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(None),
+            &Node::RowSeparator {
+                tag: None,
+                link_target: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),

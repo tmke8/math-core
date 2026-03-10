@@ -40,6 +40,8 @@ mod text_parser;
 mod token;
 mod token_queue;
 
+use std::num::NonZeroU16;
+
 use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -163,6 +165,7 @@ pub struct LatexToMathML {
     flags: Flags,
     /// This is used for numbering equations in the document.
     equation_count: u16,
+    label_map: FxHashMap<Box<str>, NonZeroU16>,
     cmd_cfg: Option<CommandConfig>,
 }
 
@@ -176,6 +179,7 @@ impl LatexToMathML {
         Ok(Self {
             flags: Flags::from(&config),
             equation_count: 0,
+            label_map: FxHashMap::default(),
             cmd_cfg: Some(parse_custom_commands(
                 config.macros,
                 config.ignore_unknown_commands,
@@ -201,6 +205,7 @@ impl LatexToMathML {
             display,
             self.cmd_cfg.as_ref(),
             &mut self.equation_count,
+            &mut self.label_map,
             &self.flags,
         )
     }
@@ -230,11 +235,13 @@ impl LatexToMathML {
         display: MathDisplay,
     ) -> Result<String, Box<LatexError>> {
         let mut equation_count = 0;
+        let mut label_map = FxHashMap::default();
         convert(
             latex,
             display,
             self.cmd_cfg.as_ref(),
             &mut equation_count,
+            &mut label_map,
             &self.flags,
         )
     }
@@ -252,10 +259,11 @@ fn convert(
     display: MathDisplay,
     cmd_cfg: Option<&CommandConfig>,
     equation_count: &mut u16,
+    label_map: &mut FxHashMap<Box<str>, NonZeroU16>,
     flags: &Flags,
 ) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, cmd_cfg, equation_count)?;
+    let ast = parse(latex, &arena, cmd_cfg, equation_count, label_map)?;
 
     let mut output = String::new();
     output.push_str("<math");
@@ -272,11 +280,12 @@ fn convert(
 
     let base_indent = if pretty_print { 1 } else { 0 };
     if flags.annotation {
+        let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(&arena, &ast, false);
-        let _ = node.emit(&mut output, base_indent + 1);
-        new_line_and_indent(&mut output, base_indent + 1);
+        let _ = node.emit(&mut output, children_indent);
+        new_line_and_indent(&mut output, children_indent);
         output.push_str("<annotation encoding=\"application/x-tex\">");
         html_utils::escape_html_content(&mut output, latex);
         output.push_str("</annotation>");
@@ -302,14 +311,15 @@ fn parse<'arena, 'source, 'config>(
     latex: &'source str,
     arena: &'arena Arena,
     cmd_cfg: Option<&'config CommandConfig>,
-    equation_count: &mut u16,
+    equation_count: &'arena mut u16,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
 where
     'config: 'source,
     'source: 'arena,
 {
     let lexer = Lexer::new(latex, false, cmd_cfg);
-    let mut p = Parser::new(lexer, arena, equation_count)?;
+    let mut p = Parser::new(lexer, arena, equation_count, label_map)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }

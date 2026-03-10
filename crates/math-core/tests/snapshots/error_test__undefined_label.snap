@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\eqref{a}"
+---
+Error: Found undefined label: "a".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \eqref{a}
+   │       ─┬─  
+   │        ╰─── label has not been previously defined
+───╯

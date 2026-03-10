@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}\\label{a}1\\label{b}\\end{align}"
+---
+Error: Found more than one label in a row.
+   ╭─[ <input>:1:24 ]
+   │
+ 1 │ \begin{align}\label{a}1\label{b}\end{align}
+   │                        ───┬──  
+   │                           ╰──── duplicate label
+───╯
