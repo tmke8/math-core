@@ -4,9 +4,19 @@ expression: "\\mathfrak{ABCDEFGHI} \\\\ \\mathfrak{JKLMNOPQR} \\\\ \\mathfrak{ST
 ---
 <math>
     <mrow><mspace/><mi>𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℍ</mi></mrow>
+    <mrow>
+    </mrow>
     <mrow><mspace/><mi>𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ</mi></mrow>
+    <mrow>
+    </mrow>
     <mrow><mspace/><mi>𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ</mi></mrow>
+    <mrow>
+    </mrow>
     <mrow><mspace/><mi>𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦</mi></mrow>
+    <mrow>
+    </mrow>
     <mrow><mspace/><mi>𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯</mi></mrow>
+    <mrow>
+    </mrow>
     <mrow><mspace/><mi>𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷</mi></mrow>
 </math>

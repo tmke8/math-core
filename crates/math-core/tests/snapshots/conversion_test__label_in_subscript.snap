@@ -9,9 +9,7 @@ expression: "\\begin{align} 1_{x\\label{eq:1}}\\\\2\\end{align}"
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
                 <msub>
                     <mn>1</mn>
-                    <mrow>
-                        <mi>x</mi>
-                    </mrow>
+                    <mi>x</mi>
                 </msub>
             </mtd>
             <mtd style="width: 50%;text-align: right;justify-items: end;" id="eq:1">

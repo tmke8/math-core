@@ -22,6 +22,8 @@ expression: "x', y'', f', f'' \\\\ x^\\prime, y^{\\prime\\prime}"
         <mi>f</mi>
         <mo>″</mo>
     </msup>
+    <mrow>
+    </mrow>
     <msup>
         <mi>x</mi>
         <mo>′</mo>
