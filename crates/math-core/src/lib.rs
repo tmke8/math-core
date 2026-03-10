@@ -272,11 +272,12 @@ fn convert(
 
     let base_indent = if pretty_print { 1 } else { 0 };
     if flags.annotation {
+        let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(&arena, &ast, false);
-        let _ = node.emit(&mut output, base_indent + 1);
-        new_line_and_indent(&mut output, base_indent + 1);
+        let _ = node.emit(&mut output, children_indent);
+        new_line_and_indent(&mut output, children_indent);
         output.push_str("<annotation encoding=\"application/x-tex\">");
         html_utils::escape_html_content(&mut output, latex);
         output.push_str("</annotation>");

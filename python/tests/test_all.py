@@ -121,6 +121,16 @@ def test_annotation():
     )
 
 
+def test_annotation_no_pretty_print():
+    converter = LatexToMathML(annotation=True, pretty_print="never")
+    result = converter.convert_with_local_counter("x", displaystyle=False)
+    assert isinstance(result, str)
+    assert (
+        result
+        == '<math><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>'
+    )
+
+
 def test_annotation_escaping():
     converter = LatexToMathML(annotation=True)
     latex = r"a < b \& c > d"
