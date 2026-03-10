@@ -1,4 +1,4 @@
-use std::{mem, num::NonZeroU16, ops::Range};
+use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -1245,6 +1245,18 @@ where
                         },
                     ))
                 }
+            }
+            Token::EqRef => 'eqref: {
+                let (label_name, literal_span) = self.parse_string_literal()?;
+                let Some(tag) = self.label_map.get(label_name) else {
+                    break 'eqref Err(LatexError(
+                        literal_span,
+                        LatexErrKind::UndefinedLabel(label_name.into()),
+                    ));
+                };
+                let mut builder = self.buffer.get_builder();
+                let _ = write!(builder, r##"<a href="#{label_name}">({tag})</a>"##);
+                Ok(Node::Text(None, builder.finish(self.arena)))
             }
             Token::Color => 'color: {
                 let (color_name, span) = self.parse_string_literal()?;

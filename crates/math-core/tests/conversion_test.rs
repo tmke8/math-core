@@ -157,6 +157,10 @@ fn main() {
             "label_in_subscript",
             r#"\begin{align} 1_{x\label{eq:1}}\\2\end{align}"#,
         ),
+        (
+            "eqref",
+            r#"\begin{align} 1\label{eq:1}\\\eqref{eq:1}\end{align}"#,
+        ),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
         ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
         ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),

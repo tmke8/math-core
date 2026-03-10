@@ -1,0 +1,26 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{align} 1\\label{eq:1}\\\\\\eqref{eq:1}\\end{align}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;" id="eq:1">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mtext><a href="#eq:1">(1)</a></mtext>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(2)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

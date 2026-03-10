@@ -755,7 +755,7 @@ fn write_equation_num(
     if let Some(tag) = tag {
         write!(s, r#";{RIGHT_ALIGN}""#)?;
         if let Some(link_target) = link_target {
-            write!(s, r#" id="{}">"#, link_target)?;
+            write!(s, r#" id="{link_target}">"#)?;
         } else {
             write!(s, ">")?;
         }

@@ -29,6 +29,8 @@ pub enum Token<'source> {
     Tag,
     /// `\label`, label for the current equation.
     Label,
+    /// `\eqref`, equation reference to a label.
+    EqRef,
     /// A left delimiter, e.g. `\left(`.
     Left,
     /// A right delimiter, e.g. `\right)`.
@@ -218,7 +220,7 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
-            | Limits | NonBreakingSpace | Label => None,
+            | Limits | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)

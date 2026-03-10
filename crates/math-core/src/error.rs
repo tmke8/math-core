@@ -45,6 +45,7 @@ pub(crate) enum LatexErrKind {
     NotValidInMathMode,
     CouldNotExtractText,
     MoreThanOneLabel,
+    UndefinedLabel(Box<str>),
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
@@ -190,6 +191,9 @@ impl LatexErrKind {
             LatexErrKind::MoreThanOneLabel => {
                 write!(s, "Found more than one label in a row.")?;
             }
+            LatexErrKind::UndefinedLabel(label) => {
+                write!(s, "Found undefined label: \"{label}\".")?;
+            }
             LatexErrKind::InvalidMacroName(name) => {
                 write!(s, "Invalid macro name: \"\\{name}\".")?;
             }
@@ -315,6 +319,7 @@ impl LatexError {
             LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),
             LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
             LatexErrKind::MoreThanOneLabel => "duplicate label".into(),
+            LatexErrKind::UndefinedLabel(_) => "label has not been previously defined".into(),
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),

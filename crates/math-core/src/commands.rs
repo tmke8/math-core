@@ -286,6 +286,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "eqcolon" => Relation(symbol::EQUALS_COLON),
     "eqdef" => Relation(symbol::EQUAL_TO_BY_DEFINITION), // from "stix"
     "eqqcolon" => Relation(symbol::EQUALS_COLON),
+    "eqref" => EqRef,
     "eqsim" => Relation(symbol::MINUS_TILDE),
     "eqslantgtr" => Relation(symbol::SLANTED_EQUAL_TO_OR_GREATER_THAN),
     "eqslantless" => Relation(symbol::SLANTED_EQUAL_TO_OR_LESS_THAN),
