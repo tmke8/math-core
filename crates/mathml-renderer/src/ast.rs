@@ -153,9 +153,6 @@ pub enum Node<'arena> {
     /// with a custom style.
     UnknownCommand(&'arena str),
     HardcodedMathML(&'static str),
-    /// This node is used when the parser needs to return a node,
-    /// but does not want to emit anything.
-    Dummy,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -170,17 +167,15 @@ macro_rules! writeln_indent {
 
 impl Node<'_> {
     pub fn emit(&self, s: &mut String, base_indent: usize) -> std::fmt::Result {
-        // Compute the indent for the children of the node.
+        // Compute the indentation for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
         } else {
             0
         };
 
-        // Get the base indent out of the way, as long as we are not in a dummy node.
-        if !matches!(self, Node::Dummy) {
-            new_line_and_indent(s, base_indent);
-        }
+        // Get the base indentation out of the way.
+        new_line_and_indent(s, base_indent);
 
         match self {
             Node::Number(number) => {
@@ -599,9 +594,6 @@ impl Node<'_> {
             }
             Node::HardcodedMathML(mathml) => {
                 write!(s, "{mathml}")?;
-            }
-            Node::Dummy => {
-                // Do nothing.
             }
         }
         Ok(())

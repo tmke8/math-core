@@ -36,7 +36,7 @@ pub(crate) enum LatexErrKind {
     ExpectedAtLeastOneToken,
     BoundFollowedByBound,
     DuplicateSubOrSup,
-    SwitchOnlyInSequence,
+    CannotBeUsedAsArgument,
     ExpectedText,
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
@@ -164,8 +164,8 @@ impl LatexErrKind {
             LatexErrKind::DuplicateSubOrSup => {
                 write!(s, "Duplicate subscript or superscript.")?;
             }
-            LatexErrKind::SwitchOnlyInSequence => {
-                write!(s, "Math variant switch command found outside of sequence.")?;
+            LatexErrKind::CannotBeUsedAsArgument => {
+                write!(s, "Switch-like commands cannot be used as arguments.")?;
             }
             LatexErrKind::ExpectedText => {
                 write!(s, "Expected text in string literal.")?;
@@ -310,7 +310,7 @@ impl LatexError {
             LatexErrKind::ExpectedAtLeastOneToken => "expected at least one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
-            LatexErrKind::SwitchOnlyInSequence => "math variant switch command as argument".into(),
+            LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),
             LatexErrKind::ExpectedText => "expected text here".into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),

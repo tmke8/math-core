@@ -89,6 +89,12 @@ impl ParseAs {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum ControlFlow {
+    SkipToken,
+    ProcessToken,
+}
+
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'config, 'source, 'arena> Parser<'config, 'source, 'arena>
@@ -151,35 +157,20 @@ where
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
             // Check whether we need to collect letters.
-            let (class, target) =
-                if let Some(collected_letters) = self.merge_and_transform_letters()? {
-                    collected_letters
-                } else {
-                    // Get the current token.
-                    let cur_tokloc = self.next_token();
-                    if let Ok(tokloc) = &cur_tokloc {
-                        let span = tokloc.span();
-                        match tokloc.token() {
-                            // Check here for EOI, so we know to end the loop prematurely.
-                            Token::Eoi => {
-                                if let SequenceEnd::EndToken(end_token) = sequence_end {
-                                    // The input has ended without the closing token.
-                                    return Err(Box::new(LatexError(
-                                        span.into(),
-                                        LatexErrKind::UnclosedGroup(end_token),
-                                    )));
-                                }
-                            }
-                            Token::TransformSwitch(tf) => {
-                                self.state.transform = Some(*tf);
-                                continue;
-                            }
-                            _ => {}
-                        }
+            let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
+                collected
+            } else {
+                // Get the current token.
+                let cur_tokloc = self.next_token();
+                if let Ok(tokloc) = &cur_tokloc {
+                    match self.handle_tokens_without_output(tokloc, sequence_end)? {
+                        ControlFlow::SkipToken => continue,
+                        ControlFlow::ProcessToken => {}
                     }
-                    // Parse the token.
-                    self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
-                };
+                }
+                // Parse the token.
+                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
+            };
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
@@ -204,6 +195,86 @@ where
         }
         self.state.transform = old_tf;
         Ok(nodes)
+    }
+
+    #[inline]
+    fn handle_tokens_without_output(
+        &mut self,
+        tokspan: &TokSpan<'source>,
+        sequence_end: SequenceEnd,
+    ) -> ParseResult<ControlFlow> {
+        let span = tokspan.span().into();
+        let result: Result<(), LatexError> = match tokspan.token() {
+            Token::Eoi => {
+                if let SequenceEnd::EndToken(end_token) = sequence_end {
+                    // The input has ended without the closing token.
+                    Err(LatexError(span, LatexErrKind::UnclosedGroup(end_token)))
+                } else {
+                    return Ok(ControlFlow::ProcessToken);
+                }
+            }
+            Token::TransformSwitch(tf) => {
+                self.state.transform = Some(*tf);
+                Ok(())
+            }
+            Token::NoNumber => {
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    numbered_state.suppress_next_number = true;
+                }
+                Ok(())
+            }
+            Token::Tag => {
+                let (tag_name, literal_span) = self.parse_string_literal()?;
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    // For now, we only support numeric tags.
+                    if let Ok(tag_num) = tag_name.trim().parse::<u16>()
+                        && tag_num != 0
+                    {
+                        numbered_state.custom_next_number = NonZeroU16::new(tag_num);
+                        Ok(())
+                    } else {
+                        Err(LatexError(
+                            literal_span,
+                            LatexErrKind::ExpectedNumber(tag_name.into()),
+                        ))
+                    }
+                } else {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Tag,
+                            correct_place: Place::NumberedEnv,
+                        },
+                    ))
+                }
+            }
+            Token::Label => {
+                let (label_name, _) = self.parse_string_literal()?;
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    if numbered_state.label.is_some() {
+                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
+                    } else {
+                        numbered_state.label = Some(label_name);
+                        Ok(())
+                    }
+                } else {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Label,
+                            correct_place: Place::NumberedEnv,
+                        },
+                    ))
+                }
+            }
+            _ => {
+                return Ok(ControlFlow::ProcessToken);
+            }
+        };
+        match result {
+            Ok(()) => Ok(ControlFlow::SkipToken),
+            Err(e) => Err(Box::new(e)),
+        }
     }
 
     /// Put the node onto the heap in the arena and return a reference to it.
@@ -876,9 +947,9 @@ where
                 self.state.transform = old_tf;
                 return Ok((Class::Close, content));
             }
-            Token::TransformSwitch(_) => {
-                Err(LatexError(span.into(), LatexErrKind::SwitchOnlyInSequence))
-            }
+            Token::TransformSwitch(_) | Token::NoNumber | Token::Tag | Token::Label => Err(
+                LatexError(span.into(), LatexErrKind::CannotBeUsedAsArgument),
+            ),
             Token::ForceRelation(op) => {
                 class = Class::Relation;
                 let (left, right) = if parse_as.in_sequence() {
@@ -1157,7 +1228,12 @@ where
             }
             Token::NewLine => 'new_line: {
                 if !self.state.meaningful_newlines {
-                    Ok(Node::Dummy)
+                    // TODO: Return something other than a row here, so that we can avoid creating
+                    //       empty rows in places where they are not needed.
+                    Ok(Node::Row {
+                        nodes: &[],
+                        attr: None,
+                    })
                 } else if let Some(numbered_state) = &mut self.state.numbered {
                     if let Some(row_counter) = &mut numbered_state.num_rows {
                         match row_counter.checked_add(1) {
@@ -1189,59 +1265,6 @@ where
                         tag: None,
                         link_target: None,
                     })
-                }
-            }
-            Token::NoNumber => {
-                if let Some(numbered_state) = &mut self.state.numbered {
-                    numbered_state.suppress_next_number = true;
-                }
-                class = prev_class;
-                Ok(Node::Dummy)
-            }
-            Token::Tag => {
-                let (tag_name, literal_span) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.numbered {
-                    // For now, we only support numeric tags.
-                    if let Ok(tag_num) = tag_name.trim().parse::<u16>()
-                        && tag_num != 0
-                    {
-                        numbered_state.custom_next_number = NonZeroU16::new(tag_num);
-                        class = prev_class;
-                        Ok(Node::Dummy)
-                    } else {
-                        Err(LatexError(
-                            literal_span,
-                            LatexErrKind::ExpectedNumber(tag_name.into()),
-                        ))
-                    }
-                } else {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Tag,
-                            correct_place: Place::NumberedEnv,
-                        },
-                    ))
-                }
-            }
-            Token::Label => {
-                let (label_name, _) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.numbered {
-                    if numbered_state.label.is_some() {
-                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
-                    } else {
-                        numbered_state.label = Some(label_name);
-                        class = prev_class;
-                        Ok(Node::Dummy)
-                    }
-                } else {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Label,
-                            correct_place: Place::NumberedEnv,
-                        },
-                    ))
                 }
             }
             Token::EqRef => 'eqref: {
