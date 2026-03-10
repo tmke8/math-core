@@ -358,6 +358,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lAngle" => Open(symbol::MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET),
     "lBrace" => Open(symbol::LEFT_WHITE_CURLY_BRACKET),
     "lVert" => Open(symbol::DOUBLE_VERTICAL_LINE),
+    "label" => Label,
     "lambda" => Letter(symbol::GREEK_SMALL_LETTER_LAMBDA, Mode::Math),
     "land" => BinaryOp(symbol::LOGICAL_AND),
     "langle" => Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),

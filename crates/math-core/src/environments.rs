@@ -82,7 +82,7 @@ impl Env {
     }
 
     #[inline]
-    pub(super) fn get_numbered_env_state(self) -> Option<NumberedEnvState> {
+    pub(super) fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
         if matches!(
             self,
             Env::Align
@@ -122,7 +122,7 @@ impl Env {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
                 align: Alignment::Alternating,
-                last_equation_num,
+                last_tag: last_equation_num,
                 content,
             },
             Env::Aligned => Node::Table {
@@ -133,7 +133,7 @@ impl Env {
             Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
                 Node::EquationArray {
                     align: Alignment::Centered,
-                    last_equation_num,
+                    last_tag: last_equation_num,
                     content,
                 }
             }
@@ -250,14 +250,15 @@ pub(super) enum NumberingMode {
 
 /// State for environments that number equations.
 #[derive(Default)]
-pub(super) struct NumberedEnvState {
+pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,
     pub(super) custom_next_number: Option<NonZeroU16>,
+    pub(super) label: Option<&'arena str>,
     pub(super) num_rows: Option<NonZeroU16>,
 }
 
-impl NumberedEnvState {
+impl NumberedEnvState<'_> {
     pub(super) fn next_equation_number(
         &mut self,
         equation_counter: &mut u16,

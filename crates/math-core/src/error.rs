@@ -44,6 +44,7 @@ pub(crate) enum LatexErrKind {
     NotValidInTextMode,
     NotValidInMathMode,
     CouldNotExtractText,
+    MoreThanOneLabel,
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
@@ -83,6 +84,8 @@ pub enum LimitedUsabilityToken {
     Ampersand,
     #[strum(serialize = r"\tag")]
     Tag,
+    #[strum(serialize = r"\label")]
+    Label,
     #[strum(serialize = r"\limits")]
     Limits,
 }
@@ -183,6 +186,9 @@ impl LatexErrKind {
             }
             LatexErrKind::CouldNotExtractText => {
                 write!(s, "Could not extract text from the given macro.")?;
+            }
+            LatexErrKind::MoreThanOneLabel => {
+                write!(s, "Found more than one label in a row.")?;
             }
             LatexErrKind::InvalidMacroName(name) => {
                 write!(s, "Invalid macro name: \"\\{name}\".")?;
@@ -308,6 +314,7 @@ impl LatexError {
             LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),
             LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),
             LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
+            LatexErrKind::MoreThanOneLabel => "duplicate label".into(),
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),

@@ -23,10 +23,12 @@ pub enum Token<'source> {
     NewColumn,
     /// A new line in an array or matrix, e.g. `\\` in `\begin{matrix} a & b\\c & d \end{matrix}`.
     NewLine,
-    /// Suppresses numbering for the current equation.
+    /// `\nonumber`/`\notag`, suppresses numbering for the current equation.
     NoNumber,
-    /// A tag for the current equation.
+    /// `\tag`, tag for the current equation.
     Tag,
+    /// `\label`, label for the current equation.
+    Label,
     /// A left delimiter, e.g. `\left(`.
     Left,
     /// A right delimiter, e.g. `\right)`.
@@ -207,7 +209,7 @@ impl Token<'_> {
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName(_) => {
                 Some(Class::Operator)
             }
-            End(_)| NewColumn  | GroupEnd | Eoi => Some(Class::End),
+            End(_) | NewColumn | GroupEnd | Eoi => Some(Class::End),
             Inner(_) => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(if matches!(paren_type, ParenType::Open) {
                 Class::Open
@@ -216,11 +218,10 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
-            | Limits | NonBreakingSpace => None,
+            | Limits | NonBreakingSpace | Label => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
-            // `\big` commands without the "l" or "r" really produce `Class::Default`.
             | Big(_, None)
             | NewLine
             | Middle

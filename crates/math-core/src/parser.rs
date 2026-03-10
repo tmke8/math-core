@@ -27,10 +27,10 @@ pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
-    state: ParserState<'source>,
+    state: ParserState<'arena, 'source>,
 }
 
-struct ParserState<'source> {
+struct ParserState<'arena, 'source> {
     cmd_args: Vec<TokSpan<'source>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
@@ -42,7 +42,7 @@ struct ParserState<'source> {
     allow_columns: bool,
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     meaningful_newlines: bool,
-    numbered: Option<NumberedEnvState>,
+    numbered: Option<NumberedEnvState<'arena>>,
     /// `true` if we are within a group where the style is `\scriptstyle` or smaller
     script_style: bool,
 }
@@ -1171,11 +1171,17 @@ where
                         }
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
-                        Ok(num) => Ok(Node::RowSeparator(num)),
+                        Ok(num) => Ok(Node::RowSeparator {
+                            tag: num,
+                            link_target: numbered_state.label.take(),
+                        }),
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
-                    Ok(Node::RowSeparator(None))
+                    Ok(Node::RowSeparator {
+                        tag: None,
+                        link_target: None,
+                    })
                 }
             }
             Token::NoNumber => {
@@ -1186,8 +1192,6 @@ where
                 Ok(Node::Dummy)
             }
             Token::Tag => {
-                // We always need to collect the string literal here, even if we don't use it,
-                // because otherwise we'd have an orphaned string literal in the token stream.
                 let (tag_name, literal_span) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
@@ -1208,6 +1212,26 @@ where
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Tag,
+                            correct_place: Place::NumberedEnv,
+                        },
+                    ))
+                }
+            }
+            Token::Label => {
+                let (label_name, _) = self.parse_string_literal()?;
+                if let Some(numbered_state) = &mut self.state.numbered {
+                    if numbered_state.label.is_some() {
+                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
+                    } else {
+                        numbered_state.label = Some(label_name);
+                        class = prev_class;
+                        Ok(Node::Dummy)
+                    }
+                } else {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Label,
                             correct_place: Place::NumberedEnv,
                         },
                     ))
@@ -1684,7 +1708,7 @@ where
     }
 }
 
-impl ParserState<'_> {
+impl ParserState<'_, '_> {
     fn relation_spacing(
         &self,
         prev_class: Class,
