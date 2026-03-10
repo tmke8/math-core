@@ -9,6 +9,7 @@ use mathml_renderer::{
     length::Length,
     symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy},
 };
+use rustc_hash::FxHashMap;
 
 use crate::{
     character_class::Class,
@@ -27,6 +28,7 @@ pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'cell mut u16,
+    label_map: &'cell mut FxHashMap<Box<str>, NonZeroU16>,
     state: ParserState<'arena, 'source>,
 }
 
@@ -99,6 +101,7 @@ where
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
         equation_counter: &'cell mut u16,
+        label_map: &'cell mut FxHashMap<Box<str>, NonZeroU16>,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -106,6 +109,7 @@ where
             buffer: Buffer::new(input_length),
             arena,
             equation_counter,
+            label_map,
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
@@ -1171,10 +1175,15 @@ where
                         }
                     }
                     match numbered_state.next_equation_number(self.equation_counter, false) {
-                        Ok(num) => Ok(Node::RowSeparator {
-                            tag: num,
-                            link_target: numbered_state.label.take(),
-                        }),
+                        Ok(tag) => {
+                            let link_target = numbered_state.label.take();
+                            if let Some(label) = link_target
+                                && let Some(tag) = tag
+                            {
+                                self.label_map.insert(label.into(), tag);
+                            }
+                            Ok(Node::RowSeparator { tag, link_target })
+                        }
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
@@ -1899,8 +1908,9 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut equation_counter = 0u16;
+            let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
+            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -1932,8 +1942,9 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut equation_counter = 0u16;
+            let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter).unwrap();
+            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
