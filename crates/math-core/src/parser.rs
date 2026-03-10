@@ -23,12 +23,12 @@ use crate::{
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
-pub(crate) struct Parser<'cell, 'arena, 'source, 'config> {
+pub(crate) struct Parser<'arena, 'source, 'config> {
     pub(super) tokens: TokenQueue<'source, 'config>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    equation_counter: &'cell mut u16,
-    label_map: &'cell mut FxHashMap<Box<str>, NonZeroU16>,
+    equation_counter: &'arena mut u16,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
     state: ParserState<'arena, 'source>,
 }
 
@@ -91,17 +91,16 @@ impl ParseAs {
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
-impl<'cell, 'arena, 'source, 'config> Parser<'cell, 'arena, 'source, 'config>
+impl<'arena, 'source, 'config> Parser<'arena, 'source, 'config>
 where
     'config: 'source, // The config will live as long as the source.
     'source: 'arena,
-    'arena: 'cell, // The arena will live as long as the cell that holds the error.
 {
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
-        equation_counter: &'cell mut u16,
-        label_map: &'cell mut FxHashMap<Box<str>, NonZeroU16>,
+        equation_counter: &'arena mut u16,
+        label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -605,7 +604,7 @@ where
             }
             Token::Genfrac => 'genfrac: {
                 fn get_delimiter<'cell, 'arena, 'source, 'config>(
-                    parser: &mut Parser<'cell, 'arena, 'source, 'config>,
+                    parser: &mut Parser<'arena, 'source, 'config>,
                 ) -> Result<Option<StretchableOp>, Box<LatexError>>
                 where
                     'config: 'source,

@@ -311,8 +311,8 @@ fn parse<'arena, 'source, 'config>(
     latex: &'source str,
     arena: &'arena Arena,
     cmd_cfg: Option<&'config CommandConfig>,
-    equation_count: &mut u16,
-    label_map: &mut FxHashMap<Box<str>, NonZeroU16>,
+    equation_count: &'arena mut u16,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
 where
     'config: 'source,
