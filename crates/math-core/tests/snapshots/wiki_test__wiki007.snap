@@ -5,7 +5,7 @@ expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
 <math>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="false">ˇ</mo>
+        <mo stretchy="false">̌</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
