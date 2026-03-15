@@ -20,6 +20,6 @@ expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="false">_</mo>
+        <mo>̄</mo>
     </mover>
 </math>
