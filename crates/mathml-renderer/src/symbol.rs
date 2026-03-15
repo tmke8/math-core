@@ -306,7 +306,7 @@ pub const REVERSE_SOLIDUS: OrdLike = OrdLike::new('\\', OrdCategory::K);
 pub const RIGHT_SQUARE_BRACKET: OrdLike = OrdLike::new(']', OrdCategory::G);
 // pub const CIRCUMFLEX_ACCENT: Rel = Rel::new('^', RelCategory::Default);
 pub const LOW_LINE: Rel = Rel::new('_', RelCategory::Default);
-pub const GRAVE_ACCENT: Rel = Rel::new('`', RelCategory::Default);
+// pub const GRAVE_ACCENT: Rel = Rel::new('`', RelCategory::Default);
 
 pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
@@ -317,7 +317,7 @@ pub const TILDE: Rel = Rel::new('~', RelCategory::Default);
 // Unicode Block: Latin-1 Supplement
 //
 pub const SECTION_SIGN: char = '§';
-pub const DIAERESIS: Rel = Rel::new('¨', RelCategory::Default);
+// pub const DIAERESIS: Rel = Rel::new('¨', RelCategory::Default);
 pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: OrdLike = OrdLike::new('¬', OrdCategory::D);
@@ -326,7 +326,7 @@ pub const MACRON: Rel = Rel::new('¯', RelCategory::Default);
 
 pub const PLUS_MINUS_SIGN: Bin = Bin::new('±', BinCategory::BD);
 
-pub const ACUTE_ACCENT: Rel = Rel::new('´', RelCategory::Default);
+// pub const ACUTE_ACCENT: Rel = Rel::new('´', RelCategory::Default);
 
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Op = Op::new('·', OpCategory::C);
@@ -353,21 +353,21 @@ pub const LATIN_SMALL_LETTER_DOTLESS_J: char = 'ȷ';
 // Unicode Block: Spacing Modifier Letters
 //
 pub const CARON: Rel = Rel::new('ˇ', RelCategory::Default);
-pub const BREVE: Rel = Rel::new('˘', RelCategory::Default);
-pub const DOT_ABOVE: Rel = Rel::new('˙', RelCategory::Default);
+// pub const BREVE: Rel = Rel::new('˘', RelCategory::Default);
+// pub const DOT_ABOVE: Rel = Rel::new('˙', RelCategory::Default);
 
 //
 // Unicode Block: Combining Diacritical Marks
 //
-pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
-pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
+pub const COMBINING_GRAVE_ACCENT: Rel = Rel::new('\u{300}', RelCategory::Default);
+pub const COMBINING_ACUTE_ACCENT: Rel = Rel::new('\u{301}', RelCategory::Default);
 pub const COMBINING_CIRCUMFLEX_ACCENT: Rel = Rel::new('\u{302}', RelCategory::Default);
 pub const COMBINING_TILDE: Rel = Rel::new('\u{303}', RelCategory::Default);
 // pub const COMBINING_MACRON: char = '\u{304}';
 pub const COMBINING_OVERLINE: char = '\u{305}';
-pub const COMBINING_BREVE: char = '\u{306}';
-pub const COMBINING_DOT_ABOVE: char = '\u{307}';
-pub const COMBINING_DIAERESIS: char = '\u{308}';
+pub const COMBINING_BREVE: Rel = Rel::new('\u{306}', RelCategory::Default);
+pub const COMBINING_DOT_ABOVE: Rel = Rel::new('\u{307}', RelCategory::Default);
+pub const COMBINING_DIAERESIS: Rel = Rel::new('\u{308}', RelCategory::Default);
 // pub const COMBINING_HOOK_ABOVE: char = '\u{309}';
 pub const COMBINING_RING_ABOVE: char = '\u{30A}';
 pub const COMBINING_DOUBLE_ACUTE_ACCENT: char = '\u{30B}';
