@@ -5,21 +5,21 @@ expression: "\\dot{a}, \\ddot{a}, \\acute{a}, \\grave{a}"
 <math>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">̇</mo>
+        <mo>̇</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">̈</mo>
+        <mo>̈</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">́</mo>
+        <mo>́</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">̀</mo>
+        <mo>̀</mo>
     </mover>
 </math>
