@@ -10,7 +10,7 @@ expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">̆</mo>
+        <mo>̆</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">

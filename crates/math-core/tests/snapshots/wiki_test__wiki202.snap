@@ -5,6 +5,6 @@ expression: "\\dddot{x}"
 <math>
     <mover accent="true">
         <mi>x</mi>
-        <mo stretchy="true">⃛</mo>
+        <mo>⃛</mo>
     </mover>
 </math>
