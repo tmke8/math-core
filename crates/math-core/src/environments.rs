@@ -137,9 +137,14 @@ impl Env {
                     content,
                 }
             }
-            Env::Gathered | Env::Matrix => Node::Table {
+            Env::Gathered => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Display),
+                content,
+            },
+            Env::Matrix => Node::Table {
+                align: Alignment::Centered,
+                style: Some(Style::Text),
                 content,
             },
             Env::MultLine => {

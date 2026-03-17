@@ -7,7 +7,9 @@ use mathml_renderer::{
         LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, Style, TextTransform,
     },
     length::Length,
-    symbol::{self, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy},
+    symbol::{
+        self, DelimiterSpacing, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy,
+    },
 };
 use rustc_hash::FxHashMap;
 
@@ -1070,11 +1072,16 @@ where
             Token::Middle => {
                 let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
+                let spacing = if matches!(op.spacing, DelimiterSpacing::Zero) {
+                    None
+                } else {
+                    Some(MathSpacing::Zero)
+                };
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: middle_stretch_attrs(op),
-                    left: None,
-                    right: None,
+                    left: spacing,
+                    right: spacing,
                 })
             }
             Token::Big(size, paren_type) => {

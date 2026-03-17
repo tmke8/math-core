@@ -5,7 +5,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
 [
   Table(
     align: Centered,
-    style: Some(Display),
+    style: Some(Text),
     content: [
       Operator(
         op: '∑',
