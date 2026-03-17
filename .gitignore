@@ -79,3 +79,5 @@ node_modules/
 *.otf
 
 /CLAUDE.md
+
+pkg/
