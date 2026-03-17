@@ -12,9 +12,9 @@ use crate::token::{
 
 // These function names are essentially just passed-through, wrapped in a token.
 static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
-    "Pr", "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "deg", "det",
-    "dim", "erf", "erfc", "exp", "gcd", "hom", "ker", "lg", "ln", "log", "sec", "sgn", "sin",
-    "sinh", "tan", "tanh"
+    "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "deg", "det", "dim",
+    "erf", "erfc", "exp", "gcd", "hom", "ker", "lg", "ln", "log", "sec", "sgn", "sin", "sinh",
+    "tan", "tanh"
 );
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
@@ -28,7 +28,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "." => TextMode(TextToken::Accent(symbol::COMBINING_DOT_ABOVE.as_op().as_char())),
     ":" => MathOrTextMode(&Space(LatexUnit::Mu.length_with_unit(4.0)), '\u{205F}'),
     ";" => MathOrTextMode(&Space(LatexUnit::Mu.length_with_unit(5.0)), '\u{2004}'),
-    "=" => TextMode(TextToken::Accent(symbol::COMBINING_OVERLINE.as_op().as_char())),
+    "=" => TextMode(TextToken::Accent(symbol::COMBINING_MACRON.as_op().as_char())),
     ">" => MathOrTextMode(&Space(LatexUnit::Mu.length_with_unit(4.0)), '\u{205F}'),
     "AA" => TextMode(TextToken::Letter('Å')),
     "AE" => TextMode(TextToken::Letter('Æ')),
@@ -86,6 +86,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "P" => Letter(symbol::PILCROW_SIGN, Mode::Math),
     "Phi" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_PHI),
     "Pi" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_PI),
+    "Pr" => PseudoOperatorLimits("Pr"),
     "Psi" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_PSI),
     "R" => Letter(symbol::DOUBLE_STRUCK_CAPITAL_R, Mode::Math),
     "Re" => Letter(symbol::BLACK_LETTER_CAPITAL_R, Mode::Math),
@@ -293,7 +294,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "equiv" => Relation(symbol::IDENTICAL_TO),
     "eta" => Letter(symbol::GREEK_SMALL_LETTER_ETA, Mode::Math),
     "eth" => Letter(symbol::LATIN_SMALL_LETTER_ETH, Mode::Math),
-    "euro" => Letter('€', Mode::Math),
     "exists" => Ord(symbol::THERE_EXISTS),
     "fallingdotseq" => Relation(symbol::APPROXIMATELY_EQUAL_TO_OR_THE_IMAGE_OF),
     "fcmp" => Relation(symbol::Z_NOTATION_SCHEMA_COMPOSITION),
@@ -638,7 +638,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "texttt" => Text(Some(HtmlTextStyle::Typewriter)),
     "textyen" => TextMode(TextToken::Letter('¥')),
     "tfrac" => Frac(Some(FracAttr::DisplayStyleFalse)),
-    "th" => Letter(symbol::LATIN_SMALL_LETTER_THORN, Mode::Math),
+    "th" => TextMode(TextToken::Letter(symbol::LATIN_SMALL_LETTER_THORN)),
     "therefore" => Relation(symbol::THEREFORE),
     "theta" => Letter(symbol::GREEK_SMALL_LETTER_THETA, Mode::Math),
     "thickspace" => Space(LatexUnit::Mu.length_with_unit(5.0)),

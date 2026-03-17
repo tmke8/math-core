@@ -1,0 +1,3 @@
+pretty-print = "never"
+xml-namespace = false
+ignore-unknown-commands = true

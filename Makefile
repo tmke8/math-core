@@ -30,3 +30,6 @@ equationpage:
 
 testpage:
 	cargo run --example browser_test --package math-core > playground/test.html
+
+comparison:
+	cat docs/comparison.html | cargo run --bin mathcore -- -c docs/mathcore.toml --inline-del ₮ --block-del ₮₮ --continue-on-error - > playground/comparison.html
