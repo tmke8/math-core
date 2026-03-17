@@ -63,14 +63,11 @@
   
     
   <main class="latin-modern comp" id="content">
-  
-    <h2 id="foreword">Foreword</h2>
+    <h2>Introduction</h2>
 
-    <p>This page compares the MathML output from four TeX-to-MathML conversion libraries, now readable in Chrome, Edge, Firefox, and Safari.</p>
+    <p>This page compares the MathML output from math-core to the output of KaTeX (version 0.16.38).</p>
 
-    <p>MathJax and KaTeX of course also render math in other formats. This comparison is limited to MathML.</p>
-  
-    <p>Versions used are: Temml 0.13.01, MathJax 4.0, KaTeX 0.16.27, and TeXZilla 1.0.2.0</p>
+    <p>This comparison page was originally published at <a href="https://temml.org/docs/en/comparison">https://temml.org/docs/en/comparison</a> by Ron Kok, under the <a href="https://opensource.org/licenses/MIT/">MIT License</a>. We have adapted it here to math-core.</p>
     
       <h2 id="symbols">Symbols</h2>
       <table>
@@ -559,24 +556,6 @@
             <td><code>\begin{array}{c|c:c}</code><br/><code>a &amp; b &amp; c \\ \hline</code><br/><code>d &amp; e &amp; f\\</code><br/><code>\hdashline g &amp; h &amp; i</code><br/><code>\end{array}</code></td>
           </tr>
           <tr>
-            <td>\array</td>
-            <td>₮\array{ a & b+1 \\ c+1 & d }₮</td>
-            <td>\(\array{ a & b+1 \\ c+1 & d }\)</td>
-            <td><code>\array{ a &amp; b+1 \\ c+1 &amp; d }</code></td>
-          </tr>
-          <tr>
-            <td>\arraycolsep</td>
-            <td>₮\renewcommand{\arraycolsep}{12pt}\begin{array}{cc}a&b\\c&d\end{array}₮</td>
-            <td>\(\renewcommand{\arraycolsep}{12pt}\begin{array}{cc}a&b\\c&d\end{array}\)</td>
-            <td><code>\arraycolsep}{12pt}</code><br/><code>\begin{array}{cc}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{array}</code></td>
-          </tr>
-          <tr>
-            <td>\arraystretch</td>
-            <td>₮\renewcommand{\arraystretch}{1.5}\begin{array}{cc}a&b\\c&d\end{array}₮</td>
-            <td>\(\renewcommand{\arraystretch}{1.5}\begin{array}{cc}a&b\\c&d\end{array}\)</td>
-            <td><code>\renewcommand{\arraystretch}{1.5}</code><br/><code>\begin{array}{cc}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{array}</code></td>
-          </tr>
-          <tr>
             <td>\ast</td>
             <td>₮\ast₮</td>
             <td>\(\ast\)</td>
@@ -599,12 +578,6 @@
             <td>₮{a \atop b}₮</td>
             <td>\({a \atop b}\)</td>
             <td><code>{a \atop b}</code></td>
-          </tr>
-          <tr>
-            <td>\atopwithdelims</td>
-            <td>₮a \atopwithdelims [ ] b₮</td>
-            <td>\(a \atopwithdelims [ ] b\)</td>
-            <td><code>a \atopwithdelims [ ] b</code></td>
           </tr>
         </tbody>
       </table>
@@ -662,34 +635,10 @@
             <td></td>
           </tr>
           <tr>
-            <td>\ballotx</td>
-            <td>₮\ballotx₮</td>
-            <td>\(\ballotx\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\bar</td>
             <td>₮\bar{y}₮</td>
             <td>\(\bar{y}\)</td>
             <td><code>\bar{y}</code></td>
-          </tr>
-          <tr>
-            <td>\barcap</td>
-            <td>₮\barcap₮</td>
-            <td>\(\barcap\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\barcup</td>
-            <td>₮\barcup₮</td>
-            <td>\(\barcup\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\barvee</td>
-            <td>₮\barvee₮</td>
-            <td>\(\barvee\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\barwedge</td>
@@ -980,12 +929,6 @@
             <td><code>\binom n k</code></td>
           </tr>
           <tr>
-            <td>\blackhourglass</td>
-            <td>₮\blackhourglass₮</td>
-            <td>\(\blackhourglass\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\blacklozenge</td>
             <td>₮\blacklozenge₮</td>
             <td>\(\blacklozenge\)</td>
@@ -1056,12 +999,6 @@
             <td>₮\boldsymbol{AaBb0}₮</td>
             <td>\(\boldsymbol{AaBb0}\)</td>
             <td><code>\boldsymbol{AaBb0}</code></td>
-          </tr>
-          <tr>
-            <td>\bordermatrix</td>
-            <td>₮\bordermatrix{ &1&2 \cr 1&A&B\cr 2&C&D}₮</td>
-            <td>\(\bordermatrix{ &1&2 \cr 1&A&B\cr 2&C&D}\)</td>
-            <td><code>\bordermatrix{ &amp;1&amp;2 \cr 1&amp;A&amp;B\cr 2&amp;C&amp;D}</code></td>
           </tr>
           <tr>
             <td>\bot</td>
@@ -1184,12 +1121,6 @@
             <td><code>\breve{eu}</code></td>
           </tr>
           <tr>
-            <td>\buildrel</td>
-            <td>₮\buildrel \rm def \over {:=}₮</td>
-            <td>\(\buildrel \rm def \over {:=}\)</td>
-            <td><code>\buildrel \rm def \over {:=}</code></td>
-          </tr>
-          <tr>
             <td>\bull</td>
             <td>₮\bull₮</td>
             <td>\(\bull\)</td>
@@ -1263,24 +1194,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\capbarcup</td>
-            <td>₮\capbarcup₮</td>
-            <td>\(\capbarcup\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\capdot</td>
-            <td>₮\capdot₮</td>
-            <td>\(\capdot\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\capovercup</td>
-            <td>₮\capovercup₮</td>
-            <td>\(\capovercup\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>{cases}</td>
             <td>₮\begin{cases}a&\text{if }b\\c&\text{if }d\end{cases}₮</td>
             <td>\(\begin{cases}a&\text{if }b\\c&\text{if }d\end{cases}\)</td>
@@ -1311,34 +1224,10 @@
             <td></td>
           </tr>
           <tr>
-            <td>\ce</td>
-            <td>₮\ce{A\bond{~}B\bond{~-}C}₮</td>
-            <td>\(\ce{A\bond{~}B\bond{~-}C}\)</td>
-            <td><code>\ce{A\bond{~}B\bond{~-}C}</code><br/>Requires `mhchem` extension</td>
-          </tr>
-          <tr>
-            <td>\cee</td>
-            <td>₮\cee{C6H5-CHO}₮</td>
-            <td>\(\cee{C6H5-CHO}\)</td>
-            <td>Deprecated by mhchem</td>
-          </tr>
-          <tr>
-            <td>\cent</td>
-            <td>₮\cent₮</td>
-            <td>\(\cent\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\centerdot</td>
             <td>₮a\centerdot b₮</td>
             <td>\(a\centerdot b\)</td>
             <td>In LaTeX, \centerdot is a small<br/>square on the baseline, not<br/>a centered dot.</td>
-          </tr>
-          <tr>
-            <td>\cf</td>
-            <td>₮\cf{C6H5-CHO}₮</td>
-            <td>\(\cf{C6H5-CHO}\)</td>
-            <td>Deprecated by mhchem</td>
           </tr>
           <tr>
             <td>\cfrac</td>
@@ -1581,39 +1470,9 @@
             <td></td>
           </tr>
           <tr>
-            <td>\concavediamond</td>
-            <td>₮\concavediamond₮</td>
-            <td>\(\concavediamond\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\concavediamondtickleft</td>
-            <td>₮\concavediamondtickleft₮</td>
-            <td>\(\concavediamondtickleft\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\concavediamondtickright</td>
-            <td>₮\concavediamondtickright₮</td>
-            <td>\(\concavediamondtickright\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\cong</td>
             <td>₮\cong₮</td>
             <td>\(\cong\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\Coppa</td>
-            <td>₮\Coppa₮</td>
-            <td>\(\Coppa\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\coppa</td>
-            <td>₮\coppa₮</td>
-            <td>\(\coppa\)</td>
             <td></td>
           </tr>
           <tr>
@@ -1704,12 +1563,6 @@
             <td>\cup</td>
             <td>₮\cup₮</td>
             <td>\(\cup\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\cupovercap</td>
-            <td>₮\cupovercap₮</td>
-            <td>\(\cupovercap\)</td>
             <td></td>
           </tr>
           <tr>
@@ -1918,12 +1771,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\Digamma</td>
-            <td>₮\Digamma₮</td>
-            <td>\(\Digamma\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\digamma</td>
             <td>₮\digamma₮</td>
             <td>\(\digamma\)</td>
@@ -2024,12 +1871,6 @@
             <td>₮\text{\dj}₮</td>
             <td>\(\text{\dj}\)</td>
             <td><code>\text{dj}</code></td>
-          </tr>
-          <tr>
-            <td>\doublebarvee</td>
-            <td>₮\doublebarvee₮</td>
-            <td>\(\doublebarvee\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\dot</td>
@@ -2407,7 +2248,7 @@
             <td>\female</td>
             <td>₮\female₮</td>
             <td>\(\female\)</td>
-            <td><code>\female</code></td>
+            <td></td>
           </tr>
           <tr>
             <td>\Finv</td>
@@ -2736,12 +2577,6 @@
             <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\ \hline</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
           </tr>
           <tr>
-            <td>\hourglass</td>
-            <td>₮\hourglass₮</td>
-            <td>\(\hourglass\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\hom</td>
             <td>₮\hom x₮</td>
             <td>\(\hom x\)</td>
@@ -2935,27 +2770,9 @@
             <td></td>
           </tr>
           <tr>
-            <td>\interleave</td>
-            <td>₮\interleave₮</td>
-            <td>\(\interleave\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\intop</td>
             <td>₮\intop_0^n x \; \displaystyle \intop_0^n x₮</td>
             <td>\(\intop_0^n x \; \displaystyle \intop_0^n x\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\invamp</td>
-            <td>₮\invamp₮</td>
-            <td>\(\invamp\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\invlazys</td>
-            <td>₮\invlazys₮</td>
-            <td>\(\invlazys\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3048,18 +2865,6 @@
             <td>₮\ket{\psi}₮</td>
             <td>\(\ket{\psi}\)</td>
             <td><code>\ket{\psi}</code></td>
-          </tr>
-          <tr>
-            <td>\Koppa</td>
-            <td>₮\Koppa₮</td>
-            <td>\(\Koppa\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\koppa</td>
-            <td>₮\koppa₮</td>
-            <td>\(\koppa\)</td>
-            <td></td>
           </tr>
         </tbody>
       </table>
@@ -3249,24 +3054,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\leftmodels</td>
-            <td>₮\leftmodels₮</td>
-            <td>\(\leftmodels\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\leftmoon</td>
-            <td>₮\leftmoon₮</td>
-            <td>\(\leftmoon\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\leftouterjoin</td>
-            <td>₮\leftouterjoin₮</td>
-            <td>\(\leftouterjoin\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\Leftrightarrow</td>
             <td>₮\Leftrightarrow₮</td>
             <td>\(\Leftrightarrow\)</td>
@@ -3297,12 +3084,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\leftroot</td>
-            <td>₮\sqrt[3\leftroot1]{x}₮</td>
-            <td>\(\sqrt[3\leftroot1]{x}\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\leftthreetimes</td>
             <td>₮\leftthreetimes₮</td>
             <td>\(\leftthreetimes\)</td>
@@ -3312,12 +3093,6 @@
             <td>\leq</td>
             <td>₮\leq₮</td>
             <td>\(\leq\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\leqalignno</td>
-            <td>₮₮</td>
-            <td>\(\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3366,12 +3141,6 @@
             <td>\lesssim</td>
             <td>₮\lesssim₮</td>
             <td>\(\lesssim\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\let</td>
-            <td>₮₮</td>
-            <td>\(\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3525,12 +3294,6 @@
             <td><code>\log x</code><br/><code>\log_y x</code><br/><code>\log\limits_y x</code></td>
           </tr>
           <tr>
-            <td>\longdiv</td>
-            <td>₮\longdiv{40.0}₮</td>
-            <td>\(\longdiv{40.0}\)</td>
-            <td><code>\longdiv{40.0}</code></td>
-          </tr>
-          <tr>
             <td>\Longleftarrow</td>
             <td>₮\Longleftarrow₮</td>
             <td>\(\Longleftarrow\)</td>
@@ -3594,12 +3357,6 @@
             <td>\lozenge</td>
             <td>₮\lozenge₮</td>
             <td>\(\lozenge\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\lozengeminus</td>
-            <td>₮\lozengeminus₮</td>
-            <td>\(\lozengeminus\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3868,22 +3625,10 @@
             <td><code>\sqrt{\mathstrut\alpha}</code></td>
           </tr>
           <tr>
-            <td>\mathtip</td>
-            <td>₮\mathtip{a=b}{tip}₮</td>
-            <td>\(\mathtip{a=b}{tip}\)</td>
-            <td><code>\mathtip{a=b}{tip}s</code></td>
-          </tr>
-          <tr>
             <td>\mathtt</td>
             <td>₮\mathtt{AaBb123}₮</td>
             <td>\(\mathtt{AaBb123}\)</td>
             <td><code>\mathtt{AaBb123}</code></td>
-          </tr>
-          <tr>
-            <td>\matrix</td>
-            <td>₮\matrix{a & b \\c & d}₮</td>
-            <td>\(\matrix{a & b \\c & d}\)</td>
-            <td><code>\matrix{a &amp; b \\ c &amp; d}</code></td>
           </tr>
           <tr>
             <td>{matrix}</td>
@@ -3896,12 +3641,6 @@
             <td>₮\begin{matrix}\max x \\ \max_y x \\\max\limits_y x\end{matrix}₮</td>
             <td>\(\begin{matrix}\max x \\ \max_y x \\\max\limits_y x\end{matrix}\)</td>
             <td></td>
-          </tr>
-          <tr>
-            <td>\mbox</td>
-            <td>₮\mbox{in a box}₮</td>
-            <td>\(\mbox{in a box}\)</td>
-            <td><code>\mbox{in a box}</code></td>
           </tr>
           <tr>
             <td>\measuredangle</td>
@@ -4021,18 +3760,6 @@
             <td>\(\multimap\)</td>
             <td></td>
           </tr>
-          <tr>
-            <td>\multimapboth</td>
-            <td>₮\multimapboth₮</td>
-            <td>\(\multimapboth\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\multimapinv</td>
-            <td>₮\multimapinv₮</td>
-            <td>\(\multimapinv\)</td>
-            <td></td>
-          </tr>
         </tbody>
       </table>
       <h2 id="n">N</h2>
@@ -4056,12 +3783,6 @@
             <td>\nabla</td>
             <td>₮\nabla₮</td>
             <td>\(\nabla\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\Nand</td>
-            <td>₮\Nand₮</td>
-            <td>\(\Nand\)</td>
             <td></td>
           </tr>
           <tr>
@@ -4129,18 +3850,6 @@
             <td>₮\newcommand\chk{\checkmark} \chk₮</td>
             <td>\(\newcommand\chk{\checkmark} \chk\)</td>
             <td><code>\newcommand\chk{\checkmark} \chk</code></td>
-          </tr>
-          <tr>
-            <td>\newenvironment</td>
-            <td>₮\newenvironment{tinyit}{\tiny\it}{\normalsize\rm}\begin{tinyit}Really small.\end{tinyit}₮</td>
-            <td>\(\newenvironment{tinyit}{\tiny\it}{\normalsize\rm}\begin{tinyit}Really small.\end{tinyit}\)</td>
-            <td><code>\newenvironment{tinyit}{\tiny\it}{\normalsize\rm}</code><br/><code>\begin{tinyit}Really small.\end{tinyit}</code></td>
-          </tr>
-          <tr>
-            <td>\Newextarrow</td>
-            <td>₮\Newextarrow{\xrightharpoonup}{5,10}{0x21C0} A \xrightharpoonup{\text{note}} B₮</td>
-            <td>\(\Newextarrow{\xrightharpoonup}{5,10}{0x21C0} A \xrightharpoonup{\text{note}} B\)</td>
-            <td><code>\Newextarrow{\xrightharpoonup}{5,10}{0x21C0}</code><br/><code>A \xrightharpoonup{\text{note}} B</code></td>
           </tr>
           <tr>
             <td>\newline</td>
@@ -4261,12 +3970,6 @@
             <td>₮\lim\nolimits_x₮</td>
             <td>\(\lim\nolimits_x\)</td>
             <td><code>\lim\nolimits_x</code></td>
-          </tr>
-          <tr>
-            <td>\Nor</td>
-            <td>₮\Nor₮</td>
-            <td>\(\Nor\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\normalsize</td>
@@ -4486,30 +4189,6 @@
             <td><code>\text{\o}</code></td>
           </tr>
           <tr>
-            <td>\obar</td>
-            <td>₮\obar₮</td>
-            <td>\(\obar\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\obslash</td>
-            <td>₮\obslash₮</td>
-            <td>\(\obslash\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\oc</td>
-            <td>₮\oc₮</td>
-            <td>\(\oc\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\odiv</td>
-            <td>₮\odiv₮</td>
-            <td>\(\odiv\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\odv</td>
             <td>₮\odv{f}{x}₮</td>
             <td>\(\odv{f}{x}\)</td>
@@ -4540,18 +4219,6 @@
             <td><code>\text{\oe}</code></td>
           </tr>
           <tr>
-            <td>\officialeuro</td>
-            <td>₮\officialeuro₮</td>
-            <td>\(\officialeuro\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\ogreaterthan</td>
-            <td>₮\ogreaterthan₮</td>
-            <td>\(\ogreaterthan\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\oiiint</td>
             <td>₮\oiiint_0^n x \; \displaystyle \oiiint_0^n x₮</td>
             <td>\(\oiiint_0^n x \; \displaystyle \oiiint_0^n x\)</td>
@@ -4567,18 +4234,6 @@
             <td>\oint</td>
             <td>₮\oint_0^n x \; \displaystyle \oint_0^n x₮</td>
             <td>\(\oint_0^n x \; \displaystyle \oint_0^n x\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\oldstyle</td>
-            <td>₮\oldstyle 0123456₮</td>
-            <td>\(\oldstyle 0123456\)</td>
-            <td><code>\oldstyle 0123456</code></td>
-          </tr>
-          <tr>
-            <td>\olessthan</td>
-            <td>₮\olessthan₮</td>
-            <td>\(\olessthan\)</td>
             <td></td>
           </tr>
           <tr>
@@ -4624,12 +4279,6 @@
             <td><code>\operatorname*{asin} x</code><br/><code>\operatorname*{asin}_y x</code><br/><code>\operatorname*{asin}\limits_y x\end</code></td>
           </tr>
           <tr>
-            <td>\operp</td>
-            <td>₮\operp₮</td>
-            <td>\(\operp\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\oplus</td>
             <td>₮\oplus₮</td>
             <td>\(\oplus\)</td>
@@ -4651,18 +4300,6 @@
             <td>\otimes</td>
             <td>₮\otimes₮</td>
             <td>\(\otimes\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\Otimes</td>
-            <td>₮\Otimes₮</td>
-            <td>\(\Otimes\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\otimeshat</td>
-            <td>₮\otimeshat₮</td>
-            <td>\(\otimeshat\)</td>
             <td></td>
           </tr>
           <tr>
@@ -4742,12 +4379,6 @@
             <td>₮\overset{!}{=}₮</td>
             <td>\(\overset{!}{=}\)</td>
             <td><code>\overset{!}{=}</code></td>
-          </tr>
-          <tr>
-            <td>\overwithdelims</td>
-            <td>₮a \overwithdelims [ ] b₮</td>
-            <td>\(a \overwithdelims [ ] b\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\owns</td>
@@ -4931,12 +4562,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\prescript</td>
-            <td>₮\prescript{a}{2}{\mathbf{C}}^{5+}_{2}₮</td>
-            <td>\(\prescript{a}{2}{\mathbf{C}}^{5+}_{2}\)</td>
-            <td><code>\prescript{a}{2}{\mathbf{C}}^{5+}_{2}</code></td>
-          </tr>
-          <tr>
             <td>\prime</td>
             <td>₮\prime₮</td>
             <td>\(\prime\)</td>
@@ -4998,18 +4623,6 @@
         </thead>
         <tbody>
           <tr>
-            <td>\Q</td>
-            <td>₮\Q₮</td>
-            <td>\(\Q\)</td>
-            <td>See <code>\Bbb{Q}</code></td>
-          </tr>
-          <tr>
-            <td>\QED</td>
-            <td>₮\QED₮</td>
-            <td>\(\QED\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\qprime</td>
             <td>₮\qprime₮</td>
             <td>\(\qprime\)</td>
@@ -5038,12 +4651,6 @@
             <td>₮\text{\r{a}}₮</td>
             <td>\(\text{\r{a}}\)</td>
             <td><code>\text{\r{a}}</code></td>
-          </tr>
-          <tr>
-            <td>\raise</td>
-            <td>₮h\raise{2pt}{ighe}r₮</td>
-            <td>\(h\raise{2pt}{ighe}r\)</td>
-            <td><code>h\raise{2pt}{ighe}r</code></td>
           </tr>
           <tr>
             <td>\raisebox</td>
@@ -5146,12 +4753,6 @@
             <td>₮\ref{maxwell}₮</td>
             <td>\(\ref{maxwell}\)</td>
             <td><code>\ref{maxwell}</code></td>
-          </tr>
-          <tr>
-            <td>\reflectbox</td>
-            <td>₮\reflectbox{S}₮</td>
-            <td>\(\reflectbox{S}\)</td>
-            <td><code>\reflectbox{S}</code></td>
           </tr>
           <tr>
             <td>\relax</td>
@@ -5262,18 +4863,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\rightmoon</td>
-            <td>₮\rightmoon₮</td>
-            <td>\(\rightmoon\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\rightouterjoin</td>
-            <td>₮\rightouterjoin₮</td>
-            <td>\(\rightouterjoin\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\rightrightarrows</td>
             <td>₮\rightrightarrows₮</td>
             <td>\(\rightrightarrows\)</td>
@@ -5314,12 +4903,6 @@
             <td>₮\rmoustache₮</td>
             <td>\(\rmoustache\)</td>
             <td></td>
-          </tr>
-          <tr>
-            <td>\root</td>
-            <td>₮\root 3 \of x₮</td>
-            <td>\(\root 3 \of x\)</td>
-            <td><code>\root 3 \of x</code></td>
           </tr>
           <tr>
             <td>\rparen</td>
@@ -5368,12 +4951,6 @@
             <td>₮\rtimes₮</td>
             <td>\(\rtimes\)</td>
             <td></td>
-          </tr>
-          <tr>
-            <td>\Rule</td>
-            <td>₮x\Rule{3px}{0.5ex}{2ex}x₮</td>
-            <td>\(x\Rule{3px}{0.5ex}{2ex}x\)</td>
-            <td>Non-standard</td>
           </tr>
           <tr>
             <td>\rule</td>
@@ -5813,42 +5390,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\Stigma</td>
-            <td>₮\Stigma₮</td>
-            <td>\(\Stigma\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\stigma</td>
-            <td>₮\stigma₮</td>
-            <td>\(\stigma\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\strictif</td>
-            <td>₮\strictif₮</td>
-            <td>\(\strictif\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\strictfi</td>
-            <td>₮\strictfi₮</td>
-            <td>\(\strictfi\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\strut</td>
-            <td>₮\boxed{ab\strut}₮</td>
-            <td>\(\boxed{ab\strut}\)</td>
-            <td><code>\boxed{ab\strut}</code></td>
-          </tr>
-          <tr>
-            <td>\style</td>
-            <td>₮\frac{\style{color:red}{x+1}}{y+2}₮</td>
-            <td>\(\frac{\style{color:red}{x+1}}{y+2}\)</td>
-            <td><code>\frac{\style{color:red}{x+1}}{y+2}</code><br/>Non standard</td>
-          </tr>
-          <tr>
             <td>\sub</td>
             <td>₮\sub₮</td>
             <td>\(\sub\)</td>
@@ -6264,12 +5805,6 @@
             <td><code>\textstyle\sum_0^n</code></td>
           </tr>
           <tr>
-            <td>\texttip</td>
-            <td>₮\texttip{\text{hover here}}{tip}₮</td>
-            <td>\(\texttip{\text{hover here}}{tip}\)</td>
-            <td><code>\texttip{\text{hover here}}{tip}</code></td>
-          </tr>
-          <tr>
             <td>\texttt</td>
             <td>₮\texttt{AaBb123}₮</td>
             <td>\(\texttt{AaBb123}\)</td>
@@ -6280,12 +5815,6 @@
             <td>₮\text{\textunderscore}₮</td>
             <td>\(\text{\textunderscore}\)</td>
             <td><code>\text{\textunderscore}</code></td>
-          </tr>
-          <tr>
-            <td>\textvisiblespace</td>
-            <td>₮a\textvisiblespace b₮</td>
-            <td>\(a\textvisiblespace b\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\tfrac</td>
@@ -6788,12 +6317,6 @@
             <td></td>
           </tr>
           <tr>
-            <td>\varstigma</td>
-            <td>₮\varstigma₮</td>
-            <td>\(\varstigma\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\varsubsetneq</td>
             <td>₮\varsubsetneq₮</td>
             <td>\(\varsubsetneq\)</td>
@@ -6914,39 +6437,9 @@
             <td></td>
           </tr>
           <tr>
-            <td>\Vee</td>
-            <td>₮\Vee₮</td>
-            <td>\(\Vee\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\veebar</td>
             <td>₮\veebar₮</td>
             <td>\(\veebar\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\veedot</td>
-            <td>₮\veedot₮</td>
-            <td>\(\veedot\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\veedoublebar</td>
-            <td>₮\veedoublebar₮</td>
-            <td>\(\veedoublebar\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\veeeq</td>
-            <td>₮\veeeq₮</td>
-            <td>\(\veeeq\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\veeonvee</td>
-            <td>₮\veeonvee₮</td>
-            <td>\(\veeonvee\)</td>
             <td></td>
           </tr>
           <tr>
@@ -7011,57 +6504,9 @@
             <td></td>
           </tr>
           <tr>
-            <td>\Wedge</td>
-            <td>₮\Wedge₮</td>
-            <td>\(\Wedge\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wedgebar</td>
-            <td>₮\wedgebar₮</td>
-            <td>\(\wedgebar\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wedgedot</td>
-            <td>₮\wedgedot₮</td>
-            <td>\(\wedgedot\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wedgedoublebar</td>
-            <td>₮\wedgedoublebar₮</td>
-            <td>\(\wedgedoublebar\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wedgeq</td>
-            <td>₮\wedgeq₮</td>
-            <td>\(\wedgeq\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wedgeonwedge</td>
-            <td>₮\wedgeonwedge₮</td>
-            <td>\(\wedgeonwedge\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\weierp</td>
             <td>₮\weierp₮</td>
             <td>\(\weierp\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\whitesquaretickleft</td>
-            <td>₮\whitesquaretickleft₮</td>
-            <td>\(\whitesquaretickleft\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\whitesquaretickright</td>
-            <td>₮\whitesquaretickright₮</td>
-            <td>\(\whitesquaretickright\)</td>
             <td></td>
           </tr>
           <tr>
@@ -7087,18 +6532,6 @@
             <td>₮\widetilde{AB}₮</td>
             <td>\(\widetilde{AB}\)</td>
             <td><code>\widetilde{AB}</code></td>
-          </tr>
-          <tr>
-            <td>\with</td>
-            <td>₮\with₮</td>
-            <td>\(\with\)</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td>\wn</td>
-            <td>₮\wn₮</td>
-            <td>\(\wn\)</td>
-            <td></td>
           </tr>
           <tr>
             <td>\wp</td>
@@ -7210,12 +6643,6 @@
             <td><code>\xmapsto{abc}</code></td>
           </tr>
           <tr>
-            <td>\Xor</td>
-            <td>₮\Xor₮</td>
-            <td>\(\Xor\)</td>
-            <td></td>
-          </tr>
-          <tr>
             <td>\xRightarrow</td>
             <td>₮\xRightarrow{abc}₮</td>
             <td>\(\xRightarrow{abc}\)</td>
@@ -7302,10 +6729,6 @@
           </tr>
         </tbody>
       </table>
-
-      <br>
-
-      <p class="reduced">Copyright © 2021-2025 Ron Kok. Released under the <a href="https://opensource.org/licenses/MIT/">MIT License</a></p>
       
       <br>
       
