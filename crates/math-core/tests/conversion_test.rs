@@ -119,6 +119,8 @@ fn main() {
         ("max_with_limits", r"\max\limits_x y"),
         ("max_with_sup_limits", r"\max\limits^x"),
         ("max_with_relation", r"\max_{x\in X}"),
+        ("log_with_limits", r"\log\limits_x"),
+        ("log_with_subscript", r"\log_x"),
         ("bold_font", r"\bm{x}"),
         ("black_board_font", r"\mathbb{R}"),
         ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
