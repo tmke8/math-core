@@ -149,7 +149,7 @@ impl OrdLike {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCategory {
-    /// Category C: Infix, op spacing (e.g. `×`).
+    /// Category C: Infix, op spacing (e.g. `.`).
     C,
     /// Category H: Prefix, op spacing, symmetric, largeop (e.g. `∫`).
     H,

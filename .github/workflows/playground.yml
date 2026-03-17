@@ -39,6 +39,9 @@ jobs:
       - name: "Run wasm-pack"
         run: |
           wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
+      - name: "Create comparison page"
+        run: |
+          make comparison
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

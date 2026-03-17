@@ -591,16 +591,6 @@ where
                 left: None,
                 right: None,
             }),
-            Token::PseudoOperator(name) => {
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
-                class = Class::Operator;
-                Ok(Node::PseudoOp {
-                    attrs: OpAttrs::empty(),
-                    left,
-                    right,
-                    name,
-                })
-            }
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
                 Ok(Node::Enclose { content, notation })
@@ -850,19 +840,27 @@ where
                     }
                 }
             }
-            Token::PseudoOperatorLimits(name) => {
-                let movablelimits = if matches!(self.tokens.peek().token(), Token::Limits) {
-                    self.next_token()?; // Discard the limits token.
-                    OpAttrs::NO_MOVABLE_LIMITS
-                } else {
-                    OpAttrs::FORCE_MOVABLE_LIMITS
-                };
+            ref tok @ (Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name)) => {
                 class = Class::Operator;
+                let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
+                let explicit_limits = matches!(self.tokens.peek().token(), Token::Limits);
+                if explicit_limits {
+                    self.next_token()?; // Discard the limits token.
+                }
+                let movablelimits = if explicit_limits {
+                    // explicit `\limits` always results in non-movable limits
+                    OpAttrs::NO_MOVABLE_LIMITS
+                } else if limits_by_default {
+                    OpAttrs::FORCE_MOVABLE_LIMITS
+                } else {
+                    // a normal operator without limits
+                    OpAttrs::empty()
+                };
                 let bounds = self.get_bounds()?;
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
-                let op = self.commit(Node::PseudoOp {
+                let target = self.commit(Node::PseudoOp {
                     attrs: if matches!(bounds, Bounds(None, None)) {
                         OpAttrs::empty()
                     } else {
@@ -872,19 +870,27 @@ where
                     right,
                     name,
                 });
-                let node = match bounds {
-                    Bounds(Some(under), Some(over)) => Node::UnderOver {
-                        target: op,
-                        under,
-                        over,
-                    },
-                    Bounds(Some(symbol), None) => Node::Under { target: op, symbol },
-                    Bounds(None, Some(symbol)) => Node::Over { target: op, symbol },
-                    Bounds(None, None) => {
-                        return Ok((class, op));
+                if movablelimits.is_empty() {
+                    match bounds {
+                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
+                        Bounds(None, None) => return Ok((class, target)),
                     }
-                };
-                Ok(node)
+                } else {
+                    match bounds {
+                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                            target,
+                            under,
+                            over,
+                        }),
+                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
+                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
+                        Bounds(None, None) => {
+                            return Ok((class, target));
+                        }
+                    }
+                }
             }
             Token::Slashed => {
                 let node = self.parse_next(ParseAs::Arg)?;
