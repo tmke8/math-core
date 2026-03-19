@@ -16,6 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 license = "MIT"
+license-files = ["LICENSE"]
 dynamic = ["version"]
 
 [project.urls]
