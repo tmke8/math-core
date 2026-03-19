@@ -4,9 +4,10 @@ fn main() {
     let inputs = vec![
         // Safari bugs:
         r#"\bar x, \hat x, \check x, \grave x, \breve x, \acute x"#,
-        r#"\vec x, \dot x, \ddot x, \dddot x, \ddddot x"#,
+        r#"\vec x, \mathring x, \tilde x, \dot x, \ddot x, \dddot x, \ddddot x"#,
         r#"x^*"#,
         // Chrome bugs:
+        r#"\widehat x, \widehat{xxxx}"#,
         r#"\widetilde x, \widetilde{xxxx}"#,
         r#"\widecheck x, \widecheck{xxxx}"#,
         r#"\overline x, \overline{xxxx}"#,

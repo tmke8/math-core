@@ -5,21 +5,21 @@ expression: "\\check{a}, \\breve{a}, \\tilde{a}, \\bar{a}"
 <math>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="false">̌</mo>
+        <mo stretchy="false">ˇ</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo>̆</mo>
+        <mo>˘</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="true">̃</mo>
+        <mo stretchy="false">˜</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
         <mi>a</mi>
-        <mo>̄</mo>
+        <mo stretchy="false">¯</mo>
     </mover>
 </math>

@@ -5,7 +5,7 @@ expression: "\\hat{a}, \\widehat{a}, \\vec{a}"
 <math>
     <mover accent="true">
         <mi>a</mi>
-        <mo stretchy="false">̂</mo>
+        <mo stretchy="false">ˆ</mo>
     </mover>
     <mo>,</mo>
     <mover accent="true">
