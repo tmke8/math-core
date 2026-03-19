@@ -438,7 +438,7 @@ main.comp thead code {
     padding: 2px 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
     .container {
         width: 95%;
         padding: 10px;
@@ -462,8 +462,6 @@ main.comp thead code {
     }
 
     #sidebar {
-        position: static;
-        margin: 10px auto;
-        max-height: none;
+        display: none;
     }
 }
