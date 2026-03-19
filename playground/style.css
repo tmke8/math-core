@@ -331,6 +331,113 @@ pre {
     border-radius: 5px;
 }
 
+/* ── Comparison page (docs/comparison.html) ── */
+
+main.comp {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 30px;
+    margin-right: 150px;
+}
+
+main.comp h2 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+main.comp p {
+    max-width: 70ch;
+}
+
+main.comp a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+main.comp a:hover {
+    text-decoration: underline;
+}
+
+main.comp table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    background-color: var(--container-background);
+    box-shadow: 0 0 10px var(--shadow-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+main.comp thead th {
+    background-color: var(--output-background);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+main.comp tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+main.comp tbody tr:last-child td {
+    border-bottom: none;
+}
+
+main.comp tbody tr:hover {
+    background-color: var(--output-background);
+}
+
+main.comp code {
+    background-color: var(--output-background);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+main.comp thead code {
+    background-color: transparent;
+    padding: 0;
+}
+
+#sidebar {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background-color: var(--container-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px 15px;
+    box-shadow: 0 0 10px var(--shadow-color);
+    font-size: 0.85rem;
+}
+
+#sidebar h3 {
+    margin-top: 0;
+}
+
+#sidebar a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+#sidebar a:hover {
+    text-decoration: underline;
+}
+
+#sidebar ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+#sidebar ul li {
+    padding: 2px 0;
+}
+
 @media (max-width: 600px) {
     .container {
         width: 95%;
@@ -347,5 +454,16 @@ pre {
 
     .option-group {
         margin-bottom: 10px;
+    }
+
+    main.comp {
+        padding: 10px 15px;
+        margin-right: auto;
+    }
+
+    #sidebar {
+        position: static;
+        margin: 10px auto;
+        max-height: none;
     }
 }
