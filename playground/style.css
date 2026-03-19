@@ -337,7 +337,6 @@ main.comp {
     max-width: 900px;
     margin: 0 auto;
     padding: 20px 30px;
-    margin-right: 150px;
 }
 
 main.comp h2 {
@@ -438,7 +437,7 @@ main.comp thead code {
     padding: 2px 0;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 600px) {
     .container {
         width: 95%;
         padding: 10px;
