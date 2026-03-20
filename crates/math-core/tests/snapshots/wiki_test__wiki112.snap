@@ -52,7 +52,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
             <mi>h</mi>
             <mi>i</mi>
         </mrow>
-        <mo>_</mo>
+        <mo stretchy="true">̲</mo>
     </mover>
     <mtext> </mtext>
     <munder accentunder="true">
