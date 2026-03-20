@@ -380,6 +380,8 @@ pub const COMBINING_CARON: char = '\u{30C}';
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
+pub const COMBINING_LOW_LINE: Rel = Rel::new('\u{332}', RelCategory::Default);
+
 //
 // Unicode Block: Greek and Coptic
 //
