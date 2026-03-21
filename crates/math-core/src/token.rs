@@ -86,7 +86,7 @@ pub enum Token<'source> {
     Big(Size, Option<ParenType>),
     /// Stretchy and non-stretchy accents, e.g. `\hat`, `\widehat`, `\bar`, `\overline`, etc.
     /// The `bool` is `true` for over-accents and `false` for under-accents.
-    Accent(Rel, bool, OpAttrs),
+    Accent(MathMLOperator, bool, OpAttrs),
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
     /// A token corresponding to LaTeX's "mathop" character class (class 1).
