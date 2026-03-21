@@ -61,6 +61,6 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
             <mi>k</mi>
             <mi>l</mi>
         </mrow>
-        <mo>_</mo>
+        <mo>̲</mo>
     </munder>
 </math>

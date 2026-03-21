@@ -123,6 +123,9 @@ pub struct MathCoreConfig {
     /// If `true`, wrap the MathML output in `<semantics>` tags with an
     /// `<annotation encoding="application/x-tex">` child containing the original LaTeX source.
     pub annotation: bool,
+    /// If `true`, allow rendering commands that produce MathML Core output that is unreliably
+    /// rendered by browsers.
+    pub allow_unreliable_rendering: bool,
 }
 
 #[derive(Debug, Default)]
@@ -130,6 +133,7 @@ struct CommandConfig {
     custom_cmd_tokens: Vec<Token<'static>>,
     custom_cmd_map: FxHashMap<String, (u8, (usize, usize))>,
     ignore_unknown_commands: bool,
+    allow_unreliable_rendering: bool,
 }
 
 impl CommandConfig {
@@ -180,10 +184,7 @@ impl LatexToMathML {
             flags: Flags::from(&config),
             equation_count: 0,
             label_map: FxHashMap::default(),
-            cmd_cfg: Some(parse_custom_commands(
-                config.macros,
-                config.ignore_unknown_commands,
-            )?),
+            cmd_cfg: Some(parse_custom_commands(config)?),
         })
     }
 
@@ -325,9 +326,9 @@ where
 }
 
 fn parse_custom_commands(
-    macros: Vec<(String, String)>,
-    ignore_unknown_commands: bool,
+    cfg: MathCoreConfig,
 ) -> Result<CommandConfig, (Box<LatexError>, usize, String)> {
+    let macros = cfg.macros;
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), FxBuildHasher);
     let mut tokens = Vec::new();
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
@@ -375,7 +376,8 @@ fn parse_custom_commands(
     Ok(CommandConfig {
         custom_cmd_tokens: tokens,
         custom_cmd_map: map,
-        ignore_unknown_commands,
+        ignore_unknown_commands: cfg.ignore_unknown_commands,
+        allow_unreliable_rendering: cfg.allow_unreliable_rendering,
     })
 }
 

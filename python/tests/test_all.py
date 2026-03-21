@@ -141,8 +141,18 @@ def test_annotation_escaping():
 
 def test_ignore_unknown_commands():
     converter = LatexToMathML(ignore_unknown_commands=True)
-    assert isinstance(converter, LatexToMathML)
     assert (
         converter.convert_with_local_counter("\\asdf <b>", displaystyle=False)
         == r'<math><mtext style="color:#b22222">\asdf</mtext><mo>&lt;</mo><mi>b</mi><mo rspace="0">&gt;</mo></math>'
+    )
+
+
+def test_unreliable_rendering():
+    converter = LatexToMathML(allow_unreliable_rendering=True)
+    latex = r"\widetilde{xyz}"
+    result = converter.convert_with_local_counter(latex, displaystyle=False)
+    assert isinstance(result, str)
+    assert (
+        r'<math><mover accent="true"><mrow><mi>x</mi><mi>y</mi><mi>z</mi></mrow><mo stretchy="true">~</mo></mover></math>'
+        == result
     )

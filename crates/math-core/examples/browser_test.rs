@@ -22,6 +22,7 @@ fn main() {
 
     let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
+        allow_unreliable_rendering: true,
         ..Default::default()
     })
     .unwrap();

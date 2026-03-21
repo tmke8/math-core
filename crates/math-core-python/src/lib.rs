@@ -28,7 +28,15 @@ fn render_fancy_error(error: &math_core::LatexError, source_name: &str, input: &
 #[pymethods]
 impl LatexToMathML {
     #[new]
-    #[pyo3(signature = (*, pretty_print="never", macros=None, xml_namespace=false, continue_on_error=false, ignore_unknown_commands=false, annotation=false, fancy_error=true))]
+    #[pyo3(signature = (*,
+        pretty_print="never",
+        macros=None,
+        xml_namespace=false,
+        continue_on_error=false,
+        ignore_unknown_commands=false,
+        annotation=false,
+        allow_unreliable_rendering=false,
+        fancy_error=true))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -36,6 +44,7 @@ impl LatexToMathML {
         continue_on_error: bool,
         ignore_unknown_commands: bool,
         annotation: bool,
+        allow_unreliable_rendering: bool,
         fancy_error: bool,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
@@ -59,6 +68,7 @@ impl LatexToMathML {
             xml_namespace,
             ignore_unknown_commands,
             annotation,
+            allow_unreliable_rendering,
         };
 
         let inner = math_core::LatexToMathML::new(config);
