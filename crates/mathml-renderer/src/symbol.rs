@@ -99,21 +99,25 @@ pub enum OrdCategory {
     D,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     E,
-    /// Category F: Prefix, zero spacing, stretchy, symmetric
+    /// Category F: Prefix, zero spacing, stretchy, symmetric (e.g. `(`).
+    /// Meant to be stretched vertically.
     F,
-    /// Category G: Postfix, zero spacing, stretchy, symmetric
+    /// Category G: Postfix, zero spacing, stretchy, symmetric (e.g. `)`).
+    /// Meant to be stretched vertically.
     G,
-    /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
-    /// (e.g. `‖`).
+    // /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
+    // /// (e.g. `‖`).
     // FG,
-
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// but also with an infix form with relation spacing (e.g. `|`).
     FGandForceDefault,
-    /// Category I: Postfix, zero spacing, stretchy
+    /// Category I: Postfix, zero spacing, stretchy (e.g. `~`).
+    /// Meant to be stretched horizontally.
     I,
     /// Category K: Infix, zero spacing (e.g. `\`).
     K,
+    /// Category I and K (e.g., `_`)
+    IK,
     /// An operator which is in category K but used to be in category B (e.g. `/`).
     /// Unfortunately, not all browsers handle this correctly yet,
     /// so we need to special-case it.
@@ -135,7 +139,7 @@ impl OrdLike {
             }
             OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
             OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::NonZero),
-            OrdCategory::D | OrdCategory::E | OrdCategory::I => {
+            OrdCategory::D | OrdCategory::E | OrdCategory::I | OrdCategory::IK => {
                 return None;
             }
         };
@@ -305,28 +309,28 @@ pub const LEFT_SQUARE_BRACKET: OrdLike = OrdLike::new('[', OrdCategory::F);
 pub const REVERSE_SOLIDUS: OrdLike = OrdLike::new('\\', OrdCategory::K);
 pub const RIGHT_SQUARE_BRACKET: OrdLike = OrdLike::new(']', OrdCategory::G);
 // pub const CIRCUMFLEX_ACCENT: Rel = Rel::new('^', RelCategory::Default);
-pub const LOW_LINE: Rel = Rel::new('_', RelCategory::Default);
-pub const GRAVE_ACCENT: Rel = Rel::new('`', RelCategory::Default);
+pub const LOW_LINE: OrdLike = OrdLike::new('_', OrdCategory::IK);
+pub const GRAVE_ACCENT: MathMLOperator = MathMLOperator('`');
 
 pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
 pub const RIGHT_CURLY_BRACKET: OrdLike = OrdLike::new('}', OrdCategory::G);
-pub const TILDE: Rel = Rel::new('~', RelCategory::Default);
+pub const TILDE: OrdLike = OrdLike::new('~', OrdCategory::I);
 
 //
 // Unicode Block: Latin-1 Supplement
 //
 pub const SECTION_SIGN: char = '§';
-pub const DIAERESIS: Rel = Rel::new('¨', RelCategory::Default);
+pub const DIAERESIS: MathMLOperator = MathMLOperator('¨');
 pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: OrdLike = OrdLike::new('¬', OrdCategory::D);
 
-pub const MACRON: Rel = Rel::new('¯', RelCategory::Default);
+pub const MACRON: MathMLOperator = MathMLOperator('¯');
 
 pub const PLUS_MINUS_SIGN: Bin = Bin::new('±', BinCategory::BD);
 
-pub const ACUTE_ACCENT: Rel = Rel::new('´', RelCategory::Default);
+pub const ACUTE_ACCENT: MathMLOperator = MathMLOperator('´');
 
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Op = Op::new('·', OpCategory::C);
@@ -352,24 +356,24 @@ pub const LATIN_SMALL_LETTER_DOTLESS_J: char = 'ȷ';
 //
 // Unicode Block: Spacing Modifier Letters
 //
-pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: Rel = Rel::new('ˆ', RelCategory::Default);
-pub const CARON: Rel = Rel::new('ˇ', RelCategory::Default);
+pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator('ˆ');
+pub const CARON: MathMLOperator = MathMLOperator('ˇ');
 
-pub const BREVE: Rel = Rel::new('˘', RelCategory::Default);
-pub const DOT_ABOVE: Rel = Rel::new('˙', RelCategory::Default);
-pub const RING_ABOVE: Rel = Rel::new('˚', RelCategory::Default);
+pub const BREVE: MathMLOperator = MathMLOperator('˘');
+pub const DOT_ABOVE: MathMLOperator = MathMLOperator('˙');
+pub const RING_ABOVE: MathMLOperator = MathMLOperator('˚');
 
-pub const SMALL_TILDE: Rel = Rel::new('˜', RelCategory::Default);
+pub const SMALL_TILDE: MathMLOperator = MathMLOperator('˜');
 
 //
 // Unicode Block: Combining Diacritical Marks
 //
 pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
 pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
-pub const COMBINING_CIRCUMFLEX_ACCENT: Rel = Rel::new('\u{302}', RelCategory::Default);
+pub const COMBINING_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator('\u{302}');
 pub const COMBINING_TILDE: char = '\u{303}';
 pub const COMBINING_MACRON: char = '\u{304}';
-// pub const COMBINING_OVERLINE: Rel = Rel::new('\u{305}', RelCategory::Default);
+// pub const COMBINING_OVERLINE: MathMLOperator = MathMLOperator('\u{305}');
 pub const COMBINING_BREVE: char = '\u{306}';
 pub const COMBINING_DOT_ABOVE: char = '\u{307}';
 pub const COMBINING_DIAERESIS: char = '\u{308}';
@@ -380,7 +384,7 @@ pub const COMBINING_CARON: char = '\u{30C}';
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
-pub const COMBINING_LOW_LINE: Rel = Rel::new('\u{332}', RelCategory::Default);
+pub const COMBINING_LOW_LINE: MathMLOperator = MathMLOperator('\u{332}');
 
 //
 // Unicode Block: Greek and Coptic
@@ -474,17 +478,17 @@ pub const REVERSED_TRIPLE_PRIME: OrdLike = OrdLike::new('‷', OrdCategory::E);
 // pub const REFERENCE_MARK: Ord = ord('※');
 // pub const DOUBLE_EXCLAMATION_MARK: Ord = ord('‼');
 // pub const INTERROBANG: Ord = ord('‽');
-pub const OVERLINE: Rel = Rel::new('‾', RelCategory::Default);
+pub const OVERLINE: MathMLOperator = MathMLOperator('‾');
 
 pub const QUADRUPLE_PRIME: OrdLike = OrdLike::new('⁗', OrdCategory::E);
 
 //
 // Unicode Block: Combining Diacritical Marks for Symbols
 //
-pub const COMBINING_RIGHT_ARROW_ABOVE: Rel = Rel::new('\u{20D7}', RelCategory::Default);
+pub const COMBINING_RIGHT_ARROW_ABOVE: MathMLOperator = MathMLOperator('\u{20D7}');
 
-pub const COMBINING_THREE_DOTS_ABOVE: Rel = Rel::new('\u{20DB}', RelCategory::Default);
-pub const COMBINING_FOUR_DOTS_ABOVE: Rel = Rel::new('\u{20DC}', RelCategory::Default);
+pub const COMBINING_THREE_DOTS_ABOVE: MathMLOperator = MathMLOperator('\u{20DB}');
+pub const COMBINING_FOUR_DOTS_ABOVE: MathMLOperator = MathMLOperator('\u{20DC}');
 
 //
 // Unicode Block: Letterlike Symbols

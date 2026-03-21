@@ -738,9 +738,9 @@ where
             Token::Accent(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
-                    Ok(Node::OverAccent(op.as_op(), attr, target))
+                    Ok(Node::OverAccent(op, attr, target))
                 } else {
-                    Ok(Node::UnderAccent(op.as_op(), target))
+                    Ok(Node::UnderAccent(op, target))
                 }
             }
             Token::Overset | Token::Underset => {

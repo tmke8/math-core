@@ -934,7 +934,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverAccent(
-                symbol::MACRON.as_op(),
+                symbol::MACRON,
                 OpAttrs::STRETCHY_FALSE,
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
@@ -942,7 +942,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OverAccent(
-                symbol::OVERLINE.as_op(),
+                symbol::OVERLINE,
                 OpAttrs::empty(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
