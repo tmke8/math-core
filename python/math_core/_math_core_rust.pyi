@@ -11,6 +11,7 @@ class LatexToMathML:
         continue_on_error: bool = False,
         ignore_unknown_commands: bool = False,
         annotation: bool = False,
+        allow_unreliable_rendering: bool = False,
         fancy_error: bool = True,
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.

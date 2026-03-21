@@ -85,6 +85,7 @@ interface MathCoreOptions {
     throwOnError?: boolean;
     ignoreUnknownCommands?: boolean;
     annotation?: boolean;
+    allowUnreliableRendering?: boolean;
 }
 "#;
 
@@ -110,6 +111,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn annotation(this: &MathCoreOptions) -> Option<bool>;
+
+    #[wasm_bindgen(method, getter)]
+    fn allowUnreliableRendering(this: &MathCoreOptions) -> Option<bool>;
 }
 
 #[wasm_bindgen]
@@ -169,12 +173,14 @@ impl LatexToMathML {
         let throw_on_error = js_config.throwOnError();
         let ignore_unknown_commands = js_config.ignoreUnknownCommands().unwrap_or_default();
         let annotation = js_config.annotation().unwrap_or_default();
+        let allow_unreliable_rendering = js_config.allowUnreliableRendering().unwrap_or_default();
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             macros: macros.unwrap_or_default(),
             xml_namespace,
             ignore_unknown_commands,
             annotation,
+            allow_unreliable_rendering,
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;

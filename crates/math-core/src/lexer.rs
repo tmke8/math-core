@@ -2,7 +2,7 @@ use std::mem;
 use std::ops::Range;
 use std::str::CharIndices;
 
-use mathml_renderer::symbol;
+use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::CommandConfig;
 use crate::commands::get_command;
@@ -288,6 +288,21 @@ impl<'config, 'source> Lexer<'config, 'source> {
         span: Span,
         cmd_string: &'source str,
     ) -> LexerResult<'config, 'source> {
+        'unreliable_rendering: {
+            if self
+                .cmd_cfg
+                .is_some_and(|cfg| cfg.allow_unreliable_rendering)
+            {
+                let tok = match cmd_string {
+                    "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
+                    "widetilde" => {
+                        Token::Accent(symbol::TILDE.as_op(), true, OpAttrs::STRETCHY_TRUE)
+                    }
+                    _ => break 'unreliable_rendering,
+                };
+                return LexerResult::Tok(TokSpan::new(tok, span));
+            }
+        }
         let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
             .cmd_cfg
             .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
