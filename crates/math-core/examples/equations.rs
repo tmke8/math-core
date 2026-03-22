@@ -18,7 +18,7 @@ fn main() {
         r#"\overparen{x\times\cdots\times x}, \overparen{x\times\cdots\times x}^{n}, \underparen{x\times\cdots\times x}, \underparen{x\times\cdots\times x}_{n} ,
         \overbracket{x\times\cdots\times x}, \overbracket{x\times\cdots\times x}^{n}, \underbracket{x\times\cdots\times x}, \underbracket{x\times\cdots\times x}_{n}"#,
         r#"X \overset{f}{\rightarrow} Y \underset{g}{\rightarrow} Z , \ h \eqdef g \circ f"#,
-        r#"\overline{x + y} , \underline{x + y}, \widehat{x + y}, \widetilde{x + y} , \overrightarrow{A + B} , \overleftarrow{A + B}"#,
+        r#"\overline{x + y} , \underline{x + y}, \widehat{x + y}, \overrightarrow{A + B} , \overleftarrow{A + B}"#,
         r#"\left. \frac{\pi}{2} \right\} \, \left( x \right) \, \left\{ \frac12 \right."#,
         r#"\Biggl( \biggl( \Bigl( \bigl( ( ) \bigr) \Bigr) \biggr) \Biggr)"#,
         r#"\mu \left( \bigcup_i E_i \right) = \sum_i \mu ( E_i )"#,
@@ -60,12 +60,11 @@ fn main() {
         r#"\mathcal{C} \times \mathcal{Y}\times\mathcal{P}"#,
         r"a := 2 \land b :\equiv 3 \land f : X\to Y",
         r"f(x):=\begin{cases}0 &\text{if }x\geq 0\\1 &\text{otherwise}\end{cases}",
-        r"\oint_C \vec{B}\circ \mathrm{d}\vec{l} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)",
+        r"\oint_C \vec{B}\circ \mathrm{d}\vec{\ell} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)",
     ];
 
     let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
-        allow_unreliable_rendering: true,
         ..Default::default()
     })
     .unwrap();

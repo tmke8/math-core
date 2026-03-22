@@ -740,7 +740,7 @@ where
                 if is_over {
                     Ok(Node::OverAccent(op, attr, target))
                 } else {
-                    Ok(Node::UnderAccent(op, target))
+                    Ok(Node::UnderAccent(op, attr, target))
                 }
             }
             Token::Overset | Token::Underset => {
