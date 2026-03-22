@@ -59,7 +59,7 @@ pub enum Node<'arena> {
     /// `<mover accent="true">...</mover>`
     OverAccent(MathMLOperator, OpAttrs, &'arena Node<'arena>),
     /// `<munder accentunder="true">...</munder>`
-    UnderAccent(MathMLOperator, &'arena Node<'arena>),
+    UnderAccent(MathMLOperator, OpAttrs, &'arena Node<'arena>),
     /// `<mover>...</mover>`
     Over {
         symbol: &'arena Node<'arena>,
@@ -330,19 +330,19 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</mmultiscripts>");
             }
-            Node::OverAccent(op, attr, target) => {
-                write!(s, "<mover accent=\"true\">")?;
+            node @ (Node::OverAccent(op, attr, target) | Node::UnderAccent(op, attr, target)) => {
+                let (open, close) = match node {
+                    Node::OverAccent(_, _, _) => ("<mover accent=\"true\">", "</mover>"),
+                    Node::UnderAccent(_, _, _) => ("<munder accentunder=\"true\">", "</munder>"),
+                    // Compiler is able to infer that this is unreachable.
+                    _ => unreachable!(),
+                };
+                write!(s, "{open}")?;
                 target.emit(s, child_indent)?;
                 writeln_indent!(s, child_indent, "<mo");
                 attr.write_to(s);
                 write!(s, ">{}</mo>", char::from(op))?;
-                writeln_indent!(s, base_indent, "</mover>");
-            }
-            Node::UnderAccent(op, target) => {
-                write!(s, "<munder accentunder=\"true\">")?;
-                target.emit(s, child_indent)?;
-                writeln_indent!(s, child_indent, "<mo>{}</mo>", char::from(op));
-                writeln_indent!(s, base_indent, "</munder>");
+                writeln_indent!(s, base_indent, "{close}");
             }
             Node::Sqrt(content) => {
                 write!(s, "<msqrt>")?;
@@ -955,6 +955,7 @@ mod tests {
         assert_eq!(
             render(&Node::UnderAccent(
                 symbol::LOW_LINE.as_op(),
+                OpAttrs::empty(),
                 &Node::IdentifierChar('x', LetterAttr::Default),
             )),
             "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
