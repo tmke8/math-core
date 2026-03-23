@@ -21,7 +21,7 @@ math-core = { path = "../math-core", features = ["serde", "ariadne"], version = 
 ariadne = { workspace = true }
 memchr = { workspace = true }
 phf = { version = "0.13.1", features = ["macros"] }
-toml = "1.0.6"
+toml = "1.0.7"
 serde = { workspace = true }
 
 [lints]
