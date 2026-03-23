@@ -25,8 +25,9 @@ pub enum Class {
 
 #[derive(Debug, Clone, Copy)]
 pub enum ParenType {
-    Open = 1,
-    Close,
+    Left = 1,
+    Right,
+    Middle,
 }
 
 /// <mi> mathvariant attribute

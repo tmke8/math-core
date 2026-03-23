@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\bigm/ x"
+---
+<math>
+    <mi>x</mi>
+    <mo stretchy="true" symmetric="true" lspace="0.2778em" rspace="0.2778em" minsize="1.2em" maxsize="1.2em">/</mo>
+    <mi>x</mi>
+</math>

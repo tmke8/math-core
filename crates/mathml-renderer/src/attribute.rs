@@ -14,7 +14,7 @@ bitflags! {
         const NO_MOVABLE_LIMITS = 1 << 2;
         const FORCE_MOVABLE_LIMITS = 1 << 3;
         const FORM_PREFIX = 1 << 4;
-        // const FORM_INFIX = 1 << 5;
+        const FORM_INFIX = 1 << 5;
         const FORM_POSTFIX = 1 << 6;
         const SYMMETRIC_TRUE = 1 << 7;
     }
@@ -49,6 +49,9 @@ impl OpAttrs {
         }
         if self.contains(OpAttrs::FORM_PREFIX) {
             s.push_str(r#" form="prefix""#);
+        }
+        if self.contains(OpAttrs::FORM_INFIX) {
+            s.push_str(r#" form="infix""#);
         }
         if self.contains(OpAttrs::FORM_POSTFIX) {
             s.push_str(r#" form="postfix""#);

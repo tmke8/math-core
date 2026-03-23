@@ -135,10 +135,10 @@ impl OrdLike {
         let (stretchy, spacing) = match self.cat {
             OrdCategory::F | OrdCategory::G => (Stretchy::Always, DelimiterSpacing::Zero),
             OrdCategory::FGandForceDefault => {
-                (Stretchy::PrePostfix, DelimiterSpacing::InfixNonZero)
+                (Stretchy::PrePostfix, DelimiterSpacing::InfixRelation)
             }
             OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
-            OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::NonZero),
+            OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::Other),
             OrdCategory::D | OrdCategory::E | OrdCategory::I | OrdCategory::IK => {
                 return None;
             }
@@ -200,7 +200,7 @@ impl Rel {
             RelCategory::A => Some(StretchableOp {
                 char: self.char,
                 stretchy: Stretchy::AlwaysAsymmetric,
-                spacing: DelimiterSpacing::NonZero,
+                spacing: DelimiterSpacing::Relation,
             }),
             RelCategory::Default => None,
         }
@@ -236,11 +236,13 @@ pub enum Stretchy {
 pub enum DelimiterSpacing {
     /// Never has any spacing, even when used as an infix operator (e.g. `(`, `)`).
     Zero,
-    /// Has spacing when used as an infix operator, but not when used as a prefix or postfix
-    /// operator (e.g. `|`).
-    InfixNonZero,
-    /// Always has spacing, even when used as a prefix or postfix operator (e.g. `/`).
-    NonZero,
+    /// Has relation spacing when used as an infix operator, but not when used as a prefix or
+    /// postfix operator (e.g. `|`).
+    InfixRelation,
+    /// Always has relation spacing, even when used as a prefix or postfix operator (e.g. `↑`).
+    Relation,
+    /// Always has some spacing, even when used as a prefix or postfix operator (e.g. `/`).
+    Other,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]

@@ -211,10 +211,10 @@ impl Token<'_> {
             }
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
             Inner(_) => Some(Class::Inner),
-            Big(_, Some(paren_type)) => Some(if matches!(paren_type, ParenType::Open) {
-                Class::Open
-            } else {
-                Class::Close
+            Big(_, Some(paren_type)) => Some(match paren_type {
+                ParenType::Left => Class::Open,
+                ParenType::Right => Class::Close,
+                ParenType::Middle => Class::Relation,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace

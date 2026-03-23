@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\bigm\\uparrow x"
+---
+<math>
+    <mi>x</mi>
+    <mo symmetric="true" minsize="1.2em" maxsize="1.2em">↑</mo>
+    <mi>x</mi>
+</math>

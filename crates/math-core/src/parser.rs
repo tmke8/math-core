@@ -400,7 +400,7 @@ where
                     }
                     RelCategory::Default => OpAttrs::empty(),
                 };
-                let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 Ok(Node::Operator {
                     op: relation.as_op(),
                     attrs,
@@ -572,7 +572,7 @@ where
                 })
             }
             Token::OpGreaterThan => {
-                let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 class = Class::Relation;
                 Ok(Node::PseudoOp {
                     name: "&gt;",
@@ -582,7 +582,7 @@ where
                 })
             }
             Token::OpLessThan => {
-                let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 class = Class::Relation;
                 Ok(Node::PseudoOp {
                     name: "&lt;",
@@ -911,7 +911,8 @@ where
                 let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                 match tok {
                     Token::Relation(op) => {
-                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                        let (left, right) =
+                            self.state.relation_spacing(prev_class, next_class, false);
                         if let Some(negated) = get_negated_op(op) {
                             Ok(Node::Operator {
                                 op: negated.as_op(),
@@ -931,7 +932,8 @@ where
                         }
                     }
                     tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
-                        let (left, right) = self.state.relation_spacing(prev_class, next_class);
+                        let (left, right) =
+                            self.state.relation_spacing(prev_class, next_class, false);
                         Ok(Node::Operator {
                             op: if matches!(tok, Token::OpLessThan) {
                                 symbol::NOT_LESS_THAN.as_op()
@@ -973,12 +975,7 @@ where
             Token::ForceRelation(op) => {
                 class = Class::Relation;
                 let (left, right) = if parse_as.in_sequence() {
-                    let (left, right) = self.state.relation_spacing(prev_class, next_class);
-                    // We have to turn `None` into explicit relation spacing.
-                    (
-                        left.or(Some(MathSpacing::FiveMu)),
-                        right.or(Some(MathSpacing::FiveMu)),
-                    )
+                    self.state.relation_spacing(prev_class, next_class, true)
                 } else {
                     // Don't add spacing if we are in an argument.
                     (None, None)
@@ -1113,8 +1110,9 @@ where
                 let paren = extract_delimiter(tok_loc, DelimiterModifier::Big)?;
                 // `\big` commands without the "l" or "r" really produce `Class::Default`.
                 class = match paren_type {
-                    Some(ParenType::Open) => Class::Open,
-                    Some(ParenType::Close) => Class::Close,
+                    Some(ParenType::Left) => Class::Open,
+                    Some(ParenType::Right) => Class::Close,
+                    Some(ParenType::Middle) => Class::Relation,
                     None => Class::Default,
                 };
                 // Convert stretchy property to OpAttrs.
@@ -1127,21 +1125,45 @@ where
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
-                let (left, right) = if let Some(paren_type) = paren_type
-                    && matches!(paren.spacing, DelimiterSpacing::InfixNonZero)
-                {
-                    match paren_type {
-                        ParenType::Open => attrs |= OpAttrs::FORM_PREFIX,
-                        ParenType::Close => attrs |= OpAttrs::FORM_POSTFIX,
+                let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
+                    // We need to achieve relation spacing here.
+                    let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                    if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
+                        attrs |= OpAttrs::FORM_INFIX;
                     }
-                    (None, None)
-                } else if matches!(
-                    paren.spacing,
-                    DelimiterSpacing::InfixNonZero | DelimiterSpacing::NonZero
-                ) {
-                    (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    self.state.relation_spacing(
+                        prev_class,
+                        next_class,
+                        !matches!(
+                            paren.spacing,
+                            DelimiterSpacing::InfixRelation | DelimiterSpacing::Relation
+                        ),
+                    )
                 } else {
-                    (None, None)
+                    // We need to achieve open/close spacing here (i.e., zero spacing)
+                    // If the delimiter has relation spacing only in infix positions, then we can
+                    // get spacing to zero by setting the form attributes.
+                    if let Some(paren_type) = paren_type
+                        && matches!(paren.spacing, DelimiterSpacing::InfixRelation)
+                    {
+                        // We already handled the spacing for middle delimiters above, so we only
+                        // need to set the form attributes for left and right delimiters here.
+                        if matches!(paren_type, ParenType::Left) {
+                            attrs |= OpAttrs::FORM_PREFIX;
+                        } else {
+                            attrs |= OpAttrs::FORM_POSTFIX;
+                        }
+                        (None, None)
+                    } else if matches!(
+                        paren.spacing,
+                        DelimiterSpacing::InfixRelation
+                            | DelimiterSpacing::Relation
+                            | DelimiterSpacing::Other
+                    ) {
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    } else {
+                        (None, None)
+                    }
                 };
                 Ok(Node::Operator {
                     op: paren.as_op(),
@@ -1822,6 +1844,7 @@ impl ParserState<'_, '_> {
         &self,
         prev_class: Class,
         next_class: Class,
+        force: bool,
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
         (
             if matches!(
@@ -1830,6 +1853,8 @@ impl ParserState<'_, '_> {
             ) || self.script_style
             {
                 Some(MathSpacing::Zero)
+            } else if force {
+                Some(MathSpacing::FiveMu) // force relation spacing
             } else {
                 None
             },
@@ -1839,6 +1864,8 @@ impl ParserState<'_, '_> {
             ) || self.script_style
             {
                 Some(MathSpacing::Zero)
+            } else if force {
+                Some(MathSpacing::FiveMu) // force relation spacing
             } else {
                 None
             },
