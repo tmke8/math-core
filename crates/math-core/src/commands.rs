@@ -205,7 +205,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cap" => BinaryOp(symbol::INTERSECTION),
     "cdot" => ForceBinaryOp(symbol::MIDDLE_DOT.as_op()),
     "cdots" => CustomCmd(0, &predefined::CDOTS),
-    "centerdot" => ForceBinaryOp(symbol::BULLET_OPERATOR.as_op()),
     "cfrac" => Frac(Some(FracAttr::CFracStyle)),
     "check" => Accent(symbol::CARON, true, OpAttrs::STRETCHY_FALSE),
     "checkmark" => Letter('✓', Mode::Math),

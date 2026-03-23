@@ -1,3 +1,11 @@
+mtr > mtd:first-child {
+    padding-left: 0;
+}
+
+mtr > mtd:last-child {
+    padding-right: 0;
+}
+
 /* Styles for Chromium only */
 @supports (not (-webkit-backdrop-filter: blur(1px))) and
     (not (-moz-appearance: none)) {

@@ -1240,6 +1240,7 @@ where
                 }
             }
             Token::NewLine => 'new_line: {
+                class = Class::Open;
                 if !self.state.meaningful_newlines {
                     // TODO: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
