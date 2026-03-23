@@ -83,7 +83,7 @@ mod tests {
     use LengthUnit::*;
 
     #[test]
-    fn write() {
+    fn test_write() {
         let mut output = String::new();
         Length::new(0.0, Rem).push_to_string(&mut output);
         assert_eq!(&output, "0");
@@ -102,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn write_relative() {
+    fn test_write_relative() {
         let mut output = String::new();
         Length::new(0.0, Em).push_to_string(&mut output);
         assert_eq!(&output, "0");

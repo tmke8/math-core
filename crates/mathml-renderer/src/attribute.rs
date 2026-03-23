@@ -14,15 +14,6 @@ pub enum MathVariant {
     Transform(TextTransform),
 }
 
-impl MathVariant {
-    /// Returns `true` if the transformation is sensitive to whether a letter is "upright".
-    /// An example of an upright letter is "\Alpha".
-    #[inline]
-    pub fn differs_on_upright_letters(&self) -> bool {
-        matches!(self, MathVariant::Transform(TextTransform::BoldItalic))
-    }
-}
-
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
