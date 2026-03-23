@@ -10,6 +10,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
       Operator(
         op: '∑',
         attrs: OpAttrs(""),
+        size: None,
         left: Some(Zero),
         right: None,
       ),
@@ -18,6 +19,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
           Operator(
             op: '∑',
             attrs: OpAttrs(""),
+            size: None,
             left: Some(Zero),
             right: Some(Zero),
           ),

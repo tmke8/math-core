@@ -1,8 +1,9 @@
 use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttrs, ParenType, Size, Style, TextTransform,
+    FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style, TextTransform,
 };
 use mathml_renderer::symbol::{self, Rel};
 
+use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
@@ -40,10 +41,12 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "Beta" => UprightLetter(symbol::GREEK_CAPITAL_LETTER_BETA),
     "Big" => Big(Size::Scale2, None),
     "Bigg" => Big(Size::Scale4, None),
-    "Biggl" => Big(Size::Scale4, Some(ParenType::Open)),
-    "Biggr" => Big(Size::Scale4, Some(ParenType::Close)),
-    "Bigl" => Big(Size::Scale2, Some(ParenType::Open)),
-    "Bigr" => Big(Size::Scale2, Some(ParenType::Close)),
+    "Biggl" => Big(Size::Scale4, Some(ParenType::Left)),
+    "Biggm" => Big(Size::Scale4, Some(ParenType::Middle)),
+    "Biggr" => Big(Size::Scale4, Some(ParenType::Right)),
+    "Bigl" => Big(Size::Scale2, Some(ParenType::Left)),
+    "Bigm" => Big(Size::Scale2, Some(ParenType::Middle)),
+    "Bigr" => Big(Size::Scale2, Some(ParenType::Right)),
     "Box" => Letter(symbol::WHITE_MEDIUM_SQUARE, Mode::Math),
     "Bumpeq" => Relation(symbol::GEOMETRICALLY_EQUIVALENT_TO),
     "Cap" => BinaryOp(symbol::DOUBLE_INTERSECTION),
@@ -169,13 +172,15 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "bigdoublevee" => Op(symbol::TWO_LOGICAL_OR_OPERATOR),
     "bigdoublewedge" => Op(symbol::TWO_LOGICAL_AND_OPERATOR),
     "bigg" => Big(Size::Scale3, None),
-    "biggl" => Big(Size::Scale3, Some(ParenType::Open)),
-    "biggr" => Big(Size::Scale3, Some(ParenType::Close)),
-    "bigl" => Big(Size::Scale1, Some(ParenType::Open)),
+    "biggl" => Big(Size::Scale3, Some(ParenType::Left)),
+    "biggm" => Big(Size::Scale3, Some(ParenType::Middle)),
+    "biggr" => Big(Size::Scale3, Some(ParenType::Right)),
+    "bigl" => Big(Size::Scale1, Some(ParenType::Left)),
+    "bigm" => Big(Size::Scale1, Some(ParenType::Middle)),
     "bigodot" => Op(symbol::N_ARY_CIRCLED_DOT_OPERATOR),
     "bigoplus" => Op(symbol::N_ARY_CIRCLED_PLUS_OPERATOR),
     "bigotimes" => Op(symbol::N_ARY_CIRCLED_TIMES_OPERATOR),
-    "bigr" => Big(Size::Scale1, Some(ParenType::Close)),
+    "bigr" => Big(Size::Scale1, Some(ParenType::Right)),
     "bigsqcap" => Op(symbol::N_ARY_SQUARE_INTERSECTION_OPERATOR),
     "bigsqcup" => Op(symbol::N_ARY_SQUARE_UNION_OPERATOR),
     "bigstar" => Letter(symbol::BLACK_STAR, Mode::Math),

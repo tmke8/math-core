@@ -4,16 +4,6 @@ use serde::Serialize;
 
 use strum_macros::IntoStaticStr;
 
-/// <mi> mathvariant attribute
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum MathVariant {
-    /// This is enforced by setting `mathvariant="normal"`.
-    Normal,
-    /// This is enforced by transforming the characters themselves.
-    Transform(TextTransform),
-}
-
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +14,7 @@ bitflags! {
         const NO_MOVABLE_LIMITS = 1 << 2;
         const FORCE_MOVABLE_LIMITS = 1 << 3;
         const FORM_PREFIX = 1 << 4;
-        // const FORM_INFIX = 1 << 5;
+        const FORM_INFIX = 1 << 5;
         const FORM_POSTFIX = 1 << 6;
         const SYMMETRIC_TRUE = 1 << 7;
     }
@@ -60,6 +50,9 @@ impl OpAttrs {
         if self.contains(OpAttrs::FORM_PREFIX) {
             s.push_str(r#" form="prefix""#);
         }
+        if self.contains(OpAttrs::FORM_INFIX) {
+            s.push_str(r#" form="infix""#);
+        }
         if self.contains(OpAttrs::FORM_POSTFIX) {
             s.push_str(r#" form="postfix""#);
         }
@@ -80,22 +73,13 @@ pub enum LetterAttr {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Size {
     #[strum(serialize = "1.2em")]
-    Scale1,
+    Scale1 = 1,
     #[strum(serialize = "1.623em")]
     Scale2,
     #[strum(serialize = "2.047em")]
     Scale3,
     #[strum(serialize = "2.470em")]
     Scale4,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum ParenType {
-    #[strum(serialize = r#" form="prefix""#)]
-    Open = 1,
-    #[strum(serialize = r#" form="postfix""#)]
-    Close,
 }
 
 /// display style
@@ -362,7 +346,7 @@ impl TextTransform {
 
 #[cfg(test)]
 mod tests {
-    use super::{MathVariant, TextTransform};
+    use super::TextTransform;
 
     #[test]
     fn transform_test() {
@@ -400,17 +384,5 @@ mod tests {
                 source
             );
         }
-    }
-
-    #[test]
-    fn size_test() {
-        assert_eq!(
-            std::mem::size_of::<MathVariant>(),
-            std::mem::size_of::<TextTransform>()
-        );
-        assert_eq!(
-            std::mem::size_of::<Option<MathVariant>>(),
-            std::mem::size_of::<TextTransform>()
-        );
     }
 }

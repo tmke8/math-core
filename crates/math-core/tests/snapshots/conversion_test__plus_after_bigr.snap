@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\bigr(+ x"
 ---
 <math>
-    <mo maxsize="1.2em" minsize="1.2em">(</mo>
+    <mo minsize="1.2em" maxsize="1.2em">(</mo>
     <mo>+</mo>
     <mi>x</mi>
 </math>

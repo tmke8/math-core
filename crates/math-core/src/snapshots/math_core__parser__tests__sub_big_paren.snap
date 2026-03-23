@@ -5,6 +5,12 @@ expression: "x_\\big("
 [
   Sub(
     target: IdentifierChar('x', Default),
-    symbol: SizedParen(Scale1, StretchableOp('(', Always), None),
+    symbol: Operator(
+      op: '(',
+      attrs: OpAttrs(""),
+      size: Some(Scale1),
+      left: None,
+      right: None,
+    ),
   ),
 ]

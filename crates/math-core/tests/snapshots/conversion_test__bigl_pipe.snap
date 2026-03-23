@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\bigl| x \\bigr|"
 ---
 <math>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" form="prefix">|</mo>
+    <mo stretchy="true" form="prefix" symmetric="true" minsize="1.2em" maxsize="1.2em">|</mo>
     <mi>x</mi>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" form="postfix">|</mo>
+    <mo stretchy="true" form="postfix" symmetric="true" minsize="1.2em" maxsize="1.2em">|</mo>
 </math>

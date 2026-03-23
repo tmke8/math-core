@@ -12,6 +12,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
         Operator(
           op: '∫',
           attrs: OpAttrs(""),
+          size: None,
           left: Some(Zero),
           right: Some(Zero),
         ),
@@ -22,6 +23,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
   Operator(
     op: '∫',
     attrs: OpAttrs(""),
+    size: None,
     left: None,
     right: Some(Zero),
   ),

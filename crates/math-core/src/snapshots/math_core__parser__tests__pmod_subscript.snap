@@ -10,6 +10,7 @@ expression: "\\pmod{3}_4"
   Operator(
     op: '(',
     attrs: OpAttrs("STRETCHY_FALSE"),
+    size: None,
     left: None,
     right: None,
   ),
@@ -23,6 +24,7 @@ expression: "\\pmod{3}_4"
     target: Operator(
       op: ')',
       attrs: OpAttrs("STRETCHY_FALSE"),
+      size: None,
       left: None,
       right: None,
     ),

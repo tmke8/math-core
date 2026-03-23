@@ -5,13 +5,12 @@ use std::num::NonZeroU16;
 use serde::Serialize;
 
 use crate::attribute::{
-    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, ParenType, RowAttr, Size,
-    Style,
+    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, RowAttr, Size, Style,
 };
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
-use crate::symbol::{DelimiterSpacing, MathMLOperator, StretchableOp, Stretchy};
+use crate::symbol::{MathMLOperator, StretchableOp, Stretchy};
 use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
 
 /// AST node
@@ -28,6 +27,7 @@ pub enum Node<'arena> {
     Operator {
         op: MathMLOperator,
         attrs: OpAttrs,
+        size: Option<Size>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
@@ -102,7 +102,6 @@ pub enum Node<'arena> {
         close: Option<StretchableOp>,
         content: &'arena Node<'arena>,
     },
-    SizedParen(Size, StretchableOp, Option<ParenType>),
     /// `<mtext>...</mtext>`
     Text(Option<HtmlTextStyle>, &'arena str),
     /// `<mtable>...</mtable>` for matrices and similar constructs
@@ -197,21 +196,30 @@ impl Node<'_> {
             }
             Node::Operator {
                 op,
-                attrs: attr,
+                attrs,
                 left,
                 right,
+                size,
             } => {
-                emit_operator_attributes(s, *attr, *left, *right)?;
+                emit_operator_attributes(s, *attrs, *left, *right)?;
+                if let Some(size) = size {
+                    write!(
+                        s,
+                        " minsize=\"{}\" maxsize=\"{}\"",
+                        <&str>::from(size),
+                        <&str>::from(size),
+                    )?;
+                }
                 write!(s, ">{}</mo>", char::from(op))?;
             }
             Node::PseudoOp {
-                attrs: attr,
+                attrs,
                 left,
                 right,
-                name: text,
+                name,
             } => {
-                emit_operator_attributes(s, *attr, *left, *right)?;
-                write!(s, ">{text}</mo>")?;
+                emit_operator_attributes(s, *attrs, *left, *right)?;
+                write!(s, ">{name}</mo>")?;
             }
             node @ (Node::IdentifierStr(letters) | Node::Text(_, letters)) => {
                 let (open, close) = match node {
@@ -409,34 +417,6 @@ impl Node<'_> {
                 new_line_and_indent(s, child_indent);
                 emit_fence(s, *close, OpAttrs::empty())?;
                 writeln_indent!(s, base_indent, "</mrow>");
-            }
-            Node::SizedParen(size, paren, paren_type) => {
-                write!(
-                    s,
-                    "<mo maxsize=\"{}\" minsize=\"{}\"",
-                    <&str>::from(size),
-                    <&str>::from(size)
-                )?;
-                match paren.stretchy {
-                    Stretchy::PrePostfix | Stretchy::Never => {
-                        write!(s, " stretchy=\"true\" symmetric=\"true\"")?;
-                    }
-                    Stretchy::AlwaysAsymmetric => {
-                        write!(s, " symmetric=\"true\"")?;
-                    }
-                    Stretchy::Always => {}
-                }
-                if let Some(paren_type) = paren_type
-                    && matches!(paren.spacing, DelimiterSpacing::InfixNonZero)
-                {
-                    write!(s, "{}", <&str>::from(paren_type))?;
-                } else if matches!(
-                    paren.spacing,
-                    DelimiterSpacing::InfixNonZero | DelimiterSpacing::NonZero
-                ) {
-                    write!(s, " lspace=\"0\" rspace=\"0\"")?;
-                }
-                write!(s, ">{}</mo>", char::from(*paren))?;
             }
             Node::Slashed(node) => match node {
                 Node::IdentifierChar(x, attr) => {
@@ -826,6 +806,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
+                size: None,
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0.2222em\">:</mo>"
         );
@@ -835,6 +816,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
+                size: None,
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
         );
@@ -844,6 +826,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::Zero),
                 right: None,
+                size: None,
             }),
             "<mo lspace=\"0\">≡</mo>"
         );
@@ -853,6 +836,7 @@ mod tests {
                 attrs: OpAttrs::FORM_PREFIX,
                 left: None,
                 right: None,
+                size: None,
             }),
             "<mo form=\"prefix\">+</mo>"
         );
@@ -862,6 +846,7 @@ mod tests {
                 attrs: OpAttrs::NO_MOVABLE_LIMITS,
                 left: None,
                 right: None,
+                size: None,
             }),
             "<mo movablelimits=\"false\">∑</mo>"
         );
@@ -970,13 +955,15 @@ mod tests {
                     op: symbol::EXCLAMATION_MARK,
                     attrs: OpAttrs::empty(),
                     left: None,
-                    right: None
+                    right: None,
+                    size: None,
                 },
                 target: &Node::Operator {
                     op: symbol::EQUALS_SIGN.as_op(),
                     attrs: OpAttrs::empty(),
                     left: None,
-                    right: None
+                    right: None,
+                    size: None,
                 },
             }),
             "<mover><mo>=</mo><mo>!</mo></mover>"
@@ -1129,6 +1116,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: None,
                 right: None,
+                size: None,
             },
             &Node::Number("1"),
         ];
@@ -1156,22 +1144,29 @@ mod tests {
     }
 
     #[test]
-    fn render_sized_paren() {
+    fn render_sized_operator() {
         assert_eq!(
-            render(&Node::SizedParen(
-                Size::Scale1,
-                symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap(),
-                None,
-            )),
-            "<mo maxsize=\"1.2em\" minsize=\"1.2em\">(</mo>"
+            render(&Node::Operator {
+                op: symbol::LEFT_PARENTHESIS
+                    .as_stretchable_op()
+                    .unwrap()
+                    .as_op(),
+                attrs: OpAttrs::empty(),
+                size: Some(Size::Scale1),
+                left: None,
+                right: None,
+            }),
+            "<mo minsize=\"1.2em\" maxsize=\"1.2em\">(</mo>"
         );
         assert_eq!(
-            render(&Node::SizedParen(
-                Size::Scale3,
-                symbol::SOLIDUS.as_stretchable_op().unwrap(),
-                None,
-            )),
-            "<mo maxsize=\"2.047em\" minsize=\"2.047em\" stretchy=\"true\" symmetric=\"true\" lspace=\"0\" rspace=\"0\">/</mo>"
+            render(&Node::Operator {
+                op: symbol::SOLIDUS.as_stretchable_op().unwrap().as_op(),
+                attrs: OpAttrs::STRETCHY_TRUE | OpAttrs::SYMMETRIC_TRUE,
+                size: Some(Size::Scale3),
+                left: Some(MathSpacing::Zero),
+                right: Some(MathSpacing::Zero),
+            }),
+            "<mo stretchy=\"true\" symmetric=\"true\" lspace=\"0\" rspace=\"0\" minsize=\"2.047em\" maxsize=\"2.047em\">/</mo>"
         );
     }
 

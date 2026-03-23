@@ -1,3 +1,5 @@
+use mathml_renderer::attribute::TextTransform;
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
     /// `mathord`
@@ -19,4 +21,37 @@ pub enum Class {
     Inner,
     /// A class indicating the end of the current formula.
     End,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ParenType {
+    Left = 1,
+    Right,
+    Middle,
+}
+
+/// <mi> mathvariant attribute
+#[derive(Debug, Clone, Copy)]
+pub enum MathVariant {
+    /// This is enforced by setting `mathvariant="normal"`.
+    Normal,
+    /// This is enforced by transforming the characters themselves.
+    Transform(TextTransform),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MathVariant, TextTransform};
+
+    #[test]
+    fn size_test() {
+        assert_eq!(
+            std::mem::size_of::<MathVariant>(),
+            std::mem::size_of::<TextTransform>()
+        );
+        assert_eq!(
+            std::mem::size_of::<Option<MathVariant>>(),
+            std::mem::size_of::<TextTransform>()
+        );
+    }
 }
