@@ -79,6 +79,7 @@ node_modules/
 *.otf
 
 /CLAUDE.md
+/.claude/
 
 pkg/
 /playground/comparison.html
