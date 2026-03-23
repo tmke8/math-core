@@ -40,7 +40,8 @@
           ],
           throwOnError: false,
           errorColor: "#b22222",
-          output: "html"
+          output: "html",
+          strict: true
         });
     });
     </script>
@@ -104,7 +105,7 @@
           <tr>
             <td>%</td>
             <td>₮%a comment₮</td>
-            <td>\(%a comment\)</td>
+            <td>\(%a comment&NewLine;\)</td>
             <td><code>%a comment</code></td>
           </tr>
           <tr>
@@ -311,12 +312,6 @@
             <td>\(\text{\^{a}}\)</td>
             <td><code>\text{\^{a}}</code></td>
           </tr>
-          <tr>
-            <td>special fraction</td>
-            <td>₮1\kern2mu \text{³⁄₄}₮</td>
-            <td>\(1\kern2mu \text{³⁄₄}\)</td>
-            <td><code>1\kern2mu \text{³⁄₄}</code></td>
-          </tr>
         </tbody>
       </table>
       <h2 id="a">A</h2>
@@ -518,9 +513,9 @@
           </tr>
           <tr>
             <td>\argmax</td>
-            <td>₮\begin{matrix}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{matrix}\)</td>
-            <td><code>\begin{matrix}\argmax x \\<br/> \argmax_y x \\<br/>\argmax\limits_y x\end{matrix}</code></td>
+            <td>₮\begin{gathered}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{gathered}\)</td>
+            <td><code>\begin{gathered}\argmax x \\<br/> \argmax_y x \\<br/>\argmax\limits_y x\end{gathered}</code></td>
           </tr>
           <tr>
             <td>\argmin</td>
@@ -1161,12 +1156,6 @@
             <td><code>\cancel{5}</code></td>
           </tr>
           <tr>
-            <td>\cancelto</td>
-            <td>₮\cancelto{6}{5}₮</td>
-            <td>\(\cancelto{6}{5}\)</td>
-            <td><code>\cancelto{6}{5}</code></td>
-          </tr>
-          <tr>
             <td>\Cap</td>
             <td>₮\Cap₮</td>
             <td>\(\Cap\)</td>
@@ -1212,7 +1201,7 @@
             <td>\centerdot</td>
             <td>₮a\centerdot b₮</td>
             <td>\(a\centerdot b\)</td>
-            <td>In LaTeX, \centerdot is a small<br/>square on the baseline, not<br/>a centered dot.</td>
+            <td><code>a\centerdot b</code></td>
           </tr>
           <tr>
             <td>\cfrac</td>
@@ -1745,9 +1734,9 @@
           </tr>
           <tr>
             <td>\det</td>
-            <td>₮\begin{matrix}\det x \\ \det_y x \\\det\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\det x \\ \det_y x \\\det\limits_y x\end{matrix}\)</td>
-            <td></td>
+            <td>₮\begin{gathered}\det x \\ \det_y x \\\det\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\det x \\ \det_y x \\\det\limits_y x\end{gathered}\)</td>
+            <td><code>\begin{gathered}\det x \\ \det_y x \\\det\limits_y x\end{gathered}</code></td>
           </tr>
           <tr>
             <td>\digamma</td>
@@ -2322,8 +2311,8 @@
           </tr>
           <tr>
             <td>\gcd</td>
-            <td>₮\begin{matrix}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -2714,8 +2703,8 @@
           </tr>
           <tr>
             <td>\inf</td>
-            <td>₮\begin{matrix}\inf x \\ \inf_y x \\\inf\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\inf x \\ \inf_y x \\\inf\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\inf x \\ \inf_y x \\\inf\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\inf x \\ \inf_y x \\\inf\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -2732,8 +2721,8 @@
           </tr>
           <tr>
             <td>\injlim</td>
-            <td>₮\begin{matrix}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{gathered}\)</td>
             <td><code>\injlim x</code><br/><code>\injlim_y x</code><br/><code>\injlim\limits_y x</code></td>
           </tr>
           <tr>
@@ -2872,8 +2861,8 @@
           </tr>
           <tr>
             <td>\label</td>
-            <td>₮See {equation}₮</td>
-            <td>\(See {equation}\)</td>
+            <td>See {equation}</td>
+            <td>See {equation}</td>
             <td></td>
           </tr>
           <tr>
@@ -3148,14 +3137,14 @@
           </tr>
           <tr>
             <td>\lim</td>
-            <td>₮\begin{matrix}\lim x \\ \lim_y x \\\lim\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\lim x \\ \lim_y x \\\lim\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\lim x \\ \lim_y x \\\lim\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\lim x \\ \lim_y x \\\lim\limits_y x\end{gathered}\)</td>
             <td><code>\lim x</code><br/><code>\lim_y x</code><br/><code>\lim\limits_y x</code></td>
           </tr>
           <tr>
             <td>\liminf</td>
-            <td>₮\begin{matrix}\liminf x \\ \liminf_y x \\\liminf\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\liminf x \\ \liminf_y x \\\liminf\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\liminf x \\ \liminf_y x \\\liminf\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\liminf x \\ \liminf_y x \\\liminf\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3166,8 +3155,8 @@
           </tr>
           <tr>
             <td>\limsup</td>
-            <td>₮\begin{matrix}\limsup x \\ \limsup_y x \\\limsup\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\limsup x \\ \limsup_y x \\\limsup\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\limsup x \\ \limsup_y x \\\limsup\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\limsup x \\ \limsup_y x \\\limsup\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3268,8 +3257,8 @@
           </tr>
           <tr>
             <td>\log</td>
-            <td>₮\begin{matrix}\log x \\ \log_y x \\ \log\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\log x \\ \log_y x \\ \log\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\log x \\ \log_y x \\ \log\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\log x \\ \log_y x \\ \log\limits_y x\end{gathered}\)</td>
             <td><code>\log x</code><br/><code>\log_y x</code><br/><code>\log\limits_y x</code></td>
           </tr>
           <tr>
@@ -3617,8 +3606,8 @@
           </tr>
           <tr>
             <td>\max</td>
-            <td>₮\begin{matrix}\max x \\ \max_y x \\\max\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\max x \\ \max_y x \\\max\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\max x \\ \max_y x \\\max\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\max x \\ \max_y x \\\max\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3653,8 +3642,8 @@
           </tr>
           <tr>
             <td>\min</td>
-            <td>₮\begin{matrix}\min x \\ \min_y x \\\min\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\min x \\ \min_y x \\\min\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\min x \\ \min_y x \\\min\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\min x \\ \min_y x \\\min\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -4247,8 +4236,8 @@
           </tr>
           <tr>
             <td>\operatorname*</td>
-            <td>₮\begin{matrix}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{gathered}\)</td>
             <td><code>\operatorname*{asin} x</code><br/><code>\operatorname*{asin}_y x</code><br/><code>\operatorname*{asin}\limits_y x\end</code></td>
           </tr>
           <tr>
@@ -4482,8 +4471,8 @@
           </tr>
           <tr>
             <td>\Pr</td>
-            <td>₮\begin{matrix}\Pr x \\ \Pr_y x \\\Pr\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\Pr x \\ \Pr_y x \\\Pr\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\Pr x \\ \Pr_y x \\\Pr\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\Pr x \\ \Pr_y x \\\Pr\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -5472,8 +5461,8 @@
           </tr>
           <tr>
             <td>\sup</td>
-            <td>₮\begin{matrix}\sup x \\ \sup_y x \\\sup\limits_y x\end{matrix}₮</td>
-            <td>\(\begin{matrix}\sup x \\ \sup_y x \\\sup\limits_y x\end{matrix}\)</td>
+            <td>₮\begin{gathered}\sup x \\ \sup_y x \\\sup\limits_y x\end{gathered}₮</td>
+            <td>\(\begin{gathered}\sup x \\ \sup_y x \\\sup\limits_y x\end{gathered}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -5653,9 +5642,9 @@
           </tr>
           <tr>
             <td>\textcircled</td>
-            <td>₮\textcircled{a}₮</td>
-            <td>\(\textcircled{a}\)</td>
-            <td><code>\textcircled{a}</code></td>
+            <td>₮\text{\textcircled{a}}₮</td>
+            <td>\(\text{\textcircled{a}}\)</td>
+            <td><code>\text{\textcircled{a}}</code></td>
           </tr>
           <tr>
             <td>\textcolor</td>

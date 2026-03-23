@@ -21,13 +21,13 @@ expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \
             </mtr>
             <mtr>
                 <mtd>
-                    <mo rspace="0">⋮</mo>
+                    <mo lspace="0" rspace="0">⋮</mo>
                 </mtd>
                 <mtd>
                     <mo rspace="0">⋱</mo>
                 </mtd>
                 <mtd>
-                    <mo>⋮</mo>
+                    <mo rspace="0">⋮</mo>
                 </mtd>
             </mtr>
             <mtr>

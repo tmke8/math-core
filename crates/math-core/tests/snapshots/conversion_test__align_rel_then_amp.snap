@@ -18,7 +18,7 @@ expression: "\\begin{align}&x\\\\=\\;&2\\end{align}"
         <mtr>
             <mtd style="width: 50%"></mtd>
             <mtd style="text-align: right;justify-items: end;padding-right: 0;">
-                <mo rspace="0">=</mo>
+                <mo lspace="0" rspace="0">=</mo>
                 <mspace width="0.2777778em"/>
             </mtd>
             <mtd style="text-align: left;justify-items: start;padding-left: 0;">

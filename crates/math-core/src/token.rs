@@ -211,7 +211,7 @@ impl Token<'_> {
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName(_) => {
                 Some(Class::Operator)
             }
-            End(_) | NewColumn | GroupEnd | Eoi => Some(Class::End),
+            End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
             Inner(_) => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(if matches!(paren_type, ParenType::Open) {
                 Class::Open
@@ -225,7 +225,6 @@ impl Token<'_> {
             | UprightLetter(_)
             | Digit(_)
             | Big(_, None)
-            | NewLine
             | Middle
             | Frac(_)
             | Genfrac
