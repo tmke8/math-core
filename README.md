@@ -2,7 +2,7 @@
 
 # Convert LaTeX to MathML Core
 
-[Try it out on the playground!](https://tmke8.github.io/math-core/)
+[Try it out on the playground](https://tmke8.github.io/math-core/) or [take a look at the comparison table with KaTeX](https://tmke8.github.io/math-core/comparison.html).
 
 `math-core` allows you to convert LaTeX math to [MathML Core](https://www.w3.org/TR/mathml-core/), the MathML specification that is being implemented by web browsers. For example, this LaTeX code:
 

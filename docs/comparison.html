@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <title>Comparison of TeX Coverage</title>
-    
+
     <!-- <link rel="icon" href="../../assets/favicon.svg"> -->
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="./mathmlfixes.css" />
@@ -46,15 +46,15 @@
     });
     </script>
 </head>
-  
-    
+
+
   <main class="latin-modern comp" id="content">
     <h2>Introduction</h2>
 
     <p>This page compares the MathML output from math-core to the output of KaTeX (version 0.16.38).</p>
 
     <p>This comparison page was originally published at <a href="https://temml.org/docs/en/comparison">https://temml.org/docs/en/comparison</a> by Ron Kok, under the <a href="https://opensource.org/licenses/MIT/">MIT License</a>. We have adapted it here to math-core.</p>
-    
+
       <h2 id="symbols">Symbols</h2>
       <table>
         <thead>
@@ -118,7 +118,10 @@
             <td>&</td>
             <td>₮\begin{matrix} a & b\\ c & d \end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d \end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><pre><code>\begin{matrix}
+    a &amp; b \\
+    c &amp; d
+\end{matrix}</code></pre></td>
           </tr>
           <tr>
             <td>\&</td>
@@ -298,7 +301,10 @@
             <td>\\</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><pre><code>\begin{matrix}
+    a &amp; b \\
+    c &amp; d
+\end{matrix}</code></pre></td>
           </tr>
           <tr>
             <td>^</td>
@@ -654,7 +660,10 @@
             <td>\begin</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><pre><code>\begin{matrix}
+    a &amp; b \\
+    c &amp; d
+\end{matrix}</code></pre></td>
           </tr>
           <tr>
             <td>\begingroup</td>
@@ -954,13 +963,19 @@
             <td>{Bmatrix}</td>
             <td>₮\begin{Bmatrix}a&b\\c&d\end{Bmatrix}₮</td>
             <td>\(\begin{Bmatrix}a&b\\c&d\end{Bmatrix}\)</td>
-            <td><code>\begin{Bmatrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{Bmatrix}</code></td>
+            <td><pre><code>\begin{Bmatrix}
+    a &amp; b \\
+    c &amp; d
+\end{Bmatrix}</code></pre></td>
           </tr>
           <tr>
             <td>{bmatrix}</td>
             <td>₮\begin{bmatrix}a&b\\c&d\end{bmatrix}₮</td>
             <td>\(\begin{bmatrix}a&b\\c&d\end{bmatrix}\)</td>
-            <td><code>\begin{bmatrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{bmatrix}</code></td>
+            <td><pre><code>\begin{bmatrix}
+    a &amp; b \\
+    c &amp; d
+\end{bmatrix}</code></pre></td>
           </tr>
           <tr>
             <td>\bmod</td>
@@ -1393,7 +1408,7 @@
             <td>\coloneq</td>
             <td>₮\coloneq₮</td>
             <td>\(\coloneq\)</td>
-            <td></td>
+            <td>Originally, mathtools defined <code>\coloneq</code> as <code>:-</code>, but that was changed in 2022.</td>
           </tr>
           <tr>
             <td>\Coloneqq</td>
@@ -1628,7 +1643,16 @@
             <td>{darray}</td>
             <td>₮\begin{array}{cc}a & b\\c & d\end{array}₮</td>
             <td>\(\begin{array}{cc}a & b\\c & d\end{array}\)</td>
-            <td><code>\begin{darray}{cc}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{darray}</code></td>
+            <td><pre><code>\begin{darray}{cc}
+    a &amp; b \\
+    c &amp; d
+\end{darray}</code></pre></td>
+          </tr>
+          <tr>
+            <td>\dashcolon</td>
+            <td>₮\dashcolon₮</td>
+            <td>\(\dashcolon\)</td>
+            <td></td>
           </tr>
           <tr>
             <td>\dashleftarrow</td>
@@ -1664,7 +1688,10 @@
             <td>{dcases}</td>
             <td>₮\begin{dcases}a&\text{if }b\\c&\text{if }d\end{dcases}₮</td>
             <td>\(\begin{dcases}a&\text{if }b\\c&\text{if }d\end{dcases}\)</td>
-            <td><code>\begin{dcases}</code><br/>   <code>a &amp;\text{if } b  \\</code><br/>   <code>c &amp;\text{if } d</code><br/><code>\end{dcases}</code></td>
+            <td><pre><code>\begin{dcases}
+    a &amp;\text{if } b  \\
+    c &amp;\text{if } d
+\end{dcases}</code></pre></td>
           </tr>
           <tr>
             <td>\ddag</td>
@@ -1970,7 +1997,10 @@
             <td>{drcases}</td>
             <td>₮\begin{drcases}a&\text{if }b\\c&\text{if }d\end{drcases}₮</td>
             <td>\(\begin{drcases}a&\text{if }b\\c&\text{if }d\end{drcases}\)</td>
-            <td><code>\begin{drcases}</code><br/>   <code></code>a&\text{if }b\\<br/>   <code>c&amp;\text{if }d</code><br/><code>\end{drcases}</code></td>
+            <td><pre><code>\begin{drcases}
+    a&\text{if }b\\
+    c&amp;\text{if }d
+\end{drcases}</code></pre></td>
           </tr>
         </tbody>
       </table>
@@ -2019,7 +2049,10 @@
             <td>\end</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><pre><code>\begin{matrix}
+    a &amp; b \\
+    c &amp; d
+\end{matrix}</code></pre></td>
           </tr>
           <tr>
             <td>\endgroup</td>
@@ -2061,7 +2094,7 @@
             <td>\eqcolon</td>
             <td>₮\eqcolon₮</td>
             <td>\(\eqcolon\)</td>
-            <td></td>
+            <td>Originally, mathtools defined <code>\eqcolon</code> as <code>-:</code>, but that was changed in 2022.</td>
           </tr>
           <tr>
             <td>{equation}</td>
@@ -3602,7 +3635,10 @@
             <td>{matrix}</td>
             <td>₮\begin{matrix}\frac A B& b\\\frac A B& d\end{matrix}₮</td>
             <td>\(\begin{matrix}\frac A B& b\\\frac A B& d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>\frac A B &amp; b \\</code><br/>   <code>\frac A B &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><pre><code>\begin{matrix}
+    \frac A B &amp; b \\
+    \frac A B &amp; d
+\end{matrix}</code></pre></td>
           </tr>
           <tr>
             <td>\max</td>
@@ -3672,9 +3708,9 @@
           </tr>
           <tr>
             <td>\mskip</td>
-            <td>₮a\mskip{10mu}b₮</td>
-            <td>\(a\mskip{10mu}b\)</td>
-            <td><code>a\mskip{10mu}b</code></td>
+            <td>₮a\mskip10mu b₮</td>
+            <td>\(a\mskip10mu b\)</td>
+            <td><code>a\mskip10mu b</code></td>
           </tr>
           <tr>
             <td>\mspace</td>
@@ -4443,7 +4479,10 @@
             <td>{pmatrix}</td>
             <td>₮\begin{pmatrix}a&b\\c&d\end{pmatrix}₮</td>
             <td>\(\begin{pmatrix}a&b\\c&d\end{pmatrix}\)</td>
-            <td><code>\begin{pmatrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{pmatrix}</code></td>
+            <td><pre><code>\begin{pmatrix}
+    a &amp; b \\
+    c &amp; d
+\end{pmatrix}</code></pre></td>
           </tr>
           <tr>
             <td>\pmb</td>
@@ -6414,13 +6453,19 @@
             <td>{Vmatrix}</td>
             <td>₮\begin{Vmatrix}a&b\\c&d\end{Vmatrix}₮</td>
             <td>\(\begin{Vmatrix}a&b\\c&d\end{Vmatrix}\)</td>
-            <td><code>\begin{Vmatrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{Vmatrix}</code></td>
+            <td><pre><code>\begin{Vmatrix}
+    a &amp; b \\
+    c &amp; d
+\end{Vmatrix}</code></pre></td>
           </tr>
           <tr>
             <td>{vmatrix}</td>
             <td>₮\begin{vmatrix}a&b\\c&d\end{vmatrix}₮</td>
             <td>\(\begin{vmatrix}a&b\\c&d\end{vmatrix}\)</td>
-            <td><code>\begin{vmatrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{vmatrix}</code></td>
+            <td><pre><code>\begin{vmatrix}
+    a &amp; b \\
+    c &amp; d
+\end{vmatrix}</code></pre></td>
           </tr>
           <tr>
             <td>\vphantom</td>
@@ -6679,11 +6724,11 @@
           </tr>
         </tbody>
       </table>
-      
+
       <br>
-      
+
     </main>
-  
+
     <nav id="sidebar" class="narrow">
       <h3>
         <a href="#content">Contents</a>

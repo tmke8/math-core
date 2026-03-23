@@ -726,6 +726,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "varOmega" => Letter(symbol::GREEK_CAPITAL_LETTER_OMEGA, Mode::Math), // italicized
     "varPhi" => Letter(symbol::GREEK_CAPITAL_LETTER_PHI, Mode::Math), // italicized
     "varPi" => Letter(symbol::GREEK_CAPITAL_LETTER_PI, Mode::Math), // italicized
+    "varPsi" => Letter(symbol::GREEK_CAPITAL_LETTER_PSI, Mode::Math), // italicized
     "varSigma" => Letter(symbol::GREEK_CAPITAL_LETTER_SIGMA, Mode::Math), // italicized
     "varTheta" => Letter(symbol::GREEK_CAPITAL_LETTER_THETA, Mode::Math), // italicized
     "varUpsilon" => Letter(symbol::GREEK_CAPITAL_LETTER_UPSILON, Mode::Math), // italicized
