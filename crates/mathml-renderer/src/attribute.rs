@@ -79,15 +79,6 @@ pub enum Size {
     Scale4,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum ParenType {
-    #[strum(serialize = r#" form="prefix""#)]
-    Open = 1,
-    #[strum(serialize = r#" form="postfix""#)]
-    Close,
-}
-
 /// display style
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]

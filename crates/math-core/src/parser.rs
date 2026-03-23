@@ -3,7 +3,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{LetterAttr, MathSpacing, OpAttrs, ParenType, RowAttr, Style, TextTransform},
+    attribute::{LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
     symbol::{
         self, DelimiterSpacing, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy,
@@ -12,7 +12,7 @@ use mathml_renderer::{
 use rustc_hash::FxHashMap;
 
 use crate::{
-    character_class::{Class, MathVariant},
+    character_class::{Class, MathVariant, ParenType},
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
@@ -1117,7 +1117,39 @@ where
                     Some(ParenType::Close) => Class::Close,
                     None => Class::Default,
                 };
-                Ok(Node::SizedParen(size, paren, paren_type))
+                // Convert stretchy property to OpAttrs.
+                let mut attrs = match paren.stretchy {
+                    Stretchy::PrePostfix | Stretchy::Never => {
+                        OpAttrs::STRETCHY_TRUE | OpAttrs::SYMMETRIC_TRUE
+                    }
+                    Stretchy::AlwaysAsymmetric => OpAttrs::SYMMETRIC_TRUE,
+                    Stretchy::Always => OpAttrs::empty(),
+                };
+                // Determine form and spacing attributes based on paren_type
+                // and delimiter spacing.
+                let (left, right) = if let Some(paren_type) = paren_type
+                    && matches!(paren.spacing, DelimiterSpacing::InfixNonZero)
+                {
+                    match paren_type {
+                        ParenType::Open => attrs |= OpAttrs::FORM_PREFIX,
+                        ParenType::Close => attrs |= OpAttrs::FORM_POSTFIX,
+                    }
+                    (None, None)
+                } else if matches!(
+                    paren.spacing,
+                    DelimiterSpacing::InfixNonZero | DelimiterSpacing::NonZero
+                ) {
+                    (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                } else {
+                    (None, None)
+                };
+                Ok(Node::Operator {
+                    op: paren.as_op(),
+                    attrs,
+                    size: Some(size),
+                    left,
+                    right,
+                })
             }
             Token::Begin(env) => 'begin_env: {
                 let array_spec = if matches!(env, Env::Array | Env::Subarray) {

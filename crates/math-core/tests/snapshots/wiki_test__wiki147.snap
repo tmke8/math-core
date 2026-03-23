@@ -4,16 +4,16 @@ expression: "\\| \\big\\| \\Big\\| \\bigg\\| \\Bigg\\| \\dots \\Bigg| \\bigg| \\
 ---
 <math>
     <mo stretchy="false" lspace="0" rspace="0">‖</mo>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">‖</mo>
-    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true" lspace="0" rspace="0">‖</mo>
-    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true" lspace="0" rspace="0">‖</mo>
-    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true" lspace="0" rspace="0">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">‖</mo>
     <mo>.</mo>
     <mo lspace="0" rspace="0.1667em">.</mo>
     <mo lspace="0">.</mo>
-    <mo maxsize="2.470em" minsize="2.470em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
-    <mo maxsize="2.047em" minsize="2.047em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
-    <mo maxsize="1.623em" minsize="1.623em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
-    <mo maxsize="1.2em" minsize="1.2em" stretchy="true" symmetric="true" lspace="0" rspace="0">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">|</mo>
     <mo stretchy="false" lspace="0" rspace="0">|</mo>
 </math>

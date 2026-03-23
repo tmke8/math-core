@@ -2,13 +2,11 @@ use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
-use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, Notation, OpAttrs, ParenType, Size, Style,
-};
+use mathml_renderer::attribute::{FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style};
 use mathml_renderer::length::Length;
 use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
 
-use crate::character_class::{Class, MathVariant};
+use crate::character_class::{Class, MathVariant, ParenType};
 use crate::environments::Env;
 
 #[derive(Debug, Clone, Copy)]

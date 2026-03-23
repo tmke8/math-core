@@ -23,8 +23,14 @@ pub enum Class {
     End,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum ParenType {
+    Open = 1,
+    Close,
+}
+
 /// <mi> mathvariant attribute
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum MathVariant {
     /// This is enforced by setting `mathvariant="normal"`.
     Normal,
