@@ -1,3 +1,10 @@
+/* Styles for all browsers */
+
+mtd {
+    /* This is the default padding for mtd elements as defined in the MathML Core specification. */
+    padding: 0.5ex 0.4em;
+}
+
 mtr > mtd:first-child {
     padding-left: 0;
 }
