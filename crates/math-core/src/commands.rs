@@ -1,8 +1,9 @@
 use mathml_renderer::attribute::{
-    FracAttr, HtmlTextStyle, MathVariant, Notation, OpAttrs, ParenType, Size, Style, TextTransform,
+    FracAttr, HtmlTextStyle, Notation, OpAttrs, ParenType, Size, Style, TextTransform,
 };
 use mathml_renderer::symbol::{self, Rel};
 
+use crate::character_class::MathVariant;
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{

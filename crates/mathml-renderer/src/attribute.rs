@@ -4,16 +4,6 @@ use serde::Serialize;
 
 use strum_macros::IntoStaticStr;
 
-/// <mi> mathvariant attribute
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum MathVariant {
-    /// This is enforced by setting `mathvariant="normal"`.
-    Normal,
-    /// This is enforced by transforming the characters themselves.
-    Transform(TextTransform),
-}
-
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -362,7 +352,7 @@ impl TextTransform {
 
 #[cfg(test)]
 mod tests {
-    use super::{MathVariant, TextTransform};
+    use super::TextTransform;
 
     #[test]
     fn transform_test() {
@@ -400,17 +390,5 @@ mod tests {
                 source
             );
         }
-    }
-
-    #[test]
-    fn size_test() {
-        assert_eq!(
-            std::mem::size_of::<MathVariant>(),
-            std::mem::size_of::<TextTransform>()
-        );
-        assert_eq!(
-            std::mem::size_of::<Option<MathVariant>>(),
-            std::mem::size_of::<TextTransform>()
-        );
     }
 }

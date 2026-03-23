@@ -3,9 +3,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{
-        LetterAttr, MathSpacing, MathVariant, OpAttrs, ParenType, RowAttr, Style, TextTransform,
-    },
+    attribute::{LetterAttr, MathSpacing, OpAttrs, ParenType, RowAttr, Style, TextTransform},
     length::Length,
     symbol::{
         self, DelimiterSpacing, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy,
@@ -14,7 +12,7 @@ use mathml_renderer::{
 use rustc_hash::FxHashMap;
 
 use crate::{
-    character_class::Class,
+    character_class::{Class, MathVariant},
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},

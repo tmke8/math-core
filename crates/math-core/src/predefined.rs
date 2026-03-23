@@ -1,5 +1,6 @@
-use mathml_renderer::{attribute::MathVariant, symbol};
+use mathml_renderer::symbol;
 
+use crate::character_class::MathVariant;
 use crate::specifications::LatexUnit;
 use crate::token::Mode;
 use crate::token::Token::{self, *};
