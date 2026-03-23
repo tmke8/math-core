@@ -8,6 +8,7 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ':',
       attrs: OpAttrs(""),
+      size: None,
       left: None,
       right: None,
     ),
@@ -15,12 +16,14 @@ expression: "x_:\\equiv, x_:="
   Operator(
     op: '≡',
     attrs: OpAttrs(""),
+    size: None,
     left: None,
     right: Some(Zero),
   ),
   Operator(
     op: ',',
     attrs: OpAttrs(""),
+    size: None,
     left: None,
     right: None,
   ),
@@ -29,6 +32,7 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ':',
       attrs: OpAttrs(""),
+      size: None,
       left: None,
       right: None,
     ),
@@ -36,6 +40,7 @@ expression: "x_:\\equiv, x_:="
   Operator(
     op: '=',
     attrs: OpAttrs(""),
+    size: None,
     left: None,
     right: Some(Zero),
   ),

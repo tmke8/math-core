@@ -388,7 +388,7 @@ where
             }
             ref tok @ (Token::Relation(relation) | Token::StretchyRel(relation)) => {
                 class = Class::Relation;
-                let attr = match relation.category() {
+                let attrs = match relation.category() {
                     // Category A relations are stretchy by default
                     RelCategory::A => {
                         // We let it be stretchy if it's explicitly marked as stretchy
@@ -403,9 +403,10 @@ where
                 let (left, right) = self.state.relation_spacing(prev_class, next_class);
                 Ok(Node::Operator {
                     op: relation.as_op(),
-                    attrs: attr,
+                    attrs,
                     left,
                     right,
+                    size: None,
                 })
             }
             Token::Punctuation(punc) => {
@@ -420,6 +421,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: None,
                     right,
+                    size: None,
                 })
             }
             Token::ForcePunctuation(op) => {
@@ -434,10 +436,11 @@ where
                     attrs: OpAttrs::empty(),
                     left: Some(MathSpacing::Zero),
                     right,
+                    size: None,
                 })
             }
             Token::Ord(ord) => {
-                let attr = if matches!(ord.category(), OrdCategory::FGandForceDefault) {
+                let attrs = if matches!(ord.category(), OrdCategory::FGandForceDefault) {
                     // Category F+G operators will stretch in pre- and postfix positions,
                     // so we explicitly set the stretchy attribute to false to prevent that.
                     // Alternatively, we could set `form="infix"` on them.
@@ -457,9 +460,10 @@ where
                 };
                 Ok(Node::Operator {
                     op: ord.as_op(),
-                    attrs: attr,
+                    attrs,
                     left,
                     right,
+                    size: None,
                 })
             }
             Token::BinaryOp(binary_op) => {
@@ -475,6 +479,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: spacing,
                     right: spacing,
+                    size: None,
                 })
             }
             Token::ForceBinaryOp(op) => {
@@ -487,6 +492,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: spacing,
                     right: spacing,
+                    size: None,
                 })
             }
             Token::Mathbin => 'mathbin: {
@@ -529,6 +535,7 @@ where
                     attrs: OpAttrs::STRETCHY_FALSE,
                     left: spacing,
                     right: spacing,
+                    size: None,
                 })
             }
             Token::Inner(op) => {
@@ -561,6 +568,7 @@ where
                     attrs: OpAttrs::empty(),
                     left,
                     right,
+                    size: None,
                 })
             }
             Token::OpGreaterThan => {
@@ -764,6 +772,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
+                    size: None,
                 });
                 let base = if is_over {
                     Node::Over { symbol, target }
@@ -806,16 +815,17 @@ where
                     Bounds(None, None)
                 };
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                let attr = if has_movable_limits && limits {
+                let attrs = if has_movable_limits && limits {
                     OpAttrs::NO_MOVABLE_LIMITS
                 } else {
                     OpAttrs::empty()
                 };
                 let target = self.commit(Node::Operator {
                     op: op.as_op(),
-                    attrs: attr,
+                    attrs,
                     left,
                     right,
+                    size: None,
                 });
                 let use_underover = has_movable_limits || limits;
                 if use_underover {
@@ -908,6 +918,7 @@ where
                                 attrs: OpAttrs::empty(),
                                 left,
                                 right,
+                                size: None,
                             })
                         } else {
                             Ok(Node::Operator {
@@ -915,6 +926,7 @@ where
                                 attrs: OpAttrs::empty(),
                                 left,
                                 right,
+                                size: None,
                             })
                         }
                     }
@@ -929,6 +941,7 @@ where
                             attrs: OpAttrs::empty(),
                             left,
                             right,
+                            size: None,
                         })
                     }
                     // We have to special-case `\exists` here because it is not a relation.
@@ -937,6 +950,7 @@ where
                         attrs: OpAttrs::empty(),
                         left: None,
                         right: None,
+                        size: None,
                     }),
                     Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
@@ -974,6 +988,7 @@ where
                     attrs: OpAttrs::empty(),
                     left,
                     right,
+                    size: None,
                 })
             }
             Token::ForceClose(op) => {
@@ -983,6 +998,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
+                    size: None,
                 })
             }
             Token::GroupBegin => {
@@ -1005,7 +1021,7 @@ where
                 if open {
                     class = Class::Open;
                 }
-                let mut attr = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                let mut attrs = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
@@ -1022,13 +1038,14 @@ where
                 ) {
                     // Symbols from these categories are automatically stretchy,
                     // so we have to explicitly disable that here.
-                    attr |= OpAttrs::STRETCHY_FALSE;
+                    attrs |= OpAttrs::STRETCHY_FALSE;
                 }
                 Ok(Node::Operator {
                     op: paren.as_op(),
-                    attrs: attr,
+                    attrs,
                     left: None,
                     right: None,
+                    size: None,
                 })
             }
             Token::SquareBracketOpen => {
@@ -1038,6 +1055,7 @@ where
                     attrs: OpAttrs::STRETCHY_FALSE,
                     left: None,
                     right: None,
+                    size: None,
                 })
             }
             Token::SquareBracketClose => Ok(Node::Operator {
@@ -1045,6 +1063,7 @@ where
                 attrs: OpAttrs::STRETCHY_FALSE,
                 left: None,
                 right: None,
+                size: None,
             }),
             Token::Left => {
                 let tok_loc = self.next_token()?;
@@ -1086,6 +1105,7 @@ where
                     attrs: middle_stretch_attrs(op),
                     left: spacing,
                     right: spacing,
+                    size: None,
                 })
             }
             Token::Big(size, paren_type) => {
@@ -1327,6 +1347,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
+                    size: None,
                 });
                 Ok(Node::Sup { target, symbol })
             }
@@ -1551,6 +1572,7 @@ where
                     attrs: OpAttrs::empty(),
                     left: None,
                     right: None,
+                    size: None,
                 }));
             } else {
                 for _ in 0..prime_count {
@@ -1559,6 +1581,7 @@ where
                         attrs: OpAttrs::empty(),
                         left: None,
                         right: None,
+                        size: None,
                     }));
                 }
             }
@@ -1828,18 +1851,13 @@ pub(crate) fn node_vec_to_node<'arena>(
 ) -> &'arena Node<'arena> {
     if let [single] = nodes {
         if reset_spacing {
-            if let Node::Operator {
-                op,
-                attrs: attr,
-                left: _,
-                right: _,
-            } = single
-            {
+            if let Node::Operator { op, attrs, .. } = single {
                 arena.push(Node::Operator {
                     op: *op,
-                    attrs: *attr,
+                    attrs: *attrs,
                     left: None,
                     right: None,
+                    size: None,
                 })
             } else {
                 single

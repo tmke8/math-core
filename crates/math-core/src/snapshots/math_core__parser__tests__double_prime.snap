@@ -8,6 +8,7 @@ expression: "f''"
     symbol: Operator(
       op: '″',
       attrs: OpAttrs(""),
+      size: None,
       left: None,
       right: None,
     ),

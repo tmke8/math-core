@@ -70,7 +70,7 @@ pub enum LetterAttr {
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Size {
     #[strum(serialize = "1.2em")]
-    Scale1,
+    Scale1 = 1,
     #[strum(serialize = "1.623em")]
     Scale2,
     #[strum(serialize = "2.047em")]

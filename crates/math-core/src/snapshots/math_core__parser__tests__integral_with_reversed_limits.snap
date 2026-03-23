@@ -7,6 +7,7 @@ expression: "\\int\\limits^1_0 dx"
     target: Operator(
       op: '∫',
       attrs: OpAttrs(""),
+      size: None,
       left: Some(Zero),
       right: None,
     ),

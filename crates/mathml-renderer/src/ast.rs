@@ -28,6 +28,7 @@ pub enum Node<'arena> {
     Operator {
         op: MathMLOperator,
         attrs: OpAttrs,
+        size: Option<Size>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
@@ -197,21 +198,30 @@ impl Node<'_> {
             }
             Node::Operator {
                 op,
-                attrs: attr,
+                attrs,
                 left,
                 right,
+                size,
             } => {
-                emit_operator_attributes(s, *attr, *left, *right)?;
+                emit_operator_attributes(s, *attrs, *left, *right)?;
+                if let Some(size) = size {
+                    write!(
+                        s,
+                        " minsize=\"{}\" maxsize=\"{}\"",
+                        <&str>::from(size),
+                        <&str>::from(size),
+                    )?;
+                }
                 write!(s, ">{}</mo>", char::from(op))?;
             }
             Node::PseudoOp {
-                attrs: attr,
+                attrs,
                 left,
                 right,
-                name: text,
+                name,
             } => {
-                emit_operator_attributes(s, *attr, *left, *right)?;
-                write!(s, ">{text}</mo>")?;
+                emit_operator_attributes(s, *attrs, *left, *right)?;
+                write!(s, ">{name}</mo>")?;
             }
             node @ (Node::IdentifierStr(letters) | Node::Text(_, letters)) => {
                 let (open, close) = match node {
@@ -826,6 +836,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
+                size: None,
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0.2222em\">:</mo>"
         );
@@ -835,6 +846,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
+                size: None,
             }),
             "<mo lspace=\"0.2222em\" rspace=\"0\">:</mo>"
         );
@@ -844,6 +856,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::Zero),
                 right: None,
+                size: None,
             }),
             "<mo lspace=\"0\">≡</mo>"
         );
@@ -853,6 +866,7 @@ mod tests {
                 attrs: OpAttrs::FORM_PREFIX,
                 left: None,
                 right: None,
+                size: None,
             }),
             "<mo form=\"prefix\">+</mo>"
         );
@@ -862,6 +876,7 @@ mod tests {
                 attrs: OpAttrs::NO_MOVABLE_LIMITS,
                 left: None,
                 right: None,
+                size: None,
             }),
             "<mo movablelimits=\"false\">∑</mo>"
         );
@@ -970,13 +985,15 @@ mod tests {
                     op: symbol::EXCLAMATION_MARK,
                     attrs: OpAttrs::empty(),
                     left: None,
-                    right: None
+                    right: None,
+                    size: None,
                 },
                 target: &Node::Operator {
                     op: symbol::EQUALS_SIGN.as_op(),
                     attrs: OpAttrs::empty(),
                     left: None,
-                    right: None
+                    right: None,
+                    size: None,
                 },
             }),
             "<mover><mo>=</mo><mo>!</mo></mover>"
@@ -1129,6 +1146,7 @@ mod tests {
                 attrs: OpAttrs::empty(),
                 left: None,
                 right: None,
+                size: None,
             },
             &Node::Number("1"),
         ];

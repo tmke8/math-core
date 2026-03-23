@@ -17,6 +17,7 @@
 //!                 attrs: OpAttrs::empty(),
 //!                 left: Some(MathSpacing::Zero),
 //!                 right: None,
+//!                 size: None,
 //!             },
 //!             symbol: &Node::IdentifierChar('i', LetterAttr::Default),
 //!         },
