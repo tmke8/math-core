@@ -499,6 +499,8 @@ pub const BLACK_LETTER_CAPITAL_I: char = 'ℑ';
 // pub const SCRIPT_CAPITAL_L: char = 'ℒ';
 pub const SCRIPT_SMALL_L: char = 'ℓ';
 
+pub const DOUBLE_STRUCK_CAPITAL_C: char = 'ℂ';
+
 pub const DOUBLE_STRUCK_CAPITAL_N: char = 'ℕ';
 
 pub const SCRIPT_CAPITAL_P: char = '℘';

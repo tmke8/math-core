@@ -136,7 +136,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn arena_test() {
+    fn test_arena() {
         let arena = Arena::new();
         let node = Node::HardcodedMathML("Hello, world!");
         let reference = arena.push(node);
@@ -144,7 +144,7 @@ mod tests {
     }
 
     #[test]
-    fn buffer_extend() {
+    fn test_buffer_extend() {
         let arena = Arena::new();
         let mut buffer = Buffer::new(0);
         let mut builder = buffer.get_builder();
@@ -155,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    fn buffer_manual_reference() {
+    fn test_buffer_manual_reference() {
         let arena = Arena::new();
         let mut buffer = Buffer::new(0);
         let mut builder = buffer.get_builder();
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn basic_arena() {
+    fn test_arena_with_cycle() {
         let arena = DroplessArena::default();
 
         let a = arena.alloc(CycleParticipant { val: 1, next: None });
