@@ -1641,8 +1641,8 @@
           </tr>
           <tr>
             <td>{darray}</td>
-            <td>₮\begin{array}{cc}a & b\\c & d\end{array}₮</td>
-            <td>\(\begin{array}{cc}a & b\\c & d\end{array}\)</td>
+            <td>₮\begin{darray}{cc}a & b\\c & d\end{darray}₮</td>
+            <td>\(\begin{darray}{cc}a & b\\c & d\end{darray}\)</td>
             <td><pre><code>\begin{darray}{cc}
     a &amp; b \\
     c &amp; d
@@ -2344,9 +2344,14 @@
           </tr>
           <tr>
             <td>\gcd</td>
-            <td>₮\begin{gathered}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{gathered}₮</td>
-            <td>\(\begin{gathered}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{gathered}\)</td>
-            <td></td>
+            <td>₮\begin{darray}{l}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{darray}₮</td>
+            <td>\(\begin{darray}{l}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{darray}\)</td>
+            <td><pre><code>\begin{darray}{l}
+    \gcd x \\
+    \gcd_y x \\
+    \gcd\limits_y x
+\end{darray}
+</code></pre></td>
           </tr>
           <tr>
             <td>\gdef</td>
@@ -3290,8 +3295,8 @@
           </tr>
           <tr>
             <td>\log</td>
-            <td>₮\begin{gathered}\log x \\ \log_y x \\ \log\limits_y x\end{gathered}₮</td>
-            <td>\(\begin{gathered}\log x \\ \log_y x \\ \log\limits_y x\end{gathered}\)</td>
+            <td>₮\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}₮</td>
+            <td>\(\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}\)</td>
             <td><code>\log x</code><br/><code>\log_y x</code><br/><code>\log\limits_y x</code></td>
           </tr>
           <tr>

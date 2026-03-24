@@ -1174,7 +1174,7 @@ where
                 })
             }
             Token::Begin(env) => 'begin_env: {
-                let array_spec = if matches!(env, Env::Array | Env::Subarray) {
+                let array_spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
                     // Parse the array options.
                     let (options, span) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {

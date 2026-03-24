@@ -14,6 +14,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "align" => Env::Align,
     "align*" => Env::AlignStar,
     "aligned" => Env::Aligned,
+    "darray" => Env::DArray,
     "equation" => Env::Equation,
     "equation*" => Env::EquationStar,
     "gather" => Env::Gather,
@@ -32,6 +33,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Env {
     Array,
+    DArray,
     Subarray,
     Align,
     AlignStar,
@@ -171,16 +173,17 @@ impl Env {
                     style: None,
                 }
             }
-            array_variant @ (Env::Array | Env::Subarray) => {
+            array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
-                // `Env::Array` and `Env::Subarray` in the caller.
+                // `Env::Array`, `Env:DArray` and `Env::Subarray` in the caller.
                 // TODO: Refactor this to avoid using `unsafe`.
                 debug_assert!(array_spec.is_some());
                 let array_spec = unsafe { array_spec.unwrap_unchecked() };
-                let style = if matches!(array_variant, Env::Subarray) {
-                    Some(Style::Script)
-                } else {
-                    None
+                let style = match array_variant {
+                    Env::Array => None,
+                    Env::DArray => Some(Style::Display),
+                    Env::Subarray => Some(Style::Script),
+                    _ => unreachable!(),
                 };
                 Node::Array {
                     style,
