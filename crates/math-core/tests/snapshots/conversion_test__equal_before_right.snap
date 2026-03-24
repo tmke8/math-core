@@ -5,10 +5,8 @@ expression: "\\left(x=\\right)x"
 <math>
     <mrow>
         <mo>(</mo>
-        <mrow>
-            <mi>x</mi>
-            <mo rspace="0">=</mo>
-        </mrow>
+        <mi>x</mi>
+        <mo rspace="0">=</mo>
         <mo>)</mo>
     </mrow>
     <mi>x</mi>

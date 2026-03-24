@@ -86,7 +86,7 @@ macro_rules! make_character_class {
             }
 
             #[inline]
-            pub fn category(&self) -> &$cat_type {
+            pub const fn category(&self) -> &$cat_type {
                 &self.cat
             }
         }
@@ -128,28 +128,6 @@ make_character_class!(
     /// An operator with zero spacing, categories D, E, F, G, I, K.
     OrdLike, OrdCategory
 );
-
-impl OrdLike {
-    #[inline]
-    pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
-        let (stretchy, spacing) = match self.cat {
-            OrdCategory::F | OrdCategory::G => (Stretchy::Always, DelimiterSpacing::Zero),
-            OrdCategory::FGandForceDefault => {
-                (Stretchy::PrePostfix, DelimiterSpacing::InfixRelation)
-            }
-            OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
-            OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::Other),
-            OrdCategory::D | OrdCategory::E | OrdCategory::I | OrdCategory::IK => {
-                return None;
-            }
-        };
-        Some(StretchableOp {
-            char: self.char,
-            stretchy,
-            spacing,
-        })
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCategory {
@@ -193,20 +171,6 @@ make_character_class!(
     Rel, RelCategory
 );
 
-impl Rel {
-    #[inline]
-    pub const fn as_stretchable_op(&self) -> Option<StretchableOp> {
-        match self.cat {
-            RelCategory::A => Some(StretchableOp {
-                char: self.char,
-                stretchy: Stretchy::AlwaysAsymmetric,
-                spacing: DelimiterSpacing::Relation,
-            }),
-            RelCategory::Default => None,
-        }
-    }
-}
-
 /// An operator with punctuation spacing (category M).
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[repr(transparent)]
@@ -216,68 +180,6 @@ impl Punct {
     #[inline]
     pub const fn as_op(&self) -> MathMLOperator {
         MathMLOperator(self.0)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum Stretchy {
-    /// The operator is always stretchy (e.g. `(`, `)`).
-    Always = 1,
-    /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
-    PrePostfix,
-    /// The operator is never stretchy (e.g. `/`).
-    Never,
-    /// The operator is always stretchy but isn't symmetric (e.g. `↑`).
-    AlwaysAsymmetric,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DelimiterSpacing {
-    /// Never has any spacing, even when used as an infix operator (e.g. `(`, `)`).
-    Zero,
-    /// Has relation spacing when used as an infix operator, but not when used as a prefix or
-    /// postfix operator (e.g. `|`).
-    InfixRelation,
-    /// Always has relation spacing, even when used as a prefix or postfix operator (e.g. `↑`).
-    Relation,
-    /// Always has some spacing, even when used as a prefix or postfix operator (e.g. `/`).
-    Other,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct StretchableOp {
-    char: BMPChar,
-    pub stretchy: Stretchy,
-    pub spacing: DelimiterSpacing,
-}
-
-#[cfg(feature = "serde")]
-impl Serialize for StretchableOp {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeTupleStruct;
-
-        let mut state = serializer.serialize_tuple_struct("StretchableOp", 2)?;
-        state.serialize_field(&char::from(*self))?;
-        state.serialize_field(&self.stretchy)?;
-        state.end()
-    }
-}
-
-impl StretchableOp {
-    #[inline]
-    pub const fn as_op(self) -> MathMLOperator {
-        MathMLOperator(self.char.as_char())
-    }
-}
-
-impl From<StretchableOp> for char {
-    #[inline]
-    fn from(op: StretchableOp) -> Self {
-        op.char.as_char()
     }
 }
 
@@ -483,6 +385,8 @@ pub const REVERSED_TRIPLE_PRIME: OrdLike = OrdLike::new('‷', OrdCategory::E);
 pub const OVERLINE: MathMLOperator = MathMLOperator('‾');
 
 pub const QUADRUPLE_PRIME: OrdLike = OrdLike::new('⁗', OrdCategory::E);
+
+pub const INVISIBLE_SEPARATOR: OrdLike = OrdLike::new('\u{2063}', OrdCategory::K);
 
 //
 // Unicode Block: Combining Diacritical Marks for Symbols

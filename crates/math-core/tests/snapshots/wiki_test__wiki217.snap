@@ -13,31 +13,27 @@ expression: "V = \\frac{1}{6} \\pi h \\left [ 3 \\left ( r_1^2 + r_2^2 \\right )
     <mi>h</mi>
     <mrow>
         <mo>[</mo>
+        <mn>3</mn>
         <mrow>
-            <mn>3</mn>
-            <mrow>
-                <mo>(</mo>
-                <mrow>
-                    <msubsup>
-                        <mi>r</mi>
-                        <mn>1</mn>
-                        <mn>2</mn>
-                    </msubsup>
-                    <mo>+</mo>
-                    <msubsup>
-                        <mi>r</mi>
-                        <mn>2</mn>
-                        <mn>2</mn>
-                    </msubsup>
-                </mrow>
-                <mo>)</mo>
-            </mrow>
-            <mo>+</mo>
-            <msup>
-                <mi>h</mi>
+            <mo>(</mo>
+            <msubsup>
+                <mi>r</mi>
+                <mn>1</mn>
                 <mn>2</mn>
-            </msup>
+            </msubsup>
+            <mo>+</mo>
+            <msubsup>
+                <mi>r</mi>
+                <mn>2</mn>
+                <mn>2</mn>
+            </msubsup>
+            <mo>)</mo>
         </mrow>
+        <mo>+</mo>
+        <msup>
+            <mi>h</mi>
+            <mn>2</mn>
+        </msup>
         <mo>]</mo>
     </mrow>
 </math>

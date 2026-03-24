@@ -6,10 +6,8 @@ expression: "\\overset{!}{\\left(x+\\right)}"
     <mover>
         <mrow>
             <mo>(</mo>
-            <mrow>
-                <mi>x</mi>
-                <mo lspace="0" rspace="0">+</mo>
-            </mrow>
+            <mi>x</mi>
+            <mo lspace="0" rspace="0">+</mo>
             <mo>)</mo>
         </mrow>
         <mo>!</mo>

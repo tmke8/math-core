@@ -5,14 +5,14 @@ use mathml_renderer::{
     ast::Node,
     attribute::{LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
-    symbol::{
-        self, DelimiterSpacing, OpCategory, OrdCategory, RelCategory, StretchableOp, Stretchy,
-    },
+    symbol::{self, OpCategory, OrdCategory, RelCategory},
 };
 use rustc_hash::FxHashMap;
 
 use crate::{
-    character_class::{Class, MathVariant, ParenType},
+    character_class::{
+        Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
+    },
     color_defs::get_color,
     commands::get_negated_op,
     environments::{Env, NumberedEnvState},
@@ -645,21 +645,22 @@ where
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
                     const OPEN_PAREN: StretchableOp =
-                        symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap();
+                        StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
                     const CLOSE_PAREN: StretchableOp =
-                        symbol::RIGHT_PARENTHESIS.as_stretchable_op().unwrap();
-                    Ok(Node::Fenced {
-                        open: Some(OPEN_PAREN),
-                        close: Some(CLOSE_PAREN),
-                        content: self.commit(Node::Frac {
+                        StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
+                    Ok(fenced(
+                        self.arena,
+                        vec![self.commit(Node::Frac {
                             num,
                             denom,
                             lt_value,
                             lt_unit,
                             attr,
-                        }),
-                        style: None,
-                    })
+                        })],
+                        Some(OPEN_PAREN),
+                        Some(CLOSE_PAREN),
+                        None,
+                    ))
                 } else {
                     let (lt_value, lt_unit) = Length::none().into_parts();
                     Ok(Node::Frac {
@@ -728,18 +729,19 @@ where
                 let denom = self.parse_next(ParseAs::Arg)?;
                 let attr = None;
                 let (lt_value, lt_unit) = lt.into_parts();
-                Ok(Node::Fenced {
-                    open,
-                    close,
-                    content: self.commit(Node::Frac {
+                Ok(fenced(
+                    self.arena,
+                    vec![self.commit(Node::Frac {
                         num,
                         denom,
                         lt_value,
                         lt_unit,
                         attr,
-                    }),
+                    })],
+                    open,
+                    close,
                     style,
-                })
+                ))
             }
             Token::Accent(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
@@ -1082,12 +1084,7 @@ where
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
-                Ok(Node::Fenced {
-                    open: open_paren,
-                    close: close_paren,
-                    content: node_vec_to_node(self.arena, &content, false),
-                    style: None,
-                })
+                Ok(fenced(self.arena, content, open_paren, close_paren, None))
             }
             Token::Middle => {
                 let tok_loc = self.next_token()?;
@@ -1941,12 +1938,13 @@ fn middle_stretch_attrs(op: StretchableOp) -> OpAttrs {
 
 fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResult<StretchableOp> {
     let (tok, span) = tok.into_parts();
-    const SQ_L_BRACKET: StretchableOp = symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
-    const SQ_R_BRACKET: StretchableOp = symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+    const SQ_L_BRACKET: StretchableOp =
+        StretchableOp::from_ord(symbol::LEFT_SQUARE_BRACKET).unwrap();
+    const SQ_R_BRACKET: StretchableOp =
+        StretchableOp::from_ord(symbol::RIGHT_SQUARE_BRACKET).unwrap();
     let delim = match tok {
-        Token::Open(paren) | Token::Close(paren) => paren.as_stretchable_op(),
-        Token::Ord(ord) => ord.as_stretchable_op(),
-        Token::Relation(rel) => rel.as_stretchable_op(),
+        Token::Ord(op) | Token::Open(op) | Token::Close(op) => StretchableOp::from_ord(op),
+        Token::Relation(rel) => StretchableOp::from_rel(rel),
         Token::SquareBracketOpen => Some(SQ_L_BRACKET),
         Token::SquareBracketClose => Some(SQ_R_BRACKET),
         _ => None,

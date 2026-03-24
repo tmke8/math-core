@@ -3,21 +3,35 @@ source: crates/math-core/src/parser.rs
 expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
 ---
 [
-  Fenced(
-    style: None,
-    open: Some(StretchableOp('(', Always)),
-    close: Some(StretchableOp(')', Always)),
-    content: Table(
-      align: Centered,
-      style: Some(Text),
-      content: [
-        IdentifierChar('x', Default),
-        RowSeparator(
-          tag: None,
-          link_target: None,
-        ),
-        IdentifierChar('y', Default),
-      ],
-    ),
+  Row(
+    nodes: [
+      Operator(
+        op: '(',
+        attrs: OpAttrs(""),
+        size: None,
+        left: None,
+        right: None,
+      ),
+      Table(
+        align: Centered,
+        style: Some(Text),
+        content: [
+          IdentifierChar('x', Default),
+          RowSeparator(
+            tag: None,
+            link_target: None,
+          ),
+          IdentifierChar('y', Default),
+        ],
+      ),
+      Operator(
+        op: ')',
+        attrs: OpAttrs(""),
+        size: None,
+        left: None,
+        right: None,
+      ),
+    ],
+    attr: None,
   ),
 ]
