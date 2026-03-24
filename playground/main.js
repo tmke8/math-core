@@ -382,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
             font-family: "Libertinus Sans", sans-serif;
         }
     }`,
-    "NewComputerModernMath Book": `
+    "NewComputerModernMath Book": `font-feature-settings: "dtls" 0;
     mtext {
         font-family: "NewComputerModern Book", serif;
         code {
@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
             font-family: "NewComputerModern Sans", sans-serif;
         }
     }`,
-    "Noto Sans Math Regular": `
+    "Noto Sans Math Regular": `font-feature-settings: "dtls" 0;
     mtext {
         font-family: "Noto Sans", sans-serif;
         code {
