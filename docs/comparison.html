@@ -22,12 +22,18 @@
             color: #b22222;
             font-family: "Times New Roman", Cambria, Georgia, serif;
         }
+        .not-supported {
+            color: #b22222;
+        }
     </style>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css" integrity="sha384-/L6i+LN3dyoaK2jYG5ZLh5u13cjdsPDcFOSNJeFBFa/KgVXR5kOfTdiN3ft1uMAq" crossorigin="anonymous">
 
     <!-- The loading of KaTeX is deferred to speed up page rendering -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.js" integrity="sha384-H6s1ZrH2CKpFpqR680poRdStIRJGXty7fSkxAcIfxwl9iu6A4BOPtTk7vQ58Ovio" crossorigin="anonymous"></script>
+
+    <!-- mhchem extension -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/contrib/mhchem.min.js" integrity="sha384-fB8BH//9nBzROkMUsu/Dr35jWHIbnKesUo9rW0hfEgw8mZGnkAyBAjKX9F98OVuo"  crossorigin="anonymous"></script>
 
     <!-- To automatically render math in text elements, include the auto-render extension: -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/contrib/auto-render.min.js" integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz" crossorigin="anonymous"></script>
@@ -561,7 +567,7 @@
           </tr>
           <tr>
             <td>\atop</td>
-            <td>₮{a \atop b}₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\({a \atop b}\)</td>
             <td><code>{a \atop b}</code></td>
           </tr>
@@ -1087,13 +1093,13 @@
           </tr>
           <tr>
             <td>\brace</td>
-            <td>₮{n\brace k}₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\({n\brace k}\)</td>
             <td><code>{n\brace k}</code></td>
           </tr>
           <tr>
             <td>\brack</td>
-            <td>₮{n\brack k}₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\({n\brack k}\)</td>
             <td><code>{n\brack k}</code></td>
           </tr>
@@ -1213,6 +1219,12 @@
             <td></td>
           </tr>
           <tr>
+            <td>\ce</td>
+            <td>₮\ce{A\bond{~}B\bond{~-}C}₮</td>
+            <td>\(\ce{A\bond{~}B\bond{~-}C}\)</td>
+            <td><code>\ce{A\bond{~}B\bond{~-}C}</code></td>
+          </tr>
+          <tr>
             <td>\centerdot</td>
             <td>₮a\centerdot b₮</td>
             <td>\(a\centerdot b\)</td>
@@ -1262,7 +1274,7 @@
           </tr>
           <tr>
             <td>\choose</td>
-            <td>₮{n+1 \choose k+2}₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\({n+1 \choose k+2}\)</td>
             <td><code>{n+1 \choose k+2}</code></td>
           </tr>
@@ -1408,7 +1420,7 @@
             <td>\coloneq</td>
             <td>₮\coloneq₮</td>
             <td>\(\coloneq\)</td>
-            <td>Originally, mathtools defined <code>\coloneq</code> as <code>:-</code>, but that was changed in 2022.</td>
+            <td>Originally, mathtools defined <code>\coloneq</code> as <code>:—</code>, but that was changed in 2022.</td>
           </tr>
           <tr>
             <td>\Coloneqq</td>
@@ -1420,6 +1432,12 @@
             <td>\coloneqq</td>
             <td>₮a \coloneqq b₮</td>
             <td>\(a \coloneqq b\)</td>
+            <td><code>a \coloneqq b</code></td>
+          </tr>
+          <tr>
+            <td>\colonminus</td>
+            <td>₮\colonminus₮</td>
+            <td>\(\colonminus\)</td>
             <td></td>
           </tr>
           <tr>
@@ -3688,6 +3706,24 @@
             <td></td>
           </tr>
           <tr>
+            <td>\minuscolon</td>
+            <td>₮\minuscolon₮</td>
+            <td>\(\minuscolon\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\minuscoloncolon</td>
+            <td>₮\minuscoloncolon₮</td>
+            <td>\(\minuscoloncolon\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\minuso</td>
+            <td>₮\minuso₮</td>
+            <td>\(\minuso\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\mkern</td>
             <td>₮a\mkern18mu b₮</td>
             <td>\(a\mkern18mu b\)</td>
@@ -4307,7 +4343,7 @@
           </tr>
           <tr>
             <td>\over</td>
-            <td>₮{a+1 \over b+2}+c₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\({a+1 \over b+2}+c\)</td>
             <td><code>{a+1 \over b+2}+c</code></td>
           </tr>
@@ -4611,8 +4647,8 @@
           </tr>
           <tr>
             <td>\pu</td>
-            <td>₮{123~\mathchoice{\textstyle\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}}₮</td>
-            <td>\({123~\mathchoice{\textstyle\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}{\frac{\mathrm{kJ}}{\mathrm{mol}}}}\)</td>
+            <td>₮\pu{123 kJ//mol}₮</td>
+            <td>\(\pu{123 kJ//mol}\)</td>
             <td><code>\pu{123 kJ//mol}</code></td>
           </tr>
         </tbody>
