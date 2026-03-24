@@ -9,11 +9,9 @@ expression: "\\left( \\frac{\\left(3-x\\right) \\times 2}{3-x} \\right)"
             <mrow>
                 <mrow>
                     <mo>(</mo>
-                    <mrow>
-                        <mn>3</mn>
-                        <mo>−</mo>
-                        <mi>x</mi>
-                    </mrow>
+                    <mn>3</mn>
+                    <mo>−</mo>
+                    <mi>x</mi>
                     <mo>)</mo>
                 </mrow>
                 <mo lspace="0.2222em" rspace="0.2222em">×</mo>

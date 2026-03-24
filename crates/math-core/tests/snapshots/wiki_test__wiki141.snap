@@ -4,7 +4,7 @@ expression: "\\left / \\frac{a}{b} \\right \\backslash"
 ---
 <math>
     <mrow>
-        <mo stretchy="true">/</mo>
+        <mo stretchy="true" lspace="0" rspace="0">/</mo>
         <mfrac>
             <mi>a</mi>
             <mi>b</mi>

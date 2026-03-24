@@ -3,22 +3,36 @@ source: crates/math-core/src/parser.rs
 expression: "\\left(\\displaystyle \\int\\right)\\int"
 ---
 [
-  Fenced(
-    style: None,
-    open: Some(StretchableOp('(', Always)),
-    close: Some(StretchableOp(')', Always)),
-    content: Row(
-      nodes: [
-        Operator(
-          op: '∫',
-          attrs: OpAttrs(""),
-          size: None,
-          left: Some(Zero),
-          right: Some(Zero),
-        ),
-      ],
-      attr: Some(Style(Display)),
-    ),
+  Row(
+    nodes: [
+      Operator(
+        op: '(',
+        attrs: OpAttrs(""),
+        size: None,
+        left: None,
+        right: None,
+      ),
+      Row(
+        nodes: [
+          Operator(
+            op: '∫',
+            attrs: OpAttrs(""),
+            size: None,
+            left: Some(Zero),
+            right: Some(Zero),
+          ),
+        ],
+        attr: Some(Style(Display)),
+      ),
+      Operator(
+        op: ')',
+        attrs: OpAttrs(""),
+        size: None,
+        left: None,
+        right: None,
+      ),
+    ],
+    attr: None,
   ),
   Operator(
     op: '∫',

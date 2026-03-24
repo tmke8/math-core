@@ -6,10 +6,8 @@ expression: "x\\left(x\\sin \\right)x"
     <mi>x</mi>
     <mrow>
         <mo>(</mo>
-        <mrow>
-            <mi>x</mi>
-            <mo lspace="0.1667em" rspace="0">sin</mo>
-        </mrow>
+        <mi>x</mi>
+        <mo lspace="0.1667em" rspace="0">sin</mo>
         <mo>)</mo>
     </mrow>
     <mi>x</mi>

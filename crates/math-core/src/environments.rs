@@ -4,9 +4,11 @@ use mathml_renderer::{
     arena::Arena,
     ast::Node,
     attribute::Style,
-    symbol::{self, StretchableOp},
+    symbol,
     table::{Alignment, ArraySpec},
 };
+
+use crate::character_class::{StretchableOp, fenced};
 
 static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "array" => Env::Array,
@@ -165,13 +167,8 @@ impl Env {
                     style: None,
                 });
                 const OPEN_BRACE: StretchableOp =
-                    symbol::LEFT_CURLY_BRACKET.as_stretchable_op().unwrap();
-                Node::Fenced {
-                    open: Some(OPEN_BRACE),
-                    close: None,
-                    content,
-                    style: None,
-                }
+                    StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
+                fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
             }
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -200,49 +197,49 @@ impl Env {
                 let (open, close) = match matrix_variant {
                     Env::PMatrix => {
                         const OPEN_PAREN: StretchableOp =
-                            symbol::LEFT_PARENTHESIS.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
                         const CLOSE_PAREN: StretchableOp =
-                            symbol::RIGHT_PARENTHESIS.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
                         (OPEN_PAREN, CLOSE_PAREN)
                     }
                     Env::BMatrix => {
                         const OPEN_BRACKET: StretchableOp =
-                            symbol::LEFT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::LEFT_SQUARE_BRACKET).unwrap();
                         const CLOSE_BRACKET: StretchableOp =
-                            symbol::RIGHT_SQUARE_BRACKET.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::RIGHT_SQUARE_BRACKET).unwrap();
                         (OPEN_BRACKET, CLOSE_BRACKET)
                     }
                     Env::Bmatrix => {
                         const OPEN_BRACE: StretchableOp =
-                            symbol::LEFT_CURLY_BRACKET.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
                         const CLOSE_BRACE: StretchableOp =
-                            symbol::RIGHT_CURLY_BRACKET.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::RIGHT_CURLY_BRACKET).unwrap();
                         (OPEN_BRACE, CLOSE_BRACE)
                     }
                     Env::VMatrix => {
                         const LINE: StretchableOp =
-                            symbol::VERTICAL_LINE.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::VERTICAL_LINE).unwrap();
                         (LINE, LINE)
                     }
                     Env::Vmatrix => {
                         const DOUBLE_LINE: StretchableOp =
-                            symbol::DOUBLE_VERTICAL_LINE.as_stretchable_op().unwrap();
+                            StretchableOp::from_ord(symbol::DOUBLE_VERTICAL_LINE).unwrap();
                         (DOUBLE_LINE, DOUBLE_LINE)
                     }
-                    // SAFETY: `matrix_variant` is one of the strings above.
-                    _ => unsafe { std::hint::unreachable_unchecked() },
+                    _ => unreachable!(),
                 };
                 let style = Some(Style::Text);
-                Node::Fenced {
-                    open: Some(open),
-                    close: Some(close),
-                    content: arena.push(Node::Table {
+                fenced(
+                    arena,
+                    vec![arena.push(Node::Table {
                         content,
                         align,
                         style,
-                    }),
-                    style: None,
-                }
+                    })],
+                    Some(open),
+                    Some(close),
+                    None,
+                )
             }
         }
     }
