@@ -14,8 +14,8 @@ use crate::token::{
 // These function names are essentially just passed-through, wrapped in a token.
 static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
     "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "deg", "det", "dim",
-    "erf", "erfc", "exp", "gcd", "hom", "ker", "lg", "ln", "log", "sec", "sgn", "sin", "sinh",
-    "tan", "tanh"
+    "erf", "erfc", "exp", "hom", "ker", "lg", "ln", "log", "sec", "sgn", "sin", "sinh", "tan",
+    "tanh"
 );
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
@@ -325,6 +325,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "frak" => Transform(MathVariant::Transform(TextTransform::Fraktur)),
     "frown" => Relation(symbol::FROWN),
     "gamma" => Letter(symbol::GREEK_SMALL_LETTER_GAMMA, Mode::Math),
+    "gcd" => PseudoOperatorLimits("gcd"),
     "ge" => Relation(symbol::GREATER_THAN_OR_EQUAL_TO),
     "genfrac" => Genfrac,
     "geq" => Relation(symbol::GREATER_THAN_OR_EQUAL_TO),
