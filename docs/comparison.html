@@ -98,12 +98,6 @@
             <td><code>a\!b</code></td>
           </tr>
           <tr>
-            <td>#</td>
-            <td>₮\def\ffoo#1{#1^2} \ffoo{y}₮</td>
-            <td>\(\def\ffoo#1{#1^2} \ffoo{y}\)</td>
-            <td><code>\def\ffoo#1{#1^2} \ffoo{y}</code></td>
-          </tr>
-          <tr>
             <td>\#</td>
             <td>₮\#₮</td>
             <td>\(\#\)</td>
@@ -1100,9 +1094,9 @@
           </tr>
           <tr>
             <td>\Bra</td>
-            <td>₮\Bra{\psi}₮</td>
-            <td>\(\Bra{\psi}\)</td>
-            <td><code>\Bra{\psi}</code></td>
+            <td>₮\Bra{\dfrac12}₮</td>
+            <td>\(\Bra{\dfrac12}\)</td>
+            <td><code>\Bra{\dfrac12}</code></td>
           </tr>
           <tr>
             <td>\bra</td>
@@ -1130,9 +1124,9 @@
           </tr>
           <tr>
             <td>\Braket</td>
-            <td>₮\Braket{\phi|\frac{\partial^2}{\partial t^2}|\psi}₮</td>
-            <td>\(\Braket{\phi|\frac{\partial^2}{\partial t^2}|\psi}\)</td>
-            <td><code>\Braket{\phi|\frac{\partial^2}{\partial t^2}|\psi}</code></td>
+            <td>₮\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}₮</td>
+            <td>\(\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}\)</td>
+            <td><code>\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}</code></td>
           </tr>
           <tr>
             <td>\breve</td>
@@ -1768,7 +1762,7 @@
           </tr>
           <tr>
             <td>\def</td>
-            <td>₮\def\foo{x^2} \foo + \foo₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\def\foo{x^2} \foo + \foo\)</td>
             <td><code>\def\foo{x^2} \foo + \foo</code></td>
           </tr>
@@ -2392,7 +2386,7 @@
           </tr>
           <tr>
             <td>\gdef</td>
-            <td>₮\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}\)</td>
             <td><code>\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}</code></td>
           </tr>
@@ -2458,7 +2452,7 @@
           </tr>
           <tr>
             <td>\global</td>
-            <td>₮\global\def\add#1#2{#1+#2} \add 2 3₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\global\def\add#1#2{#1+#2} \add 2 3\)</td>
             <td><code>\global\def\add#1#2{#1+#2} \add 2 3</code></td>
           </tr>
@@ -2899,9 +2893,9 @@
           </tr>
           <tr>
             <td>\Ket</td>
-            <td>₮\Ket{\psi}₮</td>
-            <td>\(\Ket{\psi}\)</td>
-            <td><code>\Ket{\psi}</code></td>
+            <td>₮\Ket{\dfrac12}₮</td>
+            <td>\(\Ket{\dfrac12}\)</td>
+            <td><code>\Ket{\dfrac12}</code></td>
           </tr>
           <tr>
             <td>\ket</td>
@@ -3911,7 +3905,7 @@
           </tr>
           <tr>
             <td>\newcommand</td>
-            <td>₮\newcommand\chk{\checkmark} \chk₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\newcommand\chk{\checkmark} \chk\)</td>
             <td><code>\newcommand\chk{\checkmark} \chk</code></td>
           </tr>
@@ -4648,7 +4642,7 @@
           </tr>
           <tr>
             <td>\providecommand</td>
-            <td>₮\providecommand\greet{\text{Hello}} \greet₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\providecommand\greet{\text{Hello}} \greet\)</td>
             <td><code>\providecommand\greet{\text{Hello}} \greet</code></td>
           </tr>
@@ -4823,7 +4817,7 @@
           </tr>
           <tr>
             <td>\renewcommand</td>
-            <td>₮\def\hail{Hi!}\renewcommand\hail{\text{Ahoy!}} \hail₮</td>
+            <td><span class="not-supported">Not supported</span></td>
             <td>\(\def\hail{Hi!}\renewcommand\hail{\text{Ahoy!}} \hail\)</td>
             <td><code>\def\hail{Hi!}</code><br/><code>\renewcommand\hail{\text{Ahoy!}}</code><br/><code>\hail</code></td>
           </tr>
