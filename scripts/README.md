@@ -12,3 +12,12 @@ fonttools subset NewCMMath-Book-prime-roundhand-vec.otf --text-file=scripts/all_
 woff2_compress NewCMMath-Book-prime-roundhand-vec.subset.otf
 cp NewCMMath-Book-prime-roundhand-vec.subset.woff2 playground/NewCMMath-Book-prime-roundhand-vec.woff2
 ```
+
+Using harfbuzz:
+
+```sh
+sudo apt install libharfbuzz-bin
+hb-subset --output-file=NewCMMath-Book-subset.otf --text-file=scripts/all_symbols.txt ../math-core-fonts/NewComputerModernMath/NewCMMath-Book.otf --layout-features=ssty --desubroutinize
+```
+
+gives pretty much the same result. (I used `--desubroutinize` because woff2 can compress better than subroutines.)
