@@ -35,10 +35,6 @@ jobs:
         uses: actions/configure-pages@v6
       - name: "Install Rust toolchain"
         run: rustup target add wasm32-unknown-unknown
-      - name: "Setup node"
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
       - uses: Swatinem/rust-cache@v2
       - name: "Get wasm-bindgen version"
         id: wasm-bindgen-version
@@ -52,10 +48,11 @@ jobs:
         with:
           tool: wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.version }}
       - name: "Install wasm-opt"
-        uses: jaxxstorm/action-install-gh-release@v2
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
         with:
           repo: WebAssembly/binaryen
-          binaries-location: bin
+          tag: version_128
+          binaries-location: binaryen-version_128/bin
           chmod: 0755
       - name: "Generate playground"
         run: |
