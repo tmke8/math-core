@@ -49,8 +49,12 @@ def common_unicode_blocks() -> list[str]:
     code_points.append(range(0x600, 0x700))
     # Greek Extended
     code_points.append(range(0x1F00, 0x2000))
-    # General Punctuation
-    code_points.append(range(0x2000, 0x2070))
+    # General Punctuation: spaces and dashes
+    code_points.append(range(0x2000, 0x2016))
+    # General Punctuation: separators
+    code_points.append(range(0x2028, 0x2030))
+    # General Punctuation: invisible markers
+    code_points.append(range(0x205F, 0x2070))
     return [
         "".join(ch for cp in code_range if is_valid_unicode(ch := chr(cp)))
         for code_range in code_points

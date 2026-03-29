@@ -224,6 +224,13 @@ pub const TILDE: OrdLike = OrdLike::new('~', OrdCategory::I);
 //
 // Unicode Block: Latin-1 Supplement
 //
+pub const NO_BREAK_SPACE: char = '\u{A0}';
+// pub const INVERTED_EXCLAMATION_MARK: char = '¡';
+// pub const CENT_SIGN: char = '¢';
+pub const POUND_SIGN: char = '£';
+
+pub const YEN_SIGN: char = '¥';
+
 pub const SECTION_SIGN: char = '§';
 pub const DIAERESIS: MathMLOperator = MathMLOperator('¨');
 pub const COPYRIGHT_SIGN: char = '©';
@@ -364,10 +371,23 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
+pub const THREE_PER_EM_SPACE: char = '\u{2004}';
+
+pub const THIN_SPACE: char = '\u{2009}';
+
 pub const DOUBLE_VERTICAL_LINE: OrdLike = OrdLike::new('‖', OrdCategory::FGandForceDefault); // should actually be FG
 
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
+// pub const DOUBLE_LOW_LINE: char = '‗';
+// pub const LEFT_SINGLE_QUOTATION_MARK: char = '‘';
+pub const RIGHT_SINGLE_QUOTATION_MARK: char = '’';
+// pub const SINGLE_LOW_9_QUOTATION_MARK: char = '‚';
+// pub const SINGLE_HIGH_REVERSED_9_QUOTATION_MARK: char = '‛';
+// pub const LEFT_DOUBLE_QUOTATION_MARK: char = '“';
+// pub const RIGHT_DOUBLE_QUOTATION_MARK: char = '”';
+// pub const DOUBLE_LOW_9_QUOTATION_MARK: char = '„';
+// pub const DOUBLE_HIGH_REVERSED_9_QUOTATION_MARK: char = '‟';
 
 pub const HORIZONTAL_ELLIPSIS: char = '…';
 pub const PRIME: OrdLike = OrdLike::new('′', OrdCategory::E);
@@ -385,6 +405,8 @@ pub const REVERSED_TRIPLE_PRIME: OrdLike = OrdLike::new('‷', OrdCategory::E);
 pub const OVERLINE: MathMLOperator = MathMLOperator('‾');
 
 pub const QUADRUPLE_PRIME: OrdLike = OrdLike::new('⁗', OrdCategory::E);
+
+pub const MEDIUM_MATHEMATICAL_SPACE: char = '\u{205F}';
 
 pub const INVISIBLE_SEPARATOR: OrdLike = OrdLike::new('\u{2063}', OrdCategory::K);
 
@@ -885,9 +907,15 @@ pub const BLACK_CLUB_SUIT: char = '♣';
 // pub const BLACK_DIAMOND_SUIT: char = '♦';
 // pub const WHITE_CLUB_SUIT: char = '♧';
 
+pub const MUSIC_FLAT_SIGN: char = '♭';
+pub const MUSIC_NATURAL_SIGN: char = '♮';
+pub const MUSIC_SHARP_SIGN: char = '♯';
+
 //
 // Unicode Block: Dingbats
 //
+pub const CHECK_MARK: char = '✓';
+
 pub const MALTESE_CROSS: char = '✠';
 
 //
