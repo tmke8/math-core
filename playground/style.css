@@ -44,13 +44,13 @@ body {
 
 @font-face {
     font-family: "Libertinus Math Regular";
-    src: url("./LibertinusMath-Regular.woff2") format("woff2");
+    src: url("./fonts/LibertinusMath-Regular.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: "Libertinus Serif";
-    src: url("./LibertinusSerif-Regular.woff2") format("woff2");
+    src: url("./fonts/LibertinusSerif-Regular.woff2") format("woff2");
     font-display: swap;
     font-weight: normal;
     font-style: normal;
@@ -58,7 +58,7 @@ body {
 
 @font-face {
     font-family: "Libertinus Serif";
-    src: url("./LibertinusSerif-Bold.woff2") format("woff2");
+    src: url("./fonts/LibertinusSerif-Bold.woff2") format("woff2");
     font-display: swap;
     font-weight: bold;
     font-style: normal;
@@ -66,7 +66,7 @@ body {
 
 @font-face {
     font-family: "Libertinus Serif";
-    src: url("./LibertinusSerif-Italic.woff2") format("woff2");
+    src: url("./fonts/LibertinusSerif-Italic.woff2") format("woff2");
     font-display: swap;
     font-weight: normal;
     font-style: italic;
@@ -74,7 +74,7 @@ body {
 
 @font-face {
     font-family: "Libertinus Serif";
-    src: url("./LibertinusSerif-BoldItalic.woff2") format("woff2");
+    src: url("./fonts/LibertinusSerif-BoldItalic.woff2") format("woff2");
     font-display: swap;
     font-weight: bold;
     font-style: italic;
@@ -82,25 +82,25 @@ body {
 
 @font-face {
     font-family: "Libertinus Mono";
-    src: url("./LibertinusMono-Regular.woff2") format("woff2");
+    src: url("./fonts/LibertinusMono-Regular.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: "Libertinus Sans";
-    src: url("./LibertinusSans-Regular.woff2") format("woff2");
+    src: url("./fonts/LibertinusSans-Regular.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: "NewComputerModernMath Book";
-    src: url("./NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
+    src: url("./fonts/NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: "NewComputerModern Book";
-    src: url("./NewCM10-Book.woff2") format("woff2");
+    src: url("./fonts/NewCM10-Book.woff2") format("woff2");
     font-display: swap;
     font-weight: normal;
     font-style: normal;
@@ -108,7 +108,7 @@ body {
 
 @font-face {
     font-family: "NewComputerModern Book";
-    src: url("./NewCM10-Bold.woff2") format("woff2");
+    src: url("./fonts/NewCM10-Bold.woff2") format("woff2");
     font-display: swap;
     font-weight: bold;
     font-style: normal;
@@ -116,7 +116,7 @@ body {
 
 @font-face {
     font-family: "NewComputerModern Book";
-    src: url("./NewCM10-BookItalic.woff2") format("woff2");
+    src: url("./fonts/NewCM10-BookItalic.woff2") format("woff2");
     font-display: swap;
     font-weight: normal;
     font-style: italic;
@@ -124,7 +124,7 @@ body {
 
 @font-face {
     font-family: "NewComputerModern Book";
-    src: url("./NewCM10-BoldItalic.woff2") format("woff2");
+    src: url("./fonts/NewCM10-BoldItalic.woff2") format("woff2");
     font-display: swap;
     font-weight: bold;
     font-style: italic;
@@ -132,19 +132,19 @@ body {
 
 @font-face {
     font-family: "NewComputerModern Mono";
-    src: url("./NewCMMono10-Book.woff2") format("woff2");
+    src: url("./fonts/NewCMMono10-Book.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: "NewComputerModern Sans";
-    src: url("./NewCMSans10-Book.woff2") format("woff2");
+    src: url("./fonts/NewCMSans10-Book.woff2") format("woff2");
     font-display: swap;
 }
 
 @font-face {
     font-family: Noto Sans Math Regular;
-    src: url("./NotoSansMath-Regular-centered-diacritics-primes.woff2")
+    src: url("./fonts/NotoSansMath-Regular-centered-diacritics-primes.woff2")
         format("woff2");
     font-display: swap;
 }

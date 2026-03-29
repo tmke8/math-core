@@ -33,3 +33,14 @@ testpage:
 
 comparison:
 	cat docs/comparison.html | cargo run --bin mathcore -- -c docs/mathcore.toml --inline-del ₮ --block-del ₮₮ --continue-on-error - > playground/comparison.html
+
+subset: allsymbols
+	hb-subset \
+		--output-file=playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.otf \
+		--text-file=scripts/all_symbols.txt \
+		--layout-features=ssty,kern,aalt \
+		--desubroutinize \
+		playground/fonts/NewCMMath-Book-prime-roundhand-vec.otf
+
+allsymbols:
+	python3 scripts/generate_symbol_document.py

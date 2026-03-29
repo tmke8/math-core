@@ -14,39 +14,54 @@ jobs:
     name: "cargo test (wasm)"
     steps:
       - name: "Checkout PR branch"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: pr-branch
       - name: "Checkout base branch"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.base_ref }}
           path: base-branch
       - name: "Install Rust toolchain"
         run: rustup target add wasm32-unknown-unknown
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - uses: qmaru/wasm-pack-action@v0.5.0
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./pr-branch -> target"
+      - name: "Get wasm-bindgen version"
+        id: wasm-bindgen-version
+        working-directory: ./pr-branch
+        run: |
+          VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION"
+
+      - name: "Install wasm-bindgen-cli"
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.version }}
+      - name: "Install wasm-opt"
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: WebAssembly/binaryen
+          tag: version_128
+          binaries-location: binaryen-version_128/bin
+          chmod: 0755
       - name: "Get wasm size on PR"
         working-directory: ./pr-branch
         run: |
-          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
+          make playground
           SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on PR: $SIZE_BYTES bytes"
           echo "PR_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - name: "Get wasm size on base branch"
         working-directory: ./base-branch
         run: |
-          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
+          make playground
           SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on base: $SIZE_BYTES bytes"
           echo "BASE_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - name: "Comment on PR with WASM sizes"
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

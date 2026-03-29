@@ -47,17 +47,17 @@ fn main() {
     <style>
         @font-face {{
             font-family: "NewComputerModernMath Book";
-            src: url('./NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+            src: url('./fonts/NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
             font-display: swap;
         }}
         @font-face {{
             font-family: "NewComputerModern Book";
-            src: url("./NewCM10-Book.woff2") format("woff2");
+            src: url("./fonts/NewCM10-Book.woff2") format("woff2");
             font-display: swap;
         }}
         @font-face {{
             font-family: "NewComputerModern Mono";
-            src: url("./NewCMMono10-Book.woff2") format("woff2");
+            src: url("./fonts/NewCMMono10-Book.woff2") format("woff2");
             font-display: swap;
         }}
         math {{
