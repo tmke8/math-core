@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.6.0", features = ["derive"] }
-math-core = { path = "../math-core", features = ["serde", "ariadne"], version = "0.6.0" }
+math-core = { path = "../math-core", features = ["serde", "ariadne"], version = "0.6.1" }
 ariadne = { workspace = true }
 memchr = { workspace = true }
 phf = { version = "0.13.1", features = ["macros"] }
