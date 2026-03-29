@@ -41,6 +41,7 @@ subset: allsymbols
 		--layout-features=ssty,kern,aalt \
 		--desubroutinize \
 		playground/fonts/NewCMMath-Book-prime-roundhand-vec.otf
+	woff2_compress playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.otf
 
 allsymbols:
 	python3 scripts/generate_symbol_document.py
