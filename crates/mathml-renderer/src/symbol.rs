@@ -380,12 +380,12 @@ pub const DOUBLE_VERTICAL_LINE: OrdLike = OrdLike::new('‖', OrdCategory::FGand
 pub const DAGGER: char = '†';
 pub const DOUBLE_DAGGER: char = '‡';
 // pub const DOUBLE_LOW_LINE: char = '‗';
-// pub const LEFT_SINGLE_QUOTATION_MARK: char = '‘';
+pub const LEFT_SINGLE_QUOTATION_MARK: char = '‘';
 pub const RIGHT_SINGLE_QUOTATION_MARK: char = '’';
 // pub const SINGLE_LOW_9_QUOTATION_MARK: char = '‚';
 // pub const SINGLE_HIGH_REVERSED_9_QUOTATION_MARK: char = '‛';
 // pub const LEFT_DOUBLE_QUOTATION_MARK: char = '“';
-// pub const RIGHT_DOUBLE_QUOTATION_MARK: char = '”';
+pub const RIGHT_DOUBLE_QUOTATION_MARK: char = '”';
 // pub const DOUBLE_LOW_9_QUOTATION_MARK: char = '„';
 // pub const DOUBLE_HIGH_REVERSED_9_QUOTATION_MARK: char = '‟';
 

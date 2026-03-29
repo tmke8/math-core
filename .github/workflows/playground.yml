@@ -26,24 +26,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install harfbuzz"
+        run: sudo apt-get update && sudo apt-get install -y libharfbuzz-bin
+      - name: "Subset fonts"
+        run: make subset
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: "Install Rust toolchain"
         run: rustup target add wasm32-unknown-unknown
-      - uses: actions/setup-node@v4
+      - name: "Setup node"
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-      - uses: qmaru/wasm-pack-action@v0.5.0
+          node-version: 24
       - uses: Swatinem/rust-cache@v2
-      - name: "Run wasm-pack"
+      - name: "Get wasm-bindgen version"
+        id: wasm-bindgen-version
         run: |
-          wasm-pack build --target web --out-dir ../../playground/pkg --no-typescript --no-pack crates/math-core-wasm
-      - name: "Create comparison page"
+          VERSION=$(grep -A 1 'name = "wasm-bindgen"' Cargo.lock | grep version | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION"
+
+      - name: "Install wasm-bindgen-cli"
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.version }}
+      - name: "Install wasm-opt"
+        uses: jaxxstorm/action-install-gh-release@v2
+        with:
+          repo: WebAssembly/binaryen
+          binaries-location: bin
+          chmod: 0755
+      - name: "Generate playground"
+        run: |
+          make playground
+      - name: "Generate comparison page"
         run: |
           make comparison
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: "./playground"
 
@@ -57,4 +78,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

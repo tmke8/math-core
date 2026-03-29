@@ -83,3 +83,5 @@ node_modules/
 
 pkg/
 /playground/comparison.html
+/scripts/all_symbols.txt
+/playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.woff2

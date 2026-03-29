@@ -205,8 +205,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     LatexErrKind::DisallowedChar(ch),
                 )));
             }
-            ' ' => Token::Letter('\u{A0}', Mode::MathOrText),
-            '"' => Token::Letter('”', Mode::MathOrText),
+            ' ' => Token::Letter(symbol::NO_BREAK_SPACE, Mode::MathOrText),
+            '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK, Mode::MathOrText),
             '#' => {
                 if let Some(num) = &mut self.parse_cmd_args {
                     if let Some(next) = self.peek.1
@@ -259,7 +259,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '`' => Token::Letter('‘', Mode::MathOrText),
+            '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK, Mode::MathOrText),
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
