@@ -47,7 +47,7 @@ fn main() {
     <style>
         @font-face {{
             font-family: "NewComputerModernMath Book";
-            src: url('./fonts/NewCMMath-Book-prime-roundhand-vec.woff2') format('woff2');
+            src: url('./fonts/NewCMMath-Book-prime-roundhand-vec-subset.woff2') format('woff2');
             font-display: swap;
         }}
         @font-face {{

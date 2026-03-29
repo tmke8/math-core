@@ -27,8 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: "Install harfbuzz"
-        run: sudo apt-get update && sudo apt-get install -y libharfbuzz-bin
+      - name: "Install harfbuzz and woff2"
+        run: sudo apt-get update && sudo apt-get install -y libharfbuzz-bin woff2
       - name: "Subset fonts"
         run: make subset
       - name: Setup Pages
