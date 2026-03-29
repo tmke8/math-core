@@ -959,7 +959,7 @@ where
                     Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
-                        builder.push_char('\u{338}');
+                        builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
                     _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),

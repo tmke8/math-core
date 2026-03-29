@@ -297,6 +297,8 @@ pub const COMBINING_CEDILLA: char = '\u{327}';
 
 pub const COMBINING_LOW_LINE: MathMLOperator = MathMLOperator('\u{332}');
 
+pub const COMBINING_LONG_SOLIDUS_OVERLAY: char = '\u{338}';
+
 //
 // Unicode Block: Greek and Coptic
 //
