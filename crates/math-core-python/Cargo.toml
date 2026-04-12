@@ -16,5 +16,5 @@ crate-type = ["cdylib"]
 [dependencies]
 math-core = { path = "../math-core", features = ["ariadne"] }
 ariadne = { workspace = true }
-pyo3 = { version = "0.28.2", features = ["abi3-py310"] }
+pyo3 = { version = "0.28.3", features = ["abi3-py310"] }
 rustc-hash = { workspace = true }
