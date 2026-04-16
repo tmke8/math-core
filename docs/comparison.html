@@ -1,69 +1,72 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8"/>
+  <head>
+    <meta charset="utf-8" />
     <title>Comparison of TeX Coverage</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- <link rel="icon" href="../../assets/favicon.svg"> -->
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./mathmlfixes.css" />
     <style>
-        math {
-            font-family: "NewComputerModernMath Book", math;
-            font-feature-settings: "dtls" 0;
-            font-size: 1.2em;
-            mtext {
-                font-family: "NewComputerModern Book", serif;
-                code {
-                    font-family: "NewComputerModern Mono", monospace;
-                }
-            }
+      math {
+        font-family: "NewComputerModernMath Book", math;
+        font-feature-settings: "dtls" 0;
+        font-size: 1.2em;
+        mtext {
+          font-family: "NewComputerModern Book", serif;
+          code {
+            font-family: "NewComputerModern Mono", monospace;
+          }
         }
-        .math-core-error > code {
-            color: #b22222;
-            font-family: "Times New Roman", Cambria, Georgia, serif;
-        }
-        .not-supported {
-            color: #b22222;
-        }
+      }
+      .math-core-error > code {
+        color: #b22222;
+        font-family: "Times New Roman", Cambria, Georgia, serif;
+      }
+      .not-supported {
+        color: #b22222;
+      }
     </style>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css" integrity="sha384-/L6i+LN3dyoaK2jYG5ZLh5u13cjdsPDcFOSNJeFBFa/KgVXR5kOfTdiN3ft1uMAq" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css" integrity="sha384-/L6i+LN3dyoaK2jYG5ZLh5u13cjdsPDcFOSNJeFBFa/KgVXR5kOfTdiN3ft1uMAq" crossorigin="anonymous" />
 
     <!-- The loading of KaTeX is deferred to speed up page rendering -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.js" integrity="sha384-H6s1ZrH2CKpFpqR680poRdStIRJGXty7fSkxAcIfxwl9iu6A4BOPtTk7vQ58Ovio" crossorigin="anonymous"></script>
 
     <!-- mhchem extension -->
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/contrib/mhchem.min.js" integrity="sha384-fB8BH//9nBzROkMUsu/Dr35jWHIbnKesUo9rW0hfEgw8mZGnkAyBAjKX9F98OVuo"  crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/contrib/mhchem.min.js" integrity="sha384-fB8BH//9nBzROkMUsu/Dr35jWHIbnKesUo9rW0hfEgw8mZGnkAyBAjKX9F98OVuo" crossorigin="anonymous"></script>
 
     <!-- To automatically render math in text elements, include the auto-render extension: -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/contrib/auto-render.min.js" integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz" crossorigin="anonymous"></script>
     <script>
-    document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", function () {
         renderMathInElement(document.body, {
           delimiters: [
-              {left: '\\(', right: '\\)', display: false},
-              {left: '\\[', right: '\\]', display: true}
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true },
           ],
           throwOnError: false,
           errorColor: "#b22222",
           output: "html",
-          strict: true
+          strict: true,
         });
-    });
+      });
     </script>
-</head>
-
+  </head>
 
   <main class="latin-modern comp" id="content">
     <h2>Introduction</h2>
 
     <p>This page compares the MathML output from math-core to the output of KaTeX (version 0.16.38).</p>
 
-    <p>This comparison page was originally published at <a href="https://temml.org/docs/en/comparison">https://temml.org/docs/en/comparison</a> by Ron Kok, under the <a href="https://opensource.org/licenses/MIT/">MIT License</a>. We have adapted it here to math-core.</p>
+    <p>
+      This comparison page was originally published at <a href="https://temml.org/docs/en/comparison">https://temml.org/docs/en/comparison</a> by Ron Kok, under the
+      <a href="https://opensource.org/licenses/MIT/">MIT License</a>. We have adapted it here to math-core.
+    </p>
 
-      <h2 id="symbols">Symbols</h2>
+    <h2 id="symbols">Symbols</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -120,10 +123,12 @@
             <td>&</td>
             <td>₮\begin{matrix} a & b\\ c & d \end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d \end{matrix}\)</td>
-            <td><pre><code>\begin{matrix}
-    a &amp; b \\
-    c &amp; d
-\end{matrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{matrix}
+  a &amp; b \\
+  c &amp; d
+\end{matrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\&</td>
@@ -303,10 +308,12 @@
             <td>\\</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><pre><code>\begin{matrix}
-    a &amp; b \\
-    c &amp; d
-\end{matrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{matrix}
+  a &amp; b \\
+  c &amp; d
+\end{matrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>^</td>
@@ -322,7 +329,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="a">A</h2>
+    </div>
+    <h2 id="a">A</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -391,55 +400,67 @@
             <td>{align}</td>
             <td>₮₮\begin{align}a&amp;=b+c\\d+e&amp;=f\end{align}₮₮</td>
             <td>\[\begin{align}a&amp;=b+c\\d+e&amp;=f\end{align}\]</td>
-            <td><pre><code>\begin{align}
-    a&amp;=b+c \\
-    d+e&amp;=f
-\end{align}</code></pre></td>
+            <td>
+              <pre><code>\begin{align}
+  a&amp;=b+c \\
+  d+e&amp;=f
+\end{align}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{align*}</td>
             <td>₮₮\begin{align*}a&amp;=b+c\\d+e&amp;=f\end{align*}₮₮</td>
             <td>\[\begin{align*}a&amp;=b+c\\d+e&amp;=f\end{align*}\]</td>
-            <td><pre><code>\begin{align*}
-    a&amp;=b+c \\
-    d+e&amp;=f
-\end{align*}</code></pre></td>
+            <td>
+              <pre><code>\begin{align*}
+  a&amp;=b+c \\
+  d+e&amp;=f
+\end{align*}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{aligned}</td>
-            <td>₮\begin{aligned}x&amp;=y &amp;  a&amp;=b+c\\x'&amp;=y' &  a'&amp;=b'\end{aligned}₮</td>
-            <td>\(\begin{aligned}x&amp;=y &amp;  a&amp;=b+c\\x'&amp;=y' &  a'&amp;=b'\end{aligned}\)</td>
-            <td><pre><code>\begin{aligned}
-    x&amp;=y &amp;  a&amp;=b+c\\
-    x'&amp;=y' &amp;  a'&amp;=b'
-\end{aligned}</code></pre></td>
+            <td>₮\begin{aligned}x&amp;=y &amp; a&amp;=b+c\\x'&amp;=y' & a'&amp;=b'\end{aligned}₮</td>
+            <td>\(\begin{aligned}x&amp;=y &amp; a&amp;=b+c\\x'&amp;=y' & a'&amp;=b'\end{aligned}\)</td>
+            <td>
+              <pre><code>\begin{aligned}
+  x&amp;=y &amp;  a&amp;=b+c\\
+  x'&amp;=y' &amp;  a'&amp;=b'
+\end{aligned}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{alignat}</td>
             <td>₮₮\begin{alignat}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignat}₮₮</td>
             <td>\[\begin{alignat}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignat}\]</td>
-            <td><pre><code>\begin{alignat}{2}
-    10&amp;x+&amp;3&amp;y=2\\
-    3&amp;x+&amp;13&amp;y=4
-\end{alignat}</code></pre></td>
+            <td>
+              <pre><code>\begin{alignat}{2}
+  10&amp;x+&amp;3&amp;y=2\\
+  3&amp;x+&amp;13&amp;y=4
+\end{alignat}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{alignat*}</td>
             <td>₮₮\begin{alignat*}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignat*}₮₮</td>
             <td>\[\begin{alignat*}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignat*}\]</td>
-            <td><pre><code>\begin{alignat*}{2}
-    10&amp;x+&amp;3&amp;y=2\\
-    3&amp;x+&amp;13&amp;y=4
-\end{alignat*}</code></pre></td>
+            <td>
+              <pre><code>\begin{alignat*}{2}
+  10&amp;x+&amp;3&amp;y=2\\
+  3&amp;x+&amp;13&amp;y=4
+\end{alignat*}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{alignedat}</td>
             <td>₮\begin{alignedat}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignedat}₮</td>
             <td>\(\begin{alignedat}{2}10&amp;x+&amp;3&amp;y=2\\3&amp;x+&amp;13&amp;y=4\end{alignedat}\)</td>
-            <td><pre><code>\begin{alignedat}{2}
-    10&amp; x+ &amp;3&amp; y = 2 \\
-    3&amp; x+&amp;13&amp; y = 4
-\end{alignedat}</code></pre></td>
+            <td>
+              <pre><code>\begin{alignedat}{2}
+  10&amp; x+ &amp;3&amp; y = 2 \\
+  3&amp; x+&amp;13&amp; y = 4
+\end{alignedat}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\Alpha</td>
@@ -541,7 +562,7 @@
             <td>\argmax</td>
             <td>₮\begin{darray}{l}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\argmax x \\ \argmax_y x \\\argmax\limits_y x\end{darray}\)</td>
-            <td><code>\begin{darray}{l}\argmax x \\<br/> \argmax_y x \\<br/>\argmax\limits_y x\end{darray}</code></td>
+            <td><code>\begin{darray}{l}\argmax x \\<br /> \argmax_y x \\<br />\argmax\limits_y x\end{darray}</code></td>
           </tr>
           <tr>
             <td>\argmin</td>
@@ -553,13 +574,13 @@
             <td>{array}</td>
             <td>₮\begin{array}{cc}a&b\\c&d\end{array}₮</td>
             <td>\(\begin{array}{cc}a&b\\c&d\end{array}\)</td>
-            <td><code>\begin{array}{cc}</code><br/>   <code>a &amp; b \\</code><br/>   <code>c &amp; d</code><br/><code>\end{array}</code></td>
+            <td><code>\begin{array}{cc}</code><br />   <code>a &amp; b \\</code><br />   <code>c &amp; d</code><br /><code>\end{array}</code></td>
           </tr>
           <tr>
-            <td>{array}<br/>with lines</td>
+            <td>{array}<br />with lines</td>
             <td>₮\begin{array}{c|c:c}a & b & c \\ \hline d & e & f \\ \hdashline g & h & i\end{array}₮</td>
             <td>\(\begin{array}{c|c:c}a & b & c \\ \hline d & e & f \\ \hdashline g & h & i\end{array}\)</td>
-            <td><code>\begin{array}{c|c:c}</code><br/><code>a &amp; b &amp; c \\ \hline</code><br/><code>d &amp; e &amp; f\\</code><br/><code>\hdashline g &amp; h &amp; i</code><br/><code>\end{array}</code></td>
+            <td><code>\begin{array}{c|c:c}</code><br /><code>a &amp; b &amp; c \\ \hline</code><br /><code>d &amp; e &amp; f\\</code><br /><code>\hdashline g &amp; h &amp; i</code><br /><code>\end{array}</code></td>
           </tr>
           <tr>
             <td>\ast</td>
@@ -587,7 +608,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="b">B</h2>
+    </div>
+    <h2 id="b">B</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -680,10 +703,12 @@
             <td>\begin</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><pre><code>\begin{matrix}
-    a &amp; b \\
-    c &amp; d
-\end{matrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{matrix}
+  a &amp; b \\
+  c &amp; d
+\end{matrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\begingroup</td>
@@ -983,19 +1008,23 @@
             <td>{Bmatrix}</td>
             <td>₮\begin{Bmatrix}a&b\\c&d\end{Bmatrix}₮</td>
             <td>\(\begin{Bmatrix}a&b\\c&d\end{Bmatrix}\)</td>
-            <td><pre><code>\begin{Bmatrix}
-    a &amp; b \\
-    c &amp; d
-\end{Bmatrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{Bmatrix}
+  a &amp; b \\
+  c &amp; d
+\end{Bmatrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{bmatrix}</td>
             <td>₮\begin{bmatrix}a&b\\c&d\end{bmatrix}₮</td>
             <td>\(\begin{bmatrix}a&b\\c&d\end{bmatrix}\)</td>
-            <td><pre><code>\begin{bmatrix}
-    a &amp; b \\
-    c &amp; d
-\end{bmatrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{bmatrix}
+  a &amp; b \\
+  c &amp; d
+\end{bmatrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\bmod</td>
@@ -1127,7 +1156,9 @@
             <td>\Braket</td>
             <td>₮\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}₮</td>
             <td>\(\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}\)</td>
-            <td><code>\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}</code></td>
+            <td>
+              <code>\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}</code>
+            </td>
           </tr>
           <tr>
             <td>\breve</td>
@@ -1161,7 +1192,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="c">C</h2>
+    </div>
+    <h2 id="c">C</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -1206,12 +1239,12 @@
             <td>{cases}</td>
             <td>₮\begin{cases}a&\text{if }b\\c&\text{if }d\end{cases}₮</td>
             <td>\(\begin{cases}a&\text{if }b\\c&\text{if }d\end{cases}\)</td>
-            <td><code>\begin{cases}</code><br/>   <code>a &amp;\text{if } b  \\</code><br/>   <code>c &amp;\text{if } d</code><br/><code>\end{cases}</code></td>
+            <td><code>\begin{cases}</code><br />   <code>a &amp;\text{if } b \\</code><br />   <code>c &amp;\text{if } d</code><br /><code>\end{cases}</code></td>
           </tr>
           <tr>
             <td>{CD}</td>
-            <td>₮₮\begin{CD} A @>a>> B\\@VbVV    @AAcA \\ C @= D\end{CD}₮₮</td>
-            <td>\[\begin{CD} A @>a>> B\\@VbVV    @AAcA \\ C @= D\end{CD}\]</td>
+            <td>₮₮\begin{CD} A @>a>> B\\@VbVV @AAcA \\ C @= D\end{CD}₮₮</td>
+            <td>\[\begin{CD} A @>a>> B\\@VbVV @AAcA \\ C @= D\end{CD}\]</td>
             <td></td>
           </tr>
           <tr>
@@ -1584,7 +1617,7 @@
             <td>\cr</td>
             <td>₮\begin{matrix} a & b\cr c & d \end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\cr c & d \end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \cr</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><code>\begin{matrix}</code><br />   <code>a &amp; b \cr</code><br />   <code>c &amp; d</code><br /><code>\end{matrix}</code></td>
           </tr>
           <tr>
             <td>\csc</td>
@@ -1654,7 +1687,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="d">D</h2>
+    </div>
+    <h2 id="d">D</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -1711,10 +1746,12 @@
             <td>{darray}</td>
             <td>₮\begin{darray}{cc}a & b\\c & d\end{darray}₮</td>
             <td>\(\begin{darray}{cc}a & b\\c & d\end{darray}\)</td>
-            <td><pre><code>\begin{darray}{cc}
-    a &amp; b \\
-    c &amp; d
-\end{darray}</code></pre></td>
+            <td>
+              <pre><code>\begin{darray}{cc}
+  a &amp; b \\
+  c &amp; d
+\end{darray}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\dashcolon</td>
@@ -1756,10 +1793,12 @@
             <td>{dcases}</td>
             <td>₮\begin{dcases}a&\text{if }b\\c&\text{if }d\end{dcases}₮</td>
             <td>\(\begin{dcases}a&\text{if }b\\c&\text{if }d\end{dcases}\)</td>
-            <td><pre><code>\begin{dcases}
-    a &amp;\text{if } b  \\
-    c &amp;\text{if } d
-\end{dcases}</code></pre></td>
+            <td>
+              <pre><code>\begin{dcases}
+  a &amp;\text{if } b  \\
+  c &amp;\text{if } d
+\end{dcases}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\ddag</td>
@@ -1831,7 +1870,9 @@
             <td>\det</td>
             <td>₮\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}\)</td>
-            <td><code>\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}</code></td>
+            <td>
+              <code>\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}</code>
+            </td>
           </tr>
           <tr>
             <td>\digamma</td>
@@ -2065,14 +2106,18 @@
             <td>{drcases}</td>
             <td>₮\begin{drcases}a&\text{if }b\\c&\text{if }d\end{drcases}₮</td>
             <td>\(\begin{drcases}a&\text{if }b\\c&\text{if }d\end{drcases}\)</td>
-            <td><pre><code>\begin{drcases}
-    a&\text{if }b\\
-    c&amp;\text{if }d
-\end{drcases}</code></pre></td>
+            <td>
+              <pre><code>\begin{drcases}
+  a&\text{if }b\\
+  c&amp;\text{if }d
+\end{drcases}</code></pre>
+            </td>
           </tr>
         </tbody>
       </table>
-      <h2 id="e">E</h2>
+    </div>
+    <h2 id="e">E</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2117,10 +2162,12 @@
             <td>\end</td>
             <td>₮\begin{matrix} a & b\\ c & d\end{matrix}₮</td>
             <td>\(\begin{matrix} a & b\\ c & d\end{matrix}\)</td>
-            <td><pre><code>\begin{matrix}
-    a &amp; b \\
-    c &amp; d
-\end{matrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{matrix}
+  a &amp; b \\
+  c &amp; d
+\end{matrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\endgroup</td>
@@ -2168,13 +2215,17 @@
             <td>{equation}</td>
             <td>₮₮\begin{equation}\label{maxwell}\nabla\cdot D=\rho_v\end{equation}₮₮</td>
             <td>\[\begin{equation}\label{maxwell}\nabla\cdot D=\rho_v\end{equation}\]</td>
-            <td><code>\begin{equation}\label{maxwell}\nabla\cdot D=\rho_v\end{equation}</code></td>
+            <td>
+              <code>\begin{equation}\label{maxwell}\nabla\cdot D=\rho_v\end{equation}</code>
+            </td>
           </tr>
           <tr>
             <td>{equation*}</td>
             <td>₮₮\begin{equation*}\nabla\cdot D=\rho_v\end{equation*}₮₮</td>
             <td>\[\begin{equation*}\nabla\cdot D=\rho_v\end{equation*}\]</td>
-            <td><code>\begin{equation*}\nabla\cdot D=\rho_v\end{equation*}</code></td>
+            <td>
+              <code>\begin{equation*}\nabla\cdot D=\rho_v\end{equation*}</code>
+            </td>
           </tr>
           <tr>
             <td>\Eqqcolon</td>
@@ -2268,7 +2319,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="f">F</h2>
+    </div>
+    <h2 id="f">F</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2341,7 +2394,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="g">G</h2>
+    </div>
+    <h2 id="g">G</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2374,30 +2429,32 @@
             <td>{gather}</td>
             <td>₮₮\begin{gather}a=b\\e=b+c\end{gather}₮₮</td>
             <td>\[\begin{gather}a=b\\e=b+c\end{gather}\]</td>
-            <td><code>\begin{gather}</code><br/>   <code>a=b \\</code><br/>   <code>e=b+c</code><br/><code>\end{gather}</code></td>
+            <td><code>\begin{gather}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gather}</code></td>
           </tr>
           <tr>
             <td>{gather*}</td>
             <td>₮₮\begin{gather*}a=b\\e=b+c\end{gather*}₮₮</td>
             <td>\[\begin{gather*}a=b\\e=b+c\end{gather*}\]</td>
-            <td><code>\begin{gather*}</code><br/>   <code>a=b \\</code><br/>   <code>e=b+c</code><br/><code>\end{gather*}</code></td>
+            <td><code>\begin{gather*}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gather*}</code></td>
           </tr>
           <tr>
             <td>{gathered}</td>
             <td>₮\begin{gathered}a=b\\e=b+c\end{gathered}₮</td>
             <td>\(\begin{gathered}a=b\\e=b+c\end{gathered}\)</td>
-            <td><code>\begin{gathered}</code><br/>   <code>a=b \\</code><br/>   <code>e=b+c</code><br/><code>\end{gathered}</code></td>
+            <td><code>\begin{gathered}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gathered}</code></td>
           </tr>
           <tr>
             <td>\gcd</td>
             <td>₮\begin{darray}{l}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\gcd x \\ \gcd_y x \\\gcd\limits_y x\end{darray}\)</td>
-            <td><pre><code>\begin{darray}{l}
-    \gcd x \\
-    \gcd_y x \\
-    \gcd\limits_y x
+            <td>
+              <pre><code>\begin{darray}{l}
+  \gcd x \\
+  \gcd_y x \\
+  \gcd\limits_y x
 \end{darray}
-</code></pre></td>
+</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\gdef</td>
@@ -2551,7 +2608,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="h">H</h2>
+    </div>
+    <h2 id="h">H</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2608,7 +2667,7 @@
             <td>\hdashline</td>
             <td>₮\begin{matrix}a&b\\ \hdashline c &d\end{matrix}₮</td>
             <td>\(\begin{matrix}a&b\\ \hdashline c &d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\</code><br/>   <code>\hdashline</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><code>\begin{matrix}</code><br />   <code>a &amp; b \\</code><br />   <code>\hdashline</code><br />   <code>c &amp; d</code><br /><code>\end{matrix}</code></td>
           </tr>
           <tr>
             <td>\hearts</td>
@@ -2626,7 +2685,7 @@
             <td>\hline</td>
             <td>₮\begin{matrix}a&b\\ \hline c &d\end{matrix}₮</td>
             <td>\(\begin{matrix}a&b\\ \hline c &d\end{matrix}\)</td>
-            <td><code>\begin{matrix}</code><br/>   <code>a &amp; b \\ \hline</code><br/>   <code>c &amp; d</code><br/><code>\end{matrix}</code></td>
+            <td><code>\begin{matrix}</code><br />   <code>a &amp; b \\ \hline</code><br />   <code>c &amp; d</code><br /><code>\end{matrix}</code></td>
           </tr>
           <tr>
             <td>\hom</td>
@@ -2684,7 +2743,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="i">I</h2>
+    </div>
+    <h2 id="i">I</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2807,7 +2868,7 @@
             <td>\injlim</td>
             <td>₮\begin{darray}{l}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\injlim x \\ \injlim_y x \\\injlim\limits_y x\end{darray}\)</td>
-            <td><code>\injlim x</code><br/><code>\injlim_y x</code><br/><code>\injlim\limits_y x</code></td>
+            <td><code>\injlim x</code><br /><code>\injlim_y x</code><br /><code>\injlim\limits_y x</code></td>
           </tr>
           <tr>
             <td>\int</td>
@@ -2853,7 +2914,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="jk">JK</h2>
+    </div>
+    <h2 id="jk">JK</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -2920,7 +2983,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="l">L</h2>
+    </div>
+    <h2 id="l">L</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -3223,7 +3288,7 @@
             <td>\lim</td>
             <td>₮\begin{darray}{l}\lim x \\ \lim_y x \\\lim\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\lim x \\ \lim_y x \\\lim\limits_y x\end{darray}\)</td>
-            <td><code>\lim x</code><br/><code>\lim_y x</code><br/><code>\lim\limits_y x</code></td>
+            <td><code>\lim x</code><br /><code>\lim_y x</code><br /><code>\lim\limits_y x</code></td>
           </tr>
           <tr>
             <td>\liminf</td>
@@ -3343,7 +3408,7 @@
             <td>\log</td>
             <td>₮\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}\)</td>
-            <td><code>\log x</code><br/><code>\log_y x</code><br/><code>\log\limits_y x</code></td>
+            <td><code>\log x</code><br /><code>\log_y x</code><br /><code>\log\limits_y x</code></td>
           </tr>
           <tr>
             <td>\Longleftarrow</td>
@@ -3485,7 +3550,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="m">M</h2>
+    </div>
+    <h2 id="m">M</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -3674,10 +3741,12 @@
             <td>{matrix}</td>
             <td>₮\begin{matrix}\frac A B& b\\\frac A B& d\end{matrix}₮</td>
             <td>\(\begin{matrix}\frac A B& b\\\frac A B& d\end{matrix}\)</td>
-            <td><pre><code>\begin{matrix}
-    \frac A B &amp; b \\
-    \frac A B &amp; d
-\end{matrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{matrix}
+  \frac A B &amp; b \\
+  \frac A B &amp; d
+\end{matrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\max</td>
@@ -3789,30 +3858,14 @@
           </tr>
           <tr>
             <td>{multline}</td>
-            <td>₮₮\begin{multline}
-      \rm first\ line \\
-      \rm second\ line \\
-      \rm third\ line
-      \end{multline}₮₮</td>
-            <td>\[\begin{multline}
-      \rm first\ line \\
-      \rm second\ line \\
-      \rm third\ line
-      \end{multline}\]</td>
+            <td>₮₮\begin{multline} \rm first\ line \\ \rm second\ line \\ \rm third\ line \end{multline}₮₮</td>
+            <td>\[\begin{multline} \rm first\ line \\ \rm second\ line \\ \rm third\ line \end{multline}\]</td>
             <td></td>
           </tr>
           <tr>
             <td>{multline*}</td>
-            <td>₮₮\begin{multline*}
-      \rm first\ line \\
-      \rm second\ line \\
-      \rm third\ line
-      \end{multline*}₮₮</td>
-            <td>\[\begin{multline*}
-      \rm first\ line \\
-      \rm second\ line \\
-      \rm third\ line
-      \end{multline*}\]</td>
+            <td>₮₮\begin{multline*} \rm first\ line \\ \rm second\ line \\ \rm third\ line \end{multline*}₮₮</td>
+            <td>\[\begin{multline*} \rm first\ line \\ \rm second\ line \\ \rm third\ line \end{multline*}\]</td>
             <td></td>
           </tr>
           <tr>
@@ -3823,7 +3876,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="n">N</h2>
+    </div>
+    <h2 id="n">N</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -4220,7 +4275,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="o">O</h2>
+    </div>
+    <h2 id="o">O</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -4331,7 +4388,7 @@
             <td>\operatorname*</td>
             <td>₮\begin{darray}{l}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{darray}\)</td>
-            <td><code>\operatorname*{asin} x</code><br/><code>\operatorname*{asin}_y x</code><br/><code>\operatorname*{asin}\limits_y x\end</code></td>
+            <td><code>\operatorname*{asin} x</code><br /><code>\operatorname*{asin}_y x</code><br /><code>\operatorname*{asin}\limits_y x\end</code></td>
           </tr>
           <tr>
             <td>\oplus</td>
@@ -4443,7 +4500,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="p">P</h2>
+    </div>
+    <h2 id="p">P</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -4536,10 +4595,12 @@
             <td>{pmatrix}</td>
             <td>₮\begin{pmatrix}a&b\\c&d\end{pmatrix}₮</td>
             <td>\(\begin{pmatrix}a&b\\c&d\end{pmatrix}\)</td>
-            <td><pre><code>\begin{pmatrix}
-    a &amp; b \\
-    c &amp; d
-\end{pmatrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{pmatrix}
+  a &amp; b \\
+  c &amp; d
+\end{pmatrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\pmb</td>
@@ -4669,7 +4730,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="qr">QR</h2>
+    </div>
+    <h2 id="qr">QR</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -4774,7 +4837,7 @@
             <td>{rcases}</td>
             <td>₮\begin{rcases}a&\text{if }b\\c&\text{if }d\end{rcases}₮</td>
             <td>\(\begin{rcases}a&\text{if }b\\c&\text{if }d\end{rcases}\)</td>
-            <td><code>\begin{rcases}</code><br/>   <code>a&amp;\text{if }b\\</code><br/>   <code>c&amp;\text{if }d</code><br/><code>\end{rcases}</code></td>
+            <td><code>\begin{rcases}</code><br />   <code>a&amp;\text{if }b\\</code><br />   <code>c&amp;\text{if }d</code><br /><code>\end{rcases}</code></td>
           </tr>
           <tr>
             <td>\rceil</td>
@@ -4822,7 +4885,7 @@
             <td>\renewcommand</td>
             <td><span class="not-supported">Not supported</span></td>
             <td>\(\def\hail{Hi!}\renewcommand\hail{\text{Ahoy!}} \hail\)</td>
-            <td><code>\def\hail{Hi!}</code><br/><code>\renewcommand\hail{\text{Ahoy!}}</code><br/><code>\hail</code></td>
+            <td><code>\def\hail{Hi!}</code><br /><code>\renewcommand\hail{\text{Ahoy!}}</code><br /><code>\hail</code></td>
           </tr>
           <tr>
             <td>\restriction</td>
@@ -5018,7 +5081,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="s">S</h2>
+    </div>
+    <h2 id="s">S</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -5085,14 +5150,14 @@
           </tr>
           <tr>
             <td>\set</td>
-            <td>₮\set{ x | x<5 }₮</td>
-            <td>\(\set{ x | x<5 }\)</td>
+            <td>₮\set{ x | x&lt;5 }₮</td>
+            <td>\(\set{ x | x&lt;5 }\)</td>
             <td><code>\Set{x|x&lt;5}</code></td>
           </tr>
           <tr>
             <td>\Set</td>
-            <td>₮\Set{ x | x<\frac 1 2 }₮</td>
-            <td>\(\Set{ x | x<\frac 1 2 }\)</td>
+            <td>₮\Set{ x | x&lt;\frac 1 2 }₮</td>
+            <td>\(\Set{ x | x&lt;\frac 1 2 }\)</td>
             <td><code>\Set{ x | x&lt;\frac 1 2 }</code></td>
           </tr>
           <tr>
@@ -5139,30 +5204,14 @@
           </tr>
           <tr>
             <td>\shoveleft</td>
-            <td>₮\begin{multline*}
-      \rm first\ line \\
-      \shoveleft{\rm 2nd} \\
-      \rm third\ line
-      \end{multline*}₮</td>
-            <td>\(\begin{multline*}
-      \rm first\ line \\
-      \shoveleft{\rm 2nd} \\
-      \rm third\ line
-      \end{multline*}\)</td>
+            <td>₮\begin{multline*} \rm first\ line \\ \shoveleft{\rm 2nd} \\ \rm third\ line \end{multline*}₮</td>
+            <td>\(\begin{multline*} \rm first\ line \\ \shoveleft{\rm 2nd} \\ \rm third\ line \end{multline*}\)</td>
             <td></td>
           </tr>
           <tr>
             <td>\shoveright</td>
-            <td>₮\begin{multline*}
-      \rm first\ line \\
-      \shoveright{\rm 2nd} \\
-      \rm third\ line
-      \end{multline*}₮</td>
-            <td>\(\begin{multline*}
-      \rm first\ line \\
-      \shoveright{\rm 2nd} \\
-      \rm third\ line
-      \end{multline*}\)</td>
+            <td>₮\begin{multline*} \rm first\ line \\ \shoveright{\rm 2nd} \\ \rm third\ line \end{multline*}₮</td>
+            <td>\(\begin{multline*} \rm first\ line \\ \shoveright{\rm 2nd} \\ \rm third\ line \end{multline*}\)</td>
             <td></td>
           </tr>
           <tr>
@@ -5253,13 +5302,13 @@
             <td>\smallint</td>
             <td>₮\smallint_0^n x \; \smallint\limits_0^n x \; \displaystyle \smallint_0^n x₮</td>
             <td>\(\smallint_0^n x \; \smallint\limits_0^n x \; \displaystyle \smallint_0^n x\)</td>
-            <td><code>\smallint_0^n x</code><br/><code>\smallint\limits_0^n x</code><br/><code>\displaystyle \smallint_0^n x</code></td>
+            <td><code>\smallint_0^n x</code><br /><code>\smallint\limits_0^n x</code><br /><code>\displaystyle \smallint_0^n x</code></td>
           </tr>
           <tr>
             <td>{smallmatrix}</td>
             <td>₮\begin{smallmatrix}a & b\\c & d\end{smallmatrix}₮</td>
             <td>\(\begin{smallmatrix}a & b\\c & d\end{smallmatrix}\)</td>
-            <td><code>\begin{smallmatrix}a &amp; b\\</code><br/><code>c &amp; d\end{smallmatrix}</code></td>
+            <td><code>\begin{smallmatrix}a &amp; b\\</code><br /><code>c &amp; d\end{smallmatrix}</code></td>
           </tr>
           <tr>
             <td>\smallsetminus</td>
@@ -5319,7 +5368,7 @@
             <td>{split}</td>
             <td>₮₮\begin{equation}\begin{split}∇·𝐃&=ρ_v \\ ∇·𝐁&=0 \end{split}\end{equation}₮₮</td>
             <td>\[\begin{equation}\begin{split}∇·𝐃&=ρ_v \\ ∇·𝐁&=0 \end{split}\end{equation}\]</td>
-            <td><code>\begin{equation}</code><br/><code>\begin{split}</code><br/>   <code>∇·𝐃&amp;=ρ_v \\</code><br/>   <code>∇·𝐁&amp;=0</code><br/><code>\end{split}</code><br/><code>\end{equation}</code></td>
+            <td><code>\begin{equation}</code><br /><code>\begin{split}</code><br />   <code>∇·𝐃&amp;=ρ_v \\</code><br />   <code>∇·𝐁&amp;=0</code><br /><code>\end{split}</code><br /><code>\end{equation}</code></td>
           </tr>
           <tr>
             <td>\sqcap</td>
@@ -5409,7 +5458,7 @@
             <td>{subarray}</td>
             <td>₮\begin{subarray}{c} a \\ c \end{subarray}₮</td>
             <td>\(\begin{subarray}{c} a \\ c \end{subarray}\)</td>
-            <td><code>\sum_{\begin{subarray}</code><br/>   <code>{c} a \\</code><br/>   <code>c</code><br/><code>\end{subarray}}</code></td>
+            <td><code>\sum_{\begin{subarray}</code><br />   <code>{c} a \\</code><br />   <code>c</code><br /><code>\end{subarray}}</code></td>
           </tr>
           <tr>
             <td>\sube</td>
@@ -5457,7 +5506,7 @@
             <td>\substack</td>
             <td>₮\displaystyle\sum_{\substack{1\lt i\lt 3 \\ 1\le j\lt 5}}a_{ij}₮</td>
             <td>\(\displaystyle\sum_{\substack{1\lt i\lt 3 \\ 1\le j\lt 5}}a_{ij}\)</td>
-            <td><code>\sum_{\substack{1\lt i\lt 3 \\</code><br/><code>1\le j\lt 5}}a_{ij}</code></td>
+            <td><code>\sum_{\substack{1\lt i\lt 3 \\</code><br /><code>1\le j\lt 5}}a_{ij}</code></td>
           </tr>
           <tr>
             <td>\succ</td>
@@ -5575,7 +5624,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="t">T</h2>
+    </div>
+    <h2 id="t">T</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -5990,7 +6041,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="u">U</h2>
+    </div>
+    <h2 id="u">U</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -6177,7 +6230,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="v">V</h2>
+    </div>
+    <h2 id="v">V</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -6468,19 +6523,23 @@
             <td>{Vmatrix}</td>
             <td>₮\begin{Vmatrix}a&b\\c&d\end{Vmatrix}₮</td>
             <td>\(\begin{Vmatrix}a&b\\c&d\end{Vmatrix}\)</td>
-            <td><pre><code>\begin{Vmatrix}
-    a &amp; b \\
-    c &amp; d
-\end{Vmatrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{Vmatrix}
+  a &amp; b \\
+  c &amp; d
+\end{Vmatrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{vmatrix}</td>
             <td>₮\begin{vmatrix}a&b\\c&d\end{vmatrix}₮</td>
             <td>\(\begin{vmatrix}a&b\\c&d\end{vmatrix}\)</td>
-            <td><pre><code>\begin{vmatrix}
-    a &amp; b \\
-    c &amp; d
-\end{vmatrix}</code></pre></td>
+            <td>
+              <pre><code>\begin{vmatrix}
+  a &amp; b \\
+  c &amp; d
+\end{vmatrix}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\vphantom</td>
@@ -6496,7 +6555,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="w">W</h2>
+    </div>
+    <h2 id="w">W</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -6557,7 +6618,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="x">X</h2>
+    </div>
+    <h2 id="x">X</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -6662,7 +6725,7 @@
             <td>\xrightarrow</td>
             <td>₮\begin{matrix}A \xrightarrow{abc} B\\ A \xrightarrow[ghi]{abcdef} B \end{matrix}₮</td>
             <td>\(\begin{matrix}A \xrightarrow{abc} B\\ A \xrightarrow[ghi]{abcdef} B \end{matrix}\)</td>
-            <td><code>A \xrightarrow{abc} B</code><br/><code>A \xrightarrow[ghi]{abcdef} B</code></td>
+            <td><code>A \xrightarrow{abc} B</code><br /><code>A \xrightarrow[ghi]{abcdef} B</code></td>
           </tr>
           <tr>
             <td>\xrightharpoondown</td>
@@ -6702,7 +6765,9 @@
           </tr>
         </tbody>
       </table>
-      <h2 id="yz">YZ</h2>
+    </div>
+    <h2 id="yz">YZ</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -6739,39 +6804,40 @@
           </tr>
         </tbody>
       </table>
+    </div>
 
-      <br>
+    <br />
+  </main>
 
-    </main>
-
-    <nav id="sidebar" class="narrow">
-      <h3>
-        <a href="#content">Contents</a>
-      </h3>
-      <ul id="toc">
-        <li><a href="#symbols">Symbols</a></li>
-        <li><a href="#a">A</a></li>
-        <li><a href="#b">B</a></li>
-        <li><a href="#c">C</a></li>
-        <li><a href="#d">D</a></li>
-        <li><a href="#e">E</a></li>
-        <li><a href="#f">F</a></li>
-        <li><a href="#g">G</a></li>
-        <li><a href="#h">H</a></li>
-        <li><a href="#i">I</a></li>
-        <li><a href="#jk">JK</a></li>
-        <li><a href="#l">L</a></li>
-        <li><a href="#m">M</a></li>
-        <li><a href="#n">N</a></li>
-        <li><a href="#o">O</a></li>
-        <li><a href="#p">P</a></li>
-        <li><a href="#qr">QR</a></li>
-        <li><a href="#s">S</a></li>
-        <li><a href="#t">T</a></li>
-        <li><a href="#u">U</a></li>
-        <li><a href="#v">V</a></li>
-        <li><a href="#w">W</a></li>
-        <li><a href="#x">X</a></li>
-        <li><a href="#yz">YZ</a></li>
-      </ul>
-    </nav>
+  <nav id="sidebar" class="narrow">
+    <h3>
+      <a href="#content">Contents</a>
+    </h3>
+    <ul id="toc">
+      <li><a href="#symbols">Symbols</a></li>
+      <li><a href="#a">A</a></li>
+      <li><a href="#b">B</a></li>
+      <li><a href="#c">C</a></li>
+      <li><a href="#d">D</a></li>
+      <li><a href="#e">E</a></li>
+      <li><a href="#f">F</a></li>
+      <li><a href="#g">G</a></li>
+      <li><a href="#h">H</a></li>
+      <li><a href="#i">I</a></li>
+      <li><a href="#jk">JK</a></li>
+      <li><a href="#l">L</a></li>
+      <li><a href="#m">M</a></li>
+      <li><a href="#n">N</a></li>
+      <li><a href="#o">O</a></li>
+      <li><a href="#p">P</a></li>
+      <li><a href="#qr">QR</a></li>
+      <li><a href="#s">S</a></li>
+      <li><a href="#t">T</a></li>
+      <li><a href="#u">U</a></li>
+      <li><a href="#v">V</a></li>
+      <li><a href="#w">W</a></li>
+      <li><a href="#x">X</a></li>
+      <li><a href="#yz">YZ</a></li>
+    </ul>
+  </nav>
+</html>
