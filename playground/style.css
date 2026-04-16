@@ -372,12 +372,17 @@ main.comp thead th {
     text-align: left;
     padding: 10px 12px;
     border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
 }
 
 main.comp tbody td {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
+}
+
+main.comp tbody td:last-child {
+    width: 100%;
 }
 
 main.comp tbody tr:last-child td {
