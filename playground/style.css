@@ -364,7 +364,6 @@ main.comp table {
     background-color: var(--container-background);
     box-shadow: 0 0 10px var(--shadow-color);
     border-radius: 5px;
-    overflow: hidden;
 }
 
 main.comp thead th {
@@ -403,6 +402,10 @@ main.comp code {
 main.comp thead code {
     background-color: transparent;
     padding: 0;
+}
+
+div.table-wrapper {
+    overflow-x: auto;
 }
 
 #sidebar {
