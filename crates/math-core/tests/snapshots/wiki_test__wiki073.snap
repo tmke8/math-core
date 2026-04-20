@@ -1,11 +1,13 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\forall, \\exists, \\nexists"
+expression: "\\blacktriangle, \\blacktriangledown, \\blacktriangleleft, \\blacktriangleright"
 ---
 <math>
-    <mo>∀</mo>
+    <mi>▲</mi>
     <mo>,</mo>
-    <mo>∃</mo>
+    <mi>▼</mi>
     <mo>,</mo>
-    <mo>∄</mo>
+    <mi>◀</mi>
+    <mo>,</mo>
+    <mi>▶</mi>
 </math>

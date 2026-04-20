@@ -1,9 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: x y z
+expression: "\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta"
 ---
 <math>
-    <mi>x</mi>
-    <mi>y</mi>
-    <mi>z</mi>
+    <mrow><mspace/><mi mathvariant="normal">Α</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Β</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Γ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Δ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ε</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ζ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Η</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Θ</mi></mrow>
 </math>

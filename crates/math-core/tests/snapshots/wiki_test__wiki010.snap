@@ -1,20 +1,29 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\ln c, \\lg d = \\log e, \\log_{10} f"
+expression: "\\exp_a b = a^b, \\exp b = e^b, 10^m"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">ln</mo>
-    <mi>c</mi>
-    <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">lg</mo>
-    <mi>d</mi>
-    <mo>=</mo>
-    <mo lspace="0" rspace="0.1667em">log</mo>
-    <mi>e</mi>
-    <mo>,</mo>
     <msub>
-        <mo lspace="0" rspace="0.1667em">log</mo>
-        <mn>10</mn>
+        <mo lspace="0" rspace="0.1667em">exp</mo>
+        <mi>a</mi>
     </msub>
-    <mi>f</mi>
+    <mi>b</mi>
+    <mo>=</mo>
+    <msup>
+        <mi>a</mi>
+        <mi>b</mi>
+    </msup>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0.1667em">exp</mo>
+    <mi>b</mi>
+    <mo>=</mo>
+    <msup>
+        <mi>e</mi>
+        <mi>b</mi>
+    </msup>
+    <mo>,</mo>
+    <msup>
+        <mn>10</mn>
+        <mi>m</mi>
+    </msup>
 </math>

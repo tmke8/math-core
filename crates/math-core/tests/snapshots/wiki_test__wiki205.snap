@@ -1,7 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\text{\\textsf{textual description}}"
+expression: "\\mathit{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
 ---
 <math>
-    <mtext><span class="math-core-sans-serif-font">textual description</span></mtext>
+    <mrow><mspace/><mi>𝛢𝛣𝛤𝛥𝛦𝛧𝛨𝛩</mi></mrow>
 </math>

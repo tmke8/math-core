@@ -1,20 +1,35 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "x_2^3 \\\\ {x_2}^3"
+expression: "10^{30} a^{2+2} \\\\ a_{i,j} b_{f'}"
 ---
 <math>
-    <msubsup>
-        <mi>x</mi>
-        <mn>2</mn>
-        <mn>3</mn>
-    </msubsup>
+    <msup>
+        <mn>10</mn>
+        <mn>30</mn>
+    </msup>
+    <msup>
+        <mi>a</mi>
+        <mrow>
+            <mn>2</mn>
+            <mo lspace="0" rspace="0">+</mo>
+            <mn>2</mn>
+        </mrow>
+    </msup>
     <mrow>
     </mrow>
-    <msup>
-        <msub>
-            <mi>x</mi>
-            <mn>2</mn>
-        </msub>
-        <mn>3</mn>
-    </msup>
+    <msub>
+        <mi>a</mi>
+        <mrow>
+            <mi>i</mi>
+            <mo rspace="0">,</mo>
+            <mi>j</mi>
+        </mrow>
+    </msub>
+    <msub>
+        <mi>b</mi>
+        <msup>
+            <mi>f</mi>
+            <mo>′</mo>
+        </msup>
+    </msub>
 </math>

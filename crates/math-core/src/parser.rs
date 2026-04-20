@@ -150,6 +150,7 @@ where
         keep_end_token: bool,
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
+        let mut numerator: Option<Vec<&'arena Node<'arena>>> = None;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
@@ -163,7 +164,12 @@ where
                 // Get the current token.
                 let cur_tokloc = self.next_token();
                 if let Ok(tokloc) = &cur_tokloc {
-                    match self.handle_tokens_without_output(tokloc, sequence_end)? {
+                    match self.handle_tokens_without_output(
+                        tokloc,
+                        sequence_end,
+                        &mut nodes,
+                        &mut numerator,
+                    )? {
                         ControlFlow::SkipToken => continue,
                         ControlFlow::ProcessToken => {}
                     }
@@ -189,6 +195,18 @@ where
             });
             nodes.push(node);
         }
+        if let Some(numerator) = numerator {
+            let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
+            let (lt_value, lt_unit) = Length::none().into_parts();
+            let frac = self.commit(Node::Frac {
+                num: node_vec_to_node(self.arena, &numerator, false),
+                denom: node_vec_to_node(self.arena, &denominator, false),
+                lt_value,
+                lt_unit,
+                attr: None,
+            });
+            nodes.push(frac);
+        }
         if !keep_end_token {
             // Discard the end token.
             self.next_token()?;
@@ -202,6 +220,8 @@ where
         &mut self,
         tokspan: &TokSpan<'source>,
         sequence_end: SequenceEnd,
+        collected_nodes: &mut Vec<&'arena Node<'arena>>,
+        numerator: &mut Option<Vec<&'arena Node<'arena>>>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
         let result: Result<(), LatexError> = match tokspan.token() {
@@ -211,6 +231,14 @@ where
                     Err(LatexError(span, LatexErrKind::UnclosedGroup(end_token)))
                 } else {
                     return Ok(ControlFlow::ProcessToken);
+                }
+            }
+            Token::InfixFrac => {
+                if numerator.is_none() {
+                    *numerator = Some(mem::take(collected_nodes));
+                    Ok(())
+                } else {
+                    Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
                 }
             }
             Token::TransformSwitch(tf) => {
@@ -240,7 +268,7 @@ where
                     }
                 } else {
                     Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Tag,
                             correct_place: Place::NumberedEnv,
@@ -252,14 +280,14 @@ where
                 let (label_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     if numbered_state.label.is_some() {
-                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
+                        Err(LatexError(span, LatexErrKind::MoreThanOneLabel))
                     } else {
                         numbered_state.label = Some(label_name);
                         Ok(())
                     }
                 } else {
                     Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Label,
                             correct_place: Place::NumberedEnv,
@@ -971,9 +999,14 @@ where
                 self.state.transform = old_tf;
                 return Ok((Class::Close, content));
             }
-            Token::TransformSwitch(_) | Token::NoNumber | Token::Tag | Token::Label => Err(
-                LatexError(span.into(), LatexErrKind::CannotBeUsedAsArgument),
-            ),
+            Token::TransformSwitch(_)
+            | Token::NoNumber
+            | Token::Tag
+            | Token::Label
+            | Token::InfixFrac => Err(LatexError(
+                span.into(),
+                LatexErrKind::CannotBeUsedAsArgument,
+            )),
             Token::ForceRelation(op) => {
                 class = Class::Relation;
                 let (left, right) = if parse_as.in_sequence() {

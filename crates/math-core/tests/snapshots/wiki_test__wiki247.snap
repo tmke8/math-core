@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\det(\\mathsf{A}-\\lambda\\mathsf{I}) = 0"
+---
+<math>
+    <mo lspace="0" rspace="0">det</mo>
+    <mo stretchy="false">(</mo>
+    <mi>𝖠</mi>
+    <mo>−</mo>
+    <mi>λ</mi>
+    <mi>𝖨</mi>
+    <mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <mn>0</mn>
+</math>

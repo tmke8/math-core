@@ -61,6 +61,7 @@ fn main() {
         ("sub_sub", "x_2_3 y"),
         ("no_rbrack_instead_of_bracket", r"\sqrt[3\rbrack{1}"),
         ("genfrac_wrong_unit", r"\genfrac(]{1pg}{2}{a+b}{c+d}"),
+        ("two_over", r"{a^n - \sin(\theta+\eta) \over x \over y}"),
         ("hspace_empty", r"\hspace{  }"),
         ("hspace_unknown_unit", r"\hspace{2ly}"),
         ("hspace_non_digits", r"\hspace{2b2cm}"),

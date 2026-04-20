@@ -1,7 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\rho \\sigma \\tau \\upsilon \\phi \\chi \\psi \\omega}"
+expression: "\\left ( \\frac{a}{b} \\right )"
 ---
 <math>
-    <mrow><mspace/><mi>𝝆𝝈𝝉𝝊𝝓𝝌𝝍𝝎</mi></mrow>
+    <mrow>
+        <mo>(</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
 </math>

@@ -1,32 +1,33 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\left\\uparrow\\frac{a}{b}\\right\\downarrow\\; \\left\\Uparrow\\frac{a}{b}\\right\\Downarrow\\; \\left \\updownarrow \\frac{a}{b} \\right \\Updownarrow"
+expression: "\\dfrac{2}{4} = 0.5 \\qquad \\dfrac{2}{c + \\dfrac{2}{d + \\dfrac{2}{4}}} = a"
 ---
 <math>
-    <mrow>
-        <mo lspace="0" rspace="0">↑</mo>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
-        <mo lspace="0" rspace="0">↓</mo>
-    </mrow>
-    <mspace width="0.2777778em"/>
-    <mrow>
-        <mo lspace="0" rspace="0">⇑</mo>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
-        <mo lspace="0" rspace="0">⇓</mo>
-    </mrow>
-    <mspace width="0.2777778em"/>
-    <mrow>
-        <mo lspace="0" rspace="0">↕</mo>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
-        <mo lspace="0" rspace="0">⇕</mo>
-    </mrow>
+    <mfrac displaystyle="true">
+        <mn>2</mn>
+        <mn>4</mn>
+    </mfrac>
+    <mo>=</mo>
+    <mn>0.5</mn>
+    <mspace width="2em"/>
+    <mfrac displaystyle="true">
+        <mn>2</mn>
+        <mrow>
+            <mi>c</mi>
+            <mo>+</mo>
+            <mfrac displaystyle="true">
+                <mn>2</mn>
+                <mrow>
+                    <mi>d</mi>
+                    <mo>+</mo>
+                    <mfrac displaystyle="true">
+                        <mn>2</mn>
+                        <mn>4</mn>
+                    </mfrac>
+                </mrow>
+            </mfrac>
+        </mrow>
+    </mfrac>
+    <mo>=</mo>
+    <mi>a</mi>
 </math>

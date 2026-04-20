@@ -1,19 +1,24 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\lfloor \\bigl\\lfloor \\Bigl\\lfloor \\biggl\\lfloor \\Biggl\\lfloor \\dots \\Biggr\\rceil \\biggr\\rceil \\Bigr\\rceil \\bigr\\rceil \\rceil"
+expression: "\\begin{matrix} x & y \\\\ z & v \\end{matrix}"
 ---
 <math>
-    <mo stretchy="false">⌊</mo>
-    <mo minsize="1.2em" maxsize="1.2em">⌊</mo>
-    <mo minsize="1.623em" maxsize="1.623em">⌊</mo>
-    <mo minsize="2.047em" maxsize="2.047em">⌊</mo>
-    <mo minsize="2.470em" maxsize="2.470em">⌊</mo>
-    <mo lspace="0">.</mo>
-    <mo lspace="0" rspace="0.1667em">.</mo>
-    <mo lspace="0" rspace="0">.</mo>
-    <mo minsize="2.470em" maxsize="2.470em">⌉</mo>
-    <mo minsize="2.047em" maxsize="2.047em">⌉</mo>
-    <mo minsize="1.623em" maxsize="1.623em">⌉</mo>
-    <mo minsize="1.2em" maxsize="1.2em">⌉</mo>
-    <mo stretchy="false">⌉</mo>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>x</mi>
+            </mtd>
+            <mtd>
+                <mi>y</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mi>z</mi>
+            </mtd>
+            <mtd>
+                <mi>v</mi>
+            </mtd>
+        </mtr>
+    </mtable>
 </math>

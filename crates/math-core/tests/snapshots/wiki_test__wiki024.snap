@@ -1,19 +1,43 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\infty, \\aleph, \\complement,\\backepsilon, \\eth, \\Finv, \\hbar"
+expression: "\\prime, \\backprime, f^\\prime, f', f'', f^{(3)}, \\dot y, \\ddot y"
 ---
 <math>
-    <mi>∞</mi>
+    <mo>′</mo>
     <mo>,</mo>
-    <mi>ℵ</mi>
+    <mo>‵</mo>
     <mo>,</mo>
-    <mi>∁</mi>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
     <mo>,</mo>
-    <mi>϶</mi>
+    <msup>
+        <mi>f</mi>
+        <mo>′</mo>
+    </msup>
     <mo>,</mo>
-    <mi>ð</mi>
+    <msup>
+        <mi>f</mi>
+        <mo>″</mo>
+    </msup>
     <mo>,</mo>
-    <mi>Ⅎ</mi>
+    <msup>
+        <mi>f</mi>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mn>3</mn>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </msup>
     <mo>,</mo>
-    <mi>ℏ</mi>
+    <mover accent="true">
+        <mi>y</mi>
+        <mo>˙</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>y</mi>
+        <mo>¨</mo>
+    </mover>
 </math>

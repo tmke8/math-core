@@ -1,17 +1,18 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
+expression: "\\Pr j, \\hom l, \\lVert z \\rVert, \\arg z"
 ---
 <math>
-    <mi>d</mi>
-    <mi>t</mi>
+    <mo lspace="0" rspace="0.1667em">Pr</mo>
+    <mi>j</mi>
     <mo>,</mo>
-    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-    <mi>t</mi>
+    <mo lspace="0" rspace="0.1667em">hom</mo>
+    <mi>l</mi>
     <mo>,</mo>
-    <mi>∂</mi>
-    <mi>t</mi>
+    <mo stretchy="false" form="prefix">‖</mo>
+    <mi>z</mi>
+    <mo stretchy="false" form="postfix">‖</mo>
     <mo>,</mo>
-    <mrow><mspace/><mi mathvariant="normal">∇</mi></mrow>
-    <mi>ψ</mi>
+    <mo lspace="0" rspace="0.1667em">arg</mo>
+    <mi>z</mi>
 </math>

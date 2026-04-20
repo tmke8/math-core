@@ -1,22 +1,16 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathrm{ABCDEFGHI} \\\\ \\mathrm{JKLMNOPQR} \\\\ \\mathrm{STUVWXYZ} \\\\ \\mathrm{abcdefghijklm} \\\\ \\mathrm{nopqrstuvwxyz} \\\\ \\mathrm{0123456789}"
+expression: "\\left . \\frac{A}{B} \\right \\} \\to X"
 ---
 <math>
-    <mrow><mspace/><mi>ABCDEFGHI</mi></mrow>
     <mrow>
+        <mo>⁣</mo>
+        <mfrac>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mfrac>
+        <mo>}</mo>
     </mrow>
-    <mrow><mspace/><mi>JKLMNOPQR</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>STUVWXYZ</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>abcdefghijklm</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>nopqrstuvwxyz</mi></mrow>
-    <mrow>
-    </mrow>
-    <mn>0123456789</mn>
+    <mo stretchy="false">→</mo>
+    <mi>X</mi>
 </math>

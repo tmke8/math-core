@@ -1,7 +1,18 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varXi \\varPi \\varSigma \\varUpsilon \\varOmega}"
+expression: "\\left [ 0,1 \\right ) \\left \\langle \\psi \\right |"
 ---
 <math>
-    <mrow><mspace/><mi>𝜩𝜫𝜮𝜰𝜴</mi></mrow>
+    <mrow>
+        <mo>[</mo>
+        <mn>0</mn>
+        <mo>,</mo>
+        <mn>1</mn>
+        <mo>)</mo>
+    </mrow>
+    <mrow>
+        <mo>⟨</mo>
+        <mi>ψ</mi>
+        <mo>|</mo>
+    </mrow>
 </math>

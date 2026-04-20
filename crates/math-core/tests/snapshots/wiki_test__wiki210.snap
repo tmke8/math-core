@@ -1,15 +1,22 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\det(\\mathsf{A}-\\lambda\\mathsf{I}) = 0"
+expression: "\\mathrm{ABCDEFGHI} \\\\ \\mathrm{JKLMNOPQR} \\\\ \\mathrm{STUVWXYZ} \\\\ \\mathrm{abcdefghijklm} \\\\ \\mathrm{nopqrstuvwxyz} \\\\ \\mathrm{0123456789}"
 ---
 <math>
-    <mo lspace="0" rspace="0">det</mo>
-    <mo stretchy="false">(</mo>
-    <mi>𝖠</mi>
-    <mo>−</mo>
-    <mi>λ</mi>
-    <mi>𝖨</mi>
-    <mo stretchy="false">)</mo>
-    <mo>=</mo>
-    <mn>0</mn>
+    <mrow><mspace/><mi>ABCDEFGHI</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>JKLMNOPQR</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>STUVWXYZ</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>abcdefghijklm</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>nopqrstuvwxyz</mi></mrow>
+    <mrow>
+    </mrow>
+    <mn>0123456789</mn>
 </math>

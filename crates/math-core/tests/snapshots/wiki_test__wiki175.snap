@@ -1,7 +1,32 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varGamma \\varDelta \\varTheta \\varLambda}"
+expression: "\\left\\uparrow\\frac{a}{b}\\right\\downarrow\\; \\left\\Uparrow\\frac{a}{b}\\right\\Downarrow\\; \\left \\updownarrow \\frac{a}{b} \\right \\Updownarrow"
 ---
 <math>
-    <mrow><mspace/><mi>𝜞𝜟𝜣𝜦</mi></mrow>
+    <mrow>
+        <mo lspace="0" rspace="0">↑</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo lspace="0" rspace="0">↓</mo>
+    </mrow>
+    <mspace width="0.2777778em"/>
+    <mrow>
+        <mo lspace="0" rspace="0">⇑</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo lspace="0" rspace="0">⇓</mo>
+    </mrow>
+    <mspace width="0.2777778em"/>
+    <mrow>
+        <mo lspace="0" rspace="0">↕</mo>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo lspace="0" rspace="0">⇕</mo>
+    </mrow>
 </math>

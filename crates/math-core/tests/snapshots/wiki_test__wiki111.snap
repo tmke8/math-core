@@ -1,15 +1,31 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\dot{x}, \\ddot{x}"
+expression: "\\overset{\\alpha}{\\omega} \\\\ \\underset{\\alpha}{\\omega} \\\\ \\overset{\\alpha}{\\underset{\\gamma}{\\omega}}\\\\ \\stackrel{\\alpha}{\\omega}"
 ---
 <math>
-    <mover accent="true">
-        <mi>x</mi>
-        <mo>˙</mo>
+    <mover>
+        <mi>ω</mi>
+        <mi>α</mi>
     </mover>
-    <mo>,</mo>
-    <mover accent="true">
-        <mi>x</mi>
-        <mo>¨</mo>
+    <mrow>
+    </mrow>
+    <munder>
+        <mi>ω</mi>
+        <mi>α</mi>
+    </munder>
+    <mrow>
+    </mrow>
+    <mover>
+        <munder>
+            <mi>ω</mi>
+            <mi>γ</mi>
+        </munder>
+        <mi>α</mi>
+    </mover>
+    <mrow>
+    </mrow>
+    <mover>
+        <mi>ω</mi>
+        <mi>α</mi>
     </mover>
 </math>

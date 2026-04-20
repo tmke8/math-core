@@ -1,13 +1,13 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "|z + 1| \\leq 2"
+expression: "\\{1,e,\\pi\\}"
 ---
 <math>
-    <mo stretchy="false" lspace="0" rspace="0">|</mo>
-    <mi>z</mi>
-    <mo>+</mo>
+    <mo stretchy="false">{</mo>
     <mn>1</mn>
-    <mo stretchy="false" lspace="0" rspace="0">|</mo>
-    <mo>≤</mo>
-    <mn>2</mn>
+    <mo>,</mo>
+    <mi>e</mi>
+    <mo>,</mo>
+    <mi>π</mi>
+    <mo stretchy="false">}</mo>
 </math>

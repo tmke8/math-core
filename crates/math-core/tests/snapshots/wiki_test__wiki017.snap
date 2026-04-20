@@ -1,17 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\min x, \\max y, \\inf s, \\sup t"
+expression: "\\min(x,y), \\max(x,y)"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">min</mo>
+    <mo lspace="0" rspace="0">min</mo>
+    <mo stretchy="false">(</mo>
     <mi>x</mi>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">max</mo>
     <mi>y</mi>
+    <mo stretchy="false">)</mo>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">inf</mo>
-    <mi>s</mi>
+    <mo lspace="0" rspace="0">max</mo>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">sup</mo>
-    <mi>t</mi>
+    <mi>y</mi>
+    <mo stretchy="false">)</mo>
 </math>

@@ -1,9 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "{\\scriptstyle\\text{abcdefghijklm}}"
+expression: "/ \\big/ \\Big/ \\bigg/ \\Bigg/ \\dots \\Bigg\\backslash \\bigg\\backslash \\Big \\backslash \\big\\backslash \\backslash"
 ---
 <math>
-    <mrow displaystyle="false" scriptlevel="1">
-        <mtext>abcdefghijklm</mtext>
-    </mrow>
+    <mo lspace="0" rspace="0">/</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">/</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">/</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">/</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">/</mo>
+    <mo>.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0">.</mo>
+    <mo stretchy="true" symmetric="true" minsize="2.470em" maxsize="2.470em">\</mo>
+    <mo stretchy="true" symmetric="true" minsize="2.047em" maxsize="2.047em">\</mo>
+    <mo stretchy="true" symmetric="true" minsize="1.623em" maxsize="1.623em">\</mo>
+    <mo stretchy="true" symmetric="true" minsize="1.2em" maxsize="1.2em">\</mo>
+    <mo>\</mo>
 </math>

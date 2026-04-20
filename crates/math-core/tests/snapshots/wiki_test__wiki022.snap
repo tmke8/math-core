@@ -1,59 +1,17 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "dy/dx, \\mathrm{d}y/\\mathrm{d}x, \\frac{dy}{dx}, \\frac{\\mathrm{d}y}{\\mathrm{d}x}, \\frac{\\partial^2} {\\partial x_1\\partial x_2}y"
+expression: "dt, \\mathrm{d}t, \\partial t, \\nabla\\psi"
 ---
 <math>
     <mi>d</mi>
-    <mi>y</mi>
-    <mo lspace="0" rspace="0">/</mo>
-    <mi>d</mi>
-    <mi>x</mi>
+    <mi>t</mi>
     <mo>,</mo>
     <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-    <mi>y</mi>
-    <mo lspace="0" rspace="0">/</mo>
-    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-    <mi>x</mi>
+    <mi>t</mi>
     <mo>,</mo>
-    <mfrac>
-        <mrow>
-            <mi>d</mi>
-            <mi>y</mi>
-        </mrow>
-        <mrow>
-            <mi>d</mi>
-            <mi>x</mi>
-        </mrow>
-    </mfrac>
+    <mi>∂</mi>
+    <mi>t</mi>
     <mo>,</mo>
-    <mfrac>
-        <mrow>
-            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-            <mi>y</mi>
-        </mrow>
-        <mrow>
-            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-            <mi>x</mi>
-        </mrow>
-    </mfrac>
-    <mo>,</mo>
-    <mfrac>
-        <msup>
-            <mi>∂</mi>
-            <mn>2</mn>
-        </msup>
-        <mrow>
-            <mi>∂</mi>
-            <msub>
-                <mi>x</mi>
-                <mn>1</mn>
-            </msub>
-            <mi>∂</mi>
-            <msub>
-                <mi>x</mi>
-                <mn>2</mn>
-            </msub>
-        </mrow>
-    </mfrac>
-    <mi>y</mi>
+    <mrow><mspace/><mi mathvariant="normal">∇</mi></mrow>
+    <mi>ψ</mi>
 </math>

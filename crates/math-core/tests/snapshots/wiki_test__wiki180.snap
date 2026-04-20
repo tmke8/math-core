@@ -1,7 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathsf{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
+expression: "\\| \\big\\| \\Big\\| \\bigg\\| \\Bigg\\| \\dots \\Bigg| \\bigg| \\Big| \\big| |"
 ---
 <math>
-    <mrow><mspace/><mi>ΙΚΛΜΝΞΟΠ</mi></mrow>
+    <mo stretchy="false" lspace="0" rspace="0">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">‖</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">‖</mo>
+    <mo>.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0">.</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">|</mo>
+    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">|</mo>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
 </math>

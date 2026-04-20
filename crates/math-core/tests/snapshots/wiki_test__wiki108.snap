@@ -1,13 +1,20 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "10^{10^{8}}"
+expression: "x_2^3 \\\\ {x_2}^3"
 ---
 <math>
+    <msubsup>
+        <mi>x</mi>
+        <mn>2</mn>
+        <mn>3</mn>
+    </msubsup>
+    <mrow>
+    </mrow>
     <msup>
-        <mn>10</mn>
-        <msup>
-            <mn>10</mn>
-            <mn>8</mn>
-        </msup>
+        <msub>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msub>
+        <mn>3</mn>
     </msup>
 </math>

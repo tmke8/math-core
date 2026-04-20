@@ -1,11 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\text{if}~n\\ \\text{is even}"
+expression: "\\iota \\kappa \\lambda \\mu \\nu \\xi \\omicron \\pi"
 ---
 <math>
-    <mtext>if</mtext>
-    <mtext> </mtext>
-    <mi>n</mi>
-    <mtext> </mtext>
-    <mtext>is even</mtext>
+    <mi>ι</mi>
+    <mi>κ</mi>
+    <mi>λ</mi>
+    <mi>μ</mi>
+    <mi>ν</mi>
+    <mi>ξ</mi>
+    <mi>ο</mi>
+    <mi>π</mi>
 </math>

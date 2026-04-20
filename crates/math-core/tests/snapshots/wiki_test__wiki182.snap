@@ -1,22 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathcal{ABCDEFGHI} \\\\ \\mathcal{JKLMNOPQR} \\\\ \\mathcal{STUVWXYZ} \\\\ \\mathcal{abcdefghi} \\\\ \\mathcal{jklmnopqr} \\\\ \\mathcal{stuvwxyz}"
+expression: "\\uparrow \\big\\uparrow \\Big\\uparrow \\bigg\\uparrow \\Bigg\\uparrow \\dots \\Bigg\\Downarrow \\bigg\\Downarrow \\Big\\Downarrow \\big\\Downarrow \\Downarrow"
 ---
 <math>
-    <mrow><mspace/><mi>𝒜︀ℬ︀𝒞︀𝒟︀ℰ︀ℱ︀𝒢︀ℋ︀ℐ︀</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝒥︀𝒦︀ℒ︀ℳ︀𝒩︀𝒪︀𝒫︀𝒬︀ℛ︀</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝒮︀𝒯︀𝒰︀𝒱︀𝒲︀𝒳︀𝒴︀𝒵︀</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝒶︀𝒷︀𝒸︀𝒹︀ℯ︀𝒻︀ℊ︀𝒽︀𝒾︀</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝒿︀𝓀︀𝓁︀𝓂︀𝓃︀ℴ︀𝓅︀𝓆︀𝓇︀</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝓈︀𝓉︀𝓊︀𝓋︀𝓌︀𝓍︀𝓎︀𝓏︀</mi></mrow>
+    <mo stretchy="false" lspace="0">↑</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">↑</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">↑</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">↑</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">↑</mo>
+    <mo>.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0">.</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">⇓</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">⇓</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">⇓</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">⇓</mo>
+    <mo stretchy="false" rspace="0">⇓</mo>
 </math>

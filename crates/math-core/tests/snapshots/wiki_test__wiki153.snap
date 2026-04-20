@@ -1,14 +1,28 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi"
+expression: "\\begin{pmatrix} x & y \\\\ z & v \\end{pmatrix}"
 ---
 <math>
-    <mrow><mspace/><mi mathvariant="normal">Ι</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Κ</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Λ</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Μ</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Ν</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Ξ</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Ο</mi></mrow>
-    <mrow><mspace/><mi mathvariant="normal">Π</mi></mrow>
+    <mrow>
+        <mo>(</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>x</mi>
+                </mtd>
+                <mtd>
+                    <mi>y</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mi>z</mi>
+                </mtd>
+                <mtd>
+                    <mi>v</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>)</mo>
+    </mrow>
 </math>

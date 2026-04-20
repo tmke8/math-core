@@ -1,15 +1,11 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\Leftrightarrow, \\nLeftrightarrow, \\Longleftrightarrow, \\iff"
+expression: "\\Leftarrow, \\nLeftarrow, \\Longleftarrow"
 ---
 <math>
-    <mo stretchy="false" lspace="0" rspace="0">⇔</mo>
+    <mo stretchy="false" lspace="0" rspace="0">⇐</mo>
     <mo>,</mo>
-    <mo stretchy="false" lspace="0" rspace="0">⇎</mo>
+    <mo stretchy="false" lspace="0" rspace="0">⇍</mo>
     <mo>,</mo>
-    <mo stretchy="false" lspace="0" rspace="0">⟺</mo>
-    <mo>,</mo>
-    <mspace width="0.2777778em"/>
-    <mo stretchy="false" lspace="0" rspace="0">⟺</mo>
-    <mspace width="0.2777778em"/>
+    <mo stretchy="false" lspace="0" rspace="0">⟸</mo>
 </math>

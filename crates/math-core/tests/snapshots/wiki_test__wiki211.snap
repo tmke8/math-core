@@ -1,35 +1,22 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "u'' + p(x)u' + q(x)u=f(x),\\quad x>a"
+expression: "\\mathsf{ABCDEFGHI} \\\\ \\mathsf{JKLMNOPQR} \\\\ \\mathsf{STUVWXYZ} \\\\ \\mathsf{abcdefghijklm} \\\\ \\mathsf{nopqrstuvwxyz} \\\\ \\mathsf{0123456789}"
 ---
 <math>
-    <msup>
-        <mi>u</mi>
-        <mo>″</mo>
-    </msup>
-    <mo>+</mo>
-    <mi>p</mi>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
-    <msup>
-        <mi>u</mi>
-        <mo>′</mo>
-    </msup>
-    <mo>+</mo>
-    <mi>q</mi>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
-    <mi>u</mi>
-    <mo>=</mo>
-    <mi>f</mi>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
-    <mo>,</mo>
-    <mspace width="1em"/>
-    <mi>x</mi>
-    <mo>&gt;</mo>
-    <mi>a</mi>
+    <mrow><mspace/><mi>𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓</mi></mrow>
+    <mrow>
+    </mrow>
+    <mrow><mspace/><mi>𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫</mi></mrow>
 </math>
