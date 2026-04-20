@@ -150,7 +150,7 @@ where
         keep_end_token: bool,
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
-        let mut numerator: Option<Vec<&'arena Node<'arena>>> = None;
+        let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<StretchableOp>)> = None;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
@@ -168,7 +168,7 @@ where
                         tokloc,
                         sequence_end,
                         &mut nodes,
-                        &mut numerator,
+                        &mut infix_frac,
                     )? {
                         ControlFlow::SkipToken => continue,
                         ControlFlow::ProcessToken => {}
@@ -195,9 +195,13 @@ where
             });
             nodes.push(node);
         }
-        if let Some(numerator) = numerator {
+        if let Some((numerator, with_line, delimiter)) = infix_frac {
             let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
-            let (lt_value, lt_unit) = Length::none().into_parts();
+            let (lt_value, lt_unit) = if with_line {
+                Length::none().into_parts()
+            } else {
+                Length::zero().into_parts()
+            };
             let frac = self.commit(Node::Frac {
                 num: node_vec_to_node(self.arena, &numerator, false),
                 denom: node_vec_to_node(self.arena, &denominator, false),
@@ -205,7 +209,18 @@ where
                 lt_unit,
                 attr: None,
             });
-            nodes.push(frac);
+            let node = if let Some(delimiter) = delimiter {
+                self.commit(fenced(
+                    self.arena,
+                    vec![frac],
+                    Some(delimiter),
+                    Some(delimiter),
+                    None,
+                ))
+            } else {
+                frac
+            };
+            nodes.push(node);
         }
         if !keep_end_token {
             // Discard the end token.
@@ -221,7 +236,7 @@ where
         tokspan: &TokSpan<'source>,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
-        numerator: &mut Option<Vec<&'arena Node<'arena>>>,
+        infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<StretchableOp>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
         let result: Result<(), LatexError> = match tokspan.token() {
@@ -233,9 +248,9 @@ where
                     return Ok(ControlFlow::ProcessToken);
                 }
             }
-            Token::InfixFrac => {
-                if numerator.is_none() {
-                    *numerator = Some(mem::take(collected_nodes));
+            Token::InfixFrac { with_line } => {
+                if infix_frac.is_none() {
+                    *infix_frac = Some((mem::take(collected_nodes), *with_line, None));
                     Ok(())
                 } else {
                     Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
@@ -1003,7 +1018,7 @@ where
             | Token::NoNumber
             | Token::Tag
             | Token::Label
-            | Token::InfixFrac => Err(LatexError(
+            | Token::InfixFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
             )),
@@ -1287,7 +1302,7 @@ where
                     ),
                 )
             }
-            Token::OperatorName(with_limits) => {
+            Token::OperatorName { with_limits } => {
                 let snippets = self.extract_text(None, false)?;
                 let mut builder = self.buffer.get_builder();
                 for (_style, text) in snippets {

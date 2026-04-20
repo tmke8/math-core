@@ -49,7 +49,7 @@ pub enum Token<'source> {
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
     /// A token for `\over`.
-    InfixFrac,
+    InfixFrac { with_line: bool },
     /// `\genfrac`
     Genfrac,
     /// The character `_` for subscripts.
@@ -150,7 +150,7 @@ pub enum Token<'source> {
     Enclose(Notation),
     /// `\operatorname` and `\operatorname*`. The `bool` is `true` for `\operatorname*` and `false`
     /// for `\operatorname`.
-    OperatorName(bool),
+    OperatorName { with_limits: bool },
     /// `\slashed`
     Slashed,
     /// `\not`
@@ -208,7 +208,7 @@ impl Token<'_> {
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
             Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) | Mathbin => Some(Class::BinaryOp),
-            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName(_) => {
+            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)
             }
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
@@ -227,7 +227,7 @@ impl Token<'_> {
             | Big(_, None)
             | Middle
             | Frac(_)
-            | InfixFrac
+            | InfixFrac { .. }
             | Genfrac
             | Underscore
             | Circumflex
