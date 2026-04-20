@@ -49,7 +49,7 @@ pub enum Token<'source> {
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
     /// A token for `\over`, `\atop`, `\choose`, `\brace` and `\brack`.
-    InfixFrac {
+    InfixGenFrac {
         with_line: bool,
         delim: Option<InfixDelim>,
     },
@@ -241,7 +241,7 @@ impl Token<'_> {
             | Big(_, None)
             | Middle
             | Frac(_)
-            | InfixFrac { .. }
+            | InfixGenFrac { .. }
             | Genfrac
             | Underscore
             | Circumflex

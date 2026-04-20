@@ -256,7 +256,7 @@ where
                     return Ok(ControlFlow::ProcessToken);
                 }
             }
-            Token::InfixFrac { with_line, delim } => {
+            Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
                     *infix_frac = Some((mem::take(collected_nodes), *with_line, *delim));
                     Ok(())
@@ -1022,7 +1022,7 @@ where
             | Token::NoNumber
             | Token::Tag
             | Token::Label
-            | Token::InfixFrac { .. } => Err(LatexError(
+            | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
             )),
