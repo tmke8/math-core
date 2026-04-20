@@ -1,17 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\sinh k, \\cosh l, \\tanh m, \\coth n"
+expression: "\\arcsin h, \\arccos i, \\arctan j"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">sinh</mo>
-    <mi>k</mi>
+    <mo lspace="0" rspace="0.1667em">arcsin</mo>
+    <mi>h</mi>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">cosh</mo>
-    <mi>l</mi>
+    <mo lspace="0" rspace="0.1667em">arccos</mo>
+    <mi>i</mi>
     <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">tanh</mo>
-    <mi>m</mi>
-    <mo>,</mo>
-    <mo lspace="0" rspace="0.1667em">coth</mo>
-    <mi>n</mi>
+    <mo lspace="0" rspace="0.1667em">arctan</mo>
+    <mi>j</mi>
 </math>

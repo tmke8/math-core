@@ -45,6 +45,7 @@ pub(crate) enum LatexErrKind {
     NotValidInMathMode,
     CouldNotExtractText,
     MoreThanOneLabel,
+    MoreThanOneInfixCmd,
     UndefinedLabel(Box<str>),
     InvalidMacroName(String),
     InvalidParameterNumber,
@@ -191,6 +192,9 @@ impl LatexErrKind {
             LatexErrKind::MoreThanOneLabel => {
                 write!(s, "Found more than one label in a row.")?;
             }
+            LatexErrKind::MoreThanOneInfixCmd => {
+                write!(s, "Found more than one infix fraction in a group.")?;
+            }
             LatexErrKind::UndefinedLabel(label) => {
                 write!(s, "Found undefined label: \"{label}\".")?;
             }
@@ -319,6 +323,7 @@ impl LatexError {
             LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),
             LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
             LatexErrKind::MoreThanOneLabel => "duplicate label".into(),
+            LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac".into(),
             LatexErrKind::UndefinedLabel(_) => "label has not been previously defined".into(),
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),

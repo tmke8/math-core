@@ -1,9 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "| {\\uparrow} \\rangle"
+expression: "\\boldsymbol{\\alpha \\beta \\gamma \\delta \\epsilon \\zeta \\eta \\theta}"
 ---
 <math>
-    <mo stretchy="false" lspace="0" rspace="0">|</mo>
-    <mo stretchy="false" lspace="0" rspace="0">↑</mo>
-    <mo stretchy="false">⟩</mo>
+    <mrow><mspace/><mi>𝜶𝜷𝜸𝜹𝝐𝜻𝜼𝜽</mi></mrow>
 </math>

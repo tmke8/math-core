@@ -1,10 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\dddot{x}"
+expression: "\\boldsymbol{\\varepsilon\\digamma\\varkappa \\varpi}"
 ---
 <math>
-    <mover accent="true">
-        <mi>x</mi>
-        <mo>⃛</mo>
-    </mover>
+    <mrow><mspace/><mi>𝜺ϝ𝝒𝝕</mi></mrow>
 </math>

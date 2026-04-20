@@ -1,13 +1,9 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\blacktriangle, \\blacktriangledown, \\blacktriangleleft, \\blacktriangleright"
+expression: "\\vartriangle, \\triangledown"
 ---
 <math>
-    <mi>▲</mi>
+    <mi>△</mi>
     <mo>,</mo>
-    <mi>▼</mi>
-    <mo>,</mo>
-    <mi>◀</mi>
-    <mo>,</mo>
-    <mi>▶</mi>
+    <mi>▽</mi>
 </math>

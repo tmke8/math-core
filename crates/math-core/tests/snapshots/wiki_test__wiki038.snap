@@ -1,14 +1,11 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\{ \\}, \\text\\O \\empty \\emptyset, \\varnothing"
+expression: "\\bigoplus, \\bigotimes, \\bigodot"
 ---
 <math>
-    <mo stretchy="false">{</mo>
-    <mo stretchy="false">}</mo>
+    <mo lspace="0" rspace="0">⨁</mo>
     <mo>,</mo>
-    <mtext>Ø</mtext>
-    <mrow><mspace/><mi>∅︀</mi></mrow>
-    <mrow><mspace/><mi>∅︀</mi></mrow>
+    <mo lspace="0" rspace="0">⨂</mo>
     <mo>,</mo>
-    <mi>∅</mi>
+    <mo lspace="0" rspace="0">⨀</mo>
 </math>

@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\uparrow, \\downarrow, \\updownarrow"
+expression: "\\leftrightarrow, \\nleftrightarrow, \\longleftrightarrow"
 ---
 <math>
-    <mo stretchy="false" lspace="0" rspace="0">↑</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↔</mo>
     <mo>,</mo>
-    <mo stretchy="false" lspace="0" rspace="0">↓</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↮</mo>
     <mo>,</mo>
-    <mo stretchy="false" lspace="0" rspace="0">↕</mo>
+    <mo stretchy="false" lspace="0" rspace="0">⟷</mo>
 </math>

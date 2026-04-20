@@ -1,23 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\left \\lfloor \\frac{a}{b} \\right \\rfloor \\quad \\left \\lceil \\frac{c}{d} \\right \\rceil"
+expression: "\\frac{2}{4}=0.5\\text{ or }{2 \\over 4}=0.5"
 ---
 <math>
-    <mrow>
-        <mo>⌊</mo>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
-        <mo>⌋</mo>
-    </mrow>
-    <mspace width="1em"/>
-    <mrow>
-        <mo>⌈</mo>
-        <mfrac>
-            <mi>c</mi>
-            <mi>d</mi>
-        </mfrac>
-        <mo>⌉</mo>
-    </mrow>
+    <mfrac>
+        <mn>2</mn>
+        <mn>4</mn>
+    </mfrac>
+    <mo>=</mo>
+    <mn>0.5</mn>
+    <mtext> or </mtext>
+    <mfrac>
+        <mn>2</mn>
+        <mn>4</mn>
+    </mfrac>
+    <mo>=</mo>
+    <mn>0.5</mn>
 </math>

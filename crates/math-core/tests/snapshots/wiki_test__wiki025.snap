@@ -1,29 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\Im, \\imath, \\jmath, \\Bbbk, \\ell, \\mho, \\wp, \\Re, \\circledS, \\S, \\P, \\text\\AA"
+expression: "\\infty, \\aleph, \\complement,\\backepsilon, \\eth, \\Finv, \\hbar"
 ---
 <math>
-    <mi>ℑ</mi>
+    <mi>∞</mi>
     <mo>,</mo>
-    <mi>ı</mi>
+    <mi>ℵ</mi>
     <mo>,</mo>
-    <mi>ȷ</mi>
+    <mi>∁</mi>
     <mo>,</mo>
-    <mi>𝕜</mi>
+    <mi>϶</mi>
     <mo>,</mo>
-    <mi>ℓ</mi>
+    <mi>ð</mi>
     <mo>,</mo>
-    <mi>℧</mi>
+    <mi>Ⅎ</mi>
     <mo>,</mo>
-    <mi>℘</mi>
-    <mo>,</mo>
-    <mi>ℜ</mi>
-    <mo>,</mo>
-    <mi>Ⓢ</mi>
-    <mo>,</mo>
-    <mi>§</mi>
-    <mo>,</mo>
-    <mi>¶</mi>
-    <mo>,</mo>
-    <mtext>Å</mtext>
+    <mi>ℏ</mi>
 </math>

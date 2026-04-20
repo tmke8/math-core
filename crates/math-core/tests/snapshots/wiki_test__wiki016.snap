@@ -1,19 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\min(x,y), \\max(x,y)"
+expression: "\\sgn r, \\left\\vert s \\right\\vert"
 ---
 <math>
-    <mo lspace="0" rspace="0">min</mo>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
+    <mo lspace="0" rspace="0.1667em">sgn</mo>
+    <mi>r</mi>
     <mo>,</mo>
-    <mi>y</mi>
-    <mo stretchy="false">)</mo>
-    <mo>,</mo>
-    <mo lspace="0" rspace="0">max</mo>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo>,</mo>
-    <mi>y</mi>
-    <mo stretchy="false">)</mo>
+    <mrow>
+        <mo>|</mo>
+        <mi>s</mi>
+        <mo>|</mo>
+    </mrow>
 </math>

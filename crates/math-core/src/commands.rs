@@ -548,6 +548,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "oplus" => BinaryOp(symbol::CIRCLED_PLUS),
     "oslash" => BinaryOp(symbol::CIRCLED_DIVISION_SLASH),
     "otimes" => ForceBinaryOp(symbol::CIRCLED_TIMES.as_op()),
+    "over" => InfixFrac,
     "overbrace" => OverUnderBrace(symbol::TOP_CURLY_BRACKET, true),
     "overbracket" => OverUnderBrace(symbol::TOP_SQUARE_BRACKET, true),
     "overleftarrow" => Accent(symbol::LEFTWARDS_ARROW.as_op(), true, OpAttrs::empty()),

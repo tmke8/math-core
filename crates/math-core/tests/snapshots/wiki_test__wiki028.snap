@@ -1,19 +1,11 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\gcd(m, n), \\operatorname{lcm}(m, n)"
+expression: "a \\bmod b"
 ---
 <math>
-    <mo lspace="0" rspace="0">gcd</mo>
-    <mo stretchy="false">(</mo>
-    <mi>m</mi>
-    <mo>,</mo>
-    <mi>n</mi>
-    <mo stretchy="false">)</mo>
-    <mo>,</mo>
-    <mo lspace="0" rspace="0">lcm</mo>
-    <mo stretchy="false">(</mo>
-    <mi>m</mi>
-    <mo>,</mo>
-    <mi>n</mi>
-    <mo stretchy="false">)</mo>
+    <mi>a</mi>
+    <mspace width="0.22222222em"/>
+    <mrow><mspace/><mi>mod</mi></mrow>
+    <mspace width="0.22222222em"/>
+    <mi>b</mi>
 </math>

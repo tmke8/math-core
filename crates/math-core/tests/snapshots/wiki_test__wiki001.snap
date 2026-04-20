@@ -1,15 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: f(x) = x^2
+expression: "\\alpha"
 ---
 <math>
-    <mi>f</mi>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
-    <mo>=</mo>
-    <msup>
-        <mi>x</mi>
-        <mn>2</mn>
-    </msup>
+    <mi>α</mi>
 </math>

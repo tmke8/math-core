@@ -1,13 +1,21 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\bigcirc, \\triangle, \\bigtriangleup, \\bigtriangledown"
+expression: "\\Box, \\square, \\blacksquare, \\diamond, \\Diamond, \\lozenge, \\blacklozenge,\\bigstar"
 ---
 <math>
-    <mi>◯</mi>
+    <mi>◻</mi>
     <mo>,</mo>
-    <mi>△</mi>
+    <mi>□</mi>
     <mo>,</mo>
-    <mi>△</mi>
+    <mi>■</mi>
     <mo>,</mo>
-    <mi>▽</mi>
+    <mo lspace="0" rspace="0">⋄</mo>
+    <mo>,</mo>
+    <mi>◊</mi>
+    <mo>,</mo>
+    <mi>◊</mi>
+    <mo>,</mo>
+    <mi>⧫</mi>
+    <mo>,</mo>
+    <mi>★</mi>
 </math>

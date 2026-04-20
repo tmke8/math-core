@@ -1,7 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathsf{\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega}"
+expression: "\\lfloor \\bigl\\lfloor \\Bigl\\lfloor \\biggl\\lfloor \\Biggl\\lfloor \\dots \\Biggr\\rceil \\biggr\\rceil \\Bigr\\rceil \\bigr\\rceil \\rceil"
 ---
 <math>
-    <mrow><mspace/><mi>ΡΣΤΥΦΧΨΩ</mi></mrow>
+    <mo stretchy="false">⌊</mo>
+    <mo minsize="1.2em" maxsize="1.2em">⌊</mo>
+    <mo minsize="1.623em" maxsize="1.623em">⌊</mo>
+    <mo minsize="2.047em" maxsize="2.047em">⌊</mo>
+    <mo minsize="2.470em" maxsize="2.470em">⌊</mo>
+    <mo lspace="0">.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0" rspace="0">.</mo>
+    <mo minsize="2.470em" maxsize="2.470em">⌉</mo>
+    <mo minsize="2.047em" maxsize="2.047em">⌉</mo>
+    <mo minsize="1.623em" maxsize="1.623em">⌉</mo>
+    <mo minsize="1.2em" maxsize="1.2em">⌉</mo>
+    <mo stretchy="false">⌉</mo>
 </math>

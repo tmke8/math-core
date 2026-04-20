@@ -48,6 +48,8 @@ pub enum Token<'source> {
     /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
+    /// A token for `\over`.
+    InfixFrac,
     /// `\genfrac`
     Genfrac,
     /// The character `_` for subscripts.
@@ -225,6 +227,7 @@ impl Token<'_> {
             | Big(_, None)
             | Middle
             | Frac(_)
+            | InfixFrac
             | Genfrac
             | Underscore
             | Circumflex

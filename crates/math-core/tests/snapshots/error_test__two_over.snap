@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "{a^n - \\sin(\\theta+\\eta) \\over x \\over y}"
+---
+Error: Found more than one infix fraction in a group.
+   ╭─[ <input>:1:34 ]
+   │
+ 1 │ {a^n - \sin(\theta+\eta) \over x \over y}
+   │                                  ──┬──  
+   │                                    ╰──── duplicate infix frac
+───╯

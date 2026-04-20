@@ -1,19 +1,49 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "/ \\big/ \\Big/ \\bigg/ \\Bigg/ \\dots \\Bigg\\backslash \\bigg\\backslash \\Big \\backslash \\big\\backslash \\backslash"
+expression: "\\begin{bmatrix} 0 & \\cdots & 0 \\\\ \\vdots & \\ddots & \\vdots \\\\ 0 & \\cdots & 0 \\end{bmatrix}"
 ---
 <math>
-    <mo lspace="0" rspace="0">/</mo>
-    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">/</mo>
-    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">/</mo>
-    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">/</mo>
-    <mo stretchy="true" symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">/</mo>
-    <mo>.</mo>
-    <mo lspace="0" rspace="0.1667em">.</mo>
-    <mo lspace="0">.</mo>
-    <mo stretchy="true" symmetric="true" minsize="2.470em" maxsize="2.470em">\</mo>
-    <mo stretchy="true" symmetric="true" minsize="2.047em" maxsize="2.047em">\</mo>
-    <mo stretchy="true" symmetric="true" minsize="1.623em" maxsize="1.623em">\</mo>
-    <mo stretchy="true" symmetric="true" minsize="1.2em" maxsize="1.2em">\</mo>
-    <mo>\</mo>
+    <mrow>
+        <mo>[</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mo>·</mo>
+                    <mo lspace="0" rspace="0.1667em">·</mo>
+                    <mo lspace="0" rspace="0">·</mo>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mo lspace="0" rspace="0">⋮</mo>
+                </mtd>
+                <mtd>
+                    <mo rspace="0">⋱</mo>
+                </mtd>
+                <mtd>
+                    <mo rspace="0">⋮</mo>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+                <mtd>
+                    <mo>·</mo>
+                    <mo lspace="0" rspace="0.1667em">·</mo>
+                    <mo lspace="0" rspace="0">·</mo>
+                </mtd>
+                <mtd>
+                    <mn>0</mn>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>]</mo>
+    </mrow>
 </math>

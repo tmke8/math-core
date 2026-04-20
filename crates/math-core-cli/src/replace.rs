@@ -44,9 +44,7 @@ impl fmt::Display for ConversionError<'_, '_> {
                 report
                     .write((source_name, ariadne::Source::from(*input)), &mut buf)
                     .expect("failed to write report");
-                f.write_str(
-                    std::str::from_utf8(&buf).expect("report should be valid UTF-8"),
-                )
+                f.write_str(std::str::from_utf8(&buf).expect("report should be valid UTF-8"))
             }
         }
     }

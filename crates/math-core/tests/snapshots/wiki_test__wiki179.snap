@@ -1,7 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathsf{\\Alpha \\Beta \\Gamma \\Delta \\Epsilon \\Zeta \\Eta \\Theta}"
+expression: "\\{ \\bigl\\{ \\Bigl\\{ \\biggl\\{ \\Biggl\\{ \\dots \\Biggr\\rangle \\biggr\\rangle \\Bigr\\rangle \\bigr\\rangle \\rangle"
 ---
 <math>
-    <mrow><mspace/><mi>ΑΒΓΔΕΖΗΘ</mi></mrow>
+    <mo stretchy="false">{</mo>
+    <mo minsize="1.2em" maxsize="1.2em">{</mo>
+    <mo minsize="1.623em" maxsize="1.623em">{</mo>
+    <mo minsize="2.047em" maxsize="2.047em">{</mo>
+    <mo minsize="2.470em" maxsize="2.470em">{</mo>
+    <mo lspace="0">.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0" rspace="0">.</mo>
+    <mo minsize="2.470em" maxsize="2.470em">⟩</mo>
+    <mo minsize="2.047em" maxsize="2.047em">⟩</mo>
+    <mo minsize="1.623em" maxsize="1.623em">⟩</mo>
+    <mo minsize="1.2em" maxsize="1.2em">⟩</mo>
+    <mo stretchy="false">⟩</mo>
 </math>

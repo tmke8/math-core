@@ -1,14 +1,12 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\left / \\frac{a}{b} \\right \\backslash"
+expression: "\\frac{2}{4}=0.5"
 ---
 <math>
-    <mrow>
-        <mo stretchy="true" lspace="0" rspace="0">/</mo>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
-        <mo stretchy="true">\</mo>
-    </mrow>
+    <mfrac>
+        <mn>2</mn>
+        <mn>4</mn>
+    </mfrac>
+    <mo>=</mo>
+    <mn>0.5</mn>
 </math>

@@ -1,13 +1,15 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\{1,e,\\pi\\}"
+expression: f(x) = x^2
 ---
 <math>
-    <mo stretchy="false">{</mo>
-    <mn>1</mn>
-    <mo>,</mo>
-    <mi>e</mi>
-    <mo>,</mo>
-    <mi>π</mi>
-    <mo stretchy="false">}</mo>
+    <mi>f</mi>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <msup>
+        <mi>x</mi>
+        <mn>2</mn>
+    </msup>
 </math>

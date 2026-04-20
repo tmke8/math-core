@@ -1,18 +1,13 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\amalg \\P \\S \\% \\dagger\\ddagger\\ldots\\cdots"
+expression: "\\hookrightarrow \\hookleftarrow \\multimap \\leftrightsquigarrow \\rightsquigarrow \\twoheadrightarrow \\twoheadleftarrow"
 ---
 <math>
-    <mo lspace="0">⨿</mo>
-    <mi>¶</mi>
-    <mi>§</mi>
-    <mi>%</mi>
-    <mi>†</mi>
-    <mi>‡</mi>
-    <mo>.</mo>
-    <mo lspace="0" rspace="0.1667em">.</mo>
-    <mo lspace="0">.</mo>
-    <mo>·</mo>
-    <mo lspace="0" rspace="0.1667em">·</mo>
-    <mo lspace="0" rspace="0">·</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↪</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↩</mo>
+    <mo lspace="0" rspace="0">⊸</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↭</mo>
+    <mo stretchy="false" lspace="0" rspace="0">⇝</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↠</mo>
+    <mo stretchy="false" lspace="0" rspace="0">↞</mo>
 </math>

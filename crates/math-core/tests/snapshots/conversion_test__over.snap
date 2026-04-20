@@ -1,0 +1,25 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{\\log x + a^n - \\sin(\\theta+\\eta) \\over x}"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mo lspace="0" rspace="0.1667em">log</mo>
+            <mi>x</mi>
+            <mo>+</mo>
+            <msup>
+                <mi>a</mi>
+                <mi>n</mi>
+            </msup>
+            <mo>−</mo>
+            <mo lspace="0" rspace="0">sin</mo>
+            <mo stretchy="false">(</mo>
+            <mi>θ</mi>
+            <mo>+</mo>
+            <mi>η</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+        <mi>x</mi>
+    </mfrac>
+</math>

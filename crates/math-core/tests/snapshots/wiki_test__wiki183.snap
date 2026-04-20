@@ -1,22 +1,19 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\mathfrak{ABCDEFGHI} \\\\ \\mathfrak{JKLMNOPQR} \\\\ \\mathfrak{STUVWXYZ} \\\\ \\mathfrak{abcdefghi} \\\\ \\mathfrak{jklmnopqr} \\\\ \\mathfrak{stuvwxyz}"
+expression: "\\updownarrow\\big\\updownarrow\\Big\\updownarrow \\bigg\\updownarrow \\Bigg\\updownarrow \\dots \\Bigg\\Updownarrow \\bigg\\Updownarrow \\Big \\Updownarrow \\big\\Updownarrow \\Updownarrow"
 ---
 <math>
-    <mrow><mspace/><mi>𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℍ</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯</mi></mrow>
-    <mrow>
-    </mrow>
-    <mrow><mspace/><mi>𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷</mi></mrow>
+    <mo stretchy="false" lspace="0">↕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">↕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">↕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">↕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">↕</mo>
+    <mo>.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0">.</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.470em" maxsize="2.470em">⇕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="2.047em" maxsize="2.047em">⇕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.623em" maxsize="1.623em">⇕</mo>
+    <mo symmetric="true" lspace="0" rspace="0" minsize="1.2em" maxsize="1.2em">⇕</mo>
+    <mo stretchy="false" rspace="0">⇕</mo>
 </math>

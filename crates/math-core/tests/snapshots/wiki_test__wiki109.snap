@@ -1,31 +1,13 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\overset{\\alpha}{\\omega} \\\\ \\underset{\\alpha}{\\omega} \\\\ \\overset{\\alpha}{\\underset{\\gamma}{\\omega}}\\\\ \\stackrel{\\alpha}{\\omega}"
+expression: "10^{10^{8}}"
 ---
 <math>
-    <mover>
-        <mi>ω</mi>
-        <mi>α</mi>
-    </mover>
-    <mrow>
-    </mrow>
-    <munder>
-        <mi>ω</mi>
-        <mi>α</mi>
-    </munder>
-    <mrow>
-    </mrow>
-    <mover>
-        <munder>
-            <mi>ω</mi>
-            <mi>γ</mi>
-        </munder>
-        <mi>α</mi>
-    </mover>
-    <mrow>
-    </mrow>
-    <mover>
-        <mi>ω</mi>
-        <mi>α</mi>
-    </mover>
+    <msup>
+        <mn>10</mn>
+        <msup>
+            <mn>10</mn>
+            <mn>8</mn>
+        </msup>
+    </msup>
 </math>

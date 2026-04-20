@@ -1,9 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "| \\uparrow \\rangle"
+expression: "\\boldsymbol{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
 ---
 <math>
-    <mo stretchy="false" lspace="0" rspace="0">|</mo>
-    <mo stretchy="false" rspace="0">↑</mo>
-    <mo stretchy="false">⟩</mo>
+    <mrow><mspace/><mi>𝚰𝚱𝚲𝚳𝚴𝚵𝚶𝚷</mi></mrow>
 </math>

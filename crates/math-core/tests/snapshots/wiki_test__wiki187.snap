@@ -1,9 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\text{if} n \\text{is even}"
+expression: "\\Rho \\Sigma \\Tau \\Upsilon \\Phi \\Chi \\Psi \\Omega"
 ---
 <math>
-    <mtext>if</mtext>
-    <mi>n</mi>
-    <mtext>is even</mtext>
+    <mrow><mspace/><mi mathvariant="normal">Ρ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Σ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Τ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Υ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Φ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Χ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ψ</mi></mrow>
+    <mrow><mspace/><mi mathvariant="normal">Ω</mi></mrow>
 </math>

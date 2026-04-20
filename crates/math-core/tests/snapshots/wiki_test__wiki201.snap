@@ -1,13 +1,7 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\wideparen{AB}"
+expression: "\\boldsymbol{\\rho \\sigma \\tau \\upsilon \\phi \\chi \\psi \\omega}"
 ---
 <math>
-    <mover>
-        <mrow>
-            <mi>A</mi>
-            <mi>B</mi>
-        </mrow>
-        <mo>⏜</mo>
-    </mover>
+    <mrow><mspace/><mi>𝝆𝝈𝝉𝝊𝝓𝝌𝝍𝝎</mi></mrow>
 </math>

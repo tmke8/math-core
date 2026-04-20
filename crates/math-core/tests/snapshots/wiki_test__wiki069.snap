@@ -1,21 +1,18 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\Box, \\square, \\blacksquare, \\diamond, \\Diamond, \\lozenge, \\blacklozenge,\\bigstar"
+expression: "\\perp, \\angle, \\sphericalangle, \\measuredangle, 45^\\circ"
 ---
 <math>
-    <mi>◻</mi>
+    <mo lspace="0" rspace="0">⟂</mo>
     <mo>,</mo>
-    <mi>□</mi>
+    <mi>∠</mi>
     <mo>,</mo>
-    <mi>■</mi>
+    <mi>∢</mi>
     <mo>,</mo>
-    <mo lspace="0" rspace="0">⋄</mo>
+    <mi>∡</mi>
     <mo>,</mo>
-    <mi>◊</mi>
-    <mo>,</mo>
-    <mi>◊</mi>
-    <mo>,</mo>
-    <mi>⧫</mi>
-    <mo>,</mo>
-    <mi>★</mi>
+    <msup>
+        <mn>45</mn>
+        <mo>∘</mo>
+    </msup>
 </math>

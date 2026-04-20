@@ -1,12 +1,23 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\frac{2}{4}=0.5"
+expression: "\\overbrace{ 1+2+\\cdots+100 }^{5050}"
 ---
 <math>
-    <mfrac>
-        <mn>2</mn>
-        <mn>4</mn>
-    </mfrac>
-    <mo>=</mo>
-    <mn>0.5</mn>
+    <mover>
+        <mover>
+            <mrow>
+                <mn>1</mn>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mo>+</mo>
+                <mo lspace="0">·</mo>
+                <mo lspace="0" rspace="0.1667em">·</mo>
+                <mo lspace="0" rspace="0">·</mo>
+                <mo>+</mo>
+                <mn>100</mn>
+            </mrow>
+            <mo>⏞</mo>
+        </mover>
+        <mn>5050</mn>
+    </mover>
 </math>

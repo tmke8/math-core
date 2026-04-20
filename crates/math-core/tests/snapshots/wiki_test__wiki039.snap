@@ -1,14 +1,14 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\in, \\notin \\not\\in, \\ni, \\not\\ni"
+expression: "\\{ \\}, \\text\\O \\empty \\emptyset, \\varnothing"
 ---
 <math>
-    <mo lspace="0" rspace="0">∈</mo>
+    <mo stretchy="false">{</mo>
+    <mo stretchy="false">}</mo>
     <mo>,</mo>
-    <mo lspace="0" rspace="0">∉</mo>
-    <mo lspace="0" rspace="0">∉</mo>
+    <mtext>Ø</mtext>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
+    <mrow><mspace/><mi>∅︀</mi></mrow>
     <mo>,</mo>
-    <mo lspace="0" rspace="0">∋</mo>
-    <mo>,</mo>
-    <mo lspace="0" rspace="0">∋</mo>
+    <mi>∅</mi>
 </math>

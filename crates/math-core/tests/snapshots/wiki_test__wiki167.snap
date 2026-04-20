@@ -1,7 +1,17 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\iota \\kappa \\lambda \\mu \\nu \\xi \\omicron \\pi}"
+expression: "\\left ( \\frac{1}{2} \\right )^n"
 ---
 <math>
-    <mrow><mspace/><mi>𝜾𝜿𝝀𝝁𝝂𝝃𝝄𝝅</mi></mrow>
+    <msup>
+        <mrow>
+            <mo>(</mo>
+            <mfrac>
+                <mn>1</mn>
+                <mn>2</mn>
+            </mfrac>
+            <mo>)</mo>
+        </mrow>
+        <mi>n</mi>
+    </msup>
 </math>

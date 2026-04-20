@@ -1,18 +1,29 @@
 ---
 source: crates/math-core/tests/wiki_test.rs
-expression: "s_k \\equiv 0 \\pmod{m}"
+expression: "\\Im, \\imath, \\jmath, \\Bbbk, \\ell, \\mho, \\wp, \\Re, \\circledS, \\S, \\P, \\text\\AA"
 ---
 <math>
-    <msub>
-        <mi>s</mi>
-        <mi>k</mi>
-    </msub>
-    <mo>≡</mo>
-    <mn>0</mn>
-    <mspace width="1em"/>
-    <mo stretchy="false">(</mo>
-    <mrow><mspace/><mi>mod</mi></mrow>
-    <mspace width="0.33333334em"/>
-    <mi>m</mi>
-    <mo stretchy="false">)</mo>
+    <mi>ℑ</mi>
+    <mo>,</mo>
+    <mi>ı</mi>
+    <mo>,</mo>
+    <mi>ȷ</mi>
+    <mo>,</mo>
+    <mi>𝕜</mi>
+    <mo>,</mo>
+    <mi>ℓ</mi>
+    <mo>,</mo>
+    <mi>℧</mi>
+    <mo>,</mo>
+    <mi>℘</mi>
+    <mo>,</mo>
+    <mi>ℜ</mi>
+    <mo>,</mo>
+    <mi>Ⓢ</mi>
+    <mo>,</mo>
+    <mi>§</mi>
+    <mo>,</mo>
+    <mi>¶</mi>
+    <mo>,</mo>
+    <mtext>Å</mtext>
 </math>
