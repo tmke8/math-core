@@ -220,11 +220,6 @@ Other things that haven’t been implemented yet:
 ## Features that are not planned
 There are some things we will (most likely) never support.
 
-### Infix commands like `\over` and `\above`
-Supporting these would make the parser much more complicated. This does not seem worth it, given that these commands are very rarely used and considered somewhat deprecated.
-
-Other commands in this category: `\choose`, `\brace`, `\brack`, `\atop`
-
 ### Definition commands like `\def`, `\newcommand`, `\definecolor`
 Again, supporting these would make the code much more complicated and anyway, these commands need to be repeated in every document. It seems more convenient to users and to the development of this project if new commands can only be defined in the config file.
 

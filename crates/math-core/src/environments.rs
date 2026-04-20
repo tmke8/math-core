@@ -54,6 +54,15 @@ pub enum Env {
     VMatrix,
     Vmatrix,
 }
+pub const OPEN_PAREN: StretchableOp = StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
+pub const CLOSE_PAREN: StretchableOp = StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
+pub const OPEN_BRACKET: StretchableOp =
+    StretchableOp::from_ord(symbol::LEFT_SQUARE_BRACKET).unwrap();
+pub const CLOSE_BRACKET: StretchableOp =
+    StretchableOp::from_ord(symbol::RIGHT_SQUARE_BRACKET).unwrap();
+pub const OPEN_BRACE: StretchableOp = StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
+pub const CLOSE_BRACE: StretchableOp =
+    StretchableOp::from_ord(symbol::RIGHT_CURLY_BRACKET).unwrap();
 
 impl Env {
     pub(super) fn from_str(s: &str) -> Option<Self> {
@@ -195,27 +204,9 @@ impl Env {
             | Env::Vmatrix) => {
                 let align = Alignment::Centered;
                 let (open, close) = match matrix_variant {
-                    Env::PMatrix => {
-                        const OPEN_PAREN: StretchableOp =
-                            StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
-                        const CLOSE_PAREN: StretchableOp =
-                            StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
-                        (OPEN_PAREN, CLOSE_PAREN)
-                    }
-                    Env::BMatrix => {
-                        const OPEN_BRACKET: StretchableOp =
-                            StretchableOp::from_ord(symbol::LEFT_SQUARE_BRACKET).unwrap();
-                        const CLOSE_BRACKET: StretchableOp =
-                            StretchableOp::from_ord(symbol::RIGHT_SQUARE_BRACKET).unwrap();
-                        (OPEN_BRACKET, CLOSE_BRACKET)
-                    }
-                    Env::Bmatrix => {
-                        const OPEN_BRACE: StretchableOp =
-                            StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
-                        const CLOSE_BRACE: StretchableOp =
-                            StretchableOp::from_ord(symbol::RIGHT_CURLY_BRACKET).unwrap();
-                        (OPEN_BRACE, CLOSE_BRACE)
-                    }
+                    Env::PMatrix => (OPEN_PAREN, CLOSE_PAREN),
+                    Env::BMatrix => (OPEN_BRACKET, CLOSE_BRACKET),
+                    Env::Bmatrix => (OPEN_BRACE, CLOSE_BRACE),
                     Env::VMatrix => {
                         const LINE: StretchableOp =
                             StretchableOp::from_ord(symbol::VERTICAL_LINE).unwrap();

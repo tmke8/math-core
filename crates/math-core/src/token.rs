@@ -48,8 +48,11 @@ pub enum Token<'source> {
     /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
-    /// A token for `\over`.
-    InfixFrac,
+    /// A token for `\over`, `\atop`, `\choose`, `\brace` and `\brack`.
+    InfixGenFrac {
+        with_line: bool,
+        delim: Option<InfixDelim>,
+    },
     /// `\genfrac`
     Genfrac,
     /// The character `_` for subscripts.
@@ -150,7 +153,7 @@ pub enum Token<'source> {
     Enclose(Notation),
     /// `\operatorname` and `\operatorname*`. The `bool` is `true` for `\operatorname*` and `false`
     /// for `\operatorname`.
-    OperatorName(bool),
+    OperatorName { with_limits: bool },
     /// `\slashed`
     Slashed,
     /// `\not`
@@ -191,6 +194,17 @@ pub enum TextToken {
     Letter(char),
 }
 
+/// The delimiter pair that surrounds the result of an infix fraction-like command.
+#[derive(Debug, Clone, Copy)]
+pub enum InfixDelim {
+    /// Parentheses: `(` and `)` (`\choose`).
+    Paren,
+    /// Curly brackets: `{` and `}` (`\brace`).
+    Brace,
+    /// Square brackets: `[` and `]` (`\brack`).
+    Brack,
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -208,7 +222,7 @@ impl Token<'_> {
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
             Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) | Mathbin => Some(Class::BinaryOp),
-            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName(_) => {
+            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)
             }
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
@@ -227,7 +241,7 @@ impl Token<'_> {
             | Big(_, None)
             | Middle
             | Frac(_)
-            | InfixFrac
+            | InfixGenFrac { .. }
             | Genfrac
             | Underscore
             | Circumflex

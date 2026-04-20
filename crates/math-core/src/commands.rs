@@ -7,7 +7,7 @@ use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    Mode, TextToken,
+    InfixDelim, Mode, TextToken,
     Token::{self, *},
 };
 
@@ -148,6 +148,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ast" => ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()),
     "astrosun" => Letter(symbol::SUN, Mode::Math),
     "asymp" => Relation(symbol::EQUIVALENT_TO),
+    "atop" => InfixGenFrac { with_line: false, delim: None },
     "awint" => Op(symbol::ANTICLOCKWISE_INTEGRATION),
     "backdprime" => Ord(symbol::REVERSED_DOUBLE_PRIME),
     "backepsilon" => Letter(symbol::GREEK_REVERSED_LUNATE_EPSILON_SYMBOL, Mode::Math),
@@ -211,6 +212,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "boxslash" => BinaryOp(symbol::SQUARED_RISING_DIAGONAL_SLASH),
     "boxtimes" => ForceBinaryOp(symbol::SQUARED_TIMES.as_op()),
     "bra" => CustomCmd(1, &predefined::BRA),
+    "brace" => InfixGenFrac { with_line: false, delim: Some(InfixDelim::Brace) },
+    "brack" => InfixGenFrac { with_line: false, delim: Some(InfixDelim::Brack) },
     "breve" => Accent(symbol::BREVE, true, OpAttrs::empty()),
     "bull" => ForceBinaryOp(symbol::BULLET_OPERATOR.as_op()),
     "bullet" => ForceBinaryOp(symbol::BULLET_OPERATOR.as_op()),
@@ -225,6 +228,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "check" => Accent(symbol::CARON, true, OpAttrs::STRETCHY_FALSE),
     "checkmark" => Letter(symbol::CHECK_MARK, Mode::Math),
     "chi" => Letter(symbol::GREEK_SMALL_LETTER_CHI, Mode::Math),
+    "choose" => InfixGenFrac { with_line: false, delim: Some(InfixDelim::Paren) },
     "circ" => ForceBinaryOp(symbol::RING_OPERATOR.as_op()),
     "circeq" => Relation(symbol::RING_EQUAL_TO),
     "circlearrowleft" => Relation(symbol::ANTICLOCKWISE_OPEN_CIRCLE_ARROW),
@@ -543,12 +547,12 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "omega" => Letter(symbol::GREEK_SMALL_LETTER_OMEGA, Mode::Math),
     "omicron" => Letter(symbol::GREEK_SMALL_LETTER_OMICRON, Mode::Math),
     "ominus" => BinaryOp(symbol::CIRCLED_MINUS),
-    "operatorname" => OperatorName(false),
-    "operatorname*" => OperatorName(true),
+    "operatorname" => OperatorName { with_limits: false },
+    "operatorname*" => OperatorName { with_limits: true },
     "oplus" => BinaryOp(symbol::CIRCLED_PLUS),
     "oslash" => BinaryOp(symbol::CIRCLED_DIVISION_SLASH),
     "otimes" => ForceBinaryOp(symbol::CIRCLED_TIMES.as_op()),
-    "over" => InfixFrac,
+    "over" => InfixGenFrac { with_line: true, delim: None },
     "overbrace" => OverUnderBrace(symbol::TOP_CURLY_BRACKET, true),
     "overbracket" => OverUnderBrace(symbol::TOP_SQUARE_BRACKET, true),
     "overleftarrow" => Accent(symbol::LEFTWARDS_ARROW.as_op(), true, OpAttrs::empty()),
