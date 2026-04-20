@@ -175,7 +175,7 @@ fn main() {
                     println!("{mathml}");
                 }
                 Err(e) => exit_conversion_error(e, None),
-            };
+            }
         } else if args.recursive {
             convert_html_recursive(&args, fpath, &mut replacer, &mut converter);
         } else {

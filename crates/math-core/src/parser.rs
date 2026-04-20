@@ -268,7 +268,7 @@ where
                     }
                 } else {
                     Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Tag,
                             correct_place: Place::NumberedEnv,
@@ -280,14 +280,14 @@ where
                 let (label_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     if numbered_state.label.is_some() {
-                        Err(LatexError(span.into(), LatexErrKind::MoreThanOneLabel))
+                        Err(LatexError(span, LatexErrKind::MoreThanOneLabel))
                     } else {
                         numbered_state.label = Some(label_name);
                         Ok(())
                     }
                 } else {
                     Err(LatexError(
-                        span.into(),
+                        span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Label,
                             correct_place: Place::NumberedEnv,
