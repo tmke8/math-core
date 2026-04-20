@@ -15,11 +15,14 @@ use crate::{
     },
     color_defs::get_color,
     commands::get_negated_op,
-    environments::{Env, NumberedEnvState},
+    environments::{
+        CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, NumberedEnvState, OPEN_BRACE, OPEN_BRACKET,
+        OPEN_PAREN,
+    },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{parse_column_specification, parse_length_specification},
-    token::{EndToken, Mode, TokSpan, Token},
+    token::{EndToken, InfixDelim, Mode, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -150,7 +153,7 @@ where
         keep_end_token: bool,
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
-        let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<StretchableOp>)> = None;
+        let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)> = None;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
@@ -195,7 +198,7 @@ where
             });
             nodes.push(node);
         }
-        if let Some((numerator, with_line, delimiter)) = infix_frac {
+        if let Some((numerator, with_line, delim)) = infix_frac {
             let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
             let (lt_value, lt_unit) = if with_line {
                 Length::none().into_parts()
@@ -209,12 +212,17 @@ where
                 lt_unit,
                 attr: None,
             });
-            let node = if let Some(delimiter) = delimiter {
+            let node = if let Some(delim) = delim {
+                let (open, close) = match delim {
+                    InfixDelim::Paren => (OPEN_PAREN, CLOSE_PAREN),
+                    InfixDelim::Brace => (OPEN_BRACE, CLOSE_BRACE),
+                    InfixDelim::Brack => (OPEN_BRACKET, CLOSE_BRACKET),
+                };
                 self.commit(fenced(
                     self.arena,
                     vec![frac],
-                    Some(delimiter),
-                    Some(delimiter),
+                    Some(open),
+                    Some(close),
                     None,
                 ))
             } else {
@@ -236,7 +244,7 @@ where
         tokspan: &TokSpan<'source>,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
-        infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<StretchableOp>)>,
+        infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
         let result: Result<(), LatexError> = match tokspan.token() {
@@ -248,9 +256,9 @@ where
                     return Ok(ControlFlow::ProcessToken);
                 }
             }
-            Token::InfixFrac { with_line } => {
+            Token::InfixFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    *infix_frac = Some((mem::take(collected_nodes), *with_line, None));
+                    *infix_frac = Some((mem::take(collected_nodes), *with_line, *delim));
                     Ok(())
                 } else {
                     Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
@@ -687,10 +695,6 @@ where
                 let denom = self.parse_next(ParseAs::Arg)?;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
-                    const OPEN_PAREN: StretchableOp =
-                        StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
-                    const CLOSE_PAREN: StretchableOp =
-                        StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
                     Ok(fenced(
                         self.arena,
                         vec![self.commit(Node::Frac {

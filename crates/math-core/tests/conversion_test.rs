@@ -87,6 +87,10 @@ fn main() {
         ("fraction_with_space", r"\frac 12"),
         ("slightly_more_complex_fraction", r"\frac{12}{5}"),
         ("over", r"{\log x + a^n - \sin(\theta+\eta) \over x}"),
+        (
+            "infix_fractions",
+            r"{a\atop b}, {a\choose b}, {a\brace b}, {a\brack b}",
+        ),
         ("superscript", r"x^2"),
         ("sub_superscript", r"x^2_3"),
         ("super_subscript", r"x_3^2"),

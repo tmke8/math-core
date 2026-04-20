@@ -1,0 +1,37 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{a\\atop b}, {a\\choose b}, {a\\brace b}, {a\\brack b}"
+---
+<math>
+    <mfrac linethickness="0">
+        <mi>a</mi>
+        <mi>b</mi>
+    </mfrac>
+    <mo>,</mo>
+    <mrow>
+        <mo>(</mo>
+        <mfrac linethickness="0">
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>)</mo>
+    </mrow>
+    <mo>,</mo>
+    <mrow>
+        <mo>{</mo>
+        <mfrac linethickness="0">
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>}</mo>
+    </mrow>
+    <mo>,</mo>
+    <mrow>
+        <mo>[</mo>
+        <mfrac linethickness="0">
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mo>]</mo>
+    </mrow>
+</math>

@@ -48,8 +48,11 @@ pub enum Token<'source> {
     /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
-    /// A token for `\over`.
-    InfixFrac { with_line: bool },
+    /// A token for `\over`, `\atop`, `\choose`, `\brace` and `\brack`.
+    InfixFrac {
+        with_line: bool,
+        delim: Option<InfixDelim>,
+    },
     /// `\genfrac`
     Genfrac,
     /// The character `_` for subscripts.
@@ -189,6 +192,17 @@ pub enum Token<'source> {
 pub enum TextToken {
     Accent(char),
     Letter(char),
+}
+
+/// The delimiter pair that surrounds the result of an infix fraction-like command.
+#[derive(Debug, Clone, Copy)]
+pub enum InfixDelim {
+    /// Parentheses: `(` and `)` (`\choose`).
+    Paren,
+    /// Curly brackets: `{` and `}` (`\brace`).
+    Brace,
+    /// Square brackets: `[` and `]` (`\brack`).
+    Brack,
 }
 
 #[cfg(target_arch = "wasm32")]

@@ -22,7 +22,7 @@ pub struct ConfigParseError {
 impl ConfigParseError {
     #[wasm_bindgen(getter, unchecked_return_type = "string")]
     pub fn message(&self) -> JsValue {
-        JsValue::from_str(&self.message)
+        JsValue::from_str(self.message)
     }
 }
 
