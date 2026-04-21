@@ -1126,7 +1126,7 @@ fn test_nonfailing_wiki_tests() {
             r"\hat a \ \bar b \ \vec c \\ \overrightarrow{a b} \ \overleftarrow{c d}\\ \widehat{d e f} \\ \overline{g h i} \ \underline{j k l}",
         ),
         (115, r"\overset{\frown} {AB}"),
-        // (116, r"A \xleftarrow{n+\mu-1} B \xrightarrow[T]{n\pm i-1} C"),
+        (116, r"A \xleftarrow{n+\mu-1} B \xrightarrow[T]{n\pm i-1} C"),
         (117, r"\overbrace{ 1+2+\cdots+100 }^{5050}"),
         (118, r"\underbrace{ a+b+\cdots+z }_{26}"),
         (140, r"\frac{2}{4}=0.5\text{ or }{2 \over 4}=0.5"),

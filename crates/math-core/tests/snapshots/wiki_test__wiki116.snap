@@ -1,0 +1,59 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "A \\xleftarrow{n+\\mu-1} B \\xrightarrow[T]{n\\pm i-1} C"
+---
+<math>
+    <mi>A</mi>
+    <mrow>
+        <mspace width="0.2777778em"/>
+        <mover>
+            <mo>←</mo>
+            <mover>
+                <mrow>
+                    <mspace width="0.4286em"/>
+                    <mrow>
+                        <mi>n</mi>
+                        <mo lspace="0" rspace="0">+</mo>
+                        <mi>μ</mi>
+                        <mo lspace="0" rspace="0">−</mo>
+                        <mn>1</mn>
+                    </mrow>
+                    <mspace width="0.4286em"/>
+                </mrow>
+                <mspace width="3.5em"/>
+            </mover>
+        </mover>
+        <mspace width="0.2777778em"/>
+    </mrow>
+    <mi>B</mi>
+    <mrow>
+        <mspace width="0.2777778em"/>
+        <munderover>
+            <mo>→</mo>
+            <munder>
+                <mrow>
+                    <mspace width="0.4286em"/>
+                    <mi>T</mi>
+                    <mspace width="0.4286em"/>
+                </mrow>
+                <mspace width="3.5em"/>
+            </munder>
+            <mover>
+                <mrow>
+                    <mspace width="0.4286em"/>
+                    <mrow>
+                        <mi>n</mi>
+                        <mo lspace="0" rspace="0">±</mo>
+                        <mi>i</mi>
+                        <mo lspace="0" rspace="0">−</mo>
+                        <mn>1</mn>
+                    </mrow>
+                    <mspace width="0.4286em"/>
+                </mrow>
+                <mspace width="3.5em"/>
+            </mover>
+        </munderover>
+        <mspace width="0.2777778em"/>
+    </mrow>
+    <mi>C</mi>
+</math>

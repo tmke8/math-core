@@ -304,6 +304,8 @@ fn main() {
         ("odv", r"\odv{f}{x}"),
         ("xrightarrow", r"\xrightarrow{x}"),
         ("xrightarrow_character_class", r"x+\xrightarrow{x}=y"),
+        ("xrightarrow_with_under", r"\xrightarrow[a]{b}"),
+        ("xleftarrow_with_under", r"\xleftarrow[a]{b}"),
         ("slashed", r"\slashed{\partial}"),
         ("plus_after_equal", r"x = +4"),
         ("plus_after_equal_with_space", r"x =\, +4"),
