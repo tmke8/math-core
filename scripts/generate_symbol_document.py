@@ -142,12 +142,18 @@ def unicode_variants() -> str:
     return line
 
 
+def special_symbols() -> str:
+    # not used as a symbol, but required by MathML for `<msqrt>`
+    return "√"
+
+
 def main() -> None:
     lines: list[str] = []
     lines += common_unicode_blocks()
     lines += math_script_blocks()
     lines.append(unicode_variants())
     lines.append(extract_symbols())
+    lines.append(special_symbols())
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
