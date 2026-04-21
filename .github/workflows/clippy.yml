@@ -1,6 +1,8 @@
 name: Clippy check
 
-on: push
+on:
+  pull_request:
+    branches: ["main"]
 
 jobs:
   clippy_check:
@@ -12,5 +14,7 @@ jobs:
           toolchain: nightly
           components: clippy
       - uses: clechasseur/rs-clippy-check@v6.0.0
+        with:
+          args: --all --all-features
         env:
           RUSTFLAGS: ""
