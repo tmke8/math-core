@@ -133,9 +133,9 @@ pub enum Token<'source> {
     ForcePunctuation(MathMLOperator),
     /// `\mathbin`
     Mathbin,
-    /// A token to allow a relation to stretch.
-    /// Used in, e.g., `\xrightarrow` and `\xleftarrow`.
-    StretchyRel(Rel),
+    /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
+    /// The `Rel` is the stretchy arrow operator to render.
+    XArrow(Rel),
     /// An ordinary letter, e.g. `a`, `b`, `c`.
     Letter(char, Mode),
     /// A letter for which we need `mathvariant="normal"`.
@@ -215,7 +215,7 @@ impl Token<'_> {
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
         match self.unwrap_math_ref() {
-            Relation(_) | ForceRelation(_) | OpGreaterThan | OpLessThan | StretchyRel(_) => {
+            Relation(_) | ForceRelation(_) | OpGreaterThan | OpLessThan | XArrow(_) => {
                 Some(Class::Relation)
             }
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),

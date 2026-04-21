@@ -19,36 +19,6 @@ pub static ODV: [Token<'static>; 11] = [
     GroupEnd,                       // }
 ];
 
-static XARROW_SPACING_HACK: [Token<'static>; 7] = [
-    Overset,
-    Space(LatexUnit::Em.length_with_unit(3.5)),
-    GroupBegin,
-    Space(LatexUnit::Em.length_with_unit(0.4286)),
-    CustomCmdArg(0),
-    Space(LatexUnit::Em.length_with_unit(0.4286)),
-    GroupEnd,
-];
-
-pub static XRIGHTARROW: [Token<'static>; 7] = [
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Overset,
-    CustomCmd(0, &XARROW_SPACING_HACK),
-    GroupBegin,
-    StretchyRel(symbol::RIGHTWARDS_ARROW),
-    GroupEnd,
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-];
-
-pub static XLEFTARROW: [Token<'static>; 7] = [
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Overset,
-    CustomCmd(0, &XARROW_SPACING_HACK),
-    GroupBegin,
-    StretchyRel(symbol::LEFTWARDS_ARROW),
-    GroupEnd,
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-];
-
 pub static DOTS: [Token<'static>; 3] = [
     Inner(symbol::FULL_STOP),
     ForcePunctuation(symbol::FULL_STOP.as_op()),

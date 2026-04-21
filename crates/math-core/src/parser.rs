@@ -21,7 +21,7 @@ use crate::{
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
-    specifications::{parse_column_specification, parse_length_specification},
+    specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     token::{EndToken, InfixDelim, Mode, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -437,18 +437,12 @@ where
                     ))
                 }
             }
-            ref tok @ (Token::Relation(relation) | Token::StretchyRel(relation)) => {
+            Token::Relation(relation) => {
                 class = Class::Relation;
                 let attrs = match relation.category() {
-                    // Category A relations are stretchy by default
-                    RelCategory::A => {
-                        // We let it be stretchy if it's explicitly marked as stretchy
-                        if matches!(tok, Token::StretchyRel(_)) {
-                            OpAttrs::empty()
-                        } else {
-                            OpAttrs::STRETCHY_FALSE
-                        }
-                    }
+                    // Category A relations are stretchy by default; we explicitly
+                    // disable stretching for them.
+                    RelCategory::A => OpAttrs::STRETCHY_FALSE,
                     RelCategory::Default => OpAttrs::empty(),
                 };
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
@@ -1521,6 +1515,55 @@ where
                 Err(LatexError(span.into(), LatexErrKind::Internal))
             }
             Token::TextMode(_) => Err(LatexError(span.into(), LatexErrKind::NotValidInMathMode)),
+            Token::XArrow(rel) => {
+                // The leading and trailing 5mu spaces are ignored for character class
+                // considerations; the class of the whole construct is that of a relation.
+                class = Class::Relation;
+
+                // Parse the over-argument in the same state the original token-stream
+                // expansion used: `script_style` is set by the outer `\overset`, and
+                // `right_boundary_hack` is set by the inner `\overset`'s target group.
+                let old_script_style = mem::replace(&mut self.state.script_style, true);
+                let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
+                let arg = self.parse_next(ParseAs::Arg)?;
+                self.state.script_style = old_script_style;
+                self.state.right_boundary_hack = old_boundary_hack;
+                // Re-compute the next class.
+                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+
+                let pad = &const { Node::Space(LatexUnit::Em.length_with_unit(0.4286)) };
+                let inner_target = node_vec_to_node(self.arena, &[pad, arg, pad], false);
+                let inner_symbol = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
+                let inner_over = self.commit(Node::Over {
+                    symbol: inner_symbol,
+                    target: inner_target,
+                });
+
+                // Stretchy relation: an arrow from the `A` relation category is stretchy
+                // by default, so we leave `attrs` empty. The spacing of the arrow is
+                // computed as for a plain `Token::Relation`, using the classes of the
+                // characters surrounding the whole `\xarrow` construct (the inner 5mu
+                // spaces are ignored for this).
+                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
+                let arrow = self.commit(Node::Operator {
+                    op: rel.as_op(),
+                    attrs: OpAttrs::empty(),
+                    left,
+                    right,
+                    size: None,
+                });
+
+                let over = self.commit(Node::Over {
+                    symbol: inner_over,
+                    target: arrow,
+                });
+
+                let outer_space = &const { Node::Space(LatexUnit::Mu.length_with_unit(5.0)) };
+                Ok(Node::Row {
+                    nodes: self.arena.push_slice(&[outer_space, over, outer_space]),
+                    attr: None,
+                })
+            }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
