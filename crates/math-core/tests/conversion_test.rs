@@ -303,6 +303,7 @@ fn main() {
         ("double_struck_cmds", r"\N\R\Z"),
         ("odv", r"\odv{f}{x}"),
         ("xrightarrow", r"\xrightarrow{x}"),
+        ("xrightarrow_character_class", r"x+\xrightarrow{x}=y"),
         ("slashed", r"\slashed{\partial}"),
         ("plus_after_equal", r"x = +4"),
         ("plus_after_equal_with_space", r"x =\, +4"),
