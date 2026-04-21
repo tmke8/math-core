@@ -22,3 +22,6 @@ wasm-bindgen-test = "0.3.55"
 
 [features]
 ariadne = ["dep:ariadne", "math-core/ariadne"]
+
+[lints]
+workspace = true
