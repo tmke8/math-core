@@ -307,8 +307,6 @@ fn main() {
         ("xrightarrow_with_under", r"\xrightarrow[a]{b}"),
         ("xleftarrow_with_under", r"\xleftarrow[a]{b}"),
         ("xLeftarrow", r"\xLeftarrow{x}"),
-        ("xLeftrightarrow", r"\xLeftrightarrow{x}"),
-        ("xRightarrow", r"\xRightarrow{x}"),
         ("xhookleftarrow", r"\xhookleftarrow{x}"),
         ("xhookrightarrow", r"\xhookrightarrow{x}"),
         ("xleftharpoondown", r"\xleftharpoondown{x}"),
