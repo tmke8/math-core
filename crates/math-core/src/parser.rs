@@ -1525,18 +1525,36 @@ where
                 // `right_boundary_hack` is set by the inner `\overset`'s target group.
                 let old_script_style = mem::replace(&mut self.state.script_style, true);
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
-                let arg = self.parse_next(ParseAs::Arg)?;
+
+                // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
+                // handled in the same style as `\sqrt`'s optional degree argument.
+                let next = self.next_token();
+                let (under_arg, over_arg) = if let Ok(tokloc) = next
+                    && matches!(tokloc.token(), Token::SquareBracketOpen)
+                {
+                    let nodes = self.parse_sequence(
+                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
+                        Class::Open,
+                        false,
+                    )?;
+                    let under = node_vec_to_node(self.arena, &nodes, false);
+                    let over = self.parse_next(ParseAs::Arg)?;
+                    (Some(under), over)
+                } else {
+                    let over = self.parse_token(next, ParseAs::Arg, Class::Default)?.1;
+                    (None, over)
+                };
+
                 self.state.script_style = old_script_style;
                 self.state.right_boundary_hack = old_boundary_hack;
                 // Re-compute the next class.
                 let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
 
                 let pad = &const { Node::Space(LatexUnit::Em.length_with_unit(0.4286)) };
-                let inner_target = node_vec_to_node(self.arena, &[pad, arg, pad], false);
-                let inner_symbol = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
-                let inner_over = self.commit(Node::Over {
-                    symbol: inner_symbol,
-                    target: inner_target,
+                let label_space = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
+                let over_label = self.commit(Node::Over {
+                    symbol: label_space,
+                    target: node_vec_to_node(self.arena, &[pad, over_arg, pad], false),
                 });
 
                 // Stretchy relation: an arrow from the `A` relation category is stretchy
@@ -1553,14 +1571,26 @@ where
                     size: None,
                 });
 
-                let over = self.commit(Node::Over {
-                    symbol: inner_over,
-                    target: arrow,
-                });
+                let center = if let Some(under_arg) = under_arg {
+                    let under_label = self.commit(Node::Under {
+                        symbol: label_space,
+                        target: node_vec_to_node(self.arena, &[pad, under_arg, pad], false),
+                    });
+                    self.commit(Node::UnderOver {
+                        target: arrow,
+                        under: under_label,
+                        over: over_label,
+                    })
+                } else {
+                    self.commit(Node::Over {
+                        symbol: over_label,
+                        target: arrow,
+                    })
+                };
 
                 let outer_space = &const { Node::Space(LatexUnit::Mu.length_with_unit(5.0)) };
                 Ok(Node::Row {
-                    nodes: self.arena.push_slice(&[outer_space, over, outer_space]),
+                    nodes: self.arena.push_slice(&[outer_space, center, outer_space]),
                     attr: None,
                 })
             }

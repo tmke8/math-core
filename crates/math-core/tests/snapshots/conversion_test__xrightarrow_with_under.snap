@@ -1,0 +1,29 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\xrightarrow[a]{b}"
+---
+<math>
+    <mrow>
+        <mspace width="0.2777778em"/>
+        <munderover>
+            <mo lspace="0" rspace="0">→</mo>
+            <munder>
+                <mrow>
+                    <mspace width="0.4286em"/>
+                    <mi>a</mi>
+                    <mspace width="0.4286em"/>
+                </mrow>
+                <mspace width="3.5em"/>
+            </munder>
+            <mover>
+                <mrow>
+                    <mspace width="0.4286em"/>
+                    <mi>b</mi>
+                    <mspace width="0.4286em"/>
+                </mrow>
+                <mspace width="3.5em"/>
+            </mover>
+        </munderover>
+        <mspace width="0.2777778em"/>
+    </mrow>
+</math>
