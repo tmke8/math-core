@@ -276,6 +276,6 @@ impl LatexToMathML {
 /// offset is returned.
 fn byte_offset_to_utf16_offset(s: &str, byte_offset: usize) -> usize {
     s.get(..byte_offset)
-        .map(|s| s.chars().map(|c| c.len_utf16()).sum())
+        .map(|s| s.chars().map(char::len_utf16).sum())
         .unwrap_or(byte_offset)
 }
