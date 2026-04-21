@@ -1558,14 +1558,18 @@ where
                 });
 
                 // Stretchy relation: an arrow from the `A` relation category is stretchy
-                // by default, so we leave `attrs` empty. The spacing of the arrow is
-                // computed as for a plain `Token::Relation`, using the classes of the
-                // characters surrounding the whole `\xarrow` construct (the inner 5mu
-                // spaces are ignored for this).
+                // by default; otherwise we need to explicitly request stretching. The
+                // spacing of the arrow is computed as for a plain `Token::Relation`, using
+                // the classes of the characters surrounding the whole `\xarrow` construct
+                // (the inner 5mu spaces are ignored for this).
+                let attrs = match rel.category() {
+                    RelCategory::A => OpAttrs::empty(),
+                    RelCategory::Default => OpAttrs::STRETCHY_TRUE,
+                };
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 let arrow = self.commit(Node::Operator {
                     op: rel.as_op(),
-                    attrs: OpAttrs::empty(),
+                    attrs,
                     left,
                     right,
                     size: None,
