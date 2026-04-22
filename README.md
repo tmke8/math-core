@@ -157,55 +157,18 @@ mtext span.math-core-sans-serif-font {
 ```
 or, if you use a sans-serif math font, you should set a font for `\textrm`. Otherwise those commands won’t have an effect.
 
-### CSS for polyfills
-Chromium does not support the `<menclose>` element, which is used for `\sout{...}`, `\cancel{...}`, etc. Therefore, if you want to use these commands, you need to include the following CSS:
+### CSS for rendering fixes and polyfills
 
-```css
-/* Styles for Chromium only */
-@supports (not (-webkit-backdrop-filter: blur(1px))) and (not (-moz-appearance: none)) {
-    menclose {
-        position: relative;
-        padding: 0.5ex 0;
-    }
-    mrow.menclose-updiagonalstrike,
-    mrow.menclose-downdiagonalstrike,
-    mrow.menclose-horizontalstrike {
-        display: inline-block;
-        position: absolute;
-        left: 0.5px;
-        bottom: 0;
-        width: 100%;
-        height: 100%;
-        background-color: currentcolor;
-    }
-    mrow.menclose-updiagonalstrike {
-        clip-path: polygon(0.05em 100%, 0 calc(100% - 0.05em), calc(100% - 0.05em) 0, 100% 0.05em);
-    }
-    mrow.menclose-downdiagonalstrike {
-        clip-path: polygon(0em 0.05em, 0.05em 0em, 100% calc(100% - 0.05em), calc(100% - 0.05em) 100%);
-    }
-    mrow.menclose-horizontalstrike {
-        clip-path: polygon(0em calc(55% + 0.0333em), 0em calc(55% - 0.0333em), 100% calc(55% - 0.0333em), 100% calc(55% + 0.0333em));
-    }
-}
-```
+The MathML produced by this library relies on the style sheet [`css/mathmlfixes.css`](css/mathmlfixes.css) for proper rendering. **Include its contents on any page that displays math-core output.** It covers:
 
-### Accent gap
-We also recommend (though it is not necessary) to add the following CSS:
+1. Reset `<mtd>` padding to what the spec says (this affects Firefox’s rendering) and make edge cells unpadded, so matrices and arrays render correctly.
+2. A polyfill for `<menclose>` on Chromium, which does not implement the element natively. Without this, `\sout{...}`, `\cancel{...}`, and related commands will not render.
+3. A small `margin-bottom` on accents in Chromium and Safari to match the accent gap Firefox produces. The risk is that if Chromium or Safari ever match Firefox, the gap will become too large — but the present-day benefit outweighs the future risk.
 
-```css
-/* Styles for Chromium and Safari */
-@supports (not (-moz-appearance: none)) {
-    mover[accent="true" i] > mo:nth-child(2) {
-        margin-bottom: 0.15ex;
-    }
-}
-```
+The first two CSS rules are quite future-proof in the sense that I don’t expect them to conflict with future improvements in browsers’ MathML implementations, but for the third rule, there is the risk that if Chromium or Safari ever match Firefox, the gap will become too large. However, it's currently not clear that this will ever happen and we think the present-day benefits of this CSS rule outweigh the future risks.
 
-This slightly increases the gap between letter and accent on Chromium and Safari. One risk with such a CSS rule is that if Chromium or Safari ever increases that gap to match Firefox, then this CSS will produce an overlarge gap. However, it's not clear that this will ever happen and we think the present-day benefits of this CSS rule outweigh the future risks.
-
-#### Dealing with other rendering problems
-The above CSS unfortunately does not fix all rendering bugs found in the current versions of browsers. There is a tracking issue for other known rendering bugs: https://github.com/tmke8/math-core/issues/209
+#### Other rendering problems
+`mathmlfixes.css` does not fix every rendering bug in current browsers. Other known bugs are tracked at https://github.com/tmke8/math-core/issues/209 . There is also a good overview of browser problems [here](https://temml.org/docs/en/mathml-status).
 
 ## Development status
 There are two tracking issues for development:
@@ -228,7 +191,7 @@ There is no Unicode range for this, so the only way to implement this would be w
 
 ## Tips for writing LaTeX intended to be converted with this library
 
-- Don’t use infix commands like `\over`, `\above`, `\choose`, `\brace`, `\brack`, `\atop`.
+- Don’t use infix commands like `\over`, `\above`, `\choose`, `\brace`, `\brack`, `\atop`. We do mostly support them, but there are some edge cases that won’t render exactly as in LaTeX.
 - Don’t try to create your own symbols by overlapping or stacking existing symbols; instead, try to find a Unicode symbol that looks like what you want: https://ftp.tu-chemnitz.de/pub/tex/fonts/newcomputermodern/doc/newcm-unimath-symbols.pdf
 	- This also applies to things like `:=`. Consider using `\coloneqq` instead, which will result in the semantically correct Unicode symbol.
 - Don’t worry about having unnecessary curly braces, like, say, `x_{2}` vs `x_2`. Both result in the same MathML because unnecessary groups are stripped away by this library.
@@ -241,13 +204,11 @@ Note: at the time of this writing (June 2025), none of the following libraries r
 
 - [pulldown-latex](https://github.com/carloskiki/pulldown-latex): The project most similar to this one. It is a Rust library for converting LaTeX math to MathML Core. The differences are:
 	- *pulldown-latex* only provides a Rust library; no Python package, no CLI
-	- *pulldown-latex* requires a CSS style sheet
 	- *pulldown-latex* can’t do certain simplifications of the MathML AST due to its architecture; for example, it can’t strip away the unnecessary grouping in `x_{2}`, resulting in an unnecessary `<mrow>` in the output
 	- At the time of this writing (June 2025), *pulldown-latex* doesn’t distinguish between `\mathcal` and `\mathscr`.
 - [Temml](https://github.com/ronkok/Temml): a fork of [KaTeX](https://katex.org/) which removed the HTML output of KaTeX and kept only on the MathML output. *Temml* produces much higher quality MathML output than KaTeX. The differences to this library are:
 	- *Temml* is written in JavaScript, with all the pros and cons that result from that
-	- *Temml* requires a CSS style sheet
-	- *Temml* is much more willing to work around browser bugs to get consistent rendering, with specific CSS hacks for each browser; *math-core* doesn’t do that yet and it’s not clear we’ll ever do that
+	- *Temml* is much more willing to work around browser bugs to get consistent rendering, with specific CSS hacks for each browser; *math-core* does this to a much lesser degree. Even if you don’t include the CSS from `mathfixes.css`, math-core’s output will look mostly good.
 
 ## Acknowledgments
 This code was originally forked from https://github.com/osanshouo/latex2mathml. The basic architecture of a lexer and a parser remains, but all the details have drastically changed and the supported portion of LaTeX commands has drastically increased.

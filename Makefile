@@ -6,9 +6,12 @@ FLAGS := --no-typescript
 WASM_FILE := $(subst -,_,$(PACKAGE)).wasm
 BINDGEN_OUTPUT := $(subst -,_,$(PACKAGE))_bg.wasm
 
-.PHONY: playground wasm bindgen optimize
+.PHONY: playground wasm bindgen optimize css
 
-playground: wasm bindgen optimize
+playground: wasm bindgen optimize css
+
+css:
+	cp css/mathmlfixes.css playground/mathmlfixes.css
 
 wasm:
 	cargo build --release --target wasm32-unknown-unknown --package $(PACKAGE)
