@@ -34,6 +34,14 @@ module-name = "math_core._math_core_rust"
 bindings = "pyo3"
 # compatibility = "pypi"
 
+[tool.maturin.generate-ci.github]
+linux = { targets = ["x86_64", "aarch64"] }
+musllinux = { targets = ["x86_64", "x86", "aarch64", "armv7"] }
+macos = { targets = ["x86_64", "aarch64"] }
+windows = { targets = ["x64", "aarch64"] }
+pytest = true
+skip-attestation = true
+
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
 
