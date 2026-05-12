@@ -398,6 +398,9 @@ fn main() {
         ("mathbin_no_braces", r"x\mathbin|y"),
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
         ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
+        ("mathord", r"x\mathord{+}y"),
+        ("mathord_no_braces", r"x\mathord+y"),
+        ("mathord_relation", r"x\mathord{=}y"),
         ("comma_before_close_paren", r"4,)"),
     ];
 

@@ -131,8 +131,8 @@ pub enum Token<'source> {
     ForceClose(MathMLOperator),
     /// A token to force an operator to behave like punctuation (mathpunct).
     ForcePunctuation(MathMLOperator),
-    /// `\mathbin`
-    Mathbin,
+    /// `\mathord` and `\mathbin`.
+    MathClass(MathClassKind),
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
     /// The `Rel` is the stretchy arrow operator to render.
     XArrow(Rel),
@@ -188,6 +188,15 @@ pub enum Token<'source> {
     InternalStringLiteral(&'static str),
 }
 
+/// The character class assigned by `\mathord` / `\mathbin`.
+#[derive(Debug, Clone, Copy)]
+pub enum MathClassKind {
+    /// `\mathord`: ordinary character class, with all spacing forced to zero.
+    Ord,
+    /// `\mathbin`: binary operator character class.
+    Bin,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum TextToken {
     Accent(char),
@@ -221,7 +230,9 @@ impl Token<'_> {
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
             Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
-            BinaryOp(_) | ForceBinaryOp(_) | Mathbin => Some(Class::BinaryOp),
+            BinaryOp(_) | ForceBinaryOp(_) | MathClass(MathClassKind::Bin) => {
+                Some(Class::BinaryOp)
+            }
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)
             }
@@ -265,7 +276,8 @@ impl Token<'_> {
             | MathOrTextMode(_, _)
             | UnknownCommand(_)
             | InternalStringLiteral(_)
-            | Accent(_, _, _) => Some(Class::Default),
+            | Accent(_, _, _)
+            | MathClass(MathClassKind::Ord) => Some(Class::Default),
         }
     }
 

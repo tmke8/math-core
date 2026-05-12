@@ -7,7 +7,7 @@ use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    InfixDelim, Mode, TextToken,
+    InfixDelim, MathClassKind, Mode, TextToken,
     Token::{self, *},
 };
 
@@ -464,10 +464,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mars" => Letter(symbol::MALE_SIGN, Mode::Math),
     "mathbb" => Transform(MathVariant::Transform(TextTransform::DoubleStruck)),
     "mathbf" => Transform(MathVariant::Transform(TextTransform::Bold)),
-    "mathbin" => Mathbin,
+    "mathbin" => MathClass(MathClassKind::Bin),
     "mathcal" => Transform(MathVariant::Transform(TextTransform::ScriptChancery)),
     "mathfrak" => Transform(MathVariant::Transform(TextTransform::Fraktur)),
     "mathit" => Transform(MathVariant::Transform(TextTransform::Italic)),
+    "mathord" => MathClass(MathClassKind::Ord),
     "mathring" => Accent(symbol::RING_ABOVE, true, OpAttrs::empty()),
     "mathrm" => Transform(MathVariant::Normal),
     "mathscr" => Transform(MathVariant::Transform(TextTransform::ScriptRoundhand)),
