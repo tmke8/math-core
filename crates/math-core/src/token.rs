@@ -188,13 +188,17 @@ pub enum Token<'source> {
     InternalStringLiteral(&'static str),
 }
 
-/// The character class assigned by `\mathord` / `\mathbin`.
+/// The character class assigned by `\mathord` / `\mathbin` / `\mathopen` / `\mathclose`.
 #[derive(Debug, Clone, Copy)]
 pub enum MathClassKind {
     /// `\mathord`: ordinary character class, with all spacing forced to zero.
     Ord,
     /// `\mathbin`: binary operator character class.
     Bin,
+    /// `\mathopen`: opening delimiter character class, with all spacing forced to zero.
+    Open,
+    /// `\mathclose`: closing delimiter character class, with all spacing forced to zero.
+    Close,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -230,9 +234,7 @@ impl Token<'_> {
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
             Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
-            BinaryOp(_) | ForceBinaryOp(_) | MathClass(MathClassKind::Bin) => {
-                Some(Class::BinaryOp)
-            }
+            BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)
             }
@@ -242,6 +244,12 @@ impl Token<'_> {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,
                 ParenType::Middle => Class::Relation,
+            }),
+            MathClass(kind) => Some(match kind {
+                MathClassKind::Ord => Class::Default,
+                MathClassKind::Bin => Class::BinaryOp,
+                MathClassKind::Open => Class::Open,
+                MathClassKind::Close => Class::Close,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
@@ -276,8 +284,7 @@ impl Token<'_> {
             | MathOrTextMode(_, _)
             | UnknownCommand(_)
             | InternalStringLiteral(_)
-            | Accent(_, _, _)
-            | MathClass(MathClassKind::Ord) => Some(Class::Default),
+            | Accent(_, _, _) => Some(Class::Default),
         }
     }
 
