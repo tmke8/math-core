@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathclose(+x"
+---
+<math>
+    <mo stretchy="false" lspace="0" rspace="0">(</mo>
+    <mo>+</mo>
+    <mi>x</mi>
+</math>

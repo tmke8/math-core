@@ -573,8 +573,7 @@ where
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
                         // Recompute the next class:
-                        let next_class =
-                            self.tokens.peek_class_token(parse_as.in_sequence())?;
+                        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                         self.state.bin_op_spacing(
                             parse_as.in_sequence(),
                             prev_class,
@@ -584,6 +583,14 @@ where
                     }
                     MathClassKind::Ord => {
                         class = Class::Default;
+                        Some(MathSpacing::Zero)
+                    }
+                    MathClassKind::Open => {
+                        class = Class::Open;
+                        Some(MathSpacing::Zero)
+                    }
+                    MathClassKind::Close => {
+                        class = Class::Close;
                         Some(MathSpacing::Zero)
                     }
                 };
