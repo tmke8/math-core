@@ -32,6 +32,7 @@ pub(crate) enum LatexErrKind {
         correct_place: Place,
     },
     ExpectedRelation,
+    UnsupportedMathClassArgument,
     ExpectedAtMostOneToken,
     ExpectedAtLeastOneToken,
     BoundFollowedByBound,
@@ -152,6 +153,12 @@ impl LatexErrKind {
             }
             LatexErrKind::ExpectedRelation => {
                 write!(s, "Expected a relation after \\not.")?;
+            }
+            LatexErrKind::UnsupportedMathClassArgument => {
+                write!(
+                    s,
+                    "Support for this argument isn't implemented yet for class-changing commands."
+                )?;
             }
             LatexErrKind::ExpectedAtMostOneToken => {
                 write!(s, "Expected at most one token as argument.")?;
@@ -310,6 +317,7 @@ impl LatexError {
                 format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
+            LatexErrKind::UnsupportedMathClassArgument => "unsupported argument".into(),
             LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
             LatexErrKind::ExpectedAtLeastOneToken => "expected at least one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),

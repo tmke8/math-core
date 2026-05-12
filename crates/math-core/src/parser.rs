@@ -565,7 +565,7 @@ where
                     _ => {
                         break 'mathclass Err(LatexError(
                             span.into(),
-                            LatexErrKind::ExpectedRelation,
+                            LatexErrKind::UnsupportedMathClassArgument,
                         ));
                     }
                 };

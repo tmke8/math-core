@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "x \\mathord a y"
 ---
-Error: Expected a relation after \not.
+Error: Support for this argument isn't implemented yet for class-changing commands.
    ╭─[ <input>:1:12 ]
    │
  1 │ x \mathord a y
    │            ┬  
-   │            ╰── expected a relation
+   │            ╰── unsupported argument
 ───╯
