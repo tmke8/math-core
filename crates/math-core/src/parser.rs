@@ -22,7 +22,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
-    token::{EndToken, InfixDelim, Mode, TokSpan, Token},
+    token::{EndToken, InfixDelim, MathClassKind, Mode, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -540,11 +540,11 @@ where
                     size: None,
                 })
             }
-            Token::Mathbin => 'mathbin: {
+            Token::MathClass(kind) => 'mathclass: {
                 let tokspan = match self.tokens.read_argument(false)?.into_one_or_none()? {
                     OneOrNone::One(tokspan) => tokspan,
                     OneOrNone::None(span) => {
-                        break 'mathbin Err(LatexError(
+                        break 'mathclass Err(LatexError(
                             span,
                             LatexErrKind::ExpectedAtLeastOneToken,
                         ));
@@ -563,18 +563,30 @@ where
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
-                        break 'mathbin Err(LatexError(
+                        break 'mathclass Err(LatexError(
                             span.into(),
                             LatexErrKind::ExpectedRelation,
                         ));
                     }
                 };
-                class = Class::BinaryOp;
-                // Recompute the next class:
-                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
-                let spacing =
-                    self.state
-                        .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                let spacing = match kind {
+                    MathClassKind::Bin => {
+                        class = Class::BinaryOp;
+                        // Recompute the next class:
+                        let next_class =
+                            self.tokens.peek_class_token(parse_as.in_sequence())?;
+                        self.state.bin_op_spacing(
+                            parse_as.in_sequence(),
+                            prev_class,
+                            next_class,
+                            true,
+                        )
+                    }
+                    MathClassKind::Ord => {
+                        class = Class::Default;
+                        Some(MathSpacing::Zero)
+                    }
+                };
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::STRETCHY_FALSE,
