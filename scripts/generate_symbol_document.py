@@ -7,6 +7,7 @@ UNICODE_PATTERN = re.compile(
 )
 DOTTED_CIRCLE = "◌"
 SYMBOLS_PATH = "crates/mathml-renderer/src/symbol.rs"
+PLAYGROUND_PATH = "playground/index.html"
 OUTPUT_PATH = "scripts/all_symbols.txt"
 
 
@@ -142,6 +143,13 @@ def unicode_variants() -> str:
     return line
 
 
+def playground_non_ascii() -> str:
+    with open(PLAYGROUND_PATH, "r", encoding="utf-8") as f:
+        content = f.read()
+    chars = sorted(set(ch for ch in content if ord(ch) > 127))
+    return "".join(chars)
+
+
 def special_symbols() -> str:
     # not used as a symbol, but required by MathML for `<msqrt>`
     return "√"
@@ -153,6 +161,7 @@ def main() -> None:
     lines += math_script_blocks()
     lines.append(unicode_variants())
     lines.append(extract_symbols())
+    lines.append(playground_non_ascii())
     lines.append(special_symbols())
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:

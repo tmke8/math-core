@@ -246,7 +246,7 @@ fn main() {
         ("mathrm_multiletter", r"\mathrm{abc}"),
         (
             "complicated_operatorname",
-            r"\operatorname {{\pi} o \Angstrom a}",
+            r"\operatorname {{\pi} o \pounds a}",
         ),
         ("operatorname_with_other_operator", r"x\operatorname{\max}"),
         (
