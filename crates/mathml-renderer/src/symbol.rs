@@ -442,8 +442,6 @@ pub const DOUBLE_STRUCK_CAPITAL_Z: char = 'ℤ';
 
 pub const INVERTED_OHM_SIGN: char = '℧';
 
-pub const ANGSTROM_SIGN: char = 'Å';
-
 pub const TURNED_CAPITAL_F: char = 'Ⅎ';
 
 pub const ALEF_SYMBOL: char = 'ℵ';
@@ -885,10 +883,7 @@ pub const WHITE_MEDIUM_SQUARE: char = '◻';
 //
 pub const BLACK_STAR: char = '★';
 
-pub const SUN: char = '☉';
 pub const ASCENDING_NODE: char = '☊';
-
-pub const WHITE_SUN_WITH_RAYS: char = '☼';
 
 pub const MERCURY: char = '☿';
 pub const FEMALE_SIGN: char = '♀';
