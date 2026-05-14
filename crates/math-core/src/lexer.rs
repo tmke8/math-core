@@ -270,6 +270,14 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 self.skip_whitespace();
                 return self.parse_command(span, cmd_string);
             }
+            '″' => Token::Ord(symbol::DOUBLE_PRIME),
+            '‴' => Token::Ord(symbol::TRIPLE_PRIME),
+            '‶' => Token::Ord(symbol::REVERSED_DOUBLE_PRIME),
+            '‷' => Token::Ord(symbol::REVERSED_TRIPLE_PRIME),
+            '⁗' => Token::Ord(symbol::QUADRUPLE_PRIME),
+            '⧄' => Token::BinaryOp(symbol::SQUARED_RISING_DIAGONAL_SLASH),
+            '⧅' => Token::BinaryOp(symbol::SQUARED_FALLING_DIAGONAL_SLASH),
+            '⧈' => Token::ForceBinaryOp(symbol::SQUARED_SQUARE.as_op()),
             c => {
                 if let Some(tok) = nonalpha_nonspecial_ascii_to_token(c) {
                     tok
