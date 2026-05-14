@@ -252,8 +252,6 @@ pub const LATIN_SMALL_LETTER_ETH: char = 'ð';
 
 pub const DIVISION_SIGN: Bin = Bin::new('÷', BinCategory::B);
 
-pub const LATIN_SMALL_LETTER_THORN: char = 'þ';
-
 //
 // Unicode Block: Latin Extended-A
 //
@@ -884,16 +882,6 @@ pub const WHITE_MEDIUM_SQUARE: char = '◻';
 pub const BLACK_STAR: char = '★';
 
 pub const ASCENDING_NODE: char = '☊';
-
-pub const MERCURY: char = '☿';
-pub const FEMALE_SIGN: char = '♀';
-pub const EARTH: char = '♁';
-pub const MALE_SIGN: char = '♂';
-pub const JUPITER: char = '♃';
-pub const SATURN: char = '♄';
-pub const URANUS: char = '♅';
-pub const NEPTUNE: char = '♆';
-// pub const PLUTO: char = '♇';
 
 pub const BLACK_SPADE_SUIT: char = '♠';
 pub const WHITE_HEART_SUIT: char = '♡';
