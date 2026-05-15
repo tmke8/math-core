@@ -2,22 +2,7 @@ use mathml_renderer::symbol;
 
 use crate::character_class::MathVariant;
 use crate::specifications::LatexUnit;
-use crate::token::Mode;
 use crate::token::Token::{self, *};
-
-pub static ODV: [Token<'static>; 11] = [
-    Frac(None),                     // \frac
-    GroupBegin,                     // {
-    Transform(MathVariant::Normal), // \mathrm
-    Letter('d', Mode::MathOrText),  // d
-    CustomCmdArg(0),                // #1
-    GroupEnd,                       // }
-    GroupBegin,                     // {
-    Transform(MathVariant::Normal), // \mathrm
-    Letter('d', Mode::MathOrText),  // d
-    CustomCmdArg(1),                // #2
-    GroupEnd,                       // }
-];
 
 pub static DOTS: [Token<'static>; 3] = [
     Inner(symbol::FULL_STOP),

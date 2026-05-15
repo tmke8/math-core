@@ -1,25 +1,13 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\odv{\\odv f x} x"
+expression: "\\ket{x\\ket f} x"
 ---
 <math>
-    <mfrac>
-        <mrow>
-            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-            <mfrac>
-                <mrow>
-                    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-                    <mi>f</mi>
-                </mrow>
-                <mrow>
-                    <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-                    <mi>x</mi>
-                </mrow>
-            </mfrac>
-        </mrow>
-        <mrow>
-            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
-            <mi>x</mi>
-        </mrow>
-    </mfrac>
+    <mo stretchy="false" form="prefix">|</mo>
+    <mi>x</mi>
+    <mo stretchy="false" form="prefix">|</mo>
+    <mi>f</mi>
+    <mo stretchy="false">⟩</mo>
+    <mo stretchy="false">⟩</mo>
+    <mi>x</mi>
 </math>

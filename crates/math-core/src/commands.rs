@@ -13,8 +13,9 @@ use crate::token::{
 
 // These function names are essentially just passed-through, wrapped in a token.
 static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
-    "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "deg", "det", "dim",
-    "erf", "erfc", "exp", "hom", "ker", "lg", "ln", "log", "sec", "sin", "sinh", "tan", "tanh"
+    "arccos", "arcsin", "arctan", "arg", "cos", "cosec", "cosh", "cot", "cotg", "coth", "csc",
+    "ctg", "cth", "deg", "det", "dim", "erf", "erfc", "exp", "hom", "ker", "lg", "ln", "log",
+    "sec", "sin", "sinh", "tan", "tanh"
 );
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
@@ -197,6 +198,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "boldsymbol" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "bot" => Letter(symbol::UP_TACK, Mode::Math),
     "botdoteq" => Relation(symbol::EQUALS_SIGN_WITH_DOT_BELOW),
+    "bowtie" => Relation(symbol::BOWTIE),
     "boxdot" => ForceBinaryOp(symbol::SQUARED_DOT_OPERATOR.as_op()),
     "boxminus" => BinaryOp(symbol::SQUARED_MINUS),
     "boxplus" => BinaryOp(symbol::SQUARED_PLUS),
@@ -278,6 +280,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dots" => MathOrTextMode(&CustomCmd(0, &predefined::DOTS), symbol::HORIZONTAL_ELLIPSIS),
     "dotsminusdots" => Relation(symbol::GEOMETRIC_PROPORTION),
     "doublebarwedge" => Relation(symbol::LOGICAL_AND_WITH_DOUBLE_OVERBAR),
+    "doublecap" => BinaryOp(symbol::DOUBLE_INTERSECTION),
+    "doublecup" => BinaryOp(symbol::DOUBLE_UNION),
     "downarrow" => Relation(symbol::DOWNWARDS_ARROW),
     "downdownarrows" => Relation(symbol::DOWNWARDS_PAIRED_ARROWS),
     "downharpoonleft" => Relation(symbol::DOWNWARDS_HARPOON_WITH_BARB_LEFTWARDS),
@@ -323,6 +327,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "geqslant" => Relation(symbol::GREATER_THAN_OR_SLANTED_EQUAL_TO),
     "gets" => Relation(symbol::LEFTWARDS_ARROW),
     "gg" => Relation(symbol::MUCH_GREATER_THAN),
+    "ggg" => Relation(symbol::VERY_MUCH_GREATER_THAN),
+    "gggtr" => Relation(symbol::VERY_MUCH_GREATER_THAN),
     "gimel" => Letter(symbol::GIMEL_SYMBOL, Mode::Math),
     "gnapprox" => Relation(symbol::GREATER_THAN_AND_NOT_APPROXIMATE),
     "gneq" => Relation(symbol::GREATER_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO),
@@ -333,6 +339,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "gtrapprox" => Relation(symbol::GREATER_THAN_OR_APPROXIMATE),
     "gtreqless" => Relation(symbol::GREATER_THAN_EQUAL_TO_OR_LESS_THAN),
     "gtreqqless" => Relation(symbol::GREATER_THAN_ABOVE_DOUBLE_LINE_EQUAL_ABOVE_LESS_THAN),
+    "gtrdot" => Relation(symbol::GREATER_THAN_WITH_DOT),
     "gtrless" => Relation(symbol::GREATER_THAN_OR_LESS_THAN),
     "gtrsim" => Relation(symbol::GREATER_THAN_OR_EQUIVALENT_TO),
     "hArr" => Relation(symbol::LEFT_RIGHT_DOUBLE_ARROW),
@@ -352,6 +359,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "iiint" => Op(symbol::TRIPLE_INTEGRAL),
     "iint" => Op(symbol::DOUBLE_INTEGRAL),
     "image" => Letter(symbol::BLACK_LETTER_CAPITAL_I, Mode::Math),
+    "imageof" => Relation(symbol::IMAGE_OF),
     "imath" => Letter(symbol::LATIN_SMALL_LETTER_DOTLESS_I, Mode::Math),
     "impliedby" => CustomCmd(0, &predefined::IMPLIEDBY),
     "implies" => CustomCmd(0, &predefined::IMPLIES),
@@ -388,6 +396,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lceil" => Open(symbol::LEFT_CEILING),
     "ldots" => MathOrTextMode(&CustomCmd(0, &predefined::DOTS), symbol::HORIZONTAL_ELLIPSIS),
     "le" => Relation(symbol::LESS_THAN_OR_EQUAL_TO),
+    "leadsto" => Relation(symbol::RIGHTWARDS_SQUIGGLE_ARROW),
     "left" => Left,
     "leftarrow" => Relation(symbol::LEFTWARDS_ARROW),
     "leftarrowtail" => Relation(symbol::LEFTWARDS_ARROW_WITH_TAIL),
@@ -436,6 +445,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "looparrowright" => Relation(symbol::RIGHTWARDS_ARROW_WITH_LOOP),
     "lor" => BinaryOp(symbol::LOGICAL_OR),
     "lozenge" => Letter(symbol::LOZENGE, Mode::Math),
+    "lq" => Letter(symbol::LEFT_SINGLE_QUOTATION_MARK, Mode::MathOrText),
     "lrArr" => Relation(symbol::LEFT_RIGHT_DOUBLE_ARROW),
     "lrarr" => Relation(symbol::LEFT_RIGHT_ARROW),
     "lrcorner" => Letter(symbol::BOTTOM_RIGHT_CORNER, Mode::Math),
@@ -505,6 +515,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "not" => Not,
     "notag" => NoNumber,
     "notin" => Relation(symbol::NOT_AN_ELEMENT_OF),
+    "notni" => Relation(symbol::DOES_NOT_CONTAIN_AS_MEMBER),
     "nparallel" => Relation(symbol::NOT_PARALLEL_TO),
     "nprec" => Relation(symbol::DOES_NOT_PRECEDE),
     "npreceq" => Relation(symbol::DOES_NOT_PRECEDE_OR_EQUAL),
@@ -522,7 +533,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nwarrow" => Relation(symbol::NORTH_WEST_ARROW),
     "o" => TextMode(TextToken::Letter('ø')),
     "odot" => ForceBinaryOp(symbol::CIRCLED_DOT_OPERATOR.as_op()),
-    "odv" => CustomCmd(2, &predefined::ODV),
     "oe" => TextMode(TextToken::Letter('œ')),
     "oiiint" => Op(symbol::VOLUME_INTEGRAL),
     "oiint" => Op(symbol::SURFACE_INTEGRAL),
@@ -534,6 +544,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "operatorname" => OperatorName { with_limits: false },
     "operatorname*" => OperatorName { with_limits: true },
     "oplus" => BinaryOp(symbol::CIRCLED_PLUS),
+    "origof" => Relation(symbol::ORIGINAL_OF),
     "oslash" => BinaryOp(symbol::CIRCLED_DIVISION_SLASH),
     "otimes" => ForceBinaryOp(symbol::CIRCLED_TIMES.as_op()),
     "over" => InfixGenFrac { with_line: true, delim: None },
