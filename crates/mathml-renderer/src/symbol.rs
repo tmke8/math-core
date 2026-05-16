@@ -860,6 +860,8 @@ pub const WHITE_SQUARE: char = '□';
 
 pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
 pub const WHITE_UP_POINTING_TRIANGLE: char = '△';
+pub const WHITE_UP_POINTING_TRIANGLE_REL: Rel =
+    Rel::new(WHITE_UP_POINTING_TRIANGLE, RelCategory::Default);
 
 pub const BLACK_RIGHT_POINTING_TRIANGLE: char = '▶';
 pub const WHITE_RIGHT_POINTING_TRIANGLE: char = '▷';
