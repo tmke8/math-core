@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 183);
-    assert_eq!(n_fail, 25);
+    assert_eq!(n_diff, 185);
+    assert_eq!(n_fail, 23);
 }
 
 /// Prettify HTML input
@@ -1108,8 +1108,14 @@ fn test_nonfailing_wiki_tests() {
             102,
             r"\intercal \barwedge \veebar \doublebarwedge \between \pitchfork",
         ),
-        // (103, r"\vartriangleleft \ntriangleleft \vartriangleright \ntriangleright"),
-        // (104, r"\trianglelefteq \ntrianglelefteq \trianglerighteq \ntrianglerighteq"),
+        (
+            103,
+            r"\vartriangleleft \ntriangleleft \vartriangleright \ntriangleright",
+        ),
+        (
+            104,
+            r"\trianglelefteq \ntrianglelefteq \trianglerighteq \ntrianglerighteq",
+        ),
         (105, r"a^2, a^{x+3}"),
         (106, r"a_2"),
         (107, r"10^{30} a^{2+2} \\ a_{i,j} b_{f'}"),
