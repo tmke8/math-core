@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 187);
-    assert_eq!(n_fail, 21);
+    assert_eq!(n_diff, 188);
+    assert_eq!(n_fail, 20);
 }
 
 /// Prettify HTML input
@@ -991,7 +991,10 @@ fn test_nonfailing_wiki_tests() {
         (28, r"a \bmod b"),
         (29, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
         // (30, r"\mid, \nmid, \shortmid, \nshortmid"),
-        // (31, r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}"),
+        (
+            31,
+            r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}",
+        ),
         (32, r"+, -, \pm, \mp, \dotplus"),
         (33, r"\times, \div, \divideontimes, /, \backslash"),
         (34, r"\cdot, * \ast, \star, \circ, \bullet"),
