@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\trianglelefteq \\ntrianglelefteq \\trianglerighteq \\ntrianglerighteq"
+---
+<math>
+    <mo lspace="0" rspace="0">⊴</mo>
+    <mo lspace="0" rspace="0">⋬</mo>
+    <mo lspace="0" rspace="0">⊳</mo>
+    <mo lspace="0" rspace="0">⋭</mo>
+</math>
