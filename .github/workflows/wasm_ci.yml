@@ -49,14 +49,14 @@ jobs:
       - name: "Get wasm size on PR"
         working-directory: ./pr-branch
         run: |
-          make playground
+          make optimize
           SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on PR: $SIZE_BYTES bytes"
           echo "PR_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - name: "Get wasm size on base branch"
         working-directory: ./base-branch
         run: |
-          make playground
+          make optimize
           SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on base: $SIZE_BYTES bytes"
           echo "BASE_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV

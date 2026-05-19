@@ -12,7 +12,7 @@ SOURCE_OTF := playground/fonts/NewCMMath-Book-prime-roundhand-vec.otf
 
 .PHONY: playground wasm bindgen optimize clean equationpage testpage comparison subset allsymbols
 
-playground: wasm bindgen optimize playground/mathmlfixes.css
+playground: wasm bindgen optimize playground/mathmlfixes.css $(SUBSET_WOFF2)
 
 playground/mathmlfixes.css: css/mathmlfixes.css
 	cp $< $@
@@ -33,13 +33,13 @@ optimize: bindgen
 clean:
 	rm -rf $(PKG_DIR)/*.wasm $(PKG_DIR)/*.js
 
-equationpage:
+equationpage: $(SUBSET_WOFF2)
 	cargo run --example equations --package math-core > playground/equations.html
 
-testpage:
+testpage: $(SUBSET_WOFF2)
 	cargo run --example browser_test --package math-core > playground/test.html
 
-comparison:
+comparison: $(SUBSET_WOFF2)
 	cargo run --bin mathcore -- -c docs/mathcore.toml --inline-del ₮ --block-del ₮₮ --continue-on-error - < docs/comparison.html > playground/comparison.html
 
 allsymbols: scripts/all_symbols.txt
