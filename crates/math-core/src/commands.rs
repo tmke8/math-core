@@ -834,11 +834,11 @@ pub fn get_negated_op(op: Rel) -> Option<Rel> {
         symbol::EQUALS_SIGN => Some(symbol::NOT_EQUAL_TO),
         symbol::EQUIVALENT_TO => Some(symbol::NOT_EQUIVALENT_TO),
         symbol::FORCES => Some(symbol::DOES_NOT_FORCE),
+        symbol::GREATER_THAN_OR_EQUAL_TO => Some(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
         symbol::GREATER_THAN_OR_EQUIVALENT_TO => {
             Some(symbol::NEITHER_GREATER_THAN_NOR_EQUIVALENT_TO)
         }
         symbol::GREATER_THAN_OR_LESS_THAN => Some(symbol::NEITHER_GREATER_THAN_NOR_LESS_THAN),
-        symbol::GREATER_THAN_OR_EQUAL_TO => Some(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
         symbol::IDENTICAL_TO => Some(symbol::NOT_IDENTICAL_TO),
         symbol::LEFT_RIGHT_ARROW => Some(symbol::LEFT_RIGHT_ARROW_WITH_STROKE),
         symbol::LEFT_RIGHT_DOUBLE_ARROW => Some(symbol::LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE),
