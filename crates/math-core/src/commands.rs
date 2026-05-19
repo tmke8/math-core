@@ -818,23 +818,52 @@ pub fn get_command(command: &str) -> Option<Token<'static>> {
 
 pub fn get_negated_op(op: Rel) -> Option<Rel> {
     match op {
-        symbol::EQUALS_SIGN => Some(symbol::NOT_EQUAL_TO),
         symbol::ALMOST_EQUAL_TO => Some(symbol::NOT_ALMOST_EQUAL_TO),
-        symbol::APPROXIMATELY_EQUAL_TO => Some(symbol::NOT_ASYMPTOTICALLY_EQUAL_TO),
+        symbol::APPROXIMATELY_EQUAL_TO => Some(symbol::NEITHER_APPROXIMATELY_NOR_ACTUALLY_EQUAL_TO),
+        symbol::ASYMPTOTICALLY_EQUAL_TO => Some(symbol::NOT_ASYMPTOTICALLY_EQUAL_TO),
+        symbol::CONTAINS_AS_MEMBER => Some(symbol::DOES_NOT_CONTAIN_AS_MEMBER),
+        symbol::CONTAINS_AS_NORMAL_SUBGROUP => Some(symbol::DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP),
+        symbol::CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO => {
+            Some(symbol::DOES_NOT_CONTAIN_AS_NORMAL_SUBGROUP_OR_EQUAL)
+        }
+        symbol::DIVIDES => Some(symbol::DOES_NOT_DIVIDE),
         symbol::DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE => {
             Some(symbol::NEGATED_DOUBLE_VERTICAL_BAR_DOUBLE_RIGHT_TURNSTILE)
         }
         symbol::ELEMENT_OF => Some(symbol::NOT_AN_ELEMENT_OF),
+        symbol::EQUALS_SIGN => Some(symbol::NOT_EQUAL_TO),
+        symbol::EQUIVALENT_TO => Some(symbol::NOT_EQUIVALENT_TO),
         symbol::FORCES => Some(symbol::DOES_NOT_FORCE),
-        symbol::GREATER_THAN_OVER_EQUAL_TO => Some(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
+        symbol::GREATER_THAN_OR_EQUIVALENT_TO => {
+            Some(symbol::NEITHER_GREATER_THAN_NOR_EQUIVALENT_TO)
+        }
+        symbol::GREATER_THAN_OR_LESS_THAN => Some(symbol::NEITHER_GREATER_THAN_NOR_LESS_THAN),
+        symbol::GREATER_THAN_OR_EQUAL_TO => Some(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
+        symbol::IDENTICAL_TO => Some(symbol::NOT_IDENTICAL_TO),
+        symbol::LEFT_RIGHT_ARROW => Some(symbol::LEFT_RIGHT_ARROW_WITH_STROKE),
+        symbol::LEFT_RIGHT_DOUBLE_ARROW => Some(symbol::LEFT_RIGHT_DOUBLE_ARROW_WITH_STROKE),
+        symbol::LEFTWARDS_ARROW => Some(symbol::LEFTWARDS_ARROW_WITH_STROKE),
+        symbol::LEFTWARDS_DOUBLE_ARROW => Some(symbol::LEFTWARDS_DOUBLE_ARROW_WITH_STROKE),
         symbol::LESS_THAN_OR_EQUAL_TO => Some(symbol::NEITHER_LESS_THAN_NOR_EQUAL_TO),
+        symbol::LESS_THAN_OR_EQUIVALENT_TO => Some(symbol::NEITHER_LESS_THAN_NOR_EQUIVALENT_TO),
+        symbol::LESS_THAN_OR_GREATER_THAN => Some(symbol::NEITHER_LESS_THAN_NOR_GREATER_THAN),
+        symbol::NORMAL_SUBGROUP_OF => Some(symbol::NOT_NORMAL_SUBGROUP_OF),
+        symbol::NORMAL_SUBGROUP_OF_OR_EQUAL_TO => Some(symbol::NOT_NORMAL_SUBGROUP_OF_OR_EQUAL_TO),
+        symbol::PARALLEL_TO => Some(symbol::NOT_PARALLEL_TO),
         symbol::PRECEDES => Some(symbol::DOES_NOT_PRECEDE),
+        symbol::PRECEDES_OR_EQUAL_TO => Some(symbol::DOES_NOT_PRECEDE_OR_EQUAL),
         symbol::RIGHT_TACK => Some(symbol::DOES_NOT_PROVE),
+        symbol::RIGHTWARDS_ARROW => Some(symbol::RIGHTWARDS_ARROW_WITH_STROKE),
+        symbol::RIGHTWARDS_DOUBLE_ARROW => Some(symbol::RIGHTWARDS_DOUBLE_ARROW_WITH_STROKE),
+        symbol::SQUARE_IMAGE_OF_OR_EQUAL_TO => Some(symbol::NOT_SQUARE_IMAGE_OF_OR_EQUAL_TO),
+        symbol::SQUARE_ORIGINAL_OF_OR_EQUAL_TO => Some(symbol::NOT_SQUARE_ORIGINAL_OF_OR_EQUAL_TO),
         symbol::SUBSET_OF => Some(symbol::NOT_A_SUBSET_OF),
         symbol::SUBSET_OF_OR_EQUAL_TO => Some(symbol::NEITHER_A_SUBSET_OF_NOR_EQUAL_TO),
         symbol::SUCCEEDS => Some(symbol::DOES_NOT_SUCCEED),
+        symbol::SUCCEEDS_OR_EQUAL_TO => Some(symbol::DOES_NOT_SUCCEED_OR_EQUAL),
         symbol::SUPERSET_OF => Some(symbol::NOT_A_SUPERSET_OF),
         symbol::SUPERSET_OF_OR_EQUAL_TO => Some(symbol::NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO),
+        symbol::TILDE_OPERATOR => Some(symbol::NOT_TILDE),
         symbol::TRUE => Some(symbol::NOT_TRUE),
         _ => None,
     }
