@@ -984,13 +984,14 @@ where
                                 size: None,
                             })
                         } else {
-                            Ok(Node::Operator {
-                                op: op.as_op(),
-                                attrs: OpAttrs::empty(),
-                                left,
-                                right,
-                                size: None,
-                            })
+                            let node = self
+                                .parse_token(
+                                    Ok(TokSpan::new(tok, new_span)),
+                                    ParseAs::Arg,
+                                    Class::Default,
+                                )?
+                                .1;
+                            Ok(Node::Slashed(node))
                         }
                     }
                     tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
