@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 185);
-    assert_eq!(n_fail, 23);
+    assert_eq!(n_diff, 187);
+    assert_eq!(n_fail, 21);
 }
 
 /// Prettify HTML input
