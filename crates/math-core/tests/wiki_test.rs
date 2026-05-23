@@ -906,8 +906,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 185);
-    assert_eq!(n_fail, 23);
+    assert_eq!(n_diff, 187);
+    assert_eq!(n_fail, 21);
 }
 
 /// Prettify HTML input
@@ -1027,8 +1027,8 @@ fn test_nonfailing_wiki_tests() {
             57,
             r"\lessgtr, \lesseqgtr, \lesseqqgtr, \gtrless, \gtreqless, \gtreqqless",
         ),
-        // (58, r"\leqslant, \nleqslant, \eqslantless"),
-        // (59, r"\geqslant, \ngeqslant, \eqslantgtr"),
+        (58, r"\leqslant, \nleqslant, \eqslantless"),
+        (59, r"\geqslant, \ngeqslant, \eqslantgtr"),
         (60, r"\lesssim, \lnsim, \lessapprox, \lnapprox"),
         (61, r"\gtrsim, \gnsim, \gtrapprox, \gnapprox"),
         (62, r"\prec, \nprec, \preceq, \npreceq, \precneqq"),

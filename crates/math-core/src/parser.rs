@@ -984,12 +984,14 @@ where
                                 size: None,
                             })
                         } else {
-                            Ok(Node::Operator {
-                                op: op.as_op(),
+                            let mut builder = self.buffer.get_builder();
+                            builder.push_char(op.as_op().as_char());
+                            builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
+                            Ok(Node::PseudoOp {
                                 attrs: OpAttrs::empty(),
                                 left,
                                 right,
-                                size: None,
+                                name: builder.finish(self.arena),
                             })
                         }
                     }
