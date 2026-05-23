@@ -984,14 +984,15 @@ where
                                 size: None,
                             })
                         } else {
-                            let node = self
-                                .parse_token(
-                                    Ok(TokSpan::new(tok, new_span)),
-                                    ParseAs::Arg,
-                                    Class::Default,
-                                )?
-                                .1;
-                            Ok(Node::Slashed(node))
+                            let mut builder = self.buffer.get_builder();
+                            builder.push_char(op.as_op().as_char());
+                            builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
+                            Ok(Node::PseudoOp {
+                                attrs: OpAttrs::empty(),
+                                left,
+                                right,
+                                name: builder.finish(self.arena),
+                            })
                         }
                     }
                     tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
