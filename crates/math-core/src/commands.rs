@@ -691,7 +691,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "supseteqq" => Relation(symbol::SUPERSET_OF_ABOVE_EQUALS_SIGN),
     "supsetneq" => Relation(symbol::SUPERSET_OF_WITH_NOT_EQUAL_TO),
     "supsetneqq" => Relation(symbol::SUPERSET_OF_ABOVE_NOT_EQUAL_TO),
-    "surd" => Op(symbol::SQUARE_ROOT),
+    "surd" => HardcodedMathML(r#"<msqrt><mpadded width="0"><mphantom><mi>|</mi></mphantom></mpadded></msqrt>"#),
     "swarrow" => Relation(symbol::SOUTH_WEST_ARROW),
     "symbf" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "tag" => Tag,
