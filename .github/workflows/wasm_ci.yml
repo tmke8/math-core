@@ -5,8 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   cargo-test-wasm:
@@ -77,12 +76,24 @@ jobs:
           } > wasm-size-comment.md
           cat wasm-size-comment.md
       - name: "Upload WASM size comment"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wasm-size-comment
           path: wasm-size-comment.md
+
+  comment-pr:
+    name: "Comment on PR with WASM sizes"
+    runs-on: ubuntu-latest
+    needs: [cargo-test-wasm]
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: "Download WASM size comment"
+        uses: actions/download-artifact@v7
+        with:
+          name: wasm-size-comment
       - name: "Comment on PR with WASM sizes"
-        continue-on-error: true
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
