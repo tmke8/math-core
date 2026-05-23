@@ -186,6 +186,10 @@ pub enum Token<'source> {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+    /// Precedes a operator or letter token to indicate that said operator/letter should have
+    /// Variation Selector 1 (U+FE00) applied.
+    /// Used only in predefined token streams.
+    Vs1,
 }
 
 /// The character class assigned by `\mathord` / `\mathbin` / `\mathopen` / `\mathclose`.
@@ -253,8 +257,8 @@ impl Token<'_> {
                 MathClassKind::Close => Class::Close,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
-            Whitespace | Space(_) | Not | TransformSwitch(_) | NoNumber | Tag | CustomSpace
-            | Limits | NonBreakingSpace | Label | EqRef => None,
+            Whitespace | Space(_) | Not | Vs1 | TransformSwitch(_) | NoNumber | Tag
+            | CustomSpace | Limits | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)

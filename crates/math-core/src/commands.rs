@@ -296,12 +296,12 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ell" => Letter(symbol::SCRIPT_SMALL_L, Mode::Math),
     "emph" => Text(Some(HtmlTextStyle::Emphasis)),
     "empty" => CustomCmd(0, &[
-        Transform(MathVariant::Normal),
-        InternalStringLiteral("∅\u{FE00}"), // Unicode variation selector
+        Vs1,
+        Letter(symbol::EMPTY_SET, Mode::Math),
     ]),
     "emptyset" => CustomCmd(0, &[
-        Transform(MathVariant::Normal),
-        InternalStringLiteral("∅\u{FE00}"), // Unicode variation selector
+        Vs1,
+        Letter(symbol::EMPTY_SET, Mode::Math),
     ]),
     "epsilon" => Letter(symbol::GREEK_LUNATE_EPSILON_SYMBOL, Mode::Math),
     "eqcirc" => Relation(symbol::RING_IN_EQUAL_TO),
@@ -350,6 +350,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "gtrdot" => Relation(symbol::GREATER_THAN_WITH_DOT),
     "gtrless" => Relation(symbol::GREATER_THAN_OR_LESS_THAN),
     "gtrsim" => Relation(symbol::GREATER_THAN_OR_EQUIVALENT_TO),
+    "gvertneqq" => CustomCmd(0, &[Vs1, Relation(symbol::GREATER_THAN_BUT_NOT_EQUAL_TO)]),
     "hArr" => Relation(symbol::LEFT_RIGHT_DOUBLE_ARROW),
     "harr" => Relation(symbol::LEFT_RIGHT_ARROW),
     "hat" => Accent(symbol::MODIFIER_LETTER_CIRCUMFLEX_ACCENT, true, OpAttrs::STRETCHY_FALSE),
@@ -461,6 +462,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lt" => OpLessThan,
     "ltimes" => ForceBinaryOp(symbol::LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT.as_op()),
     "lvert" => Open(symbol::VERTICAL_LINE),
+    "lvertneqq" => CustomCmd(0, &[Vs1, Relation(symbol::LESS_THAN_BUT_NOT_EQUAL_TO)]),
     "maltese" => Letter(symbol::MALTESE_CROSS, Mode::MathOrText),
     "mapsto" => Relation(symbol::RIGHTWARDS_ARROW_FROM_BAR),
     "mathbb" => Transform(MathVariant::Transform(TextTransform::DoubleStruck)),
@@ -791,6 +793,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "varpi" => Letter(symbol::GREEK_PI_SYMBOL, Mode::Math),
     "varrho" => Letter(symbol::GREEK_RHO_SYMBOL, Mode::Math),
     "varsigma" => Letter(symbol::GREEK_SMALL_LETTER_FINAL_SIGMA, Mode::Math),
+    "varsubsetneq" => CustomCmd(0, &[Vs1, Relation(symbol::SUBSET_OF_WITH_NOT_EQUAL_TO)]),
+    "varsubsetneqq" => CustomCmd(0, &[Vs1, Relation(symbol::SUBSET_OF_ABOVE_NOT_EQUAL_TO)]),
+    "varsupsetneq" => CustomCmd(0, &[Vs1, Relation(symbol::SUPERSET_OF_WITH_NOT_EQUAL_TO)]),
+    "varsupsetneqq" => CustomCmd(0, &[Vs1, Relation(symbol::SUPERSET_OF_ABOVE_NOT_EQUAL_TO)]),
     "vartheta" => Letter(symbol::GREEK_THETA_SYMBOL, Mode::Math),
     "vartriangle" => Relation(symbol::WHITE_UP_POINTING_TRIANGLE),
     "vartriangleleft" => Relation(symbol::NORMAL_SUBGROUP_OF),

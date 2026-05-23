@@ -1004,7 +1004,16 @@ where
             }
             Token::Not => {
                 // `\not` has to be followed by something:
-                let (tok, new_span) = self.next_token()?.into_parts();
+                let (tok, new_span, has_vs1) = {
+                    let (tok, new_span) = self.next_token()?.into_parts();
+                    // Need to handle combining `\not` with VS1
+                    if matches!(tok, Token::Vs1) {
+                        let (tok, new_span) = self.next_token()?.into_parts();
+                        (tok, new_span, true)
+                    } else {
+                        (tok, new_span, false)
+                    }
+                };
                 // Recompute the next class:
                 let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                 match tok {
@@ -1012,6 +1021,7 @@ where
                         let (left, right) =
                             self.state.relation_spacing(prev_class, next_class, false);
                         if let Some(negated) = get_negated_op(op) {
+                            debug_assert!(!has_vs1, "not implemented because not needed currently");
                             Ok(Node::Operator {
                                 op: negated.as_op(),
                                 attrs: OpAttrs::empty(),
@@ -1022,6 +1032,9 @@ where
                         } else {
                             let mut builder = self.buffer.get_builder();
                             builder.push_char(op.as_op().as_char());
+                            if has_vs1 {
+                                builder.push_char('\u{FE00}');
+                            }
                             builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
                             Ok(Node::PseudoOp {
                                 attrs: OpAttrs::empty(),
@@ -1032,6 +1045,10 @@ where
                         }
                     }
                     tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
+                        debug_assert!(
+                            !has_vs1,
+                            "< and > don't have VS1 variation sequences defined"
+                        );
                         let (left, right) =
                             self.state.relation_spacing(prev_class, next_class, false);
                         Ok(Node::Operator {
@@ -1047,17 +1064,52 @@ where
                         })
                     }
                     // We have to special-case `\exists` here because it is not a relation.
-                    Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
-                        op: symbol::THERE_DOES_NOT_EXIST.as_op(),
-                        attrs: OpAttrs::empty(),
-                        left: None,
-                        right: None,
-                        size: None,
-                    }),
+                    Token::Ord(symbol::THERE_EXISTS) => {
+                        debug_assert!(!has_vs1, "∃ doesn't have a VS1 variation sequence defined");
+                        Ok(Node::Operator {
+                            op: symbol::THERE_DOES_NOT_EXIST.as_op(),
+                            attrs: OpAttrs::empty(),
+                            left: None,
+                            right: None,
+                            size: None,
+                        })
+                    }
                     Token::Letter(char, _) | Token::UprightLetter(char) => {
                         let mut builder = self.buffer.get_builder();
                         builder.push_char(char);
+                        if has_vs1 {
+                            builder.push_char('\u{FE00}');
+                        }
                         builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
+                        Ok(Node::IdentifierStr(builder.finish(self.arena)))
+                    }
+                    _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
+                }
+            }
+            Token::Vs1 => {
+                // This token has to be followed by something:
+                let (tok, new_span) = self.next_token()?.into_parts();
+                // Recompute the next class:
+                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                match tok {
+                    Token::Relation(op) => {
+                        let (left, right) =
+                            self.state.relation_spacing(prev_class, next_class, false);
+
+                        let mut builder = self.buffer.get_builder();
+                        builder.push_char(op.as_op().as_char());
+                        builder.push_char('\u{FE00}');
+                        Ok(Node::PseudoOp {
+                            attrs: OpAttrs::empty(),
+                            left,
+                            right,
+                            name: builder.finish(self.arena),
+                        })
+                    }
+                    Token::Letter(char, _) | Token::UprightLetter(char) => {
+                        let mut builder = self.buffer.get_builder();
+                        builder.push_char(char);
+                        builder.push_char('\u{FE00}');
                         Ok(Node::IdentifierStr(builder.finish(self.arena)))
                     }
                     _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
