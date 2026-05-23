@@ -1,0 +1,34 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\surd, \\sqrt{2}, \\sqrt[n]{2}, \\sqrt[3]{\\frac{x^3+y^3}{2}}"
+---
+<math>
+    <msqrt><mpadded width="0"><mphantom><mi>|</mi></mphantom></mpadded></msqrt>
+    <mo>,</mo>
+    <msqrt>
+        <mn>2</mn>
+    </msqrt>
+    <mo>,</mo>
+    <mroot>
+        <mn>2</mn>
+        <mi>n</mi>
+    </mroot>
+    <mo>,</mo>
+    <mroot>
+        <mfrac>
+            <mrow>
+                <msup>
+                    <mi>x</mi>
+                    <mn>3</mn>
+                </msup>
+                <mo>+</mo>
+                <msup>
+                    <mi>y</mi>
+                    <mn>3</mn>
+                </msup>
+            </mrow>
+            <mn>2</mn>
+        </mfrac>
+        <mn>3</mn>
+    </mroot>
+</math>
