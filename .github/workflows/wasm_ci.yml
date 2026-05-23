@@ -5,8 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   cargo-test-wasm:
@@ -60,18 +59,47 @@ jobs:
           SIZE_BYTES=$(stat -c %s playground/pkg/math_core_wasm_bg.wasm)
           echo "Wasm size on base: $SIZE_BYTES bytes"
           echo "BASE_SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
+      - name: "Build WASM size comment"
+        run: |
+          SIZE_DIFF=$((PR_SIZE_BYTES - BASE_SIZE_BYTES))
+          SIZE_DIFF_PERCENT=$(awk "BEGIN {printf \"%.2f\", ($SIZE_DIFF / $BASE_SIZE_BYTES) * 100}")
+          if [ "$SIZE_DIFF" -gt 0 ]; then
+            SIZE_DIFF_STR="+$SIZE_DIFF"
+          else
+            SIZE_DIFF_STR="$SIZE_DIFF"
+          fi
+          {
+            echo "Wasm sizes:"
+            echo "Base branch: $BASE_SIZE_BYTES bytes"
+            echo "PR: $PR_SIZE_BYTES bytes"
+            echo "Size diff: $SIZE_DIFF_STR bytes ($SIZE_DIFF_PERCENT%)"
+          } > wasm-size-comment.md
+          cat wasm-size-comment.md
+      - name: "Upload WASM size comment"
+        uses: actions/upload-artifact@v6
+        with:
+          name: wasm-size-comment
+          path: wasm-size-comment.md
+
+  comment-pr:
+    name: "Comment on PR with WASM sizes"
+    runs-on: ubuntu-latest
+    needs: [cargo-test-wasm]
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: "Download WASM size comment"
+        uses: actions/download-artifact@v7
+        with:
+          name: wasm-size-comment
       - name: "Comment on PR with WASM sizes"
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prSize = process.env.PR_SIZE_BYTES;
-            const baseSize = process.env.BASE_SIZE_BYTES;
-            const sizeDiff = prSize - baseSize;
-            const sizeDiffPercent = (sizeDiff / baseSize) * 100;
-            const sizeDiffPercentStr = sizeDiffPercent.toFixed(2);
-            const sizeDiffStr = sizeDiff > 0 ? `+${sizeDiff}` : `${sizeDiff}`;
-            const comment = `Wasm sizes:\nBase branch: ${baseSize} bytes\nPR: ${prSize} bytes\nSize diff: ${sizeDiffStr} bytes (${sizeDiffPercentStr}%)`;
+            const fs = require('fs');
+            const comment = fs.readFileSync('wasm-size-comment.md', 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
