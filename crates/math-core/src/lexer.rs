@@ -466,7 +466,7 @@ mod tests {
                     break;
                 }
                 let (tok, span) = tokloc.into_parts();
-                write!(tokens, "{}:{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+                writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
         }
@@ -524,7 +524,7 @@ mod tests {
                 break;
             }
             let (tok, span) = tokloc.into_parts();
-            write!(tokens, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+            writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
         assert!(matches!(lexer.parse_cmd_args(), Some(3)));
         assert_snapshot!("parsing_custom_commands", tokens, problem);

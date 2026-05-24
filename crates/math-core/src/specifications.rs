@@ -163,7 +163,7 @@ mod tests {
     fn column_parse_simple() {
         let arena = Arena::new();
         let spec = parse_column_specification("l|c|r", &arena).unwrap();
-        assert!(matches!(spec.beginning_line, None));
+        assert!(spec.beginning_line.is_none());
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
@@ -223,7 +223,7 @@ mod tests {
     fn column_parse_with_spaces() {
         let arena = Arena::new();
         let spec = parse_column_specification(" c   : |   c|    : |      c ", &arena).unwrap();
-        assert!(matches!(spec.beginning_line, None));
+        assert!(spec.beginning_line.is_none());
         assert_eq!(spec.column_spec.len(), 6);
         assert!(matches!(
             spec.column_spec[0],
