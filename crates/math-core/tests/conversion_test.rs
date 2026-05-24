@@ -169,6 +169,22 @@ fn main() {
             "eqref",
             r#"\begin{align} 1\label{eq:1}\\\eqref{eq:1}\end{align}"#,
         ),
+        (
+            "label_on_last_row",
+            r#"\begin{align} 1\label{eq:1}\\2\label{eq:2}\end{align}"#,
+        ),
+        (
+            "label_on_only_equation_row",
+            r#"\begin{equation} x\label{eq:1}\end{equation}"#,
+        ),
+        (
+            "eqref_to_last_row_label",
+            r#"\begin{align} 1\label{a}\\2\label{b}\end{align}\eqref{b}"#,
+        ),
+        (
+            "label_on_multline_last_row",
+            r#"\begin{multline} a\\b\\c\label{eq:m}\end{multline}"#,
+        ),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
         ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
         ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),

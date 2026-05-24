@@ -1,0 +1,31 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{multline} a\\\\b\\\\c\\label{eq:m}\\end{multline}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: left;justify-items: start;">
+                <mi>a</mi>
+            </mtd>
+            <mtd style="width: 7.5%"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+            <mtd style="width: 7.5%"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: right;justify-items: end;">
+                <mi>c</mi>
+            </mtd>
+            <mtd style="width: 7.5%;text-align: right;justify-items: end;" id="eq:m">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

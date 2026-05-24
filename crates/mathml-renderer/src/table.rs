@@ -43,6 +43,19 @@ pub enum Alignment {
     Alternating,
 }
 
+/// Equation-number / label metadata for the last row of a numbered environment.
+///
+/// The last row of `align`, `gather`, `equation`, `multline`, etc. has no trailing
+/// `\\` row separator, so its tag (equation number) and link target (from `\label`)
+/// can't ride on a `Node::RowSeparator`. They're arena-allocated and threaded
+/// through `Node::EquationArray` / `Node::MultLine` instead.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct RowLabelInfo<'arena> {
+    pub tag: Option<NonZeroU16>,
+    pub link_target: Option<&'arena str>,
+}
+
 enum AlignmentType<'arena> {
     Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),

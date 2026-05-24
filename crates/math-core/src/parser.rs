@@ -6,6 +6,7 @@ use mathml_renderer::{
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
     symbol::{self, OpCategory, OrdCategory, RelCategory},
+    table::RowLabelInfo,
 };
 use rustc_hash::FxHashMap;
 
@@ -1321,9 +1322,25 @@ where
                     ));
                 }
 
-                let (last_equation_num, num_rows) = if let Some(mut n) = numbered_state {
+                let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_number(self.equation_counter, true) {
-                        Ok(num) => (num, n.num_rows),
+                        Ok(num) => {
+                            let link_target = n.label.take();
+                            if let Some(label) = link_target
+                                && let Some(tag) = num
+                            {
+                                self.label_map.insert(label.into(), tag);
+                            }
+                            let info = if num.is_some() || link_target.is_some() {
+                                Some(self.arena.alloc_row_label_info(RowLabelInfo {
+                                    tag: num,
+                                    link_target,
+                                }))
+                            } else {
+                                None
+                            };
+                            (info, n.num_rows)
+                        }
                         Err(()) => {
                             break 'begin_env Err(LatexError(
                                 span.into(),
@@ -1336,15 +1353,7 @@ where
                 };
                 class = Class::Close;
 
-                Ok(
-                    env.construct_node(
-                        content,
-                        array_spec,
-                        self.arena,
-                        last_equation_num,
-                        num_rows,
-                    ),
-                )
+                Ok(env.construct_node(content, array_spec, self.arena, last_row_info, num_rows))
             }
             Token::OperatorName { with_limits } => {
                 let snippets = self.extract_text(None, false)?;

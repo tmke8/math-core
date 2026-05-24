@@ -4,7 +4,7 @@ use stable_arena::DroplessArena;
 
 use crate::{
     ast::Node,
-    table::{ArraySpec, ColumnSpec},
+    table::{ArraySpec, ColumnSpec, RowLabelInfo},
 };
 
 pub struct Arena {
@@ -60,6 +60,13 @@ impl Arena {
         array_spec: ArraySpec<'arena>,
     ) -> &'arena ArraySpec<'arena> {
         self.inner.alloc(array_spec)
+    }
+
+    pub fn alloc_row_label_info<'arena>(
+        &'arena self,
+        info: RowLabelInfo<'arena>,
+    ) -> &'arena RowLabelInfo<'arena> {
+        self.inner.alloc(info)
     }
 }
 
