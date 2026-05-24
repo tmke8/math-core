@@ -110,6 +110,7 @@ where
         arena: &'arena Arena,
         equation_counter: &'arena mut u16,
         label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+        style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -126,7 +127,7 @@ where
                 allow_columns: false,
                 meaningful_newlines: false,
                 numbered: None,
-                style: Style::Text,
+                style,
             },
         })
     }
@@ -2188,7 +2189,9 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
+            let mut p =
+                Parser::new(l, &arena, &mut equation_counter, &mut label_map, Style::Text)
+                    .unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -2196,7 +2199,9 @@ mod tests {
 
     #[test]
     fn ast_from_token_stream_test() {
-        use crate::token::Token::*;
+        use crate::token::Token::{
+            CustomSpace, GroupBegin, GroupEnd, InternalStringLiteral, Letter, Text,
+        };
         let problems: [(&'static str, &'static [Token]); 3] = [
             (
                 "text_internal_string_literal",
@@ -2222,7 +2227,9 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
+            let mut p =
+                Parser::new(l, &arena, &mut equation_counter, &mut label_map, Style::Text)
+                    .unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);

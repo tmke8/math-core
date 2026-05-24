@@ -46,7 +46,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use mathml_renderer::{arena::Arena, ast::Node, fmt::new_line_and_indent};
+use mathml_renderer::{arena::Arena, ast::Node, attribute::Style, fmt::new_line_and_indent};
 
 pub use self::error::LatexError;
 use self::{error::LatexErrKind, lexer::Lexer, parser::Parser, token::Token};
@@ -264,7 +264,7 @@ fn convert(
     flags: &Flags,
 ) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, cmd_cfg, equation_count, label_map)?;
+    let ast = parse(latex, &arena, cmd_cfg, equation_count, label_map, display)?;
 
     let mut output = String::new();
     output.push_str("<math");
@@ -314,13 +314,18 @@ fn parse<'config, 'source, 'arena>(
     cmd_cfg: Option<&'config CommandConfig>,
     equation_count: &'arena mut u16,
     label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+    display: MathDisplay,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
 where
     'config: 'source,
     'source: 'arena,
 {
+    let style = match display {
+        MathDisplay::Inline => Style::Text,
+        MathDisplay::Block => Style::Display,
+    };
     let lexer = Lexer::new(latex, false, cmd_cfg);
-    let mut p = Parser::new(lexer, arena, equation_count, label_map)?;
+    let mut p = Parser::new(lexer, arena, equation_count, label_map, style)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }
