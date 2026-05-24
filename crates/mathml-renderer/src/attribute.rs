@@ -107,6 +107,17 @@ pub enum Style {
     ScriptScript,
 }
 
+impl Style {
+    /// One step smaller, as used for the numerator and denominator of a fraction.
+    pub const fn shrink(self) -> Self {
+        match self {
+            Style::Display => Style::Text,
+            Style::Text => Style::Script,
+            Style::Script | Style::ScriptScript => Style::ScriptScript,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {

@@ -3,7 +3,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
     symbol::{self, OpCategory, OrdCategory, RelCategory},
 };
@@ -48,8 +48,8 @@ struct ParserState<'source, 'arena> {
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     meaningful_newlines: bool,
     numbered: Option<NumberedEnvState<'arena>>,
-    /// `true` if we are within a group where the style is `\scriptstyle` or smaller
-    script_style: bool,
+    /// The current style (display/text/script/scriptscript) for the surrounding group.
+    style: Style,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -110,6 +110,7 @@ where
         arena: &'arena Arena,
         equation_counter: &'arena mut u16,
         label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+        style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -126,7 +127,7 @@ where
                 allow_columns: false,
                 meaningful_newlines: false,
                 numbered: None,
-                script_style: false,
+                style,
             },
         })
     }
@@ -157,6 +158,7 @@ where
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
+        let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
@@ -235,6 +237,7 @@ where
             self.next_token()?;
         }
         self.state.transform = old_tf;
+        self.state.style = old_style;
         Ok(nodes)
     }
 
@@ -259,6 +262,10 @@ where
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
                     *infix_frac = Some((mem::take(collected_nodes), *with_line, *delim));
+                    // The numerator was already parsed in the surrounding style (we only
+                    // learn it's a fraction here), but we can at least shrink the style
+                    // for the denominator. `parse_sequence` restores the style on exit.
+                    self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {
                     Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
@@ -456,7 +463,9 @@ where
             }
             Token::Punctuation(punc) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End) || self.state.script_style {
+                let right = if matches!(next_class, Class::End)
+                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -471,7 +480,9 @@ where
             }
             Token::ForcePunctuation(op) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End) || self.state.script_style {
+                let right = if matches!(next_class, Class::End)
+                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::ThreeMu)
@@ -611,22 +622,23 @@ where
                         | Class::Operator
                         | Class::BinaryOp
                         | Class::Open
-                ) || self.state.script_style
+                ) || matches!(self.state.style, Style::Script | Style::ScriptScript)
                 {
                     Some(MathSpacing::Zero)
                 } else {
                     None
                 };
-                let right = if matches!(
-                    next_class,
-                    Class::Relation | Class::BinaryOp | Class::Close | Class::End
-                ) || (self.state.script_style
-                    && !matches!(next_class, Class::Operator))
-                {
-                    Some(MathSpacing::Zero)
-                } else {
-                    None
-                };
+                let right =
+                    if matches!(
+                        next_class,
+                        Class::Relation | Class::BinaryOp | Class::Close | Class::End
+                    ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
+                        && !matches!(next_class, Class::Operator))
+                    {
+                        Some(MathSpacing::Zero)
+                    } else {
+                        None
+                    };
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
@@ -704,8 +716,15 @@ where
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
+                let inner_style = match attr {
+                    None => self.state.style.shrink(),
+                    Some(FracAttr::CFracStyle | FracAttr::DisplayStyleTrue) => Style::Text,
+                    Some(FracAttr::DisplayStyleFalse) => Style::Script,
+                };
+                let old_style = mem::replace(&mut self.state.style, inner_style);
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
+                self.state.style = old_style;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
                     Ok(fenced(
@@ -812,9 +831,9 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
-                let old_script_style = mem::replace(&mut self.state.script_style, true);
+                let old_style = mem::replace(&mut self.state.style, Style::Script);
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 let token = self.next_token();
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
                 let (cls, target) =
@@ -1261,8 +1280,14 @@ where
                     &mut self.state.meaningful_newlines,
                     env.meaningful_newlines(),
                 );
-                let old_script_style =
-                    mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
+                let old_style = mem::replace(
+                    &mut self.state.style,
+                    if matches!(env, Env::Subarray) {
+                        Style::Script
+                    } else {
+                        Style::Text
+                    },
+                );
                 let old_numbered =
                     mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
@@ -1274,7 +1299,7 @@ where
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.meaningful_newlines = old_meaningful_newlines;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
@@ -1444,12 +1469,9 @@ where
                 })
             }
             Token::Style(style) => {
-                let old_script_style = mem::replace(
-                    &mut self.state.script_style,
-                    matches!(style, Style::Script | Style::ScriptScript),
-                );
+                let old_style = mem::replace(&mut self.state.style, style);
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: Some(RowAttr::Style(style)),
@@ -1542,9 +1564,9 @@ where
                 class = Class::Relation;
 
                 // Parse the over-argument in the same state the original token-stream
-                // expansion used: `script_style` is set by the outer `\overset`, and
+                // expansion used: `style` is set by the outer `\overset`, and
                 // `right_boundary_hack` is set by the inner `\overset`'s target group.
-                let old_script_style = mem::replace(&mut self.state.script_style, true);
+                let old_style = mem::replace(&mut self.state.style, Style::Script);
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
 
                 // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
@@ -1566,7 +1588,7 @@ where
                     (None, over)
                 };
 
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 self.state.right_boundary_hack = old_boundary_hack;
                 // Re-compute the next class.
                 let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
@@ -1803,9 +1825,9 @@ where
                 LatexErrKind::BoundFollowedByBound,
             )));
         }
-        let old_script_style = mem::replace(&mut self.state.script_style, true);
+        let old_style = mem::replace(&mut self.state.style, Style::Script);
         let node = self.parse_token(next, ParseAs::Arg, Class::Default);
-        self.state.script_style = old_script_style;
+        self.state.style = old_style;
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1846,7 +1868,8 @@ where
             if matches!(
                 next_class,
                 Class::Relation | Class::Punctuation | Class::Open | Class::Close | Class::End
-            ) || (self.state.script_style && matches!(next_class, Class::Inner))
+            ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
+                && matches!(next_class, Class::Inner))
             {
                 Some(MathSpacing::Zero)
             } else if explicit {
@@ -1997,7 +2020,7 @@ impl ParserState<'_, '_> {
             if matches!(
                 prev_class,
                 Class::Relation | Class::Open | Class::Punctuation
-            ) || self.script_style
+            ) || matches!(self.style, Style::Script | Style::ScriptScript)
             {
                 Some(MathSpacing::Zero)
             } else if force {
@@ -2008,7 +2031,7 @@ impl ParserState<'_, '_> {
             if matches!(
                 next_class,
                 Class::Relation | Class::Punctuation | Class::Close | Class::End
-            ) || self.script_style
+            ) || matches!(self.style, Style::Script | Style::ScriptScript)
             {
                 Some(MathSpacing::Zero)
             } else if force {
@@ -2035,7 +2058,7 @@ impl ParserState<'_, '_> {
         ) || matches!(
             next_class,
             Class::Relation | Class::Punctuation | Class::Close | Class::End
-        ) || self.script_style
+        ) || matches!(self.style, Style::Script | Style::ScriptScript)
         {
             Some(MathSpacing::Zero)
         } else if force {
@@ -2180,7 +2203,14 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
+            let mut p = Parser::new(
+                l,
+                &arena,
+                &mut equation_counter,
+                &mut label_map,
+                Style::Text,
+            )
+            .unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -2188,7 +2218,9 @@ mod tests {
 
     #[test]
     fn ast_from_token_stream_test() {
-        use crate::token::Token::*;
+        use crate::token::Token::{
+            CustomSpace, GroupBegin, GroupEnd, InternalStringLiteral, Letter, Text,
+        };
         let problems: [(&'static str, &'static [Token]); 3] = [
             (
                 "text_internal_string_literal",
@@ -2214,7 +2246,14 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
-            let mut p = Parser::new(l, &arena, &mut equation_counter, &mut label_map).unwrap();
+            let mut p = Parser::new(
+                l,
+                &arena,
+                &mut equation_counter,
+                &mut label_map,
+                Style::Text,
+            )
+            .unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);

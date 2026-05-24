@@ -18,14 +18,14 @@ expression: "x_{1,2}=\\frac{{\\color{Blue}-b}\\pm \\sqrt{\\color{Red}b^2-4ac}}{\
                 <mo lspace="0" rspace="0">−</mo>
                 <mi>b</mi>
             </mrow>
-            <mo>±</mo>
+            <mo lspace="0" rspace="0">±</mo>
             <msqrt>
                 <mrow style="color:#FF2E17;">
                     <msup>
                         <mi>b</mi>
                         <mn>2</mn>
                     </msup>
-                    <mo>−</mo>
+                    <mo lspace="0" rspace="0">−</mo>
                     <mn>4</mn>
                     <mi>a</mi>
                     <mi>c</mi>
