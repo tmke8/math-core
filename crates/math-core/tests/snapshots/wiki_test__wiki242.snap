@@ -9,14 +9,14 @@ expression: "x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}"
         <mrow>
             <mo lspace="0" rspace="0">−</mo>
             <mi>b</mi>
-            <mo>±</mo>
+            <mo lspace="0" rspace="0">±</mo>
             <msqrt>
                 <mrow>
                     <msup>
                         <mi>b</mi>
                         <mn>2</mn>
                     </msup>
-                    <mo>−</mo>
+                    <mo lspace="0" rspace="0">−</mo>
                     <mn>4</mn>
                     <mi>a</mi>
                     <mi>c</mi>

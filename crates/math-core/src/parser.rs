@@ -3,7 +3,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::Node,
-    attribute::{LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
     symbol::{self, OpCategory, OrdCategory, RelCategory},
 };
@@ -622,16 +622,17 @@ where
                 } else {
                     None
                 };
-                let right = if matches!(
-                    next_class,
-                    Class::Relation | Class::BinaryOp | Class::Close | Class::End
-                ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
-                    && !matches!(next_class, Class::Operator))
-                {
-                    Some(MathSpacing::Zero)
-                } else {
-                    None
-                };
+                let right =
+                    if matches!(
+                        next_class,
+                        Class::Relation | Class::BinaryOp | Class::Close | Class::End
+                    ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
+                        && !matches!(next_class, Class::Operator))
+                    {
+                        Some(MathSpacing::Zero)
+                    } else {
+                        None
+                    };
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
@@ -709,8 +710,15 @@ where
                 }
             }
             Token::Frac(attr) | Token::Binom(attr) => {
+                let inner_style = match attr {
+                    None => self.state.style.demoted(),
+                    Some(FracAttr::CFracStyle | FracAttr::DisplayStyleTrue) => Style::Text,
+                    Some(FracAttr::DisplayStyleFalse) => Style::Script,
+                };
+                let old_style = mem::replace(&mut self.state.style, inner_style);
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
+                self.state.style = old_style;
                 if matches!(cur_token, Token::Binom(_)) {
                     let (lt_value, lt_unit) = Length::zero().into_parts();
                     Ok(fenced(
@@ -2189,9 +2197,14 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
-            let mut p =
-                Parser::new(l, &arena, &mut equation_counter, &mut label_map, Style::Text)
-                    .unwrap();
+            let mut p = Parser::new(
+                l,
+                &arena,
+                &mut equation_counter,
+                &mut label_map,
+                Style::Text,
+            )
+            .unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -2227,9 +2240,14 @@ mod tests {
             let mut equation_counter = 0u16;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
-            let mut p =
-                Parser::new(l, &arena, &mut equation_counter, &mut label_map, Style::Text)
-                    .unwrap();
+            let mut p = Parser::new(
+                l,
+                &arena,
+                &mut equation_counter,
+                &mut label_map,
+                Style::Text,
+            )
+            .unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
