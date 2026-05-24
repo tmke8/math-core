@@ -50,7 +50,7 @@ fn mathml(state: &State, latex: &str) -> Option<Value> {
         .ok()
         .and_then(|mut c| {
             c.convert_with_global_counter(latex, MathDisplay::Block)
-                .map(|mathml| Value::from(mathml))
+                .map(Value::from)
                 .ok()
         })
 }

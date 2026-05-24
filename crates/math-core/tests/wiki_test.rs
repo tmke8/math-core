@@ -1406,7 +1406,7 @@ fn test_nonfailing_wiki_tests() {
     for (num, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_counter(problem, crate::MathDisplay::Inline)
-            .expect(format!("failed to convert `{}`", problem).as_str());
+            .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
         let name = format!("wiki{:03}", num);
         assert_snapshot!(name.as_str(), &mathml, problem);
     }

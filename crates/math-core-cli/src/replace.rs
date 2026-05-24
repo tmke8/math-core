@@ -294,16 +294,16 @@ mod tests {
     use std::fmt::Write;
 
     /// Mock convert function for testing
-    fn mock_convert<'source>(
+    fn mock_convert(
         _state: &mut (),
         buf: &mut String,
-        content: &'source str,
+        content: &str,
         typ: MathDisplay,
     ) -> Result<(), Box<LatexError>> {
         match typ {
             MathDisplay::Inline => write!(buf, "[T1:{}]", content).unwrap(),
             MathDisplay::Block => write!(buf, "[T2:{}]", content).unwrap(),
-        };
+        }
         Ok(())
     }
 

@@ -430,7 +430,7 @@ fn main() {
     for (name, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_counter(problem, MathDisplay::Inline)
-            .expect(format!("failed to convert `{}`", problem).as_str());
+            .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
         assert_snapshot!(name, &mathml, problem);
     }
 }

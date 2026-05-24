@@ -409,7 +409,7 @@ mod tests {
                     let mut token_str = String::new();
                     for tokloc in tokens {
                         let (tok, span) = tokloc.into_parts();
-                        write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+                        writeln!(token_str, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
                     }
                     token_str
                 }
@@ -440,7 +440,7 @@ mod tests {
             if matches!(tok, Token::Eoi) {
                 break;
             }
-            write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+            writeln!(token_str, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
 
         assert_snapshot!("next_with_whitespace", &token_str, input);
@@ -492,7 +492,7 @@ mod tests {
                     let mut token_str = String::new();
                     for tokloc in tokens {
                         let (tok, span) = tokloc.into_parts();
-                        write!(token_str, "{}..{}: {:?}\n", span.start(), span.end(), tok).unwrap();
+                        writeln!(token_str, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
                     }
                     token_str
                 }
