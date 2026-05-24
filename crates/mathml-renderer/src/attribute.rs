@@ -109,7 +109,7 @@ pub enum Style {
 
 impl Style {
     /// One step smaller, as used for the numerator and denominator of a fraction.
-    pub const fn demoted(self) -> Self {
+    pub const fn shrink(self) -> Self {
         match self {
             Style::Display => Style::Text,
             Style::Text => Style::Script,

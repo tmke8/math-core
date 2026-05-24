@@ -158,6 +158,7 @@ where
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
+        let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
@@ -236,6 +237,7 @@ where
             self.next_token()?;
         }
         self.state.transform = old_tf;
+        self.state.style = old_style;
         Ok(nodes)
     }
 
@@ -260,6 +262,10 @@ where
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
                     *infix_frac = Some((mem::take(collected_nodes), *with_line, *delim));
+                    // The numerator was already parsed in the surrounding style (we only
+                    // learn it's a fraction here), but we can at least shrink the style
+                    // for the denominator. `parse_sequence` restores the style on exit.
+                    self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {
                     Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
@@ -711,7 +717,7 @@ where
             }
             Token::Frac(attr) | Token::Binom(attr) => {
                 let inner_style = match attr {
-                    None => self.state.style.demoted(),
+                    None => self.state.style.shrink(),
                     Some(FracAttr::CFracStyle | FracAttr::DisplayStyleTrue) => Style::Text,
                     Some(FracAttr::DisplayStyleFalse) => Style::Script,
                 };

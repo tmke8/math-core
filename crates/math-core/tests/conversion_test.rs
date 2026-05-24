@@ -87,6 +87,7 @@ fn main() {
         ("fraction_with_space", r"\frac 12"),
         ("slightly_more_complex_fraction", r"\frac{12}{5}"),
         ("over", r"{\log x + a^n - \sin(\theta+\eta) \over x}"),
+        ("over_with_binop_denominator", r"{a+b \over c+d}"),
         (
             "infix_fractions",
             r"{a\atop b}, {a\choose b}, {a\brace b}, {a\brack b}",

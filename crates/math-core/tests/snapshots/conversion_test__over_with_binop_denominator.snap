@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{a+b \\over c+d}"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mi>a</mi>
+            <mo>+</mo>
+            <mi>b</mi>
+        </mrow>
+        <mrow>
+            <mi>c</mi>
+            <mo lspace="0" rspace="0">+</mo>
+            <mi>d</mi>
+        </mrow>
+    </mfrac>
+</math>
