@@ -50,6 +50,7 @@
           errorColor: "#b22222",
           output: "html",
           strict: true,
+          trust: true
         });
       });
     </script>
@@ -120,9 +121,9 @@
             <td></td>
           </tr>
           <tr>
-            <td>&</td>
-            <td>₮\begin{matrix} a & b\\ c & d \end{matrix}₮</td>
-            <td>\(\begin{matrix} a & b\\ c & d \end{matrix}\)</td>
+            <td>&amp;</td>
+            <td>₮\begin{matrix} a &amp; b\\ c &amp; d \end{matrix}₮</td>
+            <td>\(\begin{matrix} a &amp; b\\ c &amp; d \end{matrix}\)</td>
             <td>
               <pre><code>\begin{matrix}
   a &amp; b \\
@@ -131,9 +132,9 @@
             </td>
           </tr>
           <tr>
-            <td>\&</td>
-            <td>₮\&₮</td>
-            <td>\(\&\)</td>
+            <td>\&amp;</td>
+            <td>₮\&amp;₮</td>
+            <td>\(\&amp;\)</td>
             <td></td>
           </tr>
           <tr>
@@ -161,6 +162,12 @@
             <td></td>
           </tr>
           <tr>
+            <td>\(…\)</td>
+            <td>₮\text{\(\frac a b\)}₮</td>
+            <td>\(\text{\(\frac a b\)}\)</td>
+            <td><code>\text{\(\frac a b\)}</code></td>
+          </tr>
+          <tr>
             <td>\</td>
             <td>₮a\ b₮</td>
             <td>\(a\ b\)</td>
@@ -173,10 +180,10 @@
             <td><code>\text{\"{a}}</code></td>
           </tr>
           <tr>
-            <td><code>$</code></td>
+            <td>\$</td>
             <td>₮\$₮</td>
             <td>\(\$\)</td>
-            <td><code>\$</code></td>
+            <td></td>
           </tr>
           <tr>
             <td>\,</td>
@@ -463,6 +470,12 @@
             </td>
           </tr>
           <tr>
+            <td>\allowbreak</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\Alpha</td>
             <td>₮\Alpha₮</td>
             <td>\(\Alpha\)</td>
@@ -508,6 +521,18 @@
             <td>\approx</td>
             <td>₮\approx₮</td>
             <td>\(\approx\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\approxcolon</td>
+            <td>₮\approxcolon₮</td>
+            <td>\(\approxcolon\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\approxcoloncolon</td>
+            <td>₮\approxcoloncolon₮</td>
+            <td>\(\approxcoloncolon\)</td>
             <td></td>
           </tr>
           <tr>
@@ -566,15 +591,38 @@
           </tr>
           <tr>
             <td>{array}</td>
-            <td>₮\begin{array}{cc}a&b\\c&d\end{array}₮</td>
-            <td>\(\begin{array}{cc}a&b\\c&d\end{array}\)</td>
-            <td><code>\begin{array}{cc}</code><br />   <code>a &amp; b \\</code><br />   <code>c &amp; d</code><br /><code>\end{array}</code></td>
+            <td>₮\begin{array}{cc}a&amp;b\\c&amp;d\end{array}₮</td>
+            <td>\(\begin{array}{cc}a&amp;b\\c&amp;d\end{array}\)</td>
+            <td>
+              <pre><code>\begin{array}{cc}
+  a &amp; b \\
+  c &amp; d
+\end{array}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{array}<br />with lines</td>
-            <td>₮\begin{array}{c|c:c}a & b & c \\ \hline d & e & f \\ \hdashline g & h & i\end{array}₮</td>
-            <td>\(\begin{array}{c|c:c}a & b & c \\ \hline d & e & f \\ \hdashline g & h & i\end{array}\)</td>
-            <td><code>\begin{array}{c|c:c}</code><br /><code>a &amp; b &amp; c \\ \hline</code><br /><code>d &amp; e &amp; f\\</code><br /><code>\hdashline g &amp; h &amp; i</code><br /><code>\end{array}</code></td>
+            <td>₮\begin{array}{c|c:c}a &amp; b &amp; c \\ \hline d &amp; e &amp; f \\ \hdashline g &amp; h &amp; i\end{array}₮</td>
+            <td>\(\begin{array}{c|c:c}a &amp; b &amp; c \\ \hline d &amp; e &amp; f \\ \hdashline g &amp; h &amp; i\end{array}\)</td>
+            <td>
+              <pre><code>\begin{array}{c|c:c}
+  a &amp; b &amp; c \\ \hline
+  d &amp; e &amp; f \\ \hdashline
+  g &amp; h &amp; i
+\end{array}</code></pre>
+            </td>
+          </tr>
+          <tr>
+            <td>\arraystretch</td>
+            <td>₮\def\arraystretch{1.5} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}₮</td>
+            <td>\(\def\arraystretch{1.5} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}\)</td>
+            <td>
+              <pre><code>\def\arraystretch{1.5}
+\begin{array}{cc}
+   a &amp; b \\
+   c &amp; d
+\end{array}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\ast</td>
@@ -986,6 +1034,17 @@
             </td>
           </tr>
           <tr>
+            <td>{Bmatrix*}</td>
+            <td>₮\begin{Bmatrix*}[r]0&-1\\-1&0\end{Bmatrix*}₮</td>
+            <td>\(\begin{Bmatrix*}[r]0&-1\\-1&0\end{Bmatrix*}\)</td>
+            <td>
+              <pre><code>\begin{Bmatrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{Bmatrix*}</code></pre>
+            </td>
+          </tr>
+          <tr>
             <td>{bmatrix}</td>
             <td>₮\begin{bmatrix}a&b\\c&d\end{bmatrix}₮</td>
             <td>\(\begin{bmatrix}a&b\\c&d\end{bmatrix}\)</td>
@@ -994,6 +1053,17 @@
   a &amp; b \\
   c &amp; d
 \end{bmatrix}</code></pre>
+            </td>
+          </tr>
+          <tr>
+            <td>{bmatrix*}</td>
+            <td>₮\begin{bmatrix*}[r]0&-1\\-1&0\end{bmatrix*}₮</td>
+            <td>\(\begin{bmatrix*}[r]0&-1\\-1&0\end{bmatrix*}\)</td>
+            <td>
+              <pre><code>\begin{bmatrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{bmatrix*}</code></pre>
             </td>
           </tr>
           <tr>
@@ -2003,6 +2073,12 @@
         </thead>
         <tbody>
           <tr>
+            <td>\edef</td>
+            <td>₮\def\foo{a}\edef\fcopy{\foo}\def\foo{}\fcopy₮</td>
+            <td>\(\def\foo{a}\edef\fcopy{\foo}\def\foo{}\fcopy\)</td>
+            <td><code>\def\foo{a}\edef\fcopy{\foo}\def\foo{}\fcopy</code></td>
+          </tr>
+          <tr>
             <td>\ell</td>
             <td>₮\ell₮</td>
             <td>\(\ell\)</td>
@@ -2185,6 +2261,12 @@
             <td>\(\exp x\)</td>
             <td></td>
           </tr>
+          <tr>
+            <td>\expandafter</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -2258,6 +2340,12 @@
             <td>\frown</td>
             <td>₮\frown₮</td>
             <td>\(\frown\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\futurelet</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
             <td></td>
           </tr>
         </tbody>
@@ -2578,6 +2666,12 @@
             <td>₮a\hphantom{bc}d₮</td>
             <td>\(a\hphantom{bc}d\)</td>
             <td><code>a\hphantom{bc}d</code></td>
+          </tr>
+          <tr>
+            <td>\href</td>
+            <td>₮\href{https://ctan.org/}{\mathrm{CTAN}}₮</td>
+            <td>\(\href{https://ctan.org/}{\mathrm{CTAN}}\)</td>
+            <td><code>\href{https://ctan.org/}{\mathrm{CTAN}}</code></td>
           </tr>
           <tr>
             <td>\hskip</td>
@@ -3123,6 +3217,12 @@
             <td></td>
           </tr>
           <tr>
+            <td>\let</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\lfloor</td>
             <td>₮\lfloor₮</td>
             <td>\(\lfloor\)</td>
@@ -3271,6 +3371,12 @@
             <td>₮\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\log x \\ \log_y x \\ \log\limits_y x\end{darray}\)</td>
             <td><code>\log x</code><br /><code>\log_y x</code><br /><code>\log\limits_y x</code></td>
+          </tr>
+          <tr>
+            <td>\long</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
           </tr>
           <tr>
             <td>\Longleftarrow</td>
@@ -3611,6 +3717,17 @@
             </td>
           </tr>
           <tr>
+            <td>{matrix*}</td>
+            <td>₮\begin{matrix*}[r]0&-1\\-1&0\end{matrix*}₮</td>
+            <td>\(\begin{matrix*}[r]0&-1\\-1&0\end{matrix*}\)</td>
+            <td>
+              <pre><code>\begin{matrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{matrix*}</code></pre>
+            </td>
+          </tr>
+          <tr>
             <td>\max</td>
             <td>₮\begin{darray}{l}\max x \\ \max_y x \\\max\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\max x \\ \max_y x \\\max\limits_y x\end{darray}\)</td>
@@ -3926,16 +4043,39 @@
             <td></td>
           </tr>
           <tr>
+            <td>\nobreak</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\nobreakspace</td>
             <td>₮a\nobreakspace b₮</td>
             <td>\(a\nobreakspace b\)</td>
             <td><code>a\nobreakspace b</code></td>
           </tr>
           <tr>
+            <td>\noexpand</td>
+            <td>₮✗₮</td>
+            <td>\(\checkmark\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\nolimits</td>
             <td>₮\lim\nolimits_x₮</td>
             <td>\(\lim\nolimits_x\)</td>
             <td><code>\lim\nolimits_x</code></td>
+          </tr>
+          <tr>
+            <td>\nonumber</td>
+            <td>₮₮\begin{align}a&amp;=b+c\nonumber\\d+e&amp;=f\end{align}₮₮</td>
+            <td>\[\begin{align}a&amp;=b+c\nonumber\\d+e&amp;=f\end{align}\]</td>
+            <td>
+              <pre><code>\begin{align}
+  a &amp;= b + c \nonumber \\
+  d + e &amp;= f
+\end{align}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\normalsize</td>
@@ -3948,6 +4088,17 @@
             <td>₮\not =₮</td>
             <td>\(\not =\)</td>
             <td><code>\not =</code></td>
+          </tr>
+          <tr>
+            <td>\notag</td>
+            <td>₮₮\begin{align}a&amp;=b+c\notag\\d+e&amp;=f\end{align}₮₮</td>
+            <td>\[\begin{align}a&amp;=b+c\notag\\d+e&amp;=f\end{align}\]</td>
+            <td>
+              <pre><code>\begin{align}
+  a &amp;= b + c \notag \\
+  d + e &amp;= f
+\end{align}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\notin</td>
@@ -4229,6 +4380,12 @@
             <td><code>\operatorname*{asin} x</code><br /><code>\operatorname*{asin}_y x</code><br /><code>\operatorname*{asin}\limits_y x\end</code></td>
           </tr>
           <tr>
+            <td>\operatornamewithlimits</td>
+            <td>₮₮\operatornamewithlimits{asin}_y x₮₮</td>
+            <td>\[\operatornamewithlimits{asin}_y x\]</td>
+            <td><code>\operatornamewithlimits{asin}_y x</code></td>
+          </tr>
+          <tr>
             <td>\oplus</td>
             <td>₮\oplus₮</td>
             <td>\(\oplus\)</td>
@@ -4301,10 +4458,16 @@
             <td><code>\overline{\text{a long argument}}</code></td>
           </tr>
           <tr>
+            <td>\overlinesegment</td>
+            <td>₮\overlinesegment{AB}₮</td>
+            <td>\(\overlinesegment{AB}\)</td>
+            <td><code>\overlinesegment{AB}</code></td>
+          </tr>
+          <tr>
             <td>\overparen</td>
             <td>₮\overparen{AB}₮</td>
             <td>\(\overparen{AB}\)</td>
-            <td>See <code>\overgroup</code></td>
+            <td><code>\overparen{AB}</code></td>
           </tr>
           <tr>
             <td>\Overrightarrow</td>
@@ -4382,6 +4545,12 @@
             <td><code>\Gamma^{\phantom{i}j}_{i\phantom{j}k}</code></td>
           </tr>
           <tr>
+            <td>\phase</td>
+            <td>₮\phase{-78^\circ}₮</td>
+            <td>\(\phase{-78^\circ}\)</td>
+            <td><code>\phase{-78^\circ}</code></td>
+          </tr>
+          <tr>
             <td>\Phi</td>
             <td>₮\Phi₮</td>
             <td>\(\Phi\)</td>
@@ -4438,6 +4607,17 @@
   a &amp; b \\
   c &amp; d
 \end{pmatrix}</code></pre>
+            </td>
+          </tr>
+          <tr>
+            <td>{pmatrix*}</td>
+            <td>₮\begin{pmatrix*}[r]0&-1\\-1&0\end{pmatrix*}₮</td>
+            <td>\(\begin{pmatrix*}[r]0&-1\\-1&0\end{pmatrix*}\)</td>
+            <td>
+              <pre><code>\begin{pmatrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{pmatrix*}</code></pre>
             </td>
           </tr>
           <tr>
@@ -4648,6 +4828,12 @@
             <td></td>
           </tr>
           <tr>
+            <td>\ratio</td>
+            <td>₮\ratio₮</td>
+            <td>\(\ratio\)</td>
+            <td></td>
+          </tr>
+          <tr>
             <td>\rBrace</td>
             <td>₮\rBrace₮</td>
             <td>\(\rBrace\)</td>
@@ -4700,12 +4886,6 @@
             <td>₮\reals₮</td>
             <td>\(\reals\)</td>
             <td></td>
-          </tr>
-          <tr>
-            <td>\ref</td>
-            <td>₮\ref{maxwell}₮</td>
-            <td>\(\ref{maxwell}\)</td>
-            <td><code>\ref{maxwell}</code></td>
           </tr>
           <tr>
             <td>\relax</td>
@@ -5062,6 +5242,12 @@
             <td>\simcolon</td>
             <td>₮\simcolon₮</td>
             <td>\(\simcolon\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\simcoloncolon</td>
+            <td>₮\simcoloncolon₮</td>
+            <td>\(\simcoloncolon\)</td>
             <td></td>
           </tr>
           <tr>
@@ -5614,10 +5800,40 @@
             <td><code>\text{\textless}</code></td>
           </tr>
           <tr>
+            <td>\textmd</td>
+            <td>₮\textmd{AaBb123}₮</td>
+            <td>\(\textmd{AaBb123}\)</td>
+            <td><code>\textmd{AaBb123}</code></td>
+          </tr>
+          <tr>
             <td>\textnormal</td>
             <td>₮\textnormal{AB}₮</td>
             <td>\(\textnormal{AB}\)</td>
             <td><code>\textnormal{AB}</code></td>
+          </tr>
+          <tr>
+            <td>\textquotedblleft</td>
+            <td>₮\text{\textquotedblleft}₮</td>
+            <td>\(\text{\textquotedblleft}\)</td>
+            <td><code>\text{\textquotedblleft}</code></td>
+          </tr>
+          <tr>
+            <td>\textquotedblright</td>
+            <td>₮\text{\textquotedblright}₮</td>
+            <td>\(\text{\textquotedblright}\)</td>
+            <td><code>\text{\textquotedblright}</code></td>
+          </tr>
+          <tr>
+            <td>\textquoteleft</td>
+            <td>₮\text{\textquoteleft}₮</td>
+            <td>\(\text{\textquoteleft}\)</td>
+            <td><code>\text{\textquoteleft}</code></td>
+          </tr>
+          <tr>
+            <td>\textquoteright</td>
+            <td>₮\text{\textquoteright}₮</td>
+            <td>\(\text{\textquoteright}\)</td>
+            <td><code>\text{\textquoteright}</code></td>
           </tr>
           <tr>
             <td>\textregistered</td>
@@ -5668,6 +5884,12 @@
             <td><code>\text{\textunderscore}</code></td>
           </tr>
           <tr>
+            <td>\textup</td>
+            <td>₮\textup{AaBb123}₮</td>
+            <td>\(\textup{AaBb123}\)</td>
+            <td><code>\textup{AaBb123}</code></td>
+          </tr>
+          <tr>
             <td>\tfrac</td>
             <td>₮\displaystyle \tfrac a b₮</td>
             <td>\(\displaystyle \tfrac a b\)</td>
@@ -5677,6 +5899,12 @@
             <td>\tg</td>
             <td>₮\tg₮</td>
             <td>\(\tg\)</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>\th</td>
+            <td>₮\th₮</td>
+            <td>\(\th\)</td>
             <td></td>
           </tr>
           <tr>
@@ -5863,6 +6091,12 @@
             <td></td>
           </tr>
           <tr>
+            <td>\underbar</td>
+            <td>₮\underbar{X}₮</td>
+            <td>\(\underbar{X}\)</td>
+            <td><code>\underbar{X}</code></td>
+          </tr>
+          <tr>
             <td>\underbrace</td>
             <td>₮\underbrace{x+⋯+x}_{n\text{ times}}₮</td>
             <td>\(\underbrace{x+⋯+x}_{n\text{ times}}\)</td>
@@ -5903,6 +6137,12 @@
             <td>₮\underline{\text{a long argument}}₮</td>
             <td>\(\underline{\text{a long argument}}\)</td>
             <td><code>\underline{\text{a long argument}}</code></td>
+          </tr>
+          <tr>
+            <td>\underlinesegment</td>
+            <td>₮\underlinesegment{AB}₮</td>
+            <td>\(\underlinesegment{AB}\)</td>
+            <td><code>\underlinesegment{AB}</code></td>
           </tr>
           <tr>
             <td>\underparen</td>
@@ -5999,6 +6239,12 @@
             <td>₮\urcorner₮</td>
             <td>\(\urcorner\)</td>
             <td></td>
+          </tr>
+          <tr>
+            <td>\url</td>
+            <td>₮\url{https://ctan.org/}₮</td>
+            <td>\(\url{https://ctan.org/}\)</td>
+            <td><code>\url{https://ctan.org/}</code></td>
           </tr>
           <tr>
             <td>\utilde</td>
@@ -6303,6 +6549,17 @@
             </td>
           </tr>
           <tr>
+            <td>{Vmatrix*}</td>
+            <td>₮\begin{Vmatrix*}[r]0&-1\\-1&0\end{Vmatrix*}₮</td>
+            <td>\(\begin{Vmatrix*}[r]0&-1\\-1&0\end{Vmatrix*}\)</td>
+            <td>
+              <pre><code>\begin{Vmatrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{Vmatrix*}</code></pre>
+            </td>
+          </tr>
+          <tr>
             <td>{vmatrix}</td>
             <td>₮\begin{vmatrix}a&b\\c&d\end{vmatrix}₮</td>
             <td>\(\begin{vmatrix}a&b\\c&d\end{vmatrix}\)</td>
@@ -6311,6 +6568,17 @@
   a &amp; b \\
   c &amp; d
 \end{vmatrix}</code></pre>
+            </td>
+          </tr>
+          <tr>
+            <td>{vmatrix*}</td>
+            <td>₮\begin{vmatrix*}[r]0&-1\\-1&0\end{vmatrix*}₮</td>
+            <td>\(\begin{vmatrix*}[r]0&-1\\-1&0\end{vmatrix*}\)</td>
+            <td>
+              <pre><code>\begin{vmatrix*}[r]
+  0 &amp; -1 \\
+  -1 &amp; 0
+\end{vmatrix*}</code></pre>
             </td>
           </tr>
           <tr>
@@ -6408,6 +6676,12 @@
             <td>₮\xcancel{ABC}₮</td>
             <td>\(\xcancel{ABC}\)</td>
             <td><code>\xcancel{ABC}</code></td>
+          </tr>
+          <tr>
+            <td>\xdef</td>
+            <td>₮\def\foo{a}\xdef\fcopy{\foo}\def\foo{}\fcopy₮</td>
+            <td>\(\def\foo{a}\xdef\fcopy{\foo}\def\foo{}\fcopy\)</td>
+            <td><code>\def\foo{a}\xdef\fcopy{\foo}\def\foo{}\fcopy</code></td>
           </tr>
           <tr>
             <td>\Xi</td>
