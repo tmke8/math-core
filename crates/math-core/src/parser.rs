@@ -48,8 +48,8 @@ struct ParserState<'source, 'arena> {
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     meaningful_newlines: bool,
     numbered: Option<NumberedEnvState<'arena>>,
-    /// `true` if we are within a group where the style is `\scriptstyle` or smaller
-    script_style: bool,
+    /// The current style (display/text/script/scriptscript) for the surrounding group.
+    style: Style,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -126,7 +126,7 @@ where
                 allow_columns: false,
                 meaningful_newlines: false,
                 numbered: None,
-                script_style: false,
+                style: Style::Text,
             },
         })
     }
@@ -456,7 +456,9 @@ where
             }
             Token::Punctuation(punc) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End) || self.state.script_style {
+                let right = if matches!(next_class, Class::End)
+                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     None
@@ -471,7 +473,9 @@ where
             }
             Token::ForcePunctuation(op) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End) || self.state.script_style {
+                let right = if matches!(next_class, Class::End)
+                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
+                {
                     Some(MathSpacing::Zero)
                 } else {
                     Some(MathSpacing::ThreeMu)
@@ -611,7 +615,7 @@ where
                         | Class::Operator
                         | Class::BinaryOp
                         | Class::Open
-                ) || self.state.script_style
+                ) || matches!(self.state.style, Style::Script | Style::ScriptScript)
                 {
                     Some(MathSpacing::Zero)
                 } else {
@@ -620,7 +624,7 @@ where
                 let right = if matches!(
                     next_class,
                     Class::Relation | Class::BinaryOp | Class::Close | Class::End
-                ) || (self.state.script_style
+                ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
                     && !matches!(next_class, Class::Operator))
                 {
                     Some(MathSpacing::Zero)
@@ -812,9 +816,9 @@ where
                 }
             }
             Token::Overset | Token::Underset => {
-                let old_script_style = mem::replace(&mut self.state.script_style, true);
+                let old_style = mem::replace(&mut self.state.style, Style::Script);
                 let symbol = self.parse_next(ParseAs::Arg)?;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 let token = self.next_token();
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
                 let (cls, target) =
@@ -1261,8 +1265,14 @@ where
                     &mut self.state.meaningful_newlines,
                     env.meaningful_newlines(),
                 );
-                let old_script_style =
-                    mem::replace(&mut self.state.script_style, matches!(env, Env::Subarray));
+                let old_style = mem::replace(
+                    &mut self.state.style,
+                    if matches!(env, Env::Subarray) {
+                        Style::Script
+                    } else {
+                        Style::Text
+                    },
+                );
                 let old_numbered =
                     mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
@@ -1274,7 +1284,7 @@ where
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.meaningful_newlines = old_meaningful_newlines;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
@@ -1444,12 +1454,9 @@ where
                 })
             }
             Token::Style(style) => {
-                let old_script_style = mem::replace(
-                    &mut self.state.script_style,
-                    matches!(style, Style::Script | Style::ScriptScript),
-                );
+                let old_style = mem::replace(&mut self.state.style, style);
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attr: Some(RowAttr::Style(style)),
@@ -1542,9 +1549,9 @@ where
                 class = Class::Relation;
 
                 // Parse the over-argument in the same state the original token-stream
-                // expansion used: `script_style` is set by the outer `\overset`, and
+                // expansion used: `style` is set by the outer `\overset`, and
                 // `right_boundary_hack` is set by the inner `\overset`'s target group.
-                let old_script_style = mem::replace(&mut self.state.script_style, true);
+                let old_style = mem::replace(&mut self.state.style, Style::Script);
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
 
                 // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
@@ -1566,7 +1573,7 @@ where
                     (None, over)
                 };
 
-                self.state.script_style = old_script_style;
+                self.state.style = old_style;
                 self.state.right_boundary_hack = old_boundary_hack;
                 // Re-compute the next class.
                 let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
@@ -1803,9 +1810,9 @@ where
                 LatexErrKind::BoundFollowedByBound,
             )));
         }
-        let old_script_style = mem::replace(&mut self.state.script_style, true);
+        let old_style = mem::replace(&mut self.state.style, Style::Script);
         let node = self.parse_token(next, ParseAs::Arg, Class::Default);
-        self.state.script_style = old_script_style;
+        self.state.style = old_style;
 
         // If the bound was a superscript, it may *not* be followed by a prime.
         if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
@@ -1846,7 +1853,8 @@ where
             if matches!(
                 next_class,
                 Class::Relation | Class::Punctuation | Class::Open | Class::Close | Class::End
-            ) || (self.state.script_style && matches!(next_class, Class::Inner))
+            ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
+                && matches!(next_class, Class::Inner))
             {
                 Some(MathSpacing::Zero)
             } else if explicit {
@@ -1997,7 +2005,7 @@ impl ParserState<'_, '_> {
             if matches!(
                 prev_class,
                 Class::Relation | Class::Open | Class::Punctuation
-            ) || self.script_style
+            ) || matches!(self.style, Style::Script | Style::ScriptScript)
             {
                 Some(MathSpacing::Zero)
             } else if force {
@@ -2008,7 +2016,7 @@ impl ParserState<'_, '_> {
             if matches!(
                 next_class,
                 Class::Relation | Class::Punctuation | Class::Close | Class::End
-            ) || self.script_style
+            ) || matches!(self.style, Style::Script | Style::ScriptScript)
             {
                 Some(MathSpacing::Zero)
             } else if force {
@@ -2035,7 +2043,7 @@ impl ParserState<'_, '_> {
         ) || matches!(
             next_class,
             Class::Relation | Class::Punctuation | Class::Close | Class::End
-        ) || self.script_style
+        ) || matches!(self.style, Style::Script | Style::ScriptScript)
         {
             Some(MathSpacing::Zero)
         } else if force {
