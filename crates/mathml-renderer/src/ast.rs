@@ -11,7 +11,7 @@ use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
-use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN};
+use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo};
 
 /// AST node
 #[derive(Debug)]
@@ -107,13 +107,13 @@ pub enum Node<'arena> {
     /// `<mtable>...</mtable>` for equation arrays like the `align` environment
     EquationArray {
         align: Alignment,
-        last_tag: Option<NonZeroU16>,
+        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtable>...</mtable>` for the `multline` environment
     MultLine {
         num_rows: NonZeroU16,
-        last_equation_num: Option<NonZeroU16>,
+        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtable>...</mtable>` for arrays
@@ -430,12 +430,12 @@ impl Node<'_> {
                 )?;
             }
             node @ (Node::EquationArray {
-                last_tag: last_equation_num,
+                last_row_info,
                 content,
                 ..
             }
             | Node::MultLine {
-                last_equation_num,
+                last_row_info,
                 content,
                 ..
             }) => {
@@ -461,7 +461,7 @@ impl Node<'_> {
                     content,
                     mtd_opening,
                     Some(numbering_cols),
-                    last_equation_num.as_ref().copied(),
+                    last_row_info.as_deref(),
                 )?;
             }
             Node::Array {
@@ -627,7 +627,7 @@ fn emit_table(
     content: &[&Node<'_>],
     mut col_gen: ColumnGenerator,
     numbering_cols: Option<NumberColums>,
-    last_tag: Option<NonZeroU16>,
+    last_row_info: Option<&RowLabelInfo>,
 ) -> Result<(), std::fmt::Error> {
     let child_indent2 = if base_indent > 0 {
         child_indent.saturating_add(1)
@@ -677,12 +677,16 @@ fn emit_table(
     }
     writeln_indent!(s, child_indent2, "</mtd>");
     if let Some(numbering_cols) = numbering_cols {
+        let (last_tag, last_link_target) = match last_row_info {
+            Some(info) => (info.tag, info.link_target),
+            None => (None, None),
+        };
         write_equation_num(
             s,
             child_indent2,
             child_indent3,
             last_tag,
-            None,
+            last_link_target,
             numbering_cols,
         )?;
     }
@@ -1172,11 +1176,15 @@ mod tests {
             &Node::Number("4"),
         ];
 
+        let info_with_tag = RowLabelInfo {
+            tag: NonZeroU16::new(2),
+            link_target: None,
+        };
         assert_eq!(
             render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                last_tag: NonZeroU16::new(2),
+                last_row_info: Some(&info_with_tag),
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
@@ -1185,7 +1193,7 @@ mod tests {
             render(&Node::EquationArray {
                 content: &nodes,
                 align: Alignment::Centered,
-                last_tag: None,
+                last_row_info: None,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );

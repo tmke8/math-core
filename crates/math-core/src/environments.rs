@@ -5,7 +5,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec},
+    table::{Alignment, ArraySpec, RowLabelInfo},
 };
 
 use crate::character_class::{StretchableOp, fenced};
@@ -129,13 +129,13 @@ impl Env {
         content: &'arena [&'arena Node<'arena>],
         array_spec: Option<&'arena ArraySpec<'arena>>,
         arena: &'arena Arena,
-        last_equation_num: Option<NonZeroU16>,
+        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         num_rows: Option<NonZeroU16>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
                 align: Alignment::Alternating,
-                last_tag: last_equation_num,
+                last_row_info,
                 content,
             },
             Env::Aligned => Node::Table {
@@ -146,7 +146,7 @@ impl Env {
             Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
                 Node::EquationArray {
                     align: Alignment::Centered,
-                    last_tag: last_equation_num,
+                    last_row_info,
                     content,
                 }
             }
@@ -165,7 +165,7 @@ impl Env {
                 Node::MultLine {
                     content,
                     num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
-                    last_equation_num,
+                    last_row_info,
                 }
             }
             Env::Cases => {
