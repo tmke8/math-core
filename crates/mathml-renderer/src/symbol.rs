@@ -950,6 +950,8 @@ pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦈', OrdCateg
 pub const Z_NOTATION_LEFT_BINDING_BRACKET: OrdLike = OrdLike::new('⦉', OrdCategory::F);
 pub const Z_NOTATION_RIGHT_BINDING_BRACKET: OrdLike = OrdLike::new('⦊', OrdCategory::G);
 
+pub const CIRCLE_WITH_HORIZONTAL_BAR: Op = Op::new('⦵', OpCategory::C);
+
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin::new('⧄', BinCategory::B);
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin::new('⧅', BinCategory::B);
 pub const SQUARED_SQUARE: Op = Op::new('⧈', OpCategory::C);

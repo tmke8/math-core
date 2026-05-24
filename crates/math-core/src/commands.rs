@@ -488,6 +488,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "middle" => Middle,
     "min" => PseudoOperatorLimits("min"),
     "minuscolon" => Relation(symbol::EXCESS),
+    "minuso" => ForceBinaryOp(symbol::CIRCLE_WITH_HORIZONTAL_BAR.as_op()),
     "mod" => CustomCmd(0, &predefined::MOD),
     "models" => Relation(symbol::TRUE),
     "mp" => BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
