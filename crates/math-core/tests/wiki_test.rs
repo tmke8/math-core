@@ -873,7 +873,11 @@ fn wiki_test() {
     let mut n_match = 0usize;
     let mut n_diff = 0usize;
     let mut n_fail = 0usize;
-    let converter = LatexToMathML::new(MathCoreConfig::default()).unwrap();
+    let converter = LatexToMathML::new(MathCoreConfig {
+        macros: vec![("sgn".to_owned(), "\\operatorname{sgn}".to_owned())],
+        ..MathCoreConfig::default()
+    })
+    .unwrap();
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
         let mathml = converter.convert_with_local_counter(&with_row, MathDisplay::Inline);
@@ -906,8 +910,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 188);
-    assert_eq!(n_fail, 20);
+    assert_eq!(n_diff, 189);
+    assert_eq!(n_fail, 19);
 }
 
 /// Prettify HTML input
@@ -964,7 +968,7 @@ fn test_nonfailing_wiki_tests() {
             15,
             r"\operatorname{sh}k, \operatorname{ch}l, \operatorname{th}m, \operatorname{coth}n",
         ),
-        // (16, r"\sgn r, \left\vert s \right\vert"),
+        (16, r"\sgn r, \left\vert s \right\vert"),
         (17, r"\min(x,y), \max(x,y)"),
         (18, r"\min x, \max y, \inf s, \sup t"),
         (19, r"\lim u, \liminf v, \limsup w"),
@@ -1400,6 +1404,7 @@ fn test_nonfailing_wiki_tests() {
 
     let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
+        macros: vec![("sgn".to_owned(), "\\operatorname{sgn}".to_owned())],
         ..Default::default()
     })
     .unwrap();
