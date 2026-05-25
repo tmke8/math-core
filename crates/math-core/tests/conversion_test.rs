@@ -417,6 +417,7 @@ fn main() {
         ("mathord", r"x\mathord{+}y"),
         ("mathord_no_braces", r"x\mathord+y"),
         ("mathord_relation", r"x\mathord{=}y"),
+        ("mathord_less_than", r"x\mathord{<}y"),
         ("mathopen", r"x+\mathopen)y"),
         ("mathclose", r"\mathclose(+x"),
         ("comma_before_close_paren", r"4,)"),

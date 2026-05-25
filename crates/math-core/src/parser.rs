@@ -5,7 +5,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
     length::Length,
-    symbol::{self, OpCategory, OrdCategory, RelCategory},
+    symbol::{self, MathMLOperator, OpCategory, OrdCategory, RelCategory},
     table::RowLabelInfo,
 };
 use rustc_hash::FxHashMap;
@@ -562,25 +562,6 @@ where
                         ));
                     }
                 };
-                let (tok, span) = tokspan.into_parts();
-                let op = match tok {
-                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
-                    Token::Op(op) | Token::Inner(op) => op.as_op(),
-                    Token::BinaryOp(op) => op.as_op(),
-                    Token::Relation(op) => op.as_op(),
-                    Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) | Token::ForceClose(op) | Token::ForceBinaryOp(op) => {
-                        op
-                    }
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                    _ => {
-                        break 'mathclass Err(LatexError(
-                            span.into(),
-                            LatexErrKind::UnsupportedMathClassArgument,
-                        ));
-                    }
-                };
                 let spacing = match kind {
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
@@ -606,13 +587,48 @@ where
                         Some(MathSpacing::Zero)
                     }
                 };
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::STRETCHY_FALSE,
-                    left: spacing,
-                    right: spacing,
-                    size: None,
-                })
+                let (tok, span) = tokspan.into_parts();
+                enum OpOrStr<'arena> {
+                    Op(MathMLOperator),
+                    Str(&'arena str),
+                }
+                use OpOrStr::*;
+                let op: OpOrStr = match tok {
+                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => Op(op.as_op()),
+                    Token::Op(op) | Token::Inner(op) => Op(op.as_op()),
+                    Token::BinaryOp(op) => Op(op.as_op()),
+                    Token::Relation(op) => Op(op.as_op()),
+                    Token::Punctuation(op) => Op(op.as_op()),
+                    Token::ForceRelation(op) | Token::ForceClose(op) | Token::ForceBinaryOp(op) => {
+                        Op(op)
+                    }
+                    Token::SquareBracketOpen => Op(symbol::LEFT_SQUARE_BRACKET.as_op()),
+                    Token::SquareBracketClose => Op(symbol::RIGHT_SQUARE_BRACKET.as_op()),
+                    Token::OpLessThan => Str("&lt;"),
+                    Token::OpGreaterThan => Str("&gt;"),
+                    Token::OpAmpersand => Str("&amp;"),
+                    _ => {
+                        break 'mathclass Err(LatexError(
+                            span.into(),
+                            LatexErrKind::UnsupportedMathClassArgument,
+                        ));
+                    }
+                };
+                match op {
+                    Op(op) => Ok(Node::Operator {
+                        op,
+                        attrs: OpAttrs::STRETCHY_FALSE,
+                        left: spacing,
+                        right: spacing,
+                        size: None,
+                    }),
+                    Str(s) => Ok(Node::PseudoOp {
+                        name: s,
+                        left: spacing,
+                        right: spacing,
+                        attrs: OpAttrs::empty(),
+                    }),
+                }
             }
             Token::Inner(op) => {
                 class = Class::Inner;
