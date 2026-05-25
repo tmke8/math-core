@@ -93,6 +93,10 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: wasm-size-comment
+
+      - name: "Print WASM sizes to terminal"
+        run: "cat wasm-size-comment.md"
+
       - name: "Comment on PR with WASM sizes"
         uses: actions/github-script@v8
         id: post_comment
@@ -107,6 +111,4 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: comment
-            })
-      - run: echo "Posting the comment failed."
-        if: job.steps.post_comment.outcome == 'failure'
+            });
