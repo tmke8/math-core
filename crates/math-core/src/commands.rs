@@ -15,7 +15,7 @@ use crate::token::{
 static FUNCTIONS: phf::Set<&'static str> = phf::phf_set!(
     "arccos", "arcctg", "arcsin", "arctan", "arctg", "arg", "ch", "cos", "cosec", "cosh", "cot",
     "cotg", "coth", "csc", "ctg", "cth", "deg", "det", "dim", "erf", "erfc", "exp", "hom", "ker",
-    "lg", "ln", "log", "plim", "sec", "sh", "sin", "sinh", "tan", "tanh", "tg"
+    "lg", "ln", "log", "sec", "sh", "sin", "sinh", "tan", "tanh", "tg", "th"
 );
 
 static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
@@ -584,6 +584,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "phi" => Letter(symbol::GREEK_PHI_SYMBOL, Mode::Math),
     "pi" => Letter(symbol::GREEK_SMALL_LETTER_PI, Mode::Math),
     "pitchfork" => Relation(symbol::PITCHFORK),
+    "plim" => PseudoOperatorLimits("plim"),
     "plusmn" => BinaryOp(symbol::PLUS_MINUS_SIGN),
     "pm" => BinaryOp(symbol::PLUS_MINUS_SIGN),
     "pmod" => CustomCmd(1, &predefined::PMOD),
@@ -725,7 +726,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "trianglelefteq" => Relation(symbol::NORMAL_SUBGROUP_OF_OR_EQUAL_TO),
     "triangleq" => Relation(symbol::DELTA_EQUAL_TO),
     "triangleright" => Letter(symbol::WHITE_RIGHT_POINTING_TRIANGLE, Mode::Math),
-    "trianglerighteq" => Relation(symbol::CONTAINS_AS_NORMAL_SUBGROUP),
+    "trianglerighteq" => Relation(symbol::CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO),
     "tt" => TransformSwitch(MathVariant::Transform(TextTransform::Monospace)),
     "twoheadleftarrow" => Relation(symbol::LEFTWARDS_TWO_HEADED_ARROW),
     "twoheadrightarrow" => Relation(symbol::RIGHTWARDS_TWO_HEADED_ARROW),
