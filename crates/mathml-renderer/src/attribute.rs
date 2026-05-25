@@ -330,6 +330,12 @@ impl TextTransform {
                 'N' => 'ℕ',
                 'R' => 'ℝ',
                 'Z' => 'ℤ',
+                'π' => 'ℼ',
+                'γ' => 'ℽ',
+                'Γ' => 'ℾ',
+                'Π' => 'ℿ',
+                '∑' => '⅀',
+                // FIXME: add Arabic double-struck characters
                 _ => c,
             },
             TextTransform::Italic => match c {
