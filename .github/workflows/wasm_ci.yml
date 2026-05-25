@@ -95,6 +95,8 @@ jobs:
           name: wasm-size-comment
       - name: "Comment on PR with WASM sizes"
         uses: actions/github-script@v8
+        id: post_comment
+        continue-on-error: true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -106,3 +108,5 @@ jobs:
               repo: context.repo.repo,
               body: comment
             })
+      - run: echo "Posting the comment failed."
+        if: job.steps.post_comment.outcome == 'failure'
