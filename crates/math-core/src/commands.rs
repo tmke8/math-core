@@ -565,6 +565,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ominus" => BinaryOp(symbol::CIRCLED_MINUS),
     "operatorname" => OperatorName { with_limits: false },
     "operatorname*" => OperatorName { with_limits: true },
+    "operatornamewithlimits" => OperatorName { with_limits: true },
     "oplus" => BinaryOp(symbol::CIRCLED_PLUS),
     "origof" => Relation(symbol::ORIGINAL_OF),
     "oslash" => BinaryOp(symbol::CIRCLED_DIVISION_SLASH),
