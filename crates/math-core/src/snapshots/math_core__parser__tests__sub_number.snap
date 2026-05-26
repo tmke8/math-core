@@ -4,7 +4,7 @@ expression: x_123
 ---
 [
   Sub(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar("x", Default),
     symbol: Number("1"),
   ),
   Number("23"),

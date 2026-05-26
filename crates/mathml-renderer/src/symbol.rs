@@ -1,36 +1,60 @@
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
+
+use crate::super_char::{SuperChar, VariationSelector};
 
 /// A character for use in MathML `<mo>` elements.
 ///
 /// LaTeX's operator classes cannot be mapped cleanly to MathML's `<mo>` vs `<mi>` distinction.
 /// Some characters that are in class 0 in LaTeX are nevertheless rendered as `<mo>` in MathML.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", serde(transparent))]
-pub struct MathMLOperator(char);
+pub struct MathMLOperator(SuperChar);
 
 impl MathMLOperator {
     #[inline]
-    pub const fn as_char(&self) -> char {
+    pub const fn from_char(c: char) -> Self {
+        Self(SuperChar::from_char(c))
+    }
+
+    #[inline]
+    pub const fn from_superchar(ts: SuperChar) -> Self {
+        Self(ts)
+    }
+
+    #[inline]
+    pub const fn as_superchar(self) -> SuperChar {
         self.0
     }
-}
 
-impl From<MathMLOperator> for char {
     #[inline]
-    fn from(op: MathMLOperator) -> Self {
-        op.0
+    pub fn as_chars(self) -> impl Iterator<Item = char> {
+        self.0.chars()
+    }
+
+    #[inline]
+    pub const fn try_as_char(self) -> Option<char> {
+        self.0.try_as_char()
     }
 }
 
-impl From<&MathMLOperator> for char {
+impl fmt::Display for MathMLOperator {
     #[inline]
-    fn from(op: &MathMLOperator) -> Self {
-        op.0
+    /// We do HTML escaping here.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for c in self.0.chars() {
+            match c {
+                '<' => write!(f, "&lt;")?,
+                '>' => write!(f, "&gt;")?,
+                '&' => write!(f, "&amp;")?,
+                _ => write!(f, "{c}")?,
+            }
+        }
+        Ok(())
     }
 }
 
@@ -38,7 +62,7 @@ impl From<&MathMLOperator> for char {
 ///
 /// This can only store characters in the BMP (i.e., code points U+0000 to U+FFFF).
 /// `BMPChar::new` will panic if a character outside this range is provided.
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct BMPChar {
     char: u16,
 }
@@ -66,10 +90,11 @@ impl Debug for BMPChar {
 macro_rules! make_character_class {
     ($(#[$meta:meta])* $struct_name:ident, $cat_type:ty) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         pub struct $struct_name {
             char: BMPChar,
             cat: $cat_type,
+            has_vs1: bool,
         }
 
         impl $struct_name {
@@ -77,12 +102,27 @@ macro_rules! make_character_class {
                 $struct_name {
                     char: BMPChar::new(ch),
                     cat,
+                    has_vs1: false,
+                }
+            }
+
+            #[allow(unused)]
+            const fn new_vs1(ch: char, cat: $cat_type) -> $struct_name {
+                $struct_name {
+                    char: BMPChar::new(ch),
+                    cat,
+                    has_vs1: true,
                 }
             }
 
             #[inline]
             pub const fn as_op(&self) -> MathMLOperator {
-                MathMLOperator(self.char.as_char())
+                let s = if self.has_vs1 {
+                    SuperChar::from_char_with_vs(self.char.as_char(), VariationSelector::Vs1)
+                } else {
+                    SuperChar::from_char(self.char.as_char())
+                };
+                MathMLOperator(s)
             }
 
             #[inline]
@@ -93,7 +133,7 @@ macro_rules! make_character_class {
     };
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OrdCategory {
     /// Category D: Prefix, zero spacing (e.g. `¬`).
     D,
@@ -129,7 +169,7 @@ make_character_class!(
     OrdLike, OrdCategory
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpCategory {
     /// Category C: Infix, op spacing (e.g. `.`).
     C,
@@ -145,7 +185,7 @@ make_character_class!(
     Op, OpCategory
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinCategory {
     /// Category B: Infix, binary op spacing (e.g. `÷`)
     B,
@@ -158,7 +198,7 @@ make_character_class!(
     Bin, BinCategory
 );
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RelCategory {
     /// Default: No form, relation spacing (e.g. `=`).
     Default,
@@ -172,21 +212,21 @@ make_character_class!(
 );
 
 /// An operator with punctuation spacing (category M).
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct Punct(char);
 
 impl Punct {
     #[inline]
     pub const fn as_op(&self) -> MathMLOperator {
-        MathMLOperator(self.0)
+        MathMLOperator::from_char(self.0)
     }
 }
 
 //
 // Unicode Block: Basic Latin
 //
-pub const EXCLAMATION_MARK: MathMLOperator = MathMLOperator('!');
+pub const EXCLAMATION_MARK: MathMLOperator = MathMLOperator::from_char('!');
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';
@@ -203,9 +243,9 @@ pub const SOLIDUS: OrdLike = OrdLike::new('/', OrdCategory::KButUsedToBeB);
 
 pub const COLON: Punct = Punct(':');
 pub const SEMICOLON: Punct = Punct(';');
-// pub const LESS_THAN_SIGN: char = '<';
+pub const LESS_THAN_SIGN: Rel = Rel::new('<', RelCategory::Default);
 pub const EQUALS_SIGN: Rel = Rel::new('=', RelCategory::Default);
-// pub const GREATER_THAN_SIGN: char = '>';
+pub const GREATER_THAN_SIGN: Rel = Rel::new('>', RelCategory::Default);
 // pub const QUESTION_MARK: char = '?';
 // pub const COMMERCIAL_AT: char = '@';
 
@@ -214,7 +254,7 @@ pub const REVERSE_SOLIDUS: OrdLike = OrdLike::new('\\', OrdCategory::K);
 pub const RIGHT_SQUARE_BRACKET: OrdLike = OrdLike::new(']', OrdCategory::G);
 // pub const CIRCUMFLEX_ACCENT: Rel = Rel::new('^', RelCategory::Default);
 pub const LOW_LINE: OrdLike = OrdLike::new('_', OrdCategory::IK);
-pub const GRAVE_ACCENT: MathMLOperator = MathMLOperator('`');
+pub const GRAVE_ACCENT: MathMLOperator = MathMLOperator::from_char('`');
 
 pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
@@ -232,17 +272,17 @@ pub const POUND_SIGN: char = '£';
 pub const YEN_SIGN: char = '¥';
 
 pub const SECTION_SIGN: char = '§';
-pub const DIAERESIS: MathMLOperator = MathMLOperator('¨');
+pub const DIAERESIS: MathMLOperator = MathMLOperator::from_char('¨');
 pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: OrdLike = OrdLike::new('¬', OrdCategory::D);
 pub const DEGREE_SIGN: char = '°';
 
-pub const MACRON: MathMLOperator = MathMLOperator('¯');
+pub const MACRON: MathMLOperator = MathMLOperator::from_char('¯');
 
 pub const PLUS_MINUS_SIGN: Bin = Bin::new('±', BinCategory::BD);
 
-pub const ACUTE_ACCENT: MathMLOperator = MathMLOperator('´');
+pub const ACUTE_ACCENT: MathMLOperator = MathMLOperator::from_char('´');
 
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Op = Op::new('·', OpCategory::C);
@@ -266,24 +306,24 @@ pub const LATIN_SMALL_LETTER_DOTLESS_J: char = 'ȷ';
 //
 // Unicode Block: Spacing Modifier Letters
 //
-pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator('ˆ');
-pub const CARON: MathMLOperator = MathMLOperator('ˇ');
+pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator::from_char('ˆ');
+pub const CARON: MathMLOperator = MathMLOperator::from_char('ˇ');
 
-pub const BREVE: MathMLOperator = MathMLOperator('˘');
-pub const DOT_ABOVE: MathMLOperator = MathMLOperator('˙');
-pub const RING_ABOVE: MathMLOperator = MathMLOperator('˚');
+pub const BREVE: MathMLOperator = MathMLOperator::from_char('˘');
+pub const DOT_ABOVE: MathMLOperator = MathMLOperator::from_char('˙');
+pub const RING_ABOVE: MathMLOperator = MathMLOperator::from_char('˚');
 
-pub const SMALL_TILDE: MathMLOperator = MathMLOperator('˜');
+pub const SMALL_TILDE: MathMLOperator = MathMLOperator::from_char('˜');
 
 //
 // Unicode Block: Combining Diacritical Marks
 //
 pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
 pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
-pub const COMBINING_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator('\u{302}');
+pub const COMBINING_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator::from_char('\u{302}');
 pub const COMBINING_TILDE: char = '\u{303}';
 pub const COMBINING_MACRON: char = '\u{304}';
-// pub const COMBINING_OVERLINE: MathMLOperator = MathMLOperator('\u{305}');
+// pub const COMBINING_OVERLINE: MathMLOperator = MathMLOperator::from_char('\u{305}');
 pub const COMBINING_BREVE: char = '\u{306}';
 pub const COMBINING_DOT_ABOVE: char = '\u{307}';
 pub const COMBINING_DIAERESIS: char = '\u{308}';
@@ -294,7 +334,7 @@ pub const COMBINING_CARON: char = '\u{30C}';
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
-pub const COMBINING_LOW_LINE: MathMLOperator = MathMLOperator('\u{332}');
+pub const COMBINING_LOW_LINE: MathMLOperator = MathMLOperator::from_char('\u{332}');
 
 pub const COMBINING_LONG_SOLIDUS_OVERLAY: char = '\u{338}';
 
@@ -403,7 +443,7 @@ pub const REVERSED_TRIPLE_PRIME: OrdLike = OrdLike::new('‷', OrdCategory::E);
 // pub const REFERENCE_MARK: Ord = ord('※');
 // pub const DOUBLE_EXCLAMATION_MARK: Ord = ord('‼');
 // pub const INTERROBANG: Ord = ord('‽');
-pub const OVERLINE: MathMLOperator = MathMLOperator('‾');
+pub const OVERLINE: MathMLOperator = MathMLOperator::from_char('‾');
 
 pub const QUADRUPLE_PRIME: OrdLike = OrdLike::new('⁗', OrdCategory::E);
 
@@ -414,10 +454,12 @@ pub const INVISIBLE_SEPARATOR: OrdLike = OrdLike::new('\u{2063}', OrdCategory::K
 //
 // Unicode Block: Combining Diacritical Marks for Symbols
 //
-pub const COMBINING_RIGHT_ARROW_ABOVE: MathMLOperator = MathMLOperator('\u{20D7}');
+pub const COMBINING_LONG_VERTICAL_LINE_OVERLAY: char = '\u{20D2}';
 
-pub const COMBINING_THREE_DOTS_ABOVE: MathMLOperator = MathMLOperator('\u{20DB}');
-pub const COMBINING_FOUR_DOTS_ABOVE: MathMLOperator = MathMLOperator('\u{20DC}');
+pub const COMBINING_RIGHT_ARROW_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20D7}');
+
+pub const COMBINING_THREE_DOTS_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20DB}');
+pub const COMBINING_FOUR_DOTS_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20DC}');
 
 //
 // Unicode Block: Letterlike Symbols
@@ -575,6 +617,9 @@ pub const PARTIAL_DIFFERENTIAL: char = '∂'; // char so that it can be transfor
 pub const THERE_EXISTS: OrdLike = OrdLike::new('∃', OrdCategory::D);
 pub const THERE_DOES_NOT_EXIST: OrdLike = OrdLike::new('∄', OrdCategory::D);
 pub const EMPTY_SET: char = '∅';
+pub const EMPTY_SET_ZERO_WITH_LONG_DIAGONAL_STROKE_OVERLAY_FORM: SuperChar =
+    SuperChar::from_char_with_vs(EMPTY_SET, VariationSelector::Vs1);
+
 // pub const INCREMENT: Ord = ord('∆');
 pub const NABLA: char = '∇'; // char so that it can be transformed
 pub const ELEMENT_OF: Rel = Rel::new('∈', RelCategory::Default);
@@ -674,7 +719,11 @@ pub const GREATER_THAN_OR_EQUAL_TO: Rel = Rel::new('≥', RelCategory::Default);
 pub const LESS_THAN_OVER_EQUAL_TO: Rel = Rel::new('≦', RelCategory::Default);
 pub const GREATER_THAN_OVER_EQUAL_TO: Rel = Rel::new('≧', RelCategory::Default);
 pub const LESS_THAN_BUT_NOT_EQUAL_TO: Rel = Rel::new('≨', RelCategory::Default);
+pub const LESS_THAN_BUT_NOT_EQUAL_TO_WITH_VERTICAL_STROKE: Rel =
+    Rel::new_vs1('≨', RelCategory::Default);
 pub const GREATER_THAN_BUT_NOT_EQUAL_TO: Rel = Rel::new('≩', RelCategory::Default);
+pub const GREATER_THAN_BUT_NOT_EQUAL_TO_WITH_VERTICAL_STROKE: Rel =
+    Rel::new_vs1('≩', RelCategory::Default);
 pub const MUCH_LESS_THAN: Rel = Rel::new('≪', RelCategory::Default);
 pub const MUCH_GREATER_THAN: Rel = Rel::new('≫', RelCategory::Default);
 pub const BETWEEN: Rel = Rel::new('≬', RelCategory::Default);
@@ -708,7 +757,12 @@ pub const SUPERSET_OF_OR_EQUAL_TO: Rel = Rel::new('⊇', RelCategory::Default);
 pub const NEITHER_A_SUBSET_OF_NOR_EQUAL_TO: Rel = Rel::new('⊈', RelCategory::Default);
 pub const NEITHER_A_SUPERSET_OF_NOR_EQUAL_TO: Rel = Rel::new('⊉', RelCategory::Default);
 pub const SUBSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel::new('⊊', RelCategory::Default);
+pub const SUBSET_OF_WITH_NOT_EQUAL_TO_WITH_STROKE_THROUGH_BOTTOM_MEMBERS: Rel =
+    Rel::new_vs1('⊊', RelCategory::Default);
+
 pub const SUPERSET_OF_WITH_NOT_EQUAL_TO: Rel = Rel::new('⊋', RelCategory::Default);
+pub const SUPERSET_OF_WITH_NOT_EQUAL_TO_WITH_STROKE_THROUGH_BOTTOM_MEMBERS: Rel =
+    Rel::new_vs1('⊋', RelCategory::Default);
 // pub const MULTISET: Bin = Bin::new('⊌', BinCategory::BD);
 // pub const MULTISET_MULTIPLICATION: Bin = Bin::new('⊍', BinCategory::BD);
 pub const MULTISET_UNION: Bin = Bin::new('⊎', BinCategory::B);
@@ -950,7 +1004,7 @@ pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦈', OrdCateg
 pub const Z_NOTATION_LEFT_BINDING_BRACKET: OrdLike = OrdLike::new('⦉', OrdCategory::F);
 pub const Z_NOTATION_RIGHT_BINDING_BRACKET: OrdLike = OrdLike::new('⦊', OrdCategory::G);
 
-pub const CIRCLE_WITH_HORIZONTAL_BAR: MathMLOperator = MathMLOperator('⦵');
+pub const CIRCLE_WITH_HORIZONTAL_BAR: MathMLOperator = MathMLOperator::from_char('⦵');
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin::new('⧄', BinCategory::B);
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin::new('⧅', BinCategory::B);
@@ -1168,7 +1222,11 @@ pub const SUPERSET_OF_ABOVE_EQUALS_SIGN: Rel = Rel::new('⫆', RelCategory::Defa
 // pub const SUBSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = Rel::new('⫉', RelCategory::Default);
 // pub const SUPERSET_OF_ABOVE_ALMOST_EQUAL_TO: Rel = Rel::new('⫊', RelCategory::Default);
 pub const SUBSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel::new('⫋', RelCategory::Default);
+pub const SUBSET_OF_ABOVE_NOT_EQUAL_TO_WITH_STROKE_THROUGH_BOTTOM_MEMBERS: Rel =
+    Rel::new_vs1('⫋', RelCategory::Default);
 pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel::new('⫌', RelCategory::Default);
+pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO_WITH_STROKE_THROUGH_BOTTOM_MEMBERS: Rel =
+    Rel::new_vs1('⫌', RelCategory::Default);
 
 //
 // Unicode Block: Small Form Variants

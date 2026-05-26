@@ -4,9 +4,9 @@ expression: "x_\\big("
 ---
 [
   Sub(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar("x", Default),
     symbol: Operator(
-      op: '(',
+      op: "(",
       attrs: OpAttrs(""),
       size: Some(Scale1),
       left: None,

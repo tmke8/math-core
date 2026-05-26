@@ -2,6 +2,7 @@ use mathml_renderer::{
     arena::StringBuilder,
     attribute::HtmlTextStyle,
     length::{Length, LengthUnit},
+    super_char::SuperChar,
     symbol,
 };
 
@@ -31,7 +32,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                 self.tokens.next()
             };
             let (token, span) = tokloc?.into_parts();
-            let c: Result<char, LatexErrKind> = if let Token::TextMode(text_token) = token {
+            let c: Result<SuperChar, LatexErrKind> = if let Token::TextMode(text_token) = token {
                 if text_mode {
                     match text_token {
                         TextToken::Accent(accent) => {
@@ -67,9 +68,6 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     | Token::Prime
                     | Token::Whitespace
                     | Token::NonBreakingSpace
-                    | Token::OpGreaterThan
-                    | Token::OpLessThan
-                    | Token::OpAmpersand
                     | Token::InternalStringLiteral(_)
                     | Token::GroupBegin
                     | Token::GroupEnd
@@ -82,22 +80,16 @@ impl<'arena> Parser<'_, '_, 'arena> {
                 // These tokens are valid in both math and text mode.
                 match token {
                     Token::Letter(c, Mode::MathOrText) => Ok(c),
-                    Token::SquareBracketOpen => Ok(symbol::LEFT_SQUARE_BRACKET.as_op().into()),
-                    Token::SquareBracketClose => Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().into()),
+                    Token::SquareBracketOpen => {
+                        Ok(symbol::LEFT_SQUARE_BRACKET.as_op().as_superchar())
+                    }
+                    Token::SquareBracketClose => {
+                        Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().as_superchar())
+                    }
                     Token::Digit(digit) => Ok(digit),
-                    Token::Prime => Ok('’'),
-                    Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'),
-                    tok @ (Token::OpGreaterThan
-                    | Token::OpLessThan
-                    | Token::OpAmpersand
-                    | Token::InternalStringLiteral(_)) => {
-                        let output = match tok {
-                            Token::OpGreaterThan => "&gt;",
-                            Token::OpLessThan => "&lt;",
-                            Token::OpAmpersand => "&amp;",
-                            Token::InternalStringLiteral(content) => content,
-                            _ => unreachable!(),
-                        };
+                    Token::Prime => Ok('’'.into()),
+                    Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'.into()),
+                    Token::InternalStringLiteral(output) => {
                         if let Some(str_builder) = &mut str_builder {
                             str_builder.push_str(output);
                             continue;
@@ -169,11 +161,13 @@ impl<'arena> Parser<'_, '_, 'arena> {
                 // These tokens are only valid in math mode.
                 match token {
                     Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
-                    Token::Open(op) | Token::Close(op) | Token::Ord(op) => Ok(op.as_op().into()),
-                    Token::BinaryOp(op) => Ok(op.as_op().into()),
-                    Token::Relation(op) => Ok(op.as_op().into()),
-                    Token::ForceRelation(op) => Ok(op.as_char()),
-                    Token::Punctuation(op) => Ok(op.as_op().into()),
+                    Token::Open(op) | Token::Close(op) | Token::Ord(op) => {
+                        Ok(op.as_op().as_superchar())
+                    }
+                    Token::BinaryOp(op) => Ok(op.as_op().as_superchar()),
+                    Token::Relation(op) => Ok(op.as_op().as_superchar()),
+                    Token::ForceRelation(op) => Ok(op.as_superchar()),
+                    Token::Punctuation(op) => Ok(op.as_op().as_superchar()),
 
                     Token::PseudoOperator(output) | Token::PseudoOperatorLimits(output) => {
                         if let Some(str_builder) = &mut str_builder {
@@ -191,13 +185,13 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     }
                     Token::Space(length) => {
                         if length == Length::new(1.0, LengthUnit::Em) {
-                            Ok('\u{2003}')
+                            Ok('\u{2003}'.into())
                         } else if length == LatexUnit::Mu.length_with_unit(5.0) {
-                            Ok('\u{2004}')
+                            Ok('\u{2004}'.into())
                         } else if length == LatexUnit::Mu.length_with_unit(4.0) {
-                            Ok('\u{205F}')
+                            Ok('\u{205F}'.into())
                         } else if length == LatexUnit::Mu.length_with_unit(3.0) {
-                            Ok('\u{2009}')
+                            Ok('\u{2009}'.into())
                         } else {
                             // Ignore other spaces in text mode.
                             if str_builder.is_none() {
@@ -220,12 +214,12 @@ impl<'arena> Parser<'_, '_, 'arena> {
             };
             let c = c.map_err(|err| Box::new(LatexError(span.into(), err)))?;
             if let Some(builder) = &mut str_builder {
-                builder.push_char(c);
+                builder.push_superchar(c);
                 if let Some(accent) = accent_to_insert.take() {
                     builder.push_char(accent);
                 }
             } else {
-                let mut b = [0u8; 4];
+                let mut b = [0u8; 16];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
                 snippets.push((current_style, text));
                 style_stack.pop();

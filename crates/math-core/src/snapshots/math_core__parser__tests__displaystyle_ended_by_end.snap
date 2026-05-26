@@ -8,7 +8,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
     style: Some(Text),
     content: [
       Operator(
-        op: '∑',
+        op: "∑",
         attrs: OpAttrs(""),
         size: None,
         left: Some(Zero),
@@ -17,7 +17,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
       Row(
         nodes: [
           Operator(
-            op: '∑',
+            op: "∑",
             attrs: OpAttrs(""),
             size: None,
             left: Some(Zero),

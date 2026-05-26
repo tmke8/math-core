@@ -405,6 +405,7 @@ version = "0.6.1"
 dependencies = [
  "bitflags",
  "dtoa",
+ "phf",
  "serde",
  "stable-arena",
  "static_assertions",

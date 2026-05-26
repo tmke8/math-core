@@ -1,17 +1,55 @@
-use std::fmt::Write;
+use std::fmt::{self, Write};
 use std::num::NonZeroU16;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::attribute::{
-    FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, RowAttr, Size, Style,
-};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
 use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo};
+use crate::{
+    attribute::{
+        FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, RowAttr, Size, Style,
+    },
+    super_char::SuperChar,
+};
+
+/// A wrapper around `str` to do HTML escaping
+/// in the `Display` impl.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
+struct EscapeHtml<'a>(&'a str);
+
+impl fmt::Display for EscapeHtml<'_> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for c in self.0.chars() {
+            match c {
+                '<' => write!(f, "&lt;")?,
+                '>' => write!(f, "&gt;")?,
+                '&' => write!(f, "&amp;")?,
+                '"' => write!(f, "&quot;")?,
+                '\'' => write!(f, "&#39;")?,
+                _ => write!(f, "{c}")?,
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Stores the contents of [`Node::Ahref`].
+/// Needs to be a separate `struct` to keep that
+/// under 4 words in size
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct Ahref<'arena> {
+    pub href: &'arena str,
+    pub text: &'arena str,
+}
 
 /// AST node
 #[derive(Debug)]
@@ -19,8 +57,8 @@ use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN,
 pub enum Node<'arena> {
     /// `<mn>...</mn>`
     Number(&'arena str),
-    /// `<mi>...</mi>` for a single character.
-    IdentifierChar(char, LetterAttr),
+    /// `<mi>...</mi>` for a [`SuperChar`].
+    IdentifierChar(SuperChar, LetterAttr),
     /// `<mi>...</mi>` for a string.
     IdentifierStr(&'arena str),
     /// `<mo>...</mo>` for a single character.
@@ -96,8 +134,12 @@ pub enum Node<'arena> {
         nodes: &'arena [&'arena Node<'arena>],
         attr: Option<RowAttr>,
     },
-    /// `<mtext>...</mtext>`
+    /// `<mtext>...</mtext>`.
+    /// The `str` gets HTML-escaped.
     Text(Option<HtmlTextStyle>, &'arena str),
+    /// `<mtext><a href="...">...</mtext>`.
+    /// The link and text get HTML-escaped.
+    Ahref(&'arena Ahref<'arena>),
     /// `<mtable>...</mtable>` for matrices and similar constructs
     Table {
         align: Alignment,
@@ -134,7 +176,6 @@ pub enum Node<'arena> {
         content: &'arena Node<'arena>,
         notation: Notation,
     },
-    Slashed(&'arena Node<'arena>),
     Multiscript {
         base: &'arena Node<'arena>,
         sub: Option<&'arena Node<'arena>>,
@@ -177,14 +218,21 @@ impl Node<'_> {
             Node::IdentifierChar(letter, attr) => {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
+                let write_mrow;
                 if is_upright {
                     write!(s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
+                    write_mrow = true;
+                } else if letter.len() > 1 {
+                    // check if multi-char
+                    write!(s, "<mrow><mspace/><mi>")?;
+                    write_mrow = true;
                 } else {
                     write!(s, "<mi>")?;
+                    write_mrow = false;
                 }
                 let c = *letter;
                 write!(s, "{c}</mi>")?;
-                if is_upright {
+                if write_mrow {
                     write!(s, "</mrow>")?;
                 }
             }
@@ -204,7 +252,7 @@ impl Node<'_> {
                         <&str>::from(size),
                     )?;
                 }
-                write!(s, ">{}</mo>", char::from(op))?;
+                write!(s, ">{op}</mo>")?;
             }
             Node::PseudoOp {
                 attrs,
@@ -250,7 +298,7 @@ impl Node<'_> {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(s, "{open}{letters}{close}")?;
+                write!(s, "{open}{}{close}", EscapeHtml(letters))?;
             }
             Node::Space(space) => {
                 write!(s, "<mspace width=\"")?;
@@ -344,7 +392,7 @@ impl Node<'_> {
                 target.emit(s, child_indent)?;
                 writeln_indent!(s, child_indent, "<mo");
                 attr.write_to(s);
-                write!(s, ">{}</mo>", char::from(op))?;
+                write!(s, ">{op}</mo>")?;
                 writeln_indent!(s, base_indent, "{close}");
             }
             Node::Sqrt(content) => {
@@ -395,19 +443,6 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</mrow>");
             }
-            Node::Slashed(node) => match node {
-                Node::IdentifierChar(x, attr) => {
-                    if matches!(attr, LetterAttr::ForcedUpright) {
-                        write!(s, "<mi mathvariant=\"normal\">{x}&#x0338;</mi>")?;
-                    } else {
-                        write!(s, "<mi>{x}&#x0338;</mi>")?;
-                    }
-                }
-                Node::Operator { op, .. } => {
-                    write!(s, "<mo>{}&#x0338;</mo>", char::from(op))?;
-                }
-                n => n.emit(s, base_indent)?,
-            },
             Node::Table {
                 content,
                 align,
@@ -546,6 +581,14 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</menclose>");
             }
+            &Node::Ahref(&Ahref { href, text }) => {
+                write!(
+                    s,
+                    r#"<mtext><a href="{}">{}</a></mtext>"#,
+                    EscapeHtml(href),
+                    EscapeHtml(text)
+                )?;
+            }
             Node::UnknownCommand(cmd_name) => {
                 write!(s, "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>")?;
             }
@@ -585,7 +628,7 @@ fn emit_operator_attributes(
     Ok(())
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NumberColums {
     Narrow,
     Wide,
@@ -750,15 +793,15 @@ mod tests {
     #[test]
     fn render_single_letter_ident() {
         assert_eq!(
-            render(&Node::IdentifierChar('x', LetterAttr::Default)),
+            render(&Node::IdentifierChar('x'.into(), LetterAttr::Default)),
             "<mi>x</mi>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('Γ', LetterAttr::ForcedUpright)),
+            render(&Node::IdentifierChar('Γ'.into(), LetterAttr::ForcedUpright)),
             "<mrow><mspace/><mi mathvariant=\"normal\">Γ</mi></mrow>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝑥', LetterAttr::Default)),
+            render(&Node::IdentifierChar('𝑥'.into(), LetterAttr::Default)),
             "<mi>𝑥</mi>"
         );
     }
@@ -850,7 +893,7 @@ mod tests {
     fn render_subscript() {
         assert_eq!(
             render(&Node::Sub {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msub><mi>x</mi><mn>2</mn></msub>"
@@ -861,7 +904,7 @@ mod tests {
     fn render_superscript() {
         assert_eq!(
             render(&Node::Sup {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
                 symbol: &Node::Number("2"),
             }),
             "<msup><mi>x</mi><mn>2</mn></msup>"
@@ -872,7 +915,7 @@ mod tests {
     fn render_sub_sup() {
         assert_eq!(
             render(&Node::SubSup {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
                 sub: &Node::Number("1"),
                 sup: &Node::Number("2"),
             }),
@@ -886,7 +929,7 @@ mod tests {
             render(&Node::OverAccent(
                 symbol::MACRON,
                 OpAttrs::STRETCHY_FALSE,
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo stretchy=\"false\">¯</mo></mover>"
         );
@@ -894,7 +937,7 @@ mod tests {
             render(&Node::OverAccent(
                 symbol::OVERLINE,
                 OpAttrs::empty(),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
             "<mover accent=\"true\"><mi>x</mi><mo>‾</mo></mover>"
         );
@@ -906,7 +949,7 @@ mod tests {
             render(&Node::UnderAccent(
                 symbol::LOW_LINE.as_op(),
                 OpAttrs::empty(),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
             "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
         );
@@ -939,7 +982,7 @@ mod tests {
     fn render_underset() {
         assert_eq!(
             render(&Node::Under {
-                symbol: &Node::IdentifierChar('θ', LetterAttr::Default),
+                symbol: &Node::IdentifierChar('θ'.into(), LetterAttr::Default),
                 target: &Node::PseudoOp {
                     attrs: OpAttrs::FORCE_MOVABLE_LIMITS,
                     left: Some(MathSpacing::ThreeMu),
@@ -955,7 +998,7 @@ mod tests {
     fn render_under_over() {
         assert_eq!(
             render(&Node::UnderOver {
-                target: &Node::IdentifierChar('x', LetterAttr::Default),
+                target: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
                 under: &Node::Number("1"),
                 over: &Node::Number("2"),
             }),
@@ -966,7 +1009,10 @@ mod tests {
     #[test]
     fn render_sqrt() {
         assert_eq!(
-            render(&Node::Sqrt(&Node::IdentifierChar('x', LetterAttr::Default))),
+            render(&Node::Sqrt(&Node::IdentifierChar(
+                'x'.into(),
+                LetterAttr::Default
+            ))),
             "<msqrt><mi>x</mi></msqrt>"
         );
     }
@@ -976,7 +1022,7 @@ mod tests {
         assert_eq!(
             render(&Node::Root(
                 &Node::Number("3"),
-                &Node::IdentifierChar('x', LetterAttr::Default),
+                &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
             "<mroot><mi>x</mi><mn>3</mn></mroot>"
         );
@@ -1075,7 +1121,7 @@ mod tests {
     #[test]
     fn render_row() {
         let nodes = &[
-            &Node::IdentifierChar('x', LetterAttr::Default),
+            &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
                 attrs: OpAttrs::empty(),
@@ -1233,21 +1279,10 @@ mod tests {
     }
 
     #[test]
-    fn render_slashed() {
-        assert_eq!(
-            render(&Node::Slashed(&Node::IdentifierChar(
-                'x',
-                LetterAttr::Default,
-            ))),
-            "<mi>x&#x0338;</mi>"
-        );
-    }
-
-    #[test]
     fn render_multiscript() {
         assert_eq!(
             render(&Node::Multiscript {
-                base: &Node::IdentifierChar('x', LetterAttr::Default),
+                base: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
                 sub: Some(&Node::Number("1")),
                 sup: None,
             }),
@@ -1258,11 +1293,11 @@ mod tests {
     #[test]
     fn render_text_transform() {
         assert_eq!(
-            render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
+            render(&Node::IdentifierChar('a'.into(), LetterAttr::ForcedUpright)),
             "<mrow><mspace/><mi mathvariant=\"normal\">a</mi></mrow>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('a', LetterAttr::ForcedUpright)),
+            render(&Node::IdentifierChar('a'.into(), LetterAttr::ForcedUpright)),
             "<mrow><mspace/><mi mathvariant=\"normal\">a</mi></mrow>"
         );
         assert_eq!(
@@ -1270,11 +1305,11 @@ mod tests {
             "<mrow><mspace/><mi>abc</mi></mrow>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝐚', LetterAttr::Default)),
+            render(&Node::IdentifierChar('𝐚'.into(), LetterAttr::Default)),
             "<mi>𝐚</mi>"
         );
         assert_eq!(
-            render(&Node::IdentifierChar('𝒂', LetterAttr::Default)),
+            render(&Node::IdentifierChar('𝒂'.into(), LetterAttr::Default)),
             "<mi>𝒂</mi>"
         );
         assert_eq!(
@@ -1287,9 +1322,9 @@ mod tests {
     fn render_enclose() {
         let content = Node::Row {
             nodes: &[
-                &Node::IdentifierChar('a', LetterAttr::Default),
-                &Node::IdentifierChar('b', LetterAttr::Default),
-                &Node::IdentifierChar('c', LetterAttr::Default),
+                &Node::IdentifierChar('a'.into(), LetterAttr::Default),
+                &Node::IdentifierChar('b'.into(), LetterAttr::Default),
+                &Node::IdentifierChar('c'.into(), LetterAttr::Default),
             ],
             attr: None,
         };

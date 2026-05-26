@@ -2,7 +2,7 @@ use std::mem;
 use std::ops::Range;
 use std::str::CharIndices;
 
-use mathml_renderer::{attribute::OpAttrs, symbol};
+use mathml_renderer::{attribute::OpAttrs, super_char::SuperChar, symbol};
 
 use crate::CommandConfig;
 use crate::commands::get_command;
@@ -205,8 +205,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     LatexErrKind::DisallowedChar(ch),
                 )));
             }
-            ' ' => Token::Letter(symbol::NO_BREAK_SPACE, Mode::MathOrText),
-            '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK, Mode::MathOrText),
+            ' ' => Token::Letter(symbol::NO_BREAK_SPACE.into(), Mode::MathOrText),
+            '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK.into(), Mode::MathOrText),
             '#' => {
                 if let Some(num) = &mut self.parse_cmd_args {
                     if let Some(next) = self.peek.1
@@ -253,13 +253,19 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             '&' => Token::NewColumn,
             '\'' => Token::Prime,
-            '<' => Token::OpLessThan,
-            '>' => Token::OpGreaterThan,
+            '<' => Token::MathOrTextMode(
+                &Token::Relation(symbol::LESS_THAN_SIGN),
+                SuperChar::from_char('<'),
+            ),
+            '>' => Token::MathOrTextMode(
+                &Token::Relation(symbol::GREATER_THAN_SIGN),
+                SuperChar::from_char('>'),
+            ),
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK, Mode::MathOrText),
+            '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK.into(), Mode::MathOrText),
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
@@ -282,9 +288,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if let Some(tok) = nonalpha_nonspecial_ascii_to_token(c) {
                     tok
                 } else if c.is_ascii_digit() {
-                    Token::Digit(c)
+                    Token::Digit(c.into())
                 } else {
-                    Token::Letter(c, Mode::MathOrText)
+                    Token::Letter(c.into(), Mode::MathOrText)
                 }
             }
         };
@@ -391,23 +397,31 @@ fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
         '|' => &Token::Ord(symbol::VERTICAL_LINE),
         _ => return None,
     };
-    Some(Token::MathOrTextMode(tok_ref, ch))
+    Some(Token::MathOrTextMode(tok_ref, ch.into()))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnvMarker {
     Begin = 1,
     End = 2,
 }
 
-pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
+pub(crate) fn recover_limited_ascii(tok: Token) -> Option<SuperChar> {
     match tok {
-        Token::Letter(ch, _) if ch.is_ascii_alphabetic() || ch == '.' => Some(ch),
+        Token::Letter(ch, _)
+            if ch
+                .try_as_char()
+                .is_some_and(|c| c.is_ascii_alphabetic() || c == '.') =>
+        {
+            Some(ch)
+        }
         Token::Digit(ch) | Token::MathOrTextMode(_, ch) => Some(ch),
-        Token::Whitespace => Some(' '),
+        Token::Whitespace => Some(' '.into()),
         _ => None,
     }
 }
 
+#[derive(Debug)]
 enum LexerResult<'config, 'source> {
     Tok(TokSpan<'config>),
     UnknownCommand(&'source str, Span),
@@ -539,7 +553,7 @@ mod tests {
         while let Ok(tokloc) = lexer.next_token() {
             let tok = tokloc.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
-                output.push(ch);
+                output.extend(ch.chars());
             }
             if matches!(tok, Token::Eoi) {
                 break;

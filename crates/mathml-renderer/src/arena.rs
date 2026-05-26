@@ -3,7 +3,8 @@ use std::fmt::Debug;
 use stable_arena::DroplessArena;
 
 use crate::{
-    ast::Node,
+    ast::{Ahref, Node},
+    super_char::SuperChar,
     table::{ArraySpec, ColumnSpec, RowLabelInfo},
 };
 
@@ -68,6 +69,13 @@ impl Arena {
     ) -> &'arena RowLabelInfo<'arena> {
         self.inner.alloc(info)
     }
+
+    pub fn alloc_ahref<'arena, 'attrs>(
+        &'arena self,
+        ahref: Ahref<'attrs>,
+    ) -> &'arena Ahref<'attrs> {
+        self.inner.alloc(ahref)
+    }
 }
 
 impl Default for Arena {
@@ -95,6 +103,7 @@ impl Buffer {
 /// It takes an exclusive reference to the buffer and clears everything in the
 /// buffer before we start building. This guarantees that upon finishing, the
 /// buffer contains only what we wrote to it.
+#[derive(Debug)]
 pub struct StringBuilder<'buffer> {
     buffer: &'buffer mut Buffer,
 }
@@ -113,6 +122,11 @@ impl<'buffer> StringBuilder<'buffer> {
 
     pub fn push_char(&mut self, c: char) {
         self.buffer.0.push(c)
+    }
+
+    #[inline]
+    pub fn push_superchar(&mut self, sc: SuperChar) {
+        self.buffer.0.extend(sc.chars());
     }
 
     pub fn finish(self, arena: &Arena) -> &str {

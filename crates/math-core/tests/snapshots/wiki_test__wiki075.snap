@@ -8,6 +8,6 @@ expression: "\\therefore, \\because, \\And"
     <mo lspace="0" rspace="0">∵</mo>
     <mo>,</mo>
     <mspace width="0.2777778em"/>
-    <mo lspace="0" rspace="0">&</mo>
+    <mo lspace="0" rspace="0">&amp;</mo>
     <mspace width="0.2777778em"/>
 </math>

@@ -4,9 +4,9 @@ expression: "f''"
 ---
 [
   Sup(
-    target: IdentifierChar('f', Default),
+    target: IdentifierChar("f", Default),
     symbol: Operator(
-      op: '″',
+      op: "″",
       attrs: OpAttrs(""),
       size: None,
       left: None,

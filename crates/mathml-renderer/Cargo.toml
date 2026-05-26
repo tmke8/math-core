@@ -18,6 +18,7 @@ repository = { workspace = true }
 stable-arena = { version = "0.2.0", default-features = false }
 serde = { workspace = true, optional = true }
 dtoa = { version = "1.0" }
+phf = { version = "0.13.1", features = ["macros"] }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 static_assertions = { workspace = true }

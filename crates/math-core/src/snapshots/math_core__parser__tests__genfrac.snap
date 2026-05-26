@@ -6,7 +6,7 @@ expression: "\\genfrac(){1pt}{0}{1}{2}"
   Row(
     nodes: [
       Operator(
-        op: '(',
+        op: "(",
         attrs: OpAttrs(""),
         size: None,
         left: None,
@@ -20,7 +20,7 @@ expression: "\\genfrac(){1pt}{0}{1}{2}"
         attr: None,
       ),
       Operator(
-        op: ')',
+        op: ")",
         attrs: OpAttrs(""),
         size: None,
         left: None,

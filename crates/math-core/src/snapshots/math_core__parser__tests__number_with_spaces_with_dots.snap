@@ -5,7 +5,7 @@ expression: "1 2. 3  ,  4"
 [
   Number("12.3"),
   Operator(
-    op: ',',
+    op: ",",
     attrs: OpAttrs(""),
     size: None,
     left: None,

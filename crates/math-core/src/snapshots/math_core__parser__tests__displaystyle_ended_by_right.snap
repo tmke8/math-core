@@ -6,7 +6,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
   Row(
     nodes: [
       Operator(
-        op: '(',
+        op: "(",
         attrs: OpAttrs(""),
         size: None,
         left: None,
@@ -15,7 +15,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
       Row(
         nodes: [
           Operator(
-            op: '∫',
+            op: "∫",
             attrs: OpAttrs(""),
             size: None,
             left: Some(Zero),
@@ -25,7 +25,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
         attr: Some(Style(Display)),
       ),
       Operator(
-        op: ')',
+        op: ")",
         attrs: OpAttrs(""),
         size: None,
         left: None,
@@ -35,7 +35,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
     attr: None,
   ),
   Operator(
-    op: '∫',
+    op: "∫",
     attrs: OpAttrs(""),
     size: None,
     left: None,

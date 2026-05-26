@@ -4,7 +4,7 @@ expression: "\\big("
 ---
 [
   Operator(
-    op: '(',
+    op: "(",
     attrs: OpAttrs(""),
     size: Some(Scale1),
     left: None,

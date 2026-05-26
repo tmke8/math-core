@@ -5,7 +5,7 @@ expression: "\\overbrace12"
 [
   Over(
     symbol: Operator(
-      op: '⏞',
+      op: "⏞",
       attrs: OpAttrs(""),
       size: None,
       left: None,

@@ -32,7 +32,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "Vmatrix" => Env::Vmatrix,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Env {
     Array,
     DArray,
@@ -236,7 +236,7 @@ impl Env {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(super) enum NumberingMode {
     #[default]
     NoneByDefault,
@@ -245,7 +245,7 @@ pub(super) enum NumberingMode {
 }
 
 /// State for environments that number equations.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,

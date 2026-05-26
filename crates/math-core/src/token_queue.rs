@@ -456,7 +456,9 @@ mod tests {
         assert_eq!(queue.next_non_whitespace, 1);
         assert_eq!(queue.queue.len(), 2);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
-        assert!(matches!(queue.peek().token(), Token::Letter('y', _)));
+        assert!(
+            matches!(queue.peek().token(), Token::Letter(c, _) if c.try_as_char() == Some('y'))
+        );
 
         // Test the branch that needs to load more tokens.
         let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
@@ -464,7 +466,9 @@ mod tests {
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));
-        assert!(matches!(queue.queue[3].token(), Token::Letter('z', _)));
+        assert!(
+            matches!(queue.queue[3].token(), Token::Letter(c, _) if c.try_as_char() == Some('z'))
+        );
 
         // Test the branch that finds the token in the existing buffer.
         let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
@@ -472,7 +476,9 @@ mod tests {
         assert_eq!(queue.queue.len(), 4);
         assert!(matches!(queue.queue[0].token(), Token::Whitespace));
         assert!(matches!(queue.queue[2].token(), Token::Whitespace));
-        assert!(matches!(queue.queue[3].token(), Token::Letter('z', _)));
+        assert!(
+            matches!(queue.queue[3].token(), Token::Letter(c, _)if c.try_as_char() == Some('z'))
+        );
     }
 
     #[test]

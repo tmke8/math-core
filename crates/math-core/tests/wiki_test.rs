@@ -913,8 +913,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 195);
-    assert_eq!(n_fail, 13);
+    assert_eq!(n_diff, 196);
+    assert_eq!(n_fail, 12);
 }
 
 /// Prettify HTML input
@@ -1078,7 +1078,10 @@ fn test_nonfailing_wiki_tests() {
         (75, r"\therefore, \because, \And"),
         (76, r"\lor \vee, \curlyvee, \bigvee"),
         (77, r"\land \wedge, \curlywedge, \bigwedge"),
-        // (78, r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top"),
+        (
+            78,
+            r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top",
+        ),
         (79, r"\vdash \dashv, \vDash, \Vdash, \models"),
         (80, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
         (81, r"\ulcorner \urcorner \llcorner \lrcorner"),

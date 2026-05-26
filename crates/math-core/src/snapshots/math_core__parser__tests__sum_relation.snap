@@ -6,14 +6,14 @@ expression: "{\\sum = 4}"
   Row(
     nodes: [
       Operator(
-        op: '∑',
+        op: "∑",
         attrs: OpAttrs(""),
         size: None,
         left: Some(Zero),
         right: Some(Zero),
       ),
       Operator(
-        op: '=',
+        op: "=",
         attrs: OpAttrs(""),
         size: None,
         left: None,

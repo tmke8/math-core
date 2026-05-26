@@ -2,14 +2,17 @@ use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
-use mathml_renderer::attribute::{FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style};
-use mathml_renderer::length::Length;
 use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
+use mathml_renderer::{
+    attribute::{FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style},
+    super_char::SuperChar,
+};
+use mathml_renderer::{length::Length, super_char::OverlayChar};
 
 use crate::character_class::{Class, MathVariant, ParenType};
 use crate::environments::Env;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Token<'source> {
     /// End of input.
     Eoi,
@@ -108,15 +111,6 @@ pub enum Token<'source> {
     Inner(Op),
     /// The character `'`.
     Prime,
-    /// The character `>`.
-    /// It has its own token because we need to escape it for the HTML output.
-    OpGreaterThan,
-    /// The character `<`.
-    /// It has its own token because we need to escape it for the HTML output.
-    OpLessThan,
-    /// The character `&`.
-    /// It has its own token because we need to escape it for the HTML output.
-    OpAmpersand,
     /// A token to force an operator to behave like a binary operator (mathbin).
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
@@ -137,12 +131,12 @@ pub enum Token<'source> {
     /// The `Rel` is the stretchy arrow operator to render.
     XArrow(Rel),
     /// An ordinary letter, e.g. `a`, `b`, `c`.
-    Letter(char, Mode),
+    Letter(SuperChar, Mode),
     /// A letter for which we need `mathvariant="normal"`.
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
-    UprightLetter(char),
+    UprightLetter(SuperChar),
     /// A digit, e.g. `0`, `1`, `2`.
-    Digit(char),
+    Digit(SuperChar),
     /// Text-based operators without limits.
     /// For example, `\log`, `\exp`, `\sin`, `\cos`, `\tan`.
     PseudoOperator(&'static str),
@@ -154,10 +148,8 @@ pub enum Token<'source> {
     /// `\operatorname` and `\operatorname*`. The `bool` is `true` for `\operatorname*` and `false`
     /// for `\operatorname`.
     OperatorName { with_limits: bool },
-    /// `\slashed`
-    Slashed,
-    /// `\not`
-    Not,
+    /// A combining overlay. `\not` uses U+0338, `\vertoverlay` uses U+20D2
+    Overlay(OverlayChar),
     /// A token for text, e.g. `\text{...}`, `\textit{...}`.
     Text(Option<HtmlTextStyle>),
     /// `\displaystyle`, `\textstyle`, `\scriptstyle` and `\scriptscriptstyle`.
@@ -178,7 +170,7 @@ pub enum Token<'source> {
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
-    MathOrTextMode(&'static Token<'static>, char),
+    MathOrTextMode(&'static Token<'static>, SuperChar),
     /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
     /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
     /// of the unknown command.
@@ -186,14 +178,10 @@ pub enum Token<'source> {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
-    /// Precedes a operator or letter token to indicate that said operator/letter should have
-    /// Variation Selector 1 (U+FE00) applied.
-    /// Used only in predefined token streams.
-    Vs1,
 }
 
 /// The character class assigned by `\mathord` / `\mathbin` / `\mathopen` / `\mathclose`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MathClassKind {
     /// `\mathord`: ordinary character class, with all spacing forced to zero.
     Ord,
@@ -205,15 +193,15 @@ pub enum MathClassKind {
     Close,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextToken {
     Accent(char),
-    Letter(char),
+    Letter(SuperChar),
     Style(HtmlTextStyle),
 }
 
 /// The delimiter pair that surrounds the result of an infix fraction-like command.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixDelim {
     /// Parentheses: `(` and `)` (`\choose`).
     Paren,
@@ -233,9 +221,7 @@ impl Token<'_> {
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
         match self.unwrap_math_ref() {
-            Relation(_) | ForceRelation(_) | OpGreaterThan | OpLessThan | XArrow(_) => {
-                Some(Class::Relation)
-            }
+            Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
             Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
@@ -257,7 +243,7 @@ impl Token<'_> {
                 MathClassKind::Close => Class::Close,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
-            Whitespace | Space(_) | Not | Vs1 | TransformSwitch(_) | NoNumber | Tag
+            Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
             | CustomSpace | Limits | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
@@ -278,8 +264,6 @@ impl Token<'_> {
             | Ord(_)
             | Prime
             | Enclose(_)
-            | OpAmpersand
-            | Slashed
             | Text(_)
             | Style(_)
             | Color
@@ -312,14 +296,14 @@ impl Token<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Mode {
     #[default]
     Math,
     MathOrText,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -365,7 +349,7 @@ impl From<Span> for Range<usize> {
 }
 
 /// A token together with its span in the input string.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct TokSpan<'config>(Token<'config>, Span);
 
 #[cfg(target_arch = "wasm32")]
@@ -410,7 +394,7 @@ impl<'config> From<Token<'config>> for TokSpan<'config> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 pub enum EndToken {
     #[strum(serialize = r"\end{...}")]
     End,
