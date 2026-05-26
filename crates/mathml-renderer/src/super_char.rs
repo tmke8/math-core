@@ -19,7 +19,6 @@ use crate::symbol;
 // - Bit 5 (from MSB): U+0338
 // - Bit 6: U+20D2
 // - Low 21 bits: the base `char`
-// - Remaining 3 bits unused for now
 //
 // # Safety
 //
@@ -31,14 +30,12 @@ pub struct SuperChar(u32);
 /// Mask for the top 4 bits
 const VS_MASK: u32 = 0xF000_0000;
 
-/// Mask for the flag bits
-const FLAGS_MASK: u32 = 0x0FE0_0000;
-
 /// Mask for the low 21 bits
 const CHAR_MASK: u32 = 0x001F_FFFF;
 
 /// Mask for U+0338
 const SOLIDUS_BIT: u32 = 0x0800_0000;
+
 /// Mask for U+20D2
 const VERTICAL_LINE_BIT: u32 = 0x0400_0000;
 
@@ -103,24 +100,22 @@ impl From<OverlayChar> for char {
 }
 
 impl SuperChar {
+    pub const MAX_LEN_UTF8: usize = 12;
+
     #[must_use]
     #[inline]
     pub const fn from_char(c: char) -> Self {
         Self(c as u32)
     }
 
+    /// Characters with canonical decompositions should not take a VS.
+    /// We `debug_assert!` for this with respect to the solidus overlay U+0338.
+    /// (There's no unsoundenss if it happens, it's just not correct Unicode usage)
     #[must_use]
     #[inline]
     pub const fn from_char_with_vs(c: char, vs: VariationSelector) -> Self {
+        debug_assert!(!is_precomposed_solidus_overlay(c));
         Self(c as u32 | ((vs as u32) << 28))
-    }
-
-    /// Number of characters in this `SuperChar`.
-    #[allow(clippy::len_without_is_empty)] // a `SuperChar` is never empty
-    #[must_use]
-    #[inline]
-    pub const fn len(self) -> usize {
-        1 + ((self.0 & FLAGS_MASK).count_ones() as usize) + self.has_vs() as usize
     }
 
     /// Returns an iterator over the `char`s of this `SuperChar`.
@@ -165,14 +160,18 @@ impl SuperChar {
 
     /// Adds the specified overlay character to this `SuperChar`, returning it as a new `SuperChar`.
     /// Idempotent if the character is already present.
-    /// For the solidus overlay U+0338, we will use the precomposed form if possible.
+    /// For the solidus overlay U+0338, we will use the precomposed form if one exists and
+    /// there is no variation selector set.
     #[inline]
     #[must_use]
     pub fn with_overlay(self, overlay: OverlayChar) -> Self {
         match overlay {
             OverlayChar::Solidus => {
-                if let Some(precomposed) = get_precomposed_solidus_overlay(self.base_char()) {
-                    self.with_base_char(precomposed)
+                if !self.has_vs()
+                    && let Some(precomposed) = get_precomposed_solidus_overlay(self.base_char())
+                {
+                    // swap out base char for precomposed form
+                    Self(self.0 & !CHAR_MASK | precomposed as u32)
                 } else {
                     Self(self.0 | SOLIDUS_BIT)
                 }
@@ -189,14 +188,6 @@ impl SuperChar {
         unsafe { char::from_u32_unchecked(self.0 & CHAR_MASK) }
     }
 
-    /// Return a version of this `SuperChar` with a different base `char`,
-    /// but unchanged variation sequences and overlays.
-    #[must_use]
-    #[inline]
-    pub const fn with_base_char(self, new_base: char) -> Self {
-        Self(self.0 & !CHAR_MASK | new_base as u32)
-    }
-
     /// If this string contains exactly 1 `char`, return it;
     /// otherwise, return `None`.
     #[must_use]
@@ -210,7 +201,7 @@ impl SuperChar {
         }
     }
 
-    /// For now, a buffer of length 13 is sufficient to encode any `SuperChar`.
+    /// See [`Self::MAX_LEN_UTF8`] for the number of bytes needed.
     pub fn encode_utf8(self, dst: &mut [u8]) -> &mut str {
         let mut idx: usize = 0;
         for c in self.chars() {
@@ -309,6 +300,29 @@ fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
     } else {
         None
     }
+}
+
+/// Whether this character has a canonical decomposition to a sequence containing U+338.
+/// Used in a debug assertion
+#[inline]
+const fn is_precomposed_solidus_overlay(c: char) -> bool {
+    // can't use iterators or `TryFrom` in const...
+
+    let cp = c as u32;
+    if cp > u16::MAX as u32 {
+        return false;
+    }
+    let cp = cp as u16;
+
+    let mut i: usize = 0;
+    while i < PRECOMPOSED_SOLIDUS_OVERLAY.len() {
+        if cp == PRECOMPOSED_SOLIDUS_OVERLAY[i].composed {
+            return true;
+        }
+        i += 1;
+    }
+
+    false
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -499,3 +513,235 @@ static PRECOMPOSED_SOLIDUS_OVERLAY: &[SolidusPair] = &[
         composed: 0x22ED,
     }, // CONTAINS AS NORMAL SUBGROUP OR EQUAL TO -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use VariationSelector::*;
+
+    /// Exhaustively test every operation on every possible [`SuperChar`] value.
+    #[test]
+    fn test_super_char() {
+        for base in '\0'..=char::MAX {
+            // Test base character alone
+
+            let sc = SuperChar::from_char(base);
+            assert!(sc.chars().eq([base]));
+            assert_eq!(sc.base_char(), base);
+            assert_eq!(sc.try_as_char(), Some(base));
+            assert!(!sc.has_vs());
+            assert_eq!(sc.vs(), None);
+
+            let mut sc_buf = [255u8; 4];
+            sc.encode_utf8(&mut sc_buf);
+            let mut char_buf = [255u8; 4];
+            base.encode_utf8(&mut char_buf);
+
+            assert_eq!(sc_buf, char_buf);
+            assert_eq!(sc.to_string(), base.to_string());
+
+            // Test with solidus overlay
+
+            let sc_solidus = sc.with_overlay(OverlayChar::Solidus);
+            if let Some(precomposed) = get_precomposed_solidus_overlay(base) {
+                assert_eq!(sc_solidus == sc, precomposed == base);
+                assert!(sc_solidus.chars().eq([precomposed]));
+                assert_eq!(sc_solidus.base_char(), precomposed);
+                assert_eq!(sc_solidus.try_as_char(), Some(precomposed));
+            } else {
+                assert!(sc_solidus != sc);
+                assert!(
+                    sc_solidus
+                        .chars()
+                        .eq([base, symbol::COMBINING_LONG_SOLIDUS_OVERLAY])
+                );
+                assert_eq!(sc_solidus.base_char(), base);
+                assert_eq!(sc_solidus.try_as_char(), None);
+
+                let mut sc_buf_solidus = [255u8; 7];
+                sc_solidus.encode_utf8(&mut sc_buf_solidus);
+                let mut char_buf_solidus = [255u8; 7];
+                let base_utf8_len = base.encode_utf8(&mut char_buf_solidus).len();
+                symbol::COMBINING_LONG_SOLIDUS_OVERLAY
+                    .encode_utf8(&mut char_buf_solidus[base_utf8_len..]);
+                assert_eq!(sc_buf_solidus, char_buf_solidus);
+            }
+            assert!(!sc_solidus.has_vs());
+            assert_eq!(sc_solidus.vs(), None);
+            assert_eq!(sc_solidus.with_overlay(OverlayChar::Solidus), sc_solidus);
+
+            // Test with vertical line overlay
+
+            let sc_vert = sc.with_overlay(OverlayChar::VerticalLine);
+            assert!(sc_vert != sc);
+            assert!(sc_vert != sc_solidus);
+            assert!(
+                sc_vert
+                    .chars()
+                    .eq([base, symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY])
+            );
+            assert_eq!(sc_vert.base_char(), base);
+            assert_eq!(sc_vert.try_as_char(), None);
+
+            let mut sc_buf_vert = [255u8; 7];
+            sc_vert.encode_utf8(&mut sc_buf_vert);
+            let mut char_buf_vert = [255u8; 7];
+            let base_utf8_len = base.encode_utf8(&mut char_buf_vert).len();
+            symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                .encode_utf8(&mut char_buf_vert[base_utf8_len..]);
+            assert_eq!(sc_buf_vert, char_buf_vert);
+
+            assert!(!sc_vert.has_vs());
+            assert_eq!(sc_vert.vs(), None);
+            assert_eq!(sc_vert.with_overlay(OverlayChar::VerticalLine), sc_vert);
+
+            // Test with both overlays
+
+            let sc_both = sc_solidus.with_overlay(OverlayChar::VerticalLine);
+            assert_eq!(sc_both, sc_vert.with_overlay(OverlayChar::Solidus));
+            if let Some(precomposed) = get_precomposed_solidus_overlay(base) {
+                assert_eq!(sc_both == sc_vert, precomposed == base);
+                assert!(
+                    sc_both
+                        .chars()
+                        .eq([precomposed, symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY])
+                );
+                assert_eq!(sc_both.base_char(), precomposed);
+            } else {
+                assert!(sc_both != sc_vert);
+                assert!(sc_both.chars().eq([
+                    base,
+                    symbol::COMBINING_LONG_SOLIDUS_OVERLAY,
+                    symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                ]));
+                assert_eq!(sc_both.base_char(), base);
+
+                let mut sc_buf_both = [255u8; 10];
+                sc_both.encode_utf8(&mut sc_buf_both);
+                let mut char_buf_both = [255u8; 10];
+                let base_utf8_len = base.encode_utf8(&mut char_buf_both).len();
+                symbol::COMBINING_LONG_SOLIDUS_OVERLAY
+                    .encode_utf8(&mut char_buf_both[base_utf8_len..]);
+                symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                    .encode_utf8(&mut char_buf_both[(base_utf8_len + 2)..]);
+                assert_eq!(sc_buf_both, char_buf_both);
+            }
+            assert!(sc_both != sc_solidus);
+            assert_eq!(sc_both.try_as_char(), None);
+            assert!(!sc_both.has_vs());
+            assert_eq!(sc_both.vs(), None);
+            assert_eq!(sc_both.with_overlay(OverlayChar::Solidus), sc_both);
+            assert_eq!(sc_both.with_overlay(OverlayChar::VerticalLine), sc_both);
+
+            // Test with variation selector.
+            // Characters with a precomposed solidus overlay shouldn't have a variation selector
+
+            if !is_precomposed_solidus_overlay(base) {
+                for vs in [
+                    Vs1, Vs2, Vs3, Vs4, Vs5, Vs6, Vs7, Vs8, Vs9, Vs10, Vs11, Vs12, Vs13, Vs14, Vs15,
+                ] {
+                    let sc_vs = SuperChar::from_char_with_vs(base, vs);
+
+                    assert!(sc_vs != sc);
+                    assert!(sc_vs.chars().eq([base, vs.into()]));
+                    assert_eq!(sc_vs.base_char(), base);
+                    assert_eq!(sc_vs.try_as_char(), None);
+                    assert!(sc_vs.has_vs());
+                    assert_eq!(sc_vs.vs(), Some(vs));
+
+                    // Test with solidus overlay
+
+                    let sc_vs_solidus = sc_vs.with_overlay(OverlayChar::Solidus);
+                    assert!(sc_vs_solidus != sc_vs);
+                    assert!(sc_vs_solidus.chars().eq([
+                        base,
+                        vs.into(),
+                        symbol::COMBINING_LONG_SOLIDUS_OVERLAY
+                    ]));
+                    assert_eq!(sc_vs_solidus.base_char(), base);
+                    assert_eq!(sc_vs_solidus.try_as_char(), None);
+
+                    let mut sc_buf_vs_solidus = [255u8; 9];
+                    sc_vs_solidus.encode_utf8(&mut sc_buf_vs_solidus);
+                    let mut char_buf_vs_solidus = [255u8; 9];
+                    let base_utf8_len = base.encode_utf8(&mut char_buf_vs_solidus).len();
+                    char::from(vs).encode_utf8(&mut char_buf_vs_solidus[base_utf8_len..]);
+                    symbol::COMBINING_LONG_SOLIDUS_OVERLAY
+                        .encode_utf8(&mut char_buf_vs_solidus[(base_utf8_len + 3)..]);
+                    assert_eq!(sc_buf_vs_solidus, char_buf_vs_solidus);
+
+                    assert!(sc_vs_solidus.has_vs());
+                    assert_eq!(sc_vs_solidus.vs(), Some(vs));
+                    assert_eq!(
+                        sc_vs_solidus.with_overlay(OverlayChar::Solidus),
+                        sc_vs_solidus
+                    );
+
+                    // Test with vertical line overlay
+
+                    let sc_vs_vert = sc_vs.with_overlay(OverlayChar::VerticalLine);
+                    assert!(sc_vs_vert != sc_vs);
+                    assert!(sc_vs_vert != sc_vs_solidus);
+                    assert!(sc_vs_vert.chars().eq([
+                        base,
+                        vs.into(),
+                        symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                    ]));
+                    assert_eq!(sc_vs_vert.base_char(), base);
+                    assert_eq!(sc_vs_vert.try_as_char(), None);
+
+                    let mut sc_buf_vs_vert = [255u8; 10];
+                    sc_vs_vert.encode_utf8(&mut sc_buf_vs_vert);
+                    let mut char_buf_vs_vert = [255u8; 10];
+                    let base_utf8_len = base.encode_utf8(&mut char_buf_vs_vert).len();
+                    char::from(vs).encode_utf8(&mut char_buf_vs_vert[base_utf8_len..]);
+                    symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                        .encode_utf8(&mut char_buf_vs_vert[(base_utf8_len + 3)..]);
+                    assert_eq!(sc_buf_vs_vert, char_buf_vs_vert);
+
+                    assert!(sc_vs_vert.has_vs());
+                    assert_eq!(sc_vs_vert.vs(), Some(vs));
+                    assert_eq!(
+                        sc_vs_vert.with_overlay(OverlayChar::VerticalLine),
+                        sc_vs_vert
+                    );
+
+                    // Test with both overlays
+
+                    let sc_vs_both = sc_vs_solidus.with_overlay(OverlayChar::VerticalLine);
+                    assert_eq!(sc_vs_both, sc_vs_vert.with_overlay(OverlayChar::Solidus));
+
+                    assert!(sc_vs_both != sc_vs_solidus);
+                    assert!(sc_vs_both != sc_vs_vert);
+                    assert!(sc_vs_both.chars().eq([
+                        base,
+                        vs.into(),
+                        symbol::COMBINING_LONG_SOLIDUS_OVERLAY,
+                        symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                    ]));
+                    assert_eq!(sc_vs_both.base_char(), base);
+
+                    let mut sc_buf_vs_both = [255u8; 12];
+                    sc_vs_both.encode_utf8(&mut sc_buf_vs_both);
+                    let mut char_buf_vs_both = [255u8; 12];
+                    let base_utf8_len = base.encode_utf8(&mut char_buf_vs_both).len();
+                    char::from(vs).encode_utf8(&mut char_buf_vs_both[base_utf8_len..]);
+                    symbol::COMBINING_LONG_SOLIDUS_OVERLAY
+                        .encode_utf8(&mut char_buf_vs_both[(base_utf8_len + 3)..]);
+                    symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY
+                        .encode_utf8(&mut char_buf_vs_both[(base_utf8_len + 5)..]);
+                    assert_eq!(sc_buf_vs_both, char_buf_vs_both);
+
+                    assert_eq!(sc_vs_both.try_as_char(), None);
+                    assert!(sc_vs_both.has_vs());
+                    assert_eq!(sc_vs_both.vs(), Some(vs));
+                    assert_eq!(sc_vs_both.with_overlay(OverlayChar::Solidus), sc_vs_both);
+                    assert_eq!(
+                        sc_vs_both.with_overlay(OverlayChar::VerticalLine),
+                        sc_vs_both
+                    );
+                }
+            }
+        }
+    }
+}

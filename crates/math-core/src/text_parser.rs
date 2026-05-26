@@ -219,7 +219,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     builder.push_char(accent);
                 }
             } else {
-                let mut b = [0u8; 16];
+                let mut b = [0u8; SuperChar::MAX_LEN_UTF8];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
                 snippets.push((current_style, text));
                 style_stack.pop();

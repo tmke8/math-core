@@ -222,7 +222,7 @@ impl Node<'_> {
                 if is_upright {
                     write!(s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
                     write_mrow = true;
-                } else if letter.len() > 1 {
+                } else if letter.try_as_char().is_none() {
                     // check if multi-char
                     write!(s, "<mrow><mspace/><mi>")?;
                     write_mrow = true;
