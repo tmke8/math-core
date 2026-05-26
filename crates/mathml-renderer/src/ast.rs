@@ -41,12 +41,12 @@ impl fmt::Display for EscapeHtml<'_> {
     }
 }
 
-/// Stores the contents of [`Node::Ahref`].
-/// Needs to be a separate `struct` to keep that
-/// under 4 words in size
+/// Stores the contents of [`Node::AHref`].
+/// Needs to be a separate `struct` to keep [`Node`]
+/// 4 words in size
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct Ahref<'arena> {
+pub struct AHref<'arena> {
     pub href: &'arena str,
     pub text: &'arena str,
 }
@@ -139,7 +139,7 @@ pub enum Node<'arena> {
     Text(Option<HtmlTextStyle>, &'arena str),
     /// `<mtext><a href="...">...</mtext>`.
     /// The link and text get HTML-escaped.
-    Ahref(&'arena Ahref<'arena>),
+    AHref(&'arena AHref<'arena>),
     /// `<mtable>...</mtable>` for matrices and similar constructs
     Table {
         align: Alignment,
@@ -581,7 +581,7 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</menclose>");
             }
-            &Node::Ahref(&Ahref { href, text }) => {
+            &Node::AHref(&AHref { href, text }) => {
                 write!(
                     s,
                     r#"<mtext><a href="{}">{}</a></mtext>"#,

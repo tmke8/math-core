@@ -2,7 +2,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{Ahref, Node},
+    ast::{AHref, Node},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style},
     length::Length,
     super_char::SuperChar,
@@ -1421,7 +1421,7 @@ where
                     builder.finish(self.arena)
                 };
 
-                Ok(Node::Ahref(self.arena.alloc_ahref(Ahref { href, text })))
+                Ok(Node::AHref(self.arena.alloc_ahref(AHref { href, text })))
             }
             Token::Color => 'color: {
                 let (color_name, span) = self.parse_string_literal()?;

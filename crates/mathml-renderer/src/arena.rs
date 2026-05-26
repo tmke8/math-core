@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use stable_arena::DroplessArena;
 
 use crate::{
-    ast::{Ahref, Node},
+    ast::{AHref, Node},
     super_char::SuperChar,
     table::{ArraySpec, ColumnSpec, RowLabelInfo},
 };
@@ -72,8 +72,8 @@ impl Arena {
 
     pub fn alloc_ahref<'arena, 'attrs>(
         &'arena self,
-        ahref: Ahref<'attrs>,
-    ) -> &'arena Ahref<'attrs> {
+        ahref: AHref<'attrs>,
+    ) -> &'arena AHref<'attrs> {
         self.inner.alloc(ahref)
     }
 }
