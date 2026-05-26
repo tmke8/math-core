@@ -299,66 +299,203 @@ impl FusedIterator for SuperCharChars {}
 #[inline]
 fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
     if let Ok(bmp) = u16::try_from(c) {
-        PRECOMPOSED_SOLIDUS_OVERLAY
-            .get(&bmp)
-            // SAFETY: `PRECOMPOSED_SOLIDUS_OVERLAY` values are all valid `char`s
-            .map(|c| unsafe { char::from_u32_unchecked((*c).into()) })
+        for &SolidusPair { base, composed } in PRECOMPOSED_SOLIDUS_OVERLAY {
+            if bmp == base || bmp == composed {
+                // SAFETY: all entries in `PRECOMPOSED_SOLIDUS_OVERLAY` are valid `char`s
+                return Some(unsafe { char::from_u32_unchecked(composed as u32) });
+            }
+        }
+        None
     } else {
         None
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+#[repr(align(4))]
+struct SolidusPair {
+    base: u16,
+    composed: u16,
+}
+
 // This is a mapping from Unicode codepoints to their precomposed solidus-overlay variant.
 // They are all in the BMP, so we use `u16` instead of `char` to save space.
 // <https://util.unicode.org/UnicodeJsps/list-unicodeset.jsp?a=%5Cp%7BDecomposition_Mapping%3D%2F.%CC%B8%2F%7D%26%5Cp%7BisNFC%7D>
-// We also include the idempotent mapping.
-static PRECOMPOSED_SOLIDUS_OVERLAY: phf::Map<u16, u16> = phf::phf_map! {
-    0x2190_u16 | 0x219A_u16 => 0x219A_u16, // LEFTWARDS ARROW -> LEFTWARDS ARROW WITH STROKE
-    0x2192_u16 | 0x219B_u16 => 0x219B_u16, // RIGHTWARDS ARROW -> RIGHTWARDS ARROW WITH STROKE
-    0x2194_u16 | 0x21AE_u16 => 0x21AE_u16, // LEFT RIGHT ARROW -> LEFT RIGHT ARROW WITH STROKE
-
-    0x21D0_u16 | 0x21CD_u16 => 0x21CD_u16, // LEFTWARDS DOUBLE ARROW -> LEFTWARDS DOUBLE ARROW WITH STROKE
-    0x21D4_u16 | 0x21CE_u16 => 0x21CE_u16, // LEFT RIGHT DOUBLE ARROW -> LEFT RIGHT DOUBLE ARROW WITH STROKE
-    0x21D2_u16 | 0x21CF_u16 => 0x21CF_u16, // RIGHTWARDS DOUBLE ARROW -> RIGHTWARDS DOUBLE ARROW WITH STROKE
-
-    0x2203_u16 | 0x2204_u16 => 0x2204_u16, // THERE EXISTS -> THERE DOES NOT EXIST
-
-    0x2208_u16 | 0x2209_u16 => 0x2209_u16, // ELEMENT OF -> NOT AN ELEMENT OF
-    0x220B_u16 | 0x220C_u16 => 0x220C_u16, // CONTAINS AS MEMBER -> DOES NOT CONTAIN AS MEMBER
-
-    0x2223_u16 | 0x2224_u16 => 0x2224_u16, // DIVIDES -> DOES NOT DIVIDE
-    0x2225_u16 | 0x2226_u16 => 0x2226_u16, // PARALLEL TO -> NOT PARALLEL TO
-    0x223C_u16 | 0x2241_u16 => 0x2241_u16, // TILDE OPERATOR -> NOT TILDE
-    0x2243_u16 | 0x2244_u16 => 0x2244_u16, // ASYMPTOTICALLY EQUAL TO -> NOT ASYMPTOTICALLY EQUAL TO
-    0x2245_u16 | 0x2247_u16 => 0x2247_u16, // APPROXIMATELY EQUAL TO -> NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
-    0x2248_u16 | 0x2249_u16 => 0x2249_u16, // ALMOST EQUAL TO -> NOT ALMOST EQUAL TO
-    0x003D_u16 | 0x2260_u16 => 0x2260_u16, // EQUALS SIGN -> NOT EQUAL TO
-    0x2261_u16 | 0x2262_u16 => 0x2262_u16, // IDENTICAL TO -> NOT IDENTICAL TO
-    0x224D_u16 | 0x226D_u16 => 0x226D_u16, // EQUIVALENT TO -> NOT EQUIVALENT TO
-    0x003C_u16 | 0x226E_u16 => 0x226E_u16, // LESS-THAN SIGN -> NOT LESS-THAN
-    0x003E_u16 | 0x226F_u16 => 0x226F_u16, // GREATER-THAN SIGN -> NOT GREATER-THAN
-    0x2264_u16 | 0x2270_u16 => 0x2270_u16, // LESS-THAN OR EQUAL TO -> NEITHER LESS-THAN NOR EQUAL TO
-    0x2265_u16 | 0x2271_u16 => 0x2271_u16, // GREATER-THAN OR EQUAL TO -> NEITHER GREATER-THAN NOR EQUAL TO
-    0x2272_u16 | 0x2274_u16 => 0x2274_u16, // LESS-THAN OR EQUIVALENT TO -> NEITHER LESS-THAN NOR EQUIVALENT TO
-    0x2273_u16 | 0x2275_u16 => 0x2275_u16, // GREATER-THAN OR EQUIVALENT TO -> NEITHER GREATER-THAN NOR EQUIVALENT TO
-    0x2276_u16 | 0x2278_u16 => 0x2278_u16, // LESS-THAN OR GREATER-THAN -> NEITHER LESS-THAN NOR GREATER-THAN
-    0x2277_u16 | 0x2279_u16 => 0x2279_u16, // GREATER-THAN OR LESS-THAN -> NEITHER GREATER-THAN NOR LESS-THAN
-    0x227A_u16 | 0x2280_u16 => 0x2280_u16, // PRECEDES -> DOES NOT PRECEDE
-    0x227B_u16 | 0x2281_u16 => 0x2281_u16, // SUCCEEDS -> DOES NOT SUCCEED
-    0x2282_u16 | 0x2284_u16 => 0x2284_u16, // SUBSET OF -> NOT A SUBSET OF
-    0x2283_u16 | 0x2285_u16 => 0x2285_u16, // SUPERSET OF -> NOT A SUPERSET OF
-    0x2286_u16 | 0x2288_u16 => 0x2288_u16, // SUBSET OF OR EQUAL TO -> NEITHER A SUBSET OF NOR EQUAL TO
-    0x2287_u16 | 0x2289_u16 => 0x2289_u16, // SUPERSET OF OR EQUAL TO -> NEITHER A SUPERSET OF NOR EQUAL TO
-    0x22A2_u16 | 0x22AC_u16 => 0x22AC_u16, // RIGHT TACK -> DOES NOT PROVE
-    0x22A8_u16 | 0x22AD_u16 => 0x22AD_u16, // TRUE -> NOT TRUE
-    0x22A9_u16 | 0x22AE_u16 => 0x22AE_u16, // FORCES -> DOES NOT FORCE
-    0x22AB_u16 | 0x22AF_u16 => 0x22AF_u16, // DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE -> NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
-    0x227C_u16 | 0x22E0_u16 => 0x22E0_u16, // PRECEDES OR EQUAL TO -> DOES NOT PRECEDE OR EQUAL
-    0x227D_u16 | 0x22E1_u16 => 0x22E1_u16, // SUCCEEDS OR EQUAL TO -> DOES NOT SUCCEED OR EQUAL
-    0x2291_u16 | 0x22E2_u16 => 0x22E2_u16, // SQUARE IMAGE OF OR EQUAL TO -> NOT SQUARE IMAGE OF OR EQUAL TO
-    0x2292_u16 | 0x22E3_u16 => 0x22E3_u16, // SQUARE ORIGINAL OF OR EQUAL TO -> NOT SQUARE ORIGINAL OF OR EQUAL TO
-    0x22B2_u16 | 0x22EA_u16 => 0x22EA_u16, // NORMAL SUBGROUP OF -> NOT NORMAL SUBGROUP OF
-    0x22B3_u16 | 0x22EB_u16 => 0x22EB_u16, // CONTAINS AS NORMAL SUBGROUP -> DOES NOT CONTAIN AS NORMAL SUBGROUP
-    0x22B4_u16 | 0x22EC_u16 => 0x22EC_u16, // NORMAL SUBGROUP OF OR EQUAL TO -> NOT NORMAL SUBGROUP OF OR EQUAL TO
-    0x22B5_u16 | 0x22ED_u16 => 0x22ED_u16, // CONTAINS AS NORMAL SUBGROUP OR EQUAL TO -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
-};
+static PRECOMPOSED_SOLIDUS_OVERLAY: &[SolidusPair] = &[
+    SolidusPair {
+        base: 0x2190,
+        composed: 0x219A,
+    }, // LEFTWARDS ARROW -> LEFTWARDS ARROW WITH STROKE
+    SolidusPair {
+        base: 0x2192,
+        composed: 0x219B,
+    }, // RIGHTWARDS ARROW -> RIGHTWARDS ARROW WITH STROKE
+    SolidusPair {
+        base: 0x2194,
+        composed: 0x21AE,
+    }, // LEFT RIGHT ARROW -> LEFT RIGHT ARROW WITH STROKE
+    SolidusPair {
+        base: 0x21D0,
+        composed: 0x21CD,
+    }, // LEFTWARDS DOUBLE ARROW -> LEFTWARDS DOUBLE ARROW WITH STROKE
+    SolidusPair {
+        base: 0x21D4,
+        composed: 0x21CE,
+    }, // LEFT RIGHT DOUBLE ARROW -> LEFT RIGHT DOUBLE ARROW WITH STROKE
+    SolidusPair {
+        base: 0x21D2,
+        composed: 0x21CF,
+    }, // RIGHTWARDS DOUBLE ARROW -> RIGHTWARDS DOUBLE ARROW WITH STROKE
+    SolidusPair {
+        base: 0x2203,
+        composed: 0x2204,
+    }, // THERE EXISTS -> THERE DOES NOT EXIST
+    SolidusPair {
+        base: 0x2208,
+        composed: 0x2209,
+    }, // ELEMENT OF -> NOT AN ELEMENT OF
+    SolidusPair {
+        base: 0x220B,
+        composed: 0x220C,
+    }, // CONTAINS AS MEMBER -> DOES NOT CONTAIN AS MEMBER
+    SolidusPair {
+        base: 0x2223,
+        composed: 0x2224,
+    }, // DIVIDES -> DOES NOT DIVIDE
+    SolidusPair {
+        base: 0x2225,
+        composed: 0x2226,
+    }, // PARALLEL TO -> NOT PARALLEL TO
+    SolidusPair {
+        base: 0x223C,
+        composed: 0x2241,
+    }, // TILDE OPERATOR -> NOT TILDE
+    SolidusPair {
+        base: 0x2243,
+        composed: 0x2244,
+    }, // ASYMPTOTICALLY EQUAL TO -> NOT ASYMPTOTICALLY EQUAL TO
+    SolidusPair {
+        base: 0x2245,
+        composed: 0x2247,
+    }, // APPROXIMATELY EQUAL TO -> NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
+    SolidusPair {
+        base: 0x2248,
+        composed: 0x2249,
+    }, // ALMOST EQUAL TO -> NOT ALMOST EQUAL TO
+    SolidusPair {
+        base: 0x003D,
+        composed: 0x2260,
+    }, // EQUALS SIGN -> NOT EQUAL TO
+    SolidusPair {
+        base: 0x2261,
+        composed: 0x2262,
+    }, // IDENTICAL TO -> NOT IDENTICAL TO
+    SolidusPair {
+        base: 0x224D,
+        composed: 0x226D,
+    }, // EQUIVALENT TO -> NOT EQUIVALENT TO
+    SolidusPair {
+        base: 0x003C,
+        composed: 0x226E,
+    }, // LESS-THAN SIGN -> NOT LESS-THAN
+    SolidusPair {
+        base: 0x003E,
+        composed: 0x226F,
+    }, // GREATER-THAN SIGN -> NOT GREATER-THAN
+    SolidusPair {
+        base: 0x2264,
+        composed: 0x2270,
+    }, // LESS-THAN OR EQUAL TO -> NEITHER LESS-THAN NOR EQUAL TO
+    SolidusPair {
+        base: 0x2265,
+        composed: 0x2271,
+    }, // GREATER-THAN OR EQUAL TO -> NEITHER GREATER-THAN NOR EQUAL TO
+    SolidusPair {
+        base: 0x2272,
+        composed: 0x2274,
+    }, // LESS-THAN OR EQUIVALENT TO -> NEITHER LESS-THAN NOR EQUIVALENT TO
+    SolidusPair {
+        base: 0x2273,
+        composed: 0x2275,
+    }, // GREATER-THAN OR EQUIVALENT TO -> NEITHER GREATER-THAN NOR EQUIVALENT TO
+    SolidusPair {
+        base: 0x2276,
+        composed: 0x2278,
+    }, // LESS-THAN OR GREATER-THAN -> NEITHER LESS-THAN NOR GREATER-THAN
+    SolidusPair {
+        base: 0x2277,
+        composed: 0x2279,
+    }, // GREATER-THAN OR LESS-THAN -> NEITHER GREATER-THAN NOR LESS-THAN
+    SolidusPair {
+        base: 0x227A,
+        composed: 0x2280,
+    }, // PRECEDES -> DOES NOT PRECEDE
+    SolidusPair {
+        base: 0x227B,
+        composed: 0x2281,
+    }, // SUCCEEDS -> DOES NOT SUCCEED
+    SolidusPair {
+        base: 0x2282,
+        composed: 0x2284,
+    }, // SUBSET OF -> NOT A SUBSET OF
+    SolidusPair {
+        base: 0x2283,
+        composed: 0x2285,
+    }, // SUPERSET OF -> NOT A SUPERSET OF
+    SolidusPair {
+        base: 0x2286,
+        composed: 0x2288,
+    }, // SUBSET OF OR EQUAL TO -> NEITHER A SUBSET OF NOR EQUAL TO
+    SolidusPair {
+        base: 0x2287,
+        composed: 0x2289,
+    }, // SUPERSET OF OR EQUAL TO -> NEITHER A SUPERSET OF NOR EQUAL TO
+    SolidusPair {
+        base: 0x22A2,
+        composed: 0x22AC,
+    }, // RIGHT TACK -> DOES NOT PROVE
+    SolidusPair {
+        base: 0x22A8,
+        composed: 0x22AD,
+    }, // TRUE -> NOT TRUE
+    SolidusPair {
+        base: 0x22A9,
+        composed: 0x22AE,
+    }, // FORCES -> DOES NOT FORCE
+    SolidusPair {
+        base: 0x22AB,
+        composed: 0x22AF,
+    }, // DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE -> NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
+    SolidusPair {
+        base: 0x227C,
+        composed: 0x22E0,
+    }, // PRECEDES OR EQUAL TO -> DOES NOT PRECEDE OR EQUAL
+    SolidusPair {
+        base: 0x227D,
+        composed: 0x22E1,
+    }, // SUCCEEDS OR EQUAL TO -> DOES NOT SUCCEED OR EQUAL
+    SolidusPair {
+        base: 0x2291,
+        composed: 0x22E2,
+    }, // SQUARE IMAGE OF OR EQUAL TO -> NOT SQUARE IMAGE OF OR EQUAL TO
+    SolidusPair {
+        base: 0x2292,
+        composed: 0x22E3,
+    }, // SQUARE ORIGINAL OF OR EQUAL TO -> NOT SQUARE ORIGINAL OF OR EQUAL TO
+    SolidusPair {
+        base: 0x22B2,
+        composed: 0x22EA,
+    }, // NORMAL SUBGROUP OF -> NOT NORMAL SUBGROUP OF
+    SolidusPair {
+        base: 0x22B3,
+        composed: 0x22EB,
+    }, // CONTAINS AS NORMAL SUBGROUP -> DOES NOT CONTAIN AS NORMAL SUBGROUP
+    SolidusPair {
+        base: 0x22B4,
+        composed: 0x22EC,
+    }, // NORMAL SUBGROUP OF OR EQUAL TO -> NOT NORMAL SUBGROUP OF OR EQUAL TO
+    SolidusPair {
+        base: 0x22B5,
+        composed: 0x22ED,
+    }, // CONTAINS AS NORMAL SUBGROUP OR EQUAL TO -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
+];
