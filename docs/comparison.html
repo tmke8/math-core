@@ -5330,9 +5330,9 @@
           </tr>
           <tr>
             <td>\sout</td>
-            <td>₮\text{\sout{abc}}₮</td>
-            <td>\(\text{\sout{abc}}\)</td>
-            <td><code>\text{\sout{abc}}</code></td>
+            <td>₮\text{\sout{strikethrough}}₮</td>
+            <td>\(\text{\sout{strikethrough}}\)</td>
+            <td><code>\text{\sout{strikethrough}}</code></td>
           </tr>
           <tr>
             <td>\space</td>
@@ -5438,9 +5438,14 @@
           </tr>
           <tr>
             <td>{subarray}</td>
-            <td>₮\begin{subarray}{c} a \\ c \end{subarray}₮</td>
-            <td>\(\begin{subarray}{c} a \\ c \end{subarray}\)</td>
-            <td><code>\sum_{\begin{subarray}</code><br />   <code>{c} a \\</code><br />   <code>c</code><br /><code>\end{subarray}}</code></td>
+            <td>₮₮\sum_{\begin{subarray}{c} a \\ c \end{subarray}}₮₮</td>
+            <td>\[\sum_{\begin{subarray}{c} a \\ c \end{subarray}}\]</td>
+            <td>
+              <pre><code>\sum_{\begin{subarray}{c}
+  a \\
+  c
+\end{subarray}}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\sube</td>

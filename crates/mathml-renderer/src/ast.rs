@@ -245,6 +245,10 @@ impl Node<'_> {
                             "<mtext><span class=\"math-core-serif-font\">",
                             "</span></mtext>",
                         ),
+                        Some(HtmlTextStyle::Strikethrough) => (
+                            "<mtext><span style=\"text-decoration: line-through\">",
+                            "</span></mtext>",
+                        ),
                     },
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),

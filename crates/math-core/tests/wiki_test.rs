@@ -813,7 +813,7 @@ fn wiki_test() {
             "<math><mover><mi>x</mi><mo stretchy=\"false\" style=\"math-style:normal;math-depth:0;\">…</mo></mover></math>",
         ),
         (
-            r"\sout{q}",
+            r"\text{\sout{q}}",
             "<math><mrow style=\"background-image:linear-gradient(black, black);background-repeat:no-repeat;background-size:100% 1.5px;background-position:0 center;\"><mi>q</mi></mrow></math>",
         ),
         (
@@ -1370,7 +1370,7 @@ fn test_nonfailing_wiki_tests() {
         (233, r"| \mathord\uparrow \rangle"),
         (234, r"\wideparen{AB}"),
         (235, r"\dddot{x}"),
-        (237, r"\sout{q}"),
+        (237, r"\text{\sout{q}}"),
         // (238, r"\mathrlap{\,/}{=}"),
         (239, r"\text{\textsf{textual description}}"),
         (240, r"α π"),

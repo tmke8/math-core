@@ -2218,7 +2218,7 @@ mod tests {
             ("overset_digits", r"\overset12"),
             ("genfrac", r"\genfrac(){1pt}{0}{1}{2}"),
             ("mspace", r"\mspace{1mu}"),
-            ("sout", r"\sout{abc}"),
+            ("cancel", r"\cancel{abc}"),
             ("sum_relation", r"{\sum = 4}"),
             ("int_relation", r"{\int = 4}"),
             ("int_bounds_relation", r"{\int_0^\infty = 4}"),

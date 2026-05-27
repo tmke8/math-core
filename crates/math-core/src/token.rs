@@ -205,6 +205,7 @@ pub enum MathClassKind {
 pub enum TextToken {
     Accent(char),
     Letter(char),
+    Style(HtmlTextStyle),
 }
 
 /// The delimiter pair that surrounds the result of an infix fraction-like command.

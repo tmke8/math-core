@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\P\\S\\sect\\text{\\P\\S\\sect}"
+---
+<math>
+    <mi>¶</mi>
+    <mi>§</mi>
+    <mi>§</mi>
+    <mtext>¶§§</mtext>
+</math>

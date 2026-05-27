@@ -43,6 +43,17 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             }
                         }
                         TextToken::Letter(ch) => Ok(ch),
+                        TextToken::Style(style) => {
+                            if let Some(builder) = str_builder.take()
+                                && !builder.is_empty()
+                            {
+                                let text = builder.finish(self.arena);
+                                snippets.push((current_style, text));
+                            }
+                            style_stack.push((brace_nesting, Some(style)));
+                            brace_nesting = 0;
+                            continue;
+                        }
                     }
                 } else {
                     Err(LatexErrKind::NotValidInMathMode)

@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/src/parser.rs
-expression: "\\sout{abc}"
+expression: "\\cancel{abc}"
 ---
 [
   Enclose(
@@ -12,6 +12,6 @@ expression: "\\sout{abc}"
       ],
       attr: None,
     ),
-    notation: Notation("HORIZONTAL"),
+    notation: Notation("UP_DIAGONAL"),
   ),
 ]
