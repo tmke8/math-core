@@ -951,6 +951,33 @@ where
                 let (cls, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
                 class = cls;
 
+                /// Helper for `Node::PseudoOp` and `Node::IdentifierStr` below.
+                /// Finds the byte offset of the location immediately after the
+                /// first character in the string, and if the character is followed
+                /// by a variation selector, then after that as well.
+                ///
+                /// (We don't want to insert an overlay between a base char and its variation selector)
+                fn after_first_char_and_vs(s: &str) -> usize {
+                    let mut indices = s.char_indices();
+                    if indices.next().is_none() {
+                        // empty string
+                        return 0;
+                    }
+
+                    let Some((after_first_char_idx, snd_char)) = indices.next() else {
+                        // string is 1 char long
+                        return s.len();
+                    };
+
+                    if matches!(snd_char, '\u{FE00}'..'\u{FE0F}') {
+                        // There's a variation selector (3 bytes in utf8)
+                        after_first_char_idx + 3
+                    } else {
+                        // No variation selector
+                        after_first_char_idx
+                    }
+                }
+
                 match *node {
                     Node::Operator {
                         op,
@@ -978,8 +1005,10 @@ where
                         right,
                     } => {
                         let mut builder = self.buffer.get_builder();
-                        builder.push_str(name);
+                        let insert_idx = after_first_char_and_vs(name);
+                        builder.push_str(&name[..insert_idx]);
                         builder.push_char(overlay.into());
+                        builder.push_str(&name[insert_idx..]);
                         let name = builder.finish(self.arena);
                         Ok(Node::PseudoOp {
                             name,
@@ -991,8 +1020,10 @@ where
 
                     Node::IdentifierStr(str) => {
                         let mut builder = self.buffer.get_builder();
-                        builder.push_str(str);
+                        let insert_idx = after_first_char_and_vs(str);
+                        builder.push_str(&str[..insert_idx]);
                         builder.push_char(overlay.into());
+                        builder.push_str(&str[insert_idx..]);
                         let str = builder.finish(self.arena);
                         Ok(Node::IdentifierStr(str))
                     }

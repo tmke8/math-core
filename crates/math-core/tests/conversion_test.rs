@@ -427,6 +427,7 @@ fn main() {
         ("mathopen", r"x+\mathopen)y"),
         ("mathclose", r"\mathclose(+x"),
         ("comma_before_close_paren", r"4,)"),
+        ("not_multichar_vs", r"\not \mathcal{CHANC}")
     ];
 
     let config = MathCoreConfig {

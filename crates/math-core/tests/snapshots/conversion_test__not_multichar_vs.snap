@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\not \\mathcal{CHANC}"
+---
+<math>
+    <mrow><mspace/><mi>𝒞︀̸ℋ︀𝒜︀𝒩︀𝒞︀</mi></mrow>
+</math>
