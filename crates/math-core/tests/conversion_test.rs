@@ -41,6 +41,7 @@ fn main() {
             "text_only_symbol_commands",
             r"\text{\textasciicircum\textbar\textbardbl\textbraceleft\textbraceright\textdagger\textdaggerdbl\textdegree\textdollar\textellipsis\textemdash\textendash\textquotedblleft\textquotedblright\textquoteleft\textquoteright\textregistered\textsterling\textunderscore}",
         ),
+        ("pilcrow_and_section", r"\P\S\sect\text{\P\S\sect}"),
         ("textit", r"\textit{x}"),
         ("emph", r"\text{\emph{x}y}"),
         ("textbf", r"\textbf{x}"),
