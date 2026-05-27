@@ -114,7 +114,7 @@ impl SuperChar {
     #[must_use]
     #[inline]
     pub const fn from_char_with_vs(c: char, vs: VariationSelector) -> Self {
-        debug_assert!(!is_precomposed_solidus_overlay(c));
+        debug_assert!(!is_precomposed_solidus_overlay_for_debug(c));
         Self(c as u32 | ((vs as u32) << 28))
     }
 
@@ -290,23 +290,24 @@ impl FusedIterator for SuperCharChars {}
 #[inline]
 fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
     if let Ok(bmp) = u16::try_from(c) {
-        for &SolidusPair { base, composed } in PRECOMPOSED_SOLIDUS_OVERLAY {
-            if bmp == base || bmp == composed {
-                // SAFETY: all entries in `PRECOMPOSED_SOLIDUS_OVERLAY` are valid `char`s
-                return Some(unsafe { char::from_u32_unchecked(composed as u32) });
-            }
-        }
-        None
+        PRECOMPOSED_SOLIDUS_OVERLAY
+            .0
+            .binary_search_by_key(&bmp, |&[from, _]| from)
+            .ok()
+            // SAFETY: `PRECOMPOSED_SOLIDUS_OVERLAY` contains only valid Unicode characters
+            .map(|idx| unsafe {
+                char::from_u32_unchecked(PRECOMPOSED_SOLIDUS_OVERLAY.0[idx][1].into())
+            })
     } else {
         None
     }
 }
 
 /// Whether this character has a canonical decomposition to a sequence containing U+338.
-/// Used in a debug assertion
-#[inline]
-const fn is_precomposed_solidus_overlay(c: char) -> bool {
-    // can't use iterators or `TryFrom` in const...
+/// Used in a debug assertion; should not be used in release because it is slow
+const fn is_precomposed_solidus_overlay_for_debug(c: char) -> bool {
+    // can't use `binary_search` in `const`,
+    // so we do a linear one
 
     let cp = c as u32;
     if cp > u16::MAX as u32 {
@@ -315,8 +316,8 @@ const fn is_precomposed_solidus_overlay(c: char) -> bool {
     let cp = cp as u16;
 
     let mut i: usize = 0;
-    while i < PRECOMPOSED_SOLIDUS_OVERLAY.len() {
-        if cp == PRECOMPOSED_SOLIDUS_OVERLAY[i].composed {
+    while i < PRECOMPOSED_SOLIDUS_OVERLAY.0.len() {
+        if cp == PRECOMPOSED_SOLIDUS_OVERLAY.0[i][1] {
             return true;
         }
         i += 1;
@@ -325,199 +326,125 @@ const fn is_precomposed_solidus_overlay(c: char) -> bool {
     false
 }
 
-#[derive(Clone, Copy, Debug)]
-#[repr(align(4))]
-struct SolidusPair {
-    base: u16,
-    composed: u16,
-}
+#[repr(align(128))] // align to cache line
+struct Align128<T>(T);
 
 // This is a mapping from Unicode codepoints to their precomposed solidus-overlay variant.
 // They are all in the BMP, so we use `u16` instead of `char` to save space.
 // <https://util.unicode.org/UnicodeJsps/list-unicodeset.jsp?a=%5Cp%7BDecomposition_Mapping%3D%2F.%CC%B8%2F%7D%26%5Cp%7BisNFC%7D>
-static PRECOMPOSED_SOLIDUS_OVERLAY: &[SolidusPair] = &[
-    SolidusPair {
-        base: 0x2190,
-        composed: 0x219A,
-    }, // LEFTWARDS ARROW -> LEFTWARDS ARROW WITH STROKE
-    SolidusPair {
-        base: 0x2192,
-        composed: 0x219B,
-    }, // RIGHTWARDS ARROW -> RIGHTWARDS ARROW WITH STROKE
-    SolidusPair {
-        base: 0x2194,
-        composed: 0x21AE,
-    }, // LEFT RIGHT ARROW -> LEFT RIGHT ARROW WITH STROKE
-    SolidusPair {
-        base: 0x21D0,
-        composed: 0x21CD,
-    }, // LEFTWARDS DOUBLE ARROW -> LEFTWARDS DOUBLE ARROW WITH STROKE
-    SolidusPair {
-        base: 0x21D4,
-        composed: 0x21CE,
-    }, // LEFT RIGHT DOUBLE ARROW -> LEFT RIGHT DOUBLE ARROW WITH STROKE
-    SolidusPair {
-        base: 0x21D2,
-        composed: 0x21CF,
-    }, // RIGHTWARDS DOUBLE ARROW -> RIGHTWARDS DOUBLE ARROW WITH STROKE
-    SolidusPair {
-        base: 0x2203,
-        composed: 0x2204,
-    }, // THERE EXISTS -> THERE DOES NOT EXIST
-    SolidusPair {
-        base: 0x2208,
-        composed: 0x2209,
-    }, // ELEMENT OF -> NOT AN ELEMENT OF
-    SolidusPair {
-        base: 0x220B,
-        composed: 0x220C,
-    }, // CONTAINS AS MEMBER -> DOES NOT CONTAIN AS MEMBER
-    SolidusPair {
-        base: 0x2223,
-        composed: 0x2224,
-    }, // DIVIDES -> DOES NOT DIVIDE
-    SolidusPair {
-        base: 0x2225,
-        composed: 0x2226,
-    }, // PARALLEL TO -> NOT PARALLEL TO
-    SolidusPair {
-        base: 0x223C,
-        composed: 0x2241,
-    }, // TILDE OPERATOR -> NOT TILDE
-    SolidusPair {
-        base: 0x2243,
-        composed: 0x2244,
-    }, // ASYMPTOTICALLY EQUAL TO -> NOT ASYMPTOTICALLY EQUAL TO
-    SolidusPair {
-        base: 0x2245,
-        composed: 0x2247,
-    }, // APPROXIMATELY EQUAL TO -> NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
-    SolidusPair {
-        base: 0x2248,
-        composed: 0x2249,
-    }, // ALMOST EQUAL TO -> NOT ALMOST EQUAL TO
-    SolidusPair {
-        base: 0x003D,
-        composed: 0x2260,
-    }, // EQUALS SIGN -> NOT EQUAL TO
-    SolidusPair {
-        base: 0x2261,
-        composed: 0x2262,
-    }, // IDENTICAL TO -> NOT IDENTICAL TO
-    SolidusPair {
-        base: 0x224D,
-        composed: 0x226D,
-    }, // EQUIVALENT TO -> NOT EQUIVALENT TO
-    SolidusPair {
-        base: 0x003C,
-        composed: 0x226E,
-    }, // LESS-THAN SIGN -> NOT LESS-THAN
-    SolidusPair {
-        base: 0x003E,
-        composed: 0x226F,
-    }, // GREATER-THAN SIGN -> NOT GREATER-THAN
-    SolidusPair {
-        base: 0x2264,
-        composed: 0x2270,
-    }, // LESS-THAN OR EQUAL TO -> NEITHER LESS-THAN NOR EQUAL TO
-    SolidusPair {
-        base: 0x2265,
-        composed: 0x2271,
-    }, // GREATER-THAN OR EQUAL TO -> NEITHER GREATER-THAN NOR EQUAL TO
-    SolidusPair {
-        base: 0x2272,
-        composed: 0x2274,
-    }, // LESS-THAN OR EQUIVALENT TO -> NEITHER LESS-THAN NOR EQUIVALENT TO
-    SolidusPair {
-        base: 0x2273,
-        composed: 0x2275,
-    }, // GREATER-THAN OR EQUIVALENT TO -> NEITHER GREATER-THAN NOR EQUIVALENT TO
-    SolidusPair {
-        base: 0x2276,
-        composed: 0x2278,
-    }, // LESS-THAN OR GREATER-THAN -> NEITHER LESS-THAN NOR GREATER-THAN
-    SolidusPair {
-        base: 0x2277,
-        composed: 0x2279,
-    }, // GREATER-THAN OR LESS-THAN -> NEITHER GREATER-THAN NOR LESS-THAN
-    SolidusPair {
-        base: 0x227A,
-        composed: 0x2280,
-    }, // PRECEDES -> DOES NOT PRECEDE
-    SolidusPair {
-        base: 0x227B,
-        composed: 0x2281,
-    }, // SUCCEEDS -> DOES NOT SUCCEED
-    SolidusPair {
-        base: 0x2282,
-        composed: 0x2284,
-    }, // SUBSET OF -> NOT A SUBSET OF
-    SolidusPair {
-        base: 0x2283,
-        composed: 0x2285,
-    }, // SUPERSET OF -> NOT A SUPERSET OF
-    SolidusPair {
-        base: 0x2286,
-        composed: 0x2288,
-    }, // SUBSET OF OR EQUAL TO -> NEITHER A SUBSET OF NOR EQUAL TO
-    SolidusPair {
-        base: 0x2287,
-        composed: 0x2289,
-    }, // SUPERSET OF OR EQUAL TO -> NEITHER A SUPERSET OF NOR EQUAL TO
-    SolidusPair {
-        base: 0x22A2,
-        composed: 0x22AC,
-    }, // RIGHT TACK -> DOES NOT PROVE
-    SolidusPair {
-        base: 0x22A8,
-        composed: 0x22AD,
-    }, // TRUE -> NOT TRUE
-    SolidusPair {
-        base: 0x22A9,
-        composed: 0x22AE,
-    }, // FORCES -> DOES NOT FORCE
-    SolidusPair {
-        base: 0x22AB,
-        composed: 0x22AF,
-    }, // DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE -> NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
-    SolidusPair {
-        base: 0x227C,
-        composed: 0x22E0,
-    }, // PRECEDES OR EQUAL TO -> DOES NOT PRECEDE OR EQUAL
-    SolidusPair {
-        base: 0x227D,
-        composed: 0x22E1,
-    }, // SUCCEEDS OR EQUAL TO -> DOES NOT SUCCEED OR EQUAL
-    SolidusPair {
-        base: 0x2291,
-        composed: 0x22E2,
-    }, // SQUARE IMAGE OF OR EQUAL TO -> NOT SQUARE IMAGE OF OR EQUAL TO
-    SolidusPair {
-        base: 0x2292,
-        composed: 0x22E3,
-    }, // SQUARE ORIGINAL OF OR EQUAL TO -> NOT SQUARE ORIGINAL OF OR EQUAL TO
-    SolidusPair {
-        base: 0x22B2,
-        composed: 0x22EA,
-    }, // NORMAL SUBGROUP OF -> NOT NORMAL SUBGROUP OF
-    SolidusPair {
-        base: 0x22B3,
-        composed: 0x22EB,
-    }, // CONTAINS AS NORMAL SUBGROUP -> DOES NOT CONTAIN AS NORMAL SUBGROUP
-    SolidusPair {
-        base: 0x22B4,
-        composed: 0x22EC,
-    }, // NORMAL SUBGROUP OF OR EQUAL TO -> NOT NORMAL SUBGROUP OF OR EQUAL TO
-    SolidusPair {
-        base: 0x22B5,
-        composed: 0x22ED,
-    }, // CONTAINS AS NORMAL SUBGROUP OR EQUAL TO -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
-];
+const PRECOMPOSED_SOLIDUS_OVERLAY: Align128<[[u16; 2]; 88]> = Align128([
+    [0x003C, 0x226E], // LESS-THAN SIGN -> NOT LESS-THAN
+    [0x003D, 0x2260], // EQUALS SIGN -> NOT EQUAL TO
+    [0x003E, 0x226F], // GREATER-THAN SIGN -> NOT GREATER-THAN
+    [0x2190, 0x219A], // LEFTWARDS ARROW -> LEFTWARDS ARROW WITH STROKE
+    [0x2192, 0x219B], // RIGHTWARDS ARROW -> RIGHTWARDS ARROW WITH STROKE
+    [0x2194, 0x21AE], // LEFT RIGHT ARROW -> LEFT RIGHT ARROW WITH STROKE
+    [0x219A, 0x219A], // LEFTWARDS ARROW WITH STROKE
+    [0x219B, 0x219B], // RIGHTWARDS ARROW WITH STROKE
+    [0x21AE, 0x21AE], // LEFT RIGHT ARROW WITH STROKE
+    [0x21CD, 0x21CD], // LEFTWARDS DOUBLE ARROW WITH STROKE
+    [0x21CE, 0x21CE], // LEFT RIGHT DOUBLE ARROW WITH STROKE
+    [0x21CF, 0x21CF], // RIGHTWARDS DOUBLE ARROW WITH STROKE
+    [0x21D0, 0x21CD], // LEFTWARDS DOUBLE ARROW -> LEFTWARDS DOUBLE ARROW WITH STROKE
+    [0x21D2, 0x21CF], // RIGHTWARDS DOUBLE ARROW -> RIGHTWARDS DOUBLE ARROW WITH STROKE
+    [0x21D4, 0x21CE], // LEFT RIGHT DOUBLE ARROW -> LEFT RIGHT DOUBLE ARROW WITH STROKE
+    [0x2203, 0x2204], // THERE EXISTS -> THERE DOES NOT EXIST
+    [0x2204, 0x2204], // THERE DOES NOT EXIST
+    [0x2208, 0x2209], // ELEMENT OF -> NOT AN ELEMENT OF
+    [0x2209, 0x2209], // NOT AN ELEMENT OF
+    [0x220B, 0x220C], // CONTAINS AS MEMBER -> DOES NOT CONTAIN AS MEMBER
+    [0x220C, 0x220C], // DOES NOT CONTAIN AS MEMBER
+    [0x2223, 0x2224], // DIVIDES -> DOES NOT DIVIDE
+    [0x2224, 0x2224], // DOES NOT DIVIDE
+    [0x2225, 0x2226], // PARALLEL TO -> NOT PARALLEL TO
+    [0x2226, 0x2226], // NOT PARALLEL TO
+    [0x223C, 0x2241], // TILDE OPERATOR -> NOT TILDE
+    [0x2241, 0x2241], // NOT TILDE
+    [0x2243, 0x2244], // ASYMPTOTICALLY EQUAL TO -> NOT ASYMPTOTICALLY EQUAL TO
+    [0x2244, 0x2244], // NOT ASYMPTOTICALLY EQUAL TO
+    [0x2245, 0x2247], // APPROXIMATELY EQUAL TO -> NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
+    [0x2247, 0x2247], // NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
+    [0x2248, 0x2249], // ALMOST EQUAL TO -> NOT ALMOST EQUAL TO
+    [0x2249, 0x2249], // NOT ALMOST EQUAL TO
+    [0x224D, 0x226D], // EQUIVALENT TO -> NOT EQUIVALENT TO
+    [0x2260, 0x2260], // NOT EQUAL TO
+    [0x2261, 0x2262], // IDENTICAL TO -> NOT IDENTICAL TO
+    [0x2262, 0x2262], // NOT IDENTICAL TO
+    [0x2264, 0x2270], // LESS-THAN OR EQUAL TO -> NEITHER LESS-THAN NOR EQUAL TO
+    [0x2265, 0x2271], // GREATER-THAN OR EQUAL TO -> NEITHER GREATER-THAN NOR EQUAL TO
+    [0x226D, 0x226D], // NOT EQUIVALENT TO
+    [0x226E, 0x226E], // NOT LESS-THAN
+    [0x226F, 0x226F], // NOT GREATER-THAN
+    [0x2270, 0x2270], // NEITHER LESS-THAN NOR EQUAL TO
+    [0x2271, 0x2271], // NEITHER GREATER-THAN NOR EQUAL TO
+    [0x2272, 0x2274], // LESS-THAN OR EQUIVALENT TO -> NEITHER LESS-THAN NOR EQUIVALENT TO
+    [0x2273, 0x2275], // GREATER-THAN OR EQUIVALENT TO -> NEITHER GREATER-THAN NOR EQUIVALENT TO
+    [0x2274, 0x2274], // NEITHER LESS-THAN NOR EQUIVALENT TO
+    [0x2275, 0x2275], // NEITHER GREATER-THAN NOR EQUIVALENT TO
+    [0x2276, 0x2278], // LESS-THAN OR GREATER-THAN -> NEITHER LESS-THAN NOR GREATER-THAN
+    [0x2277, 0x2279], // GREATER-THAN OR LESS-THAN -> NEITHER GREATER-THAN NOR LESS-THAN
+    [0x2278, 0x2278], // NEITHER LESS-THAN NOR GREATER-THAN
+    [0x2279, 0x2279], // NEITHER GREATER-THAN NOR LESS-THAN
+    [0x227A, 0x2280], // PRECEDES -> DOES NOT PRECEDE
+    [0x227B, 0x2281], // SUCCEEDS -> DOES NOT SUCCEED
+    [0x227C, 0x22E0], // PRECEDES OR EQUAL TO -> DOES NOT PRECEDE OR EQUAL
+    [0x227D, 0x22E1], // SUCCEEDS OR EQUAL TO -> DOES NOT SUCCEED OR EQUAL
+    [0x2280, 0x2280], // DOES NOT PRECEDE
+    [0x2281, 0x2281], // DOES NOT SUCCEED
+    [0x2282, 0x2284], // SUBSET OF -> NOT A SUBSET OF
+    [0x2283, 0x2285], // SUPERSET OF -> NOT A SUPERSET OF
+    [0x2284, 0x2284], // NOT A SUBSET OF
+    [0x2285, 0x2285], // NOT A SUPERSET OF
+    [0x2286, 0x2288], // SUBSET OF OR EQUAL TO -> NEITHER A SUBSET OF NOR EQUAL TO
+    [0x2287, 0x2289], // SUPERSET OF OR EQUAL TO -> NEITHER A SUPERSET OF NOR EQUAL TO
+    [0x2288, 0x2288], // NEITHER A SUBSET OF NOR EQUAL TO
+    [0x2289, 0x2289], // NEITHER A SUPERSET OF NOR EQUAL TO
+    [0x2291, 0x22E2], // SQUARE IMAGE OF OR EQUAL TO -> NOT SQUARE IMAGE OF OR EQUAL TO
+    [0x2292, 0x22E3], // SQUARE ORIGINAL OF OR EQUAL TO -> NOT SQUARE ORIGINAL OF OR EQUAL TO
+    [0x22A2, 0x22AC], // RIGHT TACK -> DOES NOT PROVE
+    [0x22A8, 0x22AD], // TRUE -> NOT TRUE
+    [0x22A9, 0x22AE], // FORCES -> DOES NOT FORCE
+    [0x22AB, 0x22AF], // DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE -> NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
+    [0x22AC, 0x22AC], // DOES NOT PROVE
+    [0x22AD, 0x22AD], // NOT TRUE
+    [0x22AE, 0x22AE], // DOES NOT FORCE
+    [0x22AF, 0x22AF], // NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
+    [0x22B2, 0x22EA], // NORMAL SUBGROUP OF -> NOT NORMAL SUBGROUP OF
+    [0x22B3, 0x22EB], // CONTAINS AS NORMAL SUBGROUP -> DOES NOT CONTAIN AS NORMAL SUBGROUP
+    [0x22B4, 0x22EC], // NORMAL SUBGROUP OF OR EQUAL TO -> NOT NORMAL SUBGROUP OF OR EQUAL TO
+    [0x22B5, 0x22ED], // CONTAINS AS NORMAL SUBGROUP OR EQUAL TO -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
+    [0x22E0, 0x22E0], // DOES NOT PRECEDE OR EQUAL
+    [0x22E1, 0x22E1], // DOES NOT SUCCEED OR EQUAL
+    [0x22E2, 0x22E2], // NOT SQUARE IMAGE OF OR EQUAL TO
+    [0x22E3, 0x22E3], // NOT SQUARE ORIGINAL OF OR EQUAL TO
+    [0x22EA, 0x22EA], // NOT NORMAL SUBGROUP OF
+    [0x22EB, 0x22EB], // DOES NOT CONTAIN AS NORMAL SUBGROUP
+    [0x22EC, 0x22EC], // NOT NORMAL SUBGROUP OF OR EQUAL TO
+    [0x22ED, 0x22ED], // DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
+]);
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use VariationSelector::*;
+
+    #[test]
+    fn solidus_table_sanity_check() {
+        // Check that the table is sorted
+        assert!(PRECOMPOSED_SOLIDUS_OVERLAY.0.is_sorted_by_key(|a| a[0]));
+        // Check that the table has an even number of entries
+        assert!(PRECOMPOSED_SOLIDUS_OVERLAY.0.len().is_multiple_of(2));
+        // Check that exactly half the entries are an idempotent mapping
+        assert!(
+            PRECOMPOSED_SOLIDUS_OVERLAY
+                .0
+                .iter()
+                .filter(|[from, to]| from == to)
+                .count()
+                * 2
+                == PRECOMPOSED_SOLIDUS_OVERLAY.0.len()
+        );
+    }
 
     /// Exhaustively test every operation on every possible [`SuperChar`] value.
     #[test]
@@ -636,7 +563,7 @@ mod tests {
             // Test with variation selector.
             // Characters with a precomposed solidus overlay shouldn't have a variation selector
 
-            if !is_precomposed_solidus_overlay(base) {
+            if !is_precomposed_solidus_overlay_for_debug(base) {
                 for vs in [
                     Vs1, Vs2, Vs3, Vs4, Vs5, Vs6, Vs7, Vs8, Vs9, Vs10, Vs11, Vs12, Vs13, Vs14, Vs15,
                 ] {
