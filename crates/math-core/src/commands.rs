@@ -807,7 +807,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "wedgeq" => Relation(symbol::ESTIMATES), // from "stix"
     "weierp" => Letter(symbol::SCRIPT_CAPITAL_P, Mode::Math),
     "widehat" => Accent(symbol::COMBINING_CIRCUMFLEX_ACCENT, true, OpAttrs::STRETCHY_TRUE),
-    "wideparen" => OverUnderBrace(symbol::TOP_PARENTHESIS, true),
     "wp" => Letter(symbol::SCRIPT_CAPITAL_P, Mode::Math),
     "wr" => ForceBinaryOp(symbol::WREATH_PRODUCT.as_op()),
     "xLeftarrow" => XArrow(symbol::LEFTWARDS_DOUBLE_ARROW),

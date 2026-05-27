@@ -874,7 +874,10 @@ fn wiki_test() {
     let mut n_diff = 0usize;
     let mut n_fail = 0usize;
     let converter = LatexToMathML::new(MathCoreConfig {
-        macros: vec![("sgn".to_owned(), "\\operatorname{sgn}".to_owned())],
+        macros: vec![
+            ("sgn".to_owned(), "\\operatorname{sgn}".to_owned()),
+            ("wideparen".to_owned(), "\\overparen".to_owned()),
+        ],
         ..MathCoreConfig::default()
     })
     .unwrap();
@@ -1404,7 +1407,10 @@ fn test_nonfailing_wiki_tests() {
 
     let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
-        macros: vec![("sgn".to_owned(), "\\operatorname{sgn}".to_owned())],
+        macros: vec![
+            ("sgn".to_owned(), "\\operatorname{sgn}".to_owned()),
+            ("wideparen".to_owned(), "\\overparen".to_owned()),
+        ],
         ..Default::default()
     })
     .unwrap();
