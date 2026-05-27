@@ -44,7 +44,7 @@ fn main() {
         ("text_with_math_command", r"\text{\max}"),
         ("text_at_eof", r"\sum\text"),
         ("text_command_in_math_mode", r"\ae"),
-        ("emph_in_math_mode", r"\emph{x}"),
+        ("sout_in_math_mode", r"\sout{abc}"),
         ("operatorname_with_end", r"\operatorname{\end{matrix}}"),
         (
             "operatorname_with_end_after_begin",

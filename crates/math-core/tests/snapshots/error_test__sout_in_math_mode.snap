@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\emph{x}"
+expression: "\\sout{abc}"
 ---
 Error: Not valid in math mode.
    ╭─[ <input>:1:1 ]
    │
- 1 │ \emph{x}
+ 1 │ \sout{abc}
    │ ──┬──  
    │   ╰──── this is not valid in math mode
 ───╯
