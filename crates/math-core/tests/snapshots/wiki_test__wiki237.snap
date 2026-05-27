@@ -3,5 +3,5 @@ source: crates/math-core/tests/wiki_test.rs
 expression: "\\text{\\sout{q}}"
 ---
 <math>
-    <mtext><span style="text-decoration: line-through">q</span></mtext>
+    <mtext><s>q</s></mtext>
 </math>
