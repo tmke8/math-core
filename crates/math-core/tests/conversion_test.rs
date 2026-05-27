@@ -37,6 +37,10 @@ fn main() {
         ("text_html_escape", r"\text{<\&>}"),
         ("text_greek_direct_input", r"\text{Γγ}"),
         ("textbackslash", r"\text{\textbackslash}"),
+        (
+            "text_only_symbol_commands",
+            r"\text{\textasciicircum\textbar\textbardbl\textbraceleft\textbraceright\textdagger\textdaggerdbl\textdegree\textdollar\textellipsis\textemdash\textendash\textquotedblleft\textquotedblright\textquoteleft\textquoteright\textregistered\textsterling\textunderscore}",
+        ),
         ("textit", r"\textit{x}"),
         ("textbf", r"\textbf{x}"),
         ("textbf_with_digit", r"\textbf{1234}"),

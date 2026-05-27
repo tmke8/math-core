@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\textasciicircum\\textbar\\textbardbl\\textbraceleft\\textbraceright\\textdagger\\textdaggerdbl\\textdegree\\textdollar\\textellipsis\\textemdash\\textendash\\textquotedblleft\\textquotedblright\\textquoteleft\\textquoteright\\textregistered\\textsterling\\textunderscore}"
+---
+<math>
+    <mtext>ˆ|‖{}†‡°$…—–“”‘’®£_</mtext>
+</math>
