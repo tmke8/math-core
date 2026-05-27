@@ -294,7 +294,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "downharpoonleft" => Relation(symbol::DOWNWARDS_HARPOON_WITH_BARB_LEFTWARDS),
     "downharpoonright" => Relation(symbol::DOWNWARDS_HARPOON_WITH_BARB_RIGHTWARDS),
     "ell" => Letter(symbol::SCRIPT_SMALL_L, Mode::Math),
-    "emph" => Text(Some(HtmlTextStyle::Emphasis)),
+    "emph" => TextMode(TextToken::Style(HtmlTextStyle::Emphasis)),
     "empty" => CustomCmd(0, &[
         Transform(MathVariant::Normal),
         InternalStringLiteral("∅\u{FE00}"), // Unicode variation selector
@@ -654,7 +654,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "simeq" => Relation(symbol::ASYMPTOTICALLY_EQUAL_TO),
     "slashed" => Slashed,
     "smile" => Relation(symbol::SMILE),
-    "sout" => Enclose(Notation::HORIZONTAL),
+    "sout" => TextMode(TextToken::Style(HtmlTextStyle::Strikethrough)),
     "space" => NonBreakingSpace,
     "spades" => Letter(symbol::BLACK_SPADE_SUIT, Mode::Math),
     "spadesuit" => Letter(symbol::BLACK_SPADE_SUIT, Mode::Math),

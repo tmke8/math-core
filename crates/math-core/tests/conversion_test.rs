@@ -42,6 +42,7 @@ fn main() {
             r"\text{\textasciicircum\textbar\textbardbl\textbraceleft\textbraceright\textdagger\textdaggerdbl\textdegree\textdollar\textellipsis\textemdash\textendash\textquotedblleft\textquotedblright\textquoteleft\textquoteright\textregistered\textsterling\textunderscore}",
         ),
         ("textit", r"\textit{x}"),
+        ("emph", r"\text{\emph{x}y}"),
         ("textbf", r"\textbf{x}"),
         ("textbf_with_digit", r"\textbf{1234}"),
         ("textbf_with_digit_dot", r"\textbf{1234.}"),

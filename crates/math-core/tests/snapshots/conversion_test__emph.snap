@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\emph{x}y}"
+---
+<math>
+    <mrow>
+        <mtext><em>x</em></mtext>
+        <mtext>y</mtext>
+    </mrow>
+</math>
