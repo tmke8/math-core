@@ -294,7 +294,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "downharpoonleft" => Relation(symbol::DOWNWARDS_HARPOON_WITH_BARB_LEFTWARDS),
     "downharpoonright" => Relation(symbol::DOWNWARDS_HARPOON_WITH_BARB_RIGHTWARDS),
     "ell" => Letter(symbol::SCRIPT_SMALL_L, Mode::Math),
-    "emph" => TextMode(TextToken::Style(HtmlTextStyle::Emphasis)),
+    "emph" => Text(Some(HtmlTextStyle::Emphasis)),
     "empty" => CustomCmd(0, &[
         Transform(MathVariant::Normal),
         InternalStringLiteral("∅\u{FE00}"), // Unicode variation selector
