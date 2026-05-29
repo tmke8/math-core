@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\begin{array}{lcr} 0 & 1 & 2 \\end{array}"
 ---
 <math>
-    <mtable>
+    <mtable displaystyle="false" scriptlevel="0">
         <mtr>
             <mtd style="text-align: left;justify-items: start;">
                 <mn>0</mn>

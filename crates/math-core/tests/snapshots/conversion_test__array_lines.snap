@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\begin{array}{ |l| |rc| } 10 & 20 & 30\\\\ 4 & 5 & 6 \\end{array}"
 ---
 <math>
-    <mtable style="border-left: 0.05em solid currentcolor">
+    <mtable style="border-left: 0.05em solid currentcolor" displaystyle="false" scriptlevel="0">
         <mtr>
             <mtd style="text-align: left;justify-items: start;border-right: 0.05em solid currentcolor;">
                 <mn>10</mn>

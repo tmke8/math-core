@@ -124,6 +124,16 @@ impl Env {
         }
     }
 
+    pub(super) fn style(self) -> Style {
+        use Env::*;
+        match self {
+            DArray | Align | AlignStar | Aligned | Equation | EquationStar | Gather
+            | GatherStar | Gathered | MultLine => Style::Display,
+            Array | Cases | Matrix | BMatrix | Bmatrix | PMatrix | VMatrix | Vmatrix => Style::Text,
+            Subarray => Style::Script,
+        }
+    }
+
     pub(super) fn construct_node<'arena>(
         self,
         content: &'arena [&'arena Node<'arena>],
@@ -173,7 +183,7 @@ impl Env {
                 let content = arena.push(Node::Table {
                     content,
                     align,
-                    style: None,
+                    style: Some(Style::Text),
                 });
                 const OPEN_BRACE: StretchableOp =
                     StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
@@ -186,7 +196,7 @@ impl Env {
                 debug_assert!(array_spec.is_some());
                 let array_spec = unsafe { array_spec.unwrap_unchecked() };
                 let style = match array_variant {
-                    Env::Array => None,
+                    Env::Array => Some(Style::Text),
                     Env::DArray => Some(Style::Display),
                     Env::Subarray => Some(Style::Script),
                     _ => unreachable!(),

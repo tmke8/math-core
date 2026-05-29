@@ -10,7 +10,7 @@ expression: "f(n) = \\begin{cases} n/2, & \\text{if }n\\text{ is even} \\\\ 3n+1
     <mo>=</mo>
     <mrow>
         <mo>{</mo>
-        <mtable>
+        <mtable displaystyle="false" scriptlevel="0">
             <mtr>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;">
                     <mi>n</mi>
