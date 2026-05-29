@@ -4,6 +4,6 @@ expression: "{x + y} + z}"
 ---
 1..2: Letter("x", MathOrText)
 2..3: Whitespace
-3..4: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD, has_vs1: false }), "+")
+3..4: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD, has_vs1: false }), '+')
 4..5: Whitespace
 5..6: Letter("y", MathOrText)

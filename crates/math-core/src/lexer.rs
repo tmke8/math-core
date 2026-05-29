@@ -2,7 +2,7 @@ use std::mem;
 use std::ops::Range;
 use std::str::CharIndices;
 
-use mathml_renderer::{attribute::OpAttrs, super_char::SuperChar, symbol};
+use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::CommandConfig;
 use crate::commands::get_command;
@@ -253,14 +253,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             '&' => Token::NewColumn,
             '\'' => Token::Prime,
-            '<' => Token::MathOrTextMode(
-                &Token::Relation(symbol::LESS_THAN_SIGN),
-                SuperChar::from_char('<'),
-            ),
-            '>' => Token::MathOrTextMode(
-                &Token::Relation(symbol::GREATER_THAN_SIGN),
-                SuperChar::from_char('>'),
-            ),
+            '<' => Token::MathOrTextMode(&Token::Relation(symbol::LESS_THAN_SIGN), '<'),
+            '>' => Token::MathOrTextMode(&Token::Relation(symbol::GREATER_THAN_SIGN), '>'),
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
@@ -288,7 +282,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 if let Some(tok) = nonalpha_nonspecial_ascii_to_token(c) {
                     tok
                 } else if c.is_ascii_digit() {
-                    Token::Digit(c.into())
+                    Token::Digit(c)
                 } else {
                     Token::Letter(c.into(), Mode::MathOrText)
                 }
@@ -397,7 +391,7 @@ fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
         '|' => &Token::Ord(symbol::VERTICAL_LINE),
         _ => return None,
     };
-    Some(Token::MathOrTextMode(tok_ref, ch.into()))
+    Some(Token::MathOrTextMode(tok_ref, ch))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -406,17 +400,19 @@ enum EnvMarker {
     End = 2,
 }
 
-pub(crate) fn recover_limited_ascii(tok: Token) -> Option<SuperChar> {
+pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
-        Token::Letter(ch, _)
-            if ch
-                .try_as_char()
-                .is_some_and(|c| c.is_ascii_alphabetic() || c == '.') =>
-        {
-            Some(ch)
+        Token::Letter(ch, _) => {
+            if let Some(c) = ch.try_as_char()
+                && (c.is_ascii_alphabetic() || c == '.')
+            {
+                Some(c)
+            } else {
+                None
+            }
         }
         Token::Digit(ch) | Token::MathOrTextMode(_, ch) => Some(ch),
-        Token::Whitespace => Some(' '.into()),
+        Token::Whitespace => Some(' '),
         _ => None,
     }
 }
@@ -553,7 +549,7 @@ mod tests {
         while let Ok(tokloc) = lexer.next_token() {
             let tok = tokloc.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
-                output.extend(ch.chars());
+                output.push(ch);
             }
             if matches!(tok, Token::Eoi) {
                 break;

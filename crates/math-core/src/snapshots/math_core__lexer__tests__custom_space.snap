@@ -6,7 +6,7 @@ expression: "{x\\hspace{2em}}"
 1:2: Letter("x", MathOrText)
 2:9: CustomSpace
 9:10: GroupBegin
-10:11: Digit("2")
+10:11: Digit('2')
 11:12: Letter("e", MathOrText)
 12:13: Letter("m", MathOrText)
 13:14: GroupEnd

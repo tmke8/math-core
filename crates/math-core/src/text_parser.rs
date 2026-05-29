@@ -43,7 +43,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                 Err(LatexErrKind::ExpectedArgumentGotEOI)
                             }
                         }
-                        TextToken::Letter(ch) => Ok(ch),
+                        TextToken::Letter(ch) => Ok(ch.into()),
                         TextToken::Style(style) => {
                             if let Some(builder) = str_builder.take()
                                 && !builder.is_empty()
@@ -86,7 +86,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     Token::SquareBracketClose => {
                         Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().as_superchar())
                     }
-                    Token::Digit(digit) => Ok(digit),
+                    Token::Digit(digit) => Ok(digit.into()),
                     Token::Prime => Ok('’'.into()),
                     Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'.into()),
                     Token::InternalStringLiteral(output) => {
@@ -135,7 +135,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             Err(LatexErrKind::ExpectedArgumentGotClose)
                         }
                     }
-                    Token::MathOrTextMode(_, ch) => Ok(ch),
+                    Token::MathOrTextMode(_, ch) => Ok(ch.into()),
                     Token::Text(style) => {
                         if let Some(builder) = str_builder.take()
                             && !builder.is_empty()
