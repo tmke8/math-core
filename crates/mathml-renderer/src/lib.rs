@@ -19,9 +19,9 @@
 //!                 right: None,
 //!                 size: None,
 //!             },
-//!             symbol: &Node::IdentifierChar('i', LetterAttr::Default),
+//!             symbol: &Node::IdentifierChar('i'.into(), LetterAttr::Default),
 //!         },
-//!         &Node::IdentifierChar('i', LetterAttr::Default),
+//!         &Node::IdentifierChar('i'.into(), LetterAttr::Default),
 //!      ],
 //!      attr: None,
 //! };
@@ -39,5 +39,6 @@ pub mod attribute;
 pub mod fmt;
 mod itoa;
 pub mod length;
+pub mod super_char;
 pub mod symbol;
 pub mod table;

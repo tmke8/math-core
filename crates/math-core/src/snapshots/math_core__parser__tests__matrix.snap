@@ -6,7 +6,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
   Row(
     nodes: [
       Operator(
-        op: '(',
+        op: "(",
         attrs: OpAttrs(""),
         size: None,
         left: None,
@@ -16,16 +16,16 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         align: Centered,
         style: Some(Text),
         content: [
-          IdentifierChar('x', Default),
+          IdentifierChar("x", Default),
           RowSeparator(
             tag: None,
             link_target: None,
           ),
-          IdentifierChar('y', Default),
+          IdentifierChar("y", Default),
         ],
       ),
       Operator(
-        op: ')',
+        op: ")",
         attrs: OpAttrs(""),
         size: None,
         left: None,

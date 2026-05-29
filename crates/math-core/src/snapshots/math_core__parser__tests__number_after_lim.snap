@@ -6,7 +6,7 @@ expression: "\\sum\\limits_12"
   Under(
     symbol: Number("1"),
     target: Operator(
-      op: '∑',
+      op: "∑",
       attrs: OpAttrs("NO_MOVABLE_LIMITS"),
       size: None,
       left: Some(Zero),

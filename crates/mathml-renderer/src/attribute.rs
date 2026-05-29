@@ -4,9 +4,11 @@ use serde::Serialize;
 
 use strum_macros::IntoStaticStr;
 
+use crate::super_char::{SuperChar, VariationSelector};
+
 bitflags! {
     #[repr(transparent)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize))]
     pub struct OpAttrs: u8 {
         const STRETCHY_FALSE = 1;
@@ -62,14 +64,14 @@ impl OpAttrs {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LetterAttr {
     Default,
     ForcedUpright,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Size {
     #[strum(serialize = "1.2em")]
@@ -83,7 +85,7 @@ pub enum Size {
 }
 
 /// display style
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum FracAttr {
     #[strum(serialize = r#" displaystyle="true""#)]
@@ -94,7 +96,7 @@ pub enum FracAttr {
     CFracStyle,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Style {
     #[strum(serialize = r#" displaystyle="true" scriptlevel="0""#)]
@@ -118,7 +120,7 @@ impl Style {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
     #[strum(serialize = "0")]
@@ -131,7 +133,7 @@ pub enum MathSpacing {
     FiveMu, // 5/18 of an em/\quad
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum RowAttr {
     Style(Style),
@@ -140,7 +142,7 @@ pub enum RowAttr {
 
 bitflags! {
     #[repr(transparent)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize))]
     pub struct Notation: u8 {
         const HORIZONTAL = 1; // (not used at the moment)
@@ -149,7 +151,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum HtmlTextStyle {
     Bold = 1,
@@ -164,7 +166,7 @@ pub enum HtmlTextStyle {
 }
 
 // Transform of unicode characters.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum TextTransform {
     Bold = 1,
@@ -195,208 +197,244 @@ const fn add_offset(c: char, offset: u32) -> char {
 }
 
 impl TextTransform {
+    /// If the string does not have length 1, it is passed through unchanged.
+    // FIXME maybe we should do better than that?
+    #[inline]
+    pub const fn transform(self, ts: SuperChar, is_upright: bool) -> SuperChar {
+        match ts.try_as_char() {
+            Some(c) => self.transform_char(c, is_upright),
+            None => ts,
+        }
+    }
+
     #[allow(clippy::manual_is_ascii_check)]
-    pub const fn transform(&self, c: char, is_upright: bool) -> char {
+    pub const fn transform_char(self, c: char, is_upright: bool) -> SuperChar {
         let tf = if is_upright && matches!(self, TextTransform::BoldItalic) {
-            &TextTransform::Bold
+            TextTransform::Bold
         } else {
             self
         };
-        match tf {
+        let mapped = match tf {
             TextTransform::BoldScript => match c {
-                'A'..='Z' => add_offset(c, 0x1D48F),
-                'a'..='z' => add_offset(c, 0x1D489),
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D48F)),
+                'a'..='z' => Some(add_offset(c, 0x1D489)),
+                _ => None,
             },
             TextTransform::BoldItalic => match c {
-                'A'..='Z' => add_offset(c, 0x1D427),
-                'a'..='z' => add_offset(c, 0x1D421),
-                'Α'..='Ω' => add_offset(c, 0x1D38B),
-                'α'..='ω' => add_offset(c, 0x1D385),
-                'ϴ' => '𝜭',
-                '∇' => '𝜵',
-                '∂' => '𝝏',
-                'ϵ' => '𝝐',
-                'ϑ' => '𝝑',
-                'ϰ' => '𝝒',
-                'ϕ' => '𝝓',
-                'ϱ' => '𝝔',
-                'ϖ' => '𝝕',
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D427)),
+                'a'..='z' => Some(add_offset(c, 0x1D421)),
+                'Α'..='Ω' => Some(add_offset(c, 0x1D38B)),
+                'α'..='ω' => Some(add_offset(c, 0x1D385)),
+                'ϴ' => Some('𝜭'),
+                '∇' => Some('𝜵'),
+                '∂' => Some('𝝏'),
+                'ϵ' => Some('𝝐'),
+                'ϑ' => Some('𝝑'),
+                'ϰ' => Some('𝝒'),
+                'ϕ' => Some('𝝓'),
+                'ϱ' => Some('𝝔'),
+                'ϖ' => Some('𝝕'),
+                _ => None,
             },
             TextTransform::Bold => match c {
-                'A'..='Z' => add_offset(c, 0x1D3BF),
-                'a'..='z' => add_offset(c, 0x1D3B9),
-                'Α'..='Ω' => add_offset(c, 0x1D317),
-                'α'..='ω' => add_offset(c, 0x1D311),
-                'Ϝ'..='ϝ' => add_offset(c, 0x1D3EE),
-                '0'..='9' => add_offset(c, 0x1D79E),
-                'ϴ' => '𝚹',
-                '∇' => '𝛁',
-                '∂' => '𝛛',
-                'ϵ' => '𝛜',
-                'ϑ' => '𝛝',
-                'ϰ' => '𝛞',
-                'ϕ' => '𝛟',
-                'ϱ' => '𝛠',
-                'ϖ' => '𝛡',
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D3BF)),
+                'a'..='z' => Some(add_offset(c, 0x1D3B9)),
+                'Α'..='Ω' => Some(add_offset(c, 0x1D317)),
+                'α'..='ω' => Some(add_offset(c, 0x1D311)),
+                'Ϝ'..='ϝ' => Some(add_offset(c, 0x1D3EE)),
+                '0'..='9' => Some(add_offset(c, 0x1D79E)),
+                'ϴ' => Some('𝚹'),
+                '∇' => Some('𝛁'),
+                '∂' => Some('𝛛'),
+                'ϵ' => Some('𝛜'),
+                'ϑ' => Some('𝛝'),
+                'ϰ' => Some('𝛞'),
+                'ϕ' => Some('𝛟'),
+                'ϱ' => Some('𝛠'),
+                'ϖ' => Some('𝛡'),
+                _ => None,
             },
             TextTransform::Fraktur => match c {
-                'A'..='B' | 'D'..='G' | 'J'..='Q' | 'S'..='Y' => add_offset(c, 0x1D4C3),
-                'H'..='I' => add_offset(c, 0x20C4),
-                'a'..='z' => add_offset(c, 0x1D4BD),
-                'C' => 'ℭ',
-                'R' => 'ℜ',
-                'Z' => 'ℨ',
-                _ => c,
+                'A'..='B' | 'D'..='G' | 'J'..='Q' | 'S'..='Y' => Some(add_offset(c, 0x1D4C3)),
+                'H'..='I' => Some(add_offset(c, 0x20C4)),
+                'a'..='z' => Some(add_offset(c, 0x1D4BD)),
+                'C' => Some('ℭ'),
+                'R' => Some('ℜ'),
+                'Z' => Some('ℨ'),
+                _ => None,
             },
             TextTransform::ScriptChancery | TextTransform::ScriptRoundhand => match c {
-                'A' | 'C'..='D' | 'G' | 'J'..='K' | 'N'..='Q' | 'S'..='Z' => add_offset(c, 0x1D45B),
-                'E'..='F' => add_offset(c, 0x20EB),
-                'a'..='d' | 'f' | 'h'..='n' | 'p'..='z' => add_offset(c, 0x1D455),
-                'B' => 'ℬ',
-                'H' => 'ℋ',
-                'I' => 'ℐ',
-                'L' => 'ℒ',
-                'M' => 'ℳ',
-                'R' => 'ℛ',
-                'e' => 'ℯ',
-                'g' => 'ℊ',
-                'o' => 'ℴ',
-                _ => c,
+                'A' | 'C'..='D' | 'G' | 'J'..='K' | 'N'..='Q' | 'S'..='Z' => {
+                    Some(add_offset(c, 0x1D45B))
+                }
+                'E'..='F' => Some(add_offset(c, 0x20EB)),
+                'a'..='d' | 'f' | 'h'..='n' | 'p'..='z' => Some(add_offset(c, 0x1D455)),
+                'B' => Some('ℬ'),
+                'H' => Some('ℋ'),
+                'I' => Some('ℐ'),
+                'L' => Some('ℒ'),
+                'M' => Some('ℳ'),
+                'R' => Some('ℛ'),
+                'e' => Some('ℯ'),
+                'g' => Some('ℊ'),
+                'o' => Some('ℴ'),
+                _ => None,
             },
             TextTransform::Monospace => match c {
-                'A'..='Z' => add_offset(c, 0x1D62F),
-                'a'..='z' => add_offset(c, 0x1D629),
-                '0'..='9' => add_offset(c, 0x1D7C6),
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D62F)),
+                'a'..='z' => Some(add_offset(c, 0x1D629)),
+                '0'..='9' => Some(add_offset(c, 0x1D7C6)),
+                _ => None,
             },
             TextTransform::SansSerif => match c {
-                'A'..='Z' => add_offset(c, 0x1D55F),
-                'a'..='z' => add_offset(c, 0x1D559),
-                '0'..='9' => add_offset(c, 0x1D7B2),
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D55F)),
+                'a'..='z' => Some(add_offset(c, 0x1D559)),
+                '0'..='9' => Some(add_offset(c, 0x1D7B2)),
+                _ => None,
             },
             TextTransform::BoldFraktur => match c {
-                'A'..='Z' => add_offset(c, 0x1D52B),
-                'a'..='z' => add_offset(c, 0x1D525),
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D52B)),
+                'a'..='z' => Some(add_offset(c, 0x1D525)),
+                _ => None,
             },
             TextTransform::SansSerifBoldItalic => match c {
-                'A'..='Z' => add_offset(c, 0x1D5FB),
-                'a'..='z' => add_offset(c, 0x1D5F5),
-                'Α'..='Ω' => add_offset(c, 0x1D3FF),
-                'α'..='ω' => add_offset(c, 0x1D3F9),
-                'ϴ' => '𝞡',
-                '∇' => '𝞩',
-                '∂' => '𝟃',
-                'ϵ' => '𝟄',
-                'ϑ' => '𝟅',
-                'ϰ' => '𝟆',
-                'ϕ' => '𝟇',
-                'ϱ' => '𝟈',
-                'ϖ' => '𝟉',
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D5FB)),
+                'a'..='z' => Some(add_offset(c, 0x1D5F5)),
+                'Α'..='Ω' => Some(add_offset(c, 0x1D3FF)),
+                'α'..='ω' => Some(add_offset(c, 0x1D3F9)),
+                'ϴ' => Some('𝞡'),
+                '∇' => Some('𝞩'),
+                '∂' => Some('𝟃'),
+                'ϵ' => Some('𝟄'),
+                'ϑ' => Some('𝟅'),
+                'ϰ' => Some('𝟆'),
+                'ϕ' => Some('𝟇'),
+                'ϱ' => Some('𝟈'),
+                'ϖ' => Some('𝟉'),
+                _ => None,
             },
             TextTransform::SansSerifItalic => match c {
-                'A'..='Z' => add_offset(c, 0x1D5C7),
-                'a'..='z' => add_offset(c, 0x1D5C1),
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D5C7)),
+                'a'..='z' => Some(add_offset(c, 0x1D5C1)),
+                _ => None,
             },
             TextTransform::BoldSansSerif => match c {
-                'A'..='Z' => add_offset(c, 0x1D593),
-                'a'..='z' => add_offset(c, 0x1D58D),
-                'Α'..='Ω' => add_offset(c, 0x1D3C5),
-                'α'..='ω' => add_offset(c, 0x1D3BF),
-                '0'..='9' => add_offset(c, 0x1D7BC),
-                'ϴ' => '𝝧',
-                '∇' => '𝝯',
-                '∂' => '𝞉',
-                'ϵ' => '𝞊',
-                'ϑ' => '𝞋',
-                'ϰ' => '𝞌',
-                'ϕ' => '𝞍',
-                'ϱ' => '𝞎',
-                'ϖ' => '𝞏',
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D593)),
+                'a'..='z' => Some(add_offset(c, 0x1D58D)),
+                'Α'..='Ω' => Some(add_offset(c, 0x1D3C5)),
+                'α'..='ω' => Some(add_offset(c, 0x1D3BF)),
+                '0'..='9' => Some(add_offset(c, 0x1D7BC)),
+                'ϴ' => Some('𝝧'),
+                '∇' => Some('𝝯'),
+                '∂' => Some('𝞉'),
+                'ϵ' => Some('𝞊'),
+                'ϑ' => Some('𝞋'),
+                'ϰ' => Some('𝞌'),
+                'ϕ' => Some('𝞍'),
+                'ϱ' => Some('𝞎'),
+                'ϖ' => Some('𝞏'),
+                _ => None,
             },
             TextTransform::DoubleStruck => match c {
-                'A'..='B' | 'D'..='G' | 'I'..='M' | 'O' | 'S'..='Y' => add_offset(c, 0x1D4F7),
-                'P'..='Q' => add_offset(c, 0x20C9),
-                'a'..='z' => add_offset(c, 0x1D4F1),
-                '0'..='9' => add_offset(c, 0x1D7A8),
-                'C' => 'ℂ',
-                'H' => 'ℍ',
-                'N' => 'ℕ',
-                'R' => 'ℝ',
-                'Z' => 'ℤ',
-                'π' => 'ℼ',
-                'γ' => 'ℽ',
-                'Γ' => 'ℾ',
-                'Π' => 'ℿ',
-                '∑' => '⅀',
+                'A'..='B' | 'D'..='G' | 'I'..='M' | 'O' | 'S'..='Y' => Some(add_offset(c, 0x1D4F7)),
+                'P'..='Q' => Some(add_offset(c, 0x20C9)),
+                'a'..='z' => Some(add_offset(c, 0x1D4F1)),
+                '0'..='9' => Some(add_offset(c, 0x1D7A8)),
+                'C' => Some('ℂ'),
+                'H' => Some('ℍ'),
+                'N' => Some('ℕ'),
+                'R' => Some('ℝ'),
+                'Z' => Some('ℤ'),
+                'π' => Some('ℼ'),
+                'γ' => Some('ℽ'),
+                'Γ' => Some('ℾ'),
+                'Π' => Some('ℿ'),
+                '∑' => Some('⅀'),
                 // FIXME: add Arabic double-struck characters
-                _ => c,
+                _ => None,
             },
             TextTransform::Italic => match c {
-                'A'..='Z' => add_offset(c, 0x1D3F3),
-                'a'..='g' | 'i'..='z' => add_offset(c, 0x1D3ED),
-                'Α'..='Ω' => add_offset(c, 0x1D351),
-                'α'..='ω' => add_offset(c, 0x1D34B),
-                'h' => 'ℎ',
-                'ı' => '𝚤',
-                'ȷ' => '𝚥',
-                'ϴ' => '𝛳',
-                '∇' => '𝛻',
-                '∂' => '𝜕',
-                'ϵ' => '𝜖',
-                'ϑ' => '𝜗',
-                'ϰ' => '𝜘',
-                'ϕ' => '𝜙',
-                'ϱ' => '𝜚',
-                'ϖ' => '𝜛',
-                _ => c,
+                'A'..='Z' => Some(add_offset(c, 0x1D3F3)),
+                'a'..='g' | 'i'..='z' => Some(add_offset(c, 0x1D3ED)),
+                'Α'..='Ω' => Some(add_offset(c, 0x1D351)),
+                'α'..='ω' => Some(add_offset(c, 0x1D34B)),
+                'h' => Some('ℎ'),
+                'ı' => Some('𝚤'),
+                'ȷ' => Some('𝚥'),
+                'ϴ' => Some('𝛳'),
+                '∇' => Some('𝛻'),
+                '∂' => Some('𝜕'),
+                'ϵ' => Some('𝜖'),
+                'ϑ' => Some('𝜗'),
+                'ϰ' => Some('𝜘'),
+                'ϕ' => Some('𝜙'),
+                'ϱ' => Some('𝜚'),
+                'ϖ' => Some('𝜛'),
+                _ => None,
             },
+        };
+
+        match mapped {
+            Some(mapped_char) => match tf {
+                TextTransform::ScriptChancery => {
+                    SuperChar::from_char_with_vs(mapped_char, VariationSelector::Vs1)
+                }
+                TextTransform::ScriptRoundhand => {
+                    SuperChar::from_char_with_vs(mapped_char, VariationSelector::Vs2)
+                }
+                _ => SuperChar::from_char(mapped_char),
+            },
+            None => SuperChar::from_char(c),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::super_char::{SuperChar, VariationSelector};
+
     use super::TextTransform;
 
     #[test]
     fn transform_test() {
-        let problems = [
-            ('G', TextTransform::BoldScript, '𝓖'),
-            ('H', TextTransform::Italic, '𝐻'),
-            ('X', TextTransform::Fraktur, '𝔛'),
-            ('S', TextTransform::ScriptChancery, '𝒮'),
-            ('f', TextTransform::Bold, '𝐟'),
-            ('g', TextTransform::Bold, '𝐠'),
-            ('o', TextTransform::DoubleStruck, '𝕠'),
-            ('D', TextTransform::Monospace, '𝙳'),
-            ('x', TextTransform::Monospace, '𝚡'),
-            ('2', TextTransform::Monospace, '𝟸'),
-            ('U', TextTransform::SansSerif, '𝖴'),
-            ('v', TextTransform::SansSerif, '𝗏'),
-            ('4', TextTransform::SansSerif, '𝟦'),
-            ('A', TextTransform::SansSerifBoldItalic, '𝘼'),
-            ('a', TextTransform::SansSerifBoldItalic, '𝙖'),
-            ('Α', TextTransform::SansSerifBoldItalic, '𝞐'),
-            ('α', TextTransform::SansSerifBoldItalic, '𝞪'),
-            ('A', TextTransform::SansSerifItalic, '𝘈'),
-            ('a', TextTransform::SansSerifItalic, '𝘢'),
-            ('J', TextTransform::BoldSansSerif, '𝗝'),
-            ('r', TextTransform::BoldSansSerif, '𝗿'),
-            ('Ξ', TextTransform::BoldSansSerif, '𝝣'),
-            ('τ', TextTransform::BoldSansSerif, '𝞃'),
+        let problems: [(char, TextTransform, SuperChar); _] = [
+            ('G', TextTransform::BoldScript, '𝓖'.into()),
+            ('H', TextTransform::Italic, '𝐻'.into()),
+            ('X', TextTransform::Fraktur, '𝔛'.into()),
+            (
+                'S',
+                TextTransform::ScriptChancery,
+                SuperChar::from_char_with_vs('𝒮', VariationSelector::Vs1),
+            ),
+            (
+                'M',
+                TextTransform::ScriptRoundhand,
+                SuperChar::from_char_with_vs('ℳ', VariationSelector::Vs2),
+            ),
+            ('f', TextTransform::Bold, '𝐟'.into()),
+            ('g', TextTransform::Bold, '𝐠'.into()),
+            ('o', TextTransform::DoubleStruck, '𝕠'.into()),
+            ('D', TextTransform::Monospace, '𝙳'.into()),
+            ('x', TextTransform::Monospace, '𝚡'.into()),
+            ('2', TextTransform::Monospace, '𝟸'.into()),
+            ('U', TextTransform::SansSerif, '𝖴'.into()),
+            ('v', TextTransform::SansSerif, '𝗏'.into()),
+            ('4', TextTransform::SansSerif, '𝟦'.into()),
+            ('A', TextTransform::SansSerifBoldItalic, '𝘼'.into()),
+            ('a', TextTransform::SansSerifBoldItalic, '𝙖'.into()),
+            ('Α', TextTransform::SansSerifBoldItalic, '𝞐'.into()),
+            ('α', TextTransform::SansSerifBoldItalic, '𝞪'.into()),
+            ('A', TextTransform::SansSerifItalic, '𝘈'.into()),
+            ('a', TextTransform::SansSerifItalic, '𝘢'.into()),
+            ('J', TextTransform::BoldSansSerif, '𝗝'.into()),
+            ('r', TextTransform::BoldSansSerif, '𝗿'.into()),
+            ('Ξ', TextTransform::BoldSansSerif, '𝝣'.into()),
+            ('τ', TextTransform::BoldSansSerif, '𝞃'.into()),
         ];
         for (source, transform, target) in problems.into_iter() {
             assert_eq!(
                 target,
-                transform.transform(source, false),
+                transform.transform_char(source, false),
                 "executed: {:?}({})",
                 transform,
                 source

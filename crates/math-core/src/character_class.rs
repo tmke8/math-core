@@ -5,7 +5,7 @@ use mathml_renderer::{
     symbol::{self, MathMLOperator, OrdCategory, OrdLike, Rel, RelCategory},
 };
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Class {
     /// `mathord`
     #[default]
@@ -28,7 +28,7 @@ pub enum Class {
     End,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParenType {
     Left = 1,
     Right,
@@ -36,7 +36,7 @@ pub enum ParenType {
 }
 
 /// <mi> mathvariant attribute
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MathVariant {
     /// This is enforced by setting `mathvariant="normal"`.
     Normal,
@@ -44,7 +44,7 @@ pub enum MathVariant {
     Transform(TextTransform),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Stretchy {
     /// The operator is always stretchy (e.g. `(`, `)`).
     Always = 1,
@@ -56,7 +56,7 @@ pub enum Stretchy {
     AlwaysAsymmetric,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DelimiterSpacing {
     /// Never has any spacing, even when used as an infix operator (e.g. `(`, `)`).
     Zero,
@@ -74,7 +74,7 @@ pub enum DelimiterSpacing {
 /// It can be created from an `OrdLike` or a `Rel` if the operator is stretchable. This struct
 /// carries all the information needed to know how to make the operator stretchy and how to set
 /// spacing around it.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StretchableOp {
     op: MathMLOperator,
     pub stretchy: Stretchy,

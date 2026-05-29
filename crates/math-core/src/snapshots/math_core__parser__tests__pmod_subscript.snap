@@ -8,7 +8,7 @@ expression: "\\pmod{3}_4"
     unit: Em,
   )),
   Operator(
-    op: '(',
+    op: "(",
     attrs: OpAttrs("STRETCHY_FALSE"),
     size: None,
     left: None,
@@ -22,7 +22,7 @@ expression: "\\pmod{3}_4"
   Number("3"),
   Sub(
     target: Operator(
-      op: ')',
+      op: ")",
       attrs: OpAttrs("STRETCHY_FALSE"),
       size: None,
       left: None,

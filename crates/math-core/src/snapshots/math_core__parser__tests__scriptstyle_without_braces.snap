@@ -3,10 +3,10 @@ source: crates/math-core/src/parser.rs
 expression: "x\\scriptstyle y"
 ---
 [
-  IdentifierChar('x', Default),
+  IdentifierChar("x", Default),
   Row(
     nodes: [
-      IdentifierChar('y', Default),
+      IdentifierChar("y", Default),
     ],
     attr: Some(Style(Script)),
   ),

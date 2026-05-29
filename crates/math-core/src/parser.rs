@@ -2,9 +2,10 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::Node,
-    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
+    ast::{AHref, Node},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style},
     length::Length,
+    super_char::SuperChar,
     symbol::{self, MathMLOperator, OpCategory, OrdCategory, RelCategory},
     table::RowLabelInfo,
 };
@@ -15,7 +16,6 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    commands::get_negated_op,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, NumberedEnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -36,6 +36,7 @@ pub(crate) struct Parser<'config, 'source, 'arena> {
     state: ParserState<'source, 'arena>,
 }
 
+#[derive(Debug)]
 struct ParserState<'source, 'arena> {
     cmd_args: Vec<TokSpan<'source>>,
     cmd_arg_offsets: [usize; 9],
@@ -53,7 +54,7 @@ struct ParserState<'source, 'arena> {
     style: Style,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SequenceEnd {
     EndToken(EndToken),
     AnyEndToken,
@@ -72,7 +73,7 @@ impl SequenceEnd {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ParseAs {
     /// A sequence starts with a fresh sequence state.
     Sequence,
@@ -93,7 +94,7 @@ impl ParseAs {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ControlFlow {
     SkipToken,
     ProcessToken,
@@ -354,6 +355,9 @@ where
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        pub const FULL_STOP_TOKEN: Token<'_> =
+            Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
+
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
         let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
@@ -371,7 +375,7 @@ where
                     ));
                 }
                 let mut builder = self.buffer.get_builder();
-                builder.push_char(number);
+                builder.push_superchar(number);
                 if matches!(parse_as, ParseAs::Sequence) {
                     // Consume tokens as long as they are `Token::Number` or
                     // `Token::Letter('.')`,
@@ -380,11 +384,8 @@ where
                         let ch = if let Token::Digit(number) = self.tokens.peek().token() {
                             *number
                         } else {
-                            let ch = if matches!(
-                                self.tokens.peek().token(),
-                                Token::Letter('.', Mode::MathOrText)
-                            ) {
-                                Some('.')
+                            let ch = if matches!(self.tokens.peek().token(), &FULL_STOP_TOKEN) {
+                                Some('.'.into())
                             } else {
                                 None
                             };
@@ -398,7 +399,7 @@ where
                                 break;
                             }
                         };
-                        builder.push_char(ch);
+                        builder.push_superchar(ch);
                         self.tokens.next()?;
                     }
                 }
@@ -421,29 +422,15 @@ where
                 } else {
                     c
                 };
-                if let Some(MathVariant::Transform(
-                    tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
-                )) = self.state.transform
-                {
-                    // We need to append Unicode variant selectors for these transforms.
-                    let mut builder = self.buffer.get_builder();
-                    builder.push_char(ch);
-                    builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
-                        '\u{FE00}' // VARIATION SELECTOR-1
+
+                Ok(Node::IdentifierChar(
+                    ch,
+                    if is_upright && !with_tf {
+                        LetterAttr::ForcedUpright
                     } else {
-                        '\u{FE01}' // VARIATION SELECTOR-2
-                    });
-                    Ok(Node::IdentifierStr(builder.finish(self.arena)))
-                } else {
-                    Ok(Node::IdentifierChar(
-                        ch,
-                        if is_upright && !with_tf {
-                            LetterAttr::ForcedUpright
-                        } else {
-                            LetterAttr::Default
-                        },
-                    ))
-                }
+                        LetterAttr::Default
+                    },
+                ))
             }
             Token::Relation(relation) => {
                 class = Class::Relation;
@@ -588,25 +575,17 @@ where
                     }
                 };
                 let (tok, span) = tokspan.into_parts();
-                enum OpOrStr<'arena> {
-                    Op(MathMLOperator),
-                    Str(&'arena str),
-                }
-                use OpOrStr::*;
-                let op: OpOrStr = match tok {
-                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => Op(op.as_op()),
-                    Token::Op(op) | Token::Inner(op) => Op(op.as_op()),
-                    Token::BinaryOp(op) => Op(op.as_op()),
-                    Token::Relation(op) => Op(op.as_op()),
-                    Token::Punctuation(op) => Op(op.as_op()),
+                let op = match tok {
+                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
+                    Token::Op(op) | Token::Inner(op) => op.as_op(),
+                    Token::BinaryOp(op) => op.as_op(),
+                    Token::Relation(op) => op.as_op(),
+                    Token::Punctuation(op) => op.as_op(),
                     Token::ForceRelation(op) | Token::ForceClose(op) | Token::ForceBinaryOp(op) => {
-                        Op(op)
+                        op
                     }
-                    Token::SquareBracketOpen => Op(symbol::LEFT_SQUARE_BRACKET.as_op()),
-                    Token::SquareBracketClose => Op(symbol::RIGHT_SQUARE_BRACKET.as_op()),
-                    Token::OpLessThan => Str("&lt;"),
-                    Token::OpGreaterThan => Str("&gt;"),
-                    Token::OpAmpersand => Str("&amp;"),
+                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
+                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
                     _ => {
                         break 'mathclass Err(LatexError(
                             span.into(),
@@ -614,21 +593,13 @@ where
                         ));
                     }
                 };
-                match op {
-                    Op(op) => Ok(Node::Operator {
-                        op,
-                        attrs: OpAttrs::STRETCHY_FALSE,
-                        left: spacing,
-                        right: spacing,
-                        size: None,
-                    }),
-                    Str(s) => Ok(Node::PseudoOp {
-                        name: s,
-                        left: spacing,
-                        right: spacing,
-                        attrs: OpAttrs::empty(),
-                    }),
-                }
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::STRETCHY_FALSE,
+                    left: spacing,
+                    right: spacing,
+                    size: None,
+                })
             }
             Token::Inner(op) => {
                 class = Class::Inner;
@@ -664,32 +635,6 @@ where
                     size: None,
                 })
             }
-            Token::OpGreaterThan => {
-                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
-                class = Class::Relation;
-                Ok(Node::PseudoOp {
-                    name: "&gt;",
-                    attrs: OpAttrs::empty(),
-                    left,
-                    right,
-                })
-            }
-            Token::OpLessThan => {
-                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
-                class = Class::Relation;
-                Ok(Node::PseudoOp {
-                    name: "&lt;",
-                    attrs: OpAttrs::empty(),
-                    left,
-                    right,
-                })
-            }
-            Token::OpAmpersand => Ok(Node::PseudoOp {
-                name: "&amp;",
-                attrs: OpAttrs::empty(),
-                left: None,
-                right: None,
-            }),
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
                 Ok(Node::Enclose { content, notation })
@@ -800,11 +745,11 @@ where
                     self.tokens.read_argument(false)?.into_one_or_none()?.into();
                 let style = if let Some(tokspan) = style_token {
                     if let Token::Digit(num) = tokspan.token() {
-                        match num {
-                            '0' => Some(Style::Display),
-                            '1' => Some(Style::Text),
-                            '2' => Some(Style::Script),
-                            '3' => Some(Style::ScriptScript),
+                        match num.try_as_char() {
+                            Some('0') => Some(Style::Display),
+                            Some('1') => Some(Style::Text),
+                            Some('2') => Some(Style::Script),
+                            Some('3') => Some(Style::ScriptScript),
                             _ => {
                                 break 'genfrac Err(LatexError(
                                     tokspan.span().into(),
@@ -998,68 +943,91 @@ where
                     }
                 }
             }
-            Token::Slashed => {
-                let node = self.parse_next(ParseAs::Arg)?;
-                Ok(Node::Slashed(node))
-            }
-            Token::Not => {
+            Token::Overlay(overlay) => {
                 // `\not` has to be followed by something:
-                let (tok, new_span) = self.next_token()?.into_parts();
-                // Recompute the next class:
-                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
-                match tok {
-                    Token::Relation(op) => {
-                        let (left, right) =
-                            self.state.relation_spacing(prev_class, next_class, false);
-                        if let Some(negated) = get_negated_op(op) {
-                            Ok(Node::Operator {
-                                op: negated.as_op(),
-                                attrs: OpAttrs::empty(),
-                                left,
-                                right,
-                                size: None,
-                            })
-                        } else {
-                            let mut builder = self.buffer.get_builder();
-                            builder.push_char(op.as_op().as_char());
-                            builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
-                            Ok(Node::PseudoOp {
-                                attrs: OpAttrs::empty(),
-                                left,
-                                right,
-                                name: builder.finish(self.arena),
-                            })
-                        }
+
+                let tok_span = self.next_token()?;
+                let new_span = tok_span.span();
+                let (cls, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
+                class = cls;
+
+                /// Helper for `Node::PseudoOp` and `Node::IdentifierStr` below.
+                /// Finds the byte offset of the location immediately after the
+                /// first character in the string, and if the character is followed
+                /// by a variation selector, then after that as well.
+                ///
+                /// (We don't want to insert an overlay between a base char and its variation selector)
+                fn after_first_char_and_vs(s: &str) -> usize {
+                    let mut indices = s.char_indices();
+                    if indices.next().is_none() {
+                        // empty string
+                        return 0;
                     }
-                    tok @ (Token::OpLessThan | Token::OpGreaterThan) => {
-                        let (left, right) =
-                            self.state.relation_spacing(prev_class, next_class, false);
-                        Ok(Node::Operator {
-                            op: if matches!(tok, Token::OpLessThan) {
-                                symbol::NOT_LESS_THAN.as_op()
-                            } else {
-                                symbol::NOT_GREATER_THAN.as_op()
-                            },
-                            attrs: OpAttrs::empty(),
+
+                    let Some((after_first_char_idx, snd_char)) = indices.next() else {
+                        // string is 1 char long
+                        return s.len();
+                    };
+
+                    if matches!(snd_char, '\u{FE00}'..'\u{FE0F}') {
+                        // There's a variation selector (3 bytes in utf8)
+                        after_first_char_idx + 3
+                    } else {
+                        // No variation selector
+                        after_first_char_idx
+                    }
+                }
+
+                match *node {
+                    Node::Operator {
+                        op,
+                        attrs,
+                        size,
+                        left,
+                        right,
+                    } => Ok(Node::Operator {
+                        op: MathMLOperator::from_superchar(op.as_superchar().with_overlay(overlay)),
+                        attrs,
+                        size,
+                        left,
+                        right,
+                    }),
+
+                    Node::IdentifierChar(ident, letter_attr) => Ok(Node::IdentifierChar(
+                        ident.with_overlay(overlay),
+                        letter_attr,
+                    )),
+
+                    Node::PseudoOp {
+                        name,
+                        attrs,
+                        left,
+                        right,
+                    } => {
+                        let mut builder = self.buffer.get_builder();
+                        let insert_idx = after_first_char_and_vs(name);
+                        builder.push_str(&name[..insert_idx]);
+                        builder.push_char(overlay.into());
+                        builder.push_str(&name[insert_idx..]);
+                        let name = builder.finish(self.arena);
+                        Ok(Node::PseudoOp {
+                            name,
+                            attrs,
                             left,
                             right,
-                            size: None,
                         })
                     }
-                    // We have to special-case `\exists` here because it is not a relation.
-                    Token::Ord(symbol::THERE_EXISTS) => Ok(Node::Operator {
-                        op: symbol::THERE_DOES_NOT_EXIST.as_op(),
-                        attrs: OpAttrs::empty(),
-                        left: None,
-                        right: None,
-                        size: None,
-                    }),
-                    Token::Letter(char, _) | Token::UprightLetter(char) => {
+
+                    Node::IdentifierStr(str) => {
                         let mut builder = self.buffer.get_builder();
-                        builder.push_char(char);
-                        builder.push_char(symbol::COMBINING_LONG_SOLIDUS_OVERLAY);
-                        Ok(Node::IdentifierStr(builder.finish(self.arena)))
+                        let insert_idx = after_first_char_and_vs(str);
+                        builder.push_str(&str[..insert_idx]);
+                        builder.push_char(overlay.into());
+                        builder.push_str(&str[insert_idx..]);
+                        let str = builder.finish(self.arena);
+                        Ok(Node::IdentifierStr(str))
                     }
+
                     _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
                 }
             }
@@ -1169,8 +1137,7 @@ where
             }),
             Token::Left => {
                 let tok_loc = self.next_token()?;
-                let open_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
-                {
+                let open_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Left)?)
@@ -1181,8 +1148,7 @@ where
                     false,
                 )?;
                 let tok_loc = self.next_token()?;
-                let close_paren = if matches!(tok_loc.token(), Token::Letter('.', Mode::MathOrText))
-                {
+                let close_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
@@ -1475,9 +1441,18 @@ where
                         LatexErrKind::UndefinedLabel(label_name.into()),
                     ));
                 };
-                let mut builder = self.buffer.get_builder();
-                let _ = write!(builder, r##"<a href="#{label_name}">({tag})</a>"##);
-                Ok(Node::Text(None, builder.finish(self.arena)))
+                let href = {
+                    let mut builder = self.buffer.get_builder();
+                    write!(builder, "#{label_name}").unwrap();
+                    builder.finish(self.arena)
+                };
+                let text = {
+                    let mut builder = self.buffer.get_builder();
+                    write!(builder, "({tag})").unwrap();
+                    builder.finish(self.arena)
+                };
+
+                Ok(Node::AHref(self.arena.alloc_ahref(AHref { href, text })))
             }
             Token::Color => 'color: {
                 let (color_name, span) = self.parse_string_literal()?;
@@ -1717,7 +1692,7 @@ where
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     let mut builder = self.buffer.get_builder();
                     for c in content.chars() {
-                        builder.push_char(tf.transform(c, false));
+                        builder.push_superchar(tf.transform_char(c, false));
                     }
                     Ok(Node::IdentifierStr(builder.finish(self.arena)))
                 } else {
@@ -1916,7 +1891,7 @@ where
         let mut num_chars = 0usize;
         // We store the first character separately, because if we only collect
         // one character, we need it as a `char` and not as a `String`.
-        let mut first_char: Option<char> = None;
+        let mut first_char: Option<SuperChar> = None;
 
         // Loop until we find a non-letter token.
         while let tok @ (Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch)) =
@@ -1932,24 +1907,11 @@ where
             } else {
                 *ch
             };
-            builder.push_char(c);
+            builder.push_superchar(c);
             if first_char.is_none() {
                 first_char = Some(c);
             }
             num_chars += 1;
-
-            if let MathVariant::Transform(
-                tf @ (TextTransform::ScriptChancery | TextTransform::ScriptRoundhand),
-            ) = tf
-            {
-                // We need to append Unicode variant selectors for these transforms.
-                builder.push_char(if matches!(tf, TextTransform::ScriptChancery) {
-                    '\u{FE00}' // VARIATION SELECTOR-1
-                } else {
-                    '\u{FE01}' // VARIATION SELECTOR-2
-                });
-                num_chars += 1;
-            }
             // Get the next token for the next iteration.
             self.tokens.next()?;
         }
@@ -2028,7 +1990,7 @@ where
                     LatexErrKind::ExpectedText,
                 )));
             };
-            builder.push_char(ch);
+            builder.push_superchar(ch);
         }
         Ok((builder.finish(self.arena), span))
     }
@@ -2256,7 +2218,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    Letter('a', Mode::MathOrText),
+                    const { Letter(SuperChar::from_char('a'), Mode::MathOrText) },
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],

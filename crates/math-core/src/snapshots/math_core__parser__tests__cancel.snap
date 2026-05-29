@@ -6,9 +6,9 @@ expression: "\\cancel{abc}"
   Enclose(
     content: Row(
       nodes: [
-        IdentifierChar('a', Default),
-        IdentifierChar('b', Default),
-        IdentifierChar('c', Default),
+        IdentifierChar("a", Default),
+        IdentifierChar("b", Default),
+        IdentifierChar("c", Default),
       ],
       attr: None,
     ),

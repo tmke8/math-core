@@ -4,9 +4,9 @@ expression: "x_:\\equiv, x_:="
 ---
 [
   Sub(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar("x", Default),
     symbol: Operator(
-      op: ':',
+      op: ":",
       attrs: OpAttrs(""),
       size: None,
       left: None,
@@ -14,23 +14,23 @@ expression: "x_:\\equiv, x_:="
     ),
   ),
   Operator(
-    op: '≡',
+    op: "≡",
     attrs: OpAttrs(""),
     size: None,
     left: None,
     right: Some(Zero),
   ),
   Operator(
-    op: ',',
+    op: ",",
     attrs: OpAttrs(""),
     size: None,
     left: None,
     right: None,
   ),
   Sub(
-    target: IdentifierChar('x', Default),
+    target: IdentifierChar("x", Default),
     symbol: Operator(
-      op: ':',
+      op: ":",
       attrs: OpAttrs(""),
       size: None,
       left: None,
@@ -38,7 +38,7 @@ expression: "x_:\\equiv, x_:="
     ),
   ),
   Operator(
-    op: '=',
+    op: "=",
     attrs: OpAttrs(""),
     size: None,
     left: None,

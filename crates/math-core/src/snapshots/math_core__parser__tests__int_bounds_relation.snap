@@ -7,17 +7,17 @@ expression: "{\\int_0^\\infty = 4}"
     nodes: [
       SubSup(
         target: Operator(
-          op: '∫',
+          op: "∫",
           attrs: OpAttrs(""),
           size: None,
           left: Some(Zero),
           right: Some(Zero),
         ),
         sub: Number("0"),
-        sup: IdentifierChar('∞', Default),
+        sup: IdentifierChar("∞", Default),
       ),
       Operator(
-        op: '=',
+        op: "=",
         attrs: OpAttrs(""),
         size: None,
         left: None,

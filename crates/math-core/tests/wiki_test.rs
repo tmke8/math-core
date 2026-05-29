@@ -913,8 +913,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 189);
-    assert_eq!(n_fail, 19);
+    assert_eq!(n_diff, 196);
+    assert_eq!(n_fail, 12);
 }
 
 /// Prettify HTML input
@@ -1019,10 +1019,16 @@ fn test_nonfailing_wiki_tests() {
         // (43, r"\setminus, \smallsetminus, \times"),
         (44, r"\subset, \Subset, \sqsubset"),
         (45, r"\supset, \Supset, \sqsupset"),
-        // (46, r"\subseteq, \nsubseteq, \subsetneq, \varsubsetneq, \sqsubseteq"),
-        // (47, r"\supseteq, \nsupseteq, \supsetneq, \varsupsetneq, \sqsupseteq"),
-        // (48, r"\subseteqq, \nsubseteqq, \subsetneqq, \varsubsetneqq"),
-        // (49, r"\supseteqq, \nsupseteqq, \supsetneqq, \varsupsetneqq"),
+        (
+            46,
+            r"\subseteq, \nsubseteq, \subsetneq, \varsubsetneq, \sqsubseteq",
+        ),
+        (
+            47,
+            r"\supseteq, \nsupseteq, \supsetneq, \varsupsetneq, \sqsupseteq",
+        ),
+        (48, r"\subseteqq, \nsubseteqq, \subsetneqq, \varsubsetneqq"),
+        (49, r"\supseteqq, \nsupseteqq, \supsetneqq, \varsupsetneqq"),
         (50, r"=, \ne, \neq, \equiv, \not\equiv"),
         (
             51,
@@ -1031,8 +1037,14 @@ fn test_nonfailing_wiki_tests() {
         // (52, r"\sim, \nsim, \backsim, \thicksim, \simeq, \backsimeq, \eqsim, \cong, \ncong"),
         // (53, r"\approx, \thickapprox, \approxeq, \asymp, \propto, \varpropto"),
         (54, r"<, \nless, \ll, \not\ll, \lll, \not\lll, \lessdot"),
-        // (55, r"\le, \leq, \lneq, \leqq, \nleq, \nleqq, \lneqq, \lvertneqq"),
-        // (56, r"\ge, \geq, \gneq, \geqq, \ngeq, \ngeqq, \gneqq, \gvertneqq"),
+        (
+            55,
+            r"\le, \leq, \lneq, \leqq, \nleq, \nleqq, \lneqq, \lvertneqq",
+        ),
+        (
+            56,
+            r"\ge, \geq, \gneq, \geqq, \ngeq, \ngeqq, \gneqq, \gvertneqq",
+        ),
         (
             57,
             r"\lessgtr, \lesseqgtr, \lesseqqgtr, \gtrless, \gtreqless, \gtreqqless",
@@ -1066,7 +1078,10 @@ fn test_nonfailing_wiki_tests() {
         (75, r"\therefore, \because, \And"),
         (76, r"\lor \vee, \curlyvee, \bigvee"),
         (77, r"\land \wedge, \curlywedge, \bigwedge"),
-        // (78, r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top"),
+        (
+            78,
+            r"\bar{q}, \bar{abc}, \overline{q}, \overline{abc}, \\ \lnot \neg, \not\operatorname{R},\bot,\top",
+        ),
         (79, r"\vdash \dashv, \vDash, \Vdash, \models"),
         (80, r"\Vvdash \nvdash \nVdash \nvDash \nVDash"),
         (81, r"\ulcorner \urcorner \llcorner \lrcorner"),

@@ -1,0 +1,44 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\bar{q}, \\bar{abc}, \\overline{q}, \\overline{abc}, \\\\ \\lnot \\neg, \\not\\operatorname{R},\\bot,\\top"
+---
+<math>
+    <mover accent="true">
+        <mi>q</mi>
+        <mo stretchy="false">¯</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>a</mi>
+            <mi>b</mi>
+            <mi>c</mi>
+        </mrow>
+        <mo stretchy="false">¯</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mi>q</mi>
+        <mo stretchy="true">̲</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>a</mi>
+            <mi>b</mi>
+            <mi>c</mi>
+        </mrow>
+        <mo stretchy="true">̲</mo>
+    </mover>
+    <mo rspace="0">,</mo>
+    <mrow>
+    </mrow>
+    <mo>¬</mo>
+    <mo>¬</mo>
+    <mo>,</mo>
+    <mo lspace="0" rspace="0">R̸</mo>
+    <mo>,</mo>
+    <mi>⊥</mi>
+    <mo>,</mo>
+    <mi>⊤</mi>
+</math>

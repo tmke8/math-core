@@ -4,6 +4,6 @@ expression: "x\\mathord{<}y"
 ---
 <math>
     <mi>x</mi>
-    <mo lspace="0" rspace="0">&lt;</mo>
+    <mo stretchy="false" lspace="0" rspace="0">&lt;</mo>
     <mi>y</mi>
 </math>
