@@ -10,7 +10,7 @@ expression: "f(x) = \\begin{cases} 1 & -1 \\le x < 0 \\\\ \\frac{1}{2} & x = 0 \
     <mo>=</mo>
     <mrow>
         <mo>{</mo>
-        <mtable>
+        <mtable displaystyle="false" scriptlevel="0">
             <mtr>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;">
                     <mn>1</mn>

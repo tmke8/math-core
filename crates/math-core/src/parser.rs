@@ -1263,14 +1263,7 @@ where
                     &mut self.state.meaningful_newlines,
                     env.meaningful_newlines(),
                 );
-                let old_style = mem::replace(
-                    &mut self.state.style,
-                    if matches!(env, Env::Subarray) {
-                        Style::Script
-                    } else {
-                        Style::Text
-                    },
-                );
+                let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_numbered =
                     mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
 
