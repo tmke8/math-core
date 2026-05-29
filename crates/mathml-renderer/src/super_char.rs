@@ -22,7 +22,9 @@ use crate::symbol;
 //
 // # Safety
 //
-// `self.0 & CHAR_MASK` must always be a valid `char`
+// - `self.0 & CHAR_MASK` must always be a valid `char`.
+// - The top nibble (`self.0 >> 28`) is in `0..=15` and, when non-zero,
+//   equals the discriminant of a `VariationSelector` variant.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SuperChar(u32);
@@ -41,6 +43,7 @@ const VERTICAL_LINE_BIT: u32 = 0x0400_0000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
+#[repr(u8)]
 pub enum VariationSelector {
     /// `'\u{FE00}'`
     Vs1 = 1,
@@ -142,25 +145,14 @@ impl SuperChar {
     #[must_use]
     #[inline]
     pub const fn vs(self) -> Option<VariationSelector> {
-        use VariationSelector::*;
-        match self.0 >> 28 {
-            0 => None,
-            1 => Some(Vs1),
-            2 => Some(Vs2),
-            3 => Some(Vs3),
-            4 => Some(Vs4),
-            5 => Some(Vs5),
-            6 => Some(Vs6),
-            7 => Some(Vs7),
-            8 => Some(Vs8),
-            9 => Some(Vs9),
-            10 => Some(Vs10),
-            11 => Some(Vs11),
-            12 => Some(Vs12),
-            13 => Some(Vs13),
-            14 => Some(Vs14),
-            15 => Some(Vs15),
-            _ => unreachable!(),
+        let tag = (self.0 >> 28) as u8;
+        if tag == 0 {
+            None
+        } else {
+            // SAFETY: `VariationSelector` is `#[repr(u8)]` with discriminants 1..=15.
+            // The top nibble of `self.0` is structurally in 0..=15, and we just
+            // handled the 0 case, so `tag` is a valid discriminant.
+            Some(unsafe { std::mem::transmute::<u8, VariationSelector>(tag) })
         }
     }
 
