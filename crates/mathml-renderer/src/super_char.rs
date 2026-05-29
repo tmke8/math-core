@@ -119,10 +119,16 @@ impl SuperChar {
     }
 
     /// Returns an iterator over the `char`s of this `SuperChar`.
-    #[must_use]
     #[inline]
-    pub fn chars(self) -> SuperCharChars {
-        SuperCharChars(self.0)
+    pub fn chars(self) -> impl FusedIterator<Item = char> {
+        use std::iter::once;
+        once(self.base_char())
+            .chain(self.vs().map(char::from))
+            .chain((self.0 & SOLIDUS_BIT != 0).then_some(symbol::COMBINING_LONG_SOLIDUS_OVERLAY))
+            .chain(
+                (self.0 & VERTICAL_LINE_BIT != 0)
+                    .then_some(symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY),
+            )
     }
 
     /// Whether this `SuperChar` has a variation selector associated
@@ -250,42 +256,6 @@ impl Serialize for SuperChar {
         serde::Serializer::collect_str(serializer, self)
     }
 }
-
-/// An iterator over the chars of a [`SuperChar`].
-// Invariant: `.0` field either reperesents a valid `SuperChar`,
-// except that character bits may be set to all 1s to represent
-// the base character having been already yielded.
-#[derive(Clone, Debug)]
-#[repr(transparent)]
-pub struct SuperCharChars(u32);
-
-impl Iterator for SuperCharChars {
-    type Item = char;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let base_char = self.0 & CHAR_MASK;
-        if base_char != CHAR_MASK {
-            self.0 |= CHAR_MASK;
-            // SAFETY: `self.0` field invariant,
-            // and we checked for `CHAR_MASK` above
-            Some(unsafe { char::from_u32_unchecked(base_char) })
-        } else if let Some(vs) = SuperChar(self.0).vs() {
-            self.0 &= !VS_MASK;
-            Some(vs.into())
-        } else if self.0 & SOLIDUS_BIT != 0 {
-            self.0 &= !SOLIDUS_BIT;
-            Some(symbol::COMBINING_LONG_SOLIDUS_OVERLAY)
-        } else if self.0 & VERTICAL_LINE_BIT != 0 {
-            self.0 &= !VERTICAL_LINE_BIT;
-            Some(symbol::COMBINING_LONG_VERTICAL_LINE_OVERLAY)
-        } else {
-            None
-        }
-    }
-}
-
-impl FusedIterator for SuperCharChars {}
 
 #[inline]
 fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
