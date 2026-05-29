@@ -192,6 +192,7 @@ fn main() {
             r#"\begin{multline} a\\b\\c\label{eq:m}\end{multline}"#,
         ),
         ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+        ("align_with_frac", r#"\begin{align}\frac1{2+3}\end{align}"#),
         ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
         ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),
         ("gather", r#"\begin{gather}x=1\\y=2\end{gather}"#),

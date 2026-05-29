@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{align}\\frac1{2+3}\\end{align}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mfrac>
+                    <mn>1</mn>
+                    <mrow>
+                        <mn>2</mn>
+                        <mo>+</mo>
+                        <mn>3</mn>
+                    </mrow>
+                </mfrac>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
