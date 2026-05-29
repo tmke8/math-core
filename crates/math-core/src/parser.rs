@@ -370,12 +370,12 @@ where
             Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     break 'digit Ok(Node::IdentifierChar(
-                        tf.transform(number, false),
+                        tf.transform(number.into(), false),
                         LetterAttr::Default,
                     ));
                 }
                 let mut builder = self.buffer.get_builder();
-                builder.push_superchar(number);
+                builder.push_char(number);
                 if matches!(parse_as, ParseAs::Sequence) {
                     // Consume tokens as long as they are `Token::Number` or
                     // `Token::Letter('.')`,
@@ -385,7 +385,7 @@ where
                             *number
                         } else {
                             let ch = if matches!(self.tokens.peek().token(), &FULL_STOP_TOKEN) {
-                                Some('.'.into())
+                                Some('.')
                             } else {
                                 None
                             };
@@ -399,7 +399,7 @@ where
                                 break;
                             }
                         };
-                        builder.push_superchar(ch);
+                        builder.push_char(ch);
                         self.tokens.next()?;
                     }
                 }
@@ -745,11 +745,11 @@ where
                     self.tokens.read_argument(false)?.into_one_or_none()?.into();
                 let style = if let Some(tokspan) = style_token {
                     if let Token::Digit(num) = tokspan.token() {
-                        match num.try_as_char() {
-                            Some('0') => Some(Style::Display),
-                            Some('1') => Some(Style::Text),
-                            Some('2') => Some(Style::Script),
-                            Some('3') => Some(Style::ScriptScript),
+                        match num {
+                            '0' => Some(Style::Display),
+                            '1' => Some(Style::Text),
+                            '2' => Some(Style::Script),
+                            '3' => Some(Style::ScriptScript),
                             _ => {
                                 break 'genfrac Err(LatexError(
                                     tokspan.span().into(),
@@ -1890,22 +1890,30 @@ where
         let mut builder = self.buffer.get_builder();
         let mut num_chars = 0usize;
         // We store the first character separately, because if we only collect
-        // one character, we need it as a `char` and not as a `String`.
+        // one character, we need it as a `SuperChar` and not as a `String`.
         let mut first_char: Option<SuperChar> = None;
 
         // Loop until we find a non-letter token.
-        while let tok @ (Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch)) =
-            self.tokens.peek().token()
+        while let tok = self.tokens.peek().token()
+            && matches!(
+                tok,
+                Token::Letter(_, _) | Token::UprightLetter(_) | Token::Digit(_)
+            )
         {
             if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
                 // Don't collect digits in normal math variant.
                 break;
             }
+            let ch: SuperChar = match tok {
+                Token::Letter(ch, _) | Token::UprightLetter(ch) => *ch,
+                Token::Digit(ch) => (*ch).into(),
+                _ => unreachable!(),
+            };
             let is_upright = matches!(tok, Token::UprightLetter(_));
             let c = if let MathVariant::Transform(tf) = tf {
-                tf.transform(*ch, is_upright)
+                tf.transform(ch, is_upright)
             } else {
-                *ch
+                ch
             };
             builder.push_superchar(c);
             if first_char.is_none() {
@@ -1990,7 +1998,7 @@ where
                     LatexErrKind::ExpectedText,
                 )));
             };
-            builder.push_superchar(ch);
+            builder.push_char(ch);
         }
         Ok((builder.finish(self.arena), span))
     }

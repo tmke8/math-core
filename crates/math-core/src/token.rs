@@ -136,7 +136,7 @@ pub enum Token<'source> {
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
     UprightLetter(SuperChar),
     /// A digit, e.g. `0`, `1`, `2`.
-    Digit(SuperChar),
+    Digit(char),
     /// Text-based operators without limits.
     /// For example, `\log`, `\exp`, `\sin`, `\cos`, `\tan`.
     PseudoOperator(&'static str),
@@ -170,7 +170,7 @@ pub enum Token<'source> {
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
-    MathOrTextMode(&'static Token<'static>, SuperChar),
+    MathOrTextMode(&'static Token<'static>, char),
     /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
     /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
     /// of the unknown command.
@@ -196,7 +196,7 @@ pub enum MathClassKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextToken {
     Accent(char),
-    Letter(SuperChar),
+    Letter(char),
     Style(HtmlTextStyle),
 }
 

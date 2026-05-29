@@ -7,7 +7,7 @@ expression: "\\text{  x +   y }"
 6..7: Whitespace
 8..9: Letter("x", MathOrText)
 9..10: Whitespace
-10..11: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD, has_vs1: false }), "+")
+10..11: MathOrTextMode(BinaryOp(Bin { char: '+', cat: BD, has_vs1: false }), '+')
 11..12: Whitespace
 14..15: Letter("y", MathOrText)
 15..16: Whitespace
