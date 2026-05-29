@@ -87,8 +87,10 @@ impl<'arena> Parser<'_, '_, 'arena> {
                         Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().as_superchar())
                     }
                     Token::Digit(digit) => Ok(digit.into()),
-                    Token::Prime => Ok('’'.into()),
-                    Token::Whitespace | Token::NonBreakingSpace => Ok('\u{A0}'.into()),
+                    Token::Prime => Ok(SuperChar::from_char('’')),
+                    Token::Whitespace | Token::NonBreakingSpace => {
+                        Ok(SuperChar::from_char('\u{A0}'))
+                    }
                     Token::InternalStringLiteral(output) => {
                         if let Some(str_builder) = &mut str_builder {
                             str_builder.push_str(output);
@@ -185,13 +187,13 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     }
                     Token::Space(length) => {
                         if length == Length::new(1.0, LengthUnit::Em) {
-                            Ok('\u{2003}'.into())
+                            Ok(SuperChar::from_char('\u{2003}'))
                         } else if length == LatexUnit::Mu.length_with_unit(5.0) {
-                            Ok('\u{2004}'.into())
+                            Ok(SuperChar::from_char('\u{2004}'))
                         } else if length == LatexUnit::Mu.length_with_unit(4.0) {
-                            Ok('\u{205F}'.into())
+                            Ok(SuperChar::from_char('\u{205F}'))
                         } else if length == LatexUnit::Mu.length_with_unit(3.0) {
-                            Ok('\u{2009}'.into())
+                            Ok(SuperChar::from_char('\u{2009}'))
                         } else {
                             // Ignore other spaces in text mode.
                             if str_builder.is_none() {
