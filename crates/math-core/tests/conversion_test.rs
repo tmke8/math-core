@@ -421,12 +421,16 @@ fn main() {
         ("mathbin_no_braces", r"x\mathbin|y"),
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
         ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
+        ("mathbin_letter", r"x \mathbin a y"),
         ("mathord", r"x\mathord{+}y"),
         ("mathord_no_braces", r"x\mathord+y"),
         ("mathord_relation", r"x\mathord{=}y"),
         ("mathord_less_than", r"x\mathord{<}y"),
+        ("mathord_letter", r"x \mathord a y"),
         ("mathopen", r"x+\mathopen)y"),
         ("mathclose", r"\mathclose(+x"),
+        ("mathrel", r"y \mathrel 0 x"),
+        ("mathpunct", r"y \mathpunct - x"),
         ("comma_before_close_paren", r"4,)"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}")
     ];

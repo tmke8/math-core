@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "y \\mathrel 0 x"
+---
+<math>
+    <mi>y</mi>
+    <mo stretchy="false" lspace="0.2778em" rspace="0.2778em">0</mo>
+    <mi>x</mi>
+</math>

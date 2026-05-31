@@ -451,34 +451,22 @@ where
             }
             Token::Punctuation(punc) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End)
-                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
-                {
-                    Some(MathSpacing::Zero)
-                } else {
-                    None
-                };
+                let (left, right) = self.state.punctuation_spacing(next_class, false);
                 Ok(Node::Operator {
                     op: punc.as_op(),
                     attrs: OpAttrs::empty(),
-                    left: None,
+                    left,
                     right,
                     size: None,
                 })
             }
             Token::ForcePunctuation(op) => {
                 class = Class::Punctuation;
-                let right = if matches!(next_class, Class::End)
-                    || matches!(self.state.style, Style::Script | Style::ScriptScript)
-                {
-                    Some(MathSpacing::Zero)
-                } else {
-                    Some(MathSpacing::ThreeMu)
-                };
+                let (left, right) = self.state.punctuation_spacing(next_class, true);
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
-                    left: Some(MathSpacing::Zero),
+                    left,
                     right,
                     size: None,
                 })
@@ -549,43 +537,57 @@ where
                         ));
                     }
                 };
-                let spacing = match kind {
+                let (left_spacing, right_spacing) = match kind {
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
                         // Recompute the next class:
                         let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
-                        self.state.bin_op_spacing(
+                        let spacing = self.state.bin_op_spacing(
                             parse_as.in_sequence(),
                             prev_class,
                             next_class,
                             true,
-                        )
+                        );
+                        (spacing, spacing)
                     }
                     MathClassKind::Ord => {
                         class = Class::Default;
-                        Some(MathSpacing::Zero)
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
                     }
                     MathClassKind::Open => {
                         class = Class::Open;
-                        Some(MathSpacing::Zero)
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
                     }
                     MathClassKind::Close => {
                         class = Class::Close;
-                        Some(MathSpacing::Zero)
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    }
+                    MathClassKind::Rel => {
+                        class = Class::Relation;
+                        self.state.relation_spacing(prev_class, next_class, true)
+                    }
+                    MathClassKind::Punct => {
+                        class = Class::Punctuation;
+                        self.state.punctuation_spacing(next_class, true)
                     }
                 };
                 let (tok, span) = tokspan.into_parts();
-                let op = match tok {
+                let op = match tok.unwrap_math() {
                     Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
                     Token::Op(op) | Token::Inner(op) => op.as_op(),
                     Token::BinaryOp(op) => op.as_op(),
                     Token::Relation(op) => op.as_op(),
                     Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op) | Token::ForceClose(op) | Token::ForceBinaryOp(op) => {
-                        op
-                    }
+                    Token::ForceRelation(op)
+                    | Token::ForceClose(op)
+                    | Token::ForceBinaryOp(op)
+                    | Token::ForcePunctuation(op) => op,
                     Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                     Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                    Token::Prime => symbol::PRIME.as_op(),
+                    Token::NonBreakingSpace => MathMLOperator::from_char(symbol::NO_BREAK_SPACE),
+                    Token::Letter(letter, _) => MathMLOperator::from_superchar(letter),
+                    Token::Digit(digit) => MathMLOperator::from_char(digit),
                     _ => {
                         break 'mathclass Err(LatexError(
                             span.into(),
@@ -596,8 +598,8 @@ where
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::STRETCHY_FALSE,
-                    left: spacing,
-                    right: spacing,
+                    left: left_spacing,
+                    right: right_spacing,
                     size: None,
                 })
             }
@@ -2054,6 +2056,26 @@ impl ParserState<'_, '_> {
         } else {
             None
         }
+    }
+
+    fn punctuation_spacing(
+        &self,
+        next_class: Class,
+        force: bool,
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        let left = force.then_some(MathSpacing::Zero);
+
+        let right = if matches!(next_class, Class::End)
+            || matches!(self.style, Style::Script | Style::ScriptScript)
+        {
+            Some(MathSpacing::Zero)
+        } else if force {
+            Some(MathSpacing::ThreeMu)
+        } else {
+            None
+        };
+
+        (left, right)
     }
 }
 
