@@ -865,3 +865,90 @@ pub fn get_command(command: &str) -> Option<Token<'static>> {
         None
     }
 }
+
+// ASCII operators are inlined into `fn next_token_internal`
+// <https://mirrors.ctan.org/macros/unicodetex/latex/unicode-math/unimath-symbols.pdf>
+static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
+    // `\mathopen`
+    // '√'
+    // '∛'
+    // '∜'
+    '⌈' => Open(symbol::LEFT_CEILING),
+    '⌊' => Open(symbol::LEFT_FLOOR),
+    '⌜' => ForceOpen(symbol::TOP_LEFT_CORNER, ForceStretchy::Pretend),
+    '⌞' => ForceOpen(symbol::BOTTOM_LEFT_CORNER, ForceStretchy::Pretend),
+    '⎰' => ForceOpen(symbol::UPPER_LEFT_OR_LOWER_RIGHT_CURLY_BRACKET_SECTION, ForceStretchy::Yes),
+    '❲' => Open(symbol::LIGHT_LEFT_TORTOISE_SHELL_BRACKET_ORNAMENT),
+    '⟅' => ForceOpen(symbol::LEFT_S_SHAPED_BAG_DELIMITER, ForceStretchy::Yes),
+    // '⟌'
+    '⟦' => Open(symbol::MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET),
+    '⟨' => Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
+    '⟪' => Open(symbol::MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET),
+    '⟬' => Open(symbol::MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET),
+    '⟮' => Open(symbol::MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS),
+    '⦃' => Open(symbol::LEFT_WHITE_CURLY_BRACKET),
+    '⦅' => Open(symbol::LEFT_WHITE_PARENTHESIS),
+    '⦇' => Open(symbol::Z_NOTATION_LEFT_IMAGE_BRACKET),
+    '⦉' => Open(symbol::Z_NOTATION_LEFT_BINDING_BRACKET),
+    '⦋' => Open(symbol::LEFT_SQUARE_BRACKET_WITH_UNDERBAR),
+    '⦍' => Open(symbol::LEFT_SQUARE_BRACKET_WITH_TICK_IN_TOP_CORNER),
+    '⦏' => Open(symbol::LEFT_SQUARE_BRACKET_WITH_TICK_IN_BOTTOM_CORNER),
+    '⦑' => Open(symbol::LEFT_ANGLE_BRACKET_WITH_DOT),
+    '⦓' => Open(symbol::LEFT_ARC_LESS_THAN_BRACKET),
+    '⦕' => Open(symbol::DOUBLE_LEFT_ARC_GREATER_THAN_BRACKET),
+    '⦗' => Open(symbol::LEFT_BLACK_TORTOISE_SHELL_BRACKET),
+    '⧘' => Open(symbol::LEFT_WIGGLY_FENCE),
+    '⧚' => Open(symbol::LEFT_DOUBLE_WIGGLY_FENCE),
+    '⧼' => Open(symbol::LEFT_POINTING_CURVED_ANGLE_BRACKET),
+
+    // `\mathclose`
+    '⌉' => Close(symbol::RIGHT_CEILING),
+    '⌋' => Close(symbol::RIGHT_FLOOR),
+    '⌝' => ForceClose(symbol::TOP_RIGHT_CORNER, ForceStretchy::Pretend),
+    '⌟' => ForceClose(symbol::BOTTOM_RIGHT_CORNER, ForceStretchy::Pretend),
+    '⎱' => ForceClose(symbol::UPPER_RIGHT_OR_LOWER_LEFT_CURLY_BRACKET_SECTION, ForceStretchy::Yes),
+    '❳' => Close(symbol::LIGHT_RIGHT_TORTOISE_SHELL_BRACKET_ORNAMENT),
+    '⟆' => ForceClose(symbol::RIGHT_S_SHAPED_BAG_DELIMITER, ForceStretchy::Yes),
+    '⟧' => Close(symbol::MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET),
+    '⟩' => Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
+    '⟫' => Close(symbol::MATHEMATICAL_RIGHT_DOUBLE_ANGLE_BRACKET),
+    '⟭' => Close(symbol::MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET),
+    '⟯' => Close(symbol::MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS),
+    '⦄' => Close(symbol::RIGHT_WHITE_CURLY_BRACKET),
+    '⦆' => Close(symbol::RIGHT_WHITE_PARENTHESIS),
+    '⦈' => Close(symbol::Z_NOTATION_RIGHT_IMAGE_BRACKET),
+    '⦊' => Close(symbol::Z_NOTATION_RIGHT_BINDING_BRACKET),
+    '⦌' => Close(symbol::RIGHT_SQUARE_BRACKET_WITH_UNDERBAR),
+    '⦎' => Close(symbol::RIGHT_SQUARE_BRACKET_WITH_TICK_IN_BOTTOM_CORNER),
+    '⦐' => Close(symbol::RIGHT_SQUARE_BRACKET_WITH_TICK_IN_TOP_CORNER),
+    '⦒' => Close(symbol::RIGHT_ANGLE_BRACKET_WITH_DOT),
+    '⦔' => Close(symbol::RIGHT_ARC_GREATER_THAN_BRACKET),
+    '⦖' => Close(symbol::DOUBLE_RIGHT_ARC_LESS_THAN_BRACKET),
+    '⦘' => Close(symbol::RIGHT_BLACK_TORTOISE_SHELL_BRACKET),
+    '⧙' => Close(symbol::RIGHT_WIGGLY_FENCE),
+    '⧛' => Close(symbol::RIGHT_DOUBLE_WIGGLY_FENCE),
+    '⧽' => Close(symbol::RIGHT_POINTING_CURVED_ANGLE_BRACKET),
+
+    // `\mathfence`
+    '|' => Ord(symbol::VERTICAL_LINE),
+    '‖' => Ord(symbol::DOUBLE_VERTICAL_LINE),
+    '⦀' => Ord(symbol::TRIPLE_VERTICAL_BAR_DELIMITER),
+
+    // `\mathbin`
+    '⧄' => BinaryOp(symbol::SQUARED_RISING_DIAGONAL_SLASH),
+    '⧅' => BinaryOp(symbol::SQUARED_FALLING_DIAGONAL_SLASH),
+    '⧈' => ForceBinaryOp(symbol::SQUARED_SQUARE.as_op()),
+
+    // `\mathord`
+    '″' => Ord(symbol::DOUBLE_PRIME),
+    '‴' => Ord(symbol::TRIPLE_PRIME),
+    '‶' => Ord(symbol::REVERSED_DOUBLE_PRIME),
+    '‷' => Ord(symbol::REVERSED_TRIPLE_PRIME),
+    '⁗' => Ord(symbol::QUADRUPLE_PRIME),
+};
+
+pub fn get_operator_from_unicode(c: char) -> Option<Token<'static>> {
+    UNICODE_OPERATORS
+        .get(&c)
+        .map(|tok| Token::MathOrTextMode(tok, c))
+}

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: ⟅ a + b ⟆
+---
+<math>
+    <mo form="prefix" lspace="0" rspace="0">⟅</mo>
+    <mi>a</mi>
+    <mo>+</mo>
+    <mi>b</mi>
+    <mo form="postfix" lspace="0" rspace="0">⟆</mo>
+</math>

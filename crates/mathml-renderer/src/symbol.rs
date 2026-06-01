@@ -964,10 +964,16 @@ pub const CHECK_MARK: char = '✓';
 
 pub const MALTESE_CROSS: char = '✠';
 
+pub const LIGHT_LEFT_TORTOISE_SHELL_BRACKET_ORNAMENT: OrdLike = OrdLike::new('❲', OrdCategory::F);
+pub const LIGHT_RIGHT_TORTOISE_SHELL_BRACKET_ORNAMENT: OrdLike = OrdLike::new('❳', OrdCategory::G);
+
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-A
 //
 pub const PERPENDICULAR: Rel = Rel::new('⟂', RelCategory::Default);
+
+pub const LEFT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟅');
+pub const RIGHT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟆');
 
 pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟦', OrdCategory::F);
 pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟧', OrdCategory::G);
@@ -975,8 +981,10 @@ pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: OrdLike = OrdLike::new('⟨', OrdCate
 pub const MATHEMATICAL_RIGHT_ANGLE_BRACKET: OrdLike = OrdLike::new('⟩', OrdCategory::G);
 pub const MATHEMATICAL_LEFT_DOUBLE_ANGLE_BRACKET: OrdLike = OrdLike::new('⟪', OrdCategory::F);
 pub const MATHEMATICAL_RIGHT_DOUBLE_ANGLE_BRACKET: OrdLike = OrdLike::new('⟫', OrdCategory::G);
-// pub const MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⟬', OrdCategory::F);
-// pub const MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⟭', OrdCategory::G);
+pub const MATHEMATICAL_LEFT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike =
+    OrdLike::new('⟬', OrdCategory::F);
+pub const MATHEMATICAL_RIGHT_WHITE_TORTOISE_SHELL_BRACKET: OrdLike =
+    OrdLike::new('⟭', OrdCategory::G);
 pub const MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS: OrdLike = OrdLike::new('⟮', OrdCategory::F);
 pub const MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS: OrdLike = OrdLike::new('⟯', OrdCategory::G);
 
@@ -1001,23 +1009,53 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel::new('⤚', RelCategory::A);
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
+pub const TRIPLE_VERTICAL_BAR_DELIMITER: OrdLike =
+    OrdLike::new('⦀', OrdCategory::FGandForceDefault);
+
 pub const LEFT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦃', OrdCategory::F);
 pub const RIGHT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦄', OrdCategory::G);
-// pub const LEFT_WHITE_PARENTHESIS: Fence = fence('⦅', Stretchy::Always);
-// pub const RIGHT_WHITE_PARENTHESIS: Fence = fence('⦆', false, Stretchy::Always);
+pub const LEFT_WHITE_PARENTHESIS: OrdLike = OrdLike::new('⦅', OrdCategory::F);
+pub const RIGHT_WHITE_PARENTHESIS: OrdLike = OrdLike::new('⦆', OrdCategory::G);
 pub const Z_NOTATION_LEFT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦇', OrdCategory::F);
 pub const Z_NOTATION_RIGHT_IMAGE_BRACKET: OrdLike = OrdLike::new('⦈', OrdCategory::G);
 pub const Z_NOTATION_LEFT_BINDING_BRACKET: OrdLike = OrdLike::new('⦉', OrdCategory::F);
 pub const Z_NOTATION_RIGHT_BINDING_BRACKET: OrdLike = OrdLike::new('⦊', OrdCategory::G);
+pub const LEFT_SQUARE_BRACKET_WITH_UNDERBAR: OrdLike = OrdLike::new('⦋', OrdCategory::F);
+pub const RIGHT_SQUARE_BRACKET_WITH_UNDERBAR: OrdLike = OrdLike::new('⦌', OrdCategory::G);
+
+pub const LEFT_SQUARE_BRACKET_WITH_TICK_IN_TOP_CORNER: OrdLike = OrdLike::new('⦍', OrdCategory::F);
+pub const RIGHT_SQUARE_BRACKET_WITH_TICK_IN_BOTTOM_CORNER: OrdLike =
+    OrdLike::new('⦎', OrdCategory::G);
+pub const LEFT_SQUARE_BRACKET_WITH_TICK_IN_BOTTOM_CORNER: OrdLike =
+    OrdLike::new('⦏', OrdCategory::F);
+pub const RIGHT_SQUARE_BRACKET_WITH_TICK_IN_TOP_CORNER: OrdLike = OrdLike::new('⦐', OrdCategory::G);
+
+pub const LEFT_ANGLE_BRACKET_WITH_DOT: OrdLike = OrdLike::new('⦑', OrdCategory::F);
+pub const RIGHT_ANGLE_BRACKET_WITH_DOT: OrdLike = OrdLike::new('⦒', OrdCategory::G);
+pub const LEFT_ARC_LESS_THAN_BRACKET: OrdLike = OrdLike::new('⦓', OrdCategory::F);
+pub const RIGHT_ARC_GREATER_THAN_BRACKET: OrdLike = OrdLike::new('⦔', OrdCategory::G);
+pub const DOUBLE_LEFT_ARC_GREATER_THAN_BRACKET: OrdLike = OrdLike::new('⦕', OrdCategory::G);
+pub const DOUBLE_RIGHT_ARC_LESS_THAN_BRACKET: OrdLike = OrdLike::new('⦖', OrdCategory::F);
+pub const LEFT_BLACK_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⦗', OrdCategory::F);
+pub const RIGHT_BLACK_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⦘', OrdCategory::G);
 
 pub const CIRCLE_WITH_HORIZONTAL_BAR: MathMLOperator = MathMLOperator::from_char('⦵');
 
 pub const SQUARED_RISING_DIAGONAL_SLASH: Bin = Bin::new('⧄', BinCategory::B);
 pub const SQUARED_FALLING_DIAGONAL_SLASH: Bin = Bin::new('⧅', BinCategory::B);
 pub const SQUARED_SQUARE: Op = Op::new('⧈', OpCategory::C);
+
+pub const LEFT_WIGGLY_FENCE: OrdLike = OrdLike::new('⧘', OrdCategory::F);
+pub const RIGHT_WIGGLY_FENCE: OrdLike = OrdLike::new('⧙', OrdCategory::G);
+pub const LEFT_DOUBLE_WIGGLY_FENCE: OrdLike = OrdLike::new('⧚', OrdCategory::F);
+pub const RIGHT_DOUBLE_WIGGLY_FENCE: OrdLike = OrdLike::new('⧛', OrdCategory::G);
+
 pub const BLACK_LOZENGE: char = '⧫';
 
 // pub const REVERSE_SOLIDUS_OPERATOR: Bin = Bin::new('⧵', BinCategory::BD);
+
+pub const LEFT_POINTING_CURVED_ANGLE_BRACKET: OrdLike = OrdLike::new('⧼', OrdCategory::F);
+pub const RIGHT_POINTING_CURVED_ANGLE_BRACKET: OrdLike = OrdLike::new('⧽', OrdCategory::G);
 
 //
 // Unicode Block: Supplemental Mathematical Operators

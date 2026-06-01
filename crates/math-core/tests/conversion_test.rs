@@ -494,6 +494,8 @@ fn main() {
         ("mathrel", r"y \mathrel 0 x"),
         ("mathpunct", r"y \mathpunct - x"),
         ("comma_before_close_paren", r"4,)"),
+        ("unicode_open_close", "⦃ a + b ⦄"),
+        ("unicode_open_close_force", "⟅ a + b ⟆"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
         ("fake_prescript", r"_1^2 \frac{a}{b}"),
         ("fake_prescript_standalone", r"_1^2"),

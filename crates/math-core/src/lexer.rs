@@ -5,7 +5,7 @@ use std::str::CharIndices;
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::CommandConfig;
-use crate::commands::get_command;
+use crate::commands::{get_command, get_operator_from_unicode};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{EndToken, Mode, Span, TokSpan, Token};
@@ -263,6 +263,23 @@ impl<'config, 'source> Lexer<'config, 'source> {
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
+            '!' => Token::MathOrTextMode(&Token::Close(symbol::EXCLAMATION_MARK), '!'),
+            '(' => Token::MathOrTextMode(&Token::Open(symbol::LEFT_PARENTHESIS), '('),
+            ')' => Token::MathOrTextMode(&Token::Close(symbol::RIGHT_PARENTHESIS), ')'),
+            '*' => Token::MathOrTextMode(
+                &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },
+                '*',
+            ),
+            '+' => Token::MathOrTextMode(&Token::BinaryOp(symbol::PLUS_SIGN), '+'),
+            ',' => Token::MathOrTextMode(&Token::Punctuation(symbol::COMMA), ','),
+            '-' => Token::MathOrTextMode(&Token::BinaryOp(symbol::MINUS_SIGN), '-'),
+            '/' => Token::MathOrTextMode(&Token::Ord(symbol::SOLIDUS), '/'),
+            ':' => {
+                Token::MathOrTextMode(&const { Token::ForceRelation(symbol::COLON.as_op()) }, ':')
+            }
+            ';' => Token::MathOrTextMode(&Token::Punctuation(symbol::SEMICOLON), ';'),
+            '=' => Token::MathOrTextMode(&Token::Relation(symbol::EQUALS_SIGN), '='),
+            '|' => Token::MathOrTextMode(&Token::Ord(symbol::VERTICAL_LINE), '|'),
             '\\' => {
                 let (cmd_string, end) = self.read_command();
                 let span = Span::new(loc, end);
@@ -270,23 +287,11 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 self.skip_whitespace();
                 return self.parse_command(span, cmd_string);
             }
-            '″' => Token::Ord(symbol::DOUBLE_PRIME),
-            '‴' => Token::Ord(symbol::TRIPLE_PRIME),
-            '‶' => Token::Ord(symbol::REVERSED_DOUBLE_PRIME),
-            '‷' => Token::Ord(symbol::REVERSED_TRIPLE_PRIME),
-            '⁗' => Token::Ord(symbol::QUADRUPLE_PRIME),
-            '⧄' => Token::BinaryOp(symbol::SQUARED_RISING_DIAGONAL_SLASH),
-            '⧅' => Token::BinaryOp(symbol::SQUARED_FALLING_DIAGONAL_SLASH),
-            '⧈' => Token::ForceBinaryOp(symbol::SQUARED_SQUARE.as_op()),
-            c => {
-                if let Some(tok) = nonalpha_nonspecial_ascii_to_token(c) {
-                    tok
-                } else if c.is_ascii_digit() {
-                    Token::Digit(c)
-                } else {
-                    Token::Letter(c.into(), Mode::MathOrText)
-                }
-            }
+            c if c.is_ascii_digit() => Token::Digit(c),
+            // fast path to avoid expensive lookup below
+            c if c.is_ascii_alphabetic() => Token::Letter(c.into(), Mode::MathOrText),
+            c if let Some(tok) = get_operator_from_unicode(c) => tok,
+            c => Token::Letter(c.into(), Mode::MathOrText),
         };
         LexerResult::Tok(TokSpan::new(tok, span))
     }
@@ -374,25 +379,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
 }
 
 type CharSpan = (Option<char>, Range<usize>);
-
-fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
-    let tok_ref = match ch {
-        '!' => &Token::Close(symbol::EXCLAMATION_MARK),
-        '(' => &Token::Open(symbol::LEFT_PARENTHESIS),
-        ')' => &Token::Close(symbol::RIGHT_PARENTHESIS),
-        '*' => &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },
-        '+' => &Token::BinaryOp(symbol::PLUS_SIGN),
-        ',' => &Token::Punctuation(symbol::COMMA),
-        '-' => &Token::BinaryOp(symbol::MINUS_SIGN),
-        '/' => &Token::Ord(symbol::SOLIDUS),
-        ':' => &const { Token::ForceRelation(symbol::COLON.as_op()) },
-        ';' => &Token::Punctuation(symbol::SEMICOLON),
-        '=' => &Token::Relation(symbol::EQUALS_SIGN),
-        '|' => &Token::Ord(symbol::VERTICAL_LINE),
-        _ => return None,
-    };
-    Some(Token::MathOrTextMode(tok_ref, ch))
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnvMarker {
