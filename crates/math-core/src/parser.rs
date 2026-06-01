@@ -528,15 +528,7 @@ where
                 })
             }
             Token::MathClass(kind) => 'mathclass: {
-                let tokspan = match self.tokens.read_argument(false)?.into_one_or_none()? {
-                    OneOrNone::One(tokspan) => tokspan,
-                    OneOrNone::None(span) => {
-                        break 'mathclass Err(LatexError(
-                            span,
-                            LatexErrKind::ExpectedAtLeastOneToken,
-                        ));
-                    }
-                };
+                let one_or_none = self.tokens.read_argument(false)?.into_one_or_none()?;
                 let (left_spacing, right_spacing) = match kind {
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
@@ -571,37 +563,49 @@ where
                         self.state.punctuation_spacing(next_class, true)
                     }
                 };
-                let (tok, span) = tokspan.into_parts();
-                let op = match tok.unwrap_math() {
-                    Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
-                    Token::Op(op) | Token::Inner(op) => op.as_op(),
-                    Token::BinaryOp(op) => op.as_op(),
-                    Token::Relation(op) => op.as_op(),
-                    Token::Punctuation(op) => op.as_op(),
-                    Token::ForceRelation(op)
-                    | Token::ForceClose(op)
-                    | Token::ForceBinaryOp(op)
-                    | Token::ForcePunctuation(op) => op,
-                    Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                    Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                    Token::Prime => symbol::PRIME.as_op(),
-                    Token::NonBreakingSpace => MathMLOperator::from_char(symbol::NO_BREAK_SPACE),
-                    Token::Letter(letter, _) => MathMLOperator::from_superchar(letter),
-                    Token::Digit(digit) => MathMLOperator::from_char(digit),
-                    _ => {
-                        break 'mathclass Err(LatexError(
-                            span.into(),
-                            LatexErrKind::UnsupportedMathClassArgument,
-                        ));
+                match one_or_none {
+                    OneOrNone::One(tokspan) => {
+                        let (tok, span) = tokspan.into_parts();
+                        let op = match tok.unwrap_math() {
+                            Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
+                            Token::Op(op) | Token::Inner(op) => op.as_op(),
+                            Token::BinaryOp(op) => op.as_op(),
+                            Token::Relation(op) => op.as_op(),
+                            Token::Punctuation(op) => op.as_op(),
+                            Token::ForceRelation(op)
+                            | Token::ForceClose(op)
+                            | Token::ForceBinaryOp(op)
+                            | Token::ForcePunctuation(op) => op,
+                            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
+                            Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
+                            Token::Prime => symbol::PRIME.as_op(),
+                            Token::NonBreakingSpace => {
+                                MathMLOperator::from_char(symbol::NO_BREAK_SPACE)
+                            }
+                            Token::Letter(letter, _) => MathMLOperator::from_superchar(letter),
+                            Token::Digit(digit) => MathMLOperator::from_char(digit),
+                            _ => {
+                                break 'mathclass Err(LatexError(
+                                    span.into(),
+                                    LatexErrKind::UnsupportedMathClassArgument,
+                                ));
+                            }
+                        };
+                        Ok(Node::Operator {
+                            op,
+                            attrs: OpAttrs::STRETCHY_FALSE,
+                            left: left_spacing,
+                            right: right_spacing,
+                            size: None,
+                        })
                     }
-                };
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::STRETCHY_FALSE,
-                    left: left_spacing,
-                    right: right_spacing,
-                    size: None,
-                })
+                    OneOrNone::None(_) => Ok(Node::PseudoOp {
+                        name: "",
+                        attrs: OpAttrs::STRETCHY_FALSE,
+                        left: left_spacing,
+                        right: right_spacing,
+                    }),
+                }
             }
             Token::Inner(op) => {
                 class = Class::Inner;

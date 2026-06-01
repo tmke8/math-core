@@ -34,7 +34,6 @@ pub(crate) enum LatexErrKind {
     ExpectedRelation,
     UnsupportedMathClassArgument,
     ExpectedAtMostOneToken,
-    ExpectedAtLeastOneToken,
     BoundFollowedByBound,
     DuplicateSubOrSup,
     CannotBeUsedAsArgument,
@@ -162,9 +161,6 @@ impl LatexErrKind {
             }
             LatexErrKind::ExpectedAtMostOneToken => {
                 write!(s, "Expected at most one token as argument.")?;
-            }
-            LatexErrKind::ExpectedAtLeastOneToken => {
-                write!(s, "Expected at least one token as argument.")?;
             }
             LatexErrKind::BoundFollowedByBound => {
                 write!(s, "'^' or '_' directly followed by '^', '_' or prime.")?;
@@ -319,7 +315,6 @@ impl LatexError {
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
             LatexErrKind::UnsupportedMathClassArgument => "unsupported argument".into(),
             LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
-            LatexErrKind::ExpectedAtLeastOneToken => "expected at least one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),
