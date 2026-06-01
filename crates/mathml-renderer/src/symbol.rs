@@ -894,6 +894,10 @@ pub const BOTTOM_LEFT_CORNER: MathMLOperator = MathMLOperator::from_char('⌞');
 pub const BOTTOM_RIGHT_CORNER: MathMLOperator = MathMLOperator::from_char('⌟');
 pub const FROWN: Rel = Rel::new('⌢', RelCategory::Default);
 pub const SMILE: Rel = Rel::new('⌣', RelCategory::Default);
+pub const UPPER_LEFT_OR_LOWER_RIGHT_CURLY_BRACKET_SECTION: MathMLOperator =
+    MathMLOperator::from_char('⎰');
+pub const UPPER_RIGHT_OR_LOWER_LEFT_CURLY_BRACKET_SECTION: MathMLOperator =
+    MathMLOperator::from_char('⎱');
 pub const TOP_SQUARE_BRACKET: OrdLike = OrdLike::new('⎴', OrdCategory::I);
 pub const BOTTOM_SQUARE_BRACKET: OrdLike = OrdLike::new('⎵', OrdCategory::I);
 pub const TOP_PARENTHESIS: OrdLike = OrdLike::new('⏜', OrdCategory::I);
