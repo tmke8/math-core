@@ -119,6 +119,8 @@ pub enum Token<'source> {
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
+    /// A token to force an operator to behave like an opening symbol (mathopen).
+    ForceOpen(MathMLOperator),
     /// A token to force an operator to behave like a closing symbol (mathclose).
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
@@ -228,7 +230,9 @@ impl Token<'_> {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
-            Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
+            Close(_) | SquareBracketClose | ForceOpen(_) | ForceClose(_) | Right => {
+                Some(Class::Close)
+            }
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)

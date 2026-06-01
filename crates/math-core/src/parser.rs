@@ -573,6 +573,7 @@ where
                             Token::Relation(op) => op.as_op(),
                             Token::Punctuation(op) => op.as_op(),
                             Token::ForceRelation(op)
+                            | Token::ForceOpen(op)
                             | Token::ForceClose(op)
                             | Token::ForceBinaryOp(op)
                             | Token::ForcePunctuation(op) => op,
@@ -1069,11 +1070,21 @@ where
                     size: None,
                 })
             }
+            Token::ForceOpen(op) => {
+                class = Class::Open;
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::FORM_PREFIX,
+                    left: None,
+                    right: None,
+                    size: None,
+                })
+            }
             Token::ForceClose(op) => {
                 class = Class::Close;
                 Ok(Node::Operator {
                     op,
-                    attrs: OpAttrs::empty(),
+                    attrs: OpAttrs::FORM_POSTFIX,
                     left: None,
                     right: None,
                     size: None,
