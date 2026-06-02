@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "y \\mathpunct - x"
+---
+<math>
+    <mi>y</mi>
+    <mo stretchy="false" lspace="0" rspace="0.1667em">−</mo>
+    <mi>x</mi>
+</math>

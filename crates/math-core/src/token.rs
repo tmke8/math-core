@@ -191,6 +191,10 @@ pub enum MathClassKind {
     Open,
     /// `\mathclose`: closing delimiter character class, with all spacing forced to zero.
     Close,
+    /// `\mathrel`: relation character class.
+    Rel,
+    /// `\mathpunct`: punctuation character class.
+    Punct,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -241,6 +245,8 @@ impl Token<'_> {
                 MathClassKind::Bin => Class::BinaryOp,
                 MathClassKind::Open => Class::Open,
                 MathClassKind::Close => Class::Close,
+                MathClassKind::Rel => Class::Relation,
+                MathClassKind::Punct => Class::Punctuation,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag

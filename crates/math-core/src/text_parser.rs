@@ -89,7 +89,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     Token::Digit(digit) => Ok(digit.into()),
                     Token::Prime => Ok(SuperChar::from_char('’')),
                     Token::Whitespace | Token::NonBreakingSpace => {
-                        Ok(SuperChar::from_char('\u{A0}'))
+                        Ok(SuperChar::from_char(symbol::NO_BREAK_SPACE))
                     }
                     Token::InternalStringLiteral(output) => {
                         if let Some(str_builder) = &mut str_builder {
