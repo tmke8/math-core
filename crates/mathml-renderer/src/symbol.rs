@@ -914,16 +914,16 @@ pub const BLACK_SQUARE: char = '■';
 pub const WHITE_SQUARE: char = '□';
 
 pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
-pub const WHITE_UP_POINTING_TRIANGLE: Rel = Rel::new('△', RelCategory::Default);
+pub const WHITE_UP_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('△');
 
-pub const BLACK_RIGHT_POINTING_TRIANGLE: char = '▶';
-pub const WHITE_RIGHT_POINTING_TRIANGLE: char = '▷';
+pub const BLACK_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▶');
+pub const WHITE_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▷');
 
 pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
-pub const WHITE_DOWN_POINTING_TRIANGLE: char = '▽';
+pub const WHITE_DOWN_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▽');
 
-pub const BLACK_LEFT_POINTING_TRIANGLE: char = '◀';
-pub const WHITE_LEFT_POINTING_TRIANGLE: char = '◁';
+pub const BLACK_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◀');
+pub const WHITE_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◁');
 
 pub const LOZENGE: char = '◊';
 
