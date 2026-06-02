@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{\\color[RGB]{255 ,0, 127}x^2}"
+---
+<math>
+    <mrow style="color:#FF007F;">
+        <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msup>
+    </mrow>
+</math>
