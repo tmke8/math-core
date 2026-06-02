@@ -599,11 +599,13 @@ where
                             size: None,
                         })
                     }
-                    OneOrNone::None(_) => Ok(Node::PseudoOp {
-                        name: "",
-                        attrs: OpAttrs::STRETCHY_FALSE,
+                    OneOrNone::None(_) => Ok(Node::Operator {
+                        // An empty `<mo></mo>` produces no spacing in Firefox
+                        op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
+                        attrs: OpAttrs::empty(),
                         left: left_spacing,
                         right: right_spacing,
+                        size: None,
                     }),
                 }
             }

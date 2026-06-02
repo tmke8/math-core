@@ -4,6 +4,6 @@ expression: "x \\mathbin{} y"
 ---
 <math>
     <mi>x</mi>
-    <mo stretchy="false" lspace="0.2222em" rspace="0.2222em"></mo>
+    <mo lspace="0.2222em" rspace="0.2222em">⁣</mo>
     <mi>y</mi>
 </math>
