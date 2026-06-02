@@ -1,8 +1,7 @@
-use mathml_renderer::super_char::SuperChar;
-use mathml_renderer::symbol;
 use mathml_renderer::{
     attribute::{FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style, TextTransform},
-    super_char::OverlayChar,
+    super_char::{OverlayChar, SuperChar},
+    symbol::{self, MathMLOperator},
 };
 
 use crate::character_class::{MathVariant, ParenType};
@@ -257,7 +256,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "curvearrowright" => Relation(symbol::CLOCKWISE_TOP_SEMICIRCLE_ARROW),
     "dArr" => Relation(symbol::DOWNWARDS_DOUBLE_ARROW),
     "dag" => Letter(SuperChar::from_char(symbol::DAGGER), Mode::MathOrText),
-    "dagger" => Letter(SuperChar::from_char(symbol::DAGGER), Mode::Math),
+    "dagger" => ForceBinaryOp(MathMLOperator::from_char(symbol::DAGGER)),
     "daleth" => Letter(SuperChar::from_char(symbol::DALET_SYMBOL), Mode::Math),
     "darr" => Relation(symbol::DOWNWARDS_ARROW),
     "dashcolon" => Relation(symbol::EXCESS),
@@ -267,7 +266,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "dbinom" => Binom(Some(FracAttr::DisplayStyleTrue)),
     "dblcolon" => Relation(symbol::PROPORTION),
     "ddag" => Letter(SuperChar::from_char(symbol::DOUBLE_DAGGER), Mode::MathOrText),
-    "ddagger" => Letter(SuperChar::from_char(symbol::DOUBLE_DAGGER), Mode::Math),
+    "ddagger" => ForceBinaryOp(MathMLOperator::from_char(symbol::DOUBLE_DAGGER)),
     "ddddot" => Accent(symbol::COMBINING_FOUR_DOTS_ABOVE, true, OpAttrs::empty()),
     "dddot" => Accent(symbol::COMBINING_THREE_DOTS_ABOVE, true, OpAttrs::empty()),
     "ddot" => Accent(symbol::DIAERESIS, true, OpAttrs::empty()),
