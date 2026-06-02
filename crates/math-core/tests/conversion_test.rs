@@ -115,6 +115,10 @@ fn main() {
         ("simple_binomial_coefficient", r"\binom12"),
         ("stretchy_parentheses", r"\left( x \right)"),
         ("stretchy_one-sided_parenthesis", r"\left( x \right."),
+        (
+            "stretchy_force",
+            r"\left\lmoustache \frac{x}{y} \right\rmoustache",
+        ),
         ("simple_integral", r"\int dx"),
         ("contour_integral", r"\oint_C dz"),
         ("simple_overset", r"\overset{n}{X}"),

@@ -5,6 +5,8 @@ use mathml_renderer::{
     symbol::{self, MathMLOperator, OrdCategory, OrdLike, Rel, RelCategory},
 };
 
+use crate::token::ForceStretchy;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Class {
     /// `mathord`
@@ -118,6 +120,19 @@ impl StretchableOp {
                 spacing: DelimiterSpacing::Relation,
             }),
             RelCategory::Default => None,
+        }
+    }
+
+    /// Creates a `StretchableOp` from a [`ForceStretchy`] if it's stretchable.
+    /// Used with `ForceOpen`/`ForceClose`.
+    pub const fn from_force_stretchy(op: MathMLOperator, stretch: ForceStretchy) -> Option<Self> {
+        match stretch {
+            ForceStretchy::Yes => Some(StretchableOp {
+                op,
+                stretchy: Stretchy::Never,
+                spacing: DelimiterSpacing::Zero,
+            }),
+            ForceStretchy::No => None,
         }
     }
 }

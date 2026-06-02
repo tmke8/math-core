@@ -573,8 +573,8 @@ where
                             Token::Relation(op) => op.as_op(),
                             Token::Punctuation(op) => op.as_op(),
                             Token::ForceRelation(op)
-                            | Token::ForceOpen(op)
-                            | Token::ForceClose(op)
+                            | Token::ForceOpen(op, _)
+                            | Token::ForceClose(op, _)
                             | Token::ForceBinaryOp(op)
                             | Token::ForcePunctuation(op) => op,
                             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
@@ -1070,7 +1070,7 @@ where
                     size: None,
                 })
             }
-            Token::ForceOpen(op) => {
+            Token::ForceOpen(op, _) => {
                 class = Class::Open;
                 Ok(Node::Operator {
                     op,
@@ -1080,7 +1080,7 @@ where
                     size: None,
                 })
             }
-            Token::ForceClose(op) => {
+            Token::ForceClose(op, _) => {
                 class = Class::Close;
                 Ok(Node::Operator {
                     op,
@@ -2145,6 +2145,9 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
     let delim = match tok {
         Token::Ord(op) | Token::Open(op) | Token::Close(op) => StretchableOp::from_ord(op),
         Token::Relation(rel) => StretchableOp::from_rel(rel),
+        Token::ForceOpen(op, stretch) | Token::ForceClose(op, stretch) => {
+            StretchableOp::from_force_stretchy(op, stretch)
+        }
         Token::SquareBracketOpen => Some(SQ_L_BRACKET),
         Token::SquareBracketClose => Some(SQ_R_BRACKET),
         _ => None,

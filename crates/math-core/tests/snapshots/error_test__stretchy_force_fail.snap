@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\left\\ulcorner \\frac{x}{y} \\right\\rlcorner"
+---
+Error: There must be a parenthesis after "\left", but not found.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \left\ulcorner \frac{x}{y} \right\rlcorner
+   │      ────┬────  
+   │          ╰────── expected a delimiter here
+───╯

@@ -120,11 +120,11 @@ pub enum Token<'source> {
     /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
     /// A token to force an operator to behave like an opening symbol (mathopen).
-    ForceOpen(MathMLOperator),
+    ForceOpen(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like a closing symbol (mathclose).
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
-    ForceClose(MathMLOperator),
+    ForceClose(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like punctuation (mathpunct).
     ForcePunctuation(MathMLOperator),
     /// `\mathord` and `\mathbin`.
@@ -217,6 +217,15 @@ pub enum InfixDelim {
     Brack,
 }
 
+/// For [`Token::ForceOpen`] and [`Token::ForceClose`]:
+/// whether to force this token to be stretchy
+/// (when combined with [`Token::Left`]/[`Token::Right`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForceStretchy {
+    No,
+    Yes,
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -230,7 +239,7 @@ impl Token<'_> {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
-            Close(_) | SquareBracketClose | ForceOpen(_) | ForceClose(_) | Right => {
+            Close(_) | SquareBracketClose | ForceOpen(..) | ForceClose(..) | Right => {
                 Some(Class::Close)
             }
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
