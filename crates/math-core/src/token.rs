@@ -238,10 +238,10 @@ impl Token<'_> {
         match self.unwrap_math_ref() {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
-            Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
-            Close(_) | SquareBracketClose | ForceOpen(..) | ForceClose(..) | Right => {
-                Some(Class::Close)
+            Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
+                Some(Class::Open)
             }
+            Close(_) | SquareBracketClose | ForceClose(..) | Right => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)
