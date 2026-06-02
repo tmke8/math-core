@@ -7,7 +7,7 @@ expression: "\\bigcirc, \\triangle, \\bigtriangleup, \\bigtriangledown"
     <mo>,</mo>
     <mi>△</mi>
     <mo>,</mo>
-    <mi>△</mi>
+    <mo lspace="0" rspace="0">△</mo>
     <mo>,</mo>
-    <mi>▽</mi>
+    <mo lspace="0" rspace="0">▽</mo>
 </math>
