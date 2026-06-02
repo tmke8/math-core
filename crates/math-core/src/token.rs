@@ -222,7 +222,15 @@ pub enum InfixDelim {
 /// (when combined with [`Token::Left`]/[`Token::Right`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ForceStretchy {
+    /// Never apply `stretchy="true"`, and don't allow
+    /// combining with `\left`/`\right`
     No,
+    /// Allow combining with `\left`/`\right`,
+    /// but don't actually use `stretchy="true"`.
+    /// Used for the corner brackets
+    Pretend,
+    /// Allow combining with `\left`/`\right`,
+    /// applying `stretchy="true"`
     Yes,
 }
 

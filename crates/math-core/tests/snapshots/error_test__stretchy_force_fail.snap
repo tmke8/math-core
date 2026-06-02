@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\left\\ulcorner \\frac{x}{y} \\right\\rlcorner"
+expression: "\\left( \\frac{x}{y} \\right!"
 ---
-Error: There must be a parenthesis after "\left", but not found.
-   ╭─[ <input>:1:6 ]
+Error: There must be a parenthesis after "\right", but not found.
+   ╭─[ <input>:1:26 ]
    │
- 1 │ \left\ulcorner \frac{x}{y} \right\rlcorner
-   │      ────┬────  
-   │          ╰────── expected a delimiter here
+ 1 │ \left( \frac{x}{y} \right!
+   │                          ┬  
+   │                          ╰── expected a delimiter here
 ───╯

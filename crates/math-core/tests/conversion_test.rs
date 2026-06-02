@@ -147,6 +147,10 @@ fn main() {
         ("underscore", r"x\ y"),
         ("stretchy_brace", r"\left\{ x  ( x + 2 ) \right\}"),
         ("stretchy_bracket", r"\left[ x  ( x + 2 ) \right]"),
+        (
+            "stretchy_pretend",
+            r"\left\ulcorner \frac{x}{y} \right\lrcorner",
+        ),
         ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
         (
             "align",

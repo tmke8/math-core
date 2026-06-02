@@ -49,6 +49,7 @@ pub enum MathVariant {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Stretchy {
     /// The operator is always stretchy (e.g. `(`, `)`).
+    /// (Or, it's [`ForceStretchy::Pretend`].)
     Always = 1,
     /// The operator is only stretchy as a pre- or postfix operator (e.g. `|`).
     PrePostfix,
@@ -130,6 +131,11 @@ impl StretchableOp {
             ForceStretchy::Yes => Some(StretchableOp {
                 op,
                 stretchy: Stretchy::Never,
+                spacing: DelimiterSpacing::Zero,
+            }),
+            ForceStretchy::Pretend => Some(StretchableOp {
+                op,
+                stretchy: Stretchy::Always,
                 spacing: DelimiterSpacing::Zero,
             }),
             ForceStretchy::No => None,
