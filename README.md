@@ -234,6 +234,10 @@ Note: at the time of this writing (June 2025), none of the following libraries r
 - [Temml](https://github.com/ronkok/Temml): a fork of [KaTeX](https://katex.org/) which removed the HTML output of KaTeX and kept only on the MathML output. *Temml* produces much higher quality MathML output than KaTeX. The differences to this library are:
 	- *Temml* is written in JavaScript, with all the pros and cons that result from that
 	- *Temml* is much more willing to work around browser bugs to get consistent rendering, with specific CSS hacks for each browser; *math-core* does this to a much lesser degree. Even if you don’t include the CSS from `mathfixes.css`, math-core’s output will look mostly good.
+- [LaTeXML](https://dlmf.nist.gov/LaTeXML/): a suite of LaTeX-to-XML converters, including `latexmlmath`, which generates MathML from standalone math snippets
+    - *LaTeXML* attempts to implement *all* of LaTeX, not just the math typesetting
+    - *LaTeXML* is used by arXiv to publish accessible HTML versions of their reports, most of which were originally targetted for LaTeX itself
+    - *LaTeXML* is written in Perl 5, with all the pros and cons that result from that
 
 ## Acknowledgments
 This code was originally forked from https://github.com/osanshouo/latex2mathml. The basic architecture of a lexer and a parser remains, but all the details have drastically changed and the supported portion of LaTeX commands has drastically increased.
