@@ -8,7 +8,7 @@ use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    InfixDelim, MathClassKind, Mode, TextToken,
+    ForceStretchy, InfixDelim, MathClassKind, Mode, TextToken,
     Token::{self, *},
 };
 
@@ -433,9 +433,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ll" => Relation(symbol::MUCH_LESS_THAN),
     "llangle" => Open(symbol::Z_NOTATION_LEFT_BINDING_BRACKET), // from "stix"
     "llbracket" => Open(symbol::MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET),
-    "llcorner" => Letter(SuperChar::from_char(symbol::BOTTOM_LEFT_CORNER), Mode::Math),
+    "llcorner" => ForceOpen(symbol::BOTTOM_LEFT_CORNER, ForceStretchy::Pretend),
     "lll" => Relation(symbol::VERY_MUCH_LESS_THAN),
     "llless" => Relation(symbol::VERY_MUCH_LESS_THAN),
+    "lmoustache" => ForceOpen(symbol::UPPER_LEFT_OR_LOWER_RIGHT_CURLY_BRACKET_SECTION, ForceStretchy::Yes),
     "llparenthesis" => Open(symbol::Z_NOTATION_LEFT_IMAGE_BRACKET),
     "lnapprox" => Relation(symbol::LESS_THAN_AND_NOT_APPROXIMATE),
     "lneq" => Relation(symbol::LESS_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO),
@@ -453,7 +454,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lq" => Letter(SuperChar::from_char(symbol::LEFT_SINGLE_QUOTATION_MARK), Mode::MathOrText),
     "lrArr" => Relation(symbol::LEFT_RIGHT_DOUBLE_ARROW),
     "lrarr" => Relation(symbol::LEFT_RIGHT_ARROW),
-    "lrcorner" => Letter(SuperChar::from_char(symbol::BOTTOM_RIGHT_CORNER), Mode::Math),
+    "lrcorner" => ForceClose(symbol::BOTTOM_RIGHT_CORNER, ForceStretchy::Pretend),
     "lt" => Relation(symbol::LESS_THAN_SIGN),
     "ltimes" => ForceBinaryOp(symbol::LEFT_NORMAL_FACTOR_SEMIDIRECT_PRODUCT.as_op()),
     "lvert" => Open(symbol::VERTICAL_LINE),
@@ -635,6 +636,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "rightthreetimes" => ForceBinaryOp(symbol::RIGHT_SEMIDIRECT_PRODUCT.as_op()),
     "risingdotseq" => Relation(symbol::IMAGE_OF_OR_APPROXIMATELY_EQUAL_TO),
     "rm" => TransformSwitch(MathVariant::Normal),
+    "rmoustache" => ForceClose(symbol::UPPER_RIGHT_OR_LOWER_LEFT_CURLY_BRACKET_SECTION, ForceStretchy::Yes),
     "rq" => Letter(SuperChar::from_char(symbol::RIGHT_SINGLE_QUOTATION_MARK), Mode::MathOrText),
     "rrangle" => Close(symbol::Z_NOTATION_RIGHT_BINDING_BRACKET), // from "stix"
     "rrbracket" => Close(symbol::MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET),
@@ -753,7 +755,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "u" => TextMode(TextToken::Accent(symbol::COMBINING_BREVE)),
     "uArr" => Relation(symbol::UPWARDS_DOUBLE_ARROW),
     "uarr" => Relation(symbol::UPWARDS_ARROW),
-    "ulcorner" => Letter(SuperChar::from_char(symbol::TOP_LEFT_CORNER), Mode::Math),
+    "ulcorner" => ForceOpen(symbol::TOP_LEFT_CORNER, ForceStretchy::Pretend),
     "underbrace" => OverUnderBrace(symbol::BOTTOM_CURLY_BRACKET, false),
     "underbracket" => OverUnderBrace(symbol::BOTTOM_SQUARE_BRACKET, false),
     "underline" => Accent(symbol::COMBINING_LOW_LINE, false, OpAttrs::STRETCHY_TRUE),
@@ -768,7 +770,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "uplus" => BinaryOp(symbol::MULTISET_UNION),
     "upsilon" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_UPSILON), Mode::Math),
     "upuparrows" => Relation(symbol::UPWARDS_PAIRED_ARROWS),
-    "urcorner" => Letter(SuperChar::from_char(symbol::TOP_RIGHT_CORNER), Mode::Math),
+    "urcorner" => ForceClose(symbol::TOP_RIGHT_CORNER, ForceStretchy::Pretend),
     "v" => TextMode(TextToken::Accent(symbol::COMBINING_CARON)),
     "vDash" => Relation(symbol::TRUE),
     "varDelta" => Letter(SuperChar::from_char(symbol::GREEK_CAPITAL_LETTER_DELTA), Mode::Math), // italicized

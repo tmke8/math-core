@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\left\\lmoustache \\frac{x}{y} \\right\\rmoustache"
+---
+<math>
+    <mrow>
+        <mo stretchy="true">⎰</mo>
+        <mfrac>
+            <mi>x</mi>
+            <mi>y</mi>
+        </mfrac>
+        <mo stretchy="true">⎱</mo>
+    </mrow>
+</math>

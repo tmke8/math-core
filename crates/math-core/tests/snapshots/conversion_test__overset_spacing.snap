@@ -6,7 +6,7 @@ expression: "x\\overset{!}{=}x"
     <mi>x</mi>
     <mover>
         <mo>=</mo>
-        <mo>!</mo>
+        <mo form="postfix">!</mo>
     </mover>
     <mi>x</mi>
 </math>

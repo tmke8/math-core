@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\left\\ulcorner \\frac{x}{y} \\right\\lrcorner"
+---
+<math>
+    <mrow>
+        <mo>⌜</mo>
+        <mfrac>
+            <mi>x</mi>
+            <mi>y</mi>
+        </mfrac>
+        <mo>⌟</mo>
+    </mrow>
+</math>

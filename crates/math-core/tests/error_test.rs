@@ -90,6 +90,7 @@ fn main() {
         ("right_with_non_delimiter", r"\left( 1 \right x"),
         ("middle_with_non_delimiter", r"\left( 1 \middle x \right)"),
         ("bigl_with_non_delimiter", r"\bigl x 1 \bigr)"),
+        ("stretchy_force_fail", r"\left( \frac{x}{y} \right!"),
         ("math_variant_switch_in_arg", r"\sqrt\bf"),
         ("math_variant_switch_in_subscript", r"{x_\bf x}"),
         ("mathbin_mutli_arg", r"x \mathbin{++} y"),

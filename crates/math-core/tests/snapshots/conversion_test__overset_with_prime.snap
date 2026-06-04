@@ -6,7 +6,7 @@ expression: "\\overset{!}{=}'x"
     <msup>
         <mover>
             <mo lspace="0">=</mo>
-            <mo>!</mo>
+            <mo form="postfix">!</mo>
         </mover>
         <mo>′</mo>
     </msup>

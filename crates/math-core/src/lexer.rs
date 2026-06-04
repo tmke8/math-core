@@ -8,7 +8,7 @@ use crate::CommandConfig;
 use crate::commands::get_command;
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, Mode, Span, TokSpan, Token};
+use crate::token::{EndToken, ForceStretchy, Mode, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>
@@ -377,7 +377,7 @@ type CharSpan = (Option<char>, Range<usize>);
 
 fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
     let tok_ref = match ch {
-        '!' => &Token::ForceClose(symbol::EXCLAMATION_MARK),
+        '!' => &Token::ForceClose(symbol::EXCLAMATION_MARK, ForceStretchy::No),
         '(' => &Token::Open(symbol::LEFT_PARENTHESIS),
         ')' => &Token::Close(symbol::RIGHT_PARENTHESIS),
         '*' => &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },

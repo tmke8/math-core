@@ -119,10 +119,12 @@ pub enum Token<'source> {
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
     ForceRelation(MathMLOperator),
+    /// A token to force an operator to behave like an opening symbol (mathopen).
+    ForceOpen(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like a closing symbol (mathclose).
     /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
     /// but in MathML Core is an ordinary operator.
-    ForceClose(MathMLOperator),
+    ForceClose(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like punctuation (mathpunct).
     ForcePunctuation(MathMLOperator),
     /// `\mathord` and `\mathbin`.
@@ -215,6 +217,23 @@ pub enum InfixDelim {
     Brack,
 }
 
+/// For [`Token::ForceOpen`] and [`Token::ForceClose`]:
+/// whether to force this token to be stretchy
+/// (when combined with [`Token::Left`]/[`Token::Right`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForceStretchy {
+    /// Never apply `stretchy="true"`, and don't allow
+    /// combining with `\left`/`\right`
+    No,
+    /// Allow combining with `\left`/`\right`,
+    /// but don't actually use `stretchy="true"`.
+    /// Used for the corner brackets
+    Pretend,
+    /// Allow combining with `\left`/`\right`,
+    /// applying `stretchy="true"`
+    Yes,
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -227,8 +246,10 @@ impl Token<'_> {
         match self.unwrap_math_ref() {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
-            Open(_) | Left | SquareBracketOpen | Begin(_) | GroupBegin => Some(Class::Open),
-            Close(_) | SquareBracketClose | ForceClose(_) | Right => Some(Class::Close),
+            Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
+                Some(Class::Open)
+            }
+            Close(_) | SquareBracketClose | ForceClose(..) | Right => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
                 Some(Class::Operator)

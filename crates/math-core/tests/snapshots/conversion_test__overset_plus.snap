@@ -5,6 +5,6 @@ expression: "\\overset{!}{+}"
 <math>
     <mover>
         <mo lspace="0" rspace="0">+</mo>
-        <mo>!</mo>
+        <mo form="postfix">!</mo>
     </mover>
 </math>

@@ -10,6 +10,6 @@ expression: "\\overset{!}{\\left(x+\\right)}"
             <mo lspace="0" rspace="0">+</mo>
             <mo>)</mo>
         </mrow>
-        <mo>!</mo>
+        <mo form="postfix">!</mo>
     </mover>
 </math>

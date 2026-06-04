@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\left( \\frac{x}{y} \\right!"
+---
+Error: There must be a parenthesis after "\right", but not found.
+   ╭─[ <input>:1:26 ]
+   │
+ 1 │ \left( \frac{x}{y} \right!
+   │                          ┬  
+   │                          ╰── expected a delimiter here
+───╯
