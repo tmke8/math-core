@@ -287,7 +287,7 @@ where
                 let (tag_name, literal_span) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
-                    if let Ok(tag_num) = tag_name.trim().parse::<u16>()
+                    if let Ok(tag_num) = tag_name.trim_ascii().parse::<u16>()
                         && tag_num != 0
                     {
                         numbered_state.custom_next_number = NonZeroU16::new(tag_num);
@@ -654,7 +654,7 @@ where
             }
             Token::CustomSpace => {
                 let (length, span) = self.parse_string_literal()?;
-                match parse_length_specification(length.trim()) {
+                match parse_length_specification(length.trim_ascii()) {
                     Some(space) => Ok(Node::Space(space)),
                     None => Err(LatexError(
                         span,
@@ -740,7 +740,7 @@ where
                 let open = get_delimiter(self)?;
                 let close = get_delimiter(self)?;
                 let (length, span) = self.parse_string_literal()?;
-                let lt = match length.trim() {
+                let lt = match length.trim_ascii() {
                     "" => Length::none(),
                     decimal => parse_length_specification(decimal).ok_or_else(|| {
                         Box::new(LatexError(
