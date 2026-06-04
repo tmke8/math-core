@@ -131,6 +131,10 @@ pub enum Token<'source> {
     ForceClose(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like punctuation (mathpunct).
     ForcePunctuation(MathMLOperator),
+    /// Force an operator to behave like a large binary operator.
+    /// This is, for example, needed for `⅀`.
+    /// We assume `movablelimitss`.
+    ForceLargeOp(MathMLOperator),
     /// `\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
@@ -267,9 +271,11 @@ impl Token<'_> {
             }
             Close(_) | SquareBracketClose | ForceClose(..) | Right => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
-            Op(_) | PseudoOperator(_) | PseudoOperatorLimits(_) | OperatorName { .. } => {
-                Some(Class::Operator)
-            }
+            Op(_)
+            | ForceLargeOp(..)
+            | PseudoOperator(_)
+            | PseudoOperatorLimits(_)
+            | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
             Inner(_) => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {

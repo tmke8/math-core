@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "⅀ \\limits_{i=0}^3 a + b"
+---
+<math>
+    <munderover>
+        <mo symmetric="true" largeop="true" lspace="0" rspace="0.1667em">⅀</mo>
+        <mrow>
+            <mi>i</mi>
+            <mo lspace="0" rspace="0">=</mo>
+            <mn>0</mn>
+        </mrow>
+        <mn>3</mn>
+    </munderover>
+    <mi>a</mi>
+    <mo>+</mo>
+    <mi>b</mi>
+</math>

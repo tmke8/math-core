@@ -492,6 +492,8 @@ pub const BET_SYMBOL: char = 'ℶ';
 pub const GIMEL_SYMBOL: char = 'ℷ';
 pub const DALET_SYMBOL: char = 'ℸ';
 
+pub const DOUBLE_STRUCK_N_ARY_SUMMATION: MathMLOperator = MathMLOperator::from_char('⅀');
+
 pub const TURNED_SANS_SERIF_CAPITAL_G: char = '⅁';
 
 //
@@ -975,6 +977,13 @@ pub const PERPENDICULAR: Rel = Rel::new('⟂', RelCategory::Default);
 pub const LEFT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟅');
 pub const RIGHT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟆');
 
+pub const LEFT_OUTER_JOIN: MathMLOperator = MathMLOperator::from_char('⟕');
+pub const RIGHT_OUTER_JOIN: MathMLOperator = MathMLOperator::from_char('⟖');
+pub const FULL_OUTER_JOIN: MathMLOperator = MathMLOperator::from_char('⟗');
+
+pub const LARGE_UP_TACK: MathMLOperator = MathMLOperator::from_char('⟘');
+pub const LARGE_DOWN_TACK: MathMLOperator = MathMLOperator::from_char('⟙');
+
 pub const MATHEMATICAL_LEFT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟦', OrdCategory::F);
 pub const MATHEMATICAL_RIGHT_WHITE_SQUARE_BRACKET: OrdLike = OrdLike::new('⟧', OrdCategory::G);
 pub const MATHEMATICAL_LEFT_ANGLE_BRACKET: OrdLike = OrdLike::new('⟨', OrdCategory::F);
@@ -1054,6 +1063,9 @@ pub const BLACK_LOZENGE: char = '⧫';
 
 // pub const REVERSE_SOLIDUS_OPERATOR: Bin = Bin::new('⧵', BinCategory::BD);
 
+pub const BIG_SOLIDUS: Bin = Bin::new('⧸', BinCategory::B);
+pub const BIG_REVERSE_SOLIDUS: Bin = Bin::new('⧹', BinCategory::B);
+
 pub const LEFT_POINTING_CURVED_ANGLE_BRACKET: OrdLike = OrdLike::new('⧼', OrdCategory::F);
 pub const RIGHT_POINTING_CURVED_ANGLE_BRACKET: OrdLike = OrdLike::new('⧽', OrdCategory::G);
 
@@ -1070,30 +1082,31 @@ pub const N_ARY_SQUARE_UNION_OPERATOR: Op = Op::new('⨆', OpCategory::J);
 pub const TWO_LOGICAL_AND_OPERATOR: Op = Op::new('⨇', OpCategory::J);
 pub const TWO_LOGICAL_OR_OPERATOR: Op = Op::new('⨈', OpCategory::J);
 pub const N_ARY_TIMES_OPERATOR: Op = Op::new('⨉', OpCategory::J);
-// pub const MODULO_TWO_SUM: Op = Op('⨊');
+pub const MODULO_TWO_SUM: Op = Op::new('⨊', OpCategory::J);
 pub const SUMMATION_WITH_INTEGRAL: Op = Op::new('⨋', OpCategory::H);
 pub const QUADRUPLE_INTEGRAL_OPERATOR: Op = Op::new('⨌', OpCategory::H);
-pub const FINITE_PARTL_INTEGRAL: Op = Op::new('⨍', OpCategory::H);
+pub const FINITE_PART_INTEGRAL: Op = Op::new('⨍', OpCategory::H);
 pub const INTEGRAL_WITH_DOUBLE_STROKE: Op = Op::new('⨎', OpCategory::H);
 pub const INTEGRAL_AVERAGE_WITH_SLASH: Op = Op::new('⨏', OpCategory::H);
 pub const CIRCULATION_FUNCTION: Op = Op::new('⨐', OpCategory::H);
 pub const ANTICLOCKWISE_INTEGRATION: Op = Op::new('⨑', OpCategory::H);
-// pub const LINE_INTEGRATION_WITH_RECTANGULAR_PATH_AROUND_POLE: Op = Op('⨒');
-// pub const LINE_INTEGRATION_WITH_SEMICIRCULAR_PATH_AROUND_POLE: Op = Op('⨓');
-// pub const LINE_INTEGRATION_NOT_INCLUDING_THE_POLE: Op = Op('⨔');
-// pub const INTEGRAL_AROUND_A_POINT_OPERATOR: Op = Op('⨕');
-// pub const QUATERNION_INTEGRAL_OPERATOR: Op = Op('⨖');
-// pub const INTEGRAL_WITH_LEFTWARDS_ARROW_WITH_HOOK: Op = Op('⨗');
-// pub const INTEGRAL_WITH_TIMES_SIGN: Op = Op('⨘');
-// pub const INTEGRAL_WITH_INTERSECTION: Op = Op('⨙');
-// pub const INTEGRAL_WITH_UNION: Op = Op('⨚');
-// pub const INTEGRAL_WITH_OVERBAR: Op = Op('⨛');
-// pub const INTEGRAL_WITH_UNDERBAR: Op = Op('⨜');
-// pub const JOIN: Op = Op('⨝');
-// pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op('⨞');
-// pub const Z_NOTATION_SCHEMA_COMPOSITION: Rel = Rel::new('⨟', RelCategory::Default);
-// pub const Z_NOTATION_SCHEMA_PIPING: Op = Op('⨠');
-// pub const Z_NOTATION_SCHEMA_PROJECTION: Op = Op('⨡');
+pub const LINE_INTEGRATION_WITH_RECTANGULAR_PATH_AROUND_POLE: Op = Op::new('⨒', OpCategory::H);
+pub const LINE_INTEGRATION_WITH_SEMICIRCULAR_PATH_AROUND_POLE: Op = Op::new('⨓', OpCategory::H);
+pub const LINE_INTEGRATION_NOT_INCLUDING_THE_POLE: Op = Op::new('⨔', OpCategory::H);
+pub const INTEGRAL_AROUND_A_POINT_OPERATOR: Op = Op::new('⨕', OpCategory::H);
+pub const QUATERNION_INTEGRAL_OPERATOR: Op = Op::new('⨖', OpCategory::H);
+pub const INTEGRAL_WITH_LEFTWARDS_ARROW_WITH_HOOK: Op = Op::new('⨗', OpCategory::H);
+pub const INTEGRAL_WITH_TIMES_SIGN: Op = Op::new('⨘', OpCategory::H);
+pub const INTEGRAL_WITH_INTERSECTION: Op = Op::new('⨙', OpCategory::H);
+pub const INTEGRAL_WITH_UNION: Op = Op::new('⨚', OpCategory::H);
+pub const INTEGRAL_WITH_OVERBAR: Op = Op::new('⨛', OpCategory::H);
+pub const INTEGRAL_WITH_UNDERBAR: Op = Op::new('⨜', OpCategory::H);
+
+pub const JOIN: MathMLOperator = MathMLOperator::from_char('⨝'); // actually C or J
+pub const LARGE_LEFT_TRIANGLE_OPERATOR: MathMLOperator = MathMLOperator::from_char('⨞'); // actually C or J
+// pub const Z_NOTATION_SCHEMA_COMPOSITION: Bin = Bin::new('⨟', BinCategory::B);
+// pub const Z_NOTATION_SCHEMA_PIPING: Bin = Bin::new('⨠', BinCategory::B);
+// pub const Z_NOTATION_SCHEMA_PROJECTION: Bin = Bin::new('⨡', BinCategory::B);
 // pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Bin = Bin::new('⨢', BinCategory::BD);
 // pub const PLUS_SIGN_WITH_CIRCUMFLEX_ACCENT_ABOVE: Bin = Bin::new('⨣', BinCategory::BD);
 // pub const PLUS_SIGN_WITH_TILDE_ABOVE: Bin = Bin::new('⨤', BinCategory::BD);
@@ -1272,7 +1285,21 @@ pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO: Rel = Rel::new('⫌', RelCategory::Def
 pub const SUPERSET_OF_ABOVE_NOT_EQUAL_TO_WITH_STROKE_THROUGH_BOTTOM_MEMBERS: Rel =
     Rel::new_vs1('⫌', RelCategory::Default);
 
+pub const LARGE_TRIPLE_VERTICAL_BAR_OPERATOR: Op = Op::new('⫼', OpCategory::J);
+pub const N_ARY_WHITE_VERTICAL_BAR: Op = Op::new('⫿', OpCategory::J);
+
 //
 // Unicode Block: Small Form Variants
 //
 // pub const SMALL_REVERSE_SOLIDUS: Rel = Rel::new('﹨', RelCategory::Default);
+
+//
+// Unicode Block: Arabic Mathematical Alphabetic Symbols
+//
+
+// /// Actually category I
+// pub const ARABIC_MATHEMATICAL_OPERATOR_MEEM_WITH_HAH_WITH_TATWEEL: MathMLOperator =
+//    MathMLOperator::from_char('\u{1EEF0}');
+// /// Actually category I
+// pub const ARABIC_MATHEMATICAL_OPERATOR_HAH_WITH_DAL: MathMLOperator =
+//    MathMLOperator::from_char('\u{1EEF1}');

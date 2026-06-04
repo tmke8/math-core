@@ -10,7 +10,7 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize))]
-    pub struct OpAttrs: u8 {
+    pub struct OpAttrs: u16 {
         const STRETCHY_FALSE = 1;
         const STRETCHY_TRUE = 1 << 1;
         const NO_MOVABLE_LIMITS = 1 << 2;
@@ -19,6 +19,7 @@ bitflags! {
         const FORM_INFIX = 1 << 5;
         const FORM_POSTFIX = 1 << 6;
         const SYMMETRIC_TRUE = 1 << 7;
+        const LARGEOP_TRUE = 1 << 8;
     }
 }
 
@@ -60,6 +61,9 @@ impl OpAttrs {
         }
         if self.contains(OpAttrs::SYMMETRIC_TRUE) {
             s.push_str(r#" symmetric="true""#);
+        }
+        if self.contains(OpAttrs::LARGEOP_TRUE) {
+            s.push_str(r#" largeop="true""#);
         }
     }
 }
