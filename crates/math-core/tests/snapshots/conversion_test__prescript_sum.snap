@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\prescript{1}{2}{\\sum}^3_4"
+---
+<math>
+    <mmultiscripts>
+        <mo>∑</mo>
+        <mn>4</mn>
+        <mn>3</mn>
+        <mprescripts/>
+        <mn>2</mn>
+        <mn>1</mn>
+    </mmultiscripts>
+</math>

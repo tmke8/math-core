@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\prescript{}{2}{\\frac{a}{b}}^3"
+---
+<math>
+    <mmultiscripts>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mrow>
+        </mrow>
+        <mn>3</mn>
+        <mprescripts/>
+        <mn>2</mn>
+        <mrow>
+        </mrow>
+    </mmultiscripts>
+</math>

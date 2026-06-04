@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\prescript{1}{2}{\\frac{a}{b}}"
+---
+<math>
+    <mmultiscripts>
+        <mfrac>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mfrac>
+        <mprescripts/>
+        <mn>2</mn>
+        <mn>1</mn>
+    </mmultiscripts>
+</math>

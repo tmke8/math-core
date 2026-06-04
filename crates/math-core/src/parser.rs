@@ -2,7 +2,7 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{AHref, Node},
+    ast::{AHref, MultiscriptPair, Node},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style},
     length::Length,
     super_char::SuperChar,
@@ -100,6 +100,12 @@ enum ControlFlow {
     ProcessToken,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SubSupKind {
+    Sub,
+    Sup,
+}
+
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'config, 'source, 'arena> Parser<'config, 'source, 'arena>
@@ -187,20 +193,37 @@ where
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
-            let bounds = self.get_bounds()?;
+            let bounds = self.get_bounds(None)?;
 
+            match target {
+                Node::Multiscripts {
+                    base,
+                    pre,
+                    post: [],
+                } if !matches!(bounds, Bounds(None, None)) => {
+                    let sub: &Node<'_> = bounds.0.unwrap_or(&Node::EMPTY_ROW);
+                    let sup: &Node<'_> = bounds.1.unwrap_or(&Node::EMPTY_ROW);
+                    let post = self
+                        .arena
+                        .alloc_multiscript_pairs(&[MultiscriptPair { sub, sup }]);
+                    let node = self.commit(Node::Multiscripts { base, pre, post });
+                    nodes.push(node);
+                }
+                _ => {
+                    let node = self.commit(match bounds {
+                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
+                        Bounds(Some(symbol), None) => Node::Sub { target, symbol },
+                        Bounds(None, Some(symbol)) => Node::Sup { target, symbol },
+                        Bounds(None, None) => {
+                            nodes.push(target);
+                            continue;
+                        }
+                    });
+                    nodes.push(node);
+                }
+            }
             // If there are superscripts or subscripts, we need to wrap the node we just got into
             // one of the node types for superscripts and subscripts.
-            let node = self.commit(match bounds {
-                Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                Bounds(Some(symbol), None) => Node::Sub { target, symbol },
-                Bounds(None, Some(symbol)) => Node::Sup { target, symbol },
-                Bounds(None, None) => {
-                    nodes.push(target);
-                    continue;
-                }
-            });
-            nodes.push(node);
         }
         if let Some((numerator, with_line, delim)) = infix_frac {
             let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
@@ -862,7 +885,7 @@ where
                     self.next_token()?; // Discard the limits token.
                 }
                 let bounds = if has_bounds {
-                    self.get_bounds()?
+                    self.get_bounds(None)?
                 } else {
                     Bounds(None, None)
                 };
@@ -916,7 +939,7 @@ where
                     // a normal operator without limits
                     OpAttrs::empty()
                 };
-                let bounds = self.get_bounds()?;
+                let bounds = self.get_bounds(None)?;
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
@@ -1364,7 +1387,7 @@ where
                     name: letters,
                 });
                 if with_limits {
-                    let node = match self.get_bounds()? {
+                    let node = match self.get_bounds(None)? {
                         Bounds(Some(under), Some(over)) => Node::UnderOver {
                             target: op,
                             under,
@@ -1408,10 +1431,7 @@ where
                 if !self.state.meaningful_newlines {
                     // TODO: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
-                    Ok(Node::Row {
-                        nodes: &[],
-                        attr: None,
-                    })
+                    Ok(Node::EMPTY_ROW)
                 } else if let Some(numbered_state) = &mut self.state.numbered {
                     if let Some(row_counter) = &mut numbered_state.num_rows {
                         match row_counter.checked_add(1) {
@@ -1490,10 +1510,7 @@ where
                 })
             }
             Token::Prime => {
-                let target = self.commit(Node::Row {
-                    nodes: &[],
-                    attr: None,
-                });
+                let target = self.commit(Node::EMPTY_ROW);
                 let symbol = self.commit(Node::Operator {
                     op: symbol::PRIME.as_op(),
                     attrs: OpAttrs::empty(),
@@ -1504,38 +1521,35 @@ where
                 Ok(Node::Sup { target, symbol })
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
-                let symbol = self.parse_next(ParseAs::Arg)?;
-                if matches!(
-                    self.tokens.peek().token(),
-                    Token::Eoi | Token::GroupEnd | Token::End(_)
-                ) {
-                    // If nothing follows the sub- or superscript, we use an empty row as the base.
-                    let empty_row = self.commit(Node::Row {
-                        nodes: &[],
-                        attr: None,
-                    });
-                    if matches!(tok, Token::Underscore) {
-                        Ok(Node::Sub {
-                            target: empty_row,
-                            symbol,
-                        })
-                    } else {
-                        Ok(Node::Sup {
-                            target: empty_row,
-                            symbol,
-                        })
-                    }
+                let first = if tok == Token::Underscore {
+                    SubSupKind::Sub
                 } else {
-                    // If something follows the sub- or superscript, we parse it as a sequence and
-                    // use it as the base.
-                    let base = self.parse_next(ParseAs::Sequence)?;
-                    let (sub, sup) = if matches!(tok, Token::Underscore) {
-                        (Some(symbol), None)
-                    } else {
-                        (None, Some(symbol))
-                    };
-                    Ok(Node::Multiscript { base, sub, sup })
+                    SubSupKind::Sup
+                };
+                let bounds = self.get_bounds(Some(first))?;
+
+                // We use an empty row as the base.
+                let target = self.commit(Node::EMPTY_ROW);
+
+                match bounds {
+                    Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
+                    Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
+                    Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
+                    Bounds(None, None) => unreachable!(),
                 }
+            }
+            Token::Prescript => {
+                let sup = self.parse_next(ParseAs::Arg)?;
+                let sub = self.parse_next(ParseAs::Arg)?;
+                let base = self.parse_next(ParseAs::Arg)?;
+                let pre = self
+                    .arena
+                    .alloc_multiscript_pairs(&[MultiscriptPair { sub, sup }]);
+                Ok(Node::Multiscripts {
+                    base,
+                    pre,
+                    post: &const { &[] },
+                })
             }
             Token::Limits => Err(LatexError(
                 span.into(),
@@ -1728,43 +1742,64 @@ where
 
     /// Parse the bounds of an integral, sum, or product.
     /// These bounds are preceeded by `_` or `^`.
-    fn get_bounds(&mut self) -> ParseResult<Bounds<'arena>> {
-        let mut primes = self.prime_check()?;
-        // Check whether the first bound is specified and is a lower bound.
-        let first_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
-        let first_circumflex = matches!(self.tokens.peek().token(), Token::Circumflex);
+    /// `start` should be `Some(BoundStart::Underscore)` or `Some(BoundStart::Circumflex)`
+    /// to indicate that these were already consumed,
+    /// or `None` otherwise.
+    fn get_bounds(&mut self, first: Option<SubSupKind>) -> ParseResult<Bounds<'arena>> {
+        let discard_first = first.is_none();
+        let (first, mut primes) = match first {
+            Some(first) => (Some(first), Vec::new()),
+            None => {
+                let primes: Vec<&Node<'_>> = self.prime_check()?;
+                // Check whether the first bound is specified and is a lower bound.
+                let first = match self.tokens.peek().token() {
+                    Token::Underscore => Some(SubSupKind::Sub),
+                    Token::Circumflex => Some(SubSupKind::Sup),
+                    _ => None,
+                };
+                (first, primes)
+            }
+        };
 
-        let (sub, sup) = if first_underscore || first_circumflex {
-            let first_bound = Some(self.get_sub_or_sup(first_circumflex)?);
+        let (sub, sup) = if let Some(first) = first {
+            if discard_first {
+                self.next_token()?;
+            }
+
+            let first_bound = Some(self.get_sub_or_sup(first)?);
 
             // If the first bound was a subscript *and* we didn't encounter primes yet,
             // we check once more for primes.
-            if first_underscore && primes.is_empty() {
+            if first == SubSupKind::Sub && primes.is_empty() {
                 primes = self.prime_check()?;
             }
 
             // Check whether both an upper and a lower bound were specified.
-            let second_underscore = matches!(self.tokens.peek().token(), Token::Underscore);
-            let second_circumflex = matches!(self.tokens.peek().token(), Token::Circumflex);
+            let second = match self.tokens.peek().token() {
+                Token::Underscore => Some(SubSupKind::Sub),
+                Token::Circumflex => Some(SubSupKind::Sup),
+                _ => None,
+            };
 
-            if (first_circumflex && second_circumflex) || (first_underscore && second_underscore) {
-                let span = self.next_token()?.span();
-                return Err(Box::new(LatexError(
-                    span.into(),
-                    LatexErrKind::DuplicateSubOrSup,
-                )));
-            }
-
-            if (first_underscore && second_circumflex) || (first_circumflex && second_underscore) {
-                let second_bound = Some(self.get_sub_or_sup(second_circumflex)?);
-                // Depending on whether the underscore or the circumflex came first,
-                // we have to swap the bounds.
-                if first_underscore {
-                    (first_bound, second_bound)
+            if let Some(second) = second {
+                if first == second {
+                    let span = self.next_token()?.span();
+                    return Err(Box::new(LatexError(
+                        span.into(),
+                        LatexErrKind::DuplicateSubOrSup,
+                    )));
                 } else {
-                    (second_bound, first_bound)
+                    self.next_token()?;
+                    let second_bound = Some(self.get_sub_or_sup(second)?);
+                    // Depending on whether the underscore or the circumflex came first,
+                    // we have to swap the bounds.
+                    if first == SubSupKind::Sub {
+                        (first_bound, second_bound)
+                    } else {
+                        (second_bound, first_bound)
+                    }
                 }
-            } else if first_underscore {
+            } else if first == SubSupKind::Sub {
                 (first_bound, None)
             } else {
                 (None, first_bound)
@@ -1825,8 +1860,8 @@ where
     }
 
     /// Parse the node after a `_` or `^` token.
-    fn get_sub_or_sup(&mut self, is_sup: bool) -> ParseResult<&'arena Node<'arena>> {
-        self.next_token()?; // Discard the underscore or circumflex token.
+    /// (We assume that token was already consumed.)
+    fn get_sub_or_sup(&mut self, kind: SubSupKind) -> ParseResult<&'arena Node<'arena>> {
         let next = self.next_token();
         if let Ok(tokloc) = next
             && let (Token::Underscore | Token::Circumflex | Token::Prime, span) =
@@ -1842,7 +1877,7 @@ where
         self.state.style = old_style;
 
         // If the bound was a superscript, it may *not* be followed by a prime.
-        if is_sup && matches!(self.tokens.peek().token(), Token::Prime) {
+        if kind == SubSupKind::Sup && matches!(self.tokens.peek().token(), Token::Prime) {
             return Err(Box::new(LatexError(
                 self.tokens.peek().span().into(),
                 LatexErrKind::DuplicateSubOrSup,

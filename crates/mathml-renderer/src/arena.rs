@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use stable_arena::DroplessArena;
 
 use crate::{
-    ast::{AHref, Node},
+    ast::{AHref, MultiscriptPair, Node},
     super_char::SuperChar,
     table::{ArraySpec, ColumnSpec, RowLabelInfo},
 };
@@ -75,6 +75,14 @@ impl Arena {
         ahref: AHref<'attrs>,
     ) -> &'arena AHref<'attrs> {
         self.inner.alloc(ahref)
+    }
+
+    pub fn alloc_multiscript_pairs<'arena, 'pairs>(
+        &'arena self,
+        pairs: &[MultiscriptPair<'pairs>],
+    ) -> &'arena &'arena [MultiscriptPair<'pairs>] {
+        let fat = self.inner.alloc_slice(pairs);
+        self.inner.alloc(&*fat)
     }
 }
 

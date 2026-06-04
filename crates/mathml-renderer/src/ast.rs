@@ -51,6 +51,14 @@ pub struct AHref<'arena> {
     pub text: &'arena str,
 }
 
+/// A single sub/sup pair in [`Multicripts`].
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct MultiscriptPair<'arena> {
+    pub sub: &'arena Node<'arena>,
+    pub sup: &'arena Node<'arena>,
+}
+
 /// AST node
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
@@ -176,10 +184,13 @@ pub enum Node<'arena> {
         content: &'arena Node<'arena>,
         notation: Notation,
     },
-    Multiscript {
+    /// `<mmultiscripts>...</mmultiscripts>`
+    /// Double pointer indirection is to keep `Node`'s size down.
+    /// Ideally we would use some sort of thinslice type
+    Multiscripts {
         base: &'arena Node<'arena>,
-        sub: Option<&'arena Node<'arena>>,
-        sup: Option<&'arena Node<'arena>>,
+        pre: &'arena &'arena [MultiscriptPair<'arena>],
+        post: &'arena &'arena [MultiscriptPair<'arena>],
     },
     /// This node is used for displaying unknown commands.
     /// We are not using `<merror>` here because it's rendered with a red border and a yellow
@@ -200,6 +211,11 @@ macro_rules! writeln_indent {
 }
 
 impl Node<'_> {
+    pub const EMPTY_ROW: Self = Node::Row {
+        nodes: &[],
+        attr: None,
+    };
+
     pub fn emit(&self, s: &mut String, base_indent: usize) -> std::fmt::Result {
         // Compute the indentation for the children of the node.
         let child_indent = if base_indent > 0 {
@@ -365,20 +381,21 @@ impl Node<'_> {
                 third.emit(s, child_indent)?;
                 writeln_indent!(s, base_indent, "{close}");
             }
-            Node::Multiscript { base, sub, sup } => {
+            &Node::Multiscripts { base, pre, post } => {
                 write!(s, "<mmultiscripts>")?;
                 base.emit(s, child_indent)?;
-                writeln_indent!(s, child_indent, "<mprescripts/>");
-                if let Some(sub) = sub {
+                for &MultiscriptPair { sub, sup } in *post {
                     sub.emit(s, child_indent)?;
-                } else {
-                    writeln_indent!(s, child_indent, "<mrow></mrow>");
-                }
-                if let Some(sup) = sup {
                     sup.emit(s, child_indent)?;
-                } else {
-                    writeln_indent!(s, child_indent, "<mrow></mrow>");
                 }
+                if !pre.is_empty() {
+                    writeln_indent!(s, child_indent, "<mprescripts/>");
+                    for &MultiscriptPair { sub, sup } in *pre {
+                        sub.emit(s, child_indent)?;
+                        sup.emit(s, child_indent)?;
+                    }
+                }
+
                 writeln_indent!(s, base_indent, "</mmultiscripts>");
             }
             node @ (Node::OverAccent(op, attr, target) | Node::UnderAccent(op, attr, target)) => {
@@ -1281,10 +1298,15 @@ mod tests {
     #[test]
     fn render_multiscript() {
         assert_eq!(
-            render(&Node::Multiscript {
+            render(&Node::Multiscripts {
                 base: &Node::IdentifierChar('x'.into(), LetterAttr::Default),
-                sub: Some(&Node::Number("1")),
-                sup: None,
+                pre: &const {
+                    &[MultiscriptPair {
+                        sub: &Node::Number("1"),
+                        sup: &Node::EMPTY_ROW,
+                    }]
+                },
+                post: &const { &[] },
             }),
             "<mmultiscripts><mi>x</mi><mprescripts/><mn>1</mn><mrow></mrow></mmultiscripts>"
         );

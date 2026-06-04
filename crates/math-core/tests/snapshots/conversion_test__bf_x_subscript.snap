@@ -5,11 +5,11 @@ expression: "{x\\bf_2 x}"
 <math>
     <mrow>
         <mi>x</mi>
-        <mmultiscripts>
-            <mi>𝐱</mi>
-            <mprescripts/>
+        <msub>
+            <mrow>
+            </mrow>
             <mi>𝟐</mi>
-            <mrow></mrow>
-        </mmultiscripts>
+        </msub>
+        <mi>𝐱</mi>
     </mrow>
 </math>
