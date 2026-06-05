@@ -96,6 +96,11 @@ fn main() {
         ("mathbin_mutli_arg", r"x \mathbin{++} y"),
         ("mathord_mutli_arg", r"x \mathord{++} y"),
         ("genfrac_too_many_numbers", r"\genfrac[]{0pt}{00}{a}{b}"),
+        ("cramped_bad_arg", r"\cramped[1]{x}"),
+        (
+            "cramped_too_many_arg",
+            r"\cramped[\scriptstyle\scriptstyle]{x}",
+        ),
         ("unknown_color", r"{\color{foobar} x}"),
         ("unknown_color_no_braces", r"{\color - x}"),
     ];

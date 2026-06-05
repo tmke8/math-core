@@ -2,8 +2,8 @@ use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{AHref, MultiscriptPair, Node},
-    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttr, Style},
+    ast::{AHref, MultiscriptPair, Node, RowAttrs},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
     length::Length,
     super_char::SuperChar,
     symbol::{self, MathMLOperator, OpCategory, OrdCategory, RelCategory},
@@ -1501,6 +1501,50 @@ where
 
                 Ok(Node::AHref(self.arena.alloc_ahref(AHref { href, text })))
             }
+            Token::Cramped => {
+                // Optional style argument in square brackets (e.g. `\cramped[\scriptstyle]{b}`),
+                // handled in the same style as `\sqrt`'s optional degree argument.
+                let next = self.next_token();
+                let (style, inner) = if let Ok(tokloc) = next
+                    && matches!(tokloc.token(), Token::SquareBracketOpen)
+                {
+                    let style_tok = self.next_token()?;
+                    let style = match *style_tok.token() {
+                        Token::Style(style) => {
+                            let closing_tok = self.next_token()?;
+                            if *closing_tok.token() != Token::SquareBracketClose {
+                                return Err(Box::new(LatexError(
+                                    closing_tok.span().into(),
+                                    LatexErrKind::ExpectedAtMostOneToken,
+                                )));
+                            }
+                            Some(style)
+                        }
+                        Token::SquareBracketClose => None,
+                        _ => {
+                            return Err(Box::new(LatexError(
+                                style_tok.span().into(),
+                                LatexErrKind::ExpectedStyle,
+                            )));
+                        }
+                    };
+
+                    let inner = self.parse_next(ParseAs::Arg)?;
+                    (style, inner)
+                } else {
+                    let inner = self.parse_token(next, ParseAs::Arg, prev_class)?.1;
+                    (None, inner)
+                };
+
+                Ok(Node::Row {
+                    nodes: self.arena.push_slice(&[inner]),
+                    attrs: RowAttrs {
+                        math_shift_compact: true,
+                        style,
+                        ..RowAttrs::DEFAULT
+                    },
+                })
+            }
             Token::Color => 'color: {
                 let (color_name, span) = self.parse_string_literal()?;
                 let Some(color) = get_color(color_name) else {
@@ -1512,7 +1556,10 @@ where
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    attr: Some(color),
+                    attrs: RowAttrs {
+                        color: Some(color),
+                        ..RowAttrs::DEFAULT
+                    },
                 })
             }
             Token::Phantom(kind) => {
@@ -1537,7 +1584,10 @@ where
                 self.state.style = old_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
-                    attr: Some(RowAttr::Style(style)),
+                    attrs: RowAttrs {
+                        style: Some(style),
+                        ..RowAttrs::DEFAULT
+                    },
                 })
             }
             Token::Prime => {
@@ -1695,7 +1745,7 @@ where
                 let outer_space = &const { Node::Space(LatexUnit::Mu.length_with_unit(5.0)) };
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&[outer_space, center, outer_space]),
-                    attr: None,
+                    attrs: RowAttrs::DEFAULT,
                 })
             }
             Token::CustomCmd(num_args, token_stream) => {
@@ -2188,7 +2238,10 @@ pub(crate) fn node_vec_to_node<'arena>(
         }
     } else {
         let nodes = arena.push_slice(nodes);
-        arena.push(Node::Row { nodes, attr: None })
+        arena.push(Node::Row {
+            nodes,
+            attrs: RowAttrs::DEFAULT,
+        })
     }
 }
 

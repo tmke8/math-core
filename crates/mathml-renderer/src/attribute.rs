@@ -133,13 +133,6 @@ pub enum MathSpacing {
     FiveMu, // 5/18 of an em/\quad
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub enum RowAttr {
-    Style(Style),
-    Color(u8, u8, u8),
-}
-
 bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]

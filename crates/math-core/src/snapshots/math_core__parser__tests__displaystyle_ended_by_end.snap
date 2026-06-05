@@ -24,7 +24,11 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
             right: Some(Zero),
           ),
         ],
-        attr: Some(Style(Display)),
+        attrs: RowAttrs(
+          color: None,
+          style: Some(Display),
+          math_shift_compact: false,
+        ),
       ),
     ],
   ),

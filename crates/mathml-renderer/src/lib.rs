@@ -5,7 +5,7 @@
 //! # Example
 //!
 //! ```rust
-//! use math_core_renderer_internal::ast::Node;
+//! use math_core_renderer_internal::ast::{Node, RowAttrs};
 //! use math_core_renderer_internal::symbol;
 //! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs};
 //!
@@ -23,7 +23,7 @@
 //!         },
 //!         &Node::IdentifierChar('i'.into(), LetterAttr::Default),
 //!      ],
-//!      attr: None,
+//!      attrs: RowAttrs::DEFAULT,
 //! };
 //!
 //! let mut output = String::new();

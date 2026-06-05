@@ -14,6 +14,10 @@ expression: "\\mathrm{x_x y_y}"
         symbol: IdentifierChar("y", ForcedUpright),
       ),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

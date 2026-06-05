@@ -1,0 +1,31 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{x^2}^2\\ \\cramped[\\scriptstyle ]{{x^2}^2}\\ {x^2}^2"
+---
+<math>
+    <msup>
+        <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msup>
+        <mn>2</mn>
+    </msup>
+    <mtext> </mtext>
+    <mrow style="math-shift:compact;" displaystyle="false" scriptlevel="1">
+        <msup>
+            <msup>
+                <mi>x</mi>
+                <mn>2</mn>
+            </msup>
+            <mn>2</mn>
+        </msup>
+    </mrow>
+    <mtext> </mtext>
+    <msup>
+        <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msup>
+        <mn>2</mn>
+    </msup>
+</math>

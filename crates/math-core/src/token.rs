@@ -158,6 +158,8 @@ pub enum Token<'source> {
     Text(Option<HtmlTextStyle>),
     /// `\displaystyle`, `\textstyle`, `\scriptstyle` and `\scriptscriptstyle`.
     Style(Style),
+    /// `\cramped`.
+    Cramped,
     /// A token for math color, e.g. `\color{red}`.
     Color,
     /// `\phantom`, `\hphantom`, or `\vphantom`
@@ -306,6 +308,7 @@ impl Token<'_> {
             | Enclose(_)
             | Text(_)
             | Style(_)
+            | Cramped
             | Color
             | Phantom(_)
             | CustomCmdArg(_)

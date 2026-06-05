@@ -10,9 +10,7 @@ use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
 use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo};
 use crate::{
-    attribute::{
-        FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, RowAttr, Size, Style,
-    },
+    attribute::{FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, Size, Style},
     super_char::SuperChar,
 };
 
@@ -49,6 +47,25 @@ impl fmt::Display for EscapeHtml<'_> {
 pub struct AHref<'arena> {
     pub href: &'arena str,
     pub text: &'arena str,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct RowAttrs {
+    // `color: …;` CSS property
+    pub color: Option<(u8, u8, u8)>,
+    // `style` attribute
+    pub style: Option<Style>,
+    // `math-shift: compact;` CSS property
+    pub math_shift_compact: bool,
+}
+
+impl RowAttrs {
+    pub const DEFAULT: Self = Self {
+        color: None,
+        style: None,
+        math_shift_compact: false,
+    };
 }
 
 /// A single sub/sup pair in [`Multicripts`].
@@ -140,7 +157,7 @@ pub enum Node<'arena> {
     /// `<mrow>...</mrow>`
     Row {
         nodes: &'arena [&'arena Node<'arena>],
-        attr: Option<RowAttr>,
+        attrs: RowAttrs,
     },
     /// `<mpadded>...</mpadded>`
     Padded {
@@ -218,9 +235,9 @@ macro_rules! writeln_indent {
 }
 
 impl Node<'_> {
-    pub const EMPTY_ROW: Self = Node::Row {
+    pub const EMPTY_ROW: Self = Self::Row {
         nodes: &[],
-        attr: None,
+        attrs: RowAttrs::DEFAULT,
     };
 
     pub fn emit(&self, s: &mut String, base_indent: usize) -> std::fmt::Result {
@@ -446,23 +463,39 @@ impl Node<'_> {
                 den.emit(s, child_indent)?;
                 writeln_indent!(s, base_indent, "</mfrac>");
             }
-            Node::Row { nodes, attr: style } => {
-                match style {
-                    None => {
-                        write!(s, "<mrow>")?;
+            &Node::Row {
+                nodes,
+                attrs:
+                    RowAttrs {
+                        color,
+                        style,
+                        math_shift_compact,
+                    },
+            } => {
+                write!(s, "<mrow")?;
+
+                if color.is_some() || math_shift_compact {
+                    write!(s, " style=\"")?;
+                    if let Some((r, g, b)) = color {
+                        write!(s, "color:#")?;
+                        append_u8_as_hex(s, r);
+                        append_u8_as_hex(s, g);
+                        append_u8_as_hex(s, b);
+                        write!(s, ";")?;
                     }
-                    Some(RowAttr::Style(style)) => {
-                        write!(s, "<mrow{}>", <&str>::from(style))?;
+                    if math_shift_compact {
+                        write!(s, "math-shift:compact;")?;
                     }
-                    Some(RowAttr::Color(r, g, b)) => {
-                        write!(s, "<mrow style=\"color:#")?;
-                        append_u8_as_hex(s, *r);
-                        append_u8_as_hex(s, *g);
-                        append_u8_as_hex(s, *b);
-                        write!(s, ";\">")?;
-                    }
+                    write!(s, "\"")?;
                 }
-                for node in *nodes {
+
+                if let Some(style) = style {
+                    write!(s, "{}", <&str>::from(style))?;
+                }
+
+                write!(s, ">")?;
+
+                for node in nodes {
                     node.emit(s, child_indent)?;
                 }
                 writeln_indent!(s, base_indent, "</mrow>");
@@ -1177,7 +1210,10 @@ mod tests {
         assert_eq!(
             render(&Node::Row {
                 nodes,
-                attr: Some(RowAttr::Style(Style::Display))
+                attrs: RowAttrs {
+                    style: Some(Style::Display),
+                    ..RowAttrs::DEFAULT
+                }
             }),
             "<mrow displaystyle=\"true\" scriptlevel=\"0\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
@@ -1185,7 +1221,10 @@ mod tests {
         assert_eq!(
             render(&Node::Row {
                 nodes,
-                attr: Some(RowAttr::Color(0, 0, 0))
+                attrs: RowAttrs {
+                    color: Some((0, 0, 0)),
+                    ..RowAttrs::DEFAULT
+                }
             }),
             "<mrow style=\"color:#000000;\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
@@ -1390,7 +1429,7 @@ mod tests {
                 &Node::IdentifierChar('b'.into(), LetterAttr::Default),
                 &Node::IdentifierChar('c'.into(), LetterAttr::Default),
             ],
-            attr: None,
+            attrs: RowAttrs::DEFAULT,
         };
 
         assert_eq!(

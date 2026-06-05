@@ -27,6 +27,10 @@ expression: "\\genfrac(){1pt}{0}{1}{2}"
         right: None,
       ),
     ],
-    attr: Some(Style(Display)),
+    attrs: RowAttrs(
+      color: None,
+      style: Some(Display),
+      math_shift_compact: false,
+    ),
   ),
 ]

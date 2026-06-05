@@ -10,7 +10,11 @@ expression: "\\cancel{abc}"
         IdentifierChar("b", Default),
         IdentifierChar("c", Default),
       ],
-      attr: None,
+      attrs: RowAttrs(
+        color: None,
+        style: None,
+        math_shift_compact: false,
+      ),
     ),
     notation: Notation("UP_DIAGONAL"),
   ),

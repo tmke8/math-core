@@ -8,6 +8,10 @@ expression: "\\mathrm{\\sqrt xy}"
       Sqrt(IdentifierChar("x", ForcedUpright)),
       IdentifierChar("y", ForcedUpright),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

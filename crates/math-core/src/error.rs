@@ -41,6 +41,7 @@ pub(crate) enum LatexErrKind {
     ExpectedLength(Box<str>),
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
+    ExpectedStyle,
     NotValidInTextMode,
     NotValidInMathMode,
     CouldNotExtractText,
@@ -120,6 +121,12 @@ impl LatexErrKind {
                     s,
                     "There must be a parenthesis after \"{}\", but not found.",
                     <&str>::from(*location)
+                )?;
+            }
+            LatexErrKind::ExpectedStyle => {
+                write!(
+                    s,
+                    r"Expected one of `\displaystyle`, `\textstyle`, `\scriptstyle`, or `\scriptscriptstyle`"
                 )?;
             }
             LatexErrKind::DisallowedChar(got) => {
@@ -313,6 +320,7 @@ impl LatexError {
                 format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
+            LatexErrKind::ExpectedStyle => "expected a style".into(),
             LatexErrKind::UnsupportedMathClassArgument => "unsupported argument".into(),
             LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
