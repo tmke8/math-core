@@ -443,6 +443,22 @@ fn main() {
         ("mathpunct", r"y \mathpunct - x"),
         ("comma_before_close_paren", r"4,)"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
+        ("fake_prescript", r"_1^2 \frac{a}{b}"),
+        ("fake_prescript_standalone", r"_1^2"),
+        ("prescript", r"\prescript{1}{2}{\frac{a}{b}}"),
+        ("prescript_2", r"\prescript{}{2}{\frac{a}{b}}"),
+        ("prescript_postscript", r"\prescript{}{2}{\frac{a}{b}}_2^3"),
+        (
+            "prescript_postscript_2",
+            r"\prescript{2}{}{\frac{a}{b}}^3_2",
+        ),
+        ("prescript_postscript_3", r"\prescript{3}{2}{\frac{a}{b}}_2"),
+        ("prescript_postscript_4", r"\prescript{}{2}{\frac{a}{b}}^3"),
+        (
+            "prescript_inner_postscript",
+            r"\prescript{}{2}{\frac{a}{b}^2_3}",
+        ),
+        ("prescript_sum", r"\prescript{1}{2}{\sum}^3_4"),
     ];
 
     let config = MathCoreConfig {

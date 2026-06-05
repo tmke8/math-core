@@ -3,10 +3,12 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "{\\bf_2 x}"
 ---
 <math>
-    <mmultiscripts>
+    <mrow>
+        <msub>
+            <mrow>
+            </mrow>
+            <mi>𝟐</mi>
+        </msub>
         <mi>𝐱</mi>
-        <mprescripts/>
-        <mi>𝟐</mi>
-        <mrow></mrow>
-    </mmultiscripts>
+    </mrow>
 </math>

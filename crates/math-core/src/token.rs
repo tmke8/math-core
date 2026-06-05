@@ -62,6 +62,8 @@ pub enum Token<'source> {
     Underscore,
     /// The character `^` for superscripts.
     Circumflex,
+    /// `\prescript`
+    Prescript,
     /// A token for `\binom`, `\dbinom` and `\tbinom`. The `Option<FracAttr>` is `None` for
     /// `\binom` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dbinom`.
     Binom(Option<FracAttr>),
@@ -282,6 +284,7 @@ impl Token<'_> {
             | Genfrac
             | Underscore
             | Circumflex
+            | Prescript
             | Binom(_)
             | Overset
             | Underset

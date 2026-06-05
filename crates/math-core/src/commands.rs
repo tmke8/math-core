@@ -601,6 +601,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "precneqq" => Relation(symbol::PRECEDES_ABOVE_NOT_EQUAL_TO),
     "precnsim" => Relation(symbol::PRECEDES_BUT_NOT_EQUIVALENT_TO),
     "precsim" => Relation(symbol::PRECEDES_OR_EQUIVALENT_TO),
+    "prescript" => Prescript,
     "prime" => Ord(symbol::PRIME),
     "prod" => Op(symbol::N_ARY_PRODUCT),
     "propto" => Relation(symbol::PROPORTIONAL_TO),
