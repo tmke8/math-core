@@ -233,6 +233,18 @@ fn main() {
             "cases",
             r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
         ),
+        (
+            "rcases",
+            r"\begin{rcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{rcases} \Rightarrow \cdots",
+        ),
+        (
+            "dcases",
+            r"f(x):=\begin{dcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{dcases}",
+        ),
+        (
+            "drcases",
+            r"\begin{drcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{drcases} \Rightarrow \cdots",
+        ),
         ("mathstrut", r"\mathstrut"),
         ("greater_than", r"x > y"),
         ("text_transform_sup", r"\mathbb{N} \cup \mathbb{N}^+"),

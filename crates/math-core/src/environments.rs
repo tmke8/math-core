@@ -26,6 +26,9 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "bmatrix" => Env::BMatrix,
     "Bmatrix" => Env::Bmatrix,
     "cases" => Env::Cases,
+    "rcases" => Env::RCases,
+    "dcases" => Env::DCases,
+    "drcases" => Env::DRCases,
     "matrix" => Env::Matrix,
     "pmatrix" => Env::PMatrix,
     "vmatrix" => Env::VMatrix,
@@ -47,6 +50,9 @@ pub enum Env {
     Gathered,
     MultLine,
     Cases,
+    RCases,
+    DCases,
+    DRCases,
     Matrix,
     BMatrix,
     Bmatrix,
@@ -129,7 +135,8 @@ impl Env {
         match self {
             DArray | Align | AlignStar | Aligned | Equation | EquationStar | Gather
             | GatherStar | Gathered | MultLine => Style::Display,
-            Array | Cases | Matrix | BMatrix | Bmatrix | PMatrix | VMatrix | Vmatrix => Style::Text,
+            Array | Cases | RCases | DCases | DRCases | Matrix | BMatrix | Bmatrix | PMatrix
+            | VMatrix | Vmatrix => Style::Text,
             Subarray => Style::Script,
         }
     }
@@ -185,9 +192,34 @@ impl Env {
                     align,
                     style: Some(Style::Text),
                 });
-                const OPEN_BRACE: StretchableOp =
-                    StretchableOp::from_ord(symbol::LEFT_CURLY_BRACKET).unwrap();
                 fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
+            }
+            Env::RCases => {
+                let align = Alignment::Cases;
+                let content = arena.push(Node::Table {
+                    content,
+                    align,
+                    style: Some(Style::Text),
+                });
+                fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
+            }
+            Env::DCases => {
+                let align = Alignment::Cases;
+                let content = arena.push(Node::Table {
+                    content,
+                    align,
+                    style: Some(Style::Display),
+                });
+                fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
+            }
+            Env::DRCases => {
+                let align = Alignment::Cases;
+                let content = arena.push(Node::Table {
+                    content,
+                    align,
+                    style: Some(Style::Display),
+                });
+                fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
             }
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
