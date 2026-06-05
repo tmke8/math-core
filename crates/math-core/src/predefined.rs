@@ -81,3 +81,25 @@ pub static KET: [Token<'static>; 3] = [
     CustomCmdArg(0),
     Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
 ];
+
+pub static BRAKET: [Token<'static>; 3] = [
+    Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
+    CustomCmdArg(0),
+    Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
+];
+
+pub static BIG_BRA: [Token<'static>; 5] = [
+    Left,
+    Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
+    CustomCmdArg(0),
+    Right,
+    Close(symbol::VERTICAL_LINE),
+];
+
+pub static BIG_KET: [Token<'static>; 5] = [
+    Left,
+    Open(symbol::VERTICAL_LINE),
+    CustomCmdArg(0),
+    Right,
+    Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
+];
