@@ -1098,8 +1098,8 @@ where
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_PREFIX,
-                    left: None,
-                    right: None,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
                     size: None,
                 })
             }
@@ -1108,8 +1108,8 @@ where
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_POSTFIX,
-                    left: None,
-                    right: None,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
                     size: None,
                 })
             }
