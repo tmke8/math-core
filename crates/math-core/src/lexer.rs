@@ -377,7 +377,7 @@ type CharSpan = (Option<char>, Range<usize>);
 
 fn nonalpha_nonspecial_ascii_to_token(ch: char) -> Option<Token<'static>> {
     let tok_ref = match ch {
-        '!' => &Token::ForceClose(symbol::EXCLAMATION_MARK, ForceStretchy::No),
+        '!' => &Token::Close(symbol::EXCLAMATION_MARK),
         '(' => &Token::Open(symbol::LEFT_PARENTHESIS),
         ')' => &Token::Close(symbol::RIGHT_PARENTHESIS),
         '*' => &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },
