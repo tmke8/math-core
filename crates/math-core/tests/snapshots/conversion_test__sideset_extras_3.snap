@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset{a}{b}\\int^5_6"
+---
+<math>
+    <msubsup>
+        <mrow>
+            <mmultiscripts>
+                <mrow>
+                    <mi>a</mi>
+                    <mo lspace="0">∫</mo>
+                </mrow>
+                <mrow></mrow>
+                <mrow></mrow>
+                <mprescripts/>
+                <mrow></mrow>
+                <mrow></mrow>
+            </mmultiscripts>
+            <mi>b</mi>
+        </mrow>
+        <mn>6</mn>
+        <mn>5</mn>
+    </msubsup>
+</math>

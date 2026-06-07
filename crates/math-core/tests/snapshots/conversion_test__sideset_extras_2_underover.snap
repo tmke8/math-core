@@ -1,0 +1,34 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\displaystyle{\\sideset{a ^1_2}{b _4^3}\\int^5_6}"
+---
+<math>
+    <mrow displaystyle="true" scriptlevel="0">
+        <munderover>
+            <mrow>
+                <mmultiscripts>
+                    <mrow>
+                        <msubsup>
+                            <mi>a</mi>
+                            <mn>2</mn>
+                            <mn>1</mn>
+                        </msubsup>
+                        <mo lspace="0">∫</mo>
+                    </mrow>
+                    <mrow></mrow>
+                    <mrow></mrow>
+                    <mprescripts/>
+                    <mrow></mrow>
+                    <mrow></mrow>
+                </mmultiscripts>
+                <msubsup>
+                    <mi>b</mi>
+                    <mn>4</mn>
+                    <mn>3</mn>
+                </msubsup>
+            </mrow>
+            <mn>6</mn>
+            <mn>5</mn>
+        </munderover>
+    </mrow>
+</math>

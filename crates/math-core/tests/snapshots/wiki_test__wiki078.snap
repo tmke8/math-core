@@ -31,8 +31,7 @@ expression: "\\bar{q}, \\bar{abc}, \\overline{q}, \\overline{abc}, \\\\ \\lnot \
         <mo stretchy="true">̲</mo>
     </mover>
     <mo rspace="0">,</mo>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mo>¬</mo>
     <mo>¬</mo>
     <mo>,</mo>

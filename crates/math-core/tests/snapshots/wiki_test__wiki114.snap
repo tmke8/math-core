@@ -17,8 +17,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         <mi>c</mi>
         <mo stretchy="false">⃗</mo>
     </mover>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mover accent="true">
         <mrow>
             <mi>a</mi>
@@ -34,8 +33,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         </mrow>
         <mo>←</mo>
     </mover>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mover accent="true">
         <mrow>
             <mi>d</mi>
@@ -44,8 +42,7 @@ expression: "\\hat a \\ \\bar b \\ \\vec c \\\\ \\overrightarrow{a b} \\ \\overl
         </mrow>
         <mo stretchy="true">̂</mo>
     </mover>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mover accent="true">
         <mrow>
             <mi>g</mi>

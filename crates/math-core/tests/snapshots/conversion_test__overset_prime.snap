@@ -6,8 +6,7 @@ expression: "\\overset{'}{=}x"
     <mover>
         <mo lspace="0">=</mo>
         <msup>
-            <mrow>
-            </mrow>
+            <mrow></mrow>
             <mo>′</mo>
         </msup>
     </mover>

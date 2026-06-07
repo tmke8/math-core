@@ -6,8 +6,7 @@ expression: "{x\\bf_2 x}"
     <mrow>
         <mi>x</mi>
         <msub>
-            <mrow>
-            </mrow>
+            <mrow></mrow>
             <mi>𝟐</mi>
         </msub>
         <mi>𝐱</mi>

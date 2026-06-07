@@ -494,6 +494,36 @@ fn main() {
             r"\prescript{}{2}{\frac{a}{b}^2_3}",
         ),
         ("prescript_sum", r"\prescript{1}{2}{\sum}^3_4"),
+        ("sideset", r#"\sideset{^1_2}{_4^3}\sum"#),
+        ("sideset_prime", r#"\sideset''\sum"#),
+        ("sideset_prime_2", r#"\sideset'{}\sum"#),
+        ("sideset_prime_3", r#"\sideset{}'\sum"#),
+        ("sideset_prime_4", r#"\sideset{''^a_b}{''}\int"#),
+        ("sideset_int", r#"\sideset{^1_2}{_4^3}\int"#),
+        ("sideset_subsub", r#"\sideset{^1_2}{_4^3}\int^5_6"#),
+        ("sideset_nogroup", r#"\sideset ab \int"#),
+        (
+            "sideset_extras",
+            r#"\sideset{^1_2 aaaaa}{_4^3 bbbbb}\int^5_6"#,
+        ),
+        ("sideset_extras_2", r#"\sideset{a ^1_2}{b _4^3}\int^5_6"#),
+        ("sideset_extras_3", r#"\sideset{a}{b}\int^5_6"#),
+        (
+            "sideset_underover",
+            r#"\displaystyle{\sideset{^1_2}{_4^3}\int^5_6}"#,
+        ),
+        (
+            "sideset_extras_underover",
+            r#"\sideset{^1_2 aaaaa}{_4^3 bbbbb}\int^5_6"#,
+        ),
+        (
+            "sideset_extras_2_underover",
+            r#"\displaystyle{\sideset{a ^1_2}{b _4^3}\int^5_6}"#,
+        ),
+        (
+            "sideset_extras_3_underover",
+            r#"\displaystyle{\sideset{a}{b}\int^5_6}"#,
+        ),
     ];
 
     let config = MathCoreConfig {

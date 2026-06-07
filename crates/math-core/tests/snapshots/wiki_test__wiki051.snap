@@ -10,8 +10,7 @@ expression: "\\doteq, \\doteqdot, \\overset{\\underset{\\mathrm{def}}{}}{=}, :="
     <mover>
         <mo lspace="0">=</mo>
         <munder>
-            <mrow>
-            </mrow>
+            <mrow></mrow>
             <mrow><mspace/><mi>def</mi></mrow>
         </munder>
     </mover>

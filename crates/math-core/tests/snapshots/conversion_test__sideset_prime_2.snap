@@ -1,17 +1,14 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\prescript{}{2}{\\frac{a}{b}}^3"
+expression: "\\sideset'{}\\sum"
 ---
 <math>
     <mmultiscripts>
-        <mfrac>
-            <mi>a</mi>
-            <mi>b</mi>
-        </mfrac>
+        <mo movablelimits="false" lspace="0" rspace="0">∑</mo>
         <mrow></mrow>
-        <mn>3</mn>
+        <mrow></mrow>
         <mprescripts/>
-        <mn>2</mn>
         <mrow></mrow>
+        <mo>′</mo>
     </mmultiscripts>
 </math>

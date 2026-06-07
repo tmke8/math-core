@@ -200,26 +200,18 @@ where
                     base,
                     pre,
                     post: [],
-                } if !matches!(bounds, Bounds(None, None)) => {
-                    let sub: &Node<'_> = bounds.0.unwrap_or(&Node::EMPTY_ROW);
-                    let sup: &Node<'_> = bounds.1.unwrap_or(&Node::EMPTY_ROW);
-                    let post = self
-                        .arena
-                        .alloc_multiscript_pairs(&[MultiscriptPair { sub, sup }]);
+                } if !bounds.is_trivial() => {
+                    let post = self.arena.alloc_multiscript_pairs(&[bounds.into()]);
                     let node = self.commit(Node::Multiscripts { base, pre, post });
                     nodes.push(node);
                 }
                 _ => {
-                    let node = self.commit(match bounds {
-                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                        Bounds(Some(symbol), None) => Node::Sub { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Sup { target, symbol },
-                        Bounds(None, None) => {
-                            nodes.push(target);
-                            continue;
-                        }
-                    });
-                    nodes.push(node);
+                    let node = match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => self.arena.push(node),
+                        None => target,
+                    };
+
+                    nodes.push(node)
                 }
             }
             // If there are superscripts or subscripts, we need to wrap the node we just got into
@@ -916,22 +908,14 @@ where
                 });
                 let use_underover = has_movable_limits || limits;
                 if use_underover {
-                    match bounds {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 } else {
-                    match bounds {
-                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 }
             }
@@ -966,24 +950,14 @@ where
                     name,
                 });
                 if movablelimits.is_empty() {
-                    match bounds {
-                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 } else {
-                    match bounds {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
-                        Bounds(None, None) => {
-                            return Ok((class, target));
-                        }
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 }
             }
@@ -1402,17 +1376,10 @@ where
                     name: letters,
                 });
                 if with_limits {
-                    let node = match self.get_bounds(None)? {
-                        Bounds(Some(under), Some(over)) => Node::UnderOver {
-                            target: op,
-                            under,
-                            over,
-                        },
-                        Bounds(Some(symbol), None) => Node::Under { target: op, symbol },
-                        Bounds(None, Some(symbol)) => Node::Over { target: op, symbol },
-                        Bounds(None, None) => {
-                            return Ok((Class::Operator, op));
-                        }
+                    let bounds = self.get_bounds(None)?;
+                    let node = match bounds.try_wrap_node_underover(op) {
+                        Some(node) => node,
+                        None => return Ok((Class::Operator, op)),
                     };
                     Ok(node)
                 } else {
@@ -1592,13 +1559,15 @@ where
             }
             Token::Prime => {
                 let target = self.commit(Node::EMPTY_ROW);
-                let symbol = self.commit(Node::Operator {
-                    op: symbol::PRIME.as_op(),
-                    attrs: OpAttrs::empty(),
-                    left: None,
-                    right: None,
-                    size: None,
-                });
+                let symbol = &const {
+                    Node::Operator {
+                        op: symbol::PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                };
                 Ok(Node::Sup { target, symbol })
             }
             tok @ (Token::Underscore | Token::Circumflex) => {
@@ -1612,11 +1581,9 @@ where
                 // We use an empty row as the base.
                 let target = self.commit(Node::EMPTY_ROW);
 
-                match bounds {
-                    Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                    Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                    Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                    Bounds(None, None) => unreachable!(),
+                match bounds.try_wrap_node_subsup(target) {
+                    Some(node) => Ok(node),
+                    None => unreachable!(),
                 }
             }
             Token::Prescript => {
@@ -1631,6 +1598,91 @@ where
                     pre,
                     post: &const { &[] },
                 })
+            }
+            Token::Sideset => {
+                // Collect arguments
+                let (pre_bounds, mut after_pre_bounds) = self.get_bounds_arg()?;
+                let (post_bounds, mut after_post_bounds) = self.get_bounds_arg()?;
+                let base = self.tokens.read_argument(false)?.into_one()?;
+                if *self.tokens.peek().token() == Token::Limits {
+                    self.tokens.next()?;
+                }
+
+                // Construct node for base op
+                let op = match *base.token() {
+                    Token::Op(op) if matches!(op.category(), OpCategory::H | OpCategory::J) => op,
+                    _ => {
+                        return Err(Box::new(LatexError(
+                            base.span().into(),
+                            LatexErrKind::ExpectedLargeOp,
+                        )));
+                    }
+                };
+                let has_movable_limits: bool = matches!(op.category(), OpCategory::J);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                let attrs = if has_movable_limits {
+                    OpAttrs::NO_MOVABLE_LIMITS
+                } else {
+                    OpAttrs::empty()
+                };
+                let op_node = self.arena.push(Node::Operator {
+                    op: op.as_op(),
+                    attrs,
+                    size: None,
+                    left,
+                    right,
+                });
+
+                // Add `post_pre_bounds` tokens to op node
+                let op_and_after_pre_bounds_node = if after_pre_bounds.is_empty() {
+                    op_node
+                } else {
+                    after_pre_bounds.push(op_node);
+
+                    self.arena.push(Node::Row {
+                        nodes: self.arena.push_slice(&after_pre_bounds),
+                        attrs: RowAttrs::DEFAULT,
+                    })
+                };
+
+                // construct sidesetted node
+                // FIXME: use `msub`/`msup`/`msubsup` where possible
+                let pre = self.arena.alloc_multiscript_pairs(&[pre_bounds.into()]);
+                let post = self.arena.alloc_multiscript_pairs(&[post_bounds.into()]);
+                let sidesetted_node = Node::Multiscripts {
+                    base: op_and_after_pre_bounds_node,
+                    pre,
+                    post,
+                };
+
+                // Add `post_pre_bounds` tokens to sidesetted node
+                let sidesetted_with_after_post_bounds_node = if after_post_bounds.is_empty() {
+                    sidesetted_node
+                } else {
+                    after_post_bounds.insert(0, self.arena.push(sidesetted_node));
+
+                    Node::Row {
+                        nodes: self.arena.push_slice(&after_post_bounds),
+                        attrs: RowAttrs::DEFAULT,
+                    }
+                };
+
+                if self.state.style == Style::Display {
+                    // in display mode only, bounds following `\sideset` become underscripts/overscripts
+                    let underover = self.get_bounds(None)?;
+                    // construct node for under/overscripts
+                    if underover.is_trivial() {
+                        Ok(sidesetted_with_after_post_bounds_node)
+                    } else {
+                        Ok(underover
+                            .try_wrap_node_underover(
+                                self.arena.push(sidesetted_with_after_post_bounds_node),
+                            )
+                            .unwrap_or_else(|| unreachable!()))
+                    }
+                } else {
+                    Ok(sidesetted_with_after_post_bounds_node)
+                }
             }
             Token::Limits => Err(LatexError(
                 span.into(),
@@ -1898,6 +1950,50 @@ where
         };
 
         Ok(Bounds(sub, sup))
+    }
+
+    /// Get bounds that are an argument to a macro
+    /// (either wrapped in braces, or a single bare `'`).
+    /// The group can contain additional tokens after the bounds;
+    /// these are returned in the tuple's second element.
+    fn get_bounds_arg(&mut self) -> ParseResult<(Bounds<'arena>, Vec<&'arena Node<'arena>>)> {
+        let first = *self.tokens.peek();
+        match first.token() {
+            Token::Prime => {
+                self.tokens.next()?;
+                Ok((
+                    Bounds(
+                        None,
+                        Some(
+                            &const {
+                                Node::Operator {
+                                    op: symbol::PRIME.as_op(),
+                                    attrs: OpAttrs::empty(),
+                                    left: None,
+                                    right: None,
+                                    size: None,
+                                }
+                            },
+                        ),
+                    ),
+                    Vec::new(),
+                ))
+            }
+            Token::GroupBegin => {
+                self.tokens.next()?;
+                let bounds = self.get_bounds(None)?;
+                let after_bounds = self.parse_sequence(
+                    SequenceEnd::EndToken(EndToken::GroupClose),
+                    Class::Open,
+                    false,
+                )?;
+                Ok((bounds, after_bounds))
+            }
+            _ => {
+                let next = self.parse_next(ParseAs::Arg)?;
+                Ok((Bounds(None, None), vec![next]))
+            }
+        }
     }
 
     /// Check for primes and aggregate them into a single node.
@@ -2279,7 +2375,62 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
     Ok(delim)
 }
 
+/// sub, sup
+#[derive(Clone, Copy)]
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
+
+impl<'arena> Bounds<'arena> {
+    const fn is_trivial(self) -> bool {
+        matches!(self, Self(None, None))
+    }
+
+    fn try_wrap_node_underover(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
+        match self {
+            Self(None, None) => None,
+            Self(Some(under), Some(over)) => Some(Node::UnderOver {
+                target: node,
+                under,
+                over,
+            }),
+            Self(Some(symbol), None) => Some(Node::Under {
+                target: node,
+                symbol,
+            }),
+            Self(None, Some(symbol)) => Some(Node::Over {
+                target: node,
+                symbol,
+            }),
+        }
+    }
+
+    fn try_wrap_node_subsup(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
+        match self {
+            Self(None, None) => None,
+            Self(Some(sub), Some(sup)) => Some(Node::SubSup {
+                target: node,
+                sub,
+                sup,
+            }),
+            Self(Some(symbol), None) => Some(Node::Sub {
+                target: node,
+                symbol,
+            }),
+            Self(None, Some(symbol)) => Some(Node::Sup {
+                target: node,
+                symbol,
+            }),
+        }
+    }
+}
+
+impl<'arena> From<Bounds<'arena>> for MultiscriptPair<'arena> {
+    fn from(bounds: Bounds<'arena>) -> Self {
+        Self {
+            sub: bounds.0.unwrap_or(&Node::EMPTY_ROW),
+            sup: bounds.1.unwrap_or(&Node::EMPTY_ROW),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

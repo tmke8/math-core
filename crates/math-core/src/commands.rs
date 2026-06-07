@@ -657,6 +657,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "sect" => Letter(SuperChar::from_char(symbol::SECTION_SIGN), Mode::MathOrText),
     "setminus" => BinaryOp(symbol::SET_MINUS),
     "sf" => TransformSwitch(MathVariant::Transform(TextTransform::SansSerif)),
+    "sideset" => Sideset,
     "sharp" => Letter(SuperChar::from_char(symbol::MUSIC_SHARP_SIGN), Mode::Math),
     "sigma" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_SIGMA), Mode::Math),
     "sim" => Relation(symbol::TILDE_OPERATOR),

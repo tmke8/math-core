@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sideset{}{}{ a \\sum}"
+---
+Error: Expected exactly one token as argument.
+   ╭─[ <input>:1:13 ]
+   │
+ 1 │ \sideset{}{}{ a \sum}
+   │             ────┬────  
+   │                 ╰────── expected exactly one token here
+───╯

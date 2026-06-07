@@ -14,7 +14,6 @@ expression: "\\prescript{}{2}{\\frac{a}{b}^2_3}"
         </msubsup>
         <mprescripts/>
         <mn>2</mn>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
     </mmultiscripts>
 </math>

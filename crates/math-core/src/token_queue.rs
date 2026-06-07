@@ -357,6 +357,23 @@ impl<'source> MacroArgument<'source> {
             }
         }
     }
+
+    /// Try to interpret this macro argument as a single token.
+    pub fn into_one(self) -> Result<TokSpan<'source>, Box<LatexError>> {
+        match self {
+            MacroArgument::Token(tok) => Ok(tok),
+            MacroArgument::Group(tokens, span) => {
+                if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
+                    Ok(tokspan)
+                } else {
+                    Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::ExpectedExactlyOneToken,
+                    )))
+                }
+            }
+        }
+    }
 }
 
 pub enum OneOrNone<'source> {

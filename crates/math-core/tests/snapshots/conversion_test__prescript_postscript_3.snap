@@ -9,8 +9,7 @@ expression: "\\prescript{3}{2}{\\frac{a}{b}}_2"
             <mi>b</mi>
         </mfrac>
         <mn>2</mn>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
         <mprescripts/>
         <mn>2</mn>
         <mn>3</mn>

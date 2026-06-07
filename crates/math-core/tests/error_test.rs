@@ -95,6 +95,11 @@ fn main() {
         ("math_variant_switch_in_subscript", r"{x_\bf x}"),
         ("mathbin_mutli_arg", r"x \mathbin{++} y"),
         ("mathord_mutli_arg", r"x \mathord{++} y"),
+        ("sideset_not_mathop", r"\sideset{}{}{a}"),
+        ("sideset_not_mathop_2", r"\sideset{}{}{+}"),
+        ("sideset_not_mathop_3", r"\sideset{}{}{ a \sum}"),
+        ("sideset_not_mathop_4", r"\sideset{}{}{\int a}"),
+        ("sideset_not_mathop_5", r"\sideset{}{}{\sum \sum}"),
         ("genfrac_too_many_numbers", r"\genfrac[]{0pt}{00}{a}{b}"),
         ("cramped_bad_arg", r"\cramped[1]{x}"),
         (
