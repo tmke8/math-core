@@ -8,7 +8,7 @@ use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    ForceStretchy, InfixDelim, MathClassKind, Mode, TextToken,
+    ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, TextToken,
     Token::{self, *},
 };
 
@@ -357,6 +357,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "heartsuit" => Letter(SuperChar::from_char(symbol::WHITE_HEART_SUIT), Mode::Math),
     "hookleftarrow" => Relation(symbol::LEFTWARDS_ARROW_WITH_HOOK),
     "hookrightarrow" => Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
+    "hphantom" => Phantom(PhantomKind::H),
     "hslash" => Letter(SuperChar::from_char(symbol::PLANCK_CONSTANT_OVER_TWO_PI), Mode::Math),
     "hspace" => CustomSpace,
     "i" => TextMode(TextToken::Letter('ı')),
@@ -480,7 +481,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mathscr" => Transform(MathVariant::Transform(TextTransform::ScriptRoundhand)),
     "mathsf" => Transform(MathVariant::Transform(TextTransform::SansSerif)),
     "mathsterling" => Letter(SuperChar::from_char(symbol::POUND_SIGN), Mode::Math),
-    "mathstrut" => HardcodedMathML(r#"<mpadded width="0" style="visibility:hidden"><mo stretchy="false">(</mo></mpadded>"#),
+    "mathstrut" => CustomCmd(0, &predefined::MATHSTRUT),
     "mathtt" => Transform(MathVariant::Transform(TextTransform::Monospace)),
     "max" => PseudoOperatorLimits("max"),
     "measeq" => Relation(symbol::MEASURED_BY), // from "stix"
@@ -585,6 +586,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "parallel" => Relation(symbol::PARALLEL_TO),
     "partial" => Letter(SuperChar::from_char(symbol::PARTIAL_DIFFERENTIAL), Mode::Math),
     "perp" => Relation(symbol::PERPENDICULAR),
+    "phantom" => Phantom(PhantomKind::Full),
     "phi" => Letter(SuperChar::from_char(symbol::GREEK_PHI_SYMBOL), Mode::Math),
     "pi" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_PI), Mode::Math),
     "pitchfork" => Relation(symbol::PITCHFORK),
@@ -701,7 +703,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "supseteqq" => Relation(symbol::SUPERSET_OF_ABOVE_EQUALS_SIGN),
     "supsetneq" => Relation(symbol::SUPERSET_OF_WITH_NOT_EQUAL_TO),
     "supsetneqq" => Relation(symbol::SUPERSET_OF_ABOVE_NOT_EQUAL_TO),
-    "surd" => HardcodedMathML(r#"<msqrt><mpadded width="0"><mphantom><mi>|</mi></mphantom></mpadded></msqrt>"#),
+    "surd" => CustomCmd(0, &predefined::SURD),
     "swarrow" => Relation(symbol::SOUTH_WEST_ARROW),
     "symbf" => Transform(MathVariant::Transform(TextTransform::BoldItalic)),
     "tag" => Tag,
@@ -813,6 +815,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "veeeq" => Relation(symbol::EQUIANGULAR_TO), // from "stix"
     "vert" => Ord(symbol::VERTICAL_LINE),
     "vertoverlay" => Overlay(OverlayChar::VerticalLine),
+    "vphantom" => Phantom(PhantomKind::V),
     "wedge" => BinaryOp(symbol::LOGICAL_AND),
     "wedgeq" => Relation(symbol::ESTIMATES), // from "stix"
     "weierp" => Letter(SuperChar::from_char(symbol::SCRIPT_CAPITAL_P), Mode::Math),

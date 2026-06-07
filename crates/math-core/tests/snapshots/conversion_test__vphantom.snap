@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt{\\vphantom{x}y}"
+---
+<math>
+    <msqrt>
+        <mrow>
+            <mpadded width="0">
+                <mphantom>
+                    <mi>x</mi>
+                </mphantom>
+            </mpadded>
+            <mi>y</mi>
+        </mrow>
+    </msqrt>
+</math>

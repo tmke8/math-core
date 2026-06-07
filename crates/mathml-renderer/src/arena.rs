@@ -167,9 +167,15 @@ mod tests {
     #[test]
     fn test_arena() {
         let arena = Arena::new();
-        let node = Node::HardcodedMathML("Hello, world!");
+        let node = Node::EMPTY_ROW;
         let reference = arena.push(node);
-        assert!(matches!(reference, Node::HardcodedMathML("Hello, world!")));
+        assert!(matches!(
+            reference,
+            Node::Row {
+                nodes: [],
+                attr: None
+            },
+        ));
     }
 
     #[test]

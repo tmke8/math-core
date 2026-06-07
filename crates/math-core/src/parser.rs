@@ -23,7 +23,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
-    token::{EndToken, InfixDelim, MathClassKind, Mode, TokSpan, Token},
+    token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -1503,6 +1503,22 @@ where
                     attr: Some(color),
                 })
             }
+            Token::Phantom(kind) => {
+                let inner = self.parse_next(ParseAs::Arg)?;
+                match kind {
+                    PhantomKind::Full => Ok(Node::Phantom { node: inner }),
+                    PhantomKind::H => Ok(Node::Padded {
+                        node: self.arena.push(Node::Phantom { node: inner }),
+                        width_0: false,
+                        height_0: true,
+                    }),
+                    PhantomKind::V => Ok(Node::Padded {
+                        node: self.arena.push(Node::Phantom { node: inner }),
+                        width_0: true,
+                        height_0: false,
+                    }),
+                }
+            }
             Token::Style(style) => {
                 let old_style = mem::replace(&mut self.state.style, style);
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
@@ -1716,7 +1732,6 @@ where
                 }
             }
             Token::UnknownCommand(name) => Ok(Node::UnknownCommand(name)),
-            Token::HardcodedMathML(mathml) => Ok(Node::HardcodedMathML(mathml)),
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     let mut builder = self.buffer.get_builder();
