@@ -100,7 +100,7 @@ impl StretchableOp {
             }
             OrdCategory::K => (Stretchy::Never, DelimiterSpacing::Zero),
             OrdCategory::KButUsedToBeB => (Stretchy::Never, DelimiterSpacing::Other),
-            OrdCategory::D | OrdCategory::E | OrdCategory::I | OrdCategory::IK => {
+            OrdCategory::D | OrdCategory::E | OrdCategory::DE | OrdCategory::I | OrdCategory::IK => {
                 return None;
             }
         };
