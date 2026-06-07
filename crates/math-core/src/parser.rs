@@ -1133,7 +1133,10 @@ where
                 if open {
                     class = Class::Open;
                 }
-                let mut attrs = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                let mut attrs = if matches!(
+                    paren.category(),
+                    OrdCategory::FGandForceDefault | OrdCategory::DE
+                ) {
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
