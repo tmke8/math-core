@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\begin{rcases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.}\\end{rcases} \\Rightarrow \\cdots"
+expression: "\\begin{rcases}0 &\\text{if } x \\geq 0 \\\\ \\frac{1 + 1}{2} &\\text{otherwise.}\\end{rcases} \\Rightarrow \\cdots"
 ---
 <math>
     <mrow>
@@ -19,7 +19,14 @@ expression: "\\begin{rcases}0 &\\text{if } x\\geq 0\\\\1 &\\text{otherwise.}\\en
             </mtr>
             <mtr>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;">
-                    <mn>1</mn>
+                    <mfrac>
+                        <mrow>
+                            <mn>1</mn>
+                            <mo lspace="0" rspace="0">+</mo>
+                            <mn>1</mn>
+                        </mrow>
+                        <mn>2</mn>
+                    </mfrac>
                 </mtd>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;padding-left:1em;">
                     <mtext>otherwise.</mtext>

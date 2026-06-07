@@ -134,9 +134,10 @@ impl Env {
         use Env::*;
         match self {
             DArray | Align | AlignStar | Aligned | Equation | EquationStar | Gather
-            | GatherStar | Gathered | MultLine => Style::Display,
-            Array | Cases | RCases | DCases | DRCases | Matrix | BMatrix | Bmatrix | PMatrix
-            | VMatrix | Vmatrix => Style::Text,
+            | GatherStar | Gathered | MultLine | DCases | DRCases => Style::Display,
+            Array | Cases | RCases | Matrix | BMatrix | Bmatrix | PMatrix | VMatrix | Vmatrix => {
+                Style::Text
+            }
             Subarray => Style::Script,
         }
     }

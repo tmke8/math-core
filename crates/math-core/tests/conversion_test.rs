@@ -231,19 +231,19 @@ fn main() {
         ("colon_subscript", r"x_{x:x}"),
         (
             "cases",
-            r"f(x):=\begin{cases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{cases}",
+            r"f(x):=\begin{cases}0 &\text{if } x \geq 0 \\ \frac{1 + 1}{2} &\text{otherwise.}\end{cases}",
         ),
         (
             "rcases",
-            r"\begin{rcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{rcases} \Rightarrow \cdots",
+            r"\begin{rcases}0 &\text{if } x \geq 0 \\ \frac{1 + 1}{2} &\text{otherwise.}\end{rcases} \Rightarrow \cdots",
         ),
         (
             "dcases",
-            r"f(x):=\begin{dcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{dcases}",
+            r"f(x):=\begin{dcases}0 &\text{if } x \geq 0 \\ \frac{1 + 1}{2} &\text{otherwise.}\end{dcases}",
         ),
         (
             "drcases",
-            r"\begin{drcases}0 &\text{if } x\geq 0\\1 &\text{otherwise.}\end{drcases} \Rightarrow \cdots",
+            r"\begin{drcases}0 &\text{if } x \geq 0 \\ \frac{1 + 1}{2} &\text{otherwise.}\end{drcases} \Rightarrow \cdots",
         ),
         ("mathstrut", r"\mathstrut"),
         ("greater_than", r"x > y"),
