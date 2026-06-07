@@ -1098,8 +1098,8 @@ where
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_PREFIX,
-                    left: None,
-                    right: None,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
                     size: None,
                 })
             }
@@ -1108,8 +1108,8 @@ where
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_POSTFIX,
-                    left: None,
-                    right: None,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
                     size: None,
                 })
             }
@@ -1133,7 +1133,10 @@ where
                 if open {
                     class = Class::Open;
                 }
-                let mut attrs = if matches!(paren.category(), OrdCategory::FGandForceDefault) {
+                let mut attrs = if matches!(
+                    paren.category(),
+                    OrdCategory::FGandForceDefault | OrdCategory::DE
+                ) {
                     // For this category of symbol, we have to force the form attribute
                     // in order to get correct spacing.
                     if open {
