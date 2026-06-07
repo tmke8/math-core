@@ -139,6 +139,8 @@ pub enum OrdCategory {
     D,
     /// Category E: Postfix, zero spacing (e.g. `′`).
     E,
+    /// Category D and E: Prefix or postfix, zero spacing (e.g. ` !`)
+    DE,
     /// Category F: Prefix, zero spacing, stretchy, symmetric (e.g. `(`).
     /// Meant to be stretched vertically.
     F,
@@ -226,7 +228,7 @@ impl Punct {
 //
 // Unicode Block: Basic Latin
 //
-pub const EXCLAMATION_MARK: MathMLOperator = MathMLOperator::from_char('!');
+pub const EXCLAMATION_MARK: OrdLike = OrdLike::new('!', OrdCategory::DE);
 // pub const QUOTATION_MARK: char = '"';
 pub const NUMBER_SIGN: char = '#';
 pub const DOLLAR_SIGN: char = '$';
