@@ -1,0 +1,9 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\phantom{a}"
+---
+[
+  Phantom(
+    node: IdentifierChar("a", Default),
+  ),
+]

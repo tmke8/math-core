@@ -8,7 +8,7 @@ use crate::CommandConfig;
 use crate::commands::get_command;
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, ForceStretchy, Mode, Span, TokSpan, Token};
+use crate::token::{EndToken, Mode, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>

@@ -2280,6 +2280,8 @@ mod tests {
             ("sum_relation", r"{\sum = 4}"),
             ("int_relation", r"{\int = 4}"),
             ("int_bounds_relation", r"{\int_0^\infty = 4}"),
+            ("phantom_full", r"\phantom{a}"),
+            ("mathstrut", r"\mathstrut"),
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
