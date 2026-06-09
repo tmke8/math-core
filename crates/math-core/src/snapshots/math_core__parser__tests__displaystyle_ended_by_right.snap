@@ -22,7 +22,11 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
             right: Some(Zero),
           ),
         ],
-        attr: Some(Style(Display)),
+        attrs: RowAttrs(
+          color: None,
+          style: Some(Display),
+          math_shift_compact: false,
+        ),
       ),
       Operator(
         op: ")",
@@ -32,7 +36,11 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
         right: None,
       ),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
   Operator(
     op: "∫",

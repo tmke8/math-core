@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\cramped[1]{x}"
+---
+Error: Expected one of `\displaystyle`, `\textstyle`, `\scriptstyle`, or `\scriptscriptstyle`
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \cramped[1]{x}
+   │          ┬  
+   │          ╰── expected a style
+───╯

@@ -25,6 +25,10 @@ expression: "{\\int_0^\\infty = 4}"
       ),
       Number("4"),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

@@ -32,6 +32,10 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         right: None,
       ),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

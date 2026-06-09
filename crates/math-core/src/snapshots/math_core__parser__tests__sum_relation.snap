@@ -21,6 +21,10 @@ expression: "{\\sum = 4}"
       ),
       Number("4"),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

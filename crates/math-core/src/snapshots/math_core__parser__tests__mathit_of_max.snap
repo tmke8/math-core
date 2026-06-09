@@ -14,6 +14,10 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
       ),
       IdentifierStr("𝛼𝛽"),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

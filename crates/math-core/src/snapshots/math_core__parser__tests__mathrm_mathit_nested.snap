@@ -8,6 +8,10 @@ expression: "\\mathrm{\\mathit{a}b}"
       IdentifierChar("𝑎", Default),
       IdentifierChar("b", ForcedUpright),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

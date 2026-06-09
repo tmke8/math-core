@@ -1,7 +1,7 @@
 use mathml_renderer::{
     arena::Arena,
-    ast::Node,
-    attribute::{MathSpacing, OpAttrs, RowAttr, Style, TextTransform},
+    ast::{Node, RowAttrs},
+    attribute::{MathSpacing, OpAttrs, Style, TextTransform},
     symbol::{self, MathMLOperator, OrdCategory, OrdLike, Rel, RelCategory},
 };
 
@@ -197,7 +197,10 @@ pub fn fenced<'arena>(
     let nodes = arena.push_slice(&content);
     Node::Row {
         nodes,
-        attr: style.map(RowAttr::Style),
+        attrs: RowAttrs {
+            style,
+            ..RowAttrs::DEFAULT
+        },
     }
 }
 

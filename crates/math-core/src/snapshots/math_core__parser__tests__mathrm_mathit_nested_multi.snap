@@ -9,6 +9,10 @@ expression: "\\mathrm{ab\\mathit{cd}ef}"
       IdentifierStr("𝑐𝑑"),
       IdentifierStr("ef"),
     ],
-    attr: None,
+    attrs: RowAttrs(
+      color: None,
+      style: None,
+      math_shift_compact: false,
+    ),
   ),
 ]

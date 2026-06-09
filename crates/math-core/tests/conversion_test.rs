@@ -259,6 +259,24 @@ fn main() {
             r"\sum_{\genfrac{}{}{0pt}{}{\scriptstyle 0 \le i \le m}{\scriptstyle 0 < j < n}} P(i, j)",
         ),
         ("scriptstyle_relation", r"{\scriptstyle 1=1}"),
+        ("cramped", r"\cramped{{x^2}^2}\ {x^2}^2"),
+        ("cramped_2", r"\cramped[]{\frac{2}{4}}"),
+        (
+            "cramped_displaystyle",
+            r"\cramped[\displaystyle]{{x^2}^2}\ {x^2}^2",
+        ),
+        (
+            "cramped_textstyle",
+            r"{x^2}^2\ \cramped[ \textstyle]{{x^2}^2}",
+        ),
+        (
+            "cramped_scriptstyle",
+            r"{x^2}^2\ \cramped[\scriptstyle ]{{x^2}^2}\ {x^2}^2",
+        ),
+        (
+            "cramped_scriptscriptstyle",
+            r"\cramped[ \scriptscriptstyle ]{{x^2}^2}",
+        ),
         ("genfrac", r"\genfrac(]{0pt}{2}{a+b}{c+d}"),
         ("genfrac_1pt", r"\genfrac(]{1pt}{2}{a+b}{c+d}"),
         (

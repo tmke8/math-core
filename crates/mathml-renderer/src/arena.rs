@@ -162,6 +162,8 @@ impl std::fmt::Write for StringBuilder<'_> {
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::RowAttrs;
+
     use super::*;
 
     #[test]
@@ -173,7 +175,7 @@ mod tests {
             reference,
             Node::Row {
                 nodes: [],
-                attr: None
+                attrs: RowAttrs::DEFAULT,
             },
         ));
     }
