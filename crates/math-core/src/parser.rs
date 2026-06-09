@@ -522,13 +522,19 @@ where
                 })
             }
             Token::BinaryOp(binary_op) => {
-                class = Class::BinaryOp;
                 let spacing = self.state.bin_op_spacing(
                     parse_as.in_sequence(),
                     prev_class,
                     next_class,
                     false,
                 );
+                class = if matches!(spacing, Some(MathSpacing::Zero)) {
+                    // If the spacing is zero, this operator behaves like an ordinary symbol in
+                    // terms of spacing.
+                    Class::Default
+                } else {
+                    Class::BinaryOp
+                };
                 Ok(Node::Operator {
                     op: binary_op.as_op(),
                     attrs: OpAttrs::empty(),
@@ -538,10 +544,16 @@ where
                 })
             }
             Token::ForceBinaryOp(op) => {
-                class = Class::BinaryOp;
                 let spacing =
                     self.state
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                class = if matches!(spacing, Some(MathSpacing::Zero)) {
+                    // If the spacing is zero, this operator behaves like an ordinary symbol in
+                    // terms of spacing.
+                    Class::Default
+                } else {
+                    Class::BinaryOp
+                };
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),

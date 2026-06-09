@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sin + \\cos"
+---
+<math>
+    <mo lspace="0" rspace="0.1667em">sin</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mo lspace="0.1667em" rspace="0">cos</mo>
+</math>
