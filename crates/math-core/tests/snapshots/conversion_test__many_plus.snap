@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: 4++++4
+---
+<math>
+    <mn>4</mn>
+    <mo>+</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mo>+</mo>
+    <mo lspace="0" rspace="0">+</mo>
+    <mn>4</mn>
+</math>

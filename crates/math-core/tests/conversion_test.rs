@@ -407,6 +407,8 @@ fn main() {
         ("plus_after_equal_subscript", r"x =_+4"),
         ("plus_after_equal_subscript2", r"x =_2 +4"),
         ("plus_after_equal_subscript3", r"x =_{2} + 4"),
+        ("many_plus", r"4++++4"),
+        ("sin_plus_cos", r"\sin + \cos"),
         ("equal_equal", r"4==4"),
         ("equal_equal_with_space", r"4=\;=4"),
         ("subscript_equal_equal", r"x_==4"),
