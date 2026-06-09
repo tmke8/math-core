@@ -490,6 +490,36 @@ where
                     size: None,
                 })
             }
+            Token::ForceLargeOp(op) => {
+                class = Class::Operator;
+
+                let bounds_with_limits = self.get_bounds(None)?;
+                let bounds = bounds_with_limits.bounds;
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
+                let attrs = if bounds_with_limits.limits.is_some() {
+                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE
+                } else {
+                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE | OpAttrs::FORCE_MOVABLE_LIMITS
+                };
+
+                let target = self.commit(Node::Operator {
+                    op,
+                    attrs,
+                    left,
+                    right,
+                    size: None,
+                });
+                match bounds {
+                    Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
+                        target,
+                        under,
+                        over,
+                    }),
+                    Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
+                    Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
+                    Bounds(None, None) => return Ok((class, target)),
+                }
+            }
             Token::Ord(ord) => {
                 let attrs = if matches!(ord.category(), OrdCategory::FGandForceDefault) {
                     // Category F+G operators will stretch in pre- and postfix positions,
