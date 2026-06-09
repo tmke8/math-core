@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sideset{}{}{a}"
+---
+Error: Expected a large operator.
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ \sideset{}{}{a}
+   │              ┬  
+   │              ╰── expected a large operator
+───╯

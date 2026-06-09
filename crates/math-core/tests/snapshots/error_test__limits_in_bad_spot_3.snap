@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\int_'\\limits^a"
+---
+Error: '^' or '_' directly followed by '^', '_' or prime.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \int_'\limits^a
+   │      ┬  
+   │      ╰── unexpected bound
+───╯

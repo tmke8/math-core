@@ -7,14 +7,12 @@ expression: "\\overset{\\alpha}{\\omega} \\\\ \\underset{\\alpha}{\\omega} \\\\ 
         <mi>ω</mi>
         <mi>α</mi>
     </mover>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <munder>
         <mi>ω</mi>
         <mi>α</mi>
     </munder>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mover>
         <munder>
             <mi>ω</mi>
@@ -22,8 +20,7 @@ expression: "\\overset{\\alpha}{\\omega} \\\\ \\underset{\\alpha}{\\omega} \\\\ 
         </munder>
         <mi>α</mi>
     </mover>
-    <mrow>
-    </mrow>
+    <mrow></mrow>
     <mover>
         <mi>ω</mi>
         <mi>α</mi>

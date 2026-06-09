@@ -8,12 +8,10 @@ expression: "\\prescript{}{2}{\\frac{a}{b}}^3"
             <mi>a</mi>
             <mi>b</mi>
         </mfrac>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
         <mn>3</mn>
         <mprescripts/>
         <mn>2</mn>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
     </mmultiscripts>
 </math>

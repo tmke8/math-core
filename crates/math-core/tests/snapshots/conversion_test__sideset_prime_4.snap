@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset{''^a_b}{''}\\int"
+---
+<math>
+    <mmultiscripts>
+        <mo lspace="0" rspace="0">∫</mo>
+        <mrow></mrow>
+        <mo>″</mo>
+        <mprescripts/>
+        <mi>b</mi>
+        <mrow>
+            <mo>″</mo>
+            <mi>a</mi>
+        </mrow>
+    </mmultiscripts>
+</math>

@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset{^1_2}{_4^3}\\int^5_6"
+---
+<math>
+    <msubsup>
+        <mmultiscripts>
+            <mo lspace="0">∫</mo>
+            <mn>4</mn>
+            <mn>3</mn>
+            <mprescripts/>
+            <mn>2</mn>
+            <mn>1</mn>
+        </mmultiscripts>
+        <mn>6</mn>
+        <mn>5</mn>
+    </msubsup>
+</math>

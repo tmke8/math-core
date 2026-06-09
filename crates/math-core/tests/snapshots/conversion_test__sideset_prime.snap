@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset''\\sum"
+---
+<math>
+    <mmultiscripts>
+        <mo movablelimits="false" lspace="0" rspace="0">∑</mo>
+        <mrow></mrow>
+        <mo>′</mo>
+        <mprescripts/>
+        <mrow></mrow>
+        <mo>′</mo>
+    </mmultiscripts>
+</math>

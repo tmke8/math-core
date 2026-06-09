@@ -64,6 +64,8 @@ pub enum Token<'source> {
     Circumflex,
     /// `\prescript`
     Prescript,
+    /// `\sideset`
+    Sideset,
     /// A token for `\binom`, `\dbinom` and `\tbinom`. The `Option<FracAttr>` is `None` for
     /// `\binom` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dbinom`.
     Binom(Option<FracAttr>),
@@ -297,6 +299,7 @@ impl Token<'_> {
             | Underscore
             | Circumflex
             | Prescript
+            | Sideset
             | Binom(_)
             | Overset
             | Underset

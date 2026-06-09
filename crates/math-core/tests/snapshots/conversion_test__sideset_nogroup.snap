@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset ab \\int"
+---
+<math>
+    <mrow>
+        <mmultiscripts>
+            <mrow>
+                <mi>a</mi>
+                <mo lspace="0" rspace="0">∫</mo>
+            </mrow>
+            <mrow></mrow>
+            <mrow></mrow>
+            <mprescripts/>
+            <mrow></mrow>
+            <mrow></mrow>
+        </mmultiscripts>
+        <mi>b</mi>
+    </mrow>
+</math>

@@ -107,6 +107,18 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
         }
     }
 
+    /// Peek at the next token without consuming it, including whitespace
+    /// and [`Token::MathOrTextMode`].
+    #[inline]
+    pub(super) fn peek_any_token(&self) -> &TokSpan<'source> {
+        if let Some(tok) = self.queue.front() {
+            tok
+        } else {
+            debug_assert!(self.lexer_is_eoi, "peek called without ensure");
+            &EOI_TOK
+        }
+    }
+
     /// Find or load a token which is not skipped according to `predicate`.
     ///
     /// This function starts its search after `next_non_whitespace` (i.e., it skips
@@ -352,6 +364,23 @@ impl<'source> MacroArgument<'source> {
                     Err(Box::new(LatexError(
                         span,
                         LatexErrKind::ExpectedAtMostOneToken,
+                    )))
+                }
+            }
+        }
+    }
+
+    /// Try to interpret this macro argument as a single token.
+    pub fn into_one(self) -> Result<TokSpan<'source>, Box<LatexError>> {
+        match self {
+            MacroArgument::Token(tok) => Ok(tok),
+            MacroArgument::Group(tokens, span) => {
+                if let Ok([tokspan]) = <[TokSpan; 1]>::try_from(tokens) {
+                    Ok(tokspan)
+                } else {
+                    Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::ExpectedExactlyOneToken,
                     )))
                 }
             }

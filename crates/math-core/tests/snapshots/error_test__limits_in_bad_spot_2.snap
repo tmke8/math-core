@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\int_\\limits a"
+---
+Error: Got "\limits", which may only appear after \int, \sum, ....
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \int_\limits a
+   │      ───┬───  
+   │         ╰───── may only appear after \int, \sum, ...
+───╯

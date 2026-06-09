@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sideset{^1_2}{_4^3}\\int"
+---
+<math>
+    <mmultiscripts>
+        <mo lspace="0" rspace="0">∫</mo>
+        <mn>4</mn>
+        <mn>3</mn>
+        <mprescripts/>
+        <mn>2</mn>
+        <mn>1</mn>
+    </mmultiscripts>
+</math>

@@ -4,8 +4,7 @@ expression: "_1^2 \\frac{a}{b}"
 ---
 <math>
     <msubsup>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
         <mn>1</mn>
         <mn>2</mn>
     </msubsup>

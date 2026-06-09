@@ -23,7 +23,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
-    token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, TokSpan, Token},
+    token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -101,9 +101,13 @@ enum ControlFlow {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SubSupKind {
-    Sub,
-    Sup,
+enum BoundStarterKind {
+    /// `_`
+    Underscore,
+    /// `^`
+    Circumflex,
+    /// `'`
+    Prime,
 }
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
@@ -193,33 +197,25 @@ where
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
-            let bounds = self.get_bounds(None)?;
+            let bounds = self.get_bounds(None)?.ensure_no_limits()?;
 
             match target {
                 Node::Multiscripts {
                     base,
                     pre,
                     post: [],
-                } if !matches!(bounds, Bounds(None, None)) => {
-                    let sub: &Node<'_> = bounds.0.unwrap_or(&Node::EMPTY_ROW);
-                    let sup: &Node<'_> = bounds.1.unwrap_or(&Node::EMPTY_ROW);
-                    let post = self
-                        .arena
-                        .alloc_multiscript_pairs(&[MultiscriptPair { sub, sup }]);
+                } if !bounds.is_trivial() => {
+                    let post = self.arena.alloc_multiscript_pairs(&[bounds.into()]);
                     let node = self.commit(Node::Multiscripts { base, pre, post });
                     nodes.push(node);
                 }
                 _ => {
-                    let node = self.commit(match bounds {
-                        Bounds(Some(sub), Some(sup)) => Node::SubSup { target, sub, sup },
-                        Bounds(Some(symbol), None) => Node::Sub { target, symbol },
-                        Bounds(None, Some(symbol)) => Node::Sup { target, symbol },
-                        Bounds(None, None) => {
-                            nodes.push(target);
-                            continue;
-                        }
-                    });
-                    nodes.push(node);
+                    let node = match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => self.arena.push(node),
+                        None => target,
+                    };
+
+                    nodes.push(node)
                 }
             }
             // If there are superscripts or subscripts, we need to wrap the node we just got into
@@ -892,15 +888,15 @@ where
                 let has_movable_limits = matches!(op.category(), OpCategory::J);
                 let has_bounds = !matches!(op.category(), OpCategory::C);
 
-                let limits = has_bounds && matches!(self.tokens.peek().token(), Token::Limits);
-                if limits {
-                    self.next_token()?; // Discard the limits token.
-                }
-                let bounds = if has_bounds {
+                let bounds_limits = if has_bounds {
                     self.get_bounds(None)?
                 } else {
-                    Bounds(None, None)
+                    BoundsWithLimits::default()
                 };
+
+                let bounds = bounds_limits.bounds;
+                let limits = bounds_limits.limits.is_some();
+
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
                 let attrs = if has_movable_limits && limits {
                     OpAttrs::NO_MOVABLE_LIMITS
@@ -916,32 +912,23 @@ where
                 });
                 let use_underover = has_movable_limits || limits;
                 if use_underover {
-                    match bounds {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 } else {
-                    match bounds {
-                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 }
             }
             ref tok @ (Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name)) => {
                 class = Class::Operator;
                 let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
-                let explicit_limits = matches!(self.tokens.peek().token(), Token::Limits);
-                if explicit_limits {
-                    self.next_token()?; // Discard the limits token.
-                }
+                let bounds_limits = self.get_bounds(None)?;
+                let bounds = bounds_limits.bounds;
+                let explicit_limits = bounds_limits.limits.is_some();
                 let movablelimits = if explicit_limits {
                     // explicit `\limits` always results in non-movable limits
                     OpAttrs::NO_MOVABLE_LIMITS
@@ -951,7 +938,6 @@ where
                     // a normal operator without limits
                     OpAttrs::empty()
                 };
-                let bounds = self.get_bounds(None)?;
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
@@ -966,24 +952,14 @@ where
                     name,
                 });
                 if movablelimits.is_empty() {
-                    match bounds {
-                        Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                        Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                        Bounds(None, None) => return Ok((class, target)),
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 } else {
-                    match bounds {
-                        Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                            target,
-                            under,
-                            over,
-                        }),
-                        Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
-                        Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
-                        Bounds(None, None) => {
-                            return Ok((class, target));
-                        }
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok((class, target)),
                     }
                 }
             }
@@ -1402,17 +1378,10 @@ where
                     name: letters,
                 });
                 if with_limits {
-                    let node = match self.get_bounds(None)? {
-                        Bounds(Some(under), Some(over)) => Node::UnderOver {
-                            target: op,
-                            under,
-                            over,
-                        },
-                        Bounds(Some(symbol), None) => Node::Under { target: op, symbol },
-                        Bounds(None, Some(symbol)) => Node::Over { target: op, symbol },
-                        Bounds(None, None) => {
-                            return Ok((Class::Operator, op));
-                        }
+                    let bounds = self.get_bounds(None)?.ensure_no_limits()?;
+                    let node = match bounds.try_wrap_node_underover(op) {
+                        Some(node) => node,
+                        None => return Ok((Class::Operator, op)),
                     };
                     Ok(node)
                 } else {
@@ -1590,33 +1559,15 @@ where
                     },
                 })
             }
-            Token::Prime => {
-                let target = self.commit(Node::EMPTY_ROW);
-                let symbol = self.commit(Node::Operator {
-                    op: symbol::PRIME.as_op(),
-                    attrs: OpAttrs::empty(),
-                    left: None,
-                    right: None,
-                    size: None,
-                });
-                Ok(Node::Sup { target, symbol })
-            }
-            tok @ (Token::Underscore | Token::Circumflex) => {
-                let first = if tok == Token::Underscore {
-                    SubSupKind::Sub
-                } else {
-                    SubSupKind::Sup
-                };
-                let bounds = self.get_bounds(Some(first))?;
+            tok @ (Token::Underscore | Token::Circumflex | Token::Prime) => {
+                let bounds = self.get_bounds(Some((tok, span)))?.ensure_no_limits()?;
 
                 // We use an empty row as the base.
                 let target = self.commit(Node::EMPTY_ROW);
 
-                match bounds {
-                    Bounds(Some(sub), Some(sup)) => Ok(Node::SubSup { target, sub, sup }),
-                    Bounds(Some(symbol), None) => Ok(Node::Sub { target, symbol }),
-                    Bounds(None, Some(symbol)) => Ok(Node::Sup { target, symbol }),
-                    Bounds(None, None) => unreachable!(),
+                match bounds.try_wrap_node_subsup(target) {
+                    Some(node) => Ok(node),
+                    None => unreachable!(),
                 }
             }
             Token::Prescript => {
@@ -1631,6 +1582,98 @@ where
                     pre,
                     post: &const { &[] },
                 })
+            }
+            Token::Sideset => {
+                // Collect arguments
+                let (pre_bounds_limits, mut after_pre_bounds) = self.get_bounds_arg()?;
+                let pre_bounds = pre_bounds_limits.ensure_no_limits()?;
+                let (post_bounds_limits, mut after_post_bounds) = self.get_bounds_arg()?;
+                // TeX allows `\limits` here, but no good way to represent it in MathML
+                let post_bounds = post_bounds_limits.ensure_no_limits()?;
+                let base = self.tokens.read_argument(false)?.into_one()?;
+
+                // Construct node for base op
+                let op = match *base.token() {
+                    Token::Op(op) if matches!(op.category(), OpCategory::H | OpCategory::J) => op,
+                    _ => {
+                        return Err(Box::new(LatexError(
+                            base.span().into(),
+                            LatexErrKind::ExpectedLargeOp,
+                        )));
+                    }
+                };
+                let has_movable_limits: bool = matches!(op.category(), OpCategory::J);
+                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                let attrs = if has_movable_limits {
+                    OpAttrs::NO_MOVABLE_LIMITS
+                } else {
+                    OpAttrs::empty()
+                };
+                let op_node = self.arena.push(Node::Operator {
+                    op: op.as_op(),
+                    attrs,
+                    size: None,
+                    left,
+                    right,
+                });
+
+                // Add `post_pre_bounds` tokens to op node
+                let op_and_after_pre_bounds_node = if after_pre_bounds.is_empty() {
+                    op_node
+                } else {
+                    after_pre_bounds.push(op_node);
+
+                    self.arena.push(Node::Row {
+                        nodes: self.arena.push_slice(&after_pre_bounds),
+                        attrs: RowAttrs::DEFAULT,
+                    })
+                };
+
+                // construct sidesetted node
+                // FIXME: use `msub`/`msup`/`msubsup` where possible
+                let pre = self.arena.alloc_multiscript_pairs(&[pre_bounds.into()]);
+                let post = self.arena.alloc_multiscript_pairs(&[post_bounds.into()]);
+                let sidesetted_node = Node::Multiscripts {
+                    base: op_and_after_pre_bounds_node,
+                    pre,
+                    post,
+                };
+
+                // Add `post_pre_bounds` tokens to sidesetted node
+                let sidesetted_with_after_post_bounds_node = if after_post_bounds.is_empty() {
+                    sidesetted_node
+                } else {
+                    after_post_bounds.insert(0, self.arena.push(sidesetted_node));
+
+                    Node::Row {
+                        nodes: self.arena.push_slice(&after_post_bounds),
+                        attrs: RowAttrs::DEFAULT,
+                    }
+                };
+
+                // add trailing bounds to sidesettend node
+                let underover = self.get_bounds(None)?;
+                if !underover.bounds.is_trivial() {
+                    if self.state.style == Style::Display || underover.limits.is_some() {
+                        // construct node for under/overscripts
+                        Ok(underover
+                            .bounds
+                            .try_wrap_node_underover(
+                                self.arena.push(sidesetted_with_after_post_bounds_node),
+                            )
+                            .unwrap_or_else(|| unreachable!()))
+                    } else {
+                        // construct node for super/subscripts
+                        Ok(underover
+                            .bounds
+                            .try_wrap_node_subsup(
+                                self.arena.push(sidesetted_with_after_post_bounds_node),
+                            )
+                            .unwrap_or_else(|| unreachable!()))
+                    }
+                } else {
+                    Ok(sidesetted_with_after_post_bounds_node)
+                }
             }
             Token::Limits => Err(LatexError(
                 span.into(),
@@ -1821,103 +1864,153 @@ where
     }
 
     /// Parse the bounds of an integral, sum, or product.
-    /// These bounds are preceeded by `_` or `^`.
-    /// `start` should be `Some(BoundStart::Underscore)` or `Some(BoundStart::Circumflex)`
-    /// to indicate that these were already consumed,
+    /// These bounds are preceeded by `_`, `^`, or `'`.
+    /// `first` should be `Some(Token::Underscore | Token::Circumflex | Token::Prime)`
+    /// to indicate that one of these was already consumed as a start of the bound,
     /// or `None` otherwise.
-    fn get_bounds(&mut self, first: Option<SubSupKind>) -> ParseResult<Bounds<'arena>> {
-        let discard_first = first.is_none();
-        let (first, mut primes) = match first {
-            Some(first) => (Some(first), Vec::new()),
-            None => {
-                let primes: Vec<&Node<'_>> = self.prime_check()?;
-                // Check whether the first bound is specified and is a lower bound.
-                let first = match self.tokens.peek().token() {
-                    Token::Underscore => Some(SubSupKind::Sub),
-                    Token::Circumflex => Some(SubSupKind::Sup),
-                    _ => None,
-                };
-                (first, primes)
-            }
-        };
+    fn get_bounds(
+        &mut self,
+        mut first: Option<(Token, Span)>,
+    ) -> ParseResult<BoundsWithLimits<'arena>> {
+        debug_assert!(matches!(
+            first,
+            Some((Token::Underscore | Token::Circumflex | Token::Prime, _)) | None
+        ));
 
-        let (sub, sup) = if let Some(first) = first {
-            if discard_first {
-                self.next_token()?;
-            }
+        let mut ret: BoundsWithLimits = BoundsWithLimits::default();
 
-            let first_bound = Some(self.get_sub_or_sup(first)?);
-
-            // If the first bound was a subscript *and* we didn't encounter primes yet,
-            // we check once more for primes.
-            if first == SubSupKind::Sub && primes.is_empty() {
-                primes = self.prime_check()?;
+        loop {
+            // retreive and consume next token
+            let (next_token, next_span) = first.unwrap_or_else(|| self.tokens.peek().into_parts());
+            if matches!(
+                next_token,
+                Token::Underscore | Token::Circumflex | Token::Prime | Token::Limits
+            ) && first.take().is_none()
+            {
+                self.tokens.next()?;
             }
 
-            // Check whether both an upper and a lower bound were specified.
-            let second = match self.tokens.peek().token() {
-                Token::Underscore => Some(SubSupKind::Sub),
-                Token::Circumflex => Some(SubSupKind::Sup),
-                _ => None,
+            // parse it into a bound
+            let (bound_starter_kind, bound_to_replace) = match next_token {
+                Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
+                Token::Prime => (BoundStarterKind::Prime, &mut ret.bounds.1),
+                Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
+                Token::Limits => {
+                    ret.limits = Some(next_span);
+                    continue;
+                }
+                // we are done!
+                _ => break Ok(ret),
             };
 
-            if let Some(second) = second {
-                if first == second {
-                    let span = self.next_token()?.span();
-                    return Err(Box::new(LatexError(
-                        span.into(),
-                        LatexErrKind::DuplicateSubOrSup,
-                    )));
-                } else {
-                    self.next_token()?;
-                    let second_bound = Some(self.get_sub_or_sup(second)?);
-                    // Depending on whether the underscore or the circumflex came first,
-                    // we have to swap the bounds.
-                    if first == SubSupKind::Sub {
-                        (first_bound, second_bound)
-                    } else {
-                        (second_bound, first_bound)
-                    }
-                }
-            } else if first == SubSupKind::Sub {
-                (first_bound, None)
-            } else {
-                (None, first_bound)
+            let node = self.get_sub_or_sup(bound_starter_kind)?;
+            if bound_to_replace.replace(node).is_some() {
+                return Err(Box::new(LatexError(
+                    next_span.into(),
+                    LatexErrKind::DuplicateSubOrSup,
+                )));
             }
-        } else {
-            (None, None)
-        };
-
-        let sup = if primes.is_empty() {
-            sup
-        } else {
-            if let Some(sup) = sup {
-                primes.push(sup);
-            }
-            Some(node_vec_to_node(self.arena, &primes, false))
-        };
-
-        Ok(Bounds(sub, sup))
+        }
     }
 
-    /// Check for primes and aggregate them into a single node.
-    fn prime_check(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
-        let mut primes = Vec::new();
-        let mut prime_count = 0usize;
-        while matches!(self.tokens.peek().token(), Token::Prime) {
-            self.next_token()?; // Discard the prime token.
-            prime_count += 1;
+    /// Helper for parsing `\sideset`.
+    /// Get bounds that are an argument to a macro
+    /// (either wrapped in braces, or a single bare `'`).
+    /// The group can contain additional tokens after the bounds;
+    /// these are returned in the tuple's second element.
+    fn get_bounds_arg(
+        &mut self,
+    ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
+        let first = *self.tokens.peek();
+        match first.token() {
+            Token::Prime => {
+                self.tokens.next()?;
+                Ok((
+                    BoundsWithLimits {
+                        bounds: Bounds(
+                            None,
+                            Some(
+                                &const {
+                                    Node::Operator {
+                                        op: symbol::PRIME.as_op(),
+                                        attrs: OpAttrs::empty(),
+                                        left: None,
+                                        right: None,
+                                        size: None,
+                                    }
+                                },
+                            ),
+                        ),
+                        limits: None,
+                    },
+                    Vec::new(),
+                ))
+            }
+            Token::GroupBegin => {
+                self.tokens.next()?; // skip over group begin token
+
+                let bounds = self.get_bounds(None)?;
+                let after_bounds = self.parse_sequence(
+                    SequenceEnd::EndToken(EndToken::GroupClose),
+                    Class::Open,
+                    false,
+                )?;
+                Ok((bounds, after_bounds))
+            }
+            Token::Limits => {
+                self.tokens.next()?;
+                Ok((
+                    BoundsWithLimits {
+                        bounds: Bounds(None, None),
+                        limits: Some(first.span()),
+                    },
+                    Vec::new(),
+                ))
+            }
+            _ => {
+                let next = self.parse_next(ParseAs::Arg)?;
+                Ok((
+                    BoundsWithLimits {
+                        bounds: Bounds(None, None),
+                        limits: None,
+                    },
+                    vec![next],
+                ))
+            }
         }
-        static PRIME_SELECTION: [symbol::OrdLike; 4] = [
-            symbol::PRIME,
-            symbol::DOUBLE_PRIME,
-            symbol::TRIPLE_PRIME,
-            symbol::QUADRUPLE_PRIME,
-        ];
-        if prime_count > 0 {
+    }
+
+    /// Parse the node after a `_` or `^` token.
+    /// (We assume that token was already consumed.)
+    fn get_sub_or_sup(&mut self, mut kind: BoundStarterKind) -> ParseResult<&'arena Node<'arena>> {
+        let mut nodes = Vec::with_capacity(1);
+
+        if kind == BoundStarterKind::Prime {
+            let mut prime_count = 1;
+            let followed_by_circumflex = loop {
+                // We use `peek_any_token` here because primes can't be separated by whitespace
+                // from each other or from a `^` that follows
+                let next_tok = self.tokens.peek_any_token();
+
+                match next_tok.token() {
+                    Token::Prime => prime_count += 1,
+                    Token::Circumflex => break true,
+                    _ => break false,
+                }
+
+                self.tokens.next_any_token()?;
+            };
+
+            static PRIME_SELECTION: [symbol::OrdLike; 4] = [
+                symbol::PRIME,
+                symbol::DOUBLE_PRIME,
+                symbol::TRIPLE_PRIME,
+                symbol::QUADRUPLE_PRIME,
+            ];
+
             // If we have between 1 and 4 primes, we can use the predefined prime operators.
             if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
-                primes.push(self.commit(Node::Operator {
+                nodes.push(self.commit(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
                     left: None,
@@ -1926,7 +2019,7 @@ where
                 }));
             } else {
                 for _ in 0..prime_count {
-                    primes.push(self.commit(Node::Operator {
+                    nodes.push(self.commit(Node::Operator {
                         op: symbol::PRIME.as_op(),
                         attrs: OpAttrs::empty(),
                         left: None,
@@ -1935,36 +2028,48 @@ where
                     }));
                 }
             }
-        }
-        Ok(primes)
-    }
 
-    /// Parse the node after a `_` or `^` token.
-    /// (We assume that token was already consumed.)
-    fn get_sub_or_sup(&mut self, kind: SubSupKind) -> ParseResult<&'arena Node<'arena>> {
-        let next = self.next_token();
-        if let Ok(tokloc) = next
-            && let (Token::Underscore | Token::Circumflex | Token::Prime, span) =
-                tokloc.into_parts()
-        {
-            return Err(Box::new(LatexError(
-                span.into(),
-                LatexErrKind::BoundFollowedByBound,
-            )));
-        }
-        let old_style = mem::replace(&mut self.state.style, Style::Script);
-        let node = self.parse_token(next, ParseAs::Arg, Class::Default);
-        self.state.style = old_style;
-
-        // If the bound was a superscript, it may *not* be followed by a prime.
-        if kind == SubSupKind::Sup && matches!(self.tokens.peek().token(), Token::Prime) {
-            return Err(Box::new(LatexError(
-                self.tokens.peek().span().into(),
-                LatexErrKind::DuplicateSubOrSup,
-            )));
+            if followed_by_circumflex {
+                // continue below
+                self.tokens.next_any_token()?;
+                kind = BoundStarterKind::Circumflex;
+            }
         }
 
-        node.map(|(_, n)| n)
+        if kind != BoundStarterKind::Prime {
+            let next = self.tokens.next()?;
+            match next.token() {
+                Token::Underscore | Token::Circumflex | Token::Prime => {
+                    return Err(Box::new(LatexError(
+                        next.span().into(),
+                        LatexErrKind::BoundFollowedByBound,
+                    )));
+                }
+                Token::Eoi => {
+                    return Err(Box::new(LatexError(
+                        next.span().into(),
+                        LatexErrKind::ExpectedArgumentGotEOI,
+                    )));
+                }
+                _ => (),
+            }
+            let old_style = self.state.style;
+            self.state.style = old_style.scriptify();
+            let node = self.parse_token(Ok(next), ParseAs::Arg, Class::Default)?.1;
+            self.state.style = old_style;
+            nodes.push(node);
+        }
+
+        let ret_node = if nodes.len() == 1 {
+            nodes[0]
+        } else {
+            self.arena.push(Node::Row {
+                nodes: self.arena.push_slice(&nodes),
+                attrs: RowAttrs::DEFAULT,
+            })
+        };
+
+        Ok(ret_node)
     }
 
     fn big_operator_spacing(
@@ -2279,7 +2384,91 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
     Ok(delim)
 }
 
+/// sub, sup
+#[derive(Clone, Copy, Debug, Default)]
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
+
+impl<'arena> Bounds<'arena> {
+    const fn is_trivial(self) -> bool {
+        matches!(self, Self(None, None))
+    }
+
+    fn try_wrap_node_underover(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
+        match self {
+            Self(None, None) => None,
+            Self(Some(under), Some(over)) => Some(Node::UnderOver {
+                target: node,
+                under,
+                over,
+            }),
+            Self(Some(symbol), None) => Some(Node::Under {
+                target: node,
+                symbol,
+            }),
+            Self(None, Some(symbol)) => Some(Node::Over {
+                target: node,
+                symbol,
+            }),
+        }
+    }
+
+    fn try_wrap_node_subsup(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
+        match self {
+            Self(None, None) => None,
+            Self(Some(sub), Some(sup)) => Some(Node::SubSup {
+                target: node,
+                sub,
+                sup,
+            }),
+            Self(Some(symbol), None) => Some(Node::Sub {
+                target: node,
+                symbol,
+            }),
+            Self(None, Some(symbol)) => Some(Node::Sup {
+                target: node,
+                symbol,
+            }),
+        }
+    }
+}
+
+impl<'arena> From<Bounds<'arena>> for MultiscriptPair<'arena> {
+    fn from(bounds: Bounds<'arena>) -> Self {
+        Self {
+            sub: bounds.0.unwrap_or(&Node::EMPTY_ROW),
+            sup: bounds.1.unwrap_or(&Node::EMPTY_ROW),
+        }
+    }
+}
+
+/// Return type of [`Parser::get_bounds_arg`].
+#[derive(Clone, Copy, Debug, Default)]
+struct BoundsWithLimits<'arena> {
+    /// The bounds at the start of the arg
+    bounds: Bounds<'arena>,
+    /// The span of the `Limits` token applying to the bounds,
+    /// if it was present
+    limits: Option<Span>,
+}
+
+impl<'arena> BoundsWithLimits<'arena> {
+    /// Returns the bounds in this [`BoundsWithLimits`]
+    /// if it has no limits,
+    /// or an error otherwise.
+    fn ensure_no_limits(self) -> ParseResult<Bounds<'arena>> {
+        if let Some(limits_span) = self.limits {
+            Err(Box::new(LatexError(
+                limits_span.into(),
+                LatexErrKind::CannotBeUsedHere {
+                    got: LimitedUsabilityToken::Limits,
+                    correct_place: Place::AfterBigOp,
+                },
+            )))
+        } else {
+            Ok(self.bounds)
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

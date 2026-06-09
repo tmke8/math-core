@@ -10,7 +10,6 @@ expression: "\\prescript{}{2}{\\frac{a}{b}}"
         </mfrac>
         <mprescripts/>
         <mn>2</mn>
-        <mrow>
-        </mrow>
+        <mrow></mrow>
     </mmultiscripts>
 </math>

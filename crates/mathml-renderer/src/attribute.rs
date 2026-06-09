@@ -118,6 +118,14 @@ impl Style {
             Style::Script | Style::ScriptScript => Style::ScriptScript,
         }
     }
+
+    /// One step smaller but no bigger than script, as used for sub/superscripts.
+    pub const fn scriptify(self) -> Self {
+        match self {
+            Style::Display | Style::Text => Style::Script,
+            Style::Script | Style::ScriptScript => Style::ScriptScript,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]

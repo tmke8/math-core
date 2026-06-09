@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\int_0\\limits^1 dx"
+---
+<math>
+    <munderover>
+        <mo lspace="0">∫</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </munderover>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

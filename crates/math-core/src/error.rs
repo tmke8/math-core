@@ -32,8 +32,10 @@ pub(crate) enum LatexErrKind {
         correct_place: Place,
     },
     ExpectedRelation,
+    ExpectedLargeOp,
     UnsupportedMathClassArgument,
     ExpectedAtMostOneToken,
+    ExpectedExactlyOneToken,
     BoundFollowedByBound,
     DuplicateSubOrSup,
     CannotBeUsedAsArgument,
@@ -160,6 +162,9 @@ impl LatexErrKind {
             LatexErrKind::ExpectedRelation => {
                 write!(s, "Expected a relation after \\not.")?;
             }
+            LatexErrKind::ExpectedLargeOp => {
+                write!(s, "Expected a large operator.")?;
+            }
             LatexErrKind::UnsupportedMathClassArgument => {
                 write!(
                     s,
@@ -168,6 +173,9 @@ impl LatexErrKind {
             }
             LatexErrKind::ExpectedAtMostOneToken => {
                 write!(s, "Expected at most one token as argument.")?;
+            }
+            LatexErrKind::ExpectedExactlyOneToken => {
+                write!(s, "Expected exactly one token as argument.")?;
             }
             LatexErrKind::BoundFollowedByBound => {
                 write!(s, "'^' or '_' directly followed by '^', '_' or prime.")?;
@@ -320,9 +328,11 @@ impl LatexError {
                 format!("may only appear {}", <&str>::from(correct_place)).into()
             }
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
+            LatexErrKind::ExpectedLargeOp => "expected a large operator".into(),
             LatexErrKind::ExpectedStyle => "expected a style".into(),
             LatexErrKind::UnsupportedMathClassArgument => "unsupported argument".into(),
             LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
+            LatexErrKind::ExpectedExactlyOneToken => "expected exactly one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),

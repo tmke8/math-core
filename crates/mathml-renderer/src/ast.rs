@@ -495,10 +495,14 @@ impl Node<'_> {
 
                 write!(s, ">")?;
 
-                for node in nodes {
-                    node.emit(s, child_indent)?;
+                if nodes.is_empty() {
+                    write!(s, "</mrow>")?;
+                } else {
+                    for node in nodes {
+                        node.emit(s, child_indent)?;
+                    }
+                    writeln_indent!(s, base_indent, "</mrow>");
                 }
-                writeln_indent!(s, base_indent, "</mrow>");
             }
             &Node::Padded {
                 node,

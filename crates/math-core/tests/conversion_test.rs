@@ -132,6 +132,23 @@ fn main() {
         ("integral_with_upper_limit", r"\int\limits^1 dx"),
         ("integral_with_reversed_limits", r"\int\limits^1_0 dx"),
         ("integral_pointless_limits", r"\int\limits dx"),
+        ("integral_with_limits_in_weird_spot", r"\int_0^1\limits dx"),
+        (
+            "integral_with_limits_in_weird_spot_2",
+            r"\int_0\limits^1 dx",
+        ),
+        (
+            "integral_with_limits_in_weird_spot_3",
+            r"\int'''\limits_3 dx",
+        ),
+        (
+            "integral_with_limits_in_weird_spot_4",
+            r"\int_3\limits''' dx",
+        ),
+        (
+            "integral_with_limits_in_weird_spots",
+            r"\int\limits\limits\limits\limits_0\limits\limits\limits^1\limits\limits\limits dx",
+        ),
         ("max_with_limits", r"\max\limits_x y"),
         ("max_with_sup_limits", r"\max\limits^x"),
         ("max_with_relation", r"\max_{x\in X}"),
@@ -332,10 +349,10 @@ fn main() {
         ("sub_prime_super", r"f_3'^2"),
         ("double_prime_and_super", r"f''^2"),
         ("double_prime_and_super_sub", r"f''^2_3"),
-        ("double_prime_and_sub_super", r"f''_3^2"),
         ("sum_prime", r"\sum'"),
         ("int_prime", r"\int'"),
         ("vec_prime", r"\vec{x}'"),
+        ("standalone_everything", "'''^a_b"),
         ("overset_spacing", r"x\overset{!}{=}x"),
         ("overset_with_prime", r"\overset{!}{=}'x"),
         ("overset_prime", r"\overset{'}{=}x"),
@@ -494,6 +511,36 @@ fn main() {
             r"\prescript{}{2}{\frac{a}{b}^2_3}",
         ),
         ("prescript_sum", r"\prescript{1}{2}{\sum}^3_4"),
+        ("sideset", r#"\sideset{^1_2}{_4^3}\sum"#),
+        ("sideset_prime", r#"\sideset''\sum"#),
+        ("sideset_prime_2", r#"\sideset'{}\sum"#),
+        ("sideset_prime_3", r#"\sideset{}'\sum"#),
+        ("sideset_prime_4", r#"\sideset{''^a_b}{''}\int"#),
+        ("sideset_int", r#"\sideset{^1_2}{_4^3}\int"#),
+        ("sideset_subsub", r#"\sideset{^1_2}{_4^3}\int^5_6"#),
+        ("sideset_nogroup", r#"\sideset ab \int"#),
+        (
+            "sideset_extras",
+            r#"\sideset{^1_2 aaaaa}{_4^3 bbbbb}\int^5_6"#,
+        ),
+        ("sideset_extras_2", r#"\sideset{a ^1_2}{b _4^3}\int^5_6"#),
+        ("sideset_extras_3", r#"\sideset{a}{b}\int^5_6"#),
+        (
+            "sideset_underover",
+            r#"\displaystyle{\sideset{^1_2}{_4^3}\int^5_6}"#,
+        ),
+        (
+            "sideset_extras_underover",
+            r#"\sideset{^1_2 aaaaa}{_4^3 bbbbb}\int^5_6"#,
+        ),
+        (
+            "sideset_extras_2_underover",
+            r#"\displaystyle{\sideset{a ^1_2}{b _4^3}\int^5_6}"#,
+        ),
+        (
+            "sideset_extras_3_underover",
+            r#"\displaystyle{\sideset{a}{b}\int^5_6}"#,
+        ),
     ];
 
     let config = MathCoreConfig {
