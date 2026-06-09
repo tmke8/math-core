@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sum\\nolimits_0\\displaylimits^1\\limits"
+---
+<math>
+    <munderover>
+        <mo movablelimits="false" lspace="0" rspace="0">∑</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </munderover>
+</math>

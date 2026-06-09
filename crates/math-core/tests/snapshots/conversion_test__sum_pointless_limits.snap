@@ -3,6 +3,6 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\sum\\limits n"
 ---
 <math>
-    <mo movablelimits="false" lspace="0">∑</mo>
+    <mo lspace="0">∑</mo>
     <mi>n</mi>
 </math>

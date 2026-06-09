@@ -6,12 +6,15 @@ use mathml_renderer::{
     symbol::{self, MathMLOperator},
 };
 
-use crate::character_class::{MathVariant, ParenType};
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
     ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, TextToken,
     Token::{self, *},
+};
+use crate::{
+    character_class::{MathVariant, ParenType},
+    token::LimitsKind,
 };
 
 // These function names are essentially just passed-through, wrapped in a token.
@@ -287,6 +290,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "diamonds" => Letter(SuperChar::from_char(symbol::WHITE_DIAMOND_SUIT), Mode::Math),
     "diamondsuit" => Letter(SuperChar::from_char(symbol::WHITE_DIAMOND_SUIT), Mode::Math),
     "digamma" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_DIGAMMA), Mode::Math),
+    "displaylimits" => Limits(LimitsKind::Display),
     "displaystyle" => Style(Style::Display),
     "div" => BinaryOp(symbol::DIVISION_SIGN),
     "divideontimes" => ForceBinaryOp(symbol::DIVISION_TIMES.as_op()),
@@ -441,7 +445,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lightning" => Relation(symbol::DOWNWARDS_ZIGZAG_ARROW),
     "lim" => PseudoOperatorLimits("lim"),
     "liminf" => PseudoOperatorLimits("lim\u{2009}inf"),
-    "limits" => Limits,
+    "limits" => Limits(LimitsKind::Always),
     "limsup" => PseudoOperatorLimits("lim\u{2009}sup"),
     "ll" => Relation(symbol::MUCH_LESS_THAN),
     "llangle" => Open(symbol::Z_NOTATION_LEFT_BINDING_BRACKET), // from "stix"
@@ -540,6 +544,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "nlessgt" => Relation(symbol::NEITHER_LESS_THAN_NOR_GREATER_THAN),
     "nlesssim" => Relation(symbol::NEITHER_LESS_THAN_NOR_EQUIVALENT_TO),
     "nmid" => Relation(symbol::DOES_NOT_DIVIDE),
+    "nolimits" => Limits(LimitsKind::Never),
     "nonumber" => NoNumber,
     "normalsize" => TextMode(TextToken::Size(HtmlTextSize::Size100)),
     "not" => Overlay(OverlayChar::Solidus),
