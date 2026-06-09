@@ -39,7 +39,7 @@ fn main() {
         ("textbackslash", r"\text{\textbackslash}"),
         (
             "text_only_symbol_commands",
-            r"\text{\textasciicircum\textbar\textbardbl\textbraceleft\textbraceright\textdagger\textdaggerdbl\textdegree\textdollar\textellipsis\textemdash\textendash\textquotedblleft\textquotedblright\textquoteleft\textquoteright\textregistered\textsterling\textunderscore}",
+            r"\text{\textasciicircum\textbar\textbardbl\textbraceleft\textbraceright\textdagger\textdaggerdbl\textdegree\textdollar\textellipsis\textemdash\textendash\textquotedblleft\textquotedblright\textquoteleft\textquoteright\textregistered\textsterling\textunderscore\textgreater\textless}",
         ),
         ("pilcrow_and_section", r"\P\S\sect\text{\P\S\sect}"),
         ("textit", r"\textit{x}"),
