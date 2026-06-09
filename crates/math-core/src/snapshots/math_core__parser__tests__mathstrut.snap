@@ -1,0 +1,19 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\mathstrut"
+---
+[
+  Padded(
+    node: Phantom(
+      node: Operator(
+        op: "(",
+        attrs: OpAttrs("STRETCHY_FALSE"),
+        size: None,
+        left: None,
+        right: None,
+      ),
+    ),
+    width_0: true,
+    height_0: false,
+  ),
+]

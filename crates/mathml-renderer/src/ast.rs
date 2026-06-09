@@ -1192,6 +1192,28 @@ mod tests {
     }
 
     #[test]
+    fn render_padded() {
+        assert_eq!(
+            render(&Node::Padded {
+                node: &Node::Number("x"),
+                width_0: true,
+                height_0: false,
+            }),
+            "<mpadded width=\"0\"><mn>x</mn></mpadded>"
+        );
+    }
+
+    #[test]
+    fn render_phantom() {
+        assert_eq!(
+            render(&Node::Phantom {
+                node: &Node::Number("x")
+            }),
+            "<mphantom><mn>x</mn></mphantom>"
+        );
+    }
+
+    #[test]
     fn render_sized_operator() {
         assert_eq!(
             render(&Node::Operator {
