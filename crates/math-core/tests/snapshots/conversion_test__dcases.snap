@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "f(x):=\\begin{cases}0 &\\text{if } x \\geq 0 \\\\ \\frac{1 + 1}{2} &\\text{otherwise.}\\end{cases}"
+expression: "f(x):=\\begin{dcases}0 &\\text{if } x \\geq 0 \\\\ \\frac{1 + 1}{2} &\\text{otherwise.}\\end{dcases}"
 ---
 <math>
     <mi>f</mi>
@@ -11,7 +11,7 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x \\geq 0 \\\\ \\frac{1 + 1}{2} 
     <mo lspace="0">=</mo>
     <mrow>
         <mo>{</mo>
-        <mtable displaystyle="false" scriptlevel="0">
+        <mtable displaystyle="true" scriptlevel="0">
             <mtr>
                 <mtd style="text-align: left;justify-items: start;padding-right: 0;">
                     <mn>0</mn>
@@ -28,7 +28,7 @@ expression: "f(x):=\\begin{cases}0 &\\text{if } x \\geq 0 \\\\ \\frac{1 + 1}{2} 
                     <mfrac>
                         <mrow>
                             <mn>1</mn>
-                            <mo lspace="0" rspace="0">+</mo>
+                            <mo>+</mo>
                             <mn>1</mn>
                         </mrow>
                         <mn>2</mn>
