@@ -4,7 +4,7 @@ expression: "\\smile \\frown \\wr \\triangleleft \\triangleright"
 ---
 <math>
     <mo lspace="0" rspace="0">⌣</mo>
-    <mo lspace="0">⌢</mo>
+    <mo lspace="0" rspace="0.2778em">⌢</mo>
     <mo lspace="0" rspace="0">≀</mo>
     <mo lspace="0.2222em" rspace="0.2222em">◁</mo>
     <mo lspace="0" rspace="0">▷</mo>
