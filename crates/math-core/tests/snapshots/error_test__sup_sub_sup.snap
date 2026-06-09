@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: x^2_4^3 y
+---
+Error: Duplicate subscript or superscript.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ x^2_4^3 y
+   │      ┬  
+   │      ╰── duplicate
+───╯

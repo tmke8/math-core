@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x' '"
+---
+Error: Duplicate subscript or superscript.
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ x' '
+   │    ┬  
+   │    ╰── duplicate
+───╯

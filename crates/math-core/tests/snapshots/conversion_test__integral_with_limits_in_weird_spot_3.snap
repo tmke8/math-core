@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\int'''\\limits_3 dx"
+---
+<math>
+    <munderover>
+        <mo lspace="0">∫</mo>
+        <mn>3</mn>
+        <mo>‴</mo>
+    </munderover>
+    <mi>d</mi>
+    <mi>x</mi>
+</math>

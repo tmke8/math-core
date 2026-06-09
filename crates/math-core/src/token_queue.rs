@@ -107,6 +107,20 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
         }
     }
 
+    /// Peek at the next token without consuming it, including whitespace
+    /// and [`Token::MathOrTextMode`].
+    #[inline]
+    pub(super) fn peek_any_token(&self) -> &TokSpan<'source> {
+        // `next_non_whitespace` points to the next non-whitespace token,
+        // or to one past the end of the buffer if there is none.
+        if let Some(tok) = self.queue.front() {
+            tok
+        } else {
+            debug_assert!(self.lexer_is_eoi, "peek called without ensure");
+            &EOI_TOK
+        }
+    }
+
     /// Find or load a token which is not skipped according to `predicate`.
     ///
     /// This function starts its search after `next_non_whitespace` (i.e., it skips

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "f''_3^2"
+---
+Error: Duplicate subscript or superscript.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ f''_3^2
+   │      ┬  
+   │      ╰── duplicate
+───╯
