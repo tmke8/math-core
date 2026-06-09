@@ -142,6 +142,14 @@ pub enum Node<'arena> {
         nodes: &'arena [&'arena Node<'arena>],
         attr: Option<RowAttr>,
     },
+    /// `<mpadded>...</mpadded>`
+    Padded {
+        node: &'arena Node<'arena>,
+        width_0: bool,
+        height_0: bool,
+    },
+    /// `<mphantom>...</mphantom>`
+    Phantom { node: &'arena Node<'arena> },
     /// `<mtext>...</mtext>`.
     /// The `str` gets HTML-escaped.
     Text(Option<HtmlTextStyle>, &'arena str),
@@ -197,7 +205,6 @@ pub enum Node<'arena> {
     /// background, which is not desirable for our use case. We'll just render it as `<mtext>`
     /// with a custom style.
     UnknownCommand(&'arena str),
-    HardcodedMathML(&'static str),
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -460,6 +467,27 @@ impl Node<'_> {
                 }
                 writeln_indent!(s, base_indent, "</mrow>");
             }
+            &Node::Padded {
+                node,
+                width_0,
+                height_0,
+            } => {
+                write!(s, "<mpadded")?;
+                if width_0 {
+                    write!(s, r#" width="0""#)?;
+                }
+                if height_0 {
+                    write!(s, r#" height="0""#)?;
+                }
+                write!(s, ">")?;
+                node.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "</mpadded>");
+            }
+            Node::Phantom { node } => {
+                write!(s, "<mphantom>")?;
+                node.emit(s, child_indent)?;
+                writeln_indent!(s, base_indent, "</mphantom>");
+            }
             Node::Table {
                 content,
                 align,
@@ -608,9 +636,6 @@ impl Node<'_> {
             }
             Node::UnknownCommand(cmd_name) => {
                 write!(s, "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>")?;
-            }
-            Node::HardcodedMathML(mathml) => {
-                write!(s, "{mathml}")?;
             }
         }
         Ok(())
@@ -1164,11 +1189,6 @@ mod tests {
             }),
             "<mrow style=\"color:#000000;\"><mi>x</mi><mo>=</mo><mn>1</mn></mrow>"
         );
-    }
-
-    #[test]
-    fn render_hardcoded_mathml() {
-        assert_eq!(render(&Node::HardcodedMathML("<mi>hi</mi>")), "<mi>hi</mi>");
     }
 
     #[test]

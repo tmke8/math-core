@@ -1,8 +1,8 @@
 use mathml_renderer::symbol;
 
-use crate::character_class::MathVariant;
-use crate::specifications::LatexUnit;
 use crate::token::Token::{self, *};
+use crate::{character_class::MathVariant, token::PhantomKind};
+use crate::{specifications::LatexUnit, token::Mode};
 
 pub static DOTS: [Token<'static>; 3] = [
     Inner(symbol::FULL_STOP),
@@ -20,6 +20,15 @@ pub static IDOTSINT: [Token<'static>; 3] = [
     Op(symbol::INTEGRAL),
     CustomCmd(0, &CDOTS),
     Op(symbol::INTEGRAL),
+];
+
+pub static MATHSTRUT: [Token<'static>; 2] =
+    [Phantom(PhantomKind::V), Open(symbol::LEFT_PARENTHESIS)];
+
+pub static SURD: [Token<'static>; 3] = [
+    Sqrt,
+    Phantom(PhantomKind::V),
+    Letter(symbol::VERTICAL_LINE.as_op().as_superchar(), Mode::Math),
 ];
 
 pub static AND: [Token<'static>; 3] = [

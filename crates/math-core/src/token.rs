@@ -160,15 +160,14 @@ pub enum Token<'source> {
     Style(Style),
     /// A token for math color, e.g. `\color{red}`.
     Color,
+    /// `\phantom`, `\hphantom`, or `\vphantom`
+    Phantom(PhantomKind),
     /// A token used in custom commands defined by the user. The `u8` is the index of the argument,
     /// going from 0 to 8. For example, `\#1` corresponds to `CustomCmdArg(0)`.
     CustomCmdArg(u8),
     /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
     /// arguments that the custom command takes.
     CustomCmd(u8, &'source [Token<'static>]),
-    /// A token for hardcoded MathML. The `&'static str` is the MathML string to be inserted into
-    /// the output.
-    HardcodedMathML(&'static str),
     /// A token for text-mode accents, e.g. `\~{n}`. The `char` is a Unicode combining character,
     /// e.g. `\u{0303}` for the tilde accent.
     TextMode(TextToken),
@@ -236,6 +235,17 @@ pub enum ForceStretchy {
     Yes,
 }
 
+/// Disambiguates `\phantom`, `\hphantom`, and `\vphantom`
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhantomKind {
+    /// `\phantom`
+    Full,
+    /// `\hphantom`
+    H,
+    /// `\vphantom`
+    V,
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -297,8 +307,8 @@ impl Token<'_> {
             | Text(_)
             | Style(_)
             | Color
+            | Phantom(_)
             | CustomCmdArg(_)
-            | HardcodedMathML(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
             | UnknownCommand(_)
