@@ -111,8 +111,6 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// and [`Token::MathOrTextMode`].
     #[inline]
     pub(super) fn peek_any_token(&self) -> &TokSpan<'source> {
-        // `next_non_whitespace` points to the next non-whitespace token,
-        // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.front() {
             tok
         } else {
