@@ -2,8 +2,8 @@
 Compare operator categories in symbol.rs against the MathML Core spec.
 
 This script parses the operator dictionary from the W3C MathML Core spec
-(operator-dictionary-compact.html) and compares it against the categories
-assigned to Unicode characters in crates/mathml-renderer/src/symbol.rs.
+(operator-dictionary-compact.html) and compares it against the categories assigned to
+Unicode characters in crates/mathml-renderer/src/symbol.rs.
 
 Usage:
     python3 scripts/check_operator_categories.py
@@ -14,21 +14,22 @@ The spec file is fetched from:
 
 import re
 import sys
+from typing import NamedTuple
 import urllib.request
 
 SPEC_URL = "https://raw.githubusercontent.com/w3c/mathml-core/refs/heads/main/tables/operator-dictionary-compact.html"
 SYMBOLS_PATH = "crates/mathml-renderer/src/symbol.rs"
 
 
-def fetch_spec():
+def fetch_spec() -> str:
     """Fetch the operator dictionary compact HTML from the spec."""
     with urllib.request.urlopen(SPEC_URL) as resp:
         return resp.read().decode("utf-8")
 
 
-def parse_ranges(text):
+def parse_ranges(text: str) -> set[int]:
     """Parse Unicode ranges like [U+2190–U+2195] and {U+002B} into a set of codepoints."""
-    codepoints = set()
+    codepoints: set[int] = set()
     for m in re.finditer(r"\[U\+([0-9A-F]+)[–-]U\+([0-9A-F]+)\]", text):
         start, end = int(m.group(1), 16), int(m.group(2), 16)
         for cp in range(start, end + 1):
@@ -38,15 +39,15 @@ def parse_ranges(text):
     return codepoints
 
 
-def parse_spec_categories(html):
+def parse_spec_categories(html: str) -> dict[int, set[str]]:
     """Extract category mappings from the spec HTML."""
-    spec = {}
+    spec: dict[int, set[str]] = {}
     # Match rows like: <td>... entries ... in <strong>form</strong> form: <code>ranges</code></td><td>X</td>
     for m in re.finditer(
-        r"<td>.*?<strong>(\w+)</strong> form: <code>([^<]+)</code></td><td>(\w)</td>",
+        r"<td>.*?<strong>\w+</strong> form: <code>([^<]+)</code></td><td>(\w)</td>",
         html,
     ):
-        form, ranges_text, category = m.group(1), m.group(2), m.group(3)
+        ranges_text, category = m.group(1), m.group(2)
         for cp in parse_ranges(ranges_text):
             if cp not in spec:
                 spec[cp] = set()
@@ -54,10 +55,10 @@ def parse_spec_categories(html):
 
     # Also match rows without <strong> (single entries like category F/G)
     for m in re.finditer(
-        r"<td>(\d+) entries in <strong>(\w+)</strong> form: <code>([^<]+)</code></td><td>(\w)</td>",
+        r"<td>\d+ entries in <strong>\w+</strong> form: <code>([^<]+)</code></td><td>(\w)</td>",
         html,
     ):
-        form, ranges_text, category = m.group(2), m.group(3), m.group(4)
+        ranges_text, category = m.group(1), m.group(2)
         for cp in parse_ranges(ranges_text):
             if cp not in spec:
                 spec[cp] = set()
@@ -66,12 +67,12 @@ def parse_spec_categories(html):
     return spec
 
 
-def parse_symbol_rs(path):
+def parse_symbol_rs(path: str) -> list[tuple[str, int, str, str]]:
     """Parse symbol.rs and extract all active (non-commented) symbol definitions."""
     with open(path) as f:
         content = f.read()
 
-    symbols = []
+    symbols: list[tuple[str, int, str, str]] = []
     for line in content.split("\n"):
         stripped = line.strip()
         if stripped.startswith("//"):
@@ -110,84 +111,62 @@ def parse_symbol_rs(path):
             line,
         )
         if m:
-            symbols.append(
-                (m.group(1), _parse_char(m.group(2)), "OrdLike", m.group(3))
-            )
+            symbols.append((m.group(1), _parse_char(m.group(2)), "OrdLike", m.group(3)))
             continue
 
     return symbols
 
 
-def _parse_char(s):
+def _parse_char(s: str) -> int:
     """Parse a character literal from Rust source, returning its codepoint."""
     if s.startswith("\\u{"):
         return int(s[3:-1], 16)
     return ord(s)
 
 
-def compare(spec, symbols):
+class Mismatch(NamedTuple):
+    name: str
+    char_repr: str
+    cp_str: str
+    current: str
+    expected: str
+
+
+def compare(
+    spec: dict[int, set[str]], symbols: list[tuple[str, int, str, str]]
+) -> list[Mismatch]:
     """Compare symbol.rs categories against the spec and report mismatches."""
-    mismatches = []
+    mismatches: list[Mismatch] = []
 
     for name, cp, typ, cat in symbols:
-        spec_cats = spec.get(cp, set())
+        spec_cats = spec.get(cp, {"Default"})
         char_repr = chr(cp)
         cp_str = f"U+{cp:04X}"
 
-        if typ == "Rel":
-            if cat == "Default" and "A" in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"Rel::Default", "Rel::A (spec: category A, stretchy)")
-                )
-            elif cat == "A" and "A" not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"Rel::A", "Rel::Default (spec: not category A)")
-                )
+        if name == "SOLIDUS" and cat == "KButUsedToBeB":
+            continue
+        if (
+            name in {"VERTICAL_LINE", "DOUBLE_VERTICAL_LINE"}
+            and cat == "FGandForceDefault"
+        ):
+            continue
+        if name == "TILDE_OPERATOR" and cat == "DandForceDefault":
+            continue
 
-        elif typ == "Bin":
-            if "C" in spec_cats and "B" not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"Bin::{cat}", f"Op::C (spec: category C)")
-                )
-            elif "B" not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"Bin::{cat}", f"not B (spec: {spec_cats})")
-                )
-            elif cat == "BD" and "D" not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, "Bin::BD", "Bin::B (spec: B only, no prefix D form)")
-                )
-            elif cat == "B" and "D" in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, "Bin::B", "Bin::BD (spec: also has prefix D form)")
-                )
+        if len(cat) == 2:
+            found_cats = set(cat)
+        else:
+            found_cats = {cat}
 
-        elif typ == "Op":
-            if cat not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"Op::{cat}", f"spec: {spec_cats}")
-                )
-
-        elif typ == "OrdLike":
-            expected = cat
-            if cat == "KButUsedToBeB":
-                expected = "K"
-            elif cat == "FGandForceDefault":
-                if "F" not in spec_cats or "G" not in spec_cats:
-                    mismatches.append(
-                        (name, char_repr, cp_str, f"OrdLike::{cat}", f"spec: {spec_cats}")
-                    )
-                continue
-
-            if expected and expected not in spec_cats:
-                mismatches.append(
-                    (name, char_repr, cp_str, f"OrdLike::{cat}", f"spec: {spec_cats}")
-                )
-
+        if found_cats != spec_cats:
+            mismatches.append(
+                Mismatch(name, char_repr, cp_str, f"{typ}::{cat}", f"spec: {spec_cats}")
+            )
+        continue
     return mismatches
 
 
-def main():
+def main() -> int:
     print("Fetching MathML Core operator dictionary...")
     html = fetch_spec()
     spec = parse_spec_categories(html)

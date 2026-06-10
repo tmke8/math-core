@@ -94,7 +94,9 @@ impl StretchableOp {
     /// operator isn't stretchable.
     pub const fn from_ord(ord: OrdLike) -> Option<Self> {
         let (stretchy, spacing) = match ord.category() {
-            OrdCategory::F | OrdCategory::G => (Stretchy::Always, DelimiterSpacing::Zero),
+            OrdCategory::F | OrdCategory::G | OrdCategory::FG => {
+                (Stretchy::Always, DelimiterSpacing::Zero)
+            }
             OrdCategory::FGandForceDefault => {
                 (Stretchy::PrePostfix, DelimiterSpacing::InfixRelation)
             }
@@ -124,7 +126,7 @@ impl StretchableOp {
                 stretchy: Stretchy::AlwaysAsymmetric,
                 spacing: DelimiterSpacing::Relation,
             }),
-            RelCategory::Default => None,
+            RelCategory::Default | RelCategory::DandForceDefault => None,
         }
     }
 

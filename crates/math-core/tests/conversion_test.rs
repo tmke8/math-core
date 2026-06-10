@@ -503,6 +503,7 @@ fn main() {
         ("unicode_largeop", "∑_{i=0}^3 a + b"),
         ("unicode_largeop_force", "⅀_{i=0}^3 a + b"),
         ("unicode_largeop_force_limits", r#"⅀ \limits_{i=0}^3 a + b"#),
+        ("unicode_triple_bar", "x⦀x"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
         ("fake_prescript", r"_1^2 \frac{a}{b}"),
         ("fake_prescript_standalone", r"_1^2"),
