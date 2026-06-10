@@ -147,9 +147,9 @@ pub enum OrdCategory {
     /// Category G: Postfix, zero spacing, stretchy, symmetric (e.g. `)`).
     /// Meant to be stretched vertically.
     G,
-    // /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
-    // /// (e.g. `‖`).
-    // FG,
+    /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
+    /// (e.g. `⦀`).
+    FG,
     /// Category F and G: Prefix or postfix, zero spacing, stretchy, symmetric
     /// but also with an infix form with relation spacing (e.g. `|`).
     FGandForceDefault,
@@ -206,6 +206,9 @@ pub enum RelCategory {
     Default,
     /// Category A: Infix, relation spacing, stretchy (e.g. `↑`).
     A,
+    /// Category D: Prefix, zero spacing (e.g. `¬`)
+    /// but also with an infix form with relation spacing (e.g. `∼`).
+    DandForceDefault,
 }
 
 make_character_class!(
@@ -679,15 +682,15 @@ pub const VOLUME_INTEGRAL: Op = Op::new('∰', OpCategory::H);
 pub const CLOCKWISE_INTEGRAL: Op = Op::new('∱', OpCategory::H);
 pub const CLOCKWISE_CONTOUR_INTEGRAL: Op = Op::new('∲', OpCategory::H);
 pub const ANTICLOCKWISE_CONTOUR_INTEGRAL: Op = Op::new('∳', OpCategory::H);
-pub const THEREFORE: Rel = Rel::new('∴', RelCategory::Default);
-pub const BECAUSE: Rel = Rel::new('∵', RelCategory::Default);
+pub const THEREFORE: OrdLike = OrdLike::new('∴', OrdCategory::D);
+pub const BECAUSE: OrdLike = OrdLike::new('∵', OrdCategory::D);
 pub const RATIO: Bin = Bin::new('∶', BinCategory::B);
 pub const PROPORTION: Rel = Rel::new('∷', RelCategory::Default);
 pub const DOT_MINUS: Bin = Bin::new('∸', BinCategory::B);
 pub const EXCESS: Rel = Rel::new('∹', RelCategory::Default);
 pub const GEOMETRIC_PROPORTION: Rel = Rel::new('∺', RelCategory::Default);
 pub const HOMOTHETIC: Rel = Rel::new('∻', RelCategory::Default);
-pub const TILDE_OPERATOR: Rel = Rel::new('∼', RelCategory::Default);
+pub const TILDE_OPERATOR: Rel = Rel::new('∼', RelCategory::DandForceDefault);
 pub const REVERSED_TILDE: Rel = Rel::new('∽', RelCategory::Default);
 pub const INVERTED_LAZY_S: MathMLOperator = MathMLOperator::from_char('∾');
 // pub const SINE_WAVE: Op = Op('∿');
@@ -823,7 +826,7 @@ pub const ORIGINAL_OF: Rel = Rel::new('⊶', RelCategory::Default);
 pub const IMAGE_OF: Rel = Rel::new('⊷', RelCategory::Default);
 pub const MULTIMAP: Rel = Rel::new('⊸', RelCategory::Default);
 // pub const HERMITIAN_CONJUGATE_MATRIX: Op = Op('⊹');
-pub const INTERCALATE: Rel = Rel::new('⊺', RelCategory::Default);
+pub const INTERCALATE: Op = Op::new('⊺', OpCategory::C);
 pub const XOR: Bin = Bin::new('⊻', BinCategory::B);
 pub const NAND: Bin = Bin::new('⊼', BinCategory::B);
 pub const NOR: Bin = Bin::new('⊽', BinCategory::B);
@@ -1066,8 +1069,7 @@ pub const RIGHTWARDS_ARROW_TAIL: Rel = Rel::new('⤚', RelCategory::A);
 //
 // Unicode Block: Miscellaneous Mathematical Symbols-B
 //
-pub const TRIPLE_VERTICAL_BAR_DELIMITER: OrdLike =
-    OrdLike::new('⦀', OrdCategory::FGandForceDefault);
+pub const TRIPLE_VERTICAL_BAR_DELIMITER: OrdLike = OrdLike::new('⦀', OrdCategory::FG);
 
 pub const LEFT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦃', OrdCategory::F);
 pub const RIGHT_WHITE_CURLY_BRACKET: OrdLike = OrdLike::new('⦄', OrdCategory::G);

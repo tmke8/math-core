@@ -460,6 +460,9 @@ where
                     // disable stretching for them.
                     RelCategory::A => OpAttrs::STRETCHY_FALSE,
                     RelCategory::Default => OpAttrs::empty(),
+                    // To get the right spacing on `DandForceDefault` relations, we have to
+                    // explicitly set the form to "infix".
+                    RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
                 };
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 Ok(Node::Operator {
@@ -523,10 +526,15 @@ where
                 }
             }
             Token::Ord(ord) => {
-                let attrs = if matches!(ord.category(), OrdCategory::FGandForceDefault) {
+                let attrs = if matches!(
+                    ord.category(),
+                    OrdCategory::F
+                        | OrdCategory::G
+                        | OrdCategory::FG
+                        | OrdCategory::FGandForceDefault
+                ) {
                     // Category F+G operators will stretch in pre- and postfix positions,
                     // so we explicitly set the stretchy attribute to false to prevent that.
-                    // Alternatively, we could set `form="infix"` on them.
                     OpAttrs::STRETCHY_FALSE
                 } else {
                     OpAttrs::empty()
@@ -1155,10 +1163,11 @@ where
                 }
                 let mut attrs = if matches!(
                     paren.category(),
-                    OrdCategory::FGandForceDefault | OrdCategory::DE
+                    OrdCategory::FG | OrdCategory::FGandForceDefault | OrdCategory::DE
                 ) {
-                    // For this category of symbol, we have to force the form attribute
-                    // in order to get correct spacing.
+                    // For these categories of symbol, both prefix and postfix forms exist, so we
+                    // explicitly set the form attributes based on the token type (Open vs Close).
+                    // For `FGandForceDefault`, the form attribute also affects spacing.
                     if open {
                         OpAttrs::FORM_PREFIX
                     } else {
@@ -1169,7 +1178,10 @@ where
                 };
                 if matches!(
                     paren.category(),
-                    OrdCategory::F | OrdCategory::G | OrdCategory::FGandForceDefault
+                    OrdCategory::F
+                        | OrdCategory::G
+                        | OrdCategory::FG
+                        | OrdCategory::FGandForceDefault
                 ) {
                     // Symbols from these categories are automatically stretchy,
                     // so we have to explicitly disable that here.
@@ -1899,7 +1911,7 @@ where
                 // (the inner 5mu spaces are ignored for this).
                 let attrs = match rel.category() {
                     RelCategory::A => OpAttrs::empty(),
-                    RelCategory::Default => OpAttrs::STRETCHY_TRUE,
+                    RelCategory::Default | RelCategory::DandForceDefault => OpAttrs::STRETCHY_TRUE,
                 };
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 let arrow = self.commit(Node::Operator {

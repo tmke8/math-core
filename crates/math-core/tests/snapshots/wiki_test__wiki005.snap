@@ -11,6 +11,6 @@ expression: "\\# \\$ \\% \\wedge \\& \\_ \\{ \\} \\sim \\backslash"
     <mi>_</mi>
     <mo stretchy="false">{</mo>
     <mo stretchy="false">}</mo>
-    <mo>∼</mo>
+    <mo form="infix">∼</mo>
     <mo>\</mo>
 </math>

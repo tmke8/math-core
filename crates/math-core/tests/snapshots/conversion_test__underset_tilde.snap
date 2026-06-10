@@ -7,7 +7,7 @@ expression: "\\underset{z\\sim Z}{\\mathbb{E}}"
         <mi>𝔼</mi>
         <mrow>
             <mi>z</mi>
-            <mo lspace="0" rspace="0">∼</mo>
+            <mo form="infix" lspace="0" rspace="0">∼</mo>
             <mi>Z</mi>
         </mrow>
     </munder>
