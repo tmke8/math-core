@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\mathop{x}b"
+---
+<math>
+    <mi>a</mi>
+    <mo stretchy="false" lspace="0.1667em" rspace="0.1667em">x</mo>
+    <mi>b</mi>
+</math>

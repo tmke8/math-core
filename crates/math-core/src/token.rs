@@ -196,14 +196,16 @@ pub enum Token<'source> {
 pub enum MathClassKind {
     /// `\mathord`: ordinary character class, with all spacing forced to zero.
     Ord,
+    /// `\mathop`: operator character class.
+    Op,
     /// `\mathbin`: binary operator character class.
     Bin,
+    /// `\mathrel`: relation character class.
+    Rel,
     /// `\mathopen`: opening delimiter character class, with all spacing forced to zero.
     Open,
     /// `\mathclose`: closing delimiter character class, with all spacing forced to zero.
     Close,
-    /// `\mathrel`: relation character class.
-    Rel,
     /// `\mathpunct`: punctuation character class.
     Punct,
 }
@@ -286,6 +288,7 @@ impl Token<'_> {
             }),
             MathClass(kind) => Some(match kind {
                 MathClassKind::Ord => Class::Default,
+                MathClassKind::Op => Class::Operator,
                 MathClassKind::Bin => Class::BinaryOp,
                 MathClassKind::Open => Class::Open,
                 MathClassKind::Close => Class::Close,

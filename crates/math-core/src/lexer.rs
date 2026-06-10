@@ -290,8 +290,13 @@ impl<'config, 'source> Lexer<'config, 'source> {
             c if c.is_ascii_digit() => Token::Digit(c),
             // fast path to avoid expensive lookup below
             c if c.is_ascii_alphabetic() => Token::Letter(c.into(), Mode::MathOrText),
-            c if let Some(tok) = get_operator_from_unicode(c) => tok,
-            c => Token::Letter(c.into(), Mode::MathOrText),
+            c => {
+                if let Some(tok) = get_operator_from_unicode(c) {
+                    tok
+                } else {
+                    Token::Letter(c.into(), Mode::MathOrText)
+                }
+            }
         };
         LexerResult::Tok(TokSpan::new(tok, span))
     }

@@ -602,6 +602,14 @@ where
             Token::MathClass(kind) => 'mathclass: {
                 let one_or_none = self.tokens.read_argument(false)?.into_one_or_none()?;
                 let (left_spacing, right_spacing) = match kind {
+                    MathClassKind::Ord => {
+                        class = Class::Default;
+                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    }
+                    MathClassKind::Op => {
+                        class = Class::Operator;
+                        self.big_operator_spacing(parse_as, prev_class, true)?
+                    }
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
                         // Recompute the next class:
@@ -614,9 +622,11 @@ where
                         );
                         (spacing, spacing)
                     }
-                    MathClassKind::Ord => {
-                        class = Class::Default;
-                        (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                    MathClassKind::Rel => {
+                        class = Class::Relation;
+                        // Recompute the next class:
+                        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                        self.state.relation_spacing(prev_class, next_class, true)
                     }
                     MathClassKind::Open => {
                         class = Class::Open;
@@ -625,10 +635,6 @@ where
                     MathClassKind::Close => {
                         class = Class::Close;
                         (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
-                    }
-                    MathClassKind::Rel => {
-                        class = Class::Relation;
-                        self.state.relation_spacing(prev_class, next_class, true)
                     }
                     MathClassKind::Punct => {
                         class = Class::Punctuation;
