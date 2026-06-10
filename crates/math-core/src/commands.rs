@@ -1177,11 +1177,22 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '⫾' => ForceBinaryOp(symbol::WHITE_VERTICAL_BAR.as_op()),
 
     // `\mathord`
+    // …
+    '¬' => Ord(symbol::NOT_SIGN),
+    // …
     '″' => Ord(symbol::DOUBLE_PRIME),
     '‴' => Ord(symbol::TRIPLE_PRIME),
+    '‵' => Ord(symbol::REVERSED_PRIME),
     '‶' => Ord(symbol::REVERSED_DOUBLE_PRIME),
     '‷' => Ord(symbol::REVERSED_TRIPLE_PRIME),
+    // …
     '⁗' => Ord(symbol::QUADRUPLE_PRIME),
+    // …
+    '∀' => Ord(symbol::FOR_ALL),
+    '∁' => Ord(symbol::COMPLEMENT),
+    '∃' => Ord(symbol::THERE_EXISTS),
+    '∄' => Ord(symbol::THERE_DOES_NOT_EXIST),
+    // …
 };
 
 pub fn get_operator_from_unicode(c: char) -> Option<Token<'static>> {
