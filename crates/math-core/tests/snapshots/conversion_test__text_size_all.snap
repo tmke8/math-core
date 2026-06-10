@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\tiny a\\sixptsize b\\scriptsize c\\footnotesize d\\small e\\normalsize f\\large g\\Large h\\LARGE i\\huge j\\Huge k}"
+---
+<math>
+    <mrow>
+        <mtext style="font-size:50%">a</mtext>
+        <mtext style="font-size:60%">b</mtext>
+        <mtext style="font-size:70%">c</mtext>
+        <mtext style="font-size:80%">d</mtext>
+        <mtext style="font-size:90%">e</mtext>
+        <mtext style="font-size:100%">f</mtext>
+        <mtext style="font-size:120%">g</mtext>
+        <mtext style="font-size:140%">h</mtext>
+        <mtext style="font-size:170%">i</mtext>
+        <mtext style="font-size:200%">j</mtext>
+        <mtext style="font-size:250%">k</mtext>
+    </mrow>
+</math>

@@ -43,6 +43,22 @@ fn main() {
         ),
         ("pilcrow_and_section", r"\P\S\sect\text{\P\S\sect}"),
         ("textit", r"\textit{x}"),
+        ("text_size", r"\text{x\huge y \textit{x} {\large z}}"),
+        (
+            "text_size_group_close_multiple",
+            r"\text{{\large x \huge y} z}",
+        ),
+        (
+            "text_size_nested_style_scope",
+            r"\text{\textit{a \large b} c}",
+        ),
+        ("text_size_no_braces", r"\text\large x"),
+        ("text_size_as_style_argument", r"\text{a\textit\large b}"),
+        (
+            "text_size_all",
+            r"\text{\tiny a\sixptsize b\scriptsize c\footnotesize d\small e\normalsize f\large g\Large h\LARGE i\huge j\Huge k}",
+        ),
+        ("textbf_size", r"\textbf{a \small b}"),
         ("emph", r"\text{\emph{x}y}"),
         ("textbf", r"\textbf{x}"),
         ("textbf_with_digit", r"\textbf{1234}"),

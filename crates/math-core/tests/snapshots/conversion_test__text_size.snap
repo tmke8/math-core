@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{x\\huge y \\textit{x} {\\large z}}"
+---
+<math>
+    <mrow>
+        <mtext>x</mtext>
+        <mtext style="font-size:200%">y </mtext>
+        <mtext style="font-size:200%"><i>x</i></mtext>
+        <mtext style="font-size:200%"> </mtext>
+        <mtext style="font-size:120%">z</mtext>
+    </mrow>
+</math>

@@ -3,5 +3,5 @@ source: crates/math-core/src/parser.rs
 expression: "\\text{% comment}\n\\%as}"
 ---
 [
-  Text(None, "%as"),
+  Text(None, None, "%as"),
 ]

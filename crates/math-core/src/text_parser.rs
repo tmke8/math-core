@@ -1,6 +1,6 @@
 use mathml_renderer::{
     arena::StringBuilder,
-    attribute::HtmlTextStyle,
+    attribute::{HtmlTextSize, HtmlTextStyle},
     length::{Length, LengthUnit},
     super_char::SuperChar,
     symbol,
@@ -13,17 +13,29 @@ use crate::{
     token::{EndToken, Mode, TextToken, Token},
 };
 
+/// A run of text with uniform style and size.
+pub(super) struct TextSnippet<'arena>(
+    pub Option<HtmlTextStyle>,
+    pub Option<HtmlTextSize>,
+    pub &'arena str,
+);
+
 impl<'arena> Parser<'_, '_, 'arena> {
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
         text_mode: bool,
-    ) -> ParseResult<Vec<(Option<HtmlTextStyle>, &'arena str)>> {
+    ) -> ParseResult<Vec<TextSnippet<'arena>>> {
         let mut style_stack = vec![(0usize, initial_style)];
         let mut str_builder: Option<StringBuilder> = None;
-        let mut snippets: Vec<(Option<HtmlTextStyle>, &'arena str)> = Vec::new();
+        let mut snippets: Vec<TextSnippet<'arena>> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
         let mut brace_nesting = 0usize;
+        // Size declarations like `\large`. Each entry records the `style_stack` depth and the
+        // brace nesting level at which the size was declared, because the size stays in effect
+        // until either that style scope or that brace group is closed. (`brace_nesting` is
+        // reset on every style push, so the nesting level alone would be ambiguous.)
+        let mut size_stack: Vec<(usize, usize, HtmlTextSize)> = Vec::new();
 
         while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
             let tokloc = if text_mode {
@@ -49,10 +61,46 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                 && !builder.is_empty()
                             {
                                 let text = builder.finish(self.arena);
-                                snippets.push((current_style, text));
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size(&size_stack),
+                                    text,
+                                ));
                             }
                             style_stack.push((brace_nesting, Some(style)));
                             brace_nesting = 0;
+                            continue;
+                        }
+                        TextToken::Size(text_size) => {
+                            if let Some(builder) = str_builder.take() {
+                                if builder.is_empty() {
+                                    str_builder = Some(builder);
+                                } else {
+                                    let text = builder.finish(self.arena);
+                                    snippets.push(TextSnippet(
+                                        current_style,
+                                        current_size(&size_stack),
+                                        text,
+                                    ));
+                                    str_builder = Some(self.buffer.get_builder());
+                                }
+                                size_stack.push((style_stack.len(), brace_nesting, text_size));
+                            } else {
+                                // The size command itself is the argument of the style command,
+                                // e.g. `\text\large x`, which is equivalent to `\text{}x`:
+                                // the text is empty and the size never takes effect.
+                                style_stack.pop();
+                                brace_nesting = previous_nesting;
+                                discard_dead_sizes(
+                                    &mut size_stack,
+                                    style_stack.len(),
+                                    brace_nesting,
+                                );
+                                if !style_stack.is_empty() {
+                                    // If there are still styles to process, we must have been within a group.
+                                    str_builder = Some(self.buffer.get_builder());
+                                }
+                            }
                             continue;
                         }
                     }
@@ -96,9 +144,14 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         } else {
-                            snippets.push((current_style, output));
+                            snippets.push(TextSnippet(
+                                current_style,
+                                current_size(&size_stack),
+                                output,
+                            ));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
+                            discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
                             if !style_stack.is_empty() {
                                 // If there are still styles to process, we must have been within a group.
                                 str_builder = Some(self.buffer.get_builder());
@@ -118,16 +171,49 @@ impl<'arena> Parser<'_, '_, 'arena> {
                         if let Some(builder) = str_builder.take() {
                             if let Some(new_nesting) = brace_nesting.checked_sub(1) {
                                 brace_nesting = new_nesting;
-                                // TODO: Avoid this back-and-forth with the `str_builder`.
-                                str_builder = Some(builder);
+                                let group_had_sizes = matches!(
+                                    size_stack.last(),
+                                    Some(&(depth, nesting, _))
+                                        if depth == style_stack.len() && nesting > brace_nesting
+                                );
+                                if group_had_sizes {
+                                    // The group that just closed contained size declarations,
+                                    // which now go out of scope.
+                                    if !builder.is_empty() {
+                                        let text = builder.finish(self.arena);
+                                        snippets.push(TextSnippet(
+                                            current_style,
+                                            current_size(&size_stack),
+                                            text,
+                                        ));
+                                    }
+                                    discard_dead_sizes(
+                                        &mut size_stack,
+                                        style_stack.len(),
+                                        brace_nesting,
+                                    );
+                                    str_builder = Some(self.buffer.get_builder());
+                                } else {
+                                    // TODO: Avoid this back-and-forth with the `str_builder`.
+                                    str_builder = Some(builder);
+                                }
                                 continue;
                             } else {
                                 if !builder.is_empty() {
                                     let text = builder.finish(self.arena);
-                                    snippets.push((current_style, text));
+                                    snippets.push(TextSnippet(
+                                        current_style,
+                                        current_size(&size_stack),
+                                        text,
+                                    ));
                                 }
                                 style_stack.pop();
                                 brace_nesting = previous_nesting;
+                                discard_dead_sizes(
+                                    &mut size_stack,
+                                    style_stack.len(),
+                                    brace_nesting,
+                                );
                                 if !style_stack.is_empty() {
                                     str_builder = Some(self.buffer.get_builder());
                                 }
@@ -143,7 +229,11 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             && !builder.is_empty()
                         {
                             let text = builder.finish(self.arena);
-                            snippets.push((current_style, text));
+                            snippets.push(TextSnippet(
+                                current_style,
+                                current_size(&size_stack),
+                                text,
+                            ));
                         }
                         style_stack.push((brace_nesting, style));
                         brace_nesting = 0;
@@ -176,9 +266,14 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         }
-                        snippets.push((current_style, output));
+                        snippets.push(TextSnippet(
+                            current_style,
+                            current_size(&size_stack),
+                            output,
+                        ));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
+                        discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
                         if !style_stack.is_empty() {
                             // If there are still styles to process, we must have been within a group.
                             str_builder = Some(self.buffer.get_builder());
@@ -201,6 +296,11 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                 // So we need to pop the style stack and restore the previous nesting.
                                 style_stack.pop();
                                 brace_nesting = previous_nesting;
+                                discard_dead_sizes(
+                                    &mut size_stack,
+                                    style_stack.len(),
+                                    brace_nesting,
+                                );
                                 if !style_stack.is_empty() {
                                     // If there are still styles to process, we must have been within a group.
                                     str_builder = Some(self.buffer.get_builder());
@@ -223,9 +323,10 @@ impl<'arena> Parser<'_, '_, 'arena> {
             } else {
                 let mut b = [0u8; SuperChar::MAX_LEN_UTF8];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
-                snippets.push((current_style, text));
+                snippets.push(TextSnippet(current_style, current_size(&size_stack), text));
                 style_stack.pop();
                 brace_nesting = previous_nesting;
+                discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
                 if !style_stack.is_empty() {
                     // If there are still styles to process, we must have been within a group.
                     str_builder = Some(self.buffer.get_builder());
@@ -233,5 +334,26 @@ impl<'arena> Parser<'_, '_, 'arena> {
             }
         }
         Ok(snippets)
+    }
+}
+
+/// The size currently in effect: the most recent size declaration that is still in scope.
+fn current_size(size_stack: &[(usize, usize, HtmlTextSize)]) -> Option<HtmlTextSize> {
+    size_stack.last().map(|&(_, _, size)| size)
+}
+
+/// Remove all size declarations that have gone out of scope, i.e. those declared in a style
+/// scope or brace group that has been closed.
+fn discard_dead_sizes(
+    size_stack: &mut Vec<(usize, usize, HtmlTextSize)>,
+    style_depth: usize,
+    brace_nesting: usize,
+) {
+    while let Some(&(depth, nesting, _)) = size_stack.last() {
+        if depth > style_depth || (depth == style_depth && nesting > brace_nesting) {
+            size_stack.pop();
+        } else {
+            break;
+        }
     }
 }

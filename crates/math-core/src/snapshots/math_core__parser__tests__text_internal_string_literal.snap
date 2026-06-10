@@ -3,5 +3,5 @@ source: crates/math-core/src/parser.rs
 expression: "[Text(None), InternalStringLiteral(\"hi\")]"
 ---
 [
-  Text(None, "hi"),
+  Text(None, None, "hi"),
 ]

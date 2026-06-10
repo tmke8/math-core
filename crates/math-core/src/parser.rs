@@ -25,6 +25,7 @@ use crate::{
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     split_on_ascii::split_on_ascii,
+    text_parser::TextSnippet,
     token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -734,7 +735,7 @@ where
                     )),
                 }
             }
-            Token::NonBreakingSpace => Ok(Node::Text(None, "\u{A0}")),
+            Token::NonBreakingSpace => Ok(Node::Text(None, None, "\u{A0}")),
             Token::Sqrt => {
                 let next = self.next_token();
                 if let Ok(tokloc) = next
@@ -1410,7 +1411,7 @@ where
             Token::OperatorName { with_limits } => {
                 let snippets = self.extract_text(None, false)?;
                 let mut builder = self.buffer.get_builder();
-                for (_style, text) in snippets {
+                for TextSnippet(_style, _size, text) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
@@ -1436,7 +1437,9 @@ where
                 let snippets = self.extract_text(transform, true)?;
                 let nodes = snippets
                     .into_iter()
-                    .map(|(style, text)| self.commit(Node::Text(style, text)))
+                    .map(|TextSnippet(style, size, text)| {
+                        self.commit(Node::Text(style, size, text))
+                    })
                     .collect::<Vec<_>>();
                 return Ok((Class::Close, node_vec_to_node(self.arena, &nodes, false)));
             }

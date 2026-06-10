@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\textit{a \\large b} c}"
+---
+<math>
+    <mrow>
+        <mtext><i>a </i></mtext>
+        <mtext style="font-size:120%"><i>b</i></mtext>
+        <mtext> c</mtext>
+    </mrow>
+</math>

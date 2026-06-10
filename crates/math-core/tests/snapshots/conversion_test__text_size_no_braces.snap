@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text\\large x"
+---
+<math>
+    <mrow></mrow>
+    <mi>x</mi>
+</math>

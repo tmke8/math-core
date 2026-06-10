@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\textbf{a \\small b}"
+---
+<math>
+    <mrow>
+        <mtext><b>a </b></mtext>
+        <mtext style="font-size:90%"><b>b</b></mtext>
+    </mrow>
+</math>
