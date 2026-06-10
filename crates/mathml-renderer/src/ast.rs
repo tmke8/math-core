@@ -10,7 +10,10 @@ use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
 use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo};
 use crate::{
-    attribute::{FracAttr, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, Size, Style},
+    attribute::{
+        FracAttr, HtmlTextSize, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, Size,
+        Style,
+    },
     super_char::SuperChar,
 };
 
@@ -169,7 +172,7 @@ pub enum Node<'arena> {
     Phantom { node: &'arena Node<'arena> },
     /// `<mtext>...</mtext>`.
     /// The `str` gets HTML-escaped.
-    Text(Option<HtmlTextStyle>, &'arena str),
+    Text(Option<HtmlTextStyle>, Option<HtmlTextSize>, &'arena str),
     /// `<mtext><a href="...">...</mtext>`.
     /// The link and text get HTML-escaped.
     AHref(&'arena AHref<'arena>),
@@ -303,42 +306,39 @@ impl Node<'_> {
                 emit_operator_attributes(s, *attrs, *left, *right)?;
                 write!(s, ">{name}</mo>")?;
             }
-            node @ (Node::IdentifierStr(letters) | Node::Text(_, letters)) => {
-                let (open, close) = match node {
-                    Node::IdentifierStr(_) => {
-                        // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding
-                        // extra space around multi-letter identifiers.
-                        debug_assert!(
-                            letters.chars().count() > 1,
-                            "single-letter IdentifierStr should be IdentifierChar"
-                        );
-                        ("<mrow><mspace/><mi>", "</mi></mrow>")
+            Node::IdentifierStr(letters) => {
+                // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding
+                // extra space around multi-letter identifiers.
+                debug_assert!(
+                    letters.chars().count() > 1,
+                    "single-letter IdentifierStr should be IdentifierChar"
+                );
+                write!(s, "<mrow><mspace/><mi>{}</mi></mrow>", EscapeHtml(letters))?;
+            }
+            Node::Text(text_style, text_size, letters) => {
+                write!(s, "<mtext")?;
+                if let Some(size) = text_size {
+                    write!(s, " style=\"font-size:{}\"", <&str>::from(size))?;
+                }
+                let (open, close) = match text_style {
+                    None => ("", ""),
+                    Some(HtmlTextStyle::Bold) => ("<b>", "</b>"),
+                    Some(HtmlTextStyle::Italic) => ("<i>", "</i>"),
+                    Some(HtmlTextStyle::BoldItalic) => ("<b><i>", "</i></b>"),
+                    Some(HtmlTextStyle::Emphasis) => ("<em>", "</em>"),
+                    Some(HtmlTextStyle::Typewriter) => ("<code>", "</code>"),
+                    Some(HtmlTextStyle::SmallCaps) => {
+                        ("<span style=\"font-variant-caps: small-caps\">", "</span>")
                     }
-                    Node::Text(text_style, _) => match text_style {
-                        None => ("<mtext>", "</mtext>"),
-                        Some(HtmlTextStyle::Bold) => ("<mtext><b>", "</b></mtext>"),
-                        Some(HtmlTextStyle::Italic) => ("<mtext><i>", "</i></mtext>"),
-                        Some(HtmlTextStyle::BoldItalic) => ("<mtext><b><i>", "</i></b></mtext>"),
-                        Some(HtmlTextStyle::Emphasis) => ("<mtext><em>", "</em></mtext>"),
-                        Some(HtmlTextStyle::Typewriter) => ("<mtext><code>", "</code></mtext>"),
-                        Some(HtmlTextStyle::SmallCaps) => (
-                            "<mtext><span style=\"font-variant-caps: small-caps\">",
-                            "</span></mtext>",
-                        ),
-                        Some(HtmlTextStyle::SansSerif) => (
-                            "<mtext><span class=\"math-core-sans-serif-font\">",
-                            "</span></mtext>",
-                        ),
-                        Some(HtmlTextStyle::Serif) => (
-                            "<mtext><span class=\"math-core-serif-font\">",
-                            "</span></mtext>",
-                        ),
-                        Some(HtmlTextStyle::Strikethrough) => ("<mtext><s>", "</s></mtext>"),
-                    },
-                    // Compiler is able to infer that this is unreachable.
-                    _ => unreachable!(),
+                    Some(HtmlTextStyle::SansSerif) => {
+                        ("<span class=\"math-core-sans-serif-font\">", "</span>")
+                    }
+                    Some(HtmlTextStyle::Serif) => {
+                        ("<span class=\"math-core-serif-font\">", "</span>")
+                    }
+                    Some(HtmlTextStyle::Strikethrough) => ("<s>", "</s>"),
                 };
-                write!(s, "{open}{}{close}", EscapeHtml(letters))?;
+                write!(s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
             }
             Node::Space(space) => {
                 write!(s, "<mspace width=\"")?;
@@ -1282,7 +1282,10 @@ mod tests {
 
     #[test]
     fn render_text() {
-        assert_eq!(render(&Node::Text(None, "hello")), "<mtext>hello</mtext>");
+        assert_eq!(
+            render(&Node::Text(None, None, "hello")),
+            "<mtext>hello</mtext>"
+        );
     }
 
     #[test]

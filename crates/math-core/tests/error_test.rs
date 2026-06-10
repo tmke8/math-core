@@ -48,6 +48,7 @@ fn main() {
         ("text_at_eof", r"\sum\text"),
         ("text_command_in_math_mode", r"\ae"),
         ("sout_in_math_mode", r"\sout{abc}"),
+        ("size_command_in_math_mode", r"\large x"),
         ("operatorname_with_end", r"\operatorname{\end{matrix}}"),
         (
             "operatorname_with_end_after_begin",

@@ -170,6 +170,33 @@ pub enum HtmlTextStyle {
     Strikethrough,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum HtmlTextSize {
+    #[strum(serialize = "50%")]
+    Size50,
+    #[strum(serialize = "60%")]
+    Size60,
+    #[strum(serialize = "70%")]
+    Size70,
+    #[strum(serialize = "80%")]
+    Size80,
+    #[strum(serialize = "90%")]
+    Size90,
+    #[strum(serialize = "100%")]
+    Size100,
+    #[strum(serialize = "120%")]
+    Size120,
+    #[strum(serialize = "140%")]
+    Size140,
+    #[strum(serialize = "170%")]
+    Size170,
+    #[strum(serialize = "200%")]
+    Size200,
+    #[strum(serialize = "250%")]
+    Size250,
+}
+
 // Transform of unicode characters.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]

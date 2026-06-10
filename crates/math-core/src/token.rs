@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
 use mathml_renderer::{
-    attribute::{FracAttr, HtmlTextStyle, Notation, OpAttrs, Size, Style},
+    attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
     super_char::SuperChar,
 };
 use mathml_renderer::{length::Length, super_char::OverlayChar};
@@ -213,6 +213,7 @@ pub enum TextToken {
     Accent(char),
     Letter(char),
     Style(HtmlTextStyle),
+    Size(HtmlTextSize),
 }
 
 /// The delimiter pair that surrounds the result of an infix fraction-like command.

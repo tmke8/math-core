@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{{\\large x \\huge y} z}"
+---
+<math>
+    <mrow>
+        <mtext style="font-size:120%">x </mtext>
+        <mtext style="font-size:200%">y</mtext>
+        <mtext> z</mtext>
+    </mrow>
+</math>
