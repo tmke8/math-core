@@ -38,6 +38,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
         let mut size_stack: Vec<(usize, usize, HtmlTextSize)> = Vec::new();
 
         while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
+            let current_size = size_stack.last().map(|&(_, _, size)| size);
             let tokloc = if text_mode {
                 self.tokens.next_any_token()
             } else {
@@ -61,11 +62,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                 && !builder.is_empty()
                             {
                                 let text = builder.finish(self.arena);
-                                snippets.push(TextSnippet(
-                                    current_style,
-                                    current_size(&size_stack),
-                                    text,
-                                ));
+                                snippets.push(TextSnippet(current_style, current_size, text));
                             }
                             style_stack.push((brace_nesting, Some(style)));
                             brace_nesting = 0;
@@ -77,11 +74,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                     str_builder = Some(builder);
                                 } else {
                                     let text = builder.finish(self.arena);
-                                    snippets.push(TextSnippet(
-                                        current_style,
-                                        current_size(&size_stack),
-                                        text,
-                                    ));
+                                    snippets.push(TextSnippet(current_style, current_size, text));
                                     str_builder = Some(self.buffer.get_builder());
                                 }
                                 size_stack.push((style_stack.len(), brace_nesting, text_size));
@@ -144,11 +137,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         } else {
-                            snippets.push(TextSnippet(
-                                current_style,
-                                current_size(&size_stack),
-                                output,
-                            ));
+                            snippets.push(TextSnippet(current_style, current_size, output));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
                             discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
@@ -183,7 +172,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                                         let text = builder.finish(self.arena);
                                         snippets.push(TextSnippet(
                                             current_style,
-                                            current_size(&size_stack),
+                                            current_size,
                                             text,
                                         ));
                                     }
@@ -201,11 +190,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             } else {
                                 if !builder.is_empty() {
                                     let text = builder.finish(self.arena);
-                                    snippets.push(TextSnippet(
-                                        current_style,
-                                        current_size(&size_stack),
-                                        text,
-                                    ));
+                                    snippets.push(TextSnippet(current_style, current_size, text));
                                 }
                                 style_stack.pop();
                                 brace_nesting = previous_nesting;
@@ -229,11 +214,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             && !builder.is_empty()
                         {
                             let text = builder.finish(self.arena);
-                            snippets.push(TextSnippet(
-                                current_style,
-                                current_size(&size_stack),
-                                text,
-                            ));
+                            snippets.push(TextSnippet(current_style, current_size, text));
                         }
                         style_stack.push((brace_nesting, style));
                         brace_nesting = 0;
@@ -266,11 +247,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         }
-                        snippets.push(TextSnippet(
-                            current_style,
-                            current_size(&size_stack),
-                            output,
-                        ));
+                        snippets.push(TextSnippet(current_style, current_size, output));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
                         discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
@@ -323,7 +300,7 @@ impl<'arena> Parser<'_, '_, 'arena> {
             } else {
                 let mut b = [0u8; SuperChar::MAX_LEN_UTF8];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
-                snippets.push(TextSnippet(current_style, current_size(&size_stack), text));
+                snippets.push(TextSnippet(current_style, current_size, text));
                 style_stack.pop();
                 brace_nesting = previous_nesting;
                 discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
@@ -335,11 +312,6 @@ impl<'arena> Parser<'_, '_, 'arena> {
         }
         Ok(snippets)
     }
-}
-
-/// The size currently in effect: the most recent size declaration that is still in scope.
-fn current_size(size_stack: &[(usize, usize, HtmlTextSize)]) -> Option<HtmlTextSize> {
-    size_stack.last().map(|&(_, _, size)| size)
 }
 
 /// Remove all size declarations that have gone out of scope, i.e. those declared in a style
