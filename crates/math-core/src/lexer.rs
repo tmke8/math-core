@@ -8,7 +8,7 @@ use crate::CommandConfig;
 use crate::commands::{get_command, get_operator_from_unicode};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, Mode, Span, TokSpan, Token};
+use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>
@@ -252,7 +252,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 }
             }
             '&' => Token::NewColumn,
-            '\'' => Token::Prime,
+            '\'' => Token::MathOrTextMode(&Token::Prime(PrimeKind::Single), '’'),
             '<' => Token::MathOrTextMode(&Token::Relation(symbol::LESS_THAN_SIGN), '<'),
             '>' => Token::MathOrTextMode(&Token::Relation(symbol::GREATER_THAN_SIGN), '>'),
             '[' => Token::SquareBracketOpen,

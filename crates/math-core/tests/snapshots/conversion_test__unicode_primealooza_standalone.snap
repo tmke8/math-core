@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: ‷″″′″‷′′‶‵
+---
+<math>
+    <msup>
+        <mrow></mrow>
+        <mrow>
+            <mo>‷</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>′</mo>
+            <mo>‷</mo>
+            <mo>″</mo>
+            <mo>‷</mo>
+        </mrow>
+    </msup>
+</math>

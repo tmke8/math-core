@@ -646,6 +646,15 @@ fn main() {
             "sideset_extras_3_underover",
             r#"\displaystyle{\sideset{a}{b}\int^5_6}"#,
         ),
+        ("unicode_prime", "a′"),
+        ("unicode_prime_2", "a″"),
+        ("unicode_prime_3", "a‴"),
+        ("unicode_prime_4", "a⁗"),
+        ("unicode_rprime_1", "a‵"),
+        ("unicode_rprime_2", "a‶"),
+        ("unicode_rprime_3", "a‷"),
+        ("unicode_primealooza", "a‷″″′″‷′′‶‵^a_b"),
+        ("unicode_primealooza_standalone", "‷″″′″‷′′‶‵"),
     ];
 
     let config = MathCoreConfig {
