@@ -1,9 +1,9 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "y \\mathrel 0 x"
+expression: "y \\mathrel 0 ="
 ---
 <math>
     <mi>y</mi>
-    <mo stretchy="false" lspace="0.2778em" rspace="0.2778em">0</mo>
-    <mi>x</mi>
+    <mo stretchy="false" lspace="0.2778em" rspace="0">0</mo>
+    <mo lspace="0" rspace="0">=</mo>
 </math>
