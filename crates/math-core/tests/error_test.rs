@@ -116,6 +116,7 @@ fn main() {
         ),
         ("unknown_color", r"{\color{foobar} x}"),
         ("unknown_color_no_braces", r"{\color - x}"),
+        ("unsupported_color_html_short", r"{\color[HTML]{f0a}x^2}"),
     ];
 
     let config = MathCoreConfig {

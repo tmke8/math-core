@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "{\\color[HTML]{f0a}x^2}"
+---
+Error: Unknown color "f0a".
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ {\color[HTML]{f0a}x^2}
+   │              ──┬──  
+   │                ╰──── unknown color
+───╯

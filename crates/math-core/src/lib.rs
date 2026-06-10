@@ -36,6 +36,7 @@ mod lexer;
 mod parser;
 mod predefined;
 mod specifications;
+mod split_on_ascii;
 mod text_parser;
 mod token;
 mod token_queue;

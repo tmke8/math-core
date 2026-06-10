@@ -12,6 +12,7 @@ use mathml_renderer::{
 use rustc_hash::FxHashMap;
 
 use crate::{
+    atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
@@ -23,6 +24,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
+    split_on_ascii::split_on_ascii,
     token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token},
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -1545,12 +1547,122 @@ where
                 })
             }
             Token::Color => 'color: {
-                let (color_name, span) = self.parse_string_literal()?;
-                let Some(color) = get_color(color_name) else {
-                    break 'color Err(LatexError(
-                        span,
-                        LatexErrKind::UnknownColor(color_name.into()),
-                    ));
+                let color = if Token::SquareBracketOpen == *self.tokens.peek().token() {
+                    let next = self.next_token()?;
+                    debug_assert_eq!(&Token::SquareBracketOpen, next.token(),);
+                    let mut type_name_builder = self.buffer.get_builder();
+                    loop {
+                        let next = self.tokens.next();
+                        match next.as_ref().map(|token| token.token()) {
+                            Ok(Token::Letter(c, _)) => {
+                                type_name_builder.push_superchar(*c);
+                            }
+                            Ok(Token::SquareBracketClose) => break,
+                            _ => {
+                                break 'color Err(LatexError(
+                                    span.into(),
+                                    LatexErrKind::UnknownColor(
+                                        type_name_builder.finish(self.arena).into(),
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                    let type_name = type_name_builder.finish(self.arena);
+                    let Ok((color_description, span)) = self.parse_string_literal() else {
+                        break 'color Err(LatexError(
+                            span.into(),
+                            LatexErrKind::ExpectedArgumentGotEOI,
+                        ));
+                    };
+                    match type_name {
+                        "rgb" => {
+                            let mut parts = split_on_ascii(&color_description, b',');
+                            let (Some(r), Some(g), Some(b)) =
+                                (parts.next(), parts.next(), parts.next())
+                            else {
+                                break 'color Err(LatexError(
+                                    span,
+                                    LatexErrKind::UnknownColor(color_description.into()),
+                                ));
+                            };
+                            let (Some(r), Some(g), Some(b)) = (
+                                limited_float_parse(r.trim()),
+                                limited_float_parse(g.trim()),
+                                limited_float_parse(b.trim()),
+                            ) else {
+                                break 'color Err(LatexError(
+                                    span,
+                                    LatexErrKind::UnknownColor(color_description.into()),
+                                ));
+                            };
+                            (
+                                (r * 255.0).round() as u8,
+                                (g * 255.0).round() as u8,
+                                (b * 255.0).round() as u8,
+                            )
+                        }
+                        "RGB" => {
+                            let mut parts = split_on_ascii(&color_description, b',');
+                            let (Some(r), Some(g), Some(b)) =
+                                (parts.next(), parts.next(), parts.next())
+                            else {
+                                break 'color Err(LatexError(
+                                    span,
+                                    LatexErrKind::UnknownColor(color_description.into()),
+                                ));
+                            };
+                            let (Some(r), Some(g), Some(b)) = (
+                                limited_float_parse(r.trim()),
+                                limited_float_parse(g.trim()),
+                                limited_float_parse(b.trim()),
+                            ) else {
+                                break 'color Err(LatexError(
+                                    span,
+                                    LatexErrKind::UnknownColor(color_description.into()),
+                                ));
+                            };
+                            (r as u8, g as u8, b as u8)
+                        }
+                        "HTML" => {
+                            fn hex(h: u8) -> u8 {
+                                match h {
+                                    b'0'..=b'9' => h - b'0',
+                                    b'a'..=b'f' => h - b'a' + 10,
+                                    b'A'..=b'F' => h - b'A' + 10,
+                                    _ => 0,
+                                }
+                            }
+                            match color_description.as_bytes() {
+                                &[r1, r2, g1, g2, b1, b2] => (
+                                    hex(r1) * 16 + hex(r2),
+                                    hex(g1) * 16 + hex(g2),
+                                    hex(b1) * 16 + hex(b2),
+                                ),
+                                _ => {
+                                    break 'color Err(LatexError(
+                                        span,
+                                        LatexErrKind::UnknownColor(color_description.into()),
+                                    ));
+                                }
+                            }
+                        }
+                        unexpected => {
+                            break 'color Err(LatexError(
+                                span,
+                                LatexErrKind::UnknownColor(unexpected.into()),
+                            ));
+                        }
+                    }
+                } else {
+                    let (color_name, span) = self.parse_string_literal()?;
+                    let Some(color) = get_color(color_name) else {
+                        break 'color Err(LatexError(
+                            span,
+                            LatexErrKind::UnknownColor(color_name.into()),
+                        ));
+                    };
+                    color
                 };
                 let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
                 Ok(Node::Row {
