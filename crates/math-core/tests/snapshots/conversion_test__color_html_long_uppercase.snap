@@ -1,6 +1,5 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-assertion_line: 564
 expression: "{\\color[HTML]{F101A1}x^2}"
 ---
 <math>

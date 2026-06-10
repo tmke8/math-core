@@ -1,6 +1,5 @@
 ---
 source: crates/math-core/tests/error_test.rs
-assertion_line: 140
 expression: "{\\color[HTML]{f0a}x^2}"
 ---
 Error: Unknown color "f0a".
