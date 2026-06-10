@@ -135,14 +135,20 @@ impl Style {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
+    /// -3/36 of an em/\quad
+    #[strum(serialize = "-0.0833em")]
+    NegativeOnePointFiveMu = -1,
     #[strum(serialize = "0")]
     Zero = 1,
+    /// 3/18 of an em/\quad
     #[strum(serialize = "0.1667em")]
-    ThreeMu, // 3/18 of an em/\quad
+    ThreeMu,
+    /// 4/18 of an em/\quad
     #[strum(serialize = "0.2222em")]
-    FourMu, // 4/18 of an em/\quad
+    FourMu,
+    /// 5/18 of an em/\quad
     #[strum(serialize = "0.2778em")]
-    FiveMu, // 5/18 of an em/\quad
+    FiveMu,
 }
 
 bitflags! {

@@ -2237,7 +2237,21 @@ where
                         size: None,
                     }));
                 } else {
-                    for _ in 0..count {
+                    nodes.push(self.commit(Node::Operator {
+                        op: primes_arr[0].as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }));
+                    for _ in 1..count {
+                        nodes.push(&Node::Row {
+                            nodes: &[],
+                            attrs: RowAttrs {
+                                margin_left: Some(MathSpacing::NegativeOnePointFiveMu),
+                                ..RowAttrs::DEFAULT
+                            },
+                        });
                         nodes.push(self.commit(Node::Operator {
                             op: primes_arr[0].as_op(),
                             attrs: OpAttrs::empty(),

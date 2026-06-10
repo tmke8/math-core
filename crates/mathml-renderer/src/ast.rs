@@ -61,6 +61,8 @@ pub struct RowAttrs {
     pub style: Option<Style>,
     // `math-shift: compact;` CSS property
     pub math_shift_compact: bool,
+    // `margin_left` CSS property
+    pub margin_left: Option<MathSpacing>,
 }
 
 impl RowAttrs {
@@ -68,6 +70,7 @@ impl RowAttrs {
         color: None,
         style: None,
         math_shift_compact: false,
+        margin_left: None,
     };
 }
 
@@ -470,11 +473,12 @@ impl Node<'_> {
                         color,
                         style,
                         math_shift_compact,
+                        margin_left,
                     },
             } => {
                 write!(s, "<mrow")?;
 
-                if color.is_some() || math_shift_compact {
+                if color.is_some() || math_shift_compact || margin_left.is_some() {
                     write!(s, " style=\"")?;
                     if let Some((r, g, b)) = color {
                         write!(s, "color:#")?;
@@ -485,6 +489,9 @@ impl Node<'_> {
                     }
                     if math_shift_compact {
                         write!(s, "math-shift:compact;")?;
+                    }
+                    if let Some(margin) = margin_left {
+                        write!(s, "margin-left:{};", <&str>::from(margin))?;
                     }
                     write!(s, "\"")?;
                 }

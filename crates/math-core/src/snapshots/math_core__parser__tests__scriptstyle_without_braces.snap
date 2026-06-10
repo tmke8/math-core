@@ -12,6 +12,7 @@ expression: "x\\scriptstyle y"
       color: None,
       style: Some(Script),
       math_shift_compact: false,
+      margin_left: None,
     ),
   ),
 ]
