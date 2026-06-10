@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ops::Range;
 
@@ -288,6 +289,7 @@ impl LatexError {
         output
     }
 
+    /// Returns only the error message itself as a string.
     pub fn error_message(&self) -> String {
         let mut s = String::new();
         let _ = self.1.write_msg(&mut s);
@@ -306,21 +308,10 @@ impl LatexError {
         let _ = write!(s, "{codepoint_offset}: ");
         let _ = self.1.write_msg(s);
     }
-}
 
-#[cfg(feature = "ariadne")]
-impl LatexError {
-    /// Convert this error into an [`ariadne::Report`] for pretty-printing.
-    pub fn to_report<'name>(
-        &self,
-        source_name: &'name str,
-        with_color: bool,
-    ) -> ariadne::Report<'static, (&'name str, Range<usize>)> {
-        use std::borrow::Cow;
-
-        use ariadne::{Label, Report, ReportKind};
-
-        let label_msg: Cow<'_, str> = match &self.1 {
+    /// Returns a short label for the main error location.
+    pub fn label(&self) -> Cow<'static, str> {
+        match &self.1 {
             LatexErrKind::UnclosedGroup(expected) => format!(
                 "expected \"{}\" to close this group",
                 <&str>::from(expected)
@@ -366,7 +357,21 @@ impl LatexError {
             LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number".into(),
             LatexErrKind::HardLimitExceeded => "limit exceeded".into(),
             LatexErrKind::Internal => "internal error".into(),
-        };
+        }
+    }
+}
+
+#[cfg(feature = "ariadne")]
+impl LatexError {
+    /// Convert this error into an [`ariadne::Report`] for pretty-printing.
+    pub fn to_report<'name>(
+        &self,
+        source_name: &'name str,
+        with_color: bool,
+    ) -> ariadne::Report<'static, (&'name str, Range<usize>)> {
+        use ariadne::{Label, Report, ReportKind};
+
+        let label_msg = self.label();
 
         let mut config = ariadne::Config::default().with_index_type(ariadne::IndexType::Byte);
         if !with_color {

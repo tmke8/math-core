@@ -29,6 +29,7 @@ impl ConfigParseError {
 #[wasm_bindgen(getter_with_clone)]
 pub struct LatexError {
     message: JsValue,
+    label: JsValue,
     pub start: u32,
     pub end: u32,
     context: Option<JsValue>,
@@ -40,6 +41,11 @@ impl LatexError {
     #[wasm_bindgen(getter, unchecked_return_type = "string")]
     pub fn message(&self) -> JsValue {
         self.message.clone()
+    }
+
+    #[wasm_bindgen(getter, unchecked_return_type = "string")]
+    pub fn label(&self) -> JsValue {
+        self.label.clone()
     }
 
     #[wasm_bindgen(getter, unchecked_return_type = "string | undefined")]
@@ -187,6 +193,7 @@ impl LatexToMathML {
             let end = byte_offset_to_utf16_offset(&context, e.0.end) as u32;
             LatexError {
                 message: JsValue::from_str(&e.error_message()),
+                label: JsValue::from_str(&e.label()),
                 start,
                 end,
                 context: Some(JsValue::from_str(&context)),
@@ -219,6 +226,7 @@ impl LatexToMathML {
                     let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
+                        label: JsValue::from_str(&e.label()),
                         start,
                         end,
                         context: None,
@@ -251,6 +259,7 @@ impl LatexToMathML {
                     let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
+                        label: JsValue::from_str(&e.label()),
                         start,
                         end,
                         context: None,
