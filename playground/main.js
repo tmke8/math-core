@@ -52,7 +52,7 @@ function updateConfig() {
     const outputCode = document.getElementById("outputCode");
     if (outputCode) {
       if (error instanceof LatexError) {
-        outputCode.textContent = formatError(error.context, error.start, error.end, error.message);
+        outputCode.textContent = formatError(error.context, error.start, error.end, error.message, error.label);
       } else {
         outputCode.textContent = `Error parsing config: ${error.message}`;
       }
@@ -238,15 +238,16 @@ export function base64UrlToUint8Array(base64String) {
 }
 
 /**
- * Formats a error message with context and carets indicating the error span.
+ * Formats a error message with context and an underline indicating the error span.
  *
  * @param {string} input - The original input string.
  * @param {number} errorStart - The UTF-16 index of the start of the error span.
  * @param {number} errorEnd - The UTF-16 index of the end of the error span (exclusive).
  * @param {string} errorMessage - The error message to display.
+ * @param {string} errorLabel - The label describing the error span.
  * @returns {string} The formatted error message.
  */
-function formatError(input, errorStart, errorEnd, errorMessage) {
+function formatError(input, errorStart, errorEnd, errorMessage, errorLabel) {
   const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
   const graphemes = [...segmenter.segment(input)].map(s => s.segment);
 
@@ -289,16 +290,39 @@ function formatError(input, errorStart, errorEnd, errorMessage) {
   const suffix = hasMoreAfter ? '...' : '';
   const contextString = prefix + graphemes.slice(contextStart, contextEnd).join('') + suffix;
 
-  // Clamp the highlighted range to the context window and draw carets
+  // Clamp the highlighted range to the context window and draw the underline
   const highlightStart = Math.max(graphemeStart, contextStart);
   const highlightEnd = Math.min(graphemeEnd, contextEnd);
-  const caretLine = ' '.repeat(prefix.length + highlightStart - contextStart) + '^'.repeat(highlightEnd - highlightStart);
+  const padding = prefix.length + highlightStart - contextStart;
+  const underlineWidth = highlightEnd - highlightStart;
+
+  // Place a connector ("┬") roughly in the middle of the underline, with the
+  // label dangling from it, in the style of Ariadne's diagnostics.
+  const joinPos = Math.floor(underlineWidth / 2);
+  let underline = '';
+  for (let i = 0; i < underlineWidth; i++) {
+    underline += i === joinPos ? '┬' : '─';
+  }
+  const underlineLine = ' '.repeat(padding) + underline;
+  const labelLine = ' '.repeat(padding + joinPos) + '╰─── ' + errorLabel;
+
+  // Compute the 1-based line and column of the error start, matching the CLI.
+  let line = 1;
+  let lineStart = 0; // grapheme index of the start of the current line
+  for (let i = 0; i < graphemeStart; i++) {
+    if (isNewline(graphemes[i])) {
+      line++;
+      lineStart = i + 1;
+    }
+  }
+  const column = graphemeStart - lineStart + 1;
 
   return [
-    `${errorStart}:${errorEnd}: Error: ${errorMessage}`,
+    `${line}:${column}: Error: ${errorMessage}`,
     '|',
     `| ${contextString}`,
-    `| ${caretLine}`,
+    `| ${underlineLine}`,
+    `| ${labelLine}`,
     '|'
   ].join('\n');
 }
@@ -330,7 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       outputField.innerHTML = "";
       // outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
-      outputCode.textContent = formatError(input, error.start, error.end, error.message);
+      outputCode.textContent = formatError(input, error.start, error.end, error.message, error.label);
     }
   }
 
