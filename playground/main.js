@@ -52,7 +52,7 @@ function updateConfig() {
     const outputCode = document.getElementById("outputCode");
     if (outputCode) {
       if (error instanceof LatexError) {
-        outputCode.textContent = formatError(error.context, error.start, error.end, error.message, error.label, "<config>");
+        outputCode.innerHTML = formatErrorHtml(error.context, error.start, error.end, error.message, error.label, "<config>");
       } else {
         outputCode.textContent = `Error parsing config: ${error.message}`;
       }
@@ -341,6 +341,31 @@ function formatError(input, errorStart, errorEnd, errorMessage, errorLabel, sour
   ].join('\n');
 }
 
+/**
+ * Escapes the HTML special characters in a string.
+ *
+ * @param {string} text - The text to escape.
+ * @returns {string} The escaped text.
+ */
+function escapeHtml(text) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+/**
+ * Like {@link formatError}, but returns HTML with the leading "Error:" colored
+ * red, matching the CLI. The result is safe to assign to `innerHTML`.
+ *
+ * @param {...any} args - The arguments forwarded to {@link formatError}.
+ * @returns {string} The formatted error as an HTML string.
+ */
+function formatErrorHtml(...args) {
+  const escaped = escapeHtml(formatError(...args));
+  return escaped.replace(/^Error:/, '<span style="color: #b22222">Error:</span>');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   init().then(async () => {
     console.log("WASM module initialized");
@@ -368,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       outputField.innerHTML = "";
       // outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
-      outputCode.textContent = formatError(input, error.start, error.end, error.message, error.label);
+      outputCode.innerHTML = formatErrorHtml(input, error.start, error.end, error.message, error.label);
     }
   }
 
