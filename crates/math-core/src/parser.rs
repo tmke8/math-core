@@ -1595,7 +1595,7 @@ where
                     let mut type_name_builder = self.buffer.get_builder();
                     loop {
                         let next = self.tokens.next();
-                        match next.as_ref().map(|token| token.token()) {
+                        match next.as_ref().map(TokSpan::token) {
                             Ok(Token::Letter(c, _)) => {
                                 type_name_builder.push_superchar(*c);
                             }
@@ -1619,7 +1619,7 @@ where
                     };
                     match type_name {
                         "rgb" => {
-                            let mut parts = split_on_ascii(&color_description, b',');
+                            let mut parts = split_on_ascii(color_description, b',');
                             let (Some(r), Some(g), Some(b)) =
                                 (parts.next(), parts.next(), parts.next())
                             else {
@@ -1645,7 +1645,7 @@ where
                             )
                         }
                         "RGB" => {
-                            let mut parts = split_on_ascii(&color_description, b',');
+                            let mut parts = split_on_ascii(color_description, b',');
                             let (Some(r), Some(g), Some(b)) =
                                 (parts.next(), parts.next(), parts.next())
                             else {
