@@ -26,7 +26,9 @@ use crate::{
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
-    token::{EndToken, InfixDelim, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token},
+    token::{
+        EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token,
+    },
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
@@ -200,7 +202,7 @@ where
             prev_class = class;
 
             // Check if there are any superscripts or subscripts following the parsed node.
-            let bounds = self.get_bounds(None)?.ensure_no_limits()?;
+            let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
 
             match target {
                 Node::Multiscripts {
@@ -502,10 +504,22 @@ where
                 let bounds_with_limits = self.get_bounds(None)?;
                 let bounds = bounds_with_limits.bounds;
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
-                let attrs = if bounds_with_limits.limits.is_some() {
-                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE
-                } else {
-                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE | OpAttrs::FORCE_MOVABLE_LIMITS
+                let (use_underover, attrs) = match bounds_with_limits.limits() {
+                    _ if bounds.is_trivial() => {
+                        (true, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
+                    }
+                    None | Some(LimitsKind::Display) => (
+                        true,
+                        OpAttrs::SYMMETRIC_TRUE
+                            | OpAttrs::LARGEOP_TRUE
+                            | OpAttrs::FORCE_MOVABLE_LIMITS,
+                    ),
+                    Some(LimitsKind::Always) => {
+                        (true, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
+                    }
+                    Some(LimitsKind::Never) => {
+                        (false, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
+                    }
                 };
 
                 let target = self.commit(Node::Operator {
@@ -515,15 +529,18 @@ where
                     right,
                     size: None,
                 });
-                match bounds {
-                    Bounds(Some(under), Some(over)) => Ok(Node::UnderOver {
-                        target,
-                        under,
-                        over,
-                    }),
-                    Bounds(Some(symbol), None) => Ok(Node::Under { target, symbol }),
-                    Bounds(None, Some(symbol)) => Ok(Node::Over { target, symbol }),
-                    Bounds(None, None) => return Ok((class, target)),
+                if use_underover {
+                    if let Some(node) = bounds.try_wrap_node_underover(target) {
+                        Ok(node)
+                    } else {
+                        return Ok((class, target));
+                    }
+                } else {
+                    if let Some(node) = bounds.try_wrap_node_subsup(target) {
+                        Ok(node)
+                    } else {
+                        return Ok((class, target));
+                    }
                 }
             }
             Token::Ord(ord) => {
@@ -942,14 +959,21 @@ where
                 };
 
                 let bounds = bounds_limits.bounds;
-                let limits = bounds_limits.limits.is_some();
 
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
-                let attrs = if has_movable_limits && limits {
-                    OpAttrs::NO_MOVABLE_LIMITS
-                } else {
-                    OpAttrs::empty()
+
+                let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
+                    (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
+                    (None, has_movable_limits)
+                    | (Some(LimitsKind::Display), has_movable_limits @ true) => {
+                        (has_movable_limits, OpAttrs::empty())
+                    }
+                    (Some(LimitsKind::Display), false) => (true, OpAttrs::FORCE_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Always), false) => (true, OpAttrs::empty()),
+                    (Some(LimitsKind::Always), true) => (true, OpAttrs::NO_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
                 };
+
                 let target = self.commit(Node::Operator {
                     op: op.as_op(),
                     attrs,
@@ -957,7 +981,7 @@ where
                     right,
                     size: None,
                 });
-                let use_underover = has_movable_limits || limits;
+
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
@@ -972,39 +996,36 @@ where
             }
             ref tok @ (Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name)) => {
                 class = Class::Operator;
-                let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
                 let bounds_limits = self.get_bounds(None)?;
                 let bounds = bounds_limits.bounds;
-                let explicit_limits = bounds_limits.limits.is_some();
-                let movablelimits = if explicit_limits {
-                    // explicit `\limits` always results in non-movable limits
-                    OpAttrs::NO_MOVABLE_LIMITS
-                } else if limits_by_default {
-                    OpAttrs::FORCE_MOVABLE_LIMITS
-                } else {
-                    // a normal operator without limits
-                    OpAttrs::empty()
+
+                let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
+                let (use_underover, attrs) = match (bounds_limits.limits(), limits_by_default) {
+                    _ if bounds.is_trivial() => (false, OpAttrs::empty()),
+                    (None, true) | (Some(LimitsKind::Display), _) => {
+                        (true, OpAttrs::FORCE_MOVABLE_LIMITS)
+                    }
+                    (None, false) | (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
+                    (Some(LimitsKind::Always), _) => (true, OpAttrs::empty()),
                 };
+
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
                 let target = self.commit(Node::PseudoOp {
-                    attrs: if matches!(bounds, Bounds(None, None)) {
-                        OpAttrs::empty()
-                    } else {
-                        movablelimits
-                    },
+                    attrs,
                     left,
                     right,
                     name,
                 });
-                if movablelimits.is_empty() {
-                    match bounds.try_wrap_node_subsup(target) {
+
+                if use_underover {
+                    match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
                         None => return Ok((class, target)),
                     }
                 } else {
-                    match bounds.try_wrap_node_underover(target) {
+                    match bounds.try_wrap_node_subsup(target) {
                         Some(node) => Ok(node),
                         None => return Ok((class, target)),
                     }
@@ -1429,7 +1450,7 @@ where
                     name: letters,
                 });
                 if with_limits {
-                    let bounds = self.get_bounds(None)?.ensure_no_limits()?;
+                    let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
                     let node = match bounds.try_wrap_node_underover(op) {
                         Some(node) => node,
                         None => return Ok((Class::Operator, op)),
@@ -1723,7 +1744,9 @@ where
                 })
             }
             tok @ (Token::Underscore | Token::Circumflex | Token::Prime) => {
-                let bounds = self.get_bounds(Some((tok, span)))?.ensure_no_limits()?;
+                let bounds = self
+                    .get_bounds(Some((tok, span)))?
+                    .ensure_no_explicit_limits()?;
 
                 // We use an empty row as the base.
                 let target = self.commit(Node::EMPTY_ROW);
@@ -1749,10 +1772,10 @@ where
             Token::Sideset => {
                 // Collect arguments
                 let (pre_bounds_limits, mut after_pre_bounds) = self.get_bounds_arg()?;
-                let pre_bounds = pre_bounds_limits.ensure_no_limits()?;
+                let pre_bounds = pre_bounds_limits.ensure_no_explicit_limits()?;
                 let (post_bounds_limits, mut after_post_bounds) = self.get_bounds_arg()?;
                 // TeX allows `\limits` here, but no good way to represent it in MathML
-                let post_bounds = post_bounds_limits.ensure_no_limits()?;
+                let post_bounds = post_bounds_limits.ensure_no_explicit_limits()?;
                 let base = self.tokens.read_argument(false)?.into_one()?;
 
                 // Construct node for base op
@@ -1815,11 +1838,16 @@ where
                 };
 
                 // add trailing bounds to sidesettend node
-                let underover = self.get_bounds(None)?;
-                if !underover.bounds.is_trivial() {
-                    if self.state.style == Style::Display || underover.limits.is_some() {
+                let trailing_bounds = self.get_bounds(None)?;
+                if !trailing_bounds.bounds.is_trivial() {
+                    let trailing_limits = trailing_bounds.limits();
+                    let use_underover = matches!(trailing_limits, Some(LimitsKind::Always))
+                        || (self.state.style == Style::Display
+                            && matches!(trailing_limits, None | Some(LimitsKind::Display)));
+
+                    if use_underover {
                         // construct node for under/overscripts
-                        Ok(underover
+                        Ok(trailing_bounds
                             .bounds
                             .try_wrap_node_underover(
                                 self.arena.push(sidesetted_with_after_post_bounds_node),
@@ -1827,7 +1855,7 @@ where
                             .unwrap_or_else(|| unreachable!()))
                     } else {
                         // construct node for super/subscripts
-                        Ok(underover
+                        Ok(trailing_bounds
                             .bounds
                             .try_wrap_node_subsup(
                                 self.arena.push(sidesetted_with_after_post_bounds_node),
@@ -1838,10 +1866,10 @@ where
                     Ok(sidesetted_with_after_post_bounds_node)
                 }
             }
-            Token::Limits => Err(LatexError(
+            Token::Limits(kind) => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedHere {
-                    got: LimitedUsabilityToken::Limits,
+                    got: kind.into(),
                     correct_place: Place::AfterBigOp,
                 },
             )),
@@ -2047,7 +2075,7 @@ where
             let (next_token, next_span) = first.unwrap_or_else(|| self.tokens.peek().into_parts());
             if matches!(
                 next_token,
-                Token::Underscore | Token::Circumflex | Token::Prime | Token::Limits
+                Token::Underscore | Token::Circumflex | Token::Prime | Token::Limits(_)
             ) && first.take().is_none()
             {
                 self.tokens.next()?;
@@ -2058,8 +2086,8 @@ where
                 Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
                 Token::Prime => (BoundStarterKind::Prime, &mut ret.bounds.1),
                 Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
-                Token::Limits => {
-                    ret.limits = Some(next_span);
+                Token::Limits(kind) => {
+                    ret.limits_span = Some((kind, next_span));
                     continue;
                 }
                 // we are done!
@@ -2085,7 +2113,7 @@ where
         &mut self,
     ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
         let first = *self.tokens.peek();
-        match first.token() {
+        match *first.token() {
             Token::Prime => {
                 self.tokens.next()?;
                 Ok((
@@ -2104,7 +2132,7 @@ where
                                 },
                             ),
                         ),
-                        limits: None,
+                        limits_span: None,
                     },
                     Vec::new(),
                 ))
@@ -2120,12 +2148,12 @@ where
                 )?;
                 Ok((bounds, after_bounds))
             }
-            Token::Limits => {
+            Token::Limits(kind) => {
                 self.tokens.next()?;
                 Ok((
                     BoundsWithLimits {
                         bounds: Bounds(None, None),
-                        limits: Some(first.span()),
+                        limits_span: Some((kind, first.span())),
                     },
                     Vec::new(),
                 ))
@@ -2135,7 +2163,7 @@ where
                 Ok((
                     BoundsWithLimits {
                         bounds: Bounds(None, None),
-                        limits: None,
+                        limits_span: None,
                     },
                     vec![next],
                 ))
@@ -2556,6 +2584,7 @@ impl<'arena> Bounds<'arena> {
         matches!(self, Self(None, None))
     }
 
+    /// Returns `None` if the bounds are trivial
     fn try_wrap_node_underover(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
         match self {
             Self(None, None) => None,
@@ -2575,6 +2604,7 @@ impl<'arena> Bounds<'arena> {
         }
     }
 
+    /// Returns `None` if the bounds are trivial
     fn try_wrap_node_subsup(&self, node: &'arena Node<'arena>) -> Option<Node<'arena>> {
         match self {
             Self(None, None) => None,
@@ -2611,25 +2641,29 @@ struct BoundsWithLimits<'arena> {
     bounds: Bounds<'arena>,
     /// The span of the `Limits` token applying to the bounds,
     /// if it was present
-    limits: Option<Span>,
+    limits_span: Option<(LimitsKind, Span)>,
 }
 
 impl<'arena> BoundsWithLimits<'arena> {
     /// Returns the bounds in this [`BoundsWithLimits`]
-    /// if it has no limits,
+    /// if it has no `\limits`/`\nolimits`/`\displaylimits`,
     /// or an error otherwise.
-    fn ensure_no_limits(self) -> ParseResult<Bounds<'arena>> {
-        if let Some(limits_span) = self.limits {
+    fn ensure_no_explicit_limits(self) -> ParseResult<Bounds<'arena>> {
+        if let Some((limits_kind, limits_span)) = self.limits_span {
             Err(Box::new(LatexError(
                 limits_span.into(),
                 LatexErrKind::CannotBeUsedHere {
-                    got: LimitedUsabilityToken::Limits,
+                    got: limits_kind.into(),
                     correct_place: Place::AfterBigOp,
                 },
             )))
         } else {
             Ok(self.bounds)
         }
+    }
+
+    fn limits(self) -> Option<LimitsKind> {
+        self.limits_span.map(|ls| ls.0)
     }
 }
 

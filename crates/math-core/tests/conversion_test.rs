@@ -99,6 +99,19 @@ fn main() {
         ("sine_at_group_end", r"{x\sin}x"),
         ("sine_at_left", r"x\left(\sin x\right)"),
         ("sine_at_right", r"x\left(x\sin \right)x"),
+        ("sine_with_displaylimits", r"\sin\displaylimits_0^1"),
+        (
+            "sine_mixed_limits",
+            r"\sin\nolimits_0\displaylimits^1\limits",
+        ),
+        (
+            "sine_mixed_limits_2",
+            r"\sin\nolimits_0\limits^1\displaylimits",
+        ),
+        (
+            "sine_mixed_limits_3",
+            r"\sin\displaylimits_0\limits^1\nolimits",
+        ),
         ("square_root", r"\sqrt 2"),
         ("square_root_without_space", r"\sqrt12"),
         ("square_root_with_space", r"\sqrt 12"),
@@ -165,9 +178,36 @@ fn main() {
             "integral_with_limits_in_weird_spots",
             r"\int\limits\limits\limits\limits_0\limits\limits\limits^1\limits\limits\limits dx",
         ),
+        ("integral_with_nolimits", r"\int\nolimits_0^1 dx"),
+        ("integral_with_displaylimits", r"\int\displaylimits_0^1 dx"),
+        (
+            "integral_mixed_limits",
+            r"\int\nolimits_0\displaylimits^1\limits dx",
+        ),
+        (
+            "integral_mixed_limits_2",
+            r"\int\nolimits_0\limits^1\displaylimits dx",
+        ),
+        (
+            "integral_mixed_limits_3",
+            r"\int\displaylimits_0\limits^1\nolimits dx",
+        ),
         ("max_with_limits", r"\max\limits_x y"),
         ("max_with_sup_limits", r"\max\limits^x"),
         ("max_with_relation", r"\max_{x\in X}"),
+        ("max_with_displaylimits", r"\max\displaylimits_0^1"),
+        (
+            "max_mixed_limits",
+            r"\max\nolimits_0\displaylimits^1\limits",
+        ),
+        (
+            "max_mixed_limits_2",
+            r"\max\nolimits_0\limits^1\displaylimits",
+        ),
+        (
+            "max_mixed_limits_3",
+            r"\max\displaylimits_0\limits^1\nolimits",
+        ),
         ("log_with_limits", r"\log\limits_x"),
         ("log_with_subscript", r"\log_x"),
         ("bold_font", r"\bm{x}"),
@@ -175,6 +215,20 @@ fn main() {
         ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
         ("sum_with_limit", r"\sum\limits_{i=1}^N"),
         ("sum_pointless_limits", r"\sum\limits n"),
+        ("integral_with_nolimits", r"\int\nolimits_0^1 dx"),
+        ("sum_with_displaylimits", r"\sum\displaylimits_0^1"),
+        (
+            "sum_mixed_limits",
+            r"\sum\nolimits_0\displaylimits^1\limits",
+        ),
+        (
+            "sum_mixed_limits_2",
+            r"\sum\nolimits_0\limits^1\displaylimits",
+        ),
+        (
+            "sum_mixed_limits_3",
+            r"\sum\displaylimits_0\limits^1\nolimits",
+        ),
         ("sum_log", r"\sum\log n"),
         ("product", r"\prod_n n"),
         ("underscore", r"x\ y"),
@@ -520,6 +574,19 @@ fn main() {
         ("unicode_largeop", "∑_{i=0}^3 a + b"),
         ("unicode_largeop_force", "⅀_{i=0}^3 a + b"),
         ("unicode_largeop_force_limits", r#"⅀ \limits_{i=0}^3 a + b"#),
+        ("unicode_largeop_with_displaylimits", r"⅀\displaylimits_0^1"),
+        (
+            "unicode_largeop_mixed_limits",
+            r"⅀\nolimits_0\displaylimits^1\limits",
+        ),
+        (
+            "unicode_largeop_mixed_limits_2",
+            r"⅀\nolimits_0\limits^1\displaylimits",
+        ),
+        (
+            "unicode_largeop_mixed_limits_3",
+            r"⅀\displaylimits_0\limits^1\nolimits",
+        ),
         ("unicode_triple_bar", "x⦀x"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
         ("fake_prescript", r"_1^2 \frac{a}{b}"),

@@ -3,10 +3,10 @@ use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
-use crate::MathDisplay;
 use crate::environments::Env;
 use crate::html_utils::{escape_double_quoted_html_attribute, escape_html_content};
 use crate::token::EndToken;
+use crate::{MathDisplay, token::LimitsKind};
 
 /// Represents an error that occurred during LaTeX parsing.
 #[derive(Debug, Clone)]
@@ -93,6 +93,20 @@ pub enum LimitedUsabilityToken {
     Label,
     #[strum(serialize = r"\limits")]
     Limits,
+    #[strum(serialize = r"\nolimits")]
+    NoLimits,
+    #[strum(serialize = r"\displaylimits")]
+    DisplayLimits,
+}
+
+impl From<LimitsKind> for LimitedUsabilityToken {
+    fn from(kind: LimitsKind) -> Self {
+        match kind {
+            LimitsKind::Always => LimitedUsabilityToken::Limits,
+            LimitsKind::Never => LimitedUsabilityToken::NoLimits,
+            LimitsKind::Display => LimitedUsabilityToken::DisplayLimits,
+        }
+    }
 }
 
 impl LatexErrKind {

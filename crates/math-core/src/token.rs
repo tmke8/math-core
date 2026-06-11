@@ -79,7 +79,7 @@ pub enum Token<'source> {
     /// `\sqrt` and `\sqrt[n]{...}`
     Sqrt,
     /// `\limits`
-    Limits,
+    Limits(LimitsKind),
     /// Fixed-length spaces, e.g. `\,`, `\;`, `\quad`, etc.
     Space(Length),
     /// A custom space specified by the user, e.g. `\hspace{1em}`.
@@ -257,6 +257,17 @@ pub enum PhantomKind {
     V,
 }
 
+/// Disambiguates `\limits`, `\nolimits`, and `\displaylimits`
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LimitsKind {
+    /// `\limits`
+    Always,
+    /// `\nolimits`
+    Never,
+    /// `\displaylimits`
+    Display,
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -297,7 +308,7 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
-            | CustomSpace | Limits | NonBreakingSpace | Label | EqRef => None,
+            | CustomSpace | Limits(_) | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
