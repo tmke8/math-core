@@ -52,7 +52,7 @@ function updateConfig() {
     const outputCode = document.getElementById("outputCode");
     if (outputCode) {
       if (error instanceof LatexError) {
-        outputCode.textContent = formatError(error.context, error.start, error.end, error.message);
+        outputCode.innerHTML = formatErrorHtml(error.context, error.start, error.end, error.message, error.label, "<config>");
       } else {
         outputCode.textContent = `Error parsing config: ${error.message}`;
       }
@@ -238,15 +238,18 @@ export function base64UrlToUint8Array(base64String) {
 }
 
 /**
- * Formats a error message with context and carets indicating the error span.
+ * Formats an error message as an Ariadne-style diagnostic with a box-drawing
+ * frame, mirroring the output of the `mathcore` CLI.
  *
  * @param {string} input - The original input string.
  * @param {number} errorStart - The UTF-16 index of the start of the error span.
  * @param {number} errorEnd - The UTF-16 index of the end of the error span (exclusive).
  * @param {string} errorMessage - The error message to display.
+ * @param {string} errorLabel - The label describing the error span.
+ * @param {string} sourceName - The source name shown in the frame header (e.g. "<input>").
  * @returns {string} The formatted error message.
  */
-function formatError(input, errorStart, errorEnd, errorMessage) {
+function formatError(input, errorStart, errorEnd, errorMessage, errorLabel, sourceName = "<input>") {
   const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
   const graphemes = [...segmenter.segment(input)].map(s => s.segment);
 
@@ -289,18 +292,78 @@ function formatError(input, errorStart, errorEnd, errorMessage) {
   const suffix = hasMoreAfter ? '...' : '';
   const contextString = prefix + graphemes.slice(contextStart, contextEnd).join('') + suffix;
 
-  // Clamp the highlighted range to the context window and draw carets
+  // Clamp the highlighted range to the context window and draw the underline
   const highlightStart = Math.max(graphemeStart, contextStart);
   const highlightEnd = Math.min(graphemeEnd, contextEnd);
-  const caretLine = ' '.repeat(prefix.length + highlightStart - contextStart) + '^'.repeat(highlightEnd - highlightStart);
+  const padding = prefix.length + highlightStart - contextStart;
+  const underlineWidth = highlightEnd - highlightStart;
+
+  // Place a connector ("┬") in the middle of the underline, in the style of
+  // Ariadne's diagnostics.
+  const joinPos = Math.floor(underlineWidth / 2);
+  let underline = '';
+  for (let i = 0; i < underlineWidth; i++) {
+    underline += i === joinPos ? '┬' : '─';
+  }
+
+  // Compute the 1-based line and column of the error start, matching the CLI.
+  let line = 1;
+  let lineStart = 0; // grapheme index of the start of the current line
+  for (let i = 0; i < graphemeStart; i++) {
+    if (isNewline(graphemes[i])) {
+      line++;
+      lineStart = i + 1;
+    }
+  }
+  const column = graphemeStart - lineStart + 1;
+
+  // Assemble the box-drawing frame, mirroring Ariadne's diagnostic layout. The
+  // gutter is as wide as the line number plus a space on either side; the bar
+  // ("│") and corners ("╭"/"╯") all sit in the same column.
+  const lineNo = String(line);
+  const gutter = ' '.repeat(lineNo.length + 2);
+  const numberedGutter = ` ${lineNo} `;
+
+  // The underline row carries two trailing spaces, and the label's horizontal
+  // line extends two columns past the end of the underline before the text.
+  const underlineRow = ' '.repeat(padding) + underline + '  ';
+  const labelDashes = '─'.repeat(underlineWidth - joinPos + 1);
+  const labelRow = ' '.repeat(padding + joinPos) + '╰' + labelDashes + ' ' + errorLabel;
 
   return [
-    `${errorStart}:${errorEnd}: Error: ${errorMessage}`,
-    '|',
-    `| ${contextString}`,
-    `| ${caretLine}`,
-    '|'
+    `Error: ${errorMessage}`,
+    `${gutter}╭─[ ${sourceName}:${line}:${column} ]`,
+    `${gutter}│`,
+    `${numberedGutter}│ ${contextString}`,
+    `${gutter}│ ${underlineRow}`,
+    `${gutter}│ ${labelRow}`,
+    `${'─'.repeat(gutter.length)}╯`,
   ].join('\n');
+}
+
+/**
+ * Escapes the HTML special characters in a string.
+ *
+ * @param {string} text - The text to escape.
+ * @returns {string} The escaped text.
+ */
+function escapeHtml(text) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+/**
+ * Like {@link formatError}, but returns HTML with the leading "Error:" colored
+ * red, matching the CLI. The result is safe to assign to `innerHTML`.
+ *
+ * @param {...any} args - The arguments forwarded to {@link formatError}.
+ * @returns {string} The formatted error as an HTML string.
+ */
+function formatErrorHtml(...args) {
+  const escaped = escapeHtml(formatError(...args));
+  return escaped.replace(/^Error:/, '<span style="color: #b22222">Error:</span>');
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -330,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       outputField.innerHTML = "";
       // outputCode.textContent = `Error at location ${error.location}: ${error.message}`;
-      outputCode.textContent = formatError(input, error.start, error.end, error.message);
+      outputCode.innerHTML = formatErrorHtml(input, error.start, error.end, error.message, error.label);
     }
   }
 
