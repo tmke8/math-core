@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\kern+2pt y"
+---
+<math>
+    <mi>x</mi>
+    <mspace width="0.2rem" style="width:0.2rem"/>
+    <mi>y</mi>
+</math>

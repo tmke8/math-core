@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\kern2ly y"
+---
+Error: Found invalid unit "ly".
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ x\kern2ly y
+   │        ─┬  
+   │         ╰── invalid unit here
+───╯

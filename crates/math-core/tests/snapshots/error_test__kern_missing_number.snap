@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\kern em y"
+---
+Error: Expected length with units, got "".
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ x\kern em y
+   │       │ 
+   │       ╰─ expected length here
+───╯

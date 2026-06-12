@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\kern1mu y"
+---
+Error: Math unit "mu" cannot be used with \kern/\hskip.
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ x\kern1mu y
+   │        ─┬  
+   │         ╰── illegal unit here
+───╯

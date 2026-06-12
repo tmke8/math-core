@@ -11,6 +11,7 @@ use crate::specifications::LatexUnit;
 use crate::token::{
     ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, TextToken,
     Token::{self, *},
+    UnitKind,
 };
 use crate::{
     character_class::{MathVariant, ParenType},
@@ -369,6 +370,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "hookleftarrow" => Relation(symbol::LEFTWARDS_ARROW_WITH_HOOK),
     "hookrightarrow" => Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hphantom" => Phantom(PhantomKind::H),
+    "hskip" => KernOrSkip(UnitKind::TextUnits),
     "hslash" => Letter(SuperChar::from_char(symbol::PLANCK_CONSTANT_OVER_TWO_PI), Mode::Math),
     "hspace" => CustomSpace,
     "huge" => TextMode(TextToken::Size(HtmlTextSize::Size200)),
@@ -398,6 +400,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "j" => TextMode(TextToken::Letter('ȷ')),
     "jmath" => Letter(SuperChar::from_char(symbol::LATIN_SMALL_LETTER_DOTLESS_J), Mode::Math),
     "kappa" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_KAPPA), Mode::Math),
+    "kern" => KernOrSkip(UnitKind::TextUnits),
     "kernelcontraction" => Relation(symbol::HOMOTHETIC),
     "ket" => CustomCmd(1, &predefined::KET),
     "l" => TextMode(TextToken::Letter('ł')),
@@ -507,9 +510,11 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "min" => PseudoOperatorLimits("min"),
     "minuscolon" => Relation(symbol::EXCESS),
     "minuso" => ForceBinaryOp(symbol::CIRCLE_WITH_HORIZONTAL_BAR),
+    "mkern" => KernOrSkip(UnitKind::MathUnits),
     "mod" => CustomCmd(0, &predefined::MOD),
     "models" => Relation(symbol::TRUE),
     "mp" => BinaryOp(symbol::MINUS_OR_PLUS_SIGN),
+    "mskip" => KernOrSkip(UnitKind::MathUnits),
     "mspace" => CustomSpace,
     "mu" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_MU), Mode::Math),
     "multimap" => Relation(symbol::MULTIMAP),
