@@ -2,7 +2,10 @@ use std::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
-use mathml_renderer::symbol::{Bin, MathMLOperator, Op, OrdLike, Punct, Rel};
+use mathml_renderer::{
+    ast::Node,
+    symbol::{self, Bin, MathMLOperator, Op, OrdLike, Punct, Rel},
+};
 use mathml_renderer::{
     attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
     super_char::SuperChar,
@@ -115,8 +118,8 @@ pub enum Token<'source> {
     Punctuation(Punct),
     /// A token corresponding to LaTeX's "mathinner" character class (class I).
     Inner(Op),
-    /// The character `'`.
-    Prime,
+    /// ', ′, ″, ‴, ‵, ‶, ‷, or ⁗ (in math mode)
+    Prime(PrimeKind),
     /// A token to force an operator to behave like a binary operator (mathbin).
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
@@ -280,6 +283,139 @@ pub enum LimitsKind {
     Display,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrimeKind {
+    Single,
+    Double,
+    Triple,
+    Quadruple,
+    Reversed,
+    ReversedDouble,
+    ReversedTriple,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrimeDirection {
+    Forward,
+    Reversed,
+}
+
+impl PrimeKind {
+    pub fn direction(self) -> PrimeDirection {
+        match self {
+            PrimeKind::Single | PrimeKind::Double | PrimeKind::Triple | PrimeKind::Quadruple => {
+                PrimeDirection::Forward
+            }
+            PrimeKind::Reversed | PrimeKind::ReversedDouble | PrimeKind::ReversedTriple => {
+                PrimeDirection::Reversed
+            }
+        }
+    }
+
+    pub fn count(self) -> usize {
+        match self {
+            PrimeKind::Single | PrimeKind::Reversed => 1,
+            PrimeKind::Double | PrimeKind::ReversedDouble => 2,
+            PrimeKind::Triple | PrimeKind::ReversedTriple => 3,
+            PrimeKind::Quadruple => 4,
+        }
+    }
+
+    pub const fn to_ord(self) -> OrdLike {
+        match self {
+            PrimeKind::Single => symbol::PRIME,
+            PrimeKind::Double => symbol::DOUBLE_PRIME,
+            PrimeKind::Triple => symbol::TRIPLE_PRIME,
+            PrimeKind::Quadruple => symbol::QUADRUPLE_PRIME,
+            PrimeKind::Reversed => symbol::REVERSED_PRIME,
+            PrimeKind::ReversedDouble => symbol::REVERSED_DOUBLE_PRIME,
+            PrimeKind::ReversedTriple => symbol::REVERSED_TRIPLE_PRIME,
+        }
+    }
+
+    pub const fn to_node(self) -> &'static Node<'static> {
+        match self {
+            PrimeKind::Single => {
+                &const {
+                    Node::Operator {
+                        op: symbol::PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::Double => {
+                &const {
+                    Node::Operator {
+                        op: symbol::DOUBLE_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::Triple => {
+                &const {
+                    Node::Operator {
+                        op: symbol::TRIPLE_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::Quadruple => {
+                &const {
+                    Node::Operator {
+                        op: symbol::QUADRUPLE_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::Reversed => {
+                &const {
+                    Node::Operator {
+                        op: symbol::REVERSED_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::ReversedDouble => {
+                &const {
+                    Node::Operator {
+                        op: symbol::REVERSED_DOUBLE_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+            PrimeKind::ReversedTriple => {
+                &const {
+                    Node::Operator {
+                        op: symbol::REVERSED_TRIPLE_PRIME.as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
@@ -340,7 +476,7 @@ impl Token<'_> {
             | Sqrt
             | Transform(_)
             | Ord(_)
-            | Prime
+            | Prime(_)
             | Enclose(_)
             | Text(_)
             | Style(_)

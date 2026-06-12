@@ -36,6 +36,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
       color: None,
       style: None,
       math_shift_compact: false,
+      margin_left: None,
     ),
   ),
 ]

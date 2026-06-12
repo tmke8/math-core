@@ -9,7 +9,7 @@ use mathml_renderer::{
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, TextToken,
+    ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, PrimeKind, TextToken,
     Token::{self, *},
     UnitKind,
 };
@@ -1205,13 +1205,14 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     // …
     '¬' => Ord(symbol::NOT_SIGN),
     // …
-    '″' => Ord(symbol::DOUBLE_PRIME),
-    '‴' => Ord(symbol::TRIPLE_PRIME),
-    '‵' => Ord(symbol::REVERSED_PRIME),
-    '‶' => Ord(symbol::REVERSED_DOUBLE_PRIME),
-    '‷' => Ord(symbol::REVERSED_TRIPLE_PRIME),
+    '′' => Prime(PrimeKind::Single),
+    '″' => Prime(PrimeKind::Double),
+    '‴' => Prime(PrimeKind::Triple),
+    '‵' => Prime(PrimeKind::Reversed),
+    '‶' => Prime(PrimeKind::ReversedDouble),
+    '‷' => Prime(PrimeKind::ReversedTriple),
     // …
-    '⁗' => Ord(symbol::QUADRUPLE_PRIME),
+    '⁗' => Prime(PrimeKind::Quadruple),
     // …
     '∀' => Ord(symbol::FOR_ALL),
     '∁' => Ord(symbol::COMPLEMENT),

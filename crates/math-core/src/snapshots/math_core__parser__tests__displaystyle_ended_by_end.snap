@@ -28,6 +28,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
           color: None,
           style: Some(Display),
           math_shift_compact: false,
+          margin_left: None,
         ),
       ),
     ],

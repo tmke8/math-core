@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: a‵
+---
+<math>
+    <msup>
+        <mi>a</mi>
+        <mo>‵</mo>
+    </msup>
+</math>

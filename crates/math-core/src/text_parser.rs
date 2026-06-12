@@ -106,7 +106,6 @@ impl<'arena> Parser<'_, '_, 'arena> {
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
                     | Token::Digit(_)
-                    | Token::Prime
                     | Token::Whitespace
                     | Token::NonBreakingSpace
                     | Token::InternalStringLiteral(_)
@@ -128,7 +127,6 @@ impl<'arena> Parser<'_, '_, 'arena> {
                         Ok(symbol::RIGHT_SQUARE_BRACKET.as_op().as_superchar())
                     }
                     Token::Digit(digit) => Ok(digit.into()),
-                    Token::Prime => Ok(SuperChar::from_char('’')),
                     Token::Whitespace | Token::NonBreakingSpace => {
                         Ok(SuperChar::from_char(symbol::NO_BREAK_SPACE))
                     }
@@ -286,6 +284,8 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             continue;
                         }
                     }
+                    Token::Prime(kind) => Ok(kind.to_ord().as_op().as_superchar()),
+
                     _ => Err(LatexErrKind::CouldNotExtractText),
                 }
             } else {

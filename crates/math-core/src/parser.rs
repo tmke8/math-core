@@ -6,7 +6,7 @@ use mathml_renderer::{
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
     length::Length,
     super_char::SuperChar,
-    symbol::{self, MathMLOperator, OpCategory, OrdCategory, RelCategory},
+    symbol::{self, MathMLOperator, OpCategory, OrdCategory, OrdLike, RelCategory},
     table::RowLabelInfo,
 };
 use rustc_hash::FxHashMap;
@@ -27,8 +27,8 @@ use crate::{
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
     token::{
-        EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token,
-        UnitKind,
+        EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, PrimeDirection,
+        PrimeKind, Span, TokSpan, Token, UnitKind,
     },
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -114,8 +114,8 @@ enum BoundStarterKind {
     Underscore,
     /// `^`
     Circumflex,
-    /// `'`
-    Prime,
+    /// `'` and Unicode friends
+    Prime(PrimeKind),
 }
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
@@ -674,7 +674,6 @@ where
                             | Token::ForcePunctuation(op) => op,
                             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                             Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                            Token::Prime => symbol::PRIME.as_op(),
                             Token::NonBreakingSpace => {
                                 MathMLOperator::from_char(symbol::NO_BREAK_SPACE)
                             }
@@ -1766,7 +1765,7 @@ where
                     },
                 })
             }
-            tok @ (Token::Underscore | Token::Circumflex | Token::Prime) => {
+            tok @ (Token::Underscore | Token::Circumflex | Token::Prime(_)) => {
                 let bounds = self
                     .get_bounds(Some((tok, span)))?
                     .ensure_no_explicit_limits()?;
@@ -2088,7 +2087,7 @@ where
     ) -> ParseResult<BoundsWithLimits<'arena>> {
         debug_assert!(matches!(
             first,
-            Some((Token::Underscore | Token::Circumflex | Token::Prime, _)) | None
+            Some((Token::Underscore | Token::Circumflex | Token::Prime(_), _)) | None
         ));
 
         let mut ret: BoundsWithLimits = BoundsWithLimits::default();
@@ -2096,9 +2095,10 @@ where
         loop {
             // retreive and consume next token
             let (next_token, next_span) = first.unwrap_or_else(|| self.tokens.peek().into_parts());
+            let next_token = next_token.unwrap_math();
             if matches!(
                 next_token,
-                Token::Underscore | Token::Circumflex | Token::Prime | Token::Limits(_)
+                Token::Underscore | Token::Circumflex | Token::Prime(_) | Token::Limits(_)
             ) && first.take().is_none()
             {
                 self.tokens.next()?;
@@ -2107,7 +2107,7 @@ where
             // parse it into a bound
             let (bound_starter_kind, bound_to_replace) = match next_token {
                 Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
-                Token::Prime => (BoundStarterKind::Prime, &mut ret.bounds.1),
+                Token::Prime(kind) => (BoundStarterKind::Prime(kind), &mut ret.bounds.1),
                 Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
                 Token::Limits(kind) => {
                     ret.limits_span = Some((kind, next_span));
@@ -2135,26 +2135,14 @@ where
     fn get_bounds_arg(
         &mut self,
     ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
-        let first = *self.tokens.peek();
-        match *first.token() {
-            Token::Prime => {
+        let (first_tok, first_span) = self.tokens.peek().into_parts();
+        let first_tok = first_tok.unwrap_math();
+        match first_tok {
+            Token::Prime(prime_kind) => {
                 self.tokens.next()?;
                 Ok((
                     BoundsWithLimits {
-                        bounds: Bounds(
-                            None,
-                            Some(
-                                &const {
-                                    Node::Operator {
-                                        op: symbol::PRIME.as_op(),
-                                        attrs: OpAttrs::empty(),
-                                        left: None,
-                                        right: None,
-                                        size: None,
-                                    }
-                                },
-                            ),
-                        ),
+                        bounds: Bounds(None, Some(prime_kind.to_node())),
                         limits_span: None,
                     },
                     Vec::new(),
@@ -2176,7 +2164,7 @@ where
                 Ok((
                     BoundsWithLimits {
                         bounds: Bounds(None, None),
-                        limits_span: Some((kind, first.span())),
+                        limits_span: Some((kind, first_span)),
                     },
                     Vec::new(),
                 ))
@@ -2199,15 +2187,24 @@ where
     fn get_sub_or_sup(&mut self, mut kind: BoundStarterKind) -> ParseResult<&'arena Node<'arena>> {
         let mut nodes = Vec::with_capacity(1);
 
-        if kind == BoundStarterKind::Prime {
-            let mut prime_count = 1;
+        if let BoundStarterKind::Prime(prime_kind) = kind {
+            let mut primes: Vec<(PrimeDirection, usize)> =
+                vec![(prime_kind.direction(), prime_kind.count())];
+
             let followed_by_circumflex = loop {
                 // We use `peek_any_token` here because primes can't be separated by whitespace
                 // from each other or from a `^` that follows
-                let next_tok = self.tokens.peek_any_token();
+                let next_tok = self.tokens.peek_any_token().token().unwrap_math();
 
-                match next_tok.token() {
-                    Token::Prime => prime_count += 1,
+                match next_tok {
+                    Token::Prime(new_kind) => {
+                        let last = primes.last_mut().unwrap();
+                        if last.0 == new_kind.direction() {
+                            last.1 += new_kind.count();
+                        } else {
+                            primes.push((new_kind.direction(), new_kind.count()));
+                        }
+                    }
                     Token::Circumflex => break true,
                     _ => break false,
                 }
@@ -2215,31 +2212,54 @@ where
                 self.tokens.next_any_token()?;
             };
 
-            static PRIME_SELECTION: [symbol::OrdLike; 4] = [
-                symbol::PRIME,
-                symbol::DOUBLE_PRIME,
-                symbol::TRIPLE_PRIME,
-                symbol::QUADRUPLE_PRIME,
-            ];
+            for (direction, count) in primes {
+                let primes_arr: &[OrdLike] = match direction {
+                    PrimeDirection::Forward => &[
+                        symbol::PRIME,
+                        symbol::DOUBLE_PRIME,
+                        symbol::TRIPLE_PRIME,
+                        symbol::QUADRUPLE_PRIME,
+                    ],
+                    PrimeDirection::Reversed => &[
+                        symbol::REVERSED_PRIME,
+                        symbol::REVERSED_DOUBLE_PRIME,
+                        symbol::REVERSED_TRIPLE_PRIME,
+                    ],
+                };
 
-            // If we have between 1 and 4 primes, we can use the predefined prime operators.
-            if let Some(op) = PRIME_SELECTION.get(prime_count - 1) {
-                nodes.push(self.commit(Node::Operator {
-                    op: op.as_op(),
-                    attrs: OpAttrs::empty(),
-                    left: None,
-                    right: None,
-                    size: None,
-                }));
-            } else {
-                for _ in 0..prime_count {
+                // If we have between 1 and 4 primes, we can use the predefined prime operators.
+                if let Some(op) = primes_arr.get(count - 1) {
                     nodes.push(self.commit(Node::Operator {
-                        op: symbol::PRIME.as_op(),
+                        op: op.as_op(),
                         attrs: OpAttrs::empty(),
                         left: None,
                         right: None,
                         size: None,
                     }));
+                } else {
+                    nodes.push(self.commit(Node::Operator {
+                        op: primes_arr[0].as_op(),
+                        attrs: OpAttrs::empty(),
+                        left: None,
+                        right: None,
+                        size: None,
+                    }));
+                    for _ in 1..count {
+                        nodes.push(&Node::Row {
+                            nodes: &[],
+                            attrs: RowAttrs {
+                                margin_left: Some(MathSpacing::NegativeOnePointFiveMu),
+                                ..RowAttrs::DEFAULT
+                            },
+                        });
+                        nodes.push(self.commit(Node::Operator {
+                            op: primes_arr[0].as_op(),
+                            attrs: OpAttrs::empty(),
+                            left: None,
+                            right: None,
+                            size: None,
+                        }));
+                    }
                 }
             }
 
@@ -2250,10 +2270,10 @@ where
             }
         }
 
-        if kind != BoundStarterKind::Prime {
+        if !matches!(kind, BoundStarterKind::Prime(_)) {
             let next = self.tokens.next()?;
             match next.token() {
-                Token::Underscore | Token::Circumflex | Token::Prime => {
+                Token::Underscore | Token::Circumflex | Token::Prime(_) => {
                     return Err(Box::new(LatexError(
                         next.span().into(),
                         LatexErrKind::BoundFollowedByBound,

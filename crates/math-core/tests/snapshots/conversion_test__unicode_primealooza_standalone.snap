@@ -1,11 +1,12 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "f'''''"
+expression: ‷″″′″‷′′‶‵
 ---
 <math>
     <msup>
-        <mi>f</mi>
+        <mrow></mrow>
         <mrow>
+            <mo>‷</mo>
             <mo>′</mo>
             <mrow style="margin-left:-0.0833em;"></mrow>
             <mo>′</mo>
@@ -15,6 +16,13 @@ expression: "f'''''"
             <mo>′</mo>
             <mrow style="margin-left:-0.0833em;"></mrow>
             <mo>′</mo>
+            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mo>′</mo>
+            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mo>′</mo>
+            <mo>‷</mo>
+            <mo>″</mo>
+            <mo>‷</mo>
         </mrow>
     </msup>
 </math>
