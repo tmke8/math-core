@@ -37,8 +37,8 @@ pub enum LatexUnit {
 }
 
 impl LatexUnit {
-    /// Whether this is a math unit (valid after `\mkern`/`\mskip`)
-    /// as opposed to a text unit (valid after `\kern`/`\hskip`).
+    /// Whether this is a math unit (valid after `\mkern`/`\mskip`/`\mspace`)
+    /// as opposed to a text unit (valid after `\kern`/`\hskip`/`\hspace`).
     pub const fn is_math_unit(self) -> bool {
         matches!(self, LatexUnit::Mu)
     }
@@ -60,7 +60,7 @@ impl LatexUnit {
     }
 }
 
-pub(crate) fn parse_length_specification(s: &str) -> Option<Length> {
+pub(crate) fn parse_length_specification(s: &str) -> Option<(Length, &str, bool)> {
     let len = s.len();
     // We need at least 2 characters to have a unit.
     let unit_offset = len.checked_sub(2)?;
@@ -71,7 +71,11 @@ pub(crate) fn parse_length_specification(s: &str) -> Option<Length> {
     let value = crate::atof::limited_float_parse(digits.trim_ascii_end())?;
 
     let parsed_unit = LatexUnit::try_from(unit).ok()?;
-    Some(parsed_unit.length_with_unit(value))
+    Some((
+        parsed_unit.length_with_unit(value),
+        unit,
+        parsed_unit.is_math_unit(),
+    ))
 }
 
 /// Parses a column specification string in the format "l|c|r" where:
@@ -269,6 +273,7 @@ mod tests {
             let mut output = String::new();
             parse_length_specification(s)
                 .expect("valid")
+                .0
                 .push_to_string(&mut output);
             assert_eq!(s, &output);
         }
@@ -290,6 +295,7 @@ mod tests {
             let mut output = String::new();
             parse_length_specification(s)
                 .expect("valid")
+                .0
                 .push_to_string(&mut output);
             assert_eq!(s, &output);
         }

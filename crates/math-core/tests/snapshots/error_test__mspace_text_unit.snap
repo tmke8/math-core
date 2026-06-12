@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "x\\mkern1em y"
+expression: "x\\mspace{1em} y"
 ---
 Error: Text unit "em" cannot be used with \mkern/\mskip/\mspace.
    ╭─[ <input>:1:9 ]
    │
- 1 │ x\mkern1em y
-   │         ─┬  
-   │          ╰── illegal unit here
+ 1 │ x\mspace{1em} y
+   │         ──┬──  
+   │           ╰──── illegal unit here
 ───╯

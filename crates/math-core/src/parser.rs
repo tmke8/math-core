@@ -748,10 +748,24 @@ where
                 class = prev_class;
                 Ok(Node::Space(space))
             }
-            Token::CustomSpace => {
+            Token::CustomSpace(kind) => {
                 let (length, span) = self.parse_string_literal()?;
-                match parse_length_specification(length.trim_ascii()) {
-                    Some(space) => Ok(Node::Space(space)),
+                let trimmed = length.trim_ascii();
+                match parse_length_specification(trimmed) {
+                    Some((space, unit, is_math_unit)) => {
+                        let math_unit_expected = matches!(kind, UnitKind::MathUnits);
+                        if is_math_unit == math_unit_expected {
+                            Ok(Node::Space(space))
+                        } else {
+                            Err(LatexError(
+                                span,
+                                LatexErrKind::IllegalUnit {
+                                    unit: unit.into(),
+                                    math_unit_expected,
+                                },
+                            ))
+                        }
+                    }
                     None => Err(LatexError(
                         span,
                         LatexErrKind::ExpectedLength(length.into()),
@@ -843,12 +857,16 @@ where
                 let (length, span) = self.parse_string_literal()?;
                 let lt = match length.trim_ascii() {
                     "" => Length::none(),
-                    decimal => parse_length_specification(decimal).ok_or_else(|| {
-                        Box::new(LatexError(
-                            span,
-                            LatexErrKind::ExpectedLength(decimal.into()),
-                        ))
-                    })?,
+                    decimal => {
+                        parse_length_specification(decimal)
+                            .ok_or_else(|| {
+                                Box::new(LatexError(
+                                    span,
+                                    LatexErrKind::ExpectedLength(decimal.into()),
+                                ))
+                            })?
+                            .0
+                    }
                 };
                 let style_token: Option<TokSpan> =
                     self.tokens.read_argument(false)?.into_one_or_none()?.into();
@@ -2899,7 +2917,10 @@ mod tests {
             ),
             (
                 "space_internal_string_literal",
-                &[CustomSpace, InternalStringLiteral("3em")],
+                &[
+                    CustomSpace(UnitKind::TextUnits),
+                    InternalStringLiteral("3em"),
+                ],
             ),
         ];
         for (name, problem) in problems.into_iter() {

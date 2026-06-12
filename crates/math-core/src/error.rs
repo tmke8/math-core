@@ -220,12 +220,12 @@ impl LatexErrKind {
                 if *math_unit_expected {
                     write!(
                         s,
-                        "Text unit \"{unit}\" cannot be used with \\mkern/\\mskip."
+                        "Text unit \"{unit}\" cannot be used with \\mkern/\\mskip/\\mspace."
                     )?;
                 } else {
                     write!(
                         s,
-                        "Math unit \"{unit}\" cannot be used with \\kern/\\hskip."
+                        "Math unit \"{unit}\" cannot be used with \\kern/\\hskip/\\hspace."
                     )?;
                 }
             }
