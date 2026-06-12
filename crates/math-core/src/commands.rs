@@ -313,6 +313,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "emph" => Text(Some(HtmlTextStyle::Emphasis)),
     "empty" => Letter(symbol::EMPTY_SET_ZERO_WITH_LONG_DIAGONAL_STROKE_OVERLAY_FORM, Mode::Math),
     "emptyset" => Letter(symbol::EMPTY_SET_ZERO_WITH_LONG_DIAGONAL_STROKE_OVERLAY_FORM, Mode::Math),
+    "enspace" => MathOrTextMode(&Space(LatexUnit::Em.length_with_unit(0.5)), symbol::EN_SPACE),
     "epsilon" => Letter(SuperChar::from_char(symbol::GREEK_LUNATE_EPSILON_SYMBOL), Mode::Math),
     "eqcirc" => Relation(symbol::RING_IN_EQUAL_TO),
     "eqcolon" => Relation(symbol::EQUALS_COLON),

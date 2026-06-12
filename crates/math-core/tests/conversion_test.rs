@@ -542,6 +542,7 @@ fn main() {
         ("mspace", r"x\mspace{18mu} y"),
         ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x\space x"),
         ("negative_space", r"x \! x"),
+        ("enspace", r"x \enspace x"),
         ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         (
             "array_lines",
