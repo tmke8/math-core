@@ -389,6 +389,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "inf" => PseudoOperatorLimits("inf"),
     "infin" => Letter(SuperChar::from_char(symbol::INFINITY), Mode::Math),
     "infty" => Letter(SuperChar::from_char(symbol::INFINITY), Mode::Math),
+    "injlim" => PseudoOperatorLimits("inj\u{2009}lim"),
     "int" => Op(symbol::INTEGRAL),
     "intBar" => Op(symbol::INTEGRAL_WITH_DOUBLE_STROKE),
     "intbar" => Op(symbol::FINITE_PART_INTEGRAL),
