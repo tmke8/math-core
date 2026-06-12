@@ -97,7 +97,7 @@ impl LatexToMathML {
 
     /// Convert LaTeX equation to MathML.
     #[pyo3(signature = (latex, *, displaystyle))]
-    fn convert_with_global_counter<'a>(
+    fn convert_with_global_state<'a>(
         &self,
         latex: &str,
         displaystyle: bool,
@@ -112,7 +112,7 @@ impl LatexToMathML {
             .inner
             .write()
             .map_err(|_| LockError::new_err("Failed to acquire write lock"))?
-            .convert_with_global_counter(latex, display)
+            .convert_with_global_state(latex, display)
         {
             Err(latex_error) => {
                 if self.continue_on_error {
@@ -138,7 +138,7 @@ impl LatexToMathML {
 
     /// Convert LaTeX equation to MathML.
     #[pyo3(signature = (latex, *, displaystyle))]
-    fn convert_with_local_counter<'a>(
+    fn convert_with_local_state<'a>(
         &self,
         latex: &str,
         displaystyle: bool,
@@ -153,7 +153,7 @@ impl LatexToMathML {
             .inner
             .write()
             .map_err(|_| LockError::new_err("Failed to acquire read lock"))?
-            .convert_with_local_counter(latex, display)
+            .convert_with_local_state(latex, display)
         {
             Err(latex_error) => {
                 if self.continue_on_error {
@@ -177,11 +177,11 @@ impl LatexToMathML {
         }
     }
 
-    fn reset_global_counter(&self) -> PyResult<()> {
+    fn reset_global_state(&self) -> PyResult<()> {
         self.inner
             .write()
             .map_err(|_| LockError::new_err("Failed to acquire write lock"))?
-            .reset_global_counter();
+            .reset_global_state();
         Ok(())
     }
 }

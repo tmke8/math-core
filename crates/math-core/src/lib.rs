@@ -17,7 +17,7 @@
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
 //! let config = MathCoreConfig::default();
 //! let converter = LatexToMathML::new(config).unwrap();
-//! let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
+//! let mathml = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
 //! println!("{}", mathml);
 //! ```
 //!
@@ -191,13 +191,13 @@ impl LatexToMathML {
 
     /// Convert LaTeX text to MathML with a global equation counter.
     ///
-    /// For basic usage, see the documentation of [`convert_with_local_counter`].
+    /// For basic usage, see the documentation of [`convert_with_local_state`].
     ///
     /// This conversion function maintains state, in order to count equations correctly across
     /// different calls to this function.
     ///
-    /// The counter can be reset with [`reset_global_counter`].
-    pub fn convert_with_global_counter(
+    /// The counter can be reset with [`reset_global_state`].
+    pub fn convert_with_global_state(
         &mut self,
         latex: &str,
         display: MathDisplay,
@@ -222,16 +222,16 @@ impl LatexToMathML {
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
     /// let config = MathCoreConfig::default();
     /// let converter = LatexToMathML::new(config).unwrap();
-    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Inline).unwrap();
+    /// let mathml = converter.convert_with_local_state(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", mathml);
     ///
     /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-    /// let mathml = converter.convert_with_local_counter(latex, MathDisplay::Block).unwrap();
+    /// let mathml = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
     /// println!("{}", mathml);
     /// ```
     ///
     #[inline]
-    pub fn convert_with_local_counter(
+    pub fn convert_with_local_state(
         &self,
         latex: &str,
         display: MathDisplay,
@@ -251,7 +251,7 @@ impl LatexToMathML {
     /// Reset the equation counter to zero.
     ///
     /// This should normally be done at the beginning of a new document or section.
-    pub fn reset_global_counter(&mut self) {
+    pub fn reset_global_state(&mut self) {
         self.equation_count = 0;
     }
 }

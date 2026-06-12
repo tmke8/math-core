@@ -140,7 +140,7 @@ fn main() {
     let converter = LatexToMathML::new(config).unwrap();
     for (name, problem) in problems.into_iter() {
         let Err(error) = converter
-            .convert_with_local_counter(problem, MathDisplay::Inline)
+            .convert_with_local_state(problem, MathDisplay::Inline)
             .map_err(|e| *e)
         else {
             panic!("problem `{}` did not return an error", problem);

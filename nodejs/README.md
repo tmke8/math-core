@@ -31,12 +31,12 @@ import { LatexToMathML } from "math-core";
 const converter = new LatexToMathML({});
 
 // Convert inline math
-const inline = converter.convert_with_local_counter("x^2 + y^2 = z^2", false);
+const inline = converter.convert_with_local_state("x^2 + y^2 = z^2", false);
 console.log(inline);
 // Output: <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup></math>
 
 // Convert display math
-const display = converter.convert_with_local_counter("\\frac{1}{2}", true);
+const display = converter.convert_with_local_state("\\frac{1}{2}", true);
 console.log(display);
 // Output: <math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
 ```
@@ -51,7 +51,7 @@ import { LatexToMathML } from "math-core";
 const converter = new LatexToMathML({ prettyPrint: "always" });
 
 try {
-  const mathml = converter.convert_with_local_counter("\\sqrt{x^2 + 1}", false);
+  const mathml = converter.convert_with_local_state("\\sqrt{x^2 + 1}", false);
   console.log(mathml);
 } catch (e) {
   console.error(`Conversion error: ${e.message}`);
@@ -69,10 +69,10 @@ macros.set("R", "\\mathbb{R}");    // Real numbers
 macros.set("vec", "\\mathbf{#1}"); // Vector notation
 
 const converter = new LatexToMathML({ macros });
-const mathml = converter.convert_with_local_counter("\\d x", false);
+const mathml = converter.convert_with_local_state("\\d x", false);
 ```
 
-### Numbered Equations with Global Counter
+### Numbered Equations with Global State
 
 For documents with multiple numbered equations:
 
@@ -80,22 +80,22 @@ For documents with multiple numbered equations:
 const converter = new LatexToMathML({});
 
 // First equation gets (1)
-const eq1 = converter.convert_with_global_counter(
+const eq1 = converter.convert_with_global_state(
   "\\begin{align}E = mc^2\\end{align}",
   true,
 );
 
 // Second equation gets (2)
-const eq2 = converter.convert_with_global_counter(
+const eq2 = converter.convert_with_global_state(
   "\\begin{align}F = ma\\end{align}",
   true,
 );
 
 // Reset counter when starting a new chapter/section
-converter.reset_global_counter();
+converter.reset_global_state();
 
 // This equation gets (1) again
-const eq3 = converter.convert_with_global_counter(
+const eq3 = converter.convert_with_global_state(
   "\\begin{align}p = mv\\end{align}",
   true,
 );
@@ -109,12 +109,12 @@ Use local counters when equation numbers should restart within each conversion:
 const converter = new LatexToMathML({});
 
 // Each conversion has independent numbering
-const doc1 = converter.convert_with_local_counter(
+const doc1 = converter.convert_with_local_state(
   "\\begin{align}a &= b\\\\c &= d\\end{align}",
   true,
 ); // Contains (1) and (2)
 
-const doc2 = converter.convert_with_local_counter(
+const doc2 = converter.convert_with_local_state(
   "\\begin{align}x &= y\\\\z &= w\\end{align}",
   true,
 ); // Also contains (1) and (2)
@@ -128,7 +128,7 @@ By default, conversion errors throw a `LatexError` with detailed diagnostics:
 const converter = new LatexToMathML({});
 
 try {
-  converter.convert_with_local_counter("\\begin{foobar}", false);
+  converter.convert_with_local_state("\\begin{foobar}", false);
 } catch (e) {
   console.log(e.message); // 'Unknown environment "foobar".'
   console.log(e.report);  // Formatted diagnostic with source spans
@@ -142,7 +142,7 @@ Set `throwOnError: false` to return an HTML error snippet instead of throwing:
 
 ```javascript
 const converter = new LatexToMathML({ throwOnError: false });
-const result = converter.convert_with_local_counter("\\invalid", false);
+const result = converter.convert_with_local_state("\\invalid", false);
 // Returns: <span class="math-core-error" title="..."><code>\invalid</code></span>
 ```
 
@@ -171,9 +171,9 @@ new LatexToMathML(options: MathCoreOptions)
 
 **Methods:**
 
-- `convert_with_global_counter(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using a global equation counter.
-- `convert_with_local_counter(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using a local equation counter.
-- `reset_global_counter(): void` — Reset the global equation counter to zero.
+- `convert_with_global_state(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using global state.
+- `convert_with_local_state(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using local state.
+- `reset_global_state(): void` — Reset the global state (e.g., set the equation counter to zero).
 
 ### `LatexError`
 

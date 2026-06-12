@@ -207,7 +207,7 @@ impl LatexToMathML {
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
-    pub fn convert_with_local_counter(
+    pub fn convert_with_local_state(
         &self,
         content: &str,
         displaystyle: bool,
@@ -217,7 +217,7 @@ impl LatexToMathML {
         } else {
             MathDisplay::Inline
         };
-        match self.inner.convert_with_local_counter(content, display) {
+        match self.inner.convert_with_local_state(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(e) => {
                 if self.throw_on_error {
@@ -240,7 +240,7 @@ impl LatexToMathML {
     }
 
     #[wasm_bindgen(unchecked_return_type = "string")]
-    pub fn convert_with_global_counter(
+    pub fn convert_with_global_state(
         &mut self,
         content: &str,
         displaystyle: bool,
@@ -250,7 +250,7 @@ impl LatexToMathML {
         } else {
             MathDisplay::Inline
         };
-        match self.inner.convert_with_global_counter(content, display) {
+        match self.inner.convert_with_global_state(content, display) {
             Ok(result) => Ok(JsValue::from_str(&result)),
             Err(e) => {
                 if self.throw_on_error {
@@ -272,8 +272,8 @@ impl LatexToMathML {
         }
     }
 
-    pub fn reset_global_counter(&mut self) {
-        self.inner.reset_global_counter();
+    pub fn reset_global_state(&mut self) {
+        self.inner.reset_global_state();
     }
 }
 

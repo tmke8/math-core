@@ -655,7 +655,7 @@ fn main() {
     let converter = LatexToMathML::new(config).unwrap();
     for (name, problem) in problems.into_iter() {
         let mathml = converter
-            .convert_with_local_counter(problem, MathDisplay::Inline)
+            .convert_with_local_state(problem, MathDisplay::Inline)
             .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
         assert_snapshot!(name, &mathml, problem);
     }

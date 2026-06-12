@@ -44,15 +44,15 @@ class LatexToMathML:
                 a formatted diagnostic with source spans. If ``False``, a compact plain-text
                 message is used instead.
         """
-    def convert_with_global_counter(
+    def convert_with_global_state(
         self, latex: str, *, displaystyle: bool
     ) -> str | LatexError:
         """Convert LaTeX to MathML with a global counter for equation numbering."""
-    def convert_with_local_counter(
+    def convert_with_local_state(
         self, latex: str, *, displaystyle: bool
     ) -> str | LatexError:
         """Convert LaTeX to MathML with a local counter for equation numbering."""
-    def reset_global_counter(self) -> None:
+    def reset_global_state(self) -> None:
         """Reset the global equation counter for environments like ``align``."""
 
 class LatexError(Exception):

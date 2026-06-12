@@ -75,7 +75,7 @@ fn main() {
                 "<code>{}</code><p>\n{}\n</p>",
                 input,
                 converter
-                    .convert_with_local_counter(input, MathDisplay::Block)
+                    .convert_with_local_state(input, MathDisplay::Block)
                     .expect(input)
             )
         })
