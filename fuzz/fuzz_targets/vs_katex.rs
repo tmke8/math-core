@@ -14,7 +14,7 @@ fuzz_target!(|data: &str| {
     let l2m = {
         let config: MathCoreConfig = Default::default();
         let converter = LatexToMathML::new(&config).unwrap();
-        if let Ok(l2m) = converter.convert_with_local_counter(data, MathDisplay::Block) {
+        if let Ok(l2m) = converter.convert_with_local_state(data, MathDisplay::Block) {
             let l2m = l2m
                 .strip_prefix(r#"<math display="block">"#)
                 .unwrap()

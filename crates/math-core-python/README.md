@@ -30,12 +30,12 @@ from math_core import LatexToMathML
 converter = LatexToMathML()
 
 # Convert inline math
-mathml = converter.convert_with_local_counter("x^2 + y^2 = z^2", displaystyle=False)
+mathml = converter.convert_with_local_state("x^2 + y^2 = z^2", displaystyle=False)
 print(mathml)
 # Output: <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup></math>
 
 # Convert display math
-mathml = converter.convert_with_local_counter(r"\frac{1}{2}", displaystyle=True)
+mathml = converter.convert_with_local_state(r"\frac{1}{2}", displaystyle=True)
 print(mathml)
 # Output: <math display="block"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
 ```
@@ -52,7 +52,7 @@ converter = LatexToMathML(pretty_print="always")
 
 # Convert LaTeX to MathML
 try:
-    mathml = converter.convert_with_local_counter(r"\sqrt{x^2 + 1}", displaystyle=False)
+    mathml = converter.convert_with_local_state(r"\sqrt{x^2 + 1}", displaystyle=False)
     print(mathml)
 except LatexError as e:
     print(f"Conversion error: {e}")
@@ -71,10 +71,10 @@ macros = {
 }
 
 converter = LatexToMathML(macros=macros)
-mathml = converter.convert_with_local_counter(r"\d x", displaystyle=False)
+mathml = converter.convert_with_local_state(r"\d x", displaystyle=False)
 ```
 
-### Numbered Equations with Global Counter
+### Numbered Equations with Global State
 
 For documents with multiple numbered equations:
 
@@ -82,22 +82,22 @@ For documents with multiple numbered equations:
 converter = LatexToMathML()
 
 # First equation gets (1)
-eq1 = converter.convert_with_global_counter(
+eq1 = converter.convert_with_global_state(
     r"\begin{align}E = mc^2\end{align}",
     displaystyle=True
 )
 
 # Second equation gets (2)
-eq2 = converter.convert_with_global_counter(
+eq2 = converter.convert_with_global_state(
     r"\begin{align}F = ma\end{align}",
     displaystyle=True
 )
 
 # Reset counter when starting a new chapter/section
-converter.reset_global_counter()
+converter.reset_global_state()
 
 # This equation gets (1) again
-eq3 = converter.convert_with_global_counter(
+eq3 = converter.convert_with_global_state(
     r"\begin{align}p = mv\end{align}",
     displaystyle=True
 )
@@ -111,12 +111,12 @@ Use local counters when equation numbers should restart within each conversion:
 converter = LatexToMathML()
 
 # Each conversion has independent numbering
-doc1 = converter.convert_with_local_counter(
+doc1 = converter.convert_with_local_state(
     r"\begin{align}a &= b\\c &= d\end{align}",
     displaystyle=True
 )  # Contains (1) and (2)
 
-doc2 = converter.convert_with_local_counter(
+doc2 = converter.convert_with_local_state(
     r"\begin{align}x &= y\\z &= w\end{align}",
     displaystyle=True
 )  # Also contains (1) and (2)
@@ -138,9 +138,9 @@ The main converter class.
 - `fancy_error` (`bool`, optional): A boolean indicating whether to render errors as rich Ariadne diagnostic reports. If `True` (the default), the `LatexError` message contains a formatted diagnostic with source spans. Set to `False` to use compact plain-text messages instead.
 
 **Methods:**
-- `convert_with_global_counter(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using a global equation counter.
-- `convert_with_local_counter(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using a local equation counter.
-- `reset_global_counter() -> None`: Reset the global equation counter to zero.
+- `convert_with_global_state(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using global state.
+- `convert_with_local_state(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using local state.
+- `reset_global_state() -> None`: Reset the global state (e.g., set the equation counter to zero).
 
 ### LatexError
 
@@ -151,7 +151,7 @@ from math_core import LatexToMathML, LatexError
 
 converter = LatexToMathML()
 try:
-    result = converter.convert_with_local_counter(r"\invalid")
+    result = converter.convert_with_local_state(r"\invalid")
 except LatexError as e
     print(f"Conversion failed: {e}")
 ```
@@ -172,14 +172,14 @@ def process_math(content):
     # Replace display math $$...$$; do this first to avoid conflicts with inline math delimiters
     content = re.sub(
         r"\$\$([^\$]+)\$\$",
-        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=True),
+        lambda m: converter.convert_with_local_state(m.group(1), displaystyle=True),
         content,
     )
 
     # Replace inline math $...$
     content = re.sub(
         r"\$([^\$]+)\$",
-        lambda m: converter.convert_with_local_counter(m.group(1), displaystyle=False),
+        lambda m: converter.convert_with_local_state(m.group(1), displaystyle=False),
         content,
     )
 
@@ -200,7 +200,7 @@ converter = LatexToMathML()
 @app.route("/equation/<latex>")
 def render_equation(latex):
     try:
-        mathml = converter.convert_with_local_counter(latex, displaystyle=True)
+        mathml = converter.convert_with_local_state(latex, displaystyle=True)
         return render_template_string(
             "<html><body>{{ mathml|safe }}</body></html>", mathml=mathml
         )

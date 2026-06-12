@@ -202,7 +202,7 @@ fn convert_and_exit(args: &Args, latex: &str, converter: &mut LatexToMathML) {
     } else {
         MathDisplay::Inline
     };
-    match converter.convert_with_global_counter(latex, display) {
+    match converter.convert_with_global_state(latex, display) {
         Ok(mathml) => println!("{mathml}"),
         Err(e) => {
             render_ariadne_report(&e, "<input>", latex);
@@ -242,7 +242,7 @@ where
     'source: 'buf,
 {
     replacer.replace(input, converter, |converter, buf, latex, display| {
-        let result = converter.convert_with_global_counter(latex, display);
+        let result = converter.convert_with_global_state(latex, display);
         let result = if continue_on_error {
             result.unwrap_or_else(|err| err.to_html(latex, display, None))
         } else {

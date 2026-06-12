@@ -384,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateOutput() {
     const input = inputField.value;
     try {
-      const output = cachedConverter.convert_with_local_counter(
+      const output = cachedConverter.convert_with_local_state(
         input,
         isBlock(),
       );

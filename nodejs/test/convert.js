@@ -8,7 +8,7 @@ describe("Convert Tests", function () {
       const latex = "x\\sum x";
       const displayStyle = false;
       assert.equal(
-        converter.convert_with_local_counter(latex, displayStyle),
+        converter.convert_with_local_state(latex, displayStyle),
         "<math><mi>x</mi><mo>∑</mo><mi>x</mi></math>",
       );
     });
@@ -16,7 +16,7 @@ describe("Convert Tests", function () {
       const latex = "x\\sum x";
       const displayStyle = true;
       assert.equal(
-        converter.convert_with_local_counter(latex, displayStyle),
+        converter.convert_with_local_state(latex, displayStyle),
         '<math display="block"><mi>x</mi><mo>∑</mo><mi>x</mi></math>',
       );
     });
@@ -28,10 +28,10 @@ describe("Convert Tests", function () {
       });
       const latex = "\\begin{align}x\\\\y\\end{align}";
       const displayStyle = true;
-      const output = converter.convert_with_local_counter(latex, displayStyle);
+      const output = converter.convert_with_local_state(latex, displayStyle);
       assert.include(output, "(1)");
       assert.include(output, "(2)");
-      const output2 = converter.convert_with_local_counter(latex, displayStyle);
+      const output2 = converter.convert_with_local_state(latex, displayStyle);
       assert.include(output2, "(1)");
       assert.include(output2, "(2)");
     });
@@ -43,10 +43,10 @@ describe("Convert Tests", function () {
     it("should convert equation with global numbering", function () {
       const latex = "\\begin{align}x\\\\y\\end{align}";
       const displayStyle = true;
-      const output = converter.convert_with_global_counter(latex, displayStyle);
+      const output = converter.convert_with_global_state(latex, displayStyle);
       assert.include(output, "(1)");
       assert.include(output, "(2)");
-      const output2 = converter.convert_with_global_counter(
+      const output2 = converter.convert_with_global_state(
         latex,
         displayStyle,
       );
@@ -54,13 +54,13 @@ describe("Convert Tests", function () {
       assert.include(output2, "(4)");
     });
     it("should convert equation with global numbering, the second time", function () {
-      converter.reset_global_counter();
+      converter.reset_global_state();
       const latex = "\\begin{align}x\\\\y\\end{align}";
       const displayStyle = true;
-      const output = converter.convert_with_global_counter(latex, displayStyle);
+      const output = converter.convert_with_global_state(latex, displayStyle);
       assert.include(output, "(1)");
       assert.include(output, "(2)");
-      const output2 = converter.convert_with_global_counter(
+      const output2 = converter.convert_with_global_state(
         latex,
         displayStyle,
       );
@@ -78,7 +78,7 @@ describe("Convert Tests", function () {
       const latex = "\\RR";
       const displayStyle = false;
       assert.equal(
-        converter.convert_with_local_counter(latex, displayStyle),
+        converter.convert_with_local_state(latex, displayStyle),
         "<math><mi>ℝ</mi></math>",
       );
     });
@@ -132,7 +132,7 @@ describe("Convert Tests", function () {
       const latex = "𐌸\\asdf";
       const displayStyle = false;
       assert.equal(
-        converter.convert_with_local_counter(latex, displayStyle),
+        converter.convert_with_local_state(latex, displayStyle),
         '<span class="math-core-error" title="1: Unknown command &quot;\\asdf&quot;."><code>𐌸\\asdf</code></span>',
       );
     });
@@ -143,7 +143,7 @@ describe("Convert Tests", function () {
       const latex = "\\asdf";
       const displaystyle = false;
       assert.throws(() => {
-        converter.convert_with_local_counter(latex, displaystyle);
+        converter.convert_with_local_state(latex, displaystyle);
       }, /Unknown command "\\asdf"./);
     });
   });
@@ -153,7 +153,7 @@ describe("Convert Tests", function () {
         const converter = new LatexToMathML({});
         const latex = "\\begin{foobar}";
         const displaystyle = false;
-        converter.convert_with_local_counter(latex, displaystyle);
+        converter.convert_with_local_state(latex, displaystyle);
       } catch (e) {
         assert.equal(e.report, `Error: Unknown environment "foobar".
    ╭─[ input:1:7 ]

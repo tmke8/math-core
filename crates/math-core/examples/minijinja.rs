@@ -49,7 +49,7 @@ fn mathml(state: &State, latex: &str) -> Option<Value> {
         .map_err(|_| eprintln!("[error] couldn't get lock for converter"))
         .ok()
         .and_then(|mut c| {
-            c.convert_with_global_counter(latex, MathDisplay::Block)
+            c.convert_with_global_state(latex, MathDisplay::Block)
                 .map(Value::from)
                 .ok()
         })

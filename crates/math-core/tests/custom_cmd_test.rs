@@ -19,7 +19,7 @@ fn test_zero_arg() {
 
     let latex = r"x = \half, \withText 3";
     let mathml = converter
-        .convert_with_local_counter(latex, MathDisplay::Inline)
+        .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
     assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
@@ -45,7 +45,7 @@ fn test_one_arg() {
 
     let latex = r"x = \mycmd{3} + \half";
     let mathml = converter
-        .convert_with_local_counter(latex, MathDisplay::Inline)
+        .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
     assert_snapshot!("custom_cmd_one_arg", mathml, latex);
@@ -84,7 +84,7 @@ fn test_spacing() {
 
     let latex = r"x + \eq 3";
     let mathml = converter
-        .convert_with_local_counter(latex, MathDisplay::Inline)
+        .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
     assert_snapshot!("custom_cmd_spacing", mathml, latex);
@@ -104,7 +104,7 @@ fn test_literal_args() {
 
     let latex = r"x \hs{3em} y";
     let mathml = converter
-        .convert_with_local_counter(latex, MathDisplay::Inline)
+        .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
     assert_snapshot!("custom_cmd_literal_args", mathml, latex);

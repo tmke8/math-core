@@ -883,7 +883,7 @@ fn wiki_test() {
     .unwrap();
     for (i, (latex, correct)) in problems.into_iter().enumerate() {
         let with_row = "{".to_string() + latex + "}";
-        let mathml = converter.convert_with_local_counter(&with_row, MathDisplay::Inline);
+        let mathml = converter.convert_with_local_state(&with_row, MathDisplay::Inline);
         match mathml {
             Ok(mathml) => {
                 if mathml != correct {
@@ -1431,7 +1431,7 @@ fn test_nonfailing_wiki_tests() {
     .unwrap();
     for (num, problem) in problems.into_iter() {
         let mathml = converter
-            .convert_with_local_counter(problem, crate::MathDisplay::Inline)
+            .convert_with_local_state(problem, crate::MathDisplay::Inline)
             .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
         let name = format!("wiki{:03}", num);
         assert_snapshot!(name.as_str(), &mathml, problem);
