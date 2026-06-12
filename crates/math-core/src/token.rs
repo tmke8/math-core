@@ -84,6 +84,8 @@ pub enum Token<'source> {
     Space(Length),
     /// A custom space specified by the user, e.g. `\hspace{1em}`.
     CustomSpace,
+    /// `\kern`, `\mkern`, `\hskip`, and `\mskip`, e.g. `\kern1em`.
+    KernOrSkip(UnitKind),
     /// A non-breaking space, e.g. `~`.
     NonBreakingSpace,
     /// A whitespace character, e.g. ` `.
@@ -246,6 +248,15 @@ pub enum ForceStretchy {
     Yes,
 }
 
+/// The kind of length units accepted by [`Token::KernOrSkip`] commands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnitKind {
+    /// `\kern`, `\hskip` — text units (pt, em, ex, ...)
+    TextUnits,
+    /// `\mkern`, `\mskip` — math units (mu)
+    MathUnits,
+}
+
 /// Disambiguates `\phantom`, `\hphantom`, and `\vphantom`
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhantomKind {
@@ -308,7 +319,7 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
-            | CustomSpace | Limits(_) | NonBreakingSpace | Label | EqRef => None,
+            | CustomSpace | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)

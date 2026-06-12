@@ -37,6 +37,12 @@ pub enum LatexUnit {
 }
 
 impl LatexUnit {
+    /// Whether this is a math unit (valid after `\mkern`/`\mskip`)
+    /// as opposed to a text unit (valid after `\kern`/`\hskip`).
+    pub const fn is_math_unit(self) -> bool {
+        matches!(self, LatexUnit::Mu)
+    }
+
     pub const fn length_with_unit(self, value: f32) -> Length {
         use LengthUnit::*;
         // The conversions are based on the assumption that 1Rem=10pt,

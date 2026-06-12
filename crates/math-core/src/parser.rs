@@ -28,9 +28,12 @@ use crate::{
     text_parser::TextSnippet,
     token::{
         EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, Span, TokSpan, Token,
+        UnitKind,
     },
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
+
+const FULL_STOP_TOKEN: Token<'static> = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
 
 pub(crate) struct Parser<'config, 'source, 'arena> {
     pub(super) tokens: TokenQueue<'config, 'source>,
@@ -379,9 +382,6 @@ where
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
-        pub const FULL_STOP_TOKEN: Token<'_> =
-            Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
-
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
         let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
@@ -757,6 +757,11 @@ where
                         LatexErrKind::ExpectedLength(length.into()),
                     )),
                 }
+            }
+            Token::KernOrSkip(kind) => {
+                // Spaces pass through the symbol class.
+                class = prev_class;
+                Ok(self.parse_kern_or_skip(kind, span.end())?)
             }
             Token::NonBreakingSpace => Ok(Node::Text(None, None, "\u{A0}")),
             Token::Sqrt => {
@@ -2362,6 +2367,126 @@ where
             Node::IdentifierStr(builder.finish(self.arena))
         });
         Ok(Some((Class::Default, node)))
+    }
+
+    /// Parse the bare dimension argument of `\kern`, `\mkern`, `\hskip`, or `\mskip`,
+    /// e.g. `1.5em` in `\kern1.5em`.
+    ///
+    /// The argument consists of an optional sign, digits with at most one decimal
+    /// separator (`.` or `,`), and a two-letter unit. The unit need not be followed
+    /// by whitespace: `x\kern1emx` is valid. Whitespace is allowed before the number
+    /// and before the unit, but not within them: `\mkern 1 mu` is valid,
+    /// but `\kern1 1em` is not.
+    fn parse_kern_or_skip(&mut self, kind: UnitKind, span_end: usize) -> ParseResult<Node<'arena>> {
+        let mut arg_start: Option<usize> = None;
+        let mut arg_end = span_end;
+
+        // An optional sign.
+        let mut is_negative = false;
+        if let &Token::MathOrTextMode(_, sign @ ('+' | '-')) = self.tokens.peek().token() {
+            is_negative = sign == '-';
+            let span = self.tokens.next()?.span();
+            arg_start.get_or_insert(span.start());
+            arg_end = span.end();
+        }
+
+        // The value: digits with at most one decimal separator (`.` or `,`).
+        let mut buf = String::new();
+        let mut in_number = false;
+        loop {
+            // Whitespace may precede the number, but it also ends the number,
+            // so we only skip whitespace before the first digit.
+            let tok = if in_number {
+                self.tokens.peek_any_token().token()
+            } else {
+                self.tokens.peek().token()
+            };
+            let ch = match tok {
+                Token::Digit(digit) => *digit,
+                &FULL_STOP_TOKEN | &Token::MathOrTextMode(_, ',') => '.',
+                _ => break,
+            };
+            buf.push(ch);
+            let span = self.tokens.next()?.span();
+            in_number = true;
+            arg_start.get_or_insert(span.start());
+            arg_end = span.end();
+        }
+        let value: &str = &buf;
+        if value.is_empty() {
+            return Err(Box::new(LatexError(
+                arg_start.unwrap_or(span_end)..arg_end,
+                LatexErrKind::ExpectedLength("".into()),
+            )));
+        }
+
+        // The unit: exactly two letters.
+        let mut unit = [0u8; 2];
+        let mut unit_start: Option<usize> = None;
+        for i in 0..unit.len() {
+            // Whitespace may precede the unit, but the two letters of the unit
+            // must not be separated by whitespace.
+            let tokloc = if i == 0 {
+                self.tokens.peek()
+            } else {
+                self.tokens.peek_any_token()
+            };
+            let peek_span = tokloc.span();
+            let unit_char = if let Token::Letter(ch, _) = tokloc.token()
+                && let Some(c) = ch.try_as_char()
+                && c.is_ascii_alphabetic()
+            {
+                Some(c)
+            } else {
+                None
+            };
+            let Some(unit_char) = unit_char else {
+                let start = unit_start.unwrap_or(peek_span.start());
+                let unit_str = std::str::from_utf8(&unit[..i]).unwrap_or("");
+                return Err(Box::new(LatexError(
+                    start..peek_span.start(),
+                    LatexErrKind::InvalidUnit(unit_str.into()),
+                )));
+            };
+            unit[i] = unit_char as u8;
+            let span = self.tokens.next()?.span();
+            unit_start.get_or_insert(span.start());
+            arg_end = span.end();
+        }
+        let unit = std::str::from_utf8(&unit).unwrap_or("");
+
+        let unit_span = unit_start.unwrap_or(arg_end)..arg_end;
+        let Ok(latex_unit) = LatexUnit::try_from(unit) else {
+            return Err(Box::new(LatexError(
+                unit_span,
+                LatexErrKind::InvalidUnit(unit.into()),
+            )));
+        };
+        let math_unit_expected = matches!(kind, UnitKind::MathUnits);
+        if latex_unit.is_math_unit() != math_unit_expected {
+            return Err(Box::new(LatexError(
+                unit_span,
+                LatexErrKind::IllegalUnit {
+                    unit: unit.into(),
+                    math_unit_expected,
+                },
+            )));
+        }
+        let arg_span = arg_start.unwrap_or(span_end)..arg_end;
+        let Some(value) = limited_float_parse(value) else {
+            buf.push_str(unit);
+            return Err(Box::new(LatexError(
+                arg_span,
+                LatexErrKind::ExpectedLength(buf.into()),
+            )));
+        };
+        if is_negative {
+            return Err(Box::new(LatexError(
+                arg_span,
+                LatexErrKind::NegativeLengthNotSupported,
+            )));
+        }
+        Ok(Node::Space(latex_unit.length_with_unit(value)))
     }
 
     pub(super) fn parse_string_literal(

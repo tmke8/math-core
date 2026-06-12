@@ -42,6 +42,12 @@ pub(crate) enum LatexErrKind {
     CannotBeUsedAsArgument,
     ExpectedText,
     ExpectedLength(Box<str>),
+    IllegalUnit {
+        unit: Box<str>,
+        math_unit_expected: bool,
+    },
+    InvalidUnit(Box<str>),
+    NegativeLengthNotSupported,
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
     ExpectedStyle,
@@ -207,6 +213,28 @@ impl LatexErrKind {
             LatexErrKind::ExpectedLength(got) => {
                 write!(s, "Expected length with units, got \"{got}\".")?;
             }
+            LatexErrKind::IllegalUnit {
+                unit,
+                math_unit_expected,
+            } => {
+                if *math_unit_expected {
+                    write!(
+                        s,
+                        "Text unit \"{unit}\" cannot be used with \\mkern/\\mskip."
+                    )?;
+                } else {
+                    write!(
+                        s,
+                        "Math unit \"{unit}\" cannot be used with \\kern/\\hskip."
+                    )?;
+                }
+            }
+            LatexErrKind::InvalidUnit(unit) => {
+                write!(s, "Found invalid unit \"{unit}\".")?;
+            }
+            LatexErrKind::NegativeLengthNotSupported => {
+                write!(s, "Negative values are currently not supported.")?;
+            }
             LatexErrKind::ExpectedNumber(got) => {
                 write!(s, "Expected a number, got \"{got}\".")?;
             }
@@ -343,6 +371,9 @@ impl LatexError {
             LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),
             LatexErrKind::ExpectedText => "expected text here".into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
+            LatexErrKind::IllegalUnit { .. } => "illegal unit here".into(),
+            LatexErrKind::InvalidUnit(_) => "invalid unit here".into(),
+            LatexErrKind::NegativeLengthNotSupported => "negative value here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
             LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),

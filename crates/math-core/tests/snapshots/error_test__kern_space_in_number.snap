@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\kern1 1em y"
+---
+Error: Found invalid unit "".
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ x\kern1 1em y
+   │         │ 
+   │         ╰─ invalid unit here
+───╯
