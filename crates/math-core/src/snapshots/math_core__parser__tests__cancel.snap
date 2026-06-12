@@ -14,7 +14,6 @@ expression: "\\cancel{abc}"
         color: None,
         style: None,
         math_shift_compact: false,
-        margin_left: None,
       ),
     ),
     notation: Notation("UP_DIAGONAL"),

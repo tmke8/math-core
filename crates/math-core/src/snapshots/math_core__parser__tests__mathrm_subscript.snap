@@ -18,7 +18,6 @@ expression: "\\mathrm{x_x y_y}"
       color: None,
       style: None,
       math_shift_compact: false,
-      margin_left: None,
     ),
   ),
 ]

@@ -417,6 +417,8 @@ pub const GREEK_REVERSED_LUNATE_EPSILON_SYMBOL: char = '϶';
 //
 // Unicode Block: General Punctuation
 //
+
+pub const EM_SPACE: char = '\u{2003}';
 pub const THREE_PER_EM_SPACE: char = '\u{2004}';
 pub const THIN_SPACE: char = '\u{2009}';
 

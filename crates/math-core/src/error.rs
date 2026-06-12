@@ -47,7 +47,6 @@ pub(crate) enum LatexErrKind {
         math_unit_expected: bool,
     },
     InvalidUnit(Box<str>),
-    NegativeLengthNotSupported,
     ExpectedColSpec(Box<str>),
     ExpectedNumber(Box<str>),
     ExpectedStyle,
@@ -232,9 +231,6 @@ impl LatexErrKind {
             LatexErrKind::InvalidUnit(unit) => {
                 write!(s, "Found invalid unit \"{unit}\".")?;
             }
-            LatexErrKind::NegativeLengthNotSupported => {
-                write!(s, "Negative values are currently not supported.")?;
-            }
             LatexErrKind::ExpectedNumber(got) => {
                 write!(s, "Expected a number, got \"{got}\".")?;
             }
@@ -373,7 +369,6 @@ impl LatexError {
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::IllegalUnit { .. } => "illegal unit here".into(),
             LatexErrKind::InvalidUnit(_) => "invalid unit here".into(),
-            LatexErrKind::NegativeLengthNotSupported => "negative value here".into(),
             LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
             LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),

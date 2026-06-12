@@ -29,7 +29,6 @@ expression: "{\\int_0^\\infty = 4}"
       color: None,
       style: None,
       math_shift_compact: false,
-      margin_left: None,
     ),
   ),
 ]

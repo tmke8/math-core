@@ -1,0 +1,41 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "a \\qquad b \\\\ a \\quad b \\\\ a\\ b \\\\ a \\text{ } b \\\\ a\\;b \\\\ a\\,b \\\\ ab \\\\ a b \\\\ \\mathit{ab} \\\\ a\\!b"
+---
+<math>
+    <mi>a</mi>
+    <mspace width="2em"/>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mspace width="1em"/>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mtext> </mtext>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mtext> </mtext>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mspace width="0.2777778em"/>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mspace width="0.16666667em"/>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mi>b</mi>
+    <mrow></mrow>
+    <mrow><mspace/><mi>𝑎𝑏</mi></mrow>
+    <mrow></mrow>
+    <mi>a</mi>
+    <mspace style="margin-left:-0.16666667em;"/>
+    <mi>b</mi>
+</math>
