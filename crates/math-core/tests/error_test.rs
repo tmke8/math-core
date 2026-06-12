@@ -80,6 +80,8 @@ fn main() {
         ("mskip_negative", r"x\mskip-3mu y"),
         ("kern_math_unit", r"x\kern1mu y"),
         ("mkern_text_unit", r"x\mkern1em y"),
+        ("hspace_math_unit", r"x\hspace{1mu} y"),
+        ("mspace_text_unit", r"x\mspace{1em} y"),
         ("kern_unknown_unit", r"x\kern2ly y"),
         ("kern_missing_number", r"x\kern em y"),
         ("kern_two_dots", r"x\kern1.2.3em y"),

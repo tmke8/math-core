@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\hspace{1mu} y"
+---
+Error: Math unit "mu" cannot be used with \kern/\hskip/\hspace.
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ x\hspace{1mu} y
+   │         ──┬──  
+   │           ╰──── illegal unit here
+───╯

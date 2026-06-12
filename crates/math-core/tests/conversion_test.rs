@@ -535,6 +535,7 @@ fn main() {
         ("hskip", r"x\hskip1em y"),
         ("mkern", r"x\mkern9mu y"),
         ("mskip", r"x\mskip3mu y"),
+        ("mspace", r"x\mspace{18mu} y"),
         ("math_spaces", r"x\qquad x\quad x\;x\:x\>x\,x\ x~x\space x"),
         ("array_simple", r"\begin{array}{lcr} 0 & 1 & 2 \end{array}"),
         (

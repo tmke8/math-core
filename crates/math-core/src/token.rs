@@ -83,7 +83,7 @@ pub enum Token<'source> {
     /// Fixed-length spaces, e.g. `\,`, `\;`, `\quad`, etc.
     Space(Length),
     /// A custom space specified by the user, e.g. `\hspace{1em}`.
-    CustomSpace,
+    CustomSpace(UnitKind),
     /// `\kern`, `\mkern`, `\hskip`, and `\mskip`, e.g. `\kern1em`.
     KernOrSkip(UnitKind),
     /// A non-breaking space, e.g. `~`.
@@ -248,12 +248,13 @@ pub enum ForceStretchy {
     Yes,
 }
 
-/// The kind of length units accepted by [`Token::KernOrSkip`] commands.
+/// The kind of length units accepted by [`Token::KernOrSkip`] and
+/// [`Token::CustomSpace`] commands.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnitKind {
-    /// `\kern`, `\hskip` — text units (pt, em, ex, ...)
+    /// `\kern`, `\hskip`, `\hspace` — text units (pt, em, ex, ...)
     TextUnits,
-    /// `\mkern`, `\mskip` — math units (mu)
+    /// `\mkern`, `\mskip`, `\mspace` — math units (mu)
     MathUnits,
 }
 
@@ -319,7 +320,7 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
-            | CustomSpace | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef => None,
+            | CustomSpace(_) | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
