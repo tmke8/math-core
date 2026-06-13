@@ -260,7 +260,6 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "cong" => Relation(symbol::APPROXIMATELY_EQUAL_TO),
     "coprod" => Op(symbol::N_ARY_COPRODUCT),
     "copyright" => Letter(SuperChar::from_char(symbol::COPYRIGHT_SIGN), Mode::Math),
-    "cramped" => Cramped,
     "cup" => BinaryOp(symbol::UNION),
     "curlyeqprec" => Relation(symbol::EQUAL_TO_OR_PRECEDES),
     "curlyeqsucc" => Relation(symbol::EQUAL_TO_OR_SUCCEEDS),

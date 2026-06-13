@@ -312,6 +312,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 .is_some_and(|cfg| cfg.allow_unreliable_rendering)
             {
                 let tok = match cmd_string {
+                    "cramped" => Token::Cramped,
                     "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
                     "widetilde" => {
                         Token::Accent(symbol::TILDE.as_op(), true, OpAttrs::STRETCHY_TRUE)
