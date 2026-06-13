@@ -6,7 +6,7 @@ use mathml_renderer::{
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
     length::{Length, LengthUnit},
     super_char::SuperChar,
-    symbol::{self, MathMLOperator, OpCategory, OrdCategory, OrdLike, RelCategory},
+    symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
     table::RowLabelInfo,
 };
 use rustc_hash::FxHashMap;
@@ -41,6 +41,7 @@ pub(crate) struct Parser<'config, 'source, 'arena> {
     pub(super) arena: &'arena Arena,
     equation_counter: &'arena mut u16,
     label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+    unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'source, 'arena>,
 }
 
@@ -131,6 +132,7 @@ where
         equation_counter: &'arena mut u16,
         label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
         style: Style,
+        unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -138,6 +140,7 @@ where
             buffer: Buffer::new(input_length),
             arena,
             equation_counter,
+            unicode_substitution,
             label_map,
             state: ParserState {
                 cmd_args: Vec::new(),
@@ -458,15 +461,7 @@ where
             }
             Token::Relation(relation) => {
                 class = Class::Relation;
-                let attrs = match relation.category() {
-                    // Category A relations are stretchy by default; we explicitly
-                    // disable stretching for them.
-                    RelCategory::A => OpAttrs::STRETCHY_FALSE,
-                    RelCategory::Default => OpAttrs::empty(),
-                    // To get the right spacing on `DandForceDefault` relations, we have to
-                    // explicitly set the form to "infix".
-                    RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
-                };
+                let attrs = relation_attrs(relation.category());
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
                 Ok(Node::Operator {
                     op: relation.as_op(),
@@ -535,12 +530,10 @@ where
                     } else {
                         return Ok((class, target));
                     }
+                } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
+                    Ok(node)
                 } else {
-                    if let Some(node) = bounds.try_wrap_node_subsup(target) {
-                        Ok(node)
-                    } else {
-                        return Ok((class, target));
-                    }
+                    return Ok((class, target));
                 }
             }
             Token::Ord(ord) => {
@@ -674,11 +667,6 @@ where
                             | Token::ForcePunctuation(op) => op,
                             Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
                             Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                            Token::NonBreakingSpace => {
-                                MathMLOperator::from_char(symbol::NO_BREAK_SPACE)
-                            }
-                            Token::Letter(letter, _) => MathMLOperator::from_superchar(letter),
-                            Token::Digit(digit) => MathMLOperator::from_char(digit),
                             _ => {
                                 break 'mathclass Err(LatexError(
                                     span.into(),
@@ -1096,7 +1084,7 @@ where
                         left,
                         right,
                     } => Ok(Node::Operator {
-                        op: MathMLOperator::from_superchar(op.as_superchar().with_overlay(overlay)),
+                        op: op.with_overlay(overlay),
                         attrs,
                         size,
                         left,
@@ -2004,6 +1992,30 @@ where
                     attrs: RowAttrs::DEFAULT,
                 })
             }
+            Token::CompositeRelation {
+                rel_category,
+                combined,
+                parts,
+            } => {
+                class = Class::Relation;
+                if let crate::UnicodeSubstitution::Conventional = self.unicode_substitution {
+                    // Use the `combined` character if unicode substitution is enabled.
+                    let attrs = relation_attrs(rel_category);
+                    let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
+                    Ok(Node::Operator {
+                        op: combined.as_op(),
+                        attrs,
+                        left,
+                        right,
+                        size: None,
+                    })
+                } else {
+                    self.tokens.queue_in_front(parts);
+                    let token = self.next_token();
+                    // TODO: Use `become` here once it is stable.
+                    return self.parse_token(token, parse_as, prev_class);
+                }
+            }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
@@ -2729,6 +2741,18 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
     Ok(delim)
 }
 
+fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
+    match rel_category {
+        // Category A relations are stretchy by default; we explicitly
+        // disable stretching for them.
+        RelCategory::A => OpAttrs::STRETCHY_FALSE,
+        RelCategory::Default => OpAttrs::empty(),
+        // To get the right spacing on `DandForceDefault` relations, we have to
+        // explicitly set the form to "infix".
+        RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
+    }
+}
+
 /// sub, sup
 #[derive(Clone, Copy, Debug, Default)]
 struct Bounds<'arena>(Option<&'arena Node<'arena>>, Option<&'arena Node<'arena>>);
@@ -2899,6 +2923,7 @@ mod tests {
                 &mut equation_counter,
                 &mut label_map,
                 Style::Text,
+                crate::UnicodeSubstitution::Conventional,
             )
             .unwrap();
             let ast = p.parse().expect("Parsing failed");
@@ -2945,6 +2970,7 @@ mod tests {
                 &mut equation_counter,
                 &mut label_map,
                 Style::Text,
+                crate::UnicodeSubstitution::Conventional,
             )
             .unwrap();
             p.tokens.queue_in_front(problem);

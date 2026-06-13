@@ -92,6 +92,7 @@ interface MathCoreOptions {
     ignoreUnknownCommands?: boolean;
     annotation?: boolean;
     allowUnreliableRendering?: boolean;
+    unicodeSubstitution?: "never" | "conventional";
 }
 "#;
 
@@ -120,6 +121,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn allowUnreliableRendering(this: &MathCoreOptions) -> Option<bool>;
+
+    #[wasm_bindgen(method, getter)]
+    fn unicodeSubstitution(this: &MathCoreOptions) -> Option<String>;
 }
 
 #[wasm_bindgen]
@@ -180,6 +184,20 @@ impl LatexToMathML {
         let ignore_unknown_commands = js_config.ignoreUnknownCommands().unwrap_or_default();
         let annotation = js_config.annotation().unwrap_or_default();
         let allow_unreliable_rendering = js_config.allowUnreliableRendering().unwrap_or_default();
+        let unicode_substitution = if let Some(us) = js_config.unicodeSubstitution() {
+            match us.as_str() {
+                "never" => math_core::UnicodeSubstitution::Never,
+                "conventional" => math_core::UnicodeSubstitution::Conventional,
+                _ => {
+                    return Err(ConfigParseError {
+                        message: "Invalid value for unicodeSubstitution",
+                    }
+                    .into());
+                }
+            }
+        } else {
+            math_core::UnicodeSubstitution::default()
+        };
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             macros: macros.unwrap_or_default(),
@@ -187,6 +205,7 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
             allow_unreliable_rendering,
+            unicode_substitution,
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;

@@ -61,19 +61,16 @@ def test_global_state():
     output = converter.convert_with_global_state(
         r"\begin{align}x\end{align}", displaystyle=True
     )
-    assert isinstance(output, str)
     assert "(1)" in output
     output = converter.convert_with_global_state(
         r"\begin{align}y\end{align}", displaystyle=True
     )
-    assert isinstance(output, str)
     assert "(2)" in output
 
     converter.reset_global_state()
     output = converter.convert_with_global_state(
         r"\begin{align}z\end{align}", displaystyle=True
     )
-    assert isinstance(output, str)
     assert "(1)" in output
 
 
@@ -110,8 +107,8 @@ def test_continue_on_error():
 
 def test_annotation():
     converter = LatexToMathML(annotation=True, pretty_print="always")
-    result = converter.convert_with_local_state("x", displaystyle=False)
-    assert result == (
+    output = converter.convert_with_local_state("x", displaystyle=False)
+    assert output == (
         "<math>\n"
         "    <semantics>\n"
         "        <mi>x</mi>\n"
@@ -123,10 +120,9 @@ def test_annotation():
 
 def test_annotation_no_pretty_print():
     converter = LatexToMathML(annotation=True, pretty_print="never")
-    result = converter.convert_with_local_state("x", displaystyle=False)
-    assert isinstance(result, str)
+    output = converter.convert_with_local_state("x", displaystyle=False)
     assert (
-        result
+        output
         == '<math><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>'
     )
 
@@ -134,9 +130,8 @@ def test_annotation_no_pretty_print():
 def test_annotation_escaping():
     converter = LatexToMathML(annotation=True)
     latex = r"a < b \& c > d"
-    result = converter.convert_with_local_state(latex, displaystyle=False)
-    assert isinstance(result, str)
-    assert r"a &lt; b \&amp; c &gt; d</annotation>" in result
+    output = converter.convert_with_local_state(latex, displaystyle=False)
+    assert r"a &lt; b \&amp; c &gt; d</annotation>" in output
 
 
 def test_ignore_unknown_commands():
@@ -150,9 +145,18 @@ def test_ignore_unknown_commands():
 def test_unreliable_rendering():
     converter = LatexToMathML(allow_unreliable_rendering=True)
     latex = r"\widetilde{xyz}"
-    result = converter.convert_with_local_state(latex, displaystyle=False)
-    assert isinstance(result, str)
+    output = converter.convert_with_local_state(latex, displaystyle=False)
     assert (
         r'<math><mover accent="true"><mrow><mi>x</mi><mi>y</mi><mi>z</mi></mrow><mo stretchy="true">~</mo></mover></math>'
-        == result
+        == output
+    )
+
+
+def test_unicode_substitution():
+    converter = LatexToMathML(unicode_substitution="never")
+    latex = r"y \coloneqq x"
+    output = converter.convert_with_local_state(latex, displaystyle=False)
+    assert (
+        r'<math><mi>y</mi><mo lspace="0.2778em" rspace="0">∶</mo><mo lspace="0">=</mo><mi>x</mi></math>'
+        == output
     )

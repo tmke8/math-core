@@ -112,3 +112,96 @@ pub static BIG_KET: [Token<'static>; 5] = [
     Right,
     Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
 ];
+
+pub static COLON_EQUALS: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::EQUALS_SIGN),
+];
+
+pub static DOUBLE_COLON_EQUAL: [Token<'static>; 3] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::EQUALS_SIGN),
+];
+
+pub static EQUALS_COLON: [Token<'static>; 2] = [
+    Relation(symbol::EQUALS_SIGN),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static DOUBLE_COLON: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static COLON_APPROX: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::ALMOST_EQUAL_TO),
+];
+
+pub static DOUBLE_COLON_APPROX: [Token<'static>; 3] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::ALMOST_EQUAL_TO),
+];
+
+pub static COLON_MINUS: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::MINUS_SIGN.as_op()),
+];
+
+pub static DOUBLE_COLON_MINUS: [Token<'static>; 3] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::MINUS_SIGN.as_op()),
+];
+
+pub static COLON_SIM: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::TILDE_OPERATOR),
+];
+
+pub static DOUBLE_COLON_SIM: [Token<'static>; 3] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::TILDE_OPERATOR),
+];
+
+pub static EQUALS_DOUBLE_COLON: [Token<'static>; 3] = [
+    Relation(symbol::EQUALS_SIGN),
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static MINUS_COLON: [Token<'static>; 2] = [
+    ForceRelation(symbol::MINUS_SIGN.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static MINUS_DOUBLE_COLON: [Token<'static>; 3] = [
+    ForceRelation(symbol::MINUS_SIGN.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static SIM_COLON: [Token<'static>; 2] = [
+    Relation(symbol::TILDE_OPERATOR),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static SIM_DOUBLE_COLON: [Token<'static>; 3] = [
+    Relation(symbol::TILDE_OPERATOR),
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static APPROX_COLON: [Token<'static>; 2] = [
+    Relation(symbol::ALMOST_EQUAL_TO),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static APPROX_DOUBLE_COLON: [Token<'static>; 3] = [
+    Relation(symbol::ALMOST_EQUAL_TO),
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];

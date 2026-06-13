@@ -115,6 +115,7 @@ fn main() {
         ("math_variant_switch_in_subscript", r"{x_\bf x}"),
         ("mathbin_mutli_arg", r"x \mathbin{++} y"),
         ("mathord_mutli_arg", r"x \mathord{++} y"),
+        ("mathbin_letter", r"x \mathbin a y"),
         ("sideset_not_mathop", r"\sideset{}{}{a}"),
         ("sideset_not_mathop_2", r"\sideset{}{}{+}"),
         ("sideset_not_mathop_3", r"\sideset{}{}{ a \sum}"),

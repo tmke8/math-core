@@ -313,7 +313,6 @@ fn main() {
         ("colon_first_group", r"x{:x}"),
         ("colon_last_group", r"{x:}x"),
         ("colon_alone_group", r"x{:}x"),
-        ("colon_approx", r"x:\approx 2"),
         ("colon_sqrt", r"\sqrt :"),
         ("colon_subscript", r"x_{x:x}"),
         (
@@ -572,19 +571,17 @@ fn main() {
         ("mathbin_no_braces", r"x\mathbin|y"),
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
         ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
-        ("mathbin_letter", r"x \mathbin a y"),
         ("mathbin_no_arg", r"x \mathbin{} y"),
         ("mathord", r"x\mathord{+}y"),
         ("mathord_no_braces", r"x\mathord+y"),
         ("mathord_relation", r"x\mathord{=}y"),
         ("mathord_less_than", r"x\mathord{<}y"),
-        ("mathord_letter", r"x \mathord a y"),
         ("mathopen", r"x+\mathopen)y"),
         ("mathord_no_arg", r"x \mathord{} y"),
         ("mathclose", r"\mathclose(+x"),
-        ("mathrel", r"y \mathrel 0 ="),
+        ("mathrel", r"y \mathrel , ="),
         ("mathpunct", r"y \mathpunct - x"),
-        ("mathop", r"a\mathop{x}b"),
+        ("mathop", r"a\mathop{+}b"),
         ("comma_before_close_paren", r"4,)"),
         ("unicode_open_close", "⦃ a + b ⦄"),
         ("unicode_open_close_force", "⟅ a + b ⟆"),
@@ -661,6 +658,19 @@ fn main() {
         ("unicode_rprime_3", "a‷"),
         ("unicode_primealooza", "a‷″″′″‷′′‶‵^a_b"),
         ("unicode_primealooza_standalone", "‷″″′″‷′′‶‵"),
+        (
+            "colon_approx",
+            r"a :\approx b \colonapprox c \Colonapprox d \coloncolonapprox e",
+        ),
+        (
+            "colon_minus",
+            r"a \colonminus b \colondash c \coloncolonminus d \Colondash e \Dashcolon f",
+        ),
+        (
+            "colon_sim",
+            r"a \colonsim b \Colonsim c \coloncolonsim d \simcolon e \Simcolon f \simcoloncolon g",
+        ),
+        ("colon_eq", r"a \Eqcolon b \Eqqcolon c"),
     ];
 
     let config = MathCoreConfig {

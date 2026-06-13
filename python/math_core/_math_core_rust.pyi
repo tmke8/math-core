@@ -13,6 +13,7 @@ class LatexToMathML:
         annotation: bool = False,
         allow_unreliable_rendering: bool = False,
         fancy_error: bool = True,
+        unicode_substitution: Literal["never", "conventional"] = "conventional",
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -24,9 +25,9 @@ class LatexToMathML:
                 * "always": Always pretty print the MathML output.
                 * "auto": Pretty print block equations, but not inline equations.
 
-            macros: A dictionary of LaTeX macros to be used in the conversion. For example,
-                ``{"d": r"\mathrm{d}"}`` will replace ``\d`` with ``\mathrm{d}`` in the
-                LaTeX input.
+            macros: A dictionary of LaTeX macros to be used in the conversion. For
+                example, ``{"d": r"\mathrm{d}"}`` will replace ``\d`` with
+                ``\mathrm{d}`` in the LaTeX input.
 
             xml_namespace: A boolean indicating whether to include ``xmlns="..."``.
 
@@ -36,21 +37,20 @@ class LatexToMathML:
                 ``LatexError``.
 
             ignore_unknown_commands: A boolean indicating whether to ignore unknown
-                LaTeX commands. If ``True``, unknown commands will be displayed as red text
-                and the conversion will continue, instead of returning an error.
+                LaTeX commands. If ``True``, unknown commands will be displayed as red
+                text and the conversion will continue, instead of returning an error.
 
             fancy_error: A boolean indicating whether to render errors as rich Ariadne
-                reports. If ``True`` (the default), the ``LatexError`` message will contain
-                a formatted diagnostic with source spans. If ``False``, a compact plain-text
-                message is used instead.
+                reports. If ``True`` (the default), the ``LatexError`` message will
+                contain a formatted diagnostic with source spans. If ``False``, a
+                compact plain-text message is used instead.
+
+            unicode_substitution: A string indicating whether to substitute certain
+                character combinations with a single Unicode symbol.
         """
-    def convert_with_global_state(
-        self, latex: str, *, displaystyle: bool
-    ) -> str | LatexError:
+    def convert_with_global_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a global counter for equation numbering."""
-    def convert_with_local_state(
-        self, latex: str, *, displaystyle: bool
-    ) -> str | LatexError:
+    def convert_with_local_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a local counter for equation numbering."""
     def reset_global_state(self) -> None:
         """Reset the global equation counter for environments like ``align``."""

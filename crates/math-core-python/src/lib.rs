@@ -36,7 +36,8 @@ impl LatexToMathML {
         ignore_unknown_commands=false,
         annotation=false,
         allow_unreliable_rendering=false,
-        fancy_error=true))]
+        fancy_error=true,
+        unicode_substitution="conventional"))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -46,6 +47,7 @@ impl LatexToMathML {
         annotation: bool,
         allow_unreliable_rendering: bool,
         fancy_error: bool,
+        unicode_substitution: &str,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
@@ -55,6 +57,16 @@ impl LatexToMathML {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                     "Invalid pretty_print value: '{}'. Must be 'never', 'always', or 'auto'.",
                     pretty_print
+                )));
+            }
+        };
+        let unicode_substitution = match unicode_substitution {
+            "conventional" => math_core::UnicodeSubstitution::Conventional,
+            "never" => math_core::UnicodeSubstitution::Never,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid unicode_substitution value: '{}'. Must be 'conventional' or 'never'.",
+                    unicode_substitution
                 )));
             }
         };
@@ -69,6 +81,7 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
             allow_unreliable_rendering,
+            unicode_substitution,
         };
 
         let inner = math_core::LatexToMathML::new(config);

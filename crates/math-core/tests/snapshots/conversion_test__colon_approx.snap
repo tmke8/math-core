@@ -1,10 +1,21 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "x:\\approx 2"
+expression: "a :\\approx b \\colonapprox c \\Colonapprox d \\coloncolonapprox e"
 ---
 <math>
-    <mi>x</mi>
+    <mi>a</mi>
     <mo lspace="0.2778em" rspace="0">:</mo>
     <mo lspace="0">≈</mo>
-    <mn>2</mn>
+    <mi>b</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo lspace="0">≈</mo>
+    <mi>c</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0">≈</mo>
+    <mi>d</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0">≈</mo>
+    <mi>e</mi>
 </math>

@@ -79,6 +79,30 @@ pub enum PrettyPrint {
     Auto,
 }
 
+/// Configuration for using Unicode symbols in the MathML output.
+///
+/// LaTeX commands like `\coloneqq` can be rendered in MathML either using dedicated Unicode symbols
+/// (in this case, `\coloneqq` would be rendered as `≔`) or using a combination of more basic
+/// symbols (in this case, `\coloneqq` would be rendered as a combination of `:` and `=`).
+/// The former is preferable in terms of semantics but can look a little different from the LaTeX
+/// output, while the latter is more faithful to the LaTeX output but can be less semantically
+/// clear.
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum UnicodeSubstitution {
+    /// Never subtitute a set of symbols with their Unicode equivalents.
+    Never,
+    /// Substitute whenever the LaTeX package `unicode-math` would substitute, which is a good
+    /// middle ground between semantics and faithfulness to the LaTeX output.
+    #[default]
+    Conventional,
+    // /// Substitute whenever there is a Unicode equivalent, even if the `unicode-math` package
+    // /// does not do so.
+    // Aggressive,
+}
+
 /// Configuration object for the LaTeX to MathML conversion.
 ///
 /// # Example usage
@@ -127,6 +151,9 @@ pub struct MathCoreConfig {
     /// If `true`, allow rendering commands that produce MathML Core output that is unreliably
     /// rendered by browsers.
     pub allow_unreliable_rendering: bool,
+    /// If not `UnicodeSubstitution::Never`, substitute certain LaTeX commands with their Unicode
+    /// equivalents in the MathML output.
+    pub unicode_substitution: UnicodeSubstitution,
 }
 
 #[derive(Debug, Default)]
@@ -151,6 +178,7 @@ struct Flags {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
     annotation: bool,
+    unicode_substitution: UnicodeSubstitution,
 }
 
 impl From<&MathCoreConfig> for Flags {
@@ -160,6 +188,7 @@ impl From<&MathCoreConfig> for Flags {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,
             annotation: config.annotation,
+            unicode_substitution: config.unicode_substitution,
         }
     }
 }
@@ -265,7 +294,15 @@ fn convert(
     flags: &Flags,
 ) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
-    let ast = parse(latex, &arena, cmd_cfg, equation_count, label_map, display)?;
+    let ast = parse(
+        latex,
+        &arena,
+        cmd_cfg,
+        equation_count,
+        label_map,
+        display,
+        flags.unicode_substitution,
+    )?;
 
     let mut output = String::new();
     output.push_str("<math");
@@ -316,6 +353,7 @@ fn parse<'config, 'source, 'arena>(
     equation_count: &'arena mut u16,
     label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
     display: MathDisplay,
+    unicode_substitution: UnicodeSubstitution,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
 where
     'config: 'source,
@@ -326,7 +364,14 @@ where
         MathDisplay::Block => Style::Display,
     };
     let lexer = Lexer::new(latex, false, cmd_cfg);
-    let mut p = Parser::new(lexer, arena, equation_count, label_map, style)?;
+    let mut p = Parser::new(
+        lexer,
+        arena,
+        equation_count,
+        label_map,
+        style,
+        unicode_substitution,
+    )?;
     let nodes = p.parse()?;
     Ok(nodes)
 }

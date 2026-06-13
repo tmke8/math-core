@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use crate::super_char::{SuperChar, VariationSelector};
+use crate::super_char::{OverlayChar, SuperChar, VariationSelector};
 
 /// A character for use in MathML `<mo>` elements.
 ///
@@ -17,18 +17,22 @@ pub struct MathMLOperator(SuperChar);
 
 impl MathMLOperator {
     #[inline]
-    pub const fn from_char(c: char) -> Self {
+    /// Construct a `MathMLOperator` from a single character.
+    ///
+    /// This constructor is deliberately not `pub` to ensure that not just any character can end up
+    /// in a `<mo>` element.
+    const fn from_char(c: char) -> Self {
         Self(SuperChar::from_char(c))
-    }
-
-    #[inline]
-    pub const fn from_superchar(ts: SuperChar) -> Self {
-        Self(ts)
     }
 
     #[inline]
     pub const fn as_superchar(self) -> SuperChar {
         self.0
+    }
+
+    #[inline]
+    pub fn with_overlay(self, overlay: OverlayChar) -> Self {
+        Self(self.0.with_overlay(overlay))
     }
 
     #[inline]
@@ -87,6 +91,18 @@ impl Debug for BMPChar {
     }
 }
 
+/// Like a `MathMLOperator`, but guaranteed to be a single character in the BMP, and with no
+/// variation selector.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BMPOperator(BMPChar);
+
+impl BMPOperator {
+    #[inline]
+    pub const fn as_op(self) -> MathMLOperator {
+        MathMLOperator::from_char(self.0.as_char())
+    }
+}
+
 macro_rules! make_character_class {
     ($(#[$meta:meta])* $struct_name:ident, $cat_type:ty) => {
         $(#[$meta])*
@@ -126,8 +142,8 @@ macro_rules! make_character_class {
             }
 
             #[inline]
-            pub const fn category(&self) -> &$cat_type {
-                &self.cat
+            pub const fn category(&self) -> $cat_type {
+                self.cat
             }
         }
     };
@@ -215,6 +231,13 @@ make_character_class!(
     /// An operator with relation spacing.
     Rel, RelCategory
 );
+
+impl Rel {
+    #[inline]
+    pub const fn as_bmp_op(&self) -> BMPOperator {
+        BMPOperator(self.char)
+    }
+}
 
 /// An operator with punctuation spacing (category M).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -435,9 +458,9 @@ pub const RIGHT_DOUBLE_QUOTATION_MARK: char = '”';
 // pub const DOUBLE_LOW_9_QUOTATION_MARK: char = '„';
 // pub const DOUBLE_HIGH_REVERSED_9_QUOTATION_MARK: char = '‟';
 
-pub const DAGGER: char = '†';
-pub const DOUBLE_DAGGER: char = '‡';
-pub const BULLET: char = '•';
+pub const DAGGER: MathMLOperator = MathMLOperator::from_char('†');
+pub const DOUBLE_DAGGER: MathMLOperator = MathMLOperator::from_char('‡');
+pub const BULLET: MathMLOperator = MathMLOperator::from_char('•');
 pub const HORIZONTAL_ELLIPSIS: char = '…';
 
 pub const PRIME: OrdLike = OrdLike::new('′', OrdCategory::E);

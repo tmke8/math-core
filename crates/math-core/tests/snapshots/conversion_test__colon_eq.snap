@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a \\Eqcolon b \\Eqqcolon c"
+---
+<math>
+    <mi>a</mi>
+    <mo rspace="0">=</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0.2778em">∶</mo>
+    <mi>b</mi>
+    <mo rspace="0">=</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0.2778em">∶</mo>
+    <mi>c</mi>
+</math>

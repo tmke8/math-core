@@ -136,10 +136,11 @@ The main converter class.
 - `ignore_unknown_commands` (`bool`, optional): A boolean indicating whether to ignore unknown LaTeX commands. If `True`, unknown commands be rendered as red text and the conversion will continue. Default: `False`.
 - `annotation` (`bool`, optional): A boolean indicating whether to include the original LaTeX as an annotation in the MathML output. Default: `False`.
 - `fancy_error` (`bool`, optional): A boolean indicating whether to render errors as rich Ariadne diagnostic reports. If `True` (the default), the `LatexError` message contains a formatted diagnostic with source spans. Set to `False` to use compact plain-text messages instead.
+- `unicode_substitution`: A string indicating whether to substitute certain character combinations with a single Unicode symbol.
 
 **Methods:**
-- `convert_with_global_state(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using global state.
-- `convert_with_local_state(latex: str, displaystyle: bool) -> str | LatexError`: Convert LaTeX to MathML using local state.
+- `convert_with_global_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using global state. May raise `LatexError`.
+- `convert_with_local_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using local state. May raise `LatexError`.
 - `reset_global_state() -> None`: Reset the global state (e.g., set the equation counter to zero).
 
 ### LatexError

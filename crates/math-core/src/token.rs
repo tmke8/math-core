@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use mathml_renderer::{
     ast::Node,
-    symbol::{self, Bin, MathMLOperator, Op, OrdLike, Punct, Rel},
+    symbol::{self, BMPOperator, Bin, MathMLOperator, Op, OrdLike, Punct, Rel, RelCategory},
 };
 use mathml_renderer::{
     attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
@@ -142,6 +142,12 @@ pub enum Token<'source> {
     ForceLargeOp(MathMLOperator),
     /// `\mathord` and `\mathbin`.
     MathClass(MathClassKind),
+    /// A token for composite relations, e.g. `\coloneqq`.
+    CompositeRelation {
+        rel_category: RelCategory,
+        combined: BMPOperator,
+        parts: &'static [Token<'static>],
+    },
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
     /// The `Rel` is the stretchy arrow operator to render.
     XArrow(Rel),
@@ -181,8 +187,7 @@ pub enum Token<'source> {
     /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
     /// arguments that the custom command takes.
     CustomCmd(u8, &'source [Token<'static>]),
-    /// A token for text-mode accents, e.g. `\~{n}`. The `char` is a Unicode combining character,
-    /// e.g. `\u{0303}` for the tilde accent.
+    /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
@@ -426,7 +431,9 @@ impl Token<'_> {
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
         match self.unwrap_math_ref() {
-            Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
+            Relation(_) | ForceRelation(_) | CompositeRelation { .. } | XArrow(_) => {
+                Some(Class::Relation)
+            }
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
                 Some(Class::Open)
