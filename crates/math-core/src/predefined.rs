@@ -112,3 +112,24 @@ pub static BIG_KET: [Token<'static>; 5] = [
     Right,
     Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
 ];
+
+pub static COLON_EQUALS: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::EQUALS_SIGN),
+];
+
+pub static DOUBLE_COLON_EQUAL: [Token<'static>; 3] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+    Relation(symbol::EQUALS_SIGN),
+];
+
+pub static EQUALS_COLON: [Token<'static>; 2] = [
+    Relation(symbol::EQUALS_SIGN),
+    ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static DOUBLE_COLON: [Token<'static>; 2] = [
+    ForceRelation(symbol::RATIO.as_op()),
+    ForceRelation(symbol::RATIO.as_op()),
+];
