@@ -187,8 +187,7 @@ pub enum Token<'source> {
     /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
     /// arguments that the custom command takes.
     CustomCmd(u8, &'source [Token<'static>]),
-    /// A token for text-mode accents, e.g. `\~{n}`. The `char` is a Unicode combining character,
-    /// e.g. `\u{0303}` for the tilde accent.
+    /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.

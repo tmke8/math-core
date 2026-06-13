@@ -530,12 +530,10 @@ where
                     } else {
                         return Ok((class, target));
                     }
+                } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
+                    Ok(node)
                 } else {
-                    if let Some(node) = bounds.try_wrap_node_subsup(target) {
-                        Ok(node)
-                    } else {
-                        return Ok((class, target));
-                    }
+                    return Ok((class, target));
                 }
             }
             Token::Ord(ord) => {
@@ -2744,7 +2742,8 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
 }
 
 fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
-    let attrs = match rel_category {
+    
+    match rel_category {
         // Category A relations are stretchy by default; we explicitly
         // disable stretching for them.
         RelCategory::A => OpAttrs::STRETCHY_FALSE,
@@ -2752,8 +2751,7 @@ fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
         // To get the right spacing on `DandForceDefault` relations, we have to
         // explicitly set the form to "infix".
         RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
-    };
-    attrs
+    }
 }
 
 /// sub, sup
