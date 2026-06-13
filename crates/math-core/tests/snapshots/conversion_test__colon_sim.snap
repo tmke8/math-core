@@ -1,0 +1,29 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a \\colonsim b \\Colonsim c \\coloncolonsim d \\simcolon e \\Simcolon f \\simcoloncolon g"
+---
+<math>
+    <mi>a</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo form="infix" lspace="0">∼</mo>
+    <mi>b</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo form="infix" lspace="0">∼</mo>
+    <mi>c</mi>
+    <mo lspace="0.2778em" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo form="infix" lspace="0">∼</mo>
+    <mi>d</mi>
+    <mo form="infix" rspace="0">∼</mo>
+    <mo lspace="0" rspace="0.2778em">∶</mo>
+    <mi>e</mi>
+    <mo form="infix" rspace="0">∼</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0.2778em">∶</mo>
+    <mi>f</mi>
+    <mo form="infix" rspace="0">∼</mo>
+    <mo lspace="0" rspace="0">∶</mo>
+    <mo lspace="0" rspace="0.2778em">∶</mo>
+    <mi>g</mi>
+</math>

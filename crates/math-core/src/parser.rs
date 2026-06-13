@@ -2742,7 +2742,6 @@ fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResu
 }
 
 fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
-    
     match rel_category {
         // Category A relations are stretchy by default; we explicitly
         // disable stretching for them.

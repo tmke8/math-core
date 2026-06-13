@@ -313,7 +313,6 @@ fn main() {
         ("colon_first_group", r"x{:x}"),
         ("colon_last_group", r"{x:}x"),
         ("colon_alone_group", r"x{:}x"),
-        ("colon_approx", r"x:\approx 2"),
         ("colon_sqrt", r"\sqrt :"),
         ("colon_subscript", r"x_{x:x}"),
         (
@@ -659,6 +658,19 @@ fn main() {
         ("unicode_rprime_3", "a‷"),
         ("unicode_primealooza", "a‷″″′″‷′′‶‵^a_b"),
         ("unicode_primealooza_standalone", "‷″″′″‷′′‶‵"),
+        (
+            "colon_approx",
+            r"a :\approx b \colonapprox c \Colonapprox d \coloncolonapprox e",
+        ),
+        (
+            "colon_minus",
+            r"a \colonminus b \colondash c \coloncolonminus d \Colondash e \Dashcolon f",
+        ),
+        (
+            "colon_sim",
+            r"a \colonsim b \Colonsim c \coloncolonsim d \simcolon e \Simcolon f \simcoloncolon g",
+        ),
+        ("colon_eq", r"a \Eqcolon b \Eqqcolon c"),
     ];
 
     let config = MathCoreConfig {
