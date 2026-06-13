@@ -12,7 +12,6 @@ expression: "\\mathrm{\\mathit{a}b}"
       color: None,
       style: None,
       math_shift_compact: false,
-      margin_left: None,
     ),
   ),
 ]

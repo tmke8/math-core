@@ -135,9 +135,6 @@ impl Style {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MathSpacing {
-    /// -3/36 of an em/\quad
-    #[strum(serialize = "-0.0833em")]
-    NegativeOnePointFiveMu = -1,
     #[strum(serialize = "0")]
     Zero = 1,
     /// 3/18 of an em/\quad

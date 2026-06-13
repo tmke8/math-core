@@ -7,13 +7,13 @@ expression: "f'''''"
         <mi>f</mi>
         <mrow>
             <mo>′</mo>
-            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mspace style="margin-left:-0.0833em;"/>
             <mo>′</mo>
-            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mspace style="margin-left:-0.0833em;"/>
             <mo>′</mo>
-            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mspace style="margin-left:-0.0833em;"/>
             <mo>′</mo>
-            <mrow style="margin-left:-0.0833em;"></mrow>
+            <mspace style="margin-left:-0.0833em;"/>
             <mo>′</mo>
         </mrow>
     </msup>

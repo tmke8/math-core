@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\mskip-3mu y"
+---
+<math>
+    <mi>x</mi>
+    <mspace style="margin-left:-0.16666667em;"/>
+    <mi>y</mi>
+</math>

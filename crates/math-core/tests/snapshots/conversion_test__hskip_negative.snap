@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\hskip-1em y"
+---
+<math>
+    <mi>x</mi>
+    <mspace style="margin-left:-1em;"/>
+    <mi>y</mi>
+</math>

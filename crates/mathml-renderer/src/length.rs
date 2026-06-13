@@ -75,6 +75,10 @@ impl Length {
             None
         }
     }
+
+    pub const fn is_negative(self) -> bool {
+        self.value.0 < 0.0
+    }
 }
 
 #[cfg(test)]

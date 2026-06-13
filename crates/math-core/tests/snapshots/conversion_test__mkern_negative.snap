@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\mkern-9mu y"
+---
+<math>
+    <mi>x</mi>
+    <mspace style="margin-left:-0.5em;"/>
+    <mi>y</mi>
+</math>

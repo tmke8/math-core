@@ -26,7 +26,6 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
           color: None,
           style: Some(Display),
           math_shift_compact: false,
-          margin_left: None,
         ),
       ),
       Operator(
@@ -41,7 +40,6 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
       color: None,
       style: None,
       math_shift_compact: false,
-      margin_left: None,
     ),
   ),
   Operator(

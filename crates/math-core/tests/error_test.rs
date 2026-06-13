@@ -76,8 +76,6 @@ fn main() {
         ("hspace_unknown_unit", r"\hspace{2ly}"),
         ("hspace_non_digits", r"\hspace{2b2cm}"),
         ("hspace_non_ascii", r"\hspace{22öm}"),
-        ("kern_negative", r"x\kern-1em y"),
-        ("mskip_negative", r"x\mskip-3mu y"),
         ("kern_math_unit", r"x\kern1mu y"),
         ("mkern_text_unit", r"x\mkern1em y"),
         ("hspace_math_unit", r"x\hspace{1mu} y"),

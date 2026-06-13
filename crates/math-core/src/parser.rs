@@ -4,7 +4,7 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::{AHref, MultiscriptPair, Node, RowAttrs},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
-    length::Length,
+    length::{Length, LengthUnit},
     super_char::SuperChar,
     symbol::{self, MathMLOperator, OpCategory, OrdCategory, OrdLike, RelCategory},
     table::RowLabelInfo,
@@ -2245,13 +2245,7 @@ where
                         size: None,
                     }));
                     for _ in 1..count {
-                        nodes.push(&Node::Row {
-                            nodes: &[],
-                            attrs: RowAttrs {
-                                margin_left: Some(MathSpacing::NegativeOnePointFiveMu),
-                                ..RowAttrs::DEFAULT
-                            },
-                        });
+                        nodes.push(&const { Node::Space(Length::new(-0.0833, LengthUnit::Em)) });
                         nodes.push(self.commit(Node::Operator {
                             op: primes_arr[0].as_op(),
                             attrs: OpAttrs::empty(),
@@ -2511,7 +2505,7 @@ where
             )));
         }
         let arg_span = arg_start.unwrap_or(span_end)..arg_end;
-        let Some(value) = limited_float_parse(value) else {
+        let Some(mut value) = limited_float_parse(value) else {
             buf.push_str(unit);
             return Err(Box::new(LatexError(
                 arg_span,
@@ -2519,10 +2513,7 @@ where
             )));
         };
         if is_negative {
-            return Err(Box::new(LatexError(
-                arg_span,
-                LatexErrKind::NegativeLengthNotSupported,
-            )));
+            value = -value;
         }
         Ok(Node::Space(latex_unit.length_with_unit(value)))
     }

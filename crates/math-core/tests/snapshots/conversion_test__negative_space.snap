@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x \\! x"
+---
+<math>
+    <mi>x</mi>
+    <mspace style="margin-left:-0.16666667em;"/>
+    <mi>x</mi>
+</math>
