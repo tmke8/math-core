@@ -133,6 +133,7 @@ fn main() {
 
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Never,
+        allow_unreliable_rendering: true,
         ..Default::default()
     };
     let converter = LatexToMathML::new(config).unwrap();
