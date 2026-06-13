@@ -633,6 +633,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "prescript" => Prescript,
     "prime" => Ord(symbol::PRIME),
     "prod" => Op(symbol::N_ARY_PRODUCT),
+    "projlim" => PseudoOperatorLimits("proj\u{2009}lim"),
     "propto" => Relation(symbol::PROPORTIONAL_TO),
     "psi" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_PSI), Mode::Math),
     "qquad" => Space(LatexUnit::Em.length_with_unit(2.0)),
