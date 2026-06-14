@@ -140,7 +140,7 @@ pub enum Token<'source> {
     /// This is, for example, needed for `⅀`.
     /// We assume `movablelimitss`.
     ForceLargeOp(MathMLOperator),
-    /// `\mathord` and `\mathbin`.
+    /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for composite relations, e.g. `\coloneqq`.
     CompositeRelation {
@@ -218,6 +218,8 @@ pub enum MathClassKind {
     Close,
     /// `\mathpunct`: punctuation character class.
     Punct,
+    /// `\mathinner`: inner character class.
+    Inner,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -460,6 +462,7 @@ impl Token<'_> {
                 MathClassKind::Close => Class::Close,
                 MathClassKind::Rel => Class::Relation,
                 MathClassKind::Punct => Class::Punctuation,
+                MathClassKind::Inner => Class::Inner,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag

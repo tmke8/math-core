@@ -498,7 +498,7 @@ where
 
                 let bounds_with_limits = self.get_bounds(None)?;
                 let bounds = bounds_with_limits.bounds;
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let (use_underover, attrs) = match bounds_with_limits.limits() {
                     _ if bounds.is_trivial() => {
                         (true, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
@@ -609,21 +609,22 @@ where
                     size: None,
                 })
             }
-            Token::MathClass(kind) => 'mathclass: {
-                let one_or_none = self.tokens.read_argument(false)?.into_one_or_none()?;
-                let (left_spacing, right_spacing) = match kind {
+            Token::MathClass(kind) => {
+                let tok_span = self.next_token()?;
+                let (_, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
+                // Recompute the next class:
+                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                let (left, right) = match kind {
                     MathClassKind::Ord => {
                         class = Class::Default;
                         (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
                     }
                     MathClassKind::Op => {
                         class = Class::Operator;
-                        self.big_operator_spacing(parse_as, prev_class, true)?
+                        self.mathop_spacing(parse_as, prev_class, true)?
                     }
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
-                        // Recompute the next class:
-                        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                         let spacing = self.state.bin_op_spacing(
                             parse_as.in_sequence(),
                             prev_class,
@@ -634,8 +635,6 @@ where
                     }
                     MathClassKind::Rel => {
                         class = Class::Relation;
-                        // Recompute the next class:
-                        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
                         self.state.relation_spacing(prev_class, next_class, true)
                     }
                     MathClassKind::Open => {
@@ -650,74 +649,53 @@ where
                         class = Class::Punctuation;
                         self.state.punctuation_spacing(next_class, true)
                     }
-                };
-                match one_or_none {
-                    OneOrNone::One(tokspan) => {
-                        let (tok, span) = tokspan.into_parts();
-                        let op = match tok.unwrap_math() {
-                            Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
-                            Token::Op(op) | Token::Inner(op) => op.as_op(),
-                            Token::BinaryOp(op) => op.as_op(),
-                            Token::Relation(op) => op.as_op(),
-                            Token::Punctuation(op) => op.as_op(),
-                            Token::ForceRelation(op)
-                            | Token::ForceOpen(op, _)
-                            | Token::ForceClose(op, _)
-                            | Token::ForceBinaryOp(op)
-                            | Token::ForcePunctuation(op) => op,
-                            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                            Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                            _ => {
-                                break 'mathclass Err(LatexError(
-                                    span.into(),
-                                    LatexErrKind::UnsupportedMathClassArgument,
-                                ));
-                            }
-                        };
-                        Ok(Node::Operator {
-                            op,
-                            attrs: OpAttrs::STRETCHY_FALSE,
-                            left: left_spacing,
-                            right: right_spacing,
-                            size: None,
-                        })
+                    MathClassKind::Inner => {
+                        class = Class::Inner;
+                        self.state.mathinner_spacing(prev_class, next_class, true)
                     }
-                    OneOrNone::None(_) => Ok(Node::Operator {
+                };
+                match node {
+                    Node::Operator {
+                        op,
+                        attrs,
+                        size,
+                        left: _,
+                        right: _,
+                    } => Ok(Node::Operator {
+                        op: *op,
+                        attrs: *attrs | OpAttrs::STRETCHY_FALSE,
+                        left,
+                        right,
+                        size: *size,
+                    }),
+                    Node::Row {
+                        nodes: [],
+                        attrs:
+                            RowAttrs {
+                                color: None,
+                                style: None,
+                                math_shift_compact: false,
+                            },
+                    } => Ok(Node::Operator {
                         // An empty `<mo></mo>` produces no spacing in Firefox
                         op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                         attrs: OpAttrs::empty(),
-                        left: left_spacing,
-                        right: right_spacing,
+                        left,
+                        right,
                         size: None,
+                    }),
+                    _ => Ok(Node::Padded {
+                        node,
+                        width_0: false,
+                        height_0: false,
+                        left,
+                        right,
                     }),
                 }
             }
             Token::Inner(op) => {
                 class = Class::Inner;
-                let left = if matches!(
-                    prev_class,
-                    Class::Relation
-                        | Class::Punctuation
-                        | Class::Operator
-                        | Class::BinaryOp
-                        | Class::Open
-                ) || matches!(self.state.style, Style::Script | Style::ScriptScript)
-                {
-                    Some(MathSpacing::Zero)
-                } else {
-                    None
-                };
-                let right =
-                    if matches!(
-                        next_class,
-                        Class::Relation | Class::BinaryOp | Class::Close | Class::End
-                    ) || (matches!(self.state.style, Style::Script | Style::ScriptScript)
-                        && !matches!(next_class, Class::Operator))
-                    {
-                        Some(MathSpacing::Zero)
-                    } else {
-                        None
-                    };
+                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, false);
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
@@ -970,7 +948,7 @@ where
 
                 let bounds = bounds_limits.bounds;
 
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
 
                 let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
                     (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
@@ -1021,7 +999,7 @@ where
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let target = self.commit(Node::PseudoOp {
                     attrs,
                     left,
@@ -1452,7 +1430,7 @@ where
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, true)?;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
                     attrs: OpAttrs::empty(),
                     left,
@@ -1733,11 +1711,15 @@ where
                         node: self.arena.push(Node::Phantom { node: inner }),
                         width_0: false,
                         height_0: true,
+                        left: None,
+                        right: None,
                     }),
                     PhantomKind::V => Ok(Node::Padded {
                         node: self.arena.push(Node::Phantom { node: inner }),
                         width_0: true,
                         height_0: false,
+                        left: None,
+                        right: None,
                     }),
                 }
             }
@@ -1799,7 +1781,7 @@ where
                     }
                 };
                 let has_movable_limits: bool = matches!(op.category(), OpCategory::J);
-                let (left, right) = self.big_operator_spacing(parse_as, prev_class, false)?;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
                 let attrs = if has_movable_limits {
                     OpAttrs::NO_MOVABLE_LIMITS
                 } else {
@@ -2312,7 +2294,7 @@ where
         Ok(ret_node)
     }
 
-    fn big_operator_spacing(
+    fn mathop_spacing(
         &mut self,
         parse_as: ParseAs,
         prev_class: Class,
@@ -2669,6 +2651,38 @@ impl ParserState<'_, '_> {
             None
         };
 
+        (left, right)
+    }
+
+    fn mathinner_spacing(
+        &self,
+        prev_class: Class,
+        next_class: Class,
+        force: bool,
+    ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        let left = if matches!(
+            prev_class,
+            Class::Relation | Class::Punctuation | Class::Operator | Class::BinaryOp | Class::Open
+        ) || matches!(self.style, Style::Script | Style::ScriptScript)
+        {
+            Some(MathSpacing::Zero)
+        } else if force {
+            Some(MathSpacing::ThreeMu)
+        } else {
+            None
+        };
+        let right = if matches!(
+            next_class,
+            Class::Relation | Class::BinaryOp | Class::Close | Class::End
+        ) || (matches!(self.style, Style::Script | Style::ScriptScript)
+            && !matches!(next_class, Class::Operator))
+        {
+            Some(MathSpacing::Zero)
+        } else if force {
+            Some(MathSpacing::ThreeMu)
+        } else {
+            None
+        };
         (left, right)
     }
 }

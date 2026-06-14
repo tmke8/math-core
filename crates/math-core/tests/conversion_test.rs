@@ -572,16 +572,20 @@ fn main() {
         ("mathbin_paren", r"{\frac12\mathbin)y}"),
         ("mathbin_after_dots", r"\dots\mathbin+, \dots+"),
         ("mathbin_no_arg", r"x \mathbin{} y"),
+        ("mathbin_mutli_arg", r"x \mathbin{++} y"),
+        ("mathbin_letter", r"x \mathbin a y"),
         ("mathord", r"x\mathord{+}y"),
         ("mathord_no_braces", r"x\mathord+y"),
         ("mathord_relation", r"x\mathord{=}y"),
         ("mathord_less_than", r"x\mathord{<}y"),
+        ("mathord_mutli_arg", r"x \mathord{++} y"),
         ("mathopen", r"x+\mathopen)y"),
         ("mathord_no_arg", r"x \mathord{} y"),
         ("mathclose", r"\mathclose(+x"),
         ("mathrel", r"y \mathrel , ="),
         ("mathpunct", r"y \mathpunct - x"),
         ("mathop", r"a\mathop{+}b"),
+        ("mathinner", r"ab\mathinner{\text{inside}}cd"),
         ("comma_before_close_paren", r"4,)"),
         ("unicode_open_close", "⦃ a + b ⦄"),
         ("unicode_open_close_force", "⟅ a + b ⟆"),
@@ -681,7 +685,7 @@ fn main() {
     for (name, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
-            .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
+            .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
         assert_snapshot!(name, &mathml, problem);
     }
 }

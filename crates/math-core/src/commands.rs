@@ -538,6 +538,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "mathcal" => Transform(MathVariant::Transform(TextTransform::ScriptChancery)),
     "mathclose" => MathClass(MathClassKind::Close),
     "mathfrak" => Transform(MathVariant::Transform(TextTransform::Fraktur)),
+    "mathinner" => MathClass(MathClassKind::Inner),
     "mathit" => Transform(MathVariant::Transform(TextTransform::Italic)),
     "mathop" => MathClass(MathClassKind::Op),
     "mathopen" => MathClass(MathClassKind::Open),

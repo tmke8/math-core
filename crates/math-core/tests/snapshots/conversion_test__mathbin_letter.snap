@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x \\mathbin a y"
+---
+<math>
+    <mi>x</mi>
+    <mpadded style="padding-left:0.2222em;padding-right:0.2222em;">
+        <mi>a</mi>
+    </mpadded>
+    <mi>y</mi>
+</math>

@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "ab\\mathinner{\\text{inside}}cd"
+---
+<math>
+    <mi>a</mi>
+    <mi>b</mi>
+    <mpadded style="padding-left:0.1667em;padding-right:0.1667em;">
+        <mtext>inside</mtext>
+    </mpadded>
+    <mi>c</mi>
+    <mi>d</mi>
+</math>
