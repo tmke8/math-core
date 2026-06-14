@@ -288,6 +288,7 @@ pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
 pub const RIGHT_CURLY_BRACKET: OrdLike = OrdLike::new('}', OrdCategory::G);
 pub const TILDE: OrdLike = OrdLike::new('~', OrdCategory::I);
+pub const TILDE_ACCENT: MathMLOperator = MathMLOperator::from_char('~');
 
 //
 // Unicode Block: Latin-1 Supplement

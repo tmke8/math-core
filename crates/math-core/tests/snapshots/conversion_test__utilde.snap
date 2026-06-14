@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\utilde{a+b+c}_{d}"
+---
+<math>
+    <msub>
+        <munder accentunder="true">
+            <mrow>
+                <mi>a</mi>
+                <mo>+</mo>
+                <mi>b</mi>
+                <mo>+</mo>
+                <mi>c</mi>
+            </mrow>
+            <mo>~</mo>
+        </munder>
+        <mi>d</mi>
+    </msub>
+</math>
