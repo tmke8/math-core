@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "x \\mathord{++} y"
 ---
-Error: Expected at most one token as argument.
+Error: Support for this argument isn't implemented yet for class-changing commands.
    ╭─[ <input>:1:11 ]
    │
  1 │ x \mathord{++} y
-   │           ──┬─  
-   │             ╰─── expected at most one token here
+   │           ┬  
+   │           ╰── unsupported argument
 ───╯

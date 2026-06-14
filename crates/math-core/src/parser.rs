@@ -609,8 +609,10 @@ where
                     size: None,
                 })
             }
-            Token::MathClass(kind) => 'mathclass: {
-                let one_or_none = self.tokens.read_argument(false)?.into_one_or_none()?;
+            Token::MathClass(kind) => {
+                let tok_span = self.next_token()?;
+                let new_span = tok_span.span();
+                let (_, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
                 let (left_spacing, right_spacing) = match kind {
                     MathClassKind::Ord => {
                         class = Class::Default;
@@ -651,38 +653,29 @@ where
                         self.state.punctuation_spacing(next_class, true)
                     }
                 };
-                match one_or_none {
-                    OneOrNone::One(tokspan) => {
-                        let (tok, span) = tokspan.into_parts();
-                        let op = match tok.unwrap_math() {
-                            Token::Ord(op) | Token::Open(op) | Token::Close(op) => op.as_op(),
-                            Token::Op(op) | Token::Inner(op) => op.as_op(),
-                            Token::BinaryOp(op) => op.as_op(),
-                            Token::Relation(op) => op.as_op(),
-                            Token::Punctuation(op) => op.as_op(),
-                            Token::ForceRelation(op)
-                            | Token::ForceOpen(op, _)
-                            | Token::ForceClose(op, _)
-                            | Token::ForceBinaryOp(op)
-                            | Token::ForcePunctuation(op) => op,
-                            Token::SquareBracketOpen => symbol::LEFT_SQUARE_BRACKET.as_op(),
-                            Token::SquareBracketClose => symbol::RIGHT_SQUARE_BRACKET.as_op(),
-                            _ => {
-                                break 'mathclass Err(LatexError(
-                                    span.into(),
-                                    LatexErrKind::UnsupportedMathClassArgument,
-                                ));
-                            }
-                        };
-                        Ok(Node::Operator {
-                            op,
-                            attrs: OpAttrs::STRETCHY_FALSE,
-                            left: left_spacing,
-                            right: right_spacing,
-                            size: None,
-                        })
-                    }
-                    OneOrNone::None(_) => Ok(Node::Operator {
+                match node {
+                    Node::Operator {
+                        op,
+                        attrs,
+                        size,
+                        left: _,
+                        right: _,
+                    } => Ok(Node::Operator {
+                        op: *op,
+                        attrs: *attrs | OpAttrs::STRETCHY_FALSE,
+                        left: left_spacing,
+                        right: right_spacing,
+                        size: *size,
+                    }),
+                    Node::Row {
+                        nodes: [],
+                        attrs:
+                            RowAttrs {
+                                color: None,
+                                style: None,
+                                math_shift_compact: false,
+                            },
+                    } => Ok(Node::Operator {
                         // An empty `<mo></mo>` produces no spacing in Firefox
                         op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                         attrs: OpAttrs::empty(),
@@ -690,6 +683,10 @@ where
                         right: right_spacing,
                         size: None,
                     }),
+                    _ => Err(LatexError(
+                        new_span.into(),
+                        LatexErrKind::UnsupportedMathClassArgument,
+                    )),
                 }
             }
             Token::Inner(op) => {

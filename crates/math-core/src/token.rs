@@ -140,7 +140,7 @@ pub enum Token<'source> {
     /// This is, for example, needed for `⅀`.
     /// We assume `movablelimitss`.
     ForceLargeOp(MathMLOperator),
-    /// `\mathord` and `\mathbin`.
+    /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for composite relations, e.g. `\coloneqq`.
     CompositeRelation {
