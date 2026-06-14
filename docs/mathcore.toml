@@ -2,3 +2,4 @@ pretty-print = "never"
 xml-namespace = false
 ignore-unknown-commands = true
 allow-unreliable-rendering = true
+unicode-substitution = "never"

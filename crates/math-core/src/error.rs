@@ -34,7 +34,6 @@ pub(crate) enum LatexErrKind {
     },
     ExpectedRelation,
     ExpectedLargeOp,
-    UnsupportedMathClassArgument,
     ExpectedAtMostOneToken,
     ExpectedExactlyOneToken,
     BoundFollowedByBound,
@@ -184,12 +183,6 @@ impl LatexErrKind {
             }
             LatexErrKind::ExpectedLargeOp => {
                 write!(s, "Expected a large operator.")?;
-            }
-            LatexErrKind::UnsupportedMathClassArgument => {
-                write!(
-                    s,
-                    "Support for this argument isn't implemented yet for class-changing commands."
-                )?;
             }
             LatexErrKind::ExpectedAtMostOneToken => {
                 write!(s, "Expected at most one token as argument.")?;
@@ -359,7 +352,6 @@ impl LatexError {
             LatexErrKind::ExpectedRelation => "expected a relation".into(),
             LatexErrKind::ExpectedLargeOp => "expected a large operator".into(),
             LatexErrKind::ExpectedStyle => "expected a style".into(),
-            LatexErrKind::UnsupportedMathClassArgument => "unsupported argument".into(),
             LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
             LatexErrKind::ExpectedExactlyOneToken => "expected exactly one token here".into(),
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),

@@ -15,5 +15,7 @@ expression: "\\mathstrut"
     ),
     width_0: true,
     height_0: false,
+    left: None,
+    right: None,
   ),
 ]

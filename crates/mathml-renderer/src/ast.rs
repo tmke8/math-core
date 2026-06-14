@@ -167,6 +167,8 @@ pub enum Node<'arena> {
         node: &'arena Node<'arena>,
         width_0: bool,
         height_0: bool,
+        left: Option<MathSpacing>,
+        right: Option<MathSpacing>,
     },
     /// `<mphantom>...</mphantom>`
     Phantom { node: &'arena Node<'arena> },
@@ -517,6 +519,8 @@ impl Node<'_> {
                 node,
                 width_0,
                 height_0,
+                left,
+                right,
             } => {
                 write!(s, "<mpadded")?;
                 if width_0 {
@@ -524,6 +528,16 @@ impl Node<'_> {
                 }
                 if height_0 {
                     write!(s, r#" height="0""#)?;
+                }
+                if left.is_some() || right.is_some() {
+                    write!(s, " style=\"")?;
+                    if let Some(left) = left {
+                        write!(s, "padding-left:{};", <&str>::from(left))?;
+                    }
+                    if let Some(right) = right {
+                        write!(s, "padding-right:{};", <&str>::from(right))?;
+                    }
+                    write!(s, "\"")?;
                 }
                 write!(s, ">")?;
                 node.emit(s, child_indent)?;
@@ -1250,8 +1264,10 @@ mod tests {
                 node: &Node::Number("x"),
                 width_0: true,
                 height_0: false,
+                left: None,
+                right: Some(MathSpacing::FourMu),
             }),
-            "<mpadded width=\"0\"><mn>x</mn></mpadded>"
+            "<mpadded width=\"0\" style=\"padding-right:0.2222em;\"><mn>x</mn></mpadded>"
         );
     }
 
