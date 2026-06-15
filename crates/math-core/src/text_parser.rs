@@ -214,7 +214,15 @@ impl<'arena> Parser<'_, '_, 'arena> {
                             let text = builder.finish(self.arena);
                             snippets.push(TextSnippet(current_style, current_size, text));
                         }
-                        style_stack.push((brace_nesting, style));
+                        let new_style = match (current_style, style) {
+                            (Some(HtmlTextStyle::Emphasis), Some(HtmlTextStyle::Emphasis)) => None,
+                            (Some(HtmlTextStyle::Bold), Some(HtmlTextStyle::Italic))
+                            | (Some(HtmlTextStyle::Italic), Some(HtmlTextStyle::Bold)) => {
+                                Some(HtmlTextStyle::BoldItalic)
+                            }
+                            _ => style,
+                        };
+                        style_stack.push((brace_nesting, new_style));
                         brace_nesting = 0;
                         continue;
                     }
