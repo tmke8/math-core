@@ -41,7 +41,7 @@ mod text_parser;
 mod token;
 mod token_queue;
 
-use std::num::NonZeroU16;
+use std::num::NonZeroUsize;
 
 use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
@@ -198,8 +198,8 @@ impl From<&MathCoreConfig> for Flags {
 pub struct LatexToMathML {
     flags: Flags,
     /// This is used for numbering equations in the document.
-    equation_count: u16,
-    label_map: FxHashMap<Box<str>, NonZeroU16>,
+    equation_count: usize,
+    label_map: FxHashMap<Box<str>, NonZeroUsize>,
     cmd_cfg: Option<CommandConfig>,
 }
 
@@ -289,8 +289,8 @@ fn convert(
     latex: &str,
     display: MathDisplay,
     cmd_cfg: Option<&CommandConfig>,
-    equation_count: &mut u16,
-    label_map: &mut FxHashMap<Box<str>, NonZeroU16>,
+    equation_count: &mut usize,
+    label_map: &mut FxHashMap<Box<str>, NonZeroUsize>,
     flags: &Flags,
 ) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
@@ -350,8 +350,8 @@ fn parse<'config, 'source, 'arena>(
     latex: &'source str,
     arena: &'arena Arena,
     cmd_cfg: Option<&'config CommandConfig>,
-    equation_count: &'arena mut u16,
-    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+    equation_count: &'arena mut usize,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroUsize>,
     display: MathDisplay,
     unicode_substitution: UnicodeSubstitution,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>

@@ -1,4 +1,4 @@
-use std::num::NonZeroU16;
+use std::num::{NonZeroU16, NonZeroUsize};
 
 use mathml_renderer::{
     arena::Arena,
@@ -292,7 +292,7 @@ pub(super) enum NumberingMode {
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,
-    pub(super) custom_next_number: Option<NonZeroU16>,
+    pub(super) custom_next_number: Option<NonZeroUsize>,
     pub(super) label: Option<&'arena str>,
     pub(super) num_rows: Option<NonZeroU16>,
 }
@@ -300,9 +300,9 @@ pub(super) struct NumberedEnvState<'arena> {
 impl NumberedEnvState<'_> {
     pub(super) fn next_equation_number(
         &mut self,
-        equation_counter: &mut u16,
+        equation_counter: &mut usize,
         is_last: bool,
-    ) -> Result<Option<NonZeroU16>, ()> {
+    ) -> Result<Option<NonZeroUsize>, ()> {
         if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
             // Not the last row; do nothing for now.
             return Ok(None);
@@ -317,7 +317,7 @@ impl NumberedEnvState<'_> {
             Ok(None)
         } else {
             *equation_counter = equation_counter.checked_add(1).ok_or(())?;
-            let equation_number = NonZeroU16::new(*equation_counter);
+            let equation_number = NonZeroUsize::new(*equation_counter);
             debug_assert!(equation_number.is_some());
             Ok(equation_number)
         }
