@@ -1,5 +1,5 @@
 use std::fmt::{self, Write};
-use std::num::NonZeroU16;
+use std::num::{NonZeroU16, NonZeroUsize};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -206,7 +206,7 @@ pub enum Node<'arena> {
     ColumnSeparator,
     /// `<mtr>...</mtr>`
     RowSeparator {
-        tag: Option<NonZeroU16>,
+        tag: Option<NonZeroUsize>,
         link_target: Option<&'arena str>,
     },
     /// `<menclose>...</menclose>`
@@ -845,7 +845,7 @@ fn write_equation_num(
     s: &mut String,
     child_indent2: usize,
     child_indent3: usize,
-    tag: Option<NonZeroU16>,
+    tag: Option<NonZeroUsize>,
     link_target: Option<&str>,
     numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
@@ -1345,7 +1345,7 @@ mod tests {
             &Node::ColumnSeparator,
             &Node::Number("2"),
             &Node::RowSeparator {
-                tag: NonZeroU16::new(1),
+                tag: NonZeroUsize::new(1),
                 link_target: None,
             },
             &Node::Number("3"),
@@ -1354,7 +1354,7 @@ mod tests {
         ];
 
         let info_with_tag = RowLabelInfo {
-            tag: NonZeroU16::new(2),
+            tag: NonZeroUsize::new(2),
             link_target: None,
         };
         assert_eq!(

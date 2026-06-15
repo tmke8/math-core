@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, mem, num::NonZeroU16, ops::Range};
+use std::{fmt::Write as _, mem, num::NonZeroUsize, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -39,8 +39,8 @@ pub(crate) struct Parser<'config, 'source, 'arena> {
     pub(super) tokens: TokenQueue<'config, 'source>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    equation_counter: &'arena mut u16,
-    label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+    equation_counter: &'arena mut usize,
+    label_map: &'arena mut FxHashMap<Box<str>, NonZeroUsize>,
     unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'source, 'arena>,
 }
@@ -129,8 +129,8 @@ where
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
-        equation_counter: &'arena mut u16,
-        label_map: &'arena mut FxHashMap<Box<str>, NonZeroU16>,
+        equation_counter: &'arena mut usize,
+        label_map: &'arena mut FxHashMap<Box<str>, NonZeroUsize>,
         style: Style,
         unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
@@ -317,10 +317,10 @@ where
                 let (tag_name, literal_span) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
                     // For now, we only support numeric tags.
-                    if let Ok(tag_num) = tag_name.trim_ascii().parse::<u16>()
+                    if let Ok(tag_num) = tag_name.trim_ascii().parse::<usize>()
                         && tag_num != 0
                     {
-                        numbered_state.custom_next_number = NonZeroU16::new(tag_num);
+                        numbered_state.custom_next_number = NonZeroUsize::new(tag_num);
                         Ok(())
                     } else {
                         Err(LatexError(
@@ -2928,7 +2928,7 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let mut equation_counter = 0u16;
+            let mut equation_counter = 0usize;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new(problem, false, None);
             let mut p = Parser::new(
@@ -2975,7 +2975,7 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let mut equation_counter = 0u16;
+            let mut equation_counter = 0usize;
             let mut label_map = FxHashMap::default();
             let l = Lexer::new("", false, None);
             let mut p = Parser::new(
