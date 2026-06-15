@@ -39,7 +39,7 @@ pub(crate) enum LatexErrKind {
     BoundFollowedByBound,
     DuplicateSubOrSup,
     CannotBeUsedAsArgument,
-    ExpectedText,
+    ExpectedAscii,
     ExpectedLength(Box<str>),
     IllegalUnit {
         unit: Box<str>,
@@ -47,7 +47,6 @@ pub(crate) enum LatexErrKind {
     },
     InvalidUnit(Box<str>),
     ExpectedColSpec(Box<str>),
-    ExpectedNumber(Box<str>),
     ExpectedStyle,
     NotValidInTextMode,
     NotValidInMathMode,
@@ -199,8 +198,11 @@ impl LatexErrKind {
             LatexErrKind::CannotBeUsedAsArgument => {
                 write!(s, "Switch-like commands cannot be used as arguments.")?;
             }
-            LatexErrKind::ExpectedText => {
-                write!(s, "Expected text in string literal.")?;
+            LatexErrKind::ExpectedAscii => {
+                write!(
+                    s,
+                    "Expected non-special ASCII characters in string literal."
+                )?;
             }
             LatexErrKind::ExpectedLength(got) => {
                 write!(s, "Expected length with units, got \"{got}\".")?;
@@ -223,9 +225,6 @@ impl LatexErrKind {
             }
             LatexErrKind::InvalidUnit(unit) => {
                 write!(s, "Found invalid unit \"{unit}\".")?;
-            }
-            LatexErrKind::ExpectedNumber(got) => {
-                write!(s, "Expected a number, got \"{got}\".")?;
             }
             LatexErrKind::ExpectedColSpec(got) => {
                 write!(s, "Expected column specification, got \"{got}\".")?;
@@ -357,11 +356,10 @@ impl LatexError {
             LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
             LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
             LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),
-            LatexErrKind::ExpectedText => "expected text here".into(),
+            LatexErrKind::ExpectedAscii => "special or not ASCII".into(),
             LatexErrKind::ExpectedLength(_) => "expected length here".into(),
             LatexErrKind::IllegalUnit { .. } => "illegal unit here".into(),
             LatexErrKind::InvalidUnit(_) => "invalid unit here".into(),
-            LatexErrKind::ExpectedNumber(_) => "expected a number here".into(),
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
             LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),
             LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),

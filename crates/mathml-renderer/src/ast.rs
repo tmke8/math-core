@@ -1,5 +1,5 @@
 use std::fmt::{self, Write};
-use std::num::{NonZeroU16, NonZeroUsize};
+use std::num::NonZeroU16;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -205,10 +205,7 @@ pub enum Node<'arena> {
     /// `<mtd>...</mtd>`
     ColumnSeparator,
     /// `<mtr>...</mtr>`
-    RowSeparator {
-        tag: Option<NonZeroUsize>,
-        link_target: Option<&'arena str>,
-    },
+    RowSeparator(Option<&'arena RowLabelInfo<'arena>>),
     /// `<menclose>...</menclose>`
     Enclose {
         content: &'arena Node<'arena>,
@@ -791,20 +788,19 @@ fn emit_table(
     }
     col_gen.write_next_mtd(s, child_indent2)?;
     for node in content {
-        match node {
+        match **node {
             Node::ColumnSeparator => {
                 writeln_indent!(s, child_indent2, "</mtd>");
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
-            Node::RowSeparator { tag, link_target } => {
+            Node::RowSeparator(label_info) => {
                 writeln_indent!(s, child_indent2, "</mtd>");
                 if let Some(numbering_cols) = numbering_cols {
                     write_equation_num(
                         s,
                         child_indent2,
                         child_indent3,
-                        tag.as_ref().copied(),
-                        *link_target,
+                        label_info,
                         numbering_cols,
                     )?;
                 }
@@ -816,23 +812,18 @@ fn emit_table(
                 col_gen.reset_to_new_row();
                 col_gen.write_next_mtd(s, child_indent2)?;
             }
-            node => {
+            _ => {
                 node.emit(s, child_indent3)?;
             }
         }
     }
     writeln_indent!(s, child_indent2, "</mtd>");
     if let Some(numbering_cols) = numbering_cols {
-        let (last_tag, last_link_target) = match last_row_info {
-            Some(info) => (info.tag, info.link_target),
-            None => (None, None),
-        };
         write_equation_num(
             s,
             child_indent2,
             child_indent3,
-            last_tag,
-            last_link_target,
+            last_row_info,
             numbering_cols,
         )?;
     }
@@ -845,19 +836,18 @@ fn write_equation_num(
     s: &mut String,
     child_indent2: usize,
     child_indent3: usize,
-    tag: Option<NonZeroUsize>,
-    link_target: Option<&str>,
+    label_info: Option<&RowLabelInfo>,
     numbering_cols: NumberColums,
 ) -> Result<(), std::fmt::Error> {
     numbering_cols.dummy_column_opening(s, child_indent2)?;
-    if let Some(tag) = tag {
+    if let Some(label_info) = label_info {
         write!(s, r#";{RIGHT_ALIGN}""#)?;
-        if let Some(link_target) = link_target {
+        if let Some(link_target) = label_info.link_target {
             write!(s, r#" id="{link_target}">"#)?;
         } else {
             write!(s, ">")?;
         }
-        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", tag);
+        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", label_info.tag);
         writeln_indent!(s, child_indent2, "</mtd>");
     } else {
         write!(s, "\"></mtd>")?;
@@ -1319,10 +1309,7 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator {
-                tag: None,
-                link_target: None,
-            },
+            &Node::RowSeparator(None),
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1344,17 +1331,17 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator {
-                tag: NonZeroUsize::new(1),
+            &Node::RowSeparator(Some(&RowLabelInfo {
+                tag: "1",
                 link_target: None,
-            },
+            })),
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
         ];
 
         let info_with_tag = RowLabelInfo {
-            tag: NonZeroUsize::new(2),
+            tag: "2",
             link_target: None,
         };
         assert_eq!(
@@ -1382,10 +1369,7 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator {
-                tag: None,
-                link_target: None,
-            },
+            &Node::RowSeparator(None),
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),

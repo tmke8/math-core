@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}\\tag{a_b}1\\end{align}"
+---
+Error: Expected non-special ASCII characters in string literal.
+   ╭─[ <input>:1:20 ]
+   │
+ 1 │ \begin{align}\tag{a_b}1\end{align}
+   │                    ┬  
+   │                    ╰── special or not ASCII
+───╯
