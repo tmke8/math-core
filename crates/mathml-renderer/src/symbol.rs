@@ -539,10 +539,13 @@ pub const TURNED_AMPERSAND: MathMLOperator = MathMLOperator::from_char('⅋');
 // Unicode Block: Arrows
 //
 pub const LEFTWARDS_ARROW: Rel = Rel::new('←', RelCategory::A);
+pub const LEFTWARDS_ARROW_ACCENT: MathMLOperator = MathMLOperator::from_char('←');
 pub const UPWARDS_ARROW: Rel = Rel::new('↑', RelCategory::A);
 pub const RIGHTWARDS_ARROW: Rel = Rel::new('→', RelCategory::A);
+pub const RIGHTWARDS_ARROW_ACCENT: MathMLOperator = MathMLOperator::from_char('→');
 pub const DOWNWARDS_ARROW: Rel = Rel::new('↓', RelCategory::A);
 pub const LEFT_RIGHT_ARROW: Rel = Rel::new('↔', RelCategory::A);
+pub const LEFT_RIGHT_ARROW_ACCENT: MathMLOperator = MathMLOperator::from_char('↔');
 pub const UP_DOWN_ARROW: Rel = Rel::new('↕', RelCategory::A);
 pub const NORTH_WEST_ARROW: Rel = Rel::new('↖', RelCategory::Default);
 pub const NORTH_EAST_ARROW: Rel = Rel::new('↗', RelCategory::Default);

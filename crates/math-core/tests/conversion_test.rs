@@ -339,6 +339,9 @@ fn main() {
         ("text_transform_sup", r"\mathbb{N} \cup \mathbb{N}^+"),
         ("overbrace", r"\overbrace{a+b+c}^{d}"),
         ("underbrace", r"\underbrace{a+b+c}_{d}"),
+        ("underleftarrow", r"\underleftarrow{a+b+c}_{d}"),
+        ("underleftrightarrow", r"\underleftrightarrow{a+b+c}_{d}"),
+        ("underrightarrow", r"\underrightarrow{a+b+c}_{d}"),
         ("utilde", r"\utilde{a+b+c}_{d}"),
         ("prod", r"\prod_i \prod^n \prod^n_i \prod_i^n"),
         (
