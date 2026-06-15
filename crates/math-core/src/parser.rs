@@ -316,7 +316,7 @@ where
             Token::Tag => {
                 let (tag_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    numbered_state.custom_next_tag = Some(tag_name.into());
+                    numbered_state.custom_next_tag = Some(tag_name);
                     Ok(())
                 } else {
                     Err(LatexError(
@@ -1381,18 +1381,17 @@ where
                 }
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
-                    match n.next_equation_tag(self.equation_counter, true) {
+                    match n.next_equation_tag(self.equation_counter, true, self.arena) {
                         Ok(tag) => {
                             let link_target = n.label.take();
                             let info = if let Some(tag) = tag {
-                                let tag_arena = self.arena.alloc_str(&tag);
                                 if let Some(label) = link_target {
-                                    self.label_map.insert(label.into(), tag);
+                                    self.label_map.insert(label.into(), tag.into());
                                 }
-                                Some(self.arena.alloc_row_label_info(RowLabelInfo {
-                                    tag: tag_arena,
-                                    link_target,
-                                }))
+                                Some(
+                                    self.arena
+                                        .alloc_row_label_info(RowLabelInfo { tag, link_target }),
+                                )
                             } else {
                                 None
                             };
@@ -1481,18 +1480,18 @@ where
                             }
                         }
                     }
-                    match numbered_state.next_equation_tag(self.equation_counter, false) {
+                    match numbered_state.next_equation_tag(self.equation_counter, false, self.arena)
+                    {
                         Ok(tag) => {
                             let link_target = numbered_state.label.take();
                             let label_info = if let Some(tag) = tag {
-                                let tag_arena = self.arena.alloc_str(&tag);
                                 if let Some(label) = link_target {
-                                    self.label_map.insert(label.into(), tag);
+                                    self.label_map.insert(label.into(), tag.into());
                                 }
-                                Some(self.arena.alloc_row_label_info(RowLabelInfo {
-                                    tag: tag_arena,
-                                    link_target,
-                                }))
+                                Some(
+                                    self.arena
+                                        .alloc_row_label_info(RowLabelInfo { tag, link_target }),
+                                )
                             } else {
                                 // If we don't have a tag, we're not setting a link target either
                                 None

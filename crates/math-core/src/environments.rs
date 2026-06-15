@@ -293,17 +293,18 @@ pub(super) enum NumberingMode {
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,
-    pub(super) custom_next_tag: Option<Box<str>>,
+    pub(super) custom_next_tag: Option<&'arena str>,
     pub(super) label: Option<&'arena str>,
     pub(super) num_rows: Option<NonZeroU16>,
 }
 
-impl NumberedEnvState<'_> {
+impl<'arena> NumberedEnvState<'arena> {
     pub(super) fn next_equation_tag(
         &mut self,
         equation_counter: &mut usize,
         is_last: bool,
-    ) -> Result<Option<Box<str>>, ()> {
+        arena: &'arena Arena,
+    ) -> Result<Option<&'arena str>, ()> {
         if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
             // Not the last row; do nothing for now.
             return Ok(None);
@@ -318,9 +319,11 @@ impl NumberedEnvState<'_> {
             Ok(None)
         } else {
             *equation_counter = equation_counter.checked_add(1).ok_or(())?;
-            let mut s = String::new();
-            write!(s, "{}", equation_counter).map_err(|_| ())?;
-            Ok(Some(s.into()))
+            // TODO: Use the `int_format_into` feature once it's stabilized.
+            let mut buffer = String::new();
+            write!(buffer, "{}", equation_counter).map_err(|_| ())?;
+            let tag = arena.alloc_str(&buffer);
+            Ok(Some(tag))
         }
     }
 }
