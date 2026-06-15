@@ -55,6 +55,11 @@ fn main() {
         ("text_size_no_braces", r"\text\large x"),
         ("text_size_as_style_argument", r"\text{a\textit\large b}"),
         (
+            "textit_and_textbf",
+            r"\textit{a\textbf{b}}, \textbf{c\textit{d}}",
+        ),
+        ("nested_emph", r"\emph{a\emph{b}c}"),
+        (
             "text_size_all",
             r"\text{\tiny a\sixptsize b\scriptsize c\footnotesize d\small e\normalsize f\large g\Large h\LARGE i\huge j\Huge k}",
         ),
