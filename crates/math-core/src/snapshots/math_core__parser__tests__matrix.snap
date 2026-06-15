@@ -17,10 +17,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         style: Some(Text),
         content: [
           IdentifierChar("x", Default),
-          RowSeparator(
-            tag: None,
-            link_target: None,
-          ),
+          RowSeparator(None),
           IdentifierChar("y", Default),
         ],
       ),

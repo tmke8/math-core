@@ -1,7 +1,4 @@
-use std::{
-    fmt::Write,
-    num::{NonZeroU16, NonZeroUsize},
-};
+use std::{fmt::Write, num::NonZeroU16};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -55,7 +52,7 @@ pub enum Alignment {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RowLabelInfo<'arena> {
-    pub tag: Option<NonZeroUsize>,
+    pub tag: &'arena str,
     pub link_target: Option<&'arena str>,
 }
 

@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, mem, num::NonZeroUsize, ops::Range};
+use std::{fmt::Write as _, mem, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -40,7 +40,7 @@ pub(crate) struct Parser<'config, 'source, 'arena> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'arena mut usize,
-    label_map: &'arena mut FxHashMap<Box<str>, NonZeroUsize>,
+    label_map: &'arena mut FxHashMap<Box<str>, Box<str>>,
     unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'source, 'arena>,
 }
@@ -130,7 +130,7 @@ where
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
         equation_counter: &'arena mut usize,
-        label_map: &'arena mut FxHashMap<Box<str>, NonZeroUsize>,
+        label_map: &'arena mut FxHashMap<Box<str>, Box<str>>,
         style: Style,
         unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
@@ -314,20 +314,10 @@ where
                 Ok(())
             }
             Token::Tag => {
-                let (tag_name, literal_span) = self.parse_string_literal()?;
+                let (tag_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.numbered {
-                    // For now, we only support numeric tags.
-                    if let Ok(tag_num) = tag_name.trim_ascii().parse::<usize>()
-                        && tag_num != 0
-                    {
-                        numbered_state.custom_next_number = NonZeroUsize::new(tag_num);
-                        Ok(())
-                    } else {
-                        Err(LatexError(
-                            literal_span,
-                            LatexErrKind::ExpectedNumber(tag_name.into()),
-                        ))
-                    }
+                    numbered_state.custom_next_tag = Some(tag_name.into());
+                    Ok(())
                 } else {
                     Err(LatexError(
                         span,
@@ -1391,17 +1381,16 @@ where
                 }
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
-                    match n.next_equation_number(self.equation_counter, true) {
-                        Ok(num) => {
+                    match n.next_equation_tag(self.equation_counter, true) {
+                        Ok(tag) => {
                             let link_target = n.label.take();
-                            if let Some(label) = link_target
-                                && let Some(tag) = num
-                            {
-                                self.label_map.insert(label.into(), tag);
-                            }
-                            let info = if num.is_some() || link_target.is_some() {
+                            let info = if let Some(tag) = tag {
+                                let tag_arena = self.arena.alloc_str(&tag);
+                                if let Some(label) = link_target {
+                                    self.label_map.insert(label.into(), tag);
+                                }
                                 Some(self.arena.alloc_row_label_info(RowLabelInfo {
-                                    tag: num,
+                                    tag: tag_arena,
                                     link_target,
                                 }))
                             } else {
@@ -1492,23 +1481,28 @@ where
                             }
                         }
                     }
-                    match numbered_state.next_equation_number(self.equation_counter, false) {
+                    match numbered_state.next_equation_tag(self.equation_counter, false) {
                         Ok(tag) => {
                             let link_target = numbered_state.label.take();
-                            if let Some(label) = link_target
-                                && let Some(tag) = tag
-                            {
-                                self.label_map.insert(label.into(), tag);
-                            }
-                            Ok(Node::RowSeparator { tag, link_target })
+                            let label_info = if let Some(tag) = tag {
+                                let tag_arena = self.arena.alloc_str(&tag);
+                                if let Some(label) = link_target {
+                                    self.label_map.insert(label.into(), tag);
+                                }
+                                Some(self.arena.alloc_row_label_info(RowLabelInfo {
+                                    tag: tag_arena,
+                                    link_target,
+                                }))
+                            } else {
+                                // If we don't have a tag, we're not setting a link target either
+                                None
+                            };
+                            Ok(Node::RowSeparator(label_info))
                         }
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
-                    Ok(Node::RowSeparator {
-                        tag: None,
-                        link_target: None,
-                    })
+                    Ok(Node::RowSeparator(None))
                 }
             }
             Token::EqRef => 'eqref: {
@@ -2566,7 +2560,7 @@ where
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(Box::new(LatexError(
                     span.into(),
-                    LatexErrKind::ExpectedText,
+                    LatexErrKind::ExpectedAscii,
                 )));
             };
             builder.push_char(ch);
@@ -2992,5 +2986,29 @@ mod tests {
             let problem = format!("{:?}", problem);
             assert_ron_snapshot!(name, &ast, &problem);
         }
+    }
+
+    #[test]
+    fn string_literal_test() {
+        // let literal = r#" !"'()*+,-./012:;<=>?@`ABCabc|"#;
+        let literal = r#" !()*+,-./012:;<=>?@ABCabc|"#;
+        let input = format!("{{{}}}", literal);
+        let arena = Arena::new();
+        let mut equation_counter = 0usize;
+        let mut label_map = FxHashMap::default();
+        let l = Lexer::new(&input, false, None);
+        let mut p = Parser::new(
+            l,
+            &arena,
+            &mut equation_counter,
+            &mut label_map,
+            Style::Text,
+            crate::UnicodeSubstitution::Conventional,
+        )
+        .unwrap();
+        let parsed = p
+            .parse_string_literal()
+            .unwrap_or_else(|e| panic!("failed with error '{}'", e));
+        assert_eq!(parsed.0, literal);
     }
 }

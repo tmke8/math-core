@@ -1,4 +1,5 @@
-use std::num::{NonZeroU16, NonZeroUsize};
+use std::fmt::Write;
+use std::num::NonZeroU16;
 
 use mathml_renderer::{
     arena::Arena,
@@ -292,34 +293,34 @@ pub(super) enum NumberingMode {
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,
-    pub(super) custom_next_number: Option<NonZeroUsize>,
+    pub(super) custom_next_tag: Option<Box<str>>,
     pub(super) label: Option<&'arena str>,
     pub(super) num_rows: Option<NonZeroU16>,
 }
 
 impl NumberedEnvState<'_> {
-    pub(super) fn next_equation_number(
+    pub(super) fn next_equation_tag(
         &mut self,
         equation_counter: &mut usize,
         is_last: bool,
-    ) -> Result<Option<NonZeroUsize>, ()> {
+    ) -> Result<Option<Box<str>>, ()> {
         if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
             // Not the last row; do nothing for now.
             return Ok(None);
         }
         // A custom number takes precedence over suppression.
-        if let Some(custom_number) = self.custom_next_number.take() {
+        if let Some(custom_tag) = self.custom_next_tag.take() {
             // The state has already been cleared here through `take()`.
-            Ok(Some(custom_number))
+            Ok(Some(custom_tag))
         } else if self.suppress_next_number || matches!(self.mode, NumberingMode::NoneByDefault) {
             // Clear the flag.
             self.suppress_next_number = false;
             Ok(None)
         } else {
             *equation_counter = equation_counter.checked_add(1).ok_or(())?;
-            let equation_number = NonZeroUsize::new(*equation_counter);
-            debug_assert!(equation_number.is_some());
-            Ok(equation_number)
+            let mut s = String::new();
+            write!(s, "{}", equation_counter).map_err(|_| ())?;
+            Ok(Some(s.into()))
         }
     }
 }

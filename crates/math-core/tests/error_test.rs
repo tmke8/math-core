@@ -92,9 +92,7 @@ fn main() {
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),
-        ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
-        ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
-        ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
+        ("tag_with_underscore", r"\begin{align}\tag{a_b}1\end{align}"),
         ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
         (
             "duplicate_label",

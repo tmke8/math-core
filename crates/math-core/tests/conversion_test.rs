@@ -262,6 +262,9 @@ fn main() {
         ("tag3", r#"\begin{align} 1\\2\nonumber\tag{32}\end{align}"#),
         ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
+        ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
+        ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
+        ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
         ("label", r#"\begin{align} 1\label{eq:1}\\2\end{align}"#),
         (
             "label_and_tag",

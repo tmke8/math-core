@@ -395,7 +395,7 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
         Token::Letter(ch, _) => {
             if let Some(c) = ch.try_as_char()
-                && (c.is_ascii_alphabetic() || c == '.')
+                && (c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@'))
             {
                 Some(c)
             } else {
@@ -533,7 +533,7 @@ mod tests {
 
     #[test]
     fn test_recover_limited_ascii() {
-        let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:|";
+        let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
         let mut lexer = Lexer::new(input, false, None);
 
         let mut output = String::new();
