@@ -280,6 +280,7 @@ impl LatexToMathML {
     /// This should normally be done at the beginning of a new document or section.
     pub fn reset_global_state(&mut self) {
         self.equation_count = 0;
+        self.label_map.clear();
     }
 }
 
