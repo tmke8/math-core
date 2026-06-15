@@ -282,7 +282,7 @@ where
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
-        let result: Result<(), LatexError> = match tokspan.token() {
+        let result: Result<(), LatexError> = match *tokspan.token() {
             Token::Eoi => {
                 if let SequenceEnd::EndToken(end_token) = sequence_end {
                     // The input has ended without the closing token.
@@ -293,7 +293,7 @@ where
             }
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    *infix_frac = Some((mem::take(collected_nodes), *with_line, *delim));
+                    *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
                     // learn it's a fraction here), but we can at least shrink the style
                     // for the denominator. `parse_sequence` restores the style on exit.
@@ -304,7 +304,7 @@ where
                 }
             }
             Token::TransformSwitch(tf) => {
-                self.state.transform = Some(*tf);
+                self.state.transform = Some(tf);
                 Ok(())
             }
             Token::NoNumber => {
@@ -408,8 +408,8 @@ where
                     // `Token::Letter('.')`,
                     // but the latter only if the token *after that* is a digit.
                     loop {
-                        let ch = if let Token::Digit(number) = self.tokens.peek().token() {
-                            *number
+                        let ch = if let Token::Digit(number) = *self.tokens.peek().token() {
+                            number
                         } else {
                             let ch = if matches!(self.tokens.peek().token(), &FULL_STOP_TOKEN) {
                                 Some('.')
@@ -654,7 +654,7 @@ where
                         self.state.mathinner_spacing(prev_class, next_class, true)
                     }
                 };
-                match node {
+                match *node {
                     Node::Operator {
                         op,
                         attrs,
@@ -662,11 +662,11 @@ where
                         left: _,
                         right: _,
                     } => Ok(Node::Operator {
-                        op: *op,
-                        attrs: *attrs | OpAttrs::STRETCHY_FALSE,
+                        op,
+                        attrs: attrs | OpAttrs::STRETCHY_FALSE,
                         left,
                         right,
-                        size: *size,
+                        size,
                     }),
                     Node::Row {
                         nodes: [],
@@ -2358,9 +2358,9 @@ where
                 // Don't collect digits in normal math variant.
                 break;
             }
-            let ch: SuperChar = match tok {
-                Token::Letter(ch, _) | Token::UprightLetter(ch) => *ch,
-                Token::Digit(ch) => (*ch).into(),
+            let ch: SuperChar = match *tok {
+                Token::Letter(ch, _) | Token::UprightLetter(ch) => ch,
+                Token::Digit(ch) => ch.into(),
                 _ => unreachable!(),
             };
             let is_upright = matches!(tok, Token::UprightLetter(_));
@@ -2531,8 +2531,8 @@ where
         let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'source>>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
-                if let Some(tokloc) = iter.next() {
-                    *tokloc
+                if let Some(&tokloc) = iter.next() {
+                    tokloc
                 } else {
                     // Finished reading the custom command argument.
                     custom_arg_iter = None;
@@ -2698,10 +2698,10 @@ pub(crate) fn node_vec_to_node<'arena>(
 ) -> &'arena Node<'arena> {
     if let [single] = nodes {
         if reset_spacing {
-            if let Node::Operator { op, attrs, .. } = single {
+            if let Node::Operator { op, attrs, .. } = **single {
                 arena.push(Node::Operator {
-                    op: *op,
-                    attrs: *attrs,
+                    op,
+                    attrs,
                     left: None,
                     right: None,
                     size: None,
