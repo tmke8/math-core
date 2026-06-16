@@ -707,7 +707,7 @@ impl<'state> Emitter<'state> {
             Node::UnknownCommand(cmd_name) => {
                 write!(
                     self.s,
-                    "<merror class=\"tex-error\"><mtext><code>\\{cmd_name}</code></mtext></merror>"
+                    r#"<merror class="math-core-error"><mtext>\{cmd_name}</mtext></merror>"#
                 )?;
             }
         }
