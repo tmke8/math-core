@@ -316,6 +316,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     "widetilde" => {
                         Token::Accent(symbol::TILDE.as_op(), true, OpAttrs::STRETCHY_TRUE)
                     }
+                    "utilde" => Token::Accent(symbol::TILDE.as_op(), false, OpAttrs::empty()),
                     _ => break 'unreliable_rendering,
                 };
                 return LexerResult::Tok(TokSpan::new(tok, span));

@@ -9,6 +9,7 @@ fn main() {
         // Chrome bugs:
         r#"\widehat x, \widehat{xxxx}"#,
         r#"\widetilde x, \widetilde{xxxx}"#,
+        r#"\utilde x, \utilde{xxxx}"#,
         r#"\widecheck x, \widecheck{xxxx}"#,
         r#"\overline x, \overline{xxxx}"#,
         r#"\underline x, \underline{xxxx}"#,
