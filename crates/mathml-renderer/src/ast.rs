@@ -269,7 +269,7 @@ impl<'state> Emitter<'state> {
         // Get the base indentation out of the way.
         new_line_and_indent(&mut self.s, base_indent);
 
-        match node {
+        match *node {
             Node::Number(number) => {
                 write!(self.s, "<mn>{number}</mn>")?;
             }
@@ -288,8 +288,7 @@ impl<'state> Emitter<'state> {
                     write!(self.s, "<mi>")?;
                     write_mrow = false;
                 }
-                let c = *letter;
-                write!(self.s, "{c}</mi>")?;
+                write!(self.s, "{letter}</mi>")?;
                 if write_mrow {
                     write!(self.s, "</mrow>")?;
                 }
@@ -301,7 +300,7 @@ impl<'state> Emitter<'state> {
                 right,
                 size,
             } => {
-                emit_operator_attributes(&mut self.s, *attrs, *left, *right)?;
+                emit_operator_attributes(&mut self.s, attrs, left, right)?;
                 if let Some(size) = size {
                     write!(
                         self.s,
@@ -318,7 +317,7 @@ impl<'state> Emitter<'state> {
                 right,
                 name,
             } => {
-                emit_operator_attributes(&mut self.s, *attrs, *left, *right)?;
+                emit_operator_attributes(&mut self.s, attrs, left, right)?;
                 write!(self.s, ">{name}</mo>")?;
             }
             Node::IdentifierStr(letters) => {
@@ -379,7 +378,7 @@ impl<'state> Emitter<'state> {
                 write!(self.s, "\"/>")?;
             }
             // The following nodes have exactly two children.
-            node @ (Node::Sub {
+            ref node @ (Node::Sub {
                 symbol: second,
                 target: first,
             }
@@ -411,7 +410,7 @@ impl<'state> Emitter<'state> {
                 writeln_indent!(&mut self.s, base_indent, "{close}");
             }
             // The following nodes have exactly three children.
-            node @ (Node::SubSup {
+            ref node @ (Node::SubSup {
                 target: first,
                 sub: second,
                 sup: third,
@@ -433,7 +432,7 @@ impl<'state> Emitter<'state> {
                 self.emit(third, child_indent)?;
                 writeln_indent!(&mut self.s, base_indent, "{close}");
             }
-            &Node::Multiscripts { base, pre, post } => {
+            Node::Multiscripts { base, pre, post } => {
                 write!(self.s, "<mmultiscripts>")?;
                 self.emit(base, child_indent)?;
                 for &MultiscriptPair { sub, sup } in *post {
@@ -450,6 +449,7 @@ impl<'state> Emitter<'state> {
 
                 writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
             }
+            ref
             node @ (Node::OverAccent(op, attr, target) | Node::UnderAccent(op, attr, target)) => {
                 let (open, close) = match node {
                     Node::OverAccent(_, _, _) => ("<mover accent=\"true\">", "</mover>"),
@@ -477,7 +477,7 @@ impl<'state> Emitter<'state> {
                 attr,
             } => {
                 write!(self.s, "<mfrac")?;
-                let lt = Length::from_parts(*line_length, *line_unit);
+                let lt = Length::from_parts(line_length, line_unit);
                 if let Some(lt) = lt {
                     write!(self.s, " linethickness=\"")?;
                     lt.push_to_string(&mut self.s);
@@ -491,7 +491,7 @@ impl<'state> Emitter<'state> {
                 self.emit(den, child_indent)?;
                 writeln_indent!(&mut self.s, base_indent, "</mfrac>");
             }
-            &Node::Row {
+            Node::Row {
                 nodes,
                 attrs:
                     RowAttrs {
@@ -532,7 +532,7 @@ impl<'state> Emitter<'state> {
                     writeln_indent!(&mut self.s, base_indent, "</mrow>");
                 }
             }
-            &Node::Padded {
+            Node::Padded {
                 node,
                 width_0,
                 height_0,
@@ -570,7 +570,7 @@ impl<'state> Emitter<'state> {
                 align,
                 style,
             } => {
-                let mtd_opening = ColumnGenerator::new_predefined(*align);
+                let mtd_opening = ColumnGenerator::new_predefined(align);
 
                 write!(self.s, "<mtable")?;
                 if let Some(style) = style {
@@ -579,7 +579,7 @@ impl<'state> Emitter<'state> {
                 write!(self.s, ">")?;
                 self.emit_table(base_indent, child_indent, content, mtd_opening, None, None)?;
             }
-            node @ (Node::EquationArray {
+            ref node @ (Node::EquationArray {
                 last_row_info,
                 content,
                 ..
@@ -610,7 +610,7 @@ impl<'state> Emitter<'state> {
                     content,
                     mtd_opening,
                     Some(numbering_cols),
-                    last_row_info.as_deref(),
+                    last_row_info,
                 )?;
             }
             Node::Array {
@@ -642,7 +642,6 @@ impl<'state> Emitter<'state> {
                 }
             }
             Node::Enclose { content, notation } => {
-                let notation = *notation;
                 write!(self.s, "<menclose notation=\"")?;
                 let mut first = true;
                 if notation.contains(Notation::UP_DIAGONAL) {
@@ -686,7 +685,7 @@ impl<'state> Emitter<'state> {
                 }
                 writeln_indent!(&mut self.s, base_indent, "</menclose>");
             }
-            &Node::AHref(&AHref { href, text }) => {
+            Node::AHref(&AHref { href, text }) => {
                 write!(
                     self.s,
                     r#"<mtext><a href="{}">{}</a></mtext>"#,
@@ -694,7 +693,7 @@ impl<'state> Emitter<'state> {
                     EscapeHtml(text)
                 )?;
             }
-            &Node::EqRef(label) => {
+            Node::EqRef(label) => {
                 let tag: &str = match self.label_map.get(label) {
                     Some(tag) => tag,
                     None => "??",
