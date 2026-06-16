@@ -225,9 +225,8 @@ pub enum Node<'arena> {
         post: &'arena &'arena [MultiscriptPair<'arena>],
     },
     /// This node is used for displaying unknown commands.
-    /// We are not using `<merror>` here because it's rendered with a red border and a yellow
-    /// background, which is not desirable for our use case. We'll just render it as `<mtext>`
-    /// with a custom style.
+    /// It's `<merror>` with a custom CSS class
+    /// to override the default ugly yellow background
     UnknownCommand(&'arena str),
 }
 
@@ -708,7 +707,7 @@ impl<'state> Emitter<'state> {
             Node::UnknownCommand(cmd_name) => {
                 write!(
                     self.s,
-                    "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>"
+                    "<merror class=\"tex-error\"><mtext><code>\\{cmd_name}</code></mtext></merror>"
                 )?;
             }
         }
