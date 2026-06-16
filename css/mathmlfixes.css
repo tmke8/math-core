@@ -1,3 +1,11 @@
+/* Style for unknown command; feel free to customize it */
+
+merror.tex-error {
+    /* border: 1px solid red; */ /* `merror` default */
+    background-color: unset; /* `merror` default is `lightYellow` */
+    color: #c22222; /* `merror` default is `unset` */
+}
+
 /* Styles for all browsers */
 
 mtd {

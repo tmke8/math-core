@@ -138,7 +138,7 @@ def test_ignore_unknown_commands():
     converter = LatexToMathML(ignore_unknown_commands=True)
     assert (
         converter.convert_with_local_state("\\asdf <b>", displaystyle=False)
-        == r'<math><mtext style="color:#b22222">\asdf</mtext><mo>&lt;</mo><mi>b</mi><mo rspace="0">&gt;</mo></math>'
+        == r'<math><merror class="tex-error"><mtext><code>\asdf</code></mtext></merror><mo>&lt;</mo><mi>b</mi><mo rspace="0">&gt;</mo></math>'
     )
 
 
