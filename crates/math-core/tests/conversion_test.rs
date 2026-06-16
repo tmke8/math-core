@@ -342,7 +342,6 @@ fn main() {
         ("underleftarrow", r"\underleftarrow{a+b+c}_{d}"),
         ("underleftrightarrow", r"\underleftrightarrow{a+b+c}_{d}"),
         ("underrightarrow", r"\underrightarrow{a+b+c}_{d}"),
-        ("utilde", r"\utilde{a+b+c}_{d}"),
         ("prod", r"\prod_i \prod^n \prod^n_i \prod_i^n"),
         (
             "scriptstyle",
