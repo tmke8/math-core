@@ -1,8 +1,8 @@
-use std::{fmt::Write as _, mem, ops::Range};
+use std::{mem, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{AHref, MultiscriptPair, Node, RowAttrs},
+    ast::{MultiscriptPair, Node, RowAttrs},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
     length::{Length, LengthUnit},
     super_char::SuperChar,
@@ -35,12 +35,12 @@ use crate::{
 
 const FULL_STOP_TOKEN: Token<'static> = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
 
-pub(crate) struct Parser<'config, 'source, 'arena> {
+pub(crate) struct Parser<'config, 'state, 'source, 'arena> {
     pub(super) tokens: TokenQueue<'config, 'source>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    equation_counter: &'arena mut usize,
-    label_map: &'arena mut FxHashMap<Box<str>, Box<str>>,
+    equation_counter: &'state mut usize,
+    label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
     unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'source, 'arena>,
 }
@@ -121,7 +121,7 @@ enum BoundStarterKind {
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
-impl<'config, 'source, 'arena> Parser<'config, 'source, 'arena>
+impl<'config, 'state, 'source, 'arena> Parser<'config, 'state, 'source, 'arena>
 where
     'config: 'source, // The config will live as long as the source.
     'source: 'arena,
@@ -129,8 +129,8 @@ where
     pub(crate) fn new(
         lexer: Lexer<'config, 'source>,
         arena: &'arena Arena,
-        equation_counter: &'arena mut usize,
-        label_map: &'arena mut FxHashMap<Box<str>, Box<str>>,
+        equation_counter: &'state mut usize,
+        label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
         style: Style,
         unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
@@ -792,8 +792,8 @@ where
                 }
             }
             Token::Genfrac => 'genfrac: {
-                fn get_delimiter<'config, 'source, 'arena>(
-                    parser: &mut Parser<'config, 'source, 'arena>,
+                fn get_delimiter<'config, 'state, 'source, 'arena>(
+                    parser: &mut Parser<'config, 'state, 'source, 'arena>,
                 ) -> Result<Option<StretchableOp>, Box<LatexError>>
                 where
                     'config: 'source,
@@ -1504,26 +1504,9 @@ where
                     Ok(Node::RowSeparator(None))
                 }
             }
-            Token::EqRef => 'eqref: {
-                let (label_name, literal_span) = self.parse_string_literal()?;
-                let Some(tag) = self.label_map.get(label_name) else {
-                    break 'eqref Err(LatexError(
-                        literal_span,
-                        LatexErrKind::UndefinedLabel(label_name.into()),
-                    ));
-                };
-                let href = {
-                    let mut builder = self.buffer.get_builder();
-                    write!(builder, "#{label_name}").unwrap();
-                    builder.finish(self.arena)
-                };
-                let text = {
-                    let mut builder = self.buffer.get_builder();
-                    write!(builder, "({tag})").unwrap();
-                    builder.finish(self.arena)
-                };
-
-                Ok(Node::AHref(self.arena.alloc_ahref(AHref { href, text })))
+            Token::EqRef => {
+                let (label_name, _) = self.parse_string_literal()?;
+                Ok(Node::EqRef(label_name))
             }
             Token::Cramped => {
                 // Optional style argument in square brackets (e.g. `\cramped[\scriptstyle]{b}`),

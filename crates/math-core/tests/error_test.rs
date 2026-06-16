@@ -98,7 +98,6 @@ fn main() {
             "duplicate_label",
             r#"\begin{align}\label{a}1\label{b}\end{align}"#,
         ),
-        ("undefined_label", r#"\eqref{a}"#),
         (
             "ampersand_in_multline",
             r#"\begin{multline}1&1\end{multline}"#,

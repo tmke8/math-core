@@ -5,7 +5,9 @@
 //! # Example
 //!
 //! ```rust
-//! use math_core_renderer_internal::ast::{Node, RowAttrs};
+//! use rustc_hash::FxHashMap;
+//!
+//! use math_core_renderer_internal::ast::{Emitter, Node, RowAttrs};
 //! use math_core_renderer_internal::symbol;
 //! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs};
 //!
@@ -26,8 +28,10 @@
 //!      attrs: RowAttrs::DEFAULT,
 //! };
 //!
-//! let mut output = String::new();
-//! ast.emit(&mut output, 0).unwrap();
+//! let label_map = FxHashMap::default();
+//! let mut emitter = Emitter::new(String::new(), &label_map);
+//! emitter.emit(&ast, 0).unwrap();
+//! let output = emitter.into_string();
 //! assert_eq!(
 //!     output,
 //!     "<mrow><munder><mo lspace=\"0\">∑</mo><mi>i</mi></munder><mi>i</mi></mrow>"

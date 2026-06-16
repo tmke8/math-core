@@ -4,6 +4,8 @@ use std::num::NonZeroU16;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
+use rustc_hash::FxHashMap;
+
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
@@ -175,9 +177,12 @@ pub enum Node<'arena> {
     /// `<mtext>...</mtext>`.
     /// The `str` gets HTML-escaped.
     Text(Option<HtmlTextStyle>, Option<HtmlTextSize>, &'arena str),
-    /// `<mtext><a href="...">...</mtext>`.
+    /// `<mtext><a href="...">...</a></mtext>`.
     /// The link and text get HTML-escaped.
     AHref(&'arena AHref<'arena>),
+    /// `<mtext><a href="...">...</a></mtext>`.
+    /// The link and text get HTML-escaped.
+    EqRef(&'arena str),
     /// `<mtable>...</mtable>` for matrices and similar constructs
     Table {
         align: Alignment,
@@ -241,8 +246,19 @@ impl Node<'_> {
         nodes: &[],
         attrs: RowAttrs::DEFAULT,
     };
+}
 
-    pub fn emit(&self, s: &mut String, base_indent: usize) -> std::fmt::Result {
+pub struct Emitter<'state> {
+    s: String,
+    label_map: &'state FxHashMap<Box<str>, Box<str>>,
+}
+
+impl<'state> Emitter<'state> {
+    pub fn new(s: String, label_map: &'state FxHashMap<Box<str>, Box<str>>) -> Self {
+        Self { s, label_map }
+    }
+
+    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> std::fmt::Result {
         // Compute the indentation for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -251,31 +267,30 @@ impl Node<'_> {
         };
 
         // Get the base indentation out of the way.
-        new_line_and_indent(s, base_indent);
+        new_line_and_indent(&mut self.s, base_indent);
 
-        match self {
+        match *node {
             Node::Number(number) => {
-                write!(s, "<mn>{number}</mn>")?;
+                write!(self.s, "<mn>{number}</mn>")?;
             }
             Node::IdentifierChar(letter, attr) => {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
                 let write_mrow;
                 if is_upright {
-                    write!(s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
+                    write!(self.s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
                     write_mrow = true;
                 } else if letter.try_as_char().is_none() {
                     // check if multi-char
-                    write!(s, "<mrow><mspace/><mi>")?;
+                    write!(self.s, "<mrow><mspace/><mi>")?;
                     write_mrow = true;
                 } else {
-                    write!(s, "<mi>")?;
+                    write!(self.s, "<mi>")?;
                     write_mrow = false;
                 }
-                let c = *letter;
-                write!(s, "{c}</mi>")?;
+                write!(self.s, "{letter}</mi>")?;
                 if write_mrow {
-                    write!(s, "</mrow>")?;
+                    write!(self.s, "</mrow>")?;
                 }
             }
             Node::Operator {
@@ -285,16 +300,16 @@ impl Node<'_> {
                 right,
                 size,
             } => {
-                emit_operator_attributes(s, *attrs, *left, *right)?;
+                emit_operator_attributes(&mut self.s, attrs, left, right)?;
                 if let Some(size) = size {
                     write!(
-                        s,
+                        self.s,
                         " minsize=\"{}\" maxsize=\"{}\"",
                         <&str>::from(size),
                         <&str>::from(size),
                     )?;
                 }
-                write!(s, ">{op}</mo>")?;
+                write!(self.s, ">{op}</mo>")?;
             }
             Node::PseudoOp {
                 attrs,
@@ -302,8 +317,8 @@ impl Node<'_> {
                 right,
                 name,
             } => {
-                emit_operator_attributes(s, *attrs, *left, *right)?;
-                write!(s, ">{name}</mo>")?;
+                emit_operator_attributes(&mut self.s, attrs, left, right)?;
+                write!(self.s, ">{name}</mo>")?;
             }
             Node::IdentifierStr(letters) => {
                 // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding
@@ -312,12 +327,16 @@ impl Node<'_> {
                     letters.chars().count() > 1,
                     "single-letter IdentifierStr should be IdentifierChar"
                 );
-                write!(s, "<mrow><mspace/><mi>{}</mi></mrow>", EscapeHtml(letters))?;
+                write!(
+                    self.s,
+                    "<mrow><mspace/><mi>{}</mi></mrow>",
+                    EscapeHtml(letters)
+                )?;
             }
             Node::Text(text_style, text_size, letters) => {
-                write!(s, "<mtext")?;
+                write!(self.s, "<mtext")?;
                 if let Some(size) = text_size {
-                    write!(s, " style=\"font-size:{}\"", <&str>::from(size))?;
+                    write!(self.s, " style=\"font-size:{}\"", <&str>::from(size))?;
                 }
                 let (open, close) = match text_style {
                     None => ("", ""),
@@ -337,29 +356,29 @@ impl Node<'_> {
                     }
                     Some(HtmlTextStyle::Strikethrough) => ("<s>", "</s>"),
                 };
-                write!(s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
+                write!(self.s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
             }
             Node::Space(space) => {
-                write!(s, "<mspace ")?;
+                write!(self.s, "<mspace ")?;
 
                 if space.is_negative() {
-                    write!(s, "style=\"margin-left:")?;
-                    space.push_to_string(s);
-                    write!(s, ";")?;
+                    write!(self.s, "style=\"margin-left:")?;
+                    space.push_to_string(&mut self.s);
+                    write!(self.s, ";")?;
                 } else {
-                    write!(s, "width=\"")?;
-                    space.push_to_string(s);
+                    write!(self.s, "width=\"")?;
+                    space.push_to_string(&mut self.s);
                     // Work-around for a Firefox bug that causes "rem" to not be processed correctly
                     if matches!(space.unit, LengthUnit::Rem) {
-                        write!(s, "\" style=\"width:")?;
-                        space.push_to_string(s);
+                        write!(self.s, "\" style=\"width:")?;
+                        space.push_to_string(&mut self.s);
                     }
                 }
 
-                write!(s, "\"/>")?;
+                write!(self.s, "\"/>")?;
             }
             // The following nodes have exactly two children.
-            node @ (Node::Sub {
+            ref node @ (Node::Sub {
                 symbol: second,
                 target: first,
             }
@@ -385,13 +404,13 @@ impl Node<'_> {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(s, "{open}")?;
-                first.emit(s, child_indent)?;
-                second.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "{close}");
+                write!(self.s, "{open}")?;
+                self.emit(first, child_indent)?;
+                self.emit(second, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "{close}");
             }
             // The following nodes have exactly three children.
-            node @ (Node::SubSup {
+            ref node @ (Node::SubSup {
                 target: first,
                 sub: second,
                 sup: third,
@@ -407,29 +426,30 @@ impl Node<'_> {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(s, "{open}")?;
-                first.emit(s, child_indent)?;
-                second.emit(s, child_indent)?;
-                third.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "{close}");
+                write!(self.s, "{open}")?;
+                self.emit(first, child_indent)?;
+                self.emit(second, child_indent)?;
+                self.emit(third, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "{close}");
             }
-            &Node::Multiscripts { base, pre, post } => {
-                write!(s, "<mmultiscripts>")?;
-                base.emit(s, child_indent)?;
+            Node::Multiscripts { base, pre, post } => {
+                write!(self.s, "<mmultiscripts>")?;
+                self.emit(base, child_indent)?;
                 for &MultiscriptPair { sub, sup } in *post {
-                    sub.emit(s, child_indent)?;
-                    sup.emit(s, child_indent)?;
+                    self.emit(sub, child_indent)?;
+                    self.emit(sup, child_indent)?;
                 }
                 if !pre.is_empty() {
-                    writeln_indent!(s, child_indent, "<mprescripts/>");
+                    writeln_indent!(&mut self.s, child_indent, "<mprescripts/>");
                     for &MultiscriptPair { sub, sup } in *pre {
-                        sub.emit(s, child_indent)?;
-                        sup.emit(s, child_indent)?;
+                        self.emit(sub, child_indent)?;
+                        self.emit(sup, child_indent)?;
                     }
                 }
 
-                writeln_indent!(s, base_indent, "</mmultiscripts>");
+                writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
             }
+            ref
             node @ (Node::OverAccent(op, attr, target) | Node::UnderAccent(op, attr, target)) => {
                 let (open, close) = match node {
                     Node::OverAccent(_, _, _) => ("<mover accent=\"true\">", "</mover>"),
@@ -437,17 +457,17 @@ impl Node<'_> {
                     // Compiler is able to infer that this is unreachable.
                     _ => unreachable!(),
                 };
-                write!(s, "{open}")?;
-                target.emit(s, child_indent)?;
-                writeln_indent!(s, child_indent, "<mo");
-                attr.write_to(s);
-                write!(s, ">{op}</mo>")?;
-                writeln_indent!(s, base_indent, "{close}");
+                write!(self.s, "{open}")?;
+                self.emit(target, child_indent)?;
+                writeln_indent!(&mut self.s, child_indent, "<mo");
+                attr.write_to(&mut self.s);
+                write!(self.s, ">{op}</mo>")?;
+                writeln_indent!(&mut self.s, base_indent, "{close}");
             }
             Node::Sqrt(content) => {
-                write!(s, "<msqrt>")?;
-                content.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "</msqrt>");
+                write!(self.s, "<msqrt>")?;
+                self.emit(content, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "</msqrt>");
             }
             Node::Frac {
                 num,
@@ -456,22 +476,22 @@ impl Node<'_> {
                 lt_unit: line_unit,
                 attr,
             } => {
-                write!(s, "<mfrac")?;
-                let lt = Length::from_parts(*line_length, *line_unit);
+                write!(self.s, "<mfrac")?;
+                let lt = Length::from_parts(line_length, line_unit);
                 if let Some(lt) = lt {
-                    write!(s, " linethickness=\"")?;
-                    lt.push_to_string(s);
-                    write!(s, "\"")?;
+                    write!(self.s, " linethickness=\"")?;
+                    lt.push_to_string(&mut self.s);
+                    write!(self.s, "\"")?;
                 }
                 if let Some(style) = attr {
-                    write!(s, "{}", <&str>::from(style))?;
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
-                write!(s, ">")?;
-                num.emit(s, child_indent)?;
-                den.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "</mfrac>");
+                write!(self.s, ">")?;
+                self.emit(num, child_indent)?;
+                self.emit(den, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "</mfrac>");
             }
-            &Node::Row {
+            Node::Row {
                 nodes,
                 attrs:
                     RowAttrs {
@@ -480,94 +500,86 @@ impl Node<'_> {
                         math_shift_compact,
                     },
             } => {
-                write!(s, "<mrow")?;
+                write!(self.s, "<mrow")?;
 
                 if color.is_some() || math_shift_compact {
-                    write!(s, " style=\"")?;
+                    write!(self.s, " style=\"")?;
                     if let Some((r, g, b)) = color {
-                        write!(s, "color:#")?;
-                        append_u8_as_hex(s, r);
-                        append_u8_as_hex(s, g);
-                        append_u8_as_hex(s, b);
-                        write!(s, ";")?;
+                        write!(self.s, "color:#")?;
+                        append_u8_as_hex(&mut self.s, r);
+                        append_u8_as_hex(&mut self.s, g);
+                        append_u8_as_hex(&mut self.s, b);
+                        write!(self.s, ";")?;
                     }
                     if math_shift_compact {
-                        write!(s, "math-shift:compact;")?;
+                        write!(self.s, "math-shift:compact;")?;
                     }
-                    write!(s, "\"")?;
+                    write!(self.s, "\"")?;
                 }
 
                 if let Some(style) = style {
-                    write!(s, "{}", <&str>::from(style))?;
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
 
-                write!(s, ">")?;
+                write!(self.s, ">")?;
 
                 if nodes.is_empty() {
-                    write!(s, "</mrow>")?;
+                    write!(self.s, "</mrow>")?;
                 } else {
                     for node in nodes {
-                        node.emit(s, child_indent)?;
+                        self.emit(node, child_indent)?;
                     }
-                    writeln_indent!(s, base_indent, "</mrow>");
+                    writeln_indent!(&mut self.s, base_indent, "</mrow>");
                 }
             }
-            &Node::Padded {
+            Node::Padded {
                 node,
                 width_0,
                 height_0,
                 left,
                 right,
             } => {
-                write!(s, "<mpadded")?;
+                write!(self.s, "<mpadded")?;
                 if width_0 {
-                    write!(s, r#" width="0""#)?;
+                    write!(self.s, r#" width="0""#)?;
                 }
                 if height_0 {
-                    write!(s, r#" height="0""#)?;
+                    write!(self.s, r#" height="0""#)?;
                 }
                 if left.is_some() || right.is_some() {
-                    write!(s, " style=\"")?;
+                    write!(self.s, " style=\"")?;
                     if let Some(left) = left {
-                        write!(s, "padding-left:{};", <&str>::from(left))?;
+                        write!(self.s, "padding-left:{};", <&str>::from(left))?;
                     }
                     if let Some(right) = right {
-                        write!(s, "padding-right:{};", <&str>::from(right))?;
+                        write!(self.s, "padding-right:{};", <&str>::from(right))?;
                     }
-                    write!(s, "\"")?;
+                    write!(self.s, "\"")?;
                 }
-                write!(s, ">")?;
-                node.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "</mpadded>");
+                write!(self.s, ">")?;
+                self.emit(node, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "</mpadded>");
             }
             Node::Phantom { node } => {
-                write!(s, "<mphantom>")?;
-                node.emit(s, child_indent)?;
-                writeln_indent!(s, base_indent, "</mphantom>");
+                write!(self.s, "<mphantom>")?;
+                self.emit(node, child_indent)?;
+                writeln_indent!(&mut self.s, base_indent, "</mphantom>");
             }
             Node::Table {
                 content,
                 align,
                 style,
             } => {
-                let mtd_opening = ColumnGenerator::new_predefined(*align);
+                let mtd_opening = ColumnGenerator::new_predefined(align);
 
-                write!(s, "<mtable")?;
+                write!(self.s, "<mtable")?;
                 if let Some(style) = style {
-                    write!(s, "{}", <&str>::from(style))?;
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
-                write!(s, ">")?;
-                emit_table(
-                    s,
-                    base_indent,
-                    child_indent,
-                    content,
-                    mtd_opening,
-                    None,
-                    None,
-                )?;
+                write!(self.s, ">")?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening, None, None)?;
             }
-            node @ (Node::EquationArray {
+            ref node @ (Node::EquationArray {
                 last_row_info,
                 content,
                 ..
@@ -589,17 +601,16 @@ impl Node<'_> {
                 };
 
                 write!(
-                    s,
+                    &mut self.s,
                     r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#
                 )?;
-                emit_table(
-                    s,
+                self.emit_table(
                     base_indent,
                     child_indent,
                     content,
                     mtd_opening,
                     Some(numbering_cols),
-                    last_row_info.as_deref(),
+                    last_row_info,
                 )?;
             }
             Node::Array {
@@ -608,29 +619,21 @@ impl Node<'_> {
                 array_spec,
             } => {
                 let mtd_opening = ColumnGenerator::new_custom(array_spec);
-                write!(s, "<mtable")?;
+                write!(self.s, "<mtable")?;
                 match array_spec.beginning_line {
                     Some(LineType::Solid) => {
-                        write!(s, " style=\"border-left: 0.05em solid currentcolor\"")?;
+                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor\"")?;
                     }
                     Some(LineType::Dashed) => {
-                        write!(s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
+                        write!(self.s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
                     }
                     _ => (),
                 }
                 if let Some(style) = style {
-                    write!(s, "{}", <&str>::from(style))?;
+                    write!(self.s, "{}", <&str>::from(style))?;
                 }
-                write!(s, ">")?;
-                emit_table(
-                    s,
-                    base_indent,
-                    child_indent,
-                    content,
-                    mtd_opening,
-                    None,
-                    None,
-                )?;
+                write!(self.s, ">")?;
+                self.emit_table(base_indent, child_indent, content, mtd_opening, None, None)?;
             }
             Node::RowSeparator { .. } | Node::ColumnSeparator => {
                 // This should only appear in tables where it is handled in `emit_table`.
@@ -639,63 +642,151 @@ impl Node<'_> {
                 }
             }
             Node::Enclose { content, notation } => {
-                let notation = *notation;
-                write!(s, "<menclose notation=\"")?;
+                write!(self.s, "<menclose notation=\"")?;
                 let mut first = true;
                 if notation.contains(Notation::UP_DIAGONAL) {
-                    write!(s, "updiagonalstrike")?;
+                    write!(self.s, "updiagonalstrike")?;
                     first = false;
                 }
                 if notation.contains(Notation::DOWN_DIAGONAL) {
                     if !first {
-                        write!(s, " ")?;
+                        write!(self.s, " ")?;
                     }
-                    write!(s, "downdiagonalstrike")?;
+                    write!(self.s, "downdiagonalstrike")?;
                 }
                 if notation.contains(Notation::HORIZONTAL) {
                     if !first {
-                        write!(s, " ")?;
+                        write!(self.s, " ")?;
                     }
-                    write!(s, "horizontalstrike")?;
+                    write!(self.s, "horizontalstrike")?;
                 }
-                write!(s, "\">")?;
-                content.emit(s, child_indent)?;
+                write!(self.s, "\">")?;
+                self.emit(content, child_indent)?;
                 if notation.contains(Notation::UP_DIAGONAL) {
                     writeln_indent!(
-                        s,
+                        &mut self.s,
                         child_indent,
                         "<mrow class=\"menclose-updiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::DOWN_DIAGONAL) {
                     writeln_indent!(
-                        s,
+                        &mut self.s,
                         child_indent,
                         "<mrow class=\"menclose-downdiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::HORIZONTAL) {
                     writeln_indent!(
-                        s,
+                        &mut self.s,
                         child_indent,
                         "<mrow class=\"menclose-horizontalstrike\"></mrow>"
                     );
                 }
-                writeln_indent!(s, base_indent, "</menclose>");
+                writeln_indent!(&mut self.s, base_indent, "</menclose>");
             }
-            &Node::AHref(&AHref { href, text }) => {
+            Node::AHref(&AHref { href, text }) => {
                 write!(
-                    s,
+                    self.s,
                     r#"<mtext><a href="{}">{}</a></mtext>"#,
                     EscapeHtml(href),
                     EscapeHtml(text)
                 )?;
             }
+            Node::EqRef(label) => {
+                let tag: &str = match self.label_map.get(label) {
+                    Some(tag) => tag,
+                    None => "??",
+                };
+                write!(
+                    self.s,
+                    r##"<mtext><a href="#{}">({})</a></mtext>"##,
+                    EscapeHtml(label),
+                    EscapeHtml(tag)
+                )?;
+            }
             Node::UnknownCommand(cmd_name) => {
-                write!(s, "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>")?;
+                write!(
+                    self.s,
+                    "<mtext style=\"color:#b22222\">\\{cmd_name}</mtext>"
+                )?;
             }
         }
         Ok(())
+    }
+
+    fn emit_table(
+        &mut self,
+        base_indent: usize,
+        child_indent: usize,
+        content: &[&Node<'_>],
+        mut col_gen: ColumnGenerator,
+        numbering_cols: Option<NumberColums>,
+        last_row_info: Option<&RowLabelInfo>,
+    ) -> Result<(), std::fmt::Error> {
+        let child_indent2 = if base_indent > 0 {
+            child_indent.saturating_add(1)
+        } else {
+            0
+        };
+        let child_indent3 = if base_indent > 0 {
+            child_indent2.saturating_add(1)
+        } else {
+            0
+        };
+        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+        if let Some(numbering_cols) = numbering_cols {
+            numbering_cols.initial_dummy_column(&mut self.s, child_indent2)?;
+        }
+        col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+        for node in content {
+            match **node {
+                Node::ColumnSeparator => {
+                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                }
+                Node::RowSeparator(label_info) => {
+                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    if let Some(numbering_cols) = numbering_cols {
+                        write_equation_num(
+                            &mut self.s,
+                            child_indent2,
+                            child_indent3,
+                            label_info,
+                            numbering_cols,
+                        )?;
+                    }
+                    writeln_indent!(&mut self.s, child_indent, "</mtr>");
+                    writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                    if let Some(numbering_cols) = numbering_cols {
+                        numbering_cols.initial_dummy_column(&mut self.s, child_indent2)?;
+                    }
+                    col_gen.reset_to_new_row();
+                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                }
+                _ => {
+                    self.emit(node, child_indent3)?;
+                }
+            }
+        }
+        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        if let Some(numbering_cols) = numbering_cols {
+            write_equation_num(
+                &mut self.s,
+                child_indent2,
+                child_indent3,
+                last_row_info,
+                numbering_cols,
+            )?;
+        }
+        writeln_indent!(&mut self.s, child_indent, "</mtr>");
+        writeln_indent!(&mut self.s, base_indent, "</mtable>");
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn into_string(self) -> String {
+        self.s
     }
 }
 
@@ -763,75 +854,6 @@ impl NumberColums {
     }
 }
 
-fn emit_table(
-    s: &mut String,
-    base_indent: usize,
-    child_indent: usize,
-    content: &[&Node<'_>],
-    mut col_gen: ColumnGenerator,
-    numbering_cols: Option<NumberColums>,
-    last_row_info: Option<&RowLabelInfo>,
-) -> Result<(), std::fmt::Error> {
-    let child_indent2 = if base_indent > 0 {
-        child_indent.saturating_add(1)
-    } else {
-        0
-    };
-    let child_indent3 = if base_indent > 0 {
-        child_indent2.saturating_add(1)
-    } else {
-        0
-    };
-    writeln_indent!(s, child_indent, "<mtr>");
-    if let Some(numbering_cols) = numbering_cols {
-        numbering_cols.initial_dummy_column(s, child_indent2)?;
-    }
-    col_gen.write_next_mtd(s, child_indent2)?;
-    for node in content {
-        match **node {
-            Node::ColumnSeparator => {
-                writeln_indent!(s, child_indent2, "</mtd>");
-                col_gen.write_next_mtd(s, child_indent2)?;
-            }
-            Node::RowSeparator(label_info) => {
-                writeln_indent!(s, child_indent2, "</mtd>");
-                if let Some(numbering_cols) = numbering_cols {
-                    write_equation_num(
-                        s,
-                        child_indent2,
-                        child_indent3,
-                        label_info,
-                        numbering_cols,
-                    )?;
-                }
-                writeln_indent!(s, child_indent, "</mtr>");
-                writeln_indent!(s, child_indent, "<mtr>");
-                if let Some(numbering_cols) = numbering_cols {
-                    numbering_cols.initial_dummy_column(s, child_indent2)?;
-                }
-                col_gen.reset_to_new_row();
-                col_gen.write_next_mtd(s, child_indent2)?;
-            }
-            _ => {
-                node.emit(s, child_indent3)?;
-            }
-        }
-    }
-    writeln_indent!(s, child_indent2, "</mtd>");
-    if let Some(numbering_cols) = numbering_cols {
-        write_equation_num(
-            s,
-            child_indent2,
-            child_indent3,
-            last_row_info,
-            numbering_cols,
-        )?;
-    }
-    writeln_indent!(s, child_indent, "</mtr>");
-    writeln_indent!(s, base_indent, "</mtable>");
-    Ok(())
-}
-
 fn write_equation_num(
     s: &mut String,
     child_indent2: usize,
@@ -877,9 +899,11 @@ mod tests {
     where
         'a: 'b,
     {
-        let mut output = String::new();
-        node.emit(&mut output, 0).unwrap();
-        output
+        let output = String::new();
+        let label_map = FxHashMap::default();
+        let mut emitter = Emitter::new(output, &label_map);
+        emitter.emit(node, 0).unwrap();
+        emitter.into_string()
     }
 
     #[test]

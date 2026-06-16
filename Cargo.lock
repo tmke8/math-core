@@ -404,6 +404,7 @@ version = "0.6.4"
 dependencies = [
  "bitflags",
  "dtoa",
+ "rustc-hash",
  "serde",
  "stable-arena",
  "static_assertions",
