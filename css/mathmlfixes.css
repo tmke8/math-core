@@ -1,6 +1,6 @@
 /* Style for unknown command; feel free to customize it */
 
-merror.math-core-error {
+merror.math-core-unknown-cmd {
     border: unset; /* `merror` default is `1px solid red` */
     background-color: unset; /* `merror` default is `lightYellow` */
     color: #c00; /* `merror` default is `unset` */
