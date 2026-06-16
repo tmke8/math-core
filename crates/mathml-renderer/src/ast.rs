@@ -843,11 +843,16 @@ fn write_equation_num(
     if let Some(label_info) = label_info {
         write!(s, r#";{RIGHT_ALIGN}""#)?;
         if let Some(link_target) = label_info.link_target {
-            write!(s, r#" id="{link_target}">"#)?;
+            write!(s, r#" id="{}">"#, EscapeHtml(link_target))?;
         } else {
             write!(s, ">")?;
         }
-        writeln_indent!(s, child_indent3, "<mtext>({})</mtext>", label_info.tag);
+        writeln_indent!(
+            s,
+            child_indent3,
+            "<mtext>({})</mtext>",
+            EscapeHtml(label_info.tag)
+        );
         writeln_indent!(s, child_indent2, "</mtd>");
     } else {
         write!(s, "\"></mtd>")?;
