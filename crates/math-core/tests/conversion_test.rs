@@ -296,6 +296,10 @@ fn main() {
         ),
         ("undefined_label", r#"\eqref{a}"#),
         (
+            "simple_forward_ref",
+            r#"\begin{align}\eqref{a}\\x\label{a}\end{align}"#,
+        ),
+        (
             "label_url_escape",
             r#"\begin{align} 1\label{<b>}\\\eqref{<b>}\end{align}"#,
         ),
