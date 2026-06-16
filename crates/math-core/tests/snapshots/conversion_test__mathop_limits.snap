@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\mathop{+}\\limits_0^1"
+---
+<math>
+    <mi>a</mi>
+    <munderover>
+        <mo stretchy="false" movablelimits="false" lspace="0.1667em" rspace="0.1667em">+</mo>
+        <mn>0</mn>
+        <mn>1</mn>
+    </munderover>
+</math>

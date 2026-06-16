@@ -593,6 +593,19 @@ fn main() {
         ("mathrel", r"y \mathrel , ="),
         ("mathpunct", r"y \mathpunct - x"),
         ("mathop", r"a\mathop{+}b"),
+        ("mathop_limits", r"a\mathop{+}\limits_0^1"),
+        (
+            "mathop_nolimits",
+            r"\displaystyle{\mathop{\sum}\nolimits_a^a}",
+        ),
+        (
+            "mathop_displaylimits",
+            r"\mathop{sa\frac{0}{1}}\displaylimits_a^a",
+        ),
+        (
+            "mathop_displaylimits_2",
+            r"\displaystyle{\mathop{sa\frac{0}{1}}\displaylimits_a^a}",
+        ),
         ("mathinner", r"ab\mathinner{\text{inside}}cd"),
         ("comma_before_close_paren", r"4,)"),
         ("unicode_open_close", "⦃ a + b ⦄"),

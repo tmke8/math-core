@@ -644,20 +644,20 @@ where
                         self.state.mathinner_spacing(prev_class, next_class, true)
                     }
                 };
-                match *node {
+                let mut result_node = match *node {
                     Node::Operator {
                         op,
                         attrs,
                         size,
                         left: _,
                         right: _,
-                    } => Ok(Node::Operator {
+                    } => Node::Operator {
                         op,
                         attrs: attrs | OpAttrs::STRETCHY_FALSE,
                         left,
                         right,
                         size,
-                    }),
+                    },
                     Node::Row {
                         nodes: [],
                         attrs:
@@ -666,21 +666,52 @@ where
                                 style: None,
                                 math_shift_compact: false,
                             },
-                    } => Ok(Node::Operator {
+                    } => Node::Operator {
                         // An empty `<mo></mo>` produces no spacing in Firefox
                         op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                         attrs: OpAttrs::empty(),
                         left,
                         right,
                         size: None,
-                    }),
-                    _ => Ok(Node::Padded {
+                    },
+                    _ => Node::Padded {
                         node,
                         width_0: false,
                         height_0: false,
                         left,
                         right,
-                    }),
+                    },
+                };
+
+                if kind == MathClassKind::Op {
+                    let bounds_limits = self.get_bounds(None)?;
+                    let limits = bounds_limits.limits();
+                    if bounds_limits.bounds.is_trivial() {
+                        Ok(result_node)
+                    } else {
+                        let use_underover = match limits {
+                            None | Some(LimitsKind::Display) => self.state.style == Style::Display,
+                            Some(LimitsKind::Always) => true,
+                            Some(LimitsKind::Never) => false,
+                        };
+
+                        if use_underover {
+                            if let Node::Operator { attrs, .. } = &mut result_node {
+                                *attrs |= OpAttrs::NO_MOVABLE_LIMITS;
+                            }
+                            Ok(bounds_limits
+                                .bounds
+                                .try_wrap_node_underover(self.arena.push(result_node))
+                                .unwrap())
+                        } else {
+                            Ok(bounds_limits
+                                .bounds
+                                .try_wrap_node_subsup(self.arena.push(result_node))
+                                .unwrap())
+                        }
+                    }
+                } else {
+                    Ok(result_node)
                 }
             }
             Token::Inner(op) => {
