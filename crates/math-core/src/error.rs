@@ -53,7 +53,6 @@ pub(crate) enum LatexErrKind {
     CouldNotExtractText,
     MoreThanOneLabel,
     MoreThanOneInfixCmd,
-    UndefinedLabel(Box<str>),
     InvalidMacroName(String),
     InvalidParameterNumber,
     MacroParameterOutsideCustomCommand,
@@ -244,9 +243,6 @@ impl LatexErrKind {
             LatexErrKind::MoreThanOneInfixCmd => {
                 write!(s, "Found more than one infix fraction in a group.")?;
             }
-            LatexErrKind::UndefinedLabel(label) => {
-                write!(s, "Found undefined label: \"{label}\".")?;
-            }
             LatexErrKind::InvalidMacroName(name) => {
                 write!(s, "Invalid macro name: \"\\{name}\".")?;
             }
@@ -366,7 +362,6 @@ impl LatexError {
             LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
             LatexErrKind::MoreThanOneLabel => "duplicate label".into(),
             LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac".into(),
-            LatexErrKind::UndefinedLabel(_) => "label has not been previously defined".into(),
             LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
             LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),

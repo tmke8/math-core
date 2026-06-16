@@ -45,7 +45,12 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use mathml_renderer::{arena::Arena, ast::Node, attribute::Style, fmt::new_line_and_indent};
+use mathml_renderer::{
+    arena::Arena,
+    ast::{Emitter, Node},
+    attribute::Style,
+    fmt::new_line_and_indent,
+};
 
 pub use self::error::LatexError;
 use self::{error::LatexErrKind, lexer::Lexer, parser::Parser, token::Token};
@@ -322,7 +327,9 @@ fn convert(
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(&arena, &ast, false);
-        let _ = node.emit(&mut output, children_indent);
+        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
+        let _ = emitter.emit(node, children_indent);
+        output = emitter.into_string();
         new_line_and_indent(&mut output, children_indent);
         output.push_str("<annotation encoding=\"application/x-tex\">");
         html_utils::escape_html_content(&mut output, latex);
@@ -331,11 +338,13 @@ fn convert(
         output.push_str("</semantics>");
     } else {
         for node in ast {
+            let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
             // We ignore the result of `emit` here, because the only possible error is a formatting
             // error when writing to the string, and that can only happen if the string's `write_str`
             // implementation returns an error. Since `String`'s `write_str` implementation never
             // returns an error, we can safely ignore the result of `emit`.
-            let _ = node.emit(&mut output, base_indent);
+            let _ = emitter.emit(node, base_indent);
+            output = emitter.into_string();
         }
     }
     if pretty_print {
@@ -349,8 +358,8 @@ fn parse<'config, 'source, 'arena>(
     latex: &'source str,
     arena: &'arena Arena,
     cmd_cfg: Option<&'config CommandConfig>,
-    equation_count: &'arena mut usize,
-    label_map: &'arena mut FxHashMap<Box<str>, Box<str>>,
+    equation_count: &mut usize,
+    label_map: &mut FxHashMap<Box<str>, Box<str>>,
     display: MathDisplay,
     unicode_substitution: UnicodeSubstitution,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
