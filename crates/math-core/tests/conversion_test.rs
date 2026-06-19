@@ -713,3 +713,25 @@ fn main() {
         assert_snapshot!(name, &mathml, problem);
     }
 }
+
+#[test]
+fn forward_references_test() {
+    let latex_snippets = [
+        (r"\eqref{eq:a}", MathDisplay::Inline),
+        (
+            r"\begin{align} 1\\2\label{eq:a}\end{align}",
+            MathDisplay::Block,
+        ),
+    ];
+
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+    let result = converter.convert_all(&latex_snippets);
+    let snippet1 = result[0].as_ref().unwrap();
+    let snippet2 = result[1].as_ref().unwrap();
+    assert_snapshot!("forward_ref_snippet1", snippet1, latex_snippets[0].0);
+    assert_snapshot!("forward_ref_snippet2", snippet2, latex_snippets[1].0);
+}
