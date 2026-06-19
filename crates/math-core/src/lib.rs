@@ -196,6 +196,8 @@ impl From<&MathCoreConfig> for Flags {
     }
 }
 
+type ParseResult<T> = Result<T, Box<LatexError>>;
+
 /// A converter that transforms LaTeX math equations into MathML Core.
 #[derive(Debug, Default)]
 pub struct LatexToMathML {
@@ -301,7 +303,7 @@ impl LatexToMathML {
         let mut equation_count = 0;
         let mut label_map: FxHashMap<Box<str>, Box<str>> = FxHashMap::default();
         let arena = Arena::new();
-        let ast_vec: Vec<Result<(Vec<&Node<'_>>, &str, MathDisplay), Box<LatexError>>> = snippets
+        let ast_vec: Vec<ParseResult<(Vec<&Node<'_>>, &str, MathDisplay)>> = snippets
             .iter()
             .map(|(latex, display)| {
                 parse(
@@ -345,7 +347,7 @@ fn convert(
         display,
         flags.unicode_substitution,
     )?;
-    Ok(emit(ast, latex, display, &label_map, &arena, flags))
+    Ok(emit(ast, latex, display, label_map, &arena, flags))
 }
 
 fn emit(
@@ -374,7 +376,7 @@ fn emit(
         let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
-        let node = parser::node_vec_to_node(&arena, &ast, false);
+        let node = parser::node_vec_to_node(arena, &ast, false);
         let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
         let _ = emitter.emit(node, children_indent);
         output = emitter.into_string();
