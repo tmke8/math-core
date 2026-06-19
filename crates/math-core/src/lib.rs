@@ -234,24 +234,14 @@ impl LatexToMathML {
         latex: &str,
         display: MathDisplay,
     ) -> Result<String, Box<LatexError>> {
-        let arena = Arena::new();
-        let ast = parse(
+        convert(
             latex,
-            &arena,
+            display,
             self.cmd_cfg.as_ref(),
             &mut self.equation_count,
             &mut self.label_map,
-            display,
-            self.flags.unicode_substitution,
-        )?;
-        Ok(emit(
-            ast,
-            latex,
-            display,
-            &self.label_map,
-            &arena,
             &self.flags,
-        ))
+        )
     }
 
     /// Convert LaTeX to MathML.
@@ -279,17 +269,14 @@ impl LatexToMathML {
     ) -> Result<String, Box<LatexError>> {
         let mut equation_count = 0;
         let mut label_map = FxHashMap::default();
-        let arena = Arena::new();
-        let ast = parse(
+        convert(
             latex,
-            &arena,
+            display,
             self.cmd_cfg.as_ref(),
             &mut equation_count,
             &mut label_map,
-            display,
-            self.flags.unicode_substitution,
-        )?;
-        Ok(emit(ast, latex, display, &label_map, &arena, &self.flags))
+            &self.flags,
+        )
     }
 
     /// Reset the equation counter to zero.
@@ -338,6 +325,27 @@ impl LatexToMathML {
             })
             .collect()
     }
+}
+
+fn convert(
+    latex: &str,
+    display: MathDisplay,
+    cmd_cfg: Option<&CommandConfig>,
+    equation_count: &mut usize,
+    label_map: &mut FxHashMap<Box<str>, Box<str>>,
+    flags: &Flags,
+) -> Result<String, Box<LatexError>> {
+    let arena = Arena::new();
+    let ast = parse(
+        latex,
+        &arena,
+        cmd_cfg,
+        equation_count,
+        label_map,
+        display,
+        flags.unicode_substitution,
+    )?;
+    Ok(emit(ast, latex, display, &label_map, &arena, flags))
 }
 
 fn emit(
