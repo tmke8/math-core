@@ -196,6 +196,8 @@ impl From<&MathCoreConfig> for Flags {
     }
 }
 
+type ParseResult<T> = Result<T, Box<LatexError>>;
+
 /// A converter that transforms LaTeX math equations into MathML Core.
 #[derive(Debug, Default)]
 pub struct LatexToMathML {
@@ -221,7 +223,7 @@ impl LatexToMathML {
         })
     }
 
-    /// Convert LaTeX text to MathML with a global equation counter.
+    /// Convert LaTeX to MathML with a global equation counter.
     ///
     /// For basic usage, see the documentation of [`convert_with_local_state`].
     ///
@@ -244,7 +246,7 @@ impl LatexToMathML {
         )
     }
 
-    /// Convert LaTeX text to MathML.
+    /// Convert LaTeX to MathML.
     ///
     /// The second argument specifies whether it is inline-equation or block-equation.
     ///
@@ -262,7 +264,6 @@ impl LatexToMathML {
     /// println!("{}", mathml);
     /// ```
     ///
-    #[inline]
     pub fn convert_with_local_state(
         &self,
         latex: &str,
@@ -287,6 +288,45 @@ impl LatexToMathML {
         self.equation_count = 0;
         self.label_map.clear();
     }
+
+    /// Convert a collection of LaTeX snippets to MathML.
+    ///
+    /// This method handles *forward references* correctly, meaning that if an earlier snippet
+    /// contains a reference to an equation in a later snippet, the reference will be resolved
+    /// correctly. However, in order to achieve this, all snippets need to be parsed first and can
+    /// only then be emitted. This means you have to first extract all LaTeX snippets from your
+    /// document and then call this method with the whole set.
+    pub fn convert_all(
+        &self,
+        snippets: &[(&str, MathDisplay)],
+    ) -> Vec<Result<String, Box<LatexError>>> {
+        let mut equation_count = 0;
+        let mut label_map: FxHashMap<Box<str>, Box<str>> = FxHashMap::default();
+        let arena = Arena::new();
+        let ast_vec: Vec<ParseResult<(Vec<&Node<'_>>, &str, MathDisplay)>> = snippets
+            .iter()
+            .map(|(latex, display)| {
+                parse(
+                    latex,
+                    &arena,
+                    self.cmd_cfg.as_ref(),
+                    &mut equation_count,
+                    &mut label_map,
+                    *display,
+                    self.flags.unicode_substitution,
+                )
+                .map(|ast| (ast, *latex, *display))
+            })
+            .collect::<Vec<_>>();
+        ast_vec
+            .into_iter()
+            .map(|ast_result| {
+                ast_result.map(|(ast, latex, display)| {
+                    emit(ast, latex, display, &label_map, &arena, &self.flags)
+                })
+            })
+            .collect()
+    }
 }
 
 fn convert(
@@ -307,7 +347,17 @@ fn convert(
         display,
         flags.unicode_substitution,
     )?;
+    Ok(emit(ast, latex, display, label_map, &arena, flags))
+}
 
+fn emit(
+    ast: Vec<&Node>,
+    latex: &str,
+    display: MathDisplay,
+    label_map: &FxHashMap<Box<str>, Box<str>>,
+    arena: &Arena,
+    flags: &Flags,
+) -> String {
     let mut output = String::new();
     output.push_str("<math");
     if flags.xml_namespace {
@@ -326,7 +376,7 @@ fn convert(
         let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
-        let node = parser::node_vec_to_node(&arena, &ast, false);
+        let node = parser::node_vec_to_node(arena, &ast, false);
         let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
         let _ = emitter.emit(node, children_indent);
         output = emitter.into_string();
@@ -351,7 +401,7 @@ fn convert(
         output.push('\n');
     }
     output.push_str("</math>");
-    Ok(output)
+    output
 }
 
 fn parse<'config, 'source, 'arena>(
