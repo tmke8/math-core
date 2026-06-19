@@ -289,7 +289,7 @@ impl LatexToMathML {
         self.label_map.clear();
     }
 
-    /// Convert a collection of LaTeX to MathML.
+    /// Convert a collection of LaTeX snippets to MathML.
     ///
     /// This method handles *forward references* correctly, meaning that if an earlier snippet
     /// contains a reference to an equation in a later snippet, the reference will be resolved
