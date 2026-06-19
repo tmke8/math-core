@@ -8,17 +8,17 @@ use crate::{
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
-pub(super) struct TokenQueue<'config, 'source> {
-    pub lexer: Lexer<'config, 'source>,
-    queue: VecDeque<TokSpan<'source>>,
+pub(super) struct TokenQueue<'arena> {
+    pub lexer: Lexer<'arena, 'arena>,
+    queue: VecDeque<TokSpan<'arena>>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
 
 static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
 
-impl<'config, 'source> TokenQueue<'config, 'source> {
-    pub(super) fn new(lexer: Lexer<'config, 'source>) -> Result<Self, Box<LatexError>> {
+impl<'arena> TokenQueue<'arena> {
+    pub(super) fn new(lexer: Lexer<'arena, 'arena>) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
             queue: VecDeque::with_capacity(2),
@@ -96,7 +96,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// always at least one non-whitespace token in the buffer when this is called,
     /// unless EOI has been reached.
     #[inline]
-    pub(super) fn peek(&self) -> &TokSpan<'source> {
+    pub(super) fn peek(&self) -> &TokSpan<'arena> {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
@@ -110,7 +110,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// Peek at the next token without consuming it, including whitespace
     /// and [`Token::MathOrTextMode`].
     #[inline]
-    pub(super) fn peek_any_token(&self) -> &TokSpan<'source> {
+    pub(super) fn peek_any_token(&self) -> &TokSpan<'arena> {
         if let Some(tok) = self.queue.front() {
             tok
         } else {
@@ -158,7 +158,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     }
 
     /// Peek at the second non-whitespace token without consuming it.
-    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'source>, Box<LatexError>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'arena>, Box<LatexError>> {
         if let Some(tok) = self
             .find_or_load_after_next(is_not_whitespace)?
             .and_then(|idx| self.queue.get(idx))
@@ -195,7 +195,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// This method skips any whitespace tokens and unwraps [`Token::MathOrTextMode`].
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
+    pub(super) fn next(&mut self) -> Result<TokSpan<'arena>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -221,7 +221,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// Get the next token without skipping or unwrapping anything.
     ///
     /// This method may return whitespace tokens and [`Token::MathOrTextMode`].
-    pub(super) fn next_any_token(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
+    pub(super) fn next_any_token(&mut self) -> Result<TokSpan<'arena>, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -244,7 +244,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// Queue a stream of tokens in the front of the buffer.
     ///
     /// We use a ring buffer, so this is efficient as long as the number of tokens is not too large.
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'source>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'arena>> + Copy]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
@@ -268,7 +268,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     /// in the output token vector.
     pub(super) fn record_group(
         &mut self,
-        tokens: &mut Vec<TokSpan<'source>>,
+        tokens: &mut Vec<TokSpan<'arena>>,
         preserve_all: bool,
     ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
@@ -313,7 +313,7 @@ impl<'config, 'source> TokenQueue<'config, 'source> {
     pub fn read_argument(
         &mut self,
         preserve_all: bool,
-    ) -> Result<MacroArgument<'source>, Box<LatexError>> {
+    ) -> Result<MacroArgument<'arena>, Box<LatexError>> {
         let first = if preserve_all {
             // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
             // perform the unwrapping that `next()` does. So we use this hack here of copying the
