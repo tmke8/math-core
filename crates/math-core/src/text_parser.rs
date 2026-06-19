@@ -20,7 +20,7 @@ pub(super) struct TextSnippet<'arena>(
     pub &'arena str,
 );
 
-impl<'arena> Parser<'_, '_, '_, 'arena> {
+impl<'arena> Parser<'_, 'arena> {
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,

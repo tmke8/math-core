@@ -404,19 +404,15 @@ fn emit(
     output
 }
 
-fn parse<'config, 'source, 'arena>(
-    latex: &'source str,
+fn parse<'arena>(
+    latex: &'arena str,
     arena: &'arena Arena,
-    cmd_cfg: Option<&'config CommandConfig>,
+    cmd_cfg: Option<&'arena CommandConfig>,
     equation_count: &mut usize,
     label_map: &mut FxHashMap<Box<str>, Box<str>>,
     display: MathDisplay,
     unicode_substitution: UnicodeSubstitution,
-) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>>
-where
-    'config: 'source,
-    'source: 'arena,
-{
+) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>> {
     let style = match display {
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,

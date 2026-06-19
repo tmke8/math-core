@@ -35,19 +35,19 @@ use crate::{
 
 const FULL_STOP_TOKEN: Token<'static> = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
 
-pub(crate) struct Parser<'config, 'state, 'source, 'arena> {
-    pub(super) tokens: TokenQueue<'config, 'source>,
+pub(crate) struct Parser<'state, 'arena> {
+    pub(super) tokens: TokenQueue<'arena>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     equation_counter: &'state mut usize,
     label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
     unicode_substitution: crate::UnicodeSubstitution,
-    state: ParserState<'source, 'arena>,
+    state: ParserState<'arena>,
 }
 
 #[derive(Debug)]
-struct ParserState<'source, 'arena> {
-    cmd_args: Vec<TokSpan<'source>>,
+struct ParserState<'arena> {
+    cmd_args: Vec<TokSpan<'arena>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a  sequence are not real boundaries;
@@ -121,13 +121,9 @@ enum BoundStarterKind {
 
 pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
-impl<'config, 'state, 'source, 'arena> Parser<'config, 'state, 'source, 'arena>
-where
-    'config: 'source, // The config will live as long as the source.
-    'source: 'arena,
-{
+impl<'state, 'arena> Parser<'state, 'arena> {
     pub(crate) fn new(
-        lexer: Lexer<'config, 'source>,
+        lexer: Lexer<'arena, 'arena>,
         arena: &'arena Arena,
         equation_counter: &'state mut usize,
         label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
@@ -156,7 +152,7 @@ where
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> ParseResult<TokSpan<'source>> {
+    fn next_token(&mut self) -> ParseResult<TokSpan<'arena>> {
         self.tokens.next()
     }
 
@@ -276,7 +272,7 @@ where
     #[inline]
     fn handle_tokens_without_output(
         &mut self,
-        tokspan: &TokSpan<'source>,
+        tokspan: &TokSpan<'arena>,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
@@ -371,7 +367,7 @@ where
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: ParseResult<TokSpan<'source>>,
+        cur_tokloc: ParseResult<TokSpan<'arena>>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
@@ -792,13 +788,9 @@ where
                 }
             }
             Token::Genfrac => 'genfrac: {
-                fn get_delimiter<'config, 'state, 'source, 'arena>(
-                    parser: &mut Parser<'config, 'state, 'source, 'arena>,
-                ) -> Result<Option<StretchableOp>, Box<LatexError>>
-                where
-                    'config: 'source,
-                    'source: 'arena,
-                {
+                fn get_delimiter<'state, 'arena>(
+                    parser: &mut Parser<'state, 'arena>,
+                ) -> Result<Option<StretchableOp>, Box<LatexError>> {
                     let tok = parser.tokens.read_argument(false)?.into_one_or_none()?;
                     Ok(match tok {
                         OneOrNone::One(tok) => {
@@ -2504,7 +2496,7 @@ where
         };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'source>>> = None;
+        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'arena>>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(&tokloc) = iter.next() {
@@ -2551,7 +2543,7 @@ where
     }
 }
 
-impl ParserState<'_, '_> {
+impl ParserState<'_> {
     fn relation_spacing(
         &self,
         prev_class: Class,
