@@ -4,7 +4,7 @@ use std::str::CharIndices;
 
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
-use crate::CommandConfig;
+use crate::ParserConfig;
 use crate::commands::{get_command, get_operator_from_unicode};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
@@ -20,7 +20,7 @@ where
     input_string: &'source str,
     input_length: usize,
     parse_cmd_args: Option<u8>,
-    cmd_cfg: Option<&'config CommandConfig>,
+    parser_cfg: Option<&'config ParserConfig>,
 }
 
 impl<'config, 'source> Lexer<'config, 'source> {
@@ -28,7 +28,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     pub(crate) fn new(
         input: &'source str,
         parsing_custom_cmds: bool,
-        cmd_cfg: Option<&'config CommandConfig>,
+        parser_cfg: Option<&'config ParserConfig>,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -40,7 +40,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             } else {
                 None
             },
-            cmd_cfg,
+            parser_cfg,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -153,7 +153,10 @@ impl<'config, 'source> Lexer<'config, 'source> {
         match self.next_token_internal() {
             LexerResult::Tok(tok) => Ok(tok),
             LexerResult::UnknownCommand(cmd, span) => {
-                if self.cmd_cfg.is_some_and(|cfg| cfg.ignore_unknown_commands) {
+                if self
+                    .parser_cfg
+                    .is_some_and(|cfg| cfg.ignore_unknown_commands)
+                {
                     Ok(TokSpan::new(Token::UnknownCommand(cmd), span))
                 } else {
                     Err(Box::new(LatexError(
@@ -308,7 +311,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     ) -> LexerResult<'config, 'source> {
         'unreliable_rendering: {
             if self
-                .cmd_cfg
+                .parser_cfg
                 .is_some_and(|cfg| cfg.allow_unreliable_rendering)
             {
                 let tok = match cmd_string {
@@ -323,7 +326,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
         }
         let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
-            .cmd_cfg
+            .parser_cfg
             .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
             .or_else(|| get_command(cmd_string))
         {

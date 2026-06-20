@@ -31,6 +31,7 @@ mod color_defs;
 mod commands;
 mod environments;
 mod error;
+mod global_state;
 mod html_utils;
 mod lexer;
 mod parser;
@@ -45,6 +46,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+pub use mathml_renderer::ast::CssClassNames;
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
@@ -53,7 +55,9 @@ use mathml_renderer::{
 };
 
 pub use self::error::LatexError;
-use self::{error::LatexErrKind, lexer::Lexer, parser::Parser, token::Token};
+use self::{
+    error::LatexErrKind, global_state::GlobalState, lexer::Lexer, parser::Parser, token::Token,
+};
 
 /// Display mode for the LaTeX math equations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -157,17 +161,25 @@ pub struct MathCoreConfig {
     /// If not `UnicodeSubstitution::Never`, substitute certain LaTeX commands with their Unicode
     /// equivalents in the MathML output.
     pub unicode_substitution: UnicodeSubstitution,
+    /// CSS class names for various elements in the output.
+    pub css_classes: CssClassNames,
 }
 
+/// A map from custom command names to their number of arguments and the slice of tokens that
+/// defines the command. The tokens are stored in a separate vector.
+type CustomCmdMap = FxHashMap<String, (u8, (usize, usize))>;
+
+/// Subset of `MathCoreConfig` relevant for the parser.
 #[derive(Debug, Default)]
-struct CommandConfig {
+struct ParserConfig {
     custom_cmd_tokens: Vec<Token<'static>>,
-    custom_cmd_map: FxHashMap<String, (u8, (usize, usize))>,
+    custom_cmd_map: CustomCmdMap,
     ignore_unknown_commands: bool,
     allow_unreliable_rendering: bool,
+    unicode_substitution: UnicodeSubstitution,
 }
 
-impl CommandConfig {
+impl ParserConfig {
     pub fn get_command<'config>(&'config self, command: &str) -> Option<Token<'config>> {
         let (num_args, slice) = *self.custom_cmd_map.get(command)?;
         let tokens = self.custom_cmd_tokens.get(slice.0..slice.1)?;
@@ -175,37 +187,39 @@ impl CommandConfig {
     }
 }
 
-/// This struct contains those fields from `MathCoreConfig` that are simple flags.
+/// Subset of `MathCoreConfig` relevant for the emitter.
 #[derive(Debug, Default)]
-struct Flags {
+struct EmitterConfig {
     pretty_print: PrettyPrint,
     xml_namespace: bool,
     annotation: bool,
-    unicode_substitution: UnicodeSubstitution,
+    css_classes: CssClassNames,
 }
 
-impl From<&MathCoreConfig> for Flags {
-    fn from(config: &MathCoreConfig) -> Self {
+impl From<MathCoreConfig> for EmitterConfig {
+    fn from(config: MathCoreConfig) -> Self {
         // TODO: can we use a macro here to avoid repeating the field names?
         Self {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,
             annotation: config.annotation,
-            unicode_substitution: config.unicode_substitution,
+            css_classes: config.css_classes,
         }
     }
 }
 
 type ParseResult<T> = Result<T, Box<LatexError>>;
 
+/// The error type returned when parsing a custom macro definition fails. Contains the parsing
+/// error, the index of the macro definition in the `macros` vector and the macro definition itself.
+pub type MacroParseError = (Box<LatexError>, usize, String);
+
 /// A converter that transforms LaTeX math equations into MathML Core.
 #[derive(Debug, Default)]
 pub struct LatexToMathML {
-    flags: Flags,
-    /// This is used for numbering equations in the document.
-    equation_count: usize,
-    label_map: FxHashMap<Box<str>, Box<str>>,
-    cmd_cfg: Option<CommandConfig>,
+    emitter_cfg: EmitterConfig,
+    state: GlobalState,
+    parser_cfg: ParserConfig,
 }
 
 impl LatexToMathML {
@@ -214,12 +228,20 @@ impl LatexToMathML {
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed. The error contains the parsing error, the macro index and the macro definition
     /// that caused the error.
-    pub fn new(config: MathCoreConfig) -> Result<Self, (Box<LatexError>, usize, String)> {
+    pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
+        let (custom_cmd_tokens, custom_cmd_map) =
+            parse_custom_commands(std::mem::take(&mut config.macros))?;
+        let parser_cfg = ParserConfig {
+            custom_cmd_tokens,
+            custom_cmd_map,
+            ignore_unknown_commands: config.ignore_unknown_commands,
+            allow_unreliable_rendering: config.allow_unreliable_rendering,
+            unicode_substitution: config.unicode_substitution,
+        };
         Ok(Self {
-            flags: Flags::from(&config),
-            equation_count: 0,
-            label_map: FxHashMap::default(),
-            cmd_cfg: Some(parse_custom_commands(config)?),
+            emitter_cfg: EmitterConfig::from(config),
+            state: GlobalState::default(),
+            parser_cfg,
         })
     }
 
@@ -239,10 +261,9 @@ impl LatexToMathML {
         convert(
             latex,
             display,
-            self.cmd_cfg.as_ref(),
-            &mut self.equation_count,
-            &mut self.label_map,
-            &self.flags,
+            &self.parser_cfg,
+            &mut self.state,
+            &self.emitter_cfg,
         )
     }
 
@@ -269,24 +290,22 @@ impl LatexToMathML {
         latex: &str,
         display: MathDisplay,
     ) -> Result<String, Box<LatexError>> {
-        let mut equation_count = 0;
-        let mut label_map = FxHashMap::default();
+        let mut state = GlobalState::default();
         convert(
             latex,
             display,
-            self.cmd_cfg.as_ref(),
-            &mut equation_count,
-            &mut label_map,
-            &self.flags,
+            &self.parser_cfg,
+            &mut state,
+            &self.emitter_cfg,
         )
     }
 
-    /// Reset the equation counter to zero.
+    /// Reset the equation counter and the label map.
     ///
     /// This should normally be done at the beginning of a new document or section.
     pub fn reset_global_state(&mut self) {
-        self.equation_count = 0;
-        self.label_map.clear();
+        self.state.equation_count = 0;
+        self.state.label_map.clear();
     }
 
     /// Convert a collection of LaTeX snippets to MathML.
@@ -300,29 +319,27 @@ impl LatexToMathML {
         &self,
         snippets: &[(&str, MathDisplay)],
     ) -> Vec<Result<String, Box<LatexError>>> {
-        let mut equation_count = 0;
-        let mut label_map: FxHashMap<Box<str>, Box<str>> = FxHashMap::default();
+        let mut state = GlobalState::default();
         let arena = Arena::new();
         let ast_vec: Vec<ParseResult<(Vec<&Node<'_>>, &str, MathDisplay)>> = snippets
             .iter()
             .map(|(latex, display)| {
-                parse(
-                    latex,
-                    &arena,
-                    self.cmd_cfg.as_ref(),
-                    &mut equation_count,
-                    &mut label_map,
-                    *display,
-                    self.flags.unicode_substitution,
-                )
-                .map(|ast| (ast, *latex, *display))
+                parse(latex, &arena, &self.parser_cfg, &mut state, *display)
+                    .map(|ast| (ast, *latex, *display))
             })
             .collect::<Vec<_>>();
         ast_vec
             .into_iter()
             .map(|ast_result| {
                 ast_result.map(|(ast, latex, display)| {
-                    emit(ast, latex, display, &label_map, &arena, &self.flags)
+                    emit(
+                        ast,
+                        latex,
+                        display,
+                        &state.label_map,
+                        &arena,
+                        &self.emitter_cfg,
+                    )
                 })
             })
             .collect()
@@ -332,22 +349,13 @@ impl LatexToMathML {
 fn convert(
     latex: &str,
     display: MathDisplay,
-    cmd_cfg: Option<&CommandConfig>,
-    equation_count: &mut usize,
-    label_map: &mut FxHashMap<Box<str>, Box<str>>,
-    flags: &Flags,
+    parser_cfg: &ParserConfig,
+    state: &mut GlobalState,
+    flags: &EmitterConfig,
 ) -> Result<String, Box<LatexError>> {
     let arena = Arena::new();
-    let ast = parse(
-        latex,
-        &arena,
-        cmd_cfg,
-        equation_count,
-        label_map,
-        display,
-        flags.unicode_substitution,
-    )?;
-    Ok(emit(ast, latex, display, label_map, &arena, flags))
+    let ast = parse(latex, &arena, parser_cfg, state, display)?;
+    Ok(emit(ast, latex, display, &state.label_map, &arena, flags))
 }
 
 fn emit(
@@ -356,7 +364,7 @@ fn emit(
     display: MathDisplay,
     label_map: &FxHashMap<Box<str>, Box<str>>,
     arena: &Arena,
-    flags: &Flags,
+    flags: &EmitterConfig,
 ) -> String {
     let mut output = String::new();
     output.push_str("<math");
@@ -377,7 +385,7 @@ fn emit(
         new_line_and_indent(&mut output, base_indent);
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(arena, &ast, false);
-        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
+        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map, &flags.css_classes);
         let _ = emitter.emit(node, children_indent);
         output = emitter.into_string();
         new_line_and_indent(&mut output, children_indent);
@@ -387,15 +395,14 @@ fn emit(
         new_line_and_indent(&mut output, base_indent);
         output.push_str("</semantics>");
     } else {
+        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map, &flags.css_classes);
         for node in ast {
-            let mut emitter = Emitter::new(std::mem::take(&mut output), label_map);
             // We ignore the result of `emit` here, because the only possible error is a formatting
-            // error when writing to the string, and that can only happen if the string's `write_str`
-            // implementation returns an error. Since `String`'s `write_str` implementation never
-            // returns an error, we can safely ignore the result of `emit`.
+            // error when writing to the string, but `String`'s `write_str` implementation never
+            // returns an error.
             let _ = emitter.emit(node, base_indent);
-            output = emitter.into_string();
         }
+        output = emitter.into_string();
     }
     if pretty_print {
         output.push('\n');
@@ -407,33 +414,23 @@ fn emit(
 fn parse<'arena>(
     latex: &'arena str,
     arena: &'arena Arena,
-    cmd_cfg: Option<&'arena CommandConfig>,
-    equation_count: &mut usize,
-    label_map: &mut FxHashMap<Box<str>, Box<str>>,
+    parser_cfg: &'arena ParserConfig,
+    state: &mut GlobalState,
     display: MathDisplay,
-    unicode_substitution: UnicodeSubstitution,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>> {
     let style = match display {
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,
     };
-    let lexer = Lexer::new(latex, false, cmd_cfg);
-    let mut p = Parser::new(
-        lexer,
-        arena,
-        equation_count,
-        label_map,
-        style,
-        unicode_substitution,
-    )?;
+    let lexer = Lexer::new(latex, false, Some(parser_cfg));
+    let mut p = Parser::new(lexer, arena, state, style, parser_cfg.unicode_substitution)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }
 
 fn parse_custom_commands(
-    cfg: MathCoreConfig,
-) -> Result<CommandConfig, (Box<LatexError>, usize, String)> {
-    let macros = cfg.macros;
+    macros: Vec<(String, String)>,
+) -> Result<(Vec<Token<'static>>, CustomCmdMap), MacroParseError> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), FxBuildHasher);
     let mut tokens = Vec::new();
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
@@ -478,12 +475,7 @@ fn parse_custom_commands(
             }
         }
     }
-    Ok(CommandConfig {
-        custom_cmd_tokens: tokens,
-        custom_cmd_map: map,
-        ignore_unknown_commands: cfg.ignore_unknown_commands,
-        allow_unreliable_rendering: cfg.allow_unreliable_rendering,
-    })
+    Ok((tokens, map))
 }
 
 fn is_valid_macro_name(s: &str) -> bool {
