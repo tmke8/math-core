@@ -9,7 +9,6 @@ use mathml_renderer::{
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
     table::RowLabelInfo,
 };
-use rustc_hash::FxHashMap;
 
 use crate::{
     atof::limited_float_parse,
@@ -22,6 +21,7 @@ use crate::{
         OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
+    global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     split_on_ascii::split_on_ascii,
@@ -39,8 +39,7 @@ pub(crate) struct Parser<'state, 'arena> {
     pub(super) tokens: TokenQueue<'arena>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    equation_counter: &'state mut usize,
-    label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
+    global_state: &'state mut GlobalState,
     unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'arena>,
 }
@@ -125,8 +124,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     pub(crate) fn new(
         lexer: Lexer<'arena, 'arena>,
         arena: &'arena Arena,
-        equation_counter: &'state mut usize,
-        label_map: &'state mut FxHashMap<Box<str>, Box<str>>,
+        global_state: &'state mut GlobalState,
         style: Style,
         unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
@@ -135,9 +133,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             tokens: TokenQueue::new(lexer)?,
             buffer: Buffer::new(input_length),
             arena,
-            equation_counter,
+            global_state,
             unicode_substitution,
-            label_map,
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
@@ -788,8 +785,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::Genfrac => 'genfrac: {
-                fn get_delimiter<'state, 'arena>(
-                    parser: &mut Parser<'state, 'arena>,
+                fn get_delimiter(
+                    parser: &mut Parser<'_, '_>,
                 ) -> Result<Option<StretchableOp>, Box<LatexError>> {
                     let tok = parser.tokens.read_argument(false)?.into_one_or_none()?;
                     Ok(match tok {
@@ -1373,12 +1370,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
-                    match n.next_equation_tag(self.equation_counter, true, self.arena) {
+                    match n.next_equation_tag(
+                        &mut self.global_state.equation_count,
+                        true,
+                        self.arena,
+                    ) {
                         Ok(tag) => {
                             let link_target = n.label.take();
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.label_map.insert(label.into(), tag.into());
+                                    self.global_state.label_map.insert(label.into(), tag.into());
                                 }
                                 Some(
                                     self.arena
@@ -1472,13 +1473,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             }
                         }
                     }
-                    match numbered_state.next_equation_tag(self.equation_counter, false, self.arena)
-                    {
+                    match numbered_state.next_equation_tag(
+                        &mut self.global_state.equation_count,
+                        false,
+                        self.arena,
+                    ) {
                         Ok(tag) => {
                             let link_target = numbered_state.label.take();
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.label_map.insert(label.into(), tag.into());
+                                    self.global_state.label_map.insert(label.into(), tag.into());
                                 }
                                 Some(
                                     self.arena
@@ -2896,14 +2900,12 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let mut equation_counter = 0usize;
-            let mut label_map = FxHashMap::default();
+            let mut state = GlobalState::default();
             let l = Lexer::new(problem, false, None);
             let mut p = Parser::new(
                 l,
                 &arena,
-                &mut equation_counter,
-                &mut label_map,
+                &mut state,
                 Style::Text,
                 crate::UnicodeSubstitution::Conventional,
             )
@@ -2943,14 +2945,12 @@ mod tests {
         ];
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
-            let mut equation_counter = 0usize;
-            let mut label_map = FxHashMap::default();
+            let mut state = GlobalState::default();
             let l = Lexer::new("", false, None);
             let mut p = Parser::new(
                 l,
                 &arena,
-                &mut equation_counter,
-                &mut label_map,
+                &mut state,
                 Style::Text,
                 crate::UnicodeSubstitution::Conventional,
             )
@@ -2968,14 +2968,12 @@ mod tests {
         let literal = r#" !()*+,-./012:;<=>?@ABCabc|"#;
         let input = format!("{{{}}}", literal);
         let arena = Arena::new();
-        let mut equation_counter = 0usize;
-        let mut label_map = FxHashMap::default();
+        let mut state = GlobalState::default();
         let l = Lexer::new(&input, false, None);
         let mut p = Parser::new(
             l,
             &arena,
-            &mut equation_counter,
-            &mut label_map,
+            &mut state,
             Style::Text,
             crate::UnicodeSubstitution::Conventional,
         )

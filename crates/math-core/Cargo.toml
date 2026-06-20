@@ -38,7 +38,7 @@ regex = "1.12.3"
 minijinja = "2.20.0"
 
 [features]
-serde = ["dep:serde", "dep:serde-tuple-vec-map"]
+serde = ["dep:serde", "dep:serde-tuple-vec-map", "mathml-renderer/serde"]
 ariadne = ["dep:ariadne"]
 
 [lints]

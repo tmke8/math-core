@@ -10,7 +10,7 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{LatexError as CoreLatexError, MathDisplay, PrettyPrint};
+use math_core::{CssClassNames, LatexError as CoreLatexError, MathDisplay, PrettyPrint};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -206,6 +206,7 @@ impl LatexToMathML {
             annotation,
             allow_unreliable_rendering,
             unicode_substitution,
+            css_classes: CssClassNames::default(),
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;

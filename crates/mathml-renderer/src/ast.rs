@@ -1,8 +1,9 @@
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::num::NonZeroU16;
 
 #[cfg(feature = "serde")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use rustc_hash::FxHashMap;
 
@@ -247,14 +248,40 @@ impl Node<'_> {
     };
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
+pub struct CssClassNames {
+    /// The CSS class name to use for unknown commands, if `ignore_unknown_commands` is `true`.
+    pub unknown_command: Cow<'static, str>,
+}
+
+impl Default for CssClassNames {
+    fn default() -> Self {
+        Self {
+            unknown_command: "math-core-unknown-cmd".into(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Emitter<'state> {
     s: String,
     label_map: &'state FxHashMap<Box<str>, Box<str>>,
+    css_classes: &'state CssClassNames,
 }
 
 impl<'state> Emitter<'state> {
-    pub fn new(s: String, label_map: &'state FxHashMap<Box<str>, Box<str>>) -> Self {
-        Self { s, label_map }
+    pub fn new(
+        s: String,
+        label_map: &'state FxHashMap<Box<str>, Box<str>>,
+        css_classes: &'state CssClassNames,
+    ) -> Self {
+        Self {
+            s,
+            label_map,
+            css_classes,
+        }
     }
 
     pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> std::fmt::Result {
@@ -707,7 +734,8 @@ impl<'state> Emitter<'state> {
             Node::UnknownCommand(cmd_name) => {
                 write!(
                     self.s,
-                    r#"<merror class="math-core-unknown-cmd"><mtext>\{cmd_name}</mtext></merror>"#
+                    r#"<merror class="{}"><mtext>\{cmd_name}</mtext></merror>"#,
+                    self.css_classes.unknown_command
                 )?;
             }
         }
@@ -900,7 +928,8 @@ mod tests {
     {
         let output = String::new();
         let label_map = FxHashMap::default();
-        let mut emitter = Emitter::new(output, &label_map);
+        let css_classes = CssClassNames::default();
+        let mut emitter = Emitter::new(output, &label_map, &css_classes);
         emitter.emit(node, 0).unwrap();
         emitter.into_string()
     }

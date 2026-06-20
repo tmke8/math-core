@@ -98,6 +98,9 @@ xml-namespace = true
 [macros]
 R = '\mathbb{R}'
 "é" = '\acute{e}'
+
+[css-classes]
+unknown-command = "unknown-cmd"
         "#;
         let config = parse_config(toml_content).unwrap();
         assert!(matches!(config.math_core.pretty_print, PrettyPrint::Always));
@@ -106,6 +109,7 @@ R = '\mathbb{R}'
         assert_eq!(r_macro.unwrap().1, "\\mathbb{R}");
         let e_macro = config.math_core.macros.iter().find(|(k, _)| k == "é");
         assert_eq!(e_macro.unwrap().1, "\\acute{e}");
+        assert_eq!(config.math_core.css_classes.unknown_command, "unknown-cmd");
     }
 
     #[test]

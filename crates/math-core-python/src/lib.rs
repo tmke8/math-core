@@ -4,7 +4,7 @@ use pyo3::exceptions::PyException;
 use pyo3::types::{PyDict, PyString};
 use pyo3::{create_exception, prelude::*};
 
-use math_core::{MathCoreConfig, MathDisplay, PrettyPrint};
+use math_core::{CssClassNames, MathCoreConfig, MathDisplay, PrettyPrint};
 
 create_exception!(_math_core_rust, LatexError, PyException);
 create_exception!(_math_core_rust, LockError, PyException);
@@ -82,6 +82,7 @@ impl LatexToMathML {
             annotation,
             allow_unreliable_rendering,
             unicode_substitution,
+            css_classes: CssClassNames::default(),
         };
 
         let inner = math_core::LatexToMathML::new(config);

@@ -7,7 +7,7 @@
 //! ```rust
 //! use rustc_hash::FxHashMap;
 //!
-//! use math_core_renderer_internal::ast::{Emitter, Node, RowAttrs};
+//! use math_core_renderer_internal::ast::{CssClassNames, Emitter, Node, RowAttrs};
 //! use math_core_renderer_internal::symbol;
 //! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs};
 //!
@@ -29,7 +29,8 @@
 //! };
 //!
 //! let label_map = FxHashMap::default();
-//! let mut emitter = Emitter::new(String::new(), &label_map);
+//! let css_classes = CssClassNames::default();
+//! let mut emitter = Emitter::new(String::new(), &label_map, &css_classes);
 //! emitter.emit(&ast, 0).unwrap();
 //! let output = emitter.into_string();
 //! assert_eq!(
