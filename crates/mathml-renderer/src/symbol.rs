@@ -957,6 +957,8 @@ pub const TOP_PARENTHESIS: OrdLike = OrdLike::new('⏜', OrdCategory::I);
 pub const BOTTOM_PARENTHESIS: OrdLike = OrdLike::new('⏝', OrdCategory::I);
 pub const TOP_CURLY_BRACKET: OrdLike = OrdLike::new('⏞', OrdCategory::I);
 pub const BOTTOM_CURLY_BRACKET: OrdLike = OrdLike::new('⏟', OrdCategory::I);
+pub const TOP_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⏠', OrdCategory::I);
+pub const BOTTOM_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⏡', OrdCategory::I);
 
 //
 // Unicode Block: Enclosed Alphanumerics

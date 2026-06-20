@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\underbar{AB}"
+---
+<math>
+    <mtext><u>AB</u></mtext>
+</math>

@@ -381,6 +381,7 @@ impl<'state> Emitter<'state> {
                         ("<span class=\"math-core-serif-font\">", "</span>")
                     }
                     Some(HtmlTextStyle::Strikethrough) => ("<s>", "</s>"),
+                    Some(HtmlTextStyle::Underline) => ("<u>", "</u>"),
                 };
                 write!(self.s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
             }
