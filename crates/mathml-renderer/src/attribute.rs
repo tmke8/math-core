@@ -171,6 +171,7 @@ pub enum HtmlTextStyle {
     SansSerif,
     Serif,
     Strikethrough,
+    Underline,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, IntoStaticStr)]

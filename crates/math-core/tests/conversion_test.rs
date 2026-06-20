@@ -363,6 +363,12 @@ fn main() {
         ("underleftarrow", r"\underleftarrow{a+b+c}_{d}"),
         ("underleftrightarrow", r"\underleftrightarrow{a+b+c}_{d}"),
         ("underrightarrow", r"\underrightarrow{a+b+c}_{d}"),
+        (
+            "over_commands",
+            r"\overgroup{AB}, \overleftharpoon{AB}, \overleftrightarrow{AB}, \Overrightarrow{AB}, \overrightharpoon{ac}",
+        ),
+        ("undergroup", r"\undergroup{AB}"),
+        ("underbar", r"\underbar{AB}"),
         ("prod", r"\prod_i \prod^n \prod^n_i \prod_i^n"),
         (
             "scriptstyle",

@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\undergroup{AB}"
+---
+<math>
+    <munder accentunder="true">
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>⏡</mo>
+    </munder>
+</math>

@@ -1,0 +1,45 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\overgroup{AB}, \\overleftharpoon{AB}, \\overleftrightarrow{AB}, \\Overrightarrow{AB}, \\overrightharpoon{ac}"
+---
+<math>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>⏠</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>↼</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>↔</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>A</mi>
+            <mi>B</mi>
+        </mrow>
+        <mo>⇒</mo>
+    </mover>
+    <mo>,</mo>
+    <mover accent="true">
+        <mrow>
+            <mi>a</mi>
+            <mi>c</mi>
+        </mrow>
+        <mo>⇀</mo>
+    </mover>
+</math>
