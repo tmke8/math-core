@@ -98,8 +98,18 @@ pub struct BMPOperator(BMPChar);
 
 impl BMPOperator {
     #[inline]
+    pub const fn new(ch: char) -> Self {
+        BMPOperator(BMPChar::new(ch))
+    }
+
+    #[inline]
     pub const fn as_op(self) -> MathMLOperator {
         MathMLOperator::from_char(self.0.as_char())
+    }
+
+    #[inline]
+    pub const fn as_char(self) -> char {
+        self.0.as_char()
     }
 }
 
@@ -139,6 +149,11 @@ macro_rules! make_character_class {
                     SuperChar::from_char(self.char.as_char())
                 };
                 MathMLOperator(s)
+            }
+
+            #[inline]
+            pub const fn as_bmp_op(&self) -> BMPOperator {
+                BMPOperator(self.char)
             }
 
             #[inline]
@@ -232,13 +247,6 @@ make_character_class!(
     Rel, RelCategory
 );
 
-impl Rel {
-    #[inline]
-    pub const fn as_bmp_op(&self) -> BMPOperator {
-        BMPOperator(self.char)
-    }
-}
-
 /// An operator with punctuation spacing (category M).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
@@ -282,7 +290,7 @@ pub const REVERSE_SOLIDUS: OrdLike = OrdLike::new('\\', OrdCategory::K);
 pub const RIGHT_SQUARE_BRACKET: OrdLike = OrdLike::new(']', OrdCategory::G);
 // pub const CIRCUMFLEX_ACCENT: Rel = Rel::new('^', RelCategory::Default);
 pub const LOW_LINE: OrdLike = OrdLike::new('_', OrdCategory::IK);
-pub const GRAVE_ACCENT: MathMLOperator = MathMLOperator::from_char('`');
+pub const GRAVE_ACCENT: BMPOperator = BMPOperator::new('`');
 
 pub const LEFT_CURLY_BRACKET: OrdLike = OrdLike::new('{', OrdCategory::F);
 pub const VERTICAL_LINE: OrdLike = OrdLike::new('|', OrdCategory::FGandForceDefault);
@@ -300,17 +308,17 @@ pub const POUND_SIGN: char = '£';
 pub const YEN_SIGN: char = '¥';
 
 pub const SECTION_SIGN: char = '§';
-pub const DIAERESIS: MathMLOperator = MathMLOperator::from_char('¨');
+pub const DIAERESIS: BMPOperator = BMPOperator::new('¨');
 pub const COPYRIGHT_SIGN: char = '©';
 
 pub const NOT_SIGN: OrdLike = OrdLike::new('¬', OrdCategory::D);
 pub const DEGREE_SIGN: char = '°';
 
-pub const MACRON: MathMLOperator = MathMLOperator::from_char('¯');
+pub const MACRON: BMPOperator = BMPOperator::new('¯');
 
 pub const PLUS_MINUS_SIGN: Bin = Bin::new('±', BinCategory::BD);
 
-pub const ACUTE_ACCENT: MathMLOperator = MathMLOperator::from_char('´');
+pub const ACUTE_ACCENT: BMPOperator = BMPOperator::new('´');
 
 pub const PILCROW_SIGN: char = '¶';
 pub const MIDDLE_DOT: Op = Op::new('·', OpCategory::C);
@@ -334,21 +342,21 @@ pub const LATIN_SMALL_LETTER_DOTLESS_J: char = 'ȷ';
 //
 // Unicode Block: Spacing Modifier Letters
 //
-pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator::from_char('ˆ');
-pub const CARON: MathMLOperator = MathMLOperator::from_char('ˇ');
+pub const MODIFIER_LETTER_CIRCUMFLEX_ACCENT: BMPOperator = BMPOperator::new('ˆ');
+pub const CARON: BMPOperator = BMPOperator::new('ˇ');
 
-pub const BREVE: MathMLOperator = MathMLOperator::from_char('˘');
-pub const DOT_ABOVE: MathMLOperator = MathMLOperator::from_char('˙');
-pub const RING_ABOVE: MathMLOperator = MathMLOperator::from_char('˚');
+pub const BREVE: BMPOperator = BMPOperator::new('˘');
+pub const DOT_ABOVE: BMPOperator = BMPOperator::new('˙');
+pub const RING_ABOVE: BMPOperator = BMPOperator::new('˚');
 
-pub const SMALL_TILDE: MathMLOperator = MathMLOperator::from_char('˜');
+pub const SMALL_TILDE: BMPOperator = BMPOperator::new('˜');
 
 //
 // Unicode Block: Combining Diacritical Marks
 //
 pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
 pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
-pub const COMBINING_CIRCUMFLEX_ACCENT: MathMLOperator = MathMLOperator::from_char('\u{302}');
+pub const COMBINING_CIRCUMFLEX_ACCENT: BMPOperator = BMPOperator::new('\u{302}');
 pub const COMBINING_TILDE: char = '\u{303}';
 pub const COMBINING_MACRON: char = '\u{304}';
 // pub const COMBINING_OVERLINE: MathMLOperator = MathMLOperator::from_char('\u{305}');
@@ -362,7 +370,7 @@ pub const COMBINING_CARON: char = '\u{30C}';
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
-pub const COMBINING_LOW_LINE: MathMLOperator = MathMLOperator::from_char('\u{332}');
+pub const COMBINING_LOW_LINE: BMPOperator = BMPOperator::new('\u{332}');
 
 pub const COMBINING_LONG_SOLIDUS_OVERLAY: char = '\u{338}';
 
@@ -479,7 +487,7 @@ pub const REVERSED_TRIPLE_PRIME: OrdLike = OrdLike::new('‷', OrdCategory::E);
 // pub const DOUBLE_EXCLAMATION_MARK: Ord = ord('‼');
 
 // pub const INTERROBANG: Ord = ord('‽');
-pub const OVERLINE: MathMLOperator = MathMLOperator::from_char('‾');
+pub const OVERLINE: BMPOperator = BMPOperator::new('‾');
 pub const CHARACTER_TIE: MathMLOperator = MathMLOperator::from_char('⁀');
 pub const FRACTION_SLASH: Bin = Bin::new('⁄', BinCategory::B);
 
@@ -494,10 +502,10 @@ pub const INVISIBLE_SEPARATOR: OrdLike = OrdLike::new('\u{2063}', OrdCategory::K
 //
 pub const COMBINING_LONG_VERTICAL_LINE_OVERLAY: char = '\u{20D2}';
 
-pub const COMBINING_RIGHT_ARROW_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20D7}');
+pub const COMBINING_RIGHT_ARROW_ABOVE: BMPOperator = BMPOperator::new('\u{20D7}');
 
-pub const COMBINING_THREE_DOTS_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20DB}');
-pub const COMBINING_FOUR_DOTS_ABOVE: MathMLOperator = MathMLOperator::from_char('\u{20DC}');
+pub const COMBINING_THREE_DOTS_ABOVE: BMPOperator = BMPOperator::new('\u{20DB}');
+pub const COMBINING_FOUR_DOTS_ABOVE: BMPOperator = BMPOperator::new('\u{20DC}');
 
 //
 // Unicode Block: Letterlike Symbols

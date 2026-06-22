@@ -1077,7 +1077,7 @@ mod tests {
     fn render_over_op() {
         assert_eq!(
             render(&Node::OverAccent(
-                symbol::MACRON,
+                symbol::MACRON.as_op(),
                 OpAttrs::STRETCHY_FALSE,
                 &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
@@ -1085,7 +1085,7 @@ mod tests {
         );
         assert_eq!(
             render(&Node::OverAccent(
-                symbol::OVERLINE,
+                symbol::OVERLINE.as_op(),
                 OpAttrs::empty(),
                 &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
@@ -1097,11 +1097,11 @@ mod tests {
     fn render_under_op() {
         assert_eq!(
             render(&Node::UnderAccent(
-                symbol::LOW_LINE.as_op(),
+                symbol::COMBINING_LOW_LINE.as_op(),
                 OpAttrs::empty(),
                 &Node::IdentifierChar('x'.into(), LetterAttr::Default),
             )),
-            "<munder accentunder=\"true\"><mi>x</mi><mo>_</mo></munder>"
+            "<munder accentunder=\"true\"><mi>x</mi><mo>\u{332}</mo></munder>"
         );
     }
 

@@ -320,9 +320,9 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 let tok = match cmd_string {
                     "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
                     "widetilde" => {
-                        Token::Accent(symbol::TILDE.as_op(), true, OpAttrs::STRETCHY_TRUE)
+                        Token::Accent(symbol::TILDE.as_bmp_op(), true, OpAttrs::STRETCHY_TRUE)
                     }
-                    "utilde" => Token::Accent(symbol::TILDE.as_op(), false, OpAttrs::empty()),
+                    "utilde" => Token::Accent(symbol::TILDE.as_bmp_op(), false, OpAttrs::empty()),
                     _ => break 'unreliable_rendering,
                 };
                 return LexerResult::Tok(TokSpan::new(tok, span));

@@ -855,9 +855,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::Accent(op, is_over, attr) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
                 if is_over {
-                    Ok(Node::OverAccent(op, attr, target))
+                    Ok(Node::OverAccent(op.as_op(), attr, target))
                 } else {
-                    Ok(Node::UnderAccent(op, attr, target))
+                    Ok(Node::UnderAccent(op.as_op(), attr, target))
                 }
             }
             Token::Overset | Token::Underset => {
