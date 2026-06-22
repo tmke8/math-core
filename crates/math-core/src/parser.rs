@@ -548,6 +548,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 })
             }
+            Token::ForceOrd(op) => {
+                class = Class::Default;
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
+                    size: None,
+                })
+            }
             Token::BinaryOp(binary_op) => {
                 let spacing = self.state.bin_op_spacing(
                     parse_as.in_sequence(),

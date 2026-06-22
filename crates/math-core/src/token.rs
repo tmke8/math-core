@@ -120,6 +120,10 @@ pub enum Token<'source> {
     Inner(Op),
     /// ', ′, ″, ‴, ‵, ‶, ‷, or ⁗ (in math mode)
     Prime(PrimeKind),
+    /// A token to force an operator to have `\mathord` spacing (all spacing forced to zero).
+    /// This is, for example, needed for `⟋` and `⟍` produced by `\diagup` and `\diagdown`,
+    /// which in MathML Core would otherwise have operator spacing.
+    ForceOrd(MathMLOperator),
     /// A token to force an operator to behave like a binary operator (mathbin).
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
@@ -494,6 +498,7 @@ impl Token<'_> {
             | MathOrTextMode(_, _)
             | UnknownCommand(_)
             | InternalStringLiteral(_)
+            | ForceOrd(_)
             | Accent(_, _, _) => Some(Class::Default),
         }
     }

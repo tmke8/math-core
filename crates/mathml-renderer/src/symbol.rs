@@ -1038,14 +1038,16 @@ pub const PERPENDICULAR: Rel = Rel::new('⟂', RelCategory::Default);
 
 pub const LEFT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟅');
 pub const RIGHT_S_SHAPED_BAG_DELIMITER: MathMLOperator = MathMLOperator::from_char('⟆');
-
 pub const OR_WITH_DOT_INSIDE: MathMLOperator = MathMLOperator::from_char('⟇');
-pub const ELEMENT_OF_OPENING_UPWARDS: Rel = Rel::new('⟒', RelCategory::Default);
+
+pub const MATHEMATICAL_RISING_DIAGONAL: Op = Op::new('⟋', OpCategory::C);
+pub const MATHEMATICAL_FALLING_DIAGONAL: Op = Op::new('⟍', OpCategory::C);
 
 pub const REVERSE_SOLIDUS_PRECEDING_SUPERSET: Rel = Rel::new('⟈', RelCategory::Default);
 pub const SUPERSET_PRECEDING_SOLIDUS: Rel = Rel::new('⟉', RelCategory::Default);
 
 pub const AND_WITH_DOT: MathMLOperator = MathMLOperator::from_char('⟑');
+pub const ELEMENT_OF_OPENING_UPWARDS: Rel = Rel::new('⟒', RelCategory::Default);
 
 pub const LEFT_OUTER_JOIN: MathMLOperator = MathMLOperator::from_char('⟕');
 pub const RIGHT_OUTER_JOIN: MathMLOperator = MathMLOperator::from_char('⟖');
