@@ -40,7 +40,6 @@ pub(crate) struct Parser<'state, 'arena> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     global_state: &'state mut GlobalState,
-    unicode_substitution: crate::UnicodeSubstitution,
     state: ParserState<'arena>,
 }
 
@@ -126,7 +125,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         arena: &'arena Arena,
         global_state: &'state mut GlobalState,
         style: Style,
-        unicode_substitution: crate::UnicodeSubstitution,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         Ok(Parser {
@@ -134,7 +132,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             buffer: Buffer::new(input_length),
             arena,
             global_state,
-            unicode_substitution,
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_arg_offsets: [0; 9],
@@ -1946,30 +1943,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     attrs: RowAttrs::DEFAULT,
                 })
             }
-            Token::CompositeRelation {
-                rel_category,
-                combined,
-                parts,
-            } => {
-                class = Class::Relation;
-                if let crate::UnicodeSubstitution::Conventional = self.unicode_substitution {
-                    // Use the `combined` character if unicode substitution is enabled.
-                    let attrs = relation_attrs(rel_category);
-                    let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
-                    Ok(Node::Operator {
-                        op: combined.as_op(),
-                        attrs,
-                        left,
-                        right,
-                        size: None,
-                    })
-                } else {
-                    self.tokens.queue_in_front(parts);
-                    let token = self.next_token();
-                    // TODO: Use `become` here once it is stable.
-                    return self.parse_token(token, parse_as, prev_class);
-                }
-            }
             Token::CustomCmd(num_args, token_stream) => {
                 if num_args > 0 {
                     // The fact that we only clear for `num_args > 0` is a hack to
@@ -2901,15 +2874,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new(problem, false, None);
-            let mut p = Parser::new(
-                l,
-                &arena,
-                &mut state,
-                Style::Text,
-                crate::UnicodeSubstitution::Conventional,
-            )
-            .unwrap();
+            let l = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
+            let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -2946,15 +2912,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new("", false, None);
-            let mut p = Parser::new(
-                l,
-                &arena,
-                &mut state,
-                Style::Text,
-                crate::UnicodeSubstitution::Conventional,
-            )
-            .unwrap();
+            let l = Lexer::new("", false, None, crate::UnicodeSubstitution::default());
+            let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -2969,15 +2928,8 @@ mod tests {
         let input = format!("{{{}}}", literal);
         let arena = Arena::new();
         let mut state = GlobalState::default();
-        let l = Lexer::new(&input, false, None);
-        let mut p = Parser::new(
-            l,
-            &arena,
-            &mut state,
-            Style::Text,
-            crate::UnicodeSubstitution::Conventional,
-        )
-        .unwrap();
+        let l = Lexer::new(&input, false, None, crate::UnicodeSubstitution::default());
+        let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));

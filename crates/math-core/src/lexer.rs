@@ -4,11 +4,11 @@ use std::str::CharIndices;
 
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
-use crate::ParserConfig;
 use crate::commands::{get_command, get_operator_from_unicode};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
+use crate::{ParserConfig, UnicodeSubstitution};
 
 /// Lexer
 pub(crate) struct Lexer<'config, 'source>
@@ -21,6 +21,7 @@ where
     input_length: usize,
     parse_cmd_args: Option<u8>,
     parser_cfg: Option<&'config ParserConfig>,
+    unicode_substitution: UnicodeSubstitution,
 }
 
 impl<'config, 'source> Lexer<'config, 'source> {
@@ -29,6 +30,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         input: &'source str,
         parsing_custom_cmds: bool,
         parser_cfg: Option<&'config ParserConfig>,
+        unicode_substitution: UnicodeSubstitution,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -41,6 +43,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 None
             },
             parser_cfg,
+            unicode_substitution,
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -325,6 +328,21 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 return LexerResult::Tok(TokSpan::new(tok, span));
             }
         }
+        'unicode_substitution: {
+            if matches!(self.unicode_substitution, UnicodeSubstitution::Conventional) {
+                // When unicode substitution is enabled, certain composite relations are rendered
+                // as a single combined Unicode character instead of their constituent parts.
+                let rel = match cmd_string {
+                    "Coloneq" | "Coloneqq" => symbol::DOUBLE_COLON_EQUAL,
+                    "coloneq" | "coloneqq" => symbol::COLON_EQUALS,
+                    "dashcolon" => symbol::EXCESS,
+                    "dblcolon" => symbol::PROPORTION,
+                    "eqcolon" | "eqqcolon" => symbol::EQUALS_COLON,
+                    _ => break 'unicode_substitution,
+                };
+                return LexerResult::Tok(TokSpan::new(Token::Relation(rel), span));
+            }
+        }
         let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
             .parser_cfg
             .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
@@ -462,7 +480,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None);
+            let mut lexer = Lexer::new(problem, false, None, UnicodeSubstitution::default());
             // Call `lexer.next_token(false)` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
@@ -491,7 +509,7 @@ mod tests {
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None);
+            let mut lexer = Lexer::new(problem, false, None, UnicodeSubstitution::default());
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
@@ -521,7 +539,12 @@ mod tests {
     fn test_parsing_custom_commands() {
         let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let mut lexer = Lexer::new(problem, parsing_custom_cmds, None);
+        let mut lexer = Lexer::new(
+            problem,
+            parsing_custom_cmds,
+            None,
+            UnicodeSubstitution::default(),
+        );
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
@@ -538,7 +561,7 @@ mod tests {
     #[test]
     fn test_recover_limited_ascii() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
-        let mut lexer = Lexer::new(input, false, None);
+        let mut lexer = Lexer::new(input, false, None, UnicodeSubstitution::default());
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {

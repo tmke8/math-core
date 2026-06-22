@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 
 use mathml_renderer::{
     ast::Node,
-    symbol::{self, BMPOperator, Bin, MathMLOperator, Op, OrdLike, Punct, Rel, RelCategory},
+    symbol::{self, BMPOperator, Bin, MathMLOperator, Op, OrdLike, Punct, Rel},
 };
 use mathml_renderer::{
     attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
@@ -142,12 +142,6 @@ pub enum Token<'source> {
     ForceLargeOp(MathMLOperator),
     /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
-    /// A token for composite relations, e.g. `\coloneqq`.
-    CompositeRelation {
-        rel_category: RelCategory,
-        combined: BMPOperator,
-        parts: &'static [Token<'static>],
-    },
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
     /// The `Rel` is the stretchy arrow operator to render.
     XArrow(Rel),
@@ -433,9 +427,7 @@ impl Token<'_> {
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
         match self.unwrap_math_ref() {
-            Relation(_) | ForceRelation(_) | CompositeRelation { .. } | XArrow(_) => {
-                Some(Class::Relation)
-            }
+            Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
             Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
                 Some(Class::Open)

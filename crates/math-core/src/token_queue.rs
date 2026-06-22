@@ -425,7 +425,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let lexer = Lexer::new(problem, false, None);
+            let lexer = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.load_token_skip_whitespace().unwrap();
@@ -459,7 +459,7 @@ mod tests {
     fn test_get_whitespace_tokens() {
         let input = r"\text{  x +   y }";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, false, None);
+        let lexer = Lexer::new(input, false, None, crate::UnicodeSubstitution::default());
         let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
 
         let mut token_str = String::new();
@@ -479,7 +479,7 @@ mod tests {
     fn test_find_or_load_after_next() {
         let input = r"x y z";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, false, None);
+        let lexer = Lexer::new(input, false, None, crate::UnicodeSubstitution::default());
         let mut queue = TokenQueue::new(lexer).expect("Failed to create TokenManager");
         queue.next().unwrap(); // Consume 'x'
         assert_eq!(queue.next_non_whitespace, 1);
@@ -520,7 +520,7 @@ mod tests {
         ];
 
         for (name, problem, preserve_all) in problems.into_iter() {
-            let lexer = Lexer::new(problem, false, None);
+            let lexer = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             let tokens = match manager.read_argument(preserve_all) {
                 Ok(MacroArgument::Group(tokens, _)) => {
