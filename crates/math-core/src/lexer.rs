@@ -330,17 +330,18 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
         'unicode_substitution: {
             if matches!(self.unicode_substitution, UnicodeSubstitution::Conventional) {
-                // When unicode substitution is enabled, certain composite relations are rendered
+                // When unicode substitution is enabled, certain composite symbols are rendered
                 // as a single combined Unicode character instead of their constituent parts.
-                let rel = match cmd_string {
-                    "Coloneq" | "Coloneqq" => symbol::DOUBLE_COLON_EQUAL,
-                    "coloneq" | "coloneqq" => symbol::COLON_EQUALS,
-                    "dashcolon" => symbol::EXCESS,
-                    "dblcolon" => symbol::PROPORTION,
-                    "eqcolon" | "eqqcolon" => symbol::EQUALS_COLON,
+                let tok = match cmd_string {
+                    "Coloneq" | "Coloneqq" => Token::Relation(symbol::DOUBLE_COLON_EQUAL),
+                    "cdots" => Token::ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
+                    "coloneq" | "coloneqq" => Token::Relation(symbol::COLON_EQUALS),
+                    "dashcolon" => Token::Relation(symbol::EXCESS),
+                    "dblcolon" => Token::Relation(symbol::PROPORTION),
+                    "eqcolon" | "eqqcolon" => Token::Relation(symbol::EQUALS_COLON),
                     _ => break 'unicode_substitution,
                 };
-                return LexerResult::Tok(TokSpan::new(Token::Relation(rel), span));
+                return LexerResult::Tok(TokSpan::new(tok, span));
             }
         }
         let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self

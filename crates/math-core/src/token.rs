@@ -136,6 +136,10 @@ pub enum Token<'source> {
     ForceClose(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like punctuation (mathpunct).
     ForcePunctuation(MathMLOperator),
+    /// A token to force an operator to behave like an inner atom (mathinner).
+    /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
+    /// under conventional Unicode substitution, which needs inner spacing.
+    ForceMathInner(MathMLOperator),
     /// Force an operator to behave like a large binary operator.
     /// This is, for example, needed for `⅀`.
     /// We assume `movablelimitss`.
@@ -440,7 +444,7 @@ impl Token<'_> {
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
-            Inner(_) => Some(Class::Inner),
+            Inner(_) | ForceMathInner(_) => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/substitution_test.rs
+expression: "4 + \\cdots ()"
+---
+<math>
+    <mn>4</mn>
+    <mo>+</mo>
+    <mo lspace="0" rspace="0.1667em">⋯</mo>
+    <mo stretchy="false">(</mo>
+    <mo stretchy="false">)</mo>
+</math>

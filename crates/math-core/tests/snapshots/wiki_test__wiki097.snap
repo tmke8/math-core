@@ -12,7 +12,5 @@ expression: "\\amalg \\P \\S \\% \\dagger\\ddagger\\ldots\\cdots"
     <mo>.</mo>
     <mo lspace="0" rspace="0.1667em">.</mo>
     <mo lspace="0">.</mo>
-    <mo>·</mo>
-    <mo lspace="0" rspace="0.1667em">·</mo>
-    <mo lspace="0" rspace="0">·</mo>
+    <mo lspace="0.1667em" rspace="0">⋯</mo>
 </math>

@@ -684,6 +684,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 })
             }
+            Token::ForceMathInner(op) => {
+                class = Class::Inner;
+                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    left,
+                    right,
+                    size: None,
+                })
+            }
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
                 Ok(Node::Enclose { content, notation })
