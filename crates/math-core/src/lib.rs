@@ -198,7 +198,7 @@ struct EmitterConfig {
 
 impl From<MathCoreConfig> for EmitterConfig {
     fn from(config: MathCoreConfig) -> Self {
-        // TODO: can we use a macro here to avoid repeating the field names?
+        // FIXME: can we use a macro here to avoid repeating the field names?
         Self {
             pretty_print: config.pretty_print,
             xml_namespace: config.xml_namespace,

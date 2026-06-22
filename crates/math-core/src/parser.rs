@@ -548,6 +548,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 })
             }
+            Token::ForceOrd(op) => {
+                class = Class::Default;
+                Ok(Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
+                    size: None,
+                })
+            }
             Token::BinaryOp(binary_op) => {
                 let spacing = self.state.bin_op_spacing(
                     parse_as.in_sequence(),
@@ -1464,7 +1474,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::NewLine => 'new_line: {
                 class = Class::Open;
                 if !self.state.meaningful_newlines {
-                    // TODO: Return something other than a row here, so that we can avoid creating
+                    // FIXME: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
                     Ok(Node::EMPTY_ROW)
                 } else if let Some(numbered_state) = &mut self.state.numbered {
@@ -1974,7 +1984,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 self.tokens.queue_in_front(token_stream);
                 let token = self.next_token();
-                // TODO: Use `become` here once it is stable.
+                // FIXME: Use `become` here once it is stable.
                 return self.parse_token(token, parse_as, prev_class);
             }
             Token::CustomCmdArg(arg_num) => {

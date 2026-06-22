@@ -226,7 +226,7 @@ impl Env {
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
                 // `Env::Array`, `Env:DArray` and `Env::Subarray` in the caller.
-                // TODO: Refactor this to avoid using `unsafe`.
+                // FIXME: Refactor this to avoid using `unsafe`.
                 debug_assert!(array_spec.is_some());
                 let array_spec = unsafe { array_spec.unwrap_unchecked() };
                 let style = match array_variant {
@@ -319,7 +319,7 @@ impl<'arena> NumberedEnvState<'arena> {
             Ok(None)
         } else {
             *equation_counter = equation_counter.checked_add(1).ok_or(())?;
-            // TODO: Use the `int_format_into` feature once it's stabilized.
+            // FIXME: Use the `int_format_into` feature once it's stabilized.
             let mut buffer = String::new();
             write!(buffer, "{}", equation_counter).map_err(|_| ())?;
             let tag = arena.alloc_str(&buffer);
