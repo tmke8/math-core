@@ -200,7 +200,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 self.read_char();
             }
             self.read_char(); // Consume the newline character.
-            // TODO: use `become` here when stabilized.
+            // FIXME: use `become` here when stabilized.
             return self.next_token_internal();
         }
         let mut span = Span::new(loc, loc + ch.len_utf8());

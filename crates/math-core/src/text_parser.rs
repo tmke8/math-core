@@ -181,7 +181,7 @@ impl<'arena> Parser<'_, 'arena> {
                                     );
                                     str_builder = Some(self.buffer.get_builder());
                                 } else {
-                                    // TODO: Avoid this back-and-forth with the `str_builder`.
+                                    // FIXME: Avoid this back-and-forth with the `str_builder`.
                                     str_builder = Some(builder);
                                 }
                                 continue;
