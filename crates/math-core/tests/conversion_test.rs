@@ -591,8 +591,6 @@ fn main() {
         ("and_before_relation", r"x\And =x"),
         ("idotsint", r"x \idotsint ="),
         ("idotsint_with_limits", r"\idotsint\limits_0^1 xy"),
-        ("cdots_before_open", r"4 + \cdots ()"),
-        ("cdots_before_close", r"{\sum \cdots}"),
         ("dots_in_subscript", r"x_{\ldots\log}"),
         ("infix_double_bar", r"x \| y"),
         ("underset_tilde", r"\underset{z\sim Z}{\mathbb{E}}"),

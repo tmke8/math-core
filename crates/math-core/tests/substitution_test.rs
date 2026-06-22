@@ -12,9 +12,11 @@ const PROBLEMS: &[(&str, &str)] = &[
     ("dblcolon", r"a\dblcolon b"),
     ("eqcolon", r"a\eqcolon b"),
     ("eqqcolon", r"a\eqqcolon b"),
+    ("cdots_before_open", r"4 + \cdots ()"),
+    ("cdots_before_close", r"{\sum \cdots}"),
 ];
 
-fn convert_all(unicode_substitution: UnicodeSubstitution, prefix: &str) {
+fn convert_all(unicode_substitution: UnicodeSubstitution, suffix: &str) {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
         unicode_substitution,
@@ -28,7 +30,7 @@ fn convert_all(unicode_substitution: UnicodeSubstitution, prefix: &str) {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
-        assert_snapshot!(format!("{prefix}_{name}"), &mathml, problem);
+        assert_snapshot!(format!("{name}--{suffix}"), &mathml, problem);
     }
 }
 
