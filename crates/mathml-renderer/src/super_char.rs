@@ -446,10 +446,50 @@ mod tests {
         );
     }
 
-    /// Exhaustively test every operation on every possible [`SuperChar`] value.
+    /// Test every operation on a representative set of [`SuperChar`] values.
+    ///
+    /// `SuperChar`'s behavior depends on the base `char` only through its UTF-8
+    /// length, whether it has a precomposed solidus-overlay form, and (for
+    /// `from_char_with_vs`) whether it *is* such a precomposed form. The
+    /// variation-selector/overlay operations are base-char-independent bit
+    /// twiddling. So rather than exhaustively iterating all ~1.1M code points
+    /// (which takes ~20s in debug builds), we test a curated set that exercises
+    /// each of those cases.
     #[test]
     fn test_super_char() {
-        for base in '\0'..=char::MAX {
+        let interesting = [
+            // UTF-8 length boundaries (1/2/3/4 bytes) and surrogate boundaries
+            '\u{0}',
+            '\u{7F}',
+            '\u{80}',
+            '\u{7FF}',
+            '\u{800}',
+            '\u{D7FF}',
+            '\u{E000}',
+            '\u{FFFF}',
+            '\u{10000}',
+            char::MAX,
+            // some ordinary characters not in the precomposed table
+            'a',
+            'Z',
+            '0',
+            'α',
+            '∑',
+            '€',
+            '😀',
+        ]
+        .into_iter()
+        // every character participating in the precomposed solidus-overlay table,
+        // covering both the "has a precomposed form" and "is a precomposed form" cases
+        .chain(
+            PRECOMPOSED_SOLIDUS_OVERLAY
+                .0
+                .iter()
+                .flat_map(|&[from, to]| [from, to])
+                .map(|cp| char::from_u32(cp.into()).unwrap()),
+        );
+
+        for base in interesting {
             // Test base character alone
 
             let sc = SuperChar::from_char(base);
