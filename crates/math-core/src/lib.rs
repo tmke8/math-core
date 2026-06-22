@@ -229,8 +229,10 @@ impl LatexToMathML {
     /// be parsed. The error contains the parsing error, the macro index and the macro definition
     /// that caused the error.
     pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
-        let (custom_cmd_tokens, custom_cmd_map) =
-            parse_custom_commands(std::mem::take(&mut config.macros))?;
+        let (custom_cmd_tokens, custom_cmd_map) = parse_custom_commands(
+            std::mem::take(&mut config.macros),
+            config.unicode_substitution,
+        )?;
         let parser_cfg = ParserConfig {
             custom_cmd_tokens,
             custom_cmd_map,
@@ -422,14 +424,20 @@ fn parse<'arena>(
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,
     };
-    let lexer = Lexer::new(latex, false, Some(parser_cfg));
-    let mut p = Parser::new(lexer, arena, state, style, parser_cfg.unicode_substitution)?;
+    let lexer = Lexer::new(
+        latex,
+        false,
+        Some(parser_cfg),
+        parser_cfg.unicode_substitution,
+    );
+    let mut p = Parser::new(lexer, arena, state, style)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }
 
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
+    unicode_substitution: UnicodeSubstitution,
 ) -> Result<(Vec<Token<'static>>, CustomCmdMap), MacroParseError> {
     let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), FxBuildHasher);
     let mut tokens = Vec::new();
@@ -446,7 +454,8 @@ fn parse_custom_commands(
         // that the lexer (which borrows `definition`) is dropped before we return the error.
         // Therefore, we put the whole lexing process into its own block.
         let value = 'value: {
-            let mut lexer: Lexer<'static, '_> = Lexer::new(definition.as_str(), true, None);
+            let mut lexer: Lexer<'static, '_> =
+                Lexer::new(definition.as_str(), true, None, unicode_substitution);
             let start = tokens.len();
             loop {
                 match lexer.next_token_no_unknown_command() {

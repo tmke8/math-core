@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/substitution_test.rs
+expression: "a\\eqqcolon b"
+---
+<math>
+    <mi>a</mi>
+    <mo>≕</mo>
+    <mi>b</mi>
+</math>
