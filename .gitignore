@@ -84,6 +84,7 @@ node_modules/
 
 pkg/
 /playground/comparison.html
+/playground/unicode-math-table.html
 /playground/mathmlfixes.css
 /scripts/all_symbols.txt
 /playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.woff2
