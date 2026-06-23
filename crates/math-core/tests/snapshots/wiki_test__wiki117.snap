@@ -4,7 +4,7 @@ expression: "\\overbrace{ 1+2+\\cdots+100 }^{5050}"
 ---
 <math>
     <mover>
-        <mover>
+        <mover accent="true">
             <mrow>
                 <mn>1</mn>
                 <mo>+</mo>

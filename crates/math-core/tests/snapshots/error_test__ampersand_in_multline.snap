@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{multline}1&1\\end{multline}"
 ---
-Error: Got "&", which may only appear in a table-like environment.
+Error: Found "&", which may only appear in a table-like environment.
    ╭─[ <input>:1:18 ]
    │
  1 │ \begin{multline}1&1\end{multline}
    │                  ┬  
-   │                  ╰── may only appear in a table-like environment
+   │                  ╰── cannot be used here
 ───╯

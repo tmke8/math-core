@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix} 1 \\end{bmatrix}"
 ---
-Error: Expected "\end{matrix}", but got "\end{bmatrix}".
+Error: Expected "\end{matrix}", but found "\end{bmatrix}".
    ╭─[ <input>:1:18 ]
    │
  1 │ \begin{matrix} 1 \end{bmatrix}
    │                  ──────┬──────  
-   │                        ╰──────── expected "\end{matrix}" here
+   │                        ╰──────── expected a different environment name here
 ───╯

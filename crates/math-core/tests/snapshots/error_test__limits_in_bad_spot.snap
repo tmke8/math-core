@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\int^\\limits a"
 ---
-Error: Got "\limits", which may only appear after \int, \sum, ....
+Error: Found "\limits", which may only appear after \int, \sum, ....
    ╭─[ <input>:1:6 ]
    │
  1 │ \int^\limits a
    │      ───┬───  
-   │         ╰───── may only appear after \int, \sum, ...
+   │         ╰───── cannot be used here
 ───╯

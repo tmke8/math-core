@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\text{x{}"
 ---
-Error: Expected token "}", but not found.
+Error: Expected closing token "}", but reached end of input.
    ╭─[ <input>:1:10 ]
    │
  1 │ \text{x{}
    │          │ 
-   │          ╰─ expected "}" to close this group
+   │          ╰─ a group was never closed
 ───╯

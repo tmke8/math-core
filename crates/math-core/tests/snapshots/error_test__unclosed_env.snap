@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix} x"
 ---
-Error: Expected token "\end{...}", but not found.
+Error: Expected closing token "\end{...}", but reached end of input.
    ╭─[ <input>:1:17 ]
    │
  1 │ \begin{matrix} x
    │                 │ 
-   │                 ╰─ expected "\end{...}" to close this group
+   │                 ╰─ a group was never closed
 ───╯

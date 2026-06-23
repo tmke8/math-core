@@ -6,8 +6,8 @@ use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint, Unicode
 const PROBLEMS: &[(&str, &str)] = &[
     ("coloneq", r"a\coloneq b"),
     ("coloneqq", r"a\coloneqq b"),
-    ("Coloneq", r"a\Coloneq b"),
-    ("Coloneqq", r"a\Coloneqq b"),
+    ("capital_coloneq", r"a\Coloneq b"),
+    ("capital_coloneqq", r"a\Coloneqq b"),
     ("dashcolon", r"a\dashcolon b"),
     ("dblcolon", r"a\dblcolon b"),
     ("eqcolon", r"a\eqcolon b"),

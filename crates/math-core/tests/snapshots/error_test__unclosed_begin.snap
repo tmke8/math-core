@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{matrix"
 ---
-Error: Expected token "}", but not found.
+Error: Expected closing token "}", but reached end of input.
    ╭─[ <input>:1:14 ]
    │
  1 │ \begin{matrix
    │              │ 
-   │              ╰─ expected "}" to close this group
+   │              ╰─ a group was never closed
 ───╯
