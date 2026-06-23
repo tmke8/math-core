@@ -126,7 +126,7 @@ impl Env {
         }
     }
 
-    pub(super) fn new_state(&self) -> EnvState<'static> {
+    pub(super) fn new_state(self) -> EnvState<'static> {
         EnvState {
             allow_columns: self.allows_columns(),
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
