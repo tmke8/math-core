@@ -11,7 +11,10 @@ use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
-use crate::table::{Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo};
+use crate::table::{
+    Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnGenerator, LineType,
+    RIGHT_ALIGN, RowLabelInfo,
+};
 use crate::{
     attribute::{
         FracAttr, HtmlTextSize, HtmlTextStyle, LetterAttr, MathSpacing, Notation, OpAttrs, Size,
@@ -211,7 +214,10 @@ pub enum Node<'arena> {
     /// `<mtd>...</mtd>`
     ColumnSeparator,
     /// `<mtr>...</mtr>`
-    RowSeparator(Option<&'arena RowLabelInfo<'arena>>),
+    RowSeparator {
+        label_info: Option<&'arena RowLabelInfo<'arena>>,
+        border_top: Option<LineType>,
+    },
     /// `<menclose>...</menclose>`
     Enclose {
         content: &'arena Node<'arena>,
@@ -647,14 +653,25 @@ impl<'state> Emitter<'state> {
             } => {
                 let mtd_opening = ColumnGenerator::new_custom(array_spec);
                 write!(self.s, "<mtable")?;
-                match array_spec.beginning_line {
-                    Some(LineType::Solid) => {
-                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor\"")?;
+                // `border_left` (from a leading `|`/`:`) and `border_top` (from a leading
+                // `\hline`/`\hdashline`) both go into a single `style` attribute on the table.
+                if array_spec.border_left.is_some() || array_spec.border_top.is_some() {
+                    write!(self.s, " style=\"")?;
+                    match array_spec.border_left {
+                        Some(LineType::Solid) => {
+                            write!(self.s, "border-left: 0.05em solid currentcolor;")?;
+                        }
+                        Some(LineType::Dashed) => {
+                            write!(self.s, "border-left: 0.05em dashed currentcolor;")?;
+                        }
+                        None => (),
                     }
-                    Some(LineType::Dashed) => {
-                        write!(self.s, " style=\"border-left: 0.05em dashed currentcolor\"")?;
+                    match array_spec.border_top {
+                        Some(LineType::Solid) => write!(self.s, "{BORDER_TOP_SOLID}")?,
+                        Some(LineType::Dashed) => write!(self.s, "{BORDER_TOP_DASHED}")?,
+                        None => (),
                     }
-                    _ => (),
+                    write!(self.s, "\"")?;
                 }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
@@ -773,7 +790,10 @@ impl<'state> Emitter<'state> {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                     col_gen.write_next_mtd(&mut self.s, child_indent2)?;
                 }
-                Node::RowSeparator(label_info) => {
+                Node::RowSeparator {
+                    label_info,
+                    border_top,
+                } => {
                     writeln_indent!(&mut self.s, child_indent2, "</mtd>");
                     if let Some(numbering_cols) = numbering_cols {
                         write_equation_num(
@@ -790,6 +810,10 @@ impl<'state> Emitter<'state> {
                         numbering_cols.initial_dummy_column(&mut self.s, child_indent2)?;
                     }
                     col_gen.reset_to_new_row();
+                    // A `\hline`/`\hdashline` right after this `\\` becomes the top border of the
+                    // row we're about to open. MathML `<mtr>` borders aren't rendered by all
+                    // browsers (notably Firefox), so it's applied per-cell by the column generator.
+                    col_gen.set_row_border_top(border_top);
                     col_gen.write_next_mtd(&mut self.s, child_indent2)?;
                 }
                 _ => {
@@ -913,7 +937,7 @@ fn write_equation_num(
 #[cfg(test)]
 mod tests {
     use super::super::symbol;
-    use super::super::table::{ColumnAlignment, ColumnSpec};
+    use super::super::table::{ColumnAlignment, ColumnSpecEntry};
     use super::*;
 
     const WORD: usize = std::mem::size_of::<usize>();
@@ -1367,7 +1391,10 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(None),
+            &Node::RowSeparator {
+                label_info: None,
+                border_top: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1389,10 +1416,13 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(Some(&RowLabelInfo {
-                tag: "1",
-                link_target: None,
-            })),
+            &Node::RowSeparator {
+                label_info: Some(&RowLabelInfo {
+                    tag: "1",
+                    link_target: None,
+                }),
+                border_top: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1427,7 +1457,10 @@ mod tests {
             &Node::Number("1"),
             &Node::ColumnSeparator,
             &Node::Number("2"),
-            &Node::RowSeparator(None),
+            &Node::RowSeparator {
+                label_info: None,
+                border_top: None,
+            },
             &Node::Number("3"),
             &Node::ColumnSeparator,
             &Node::Number("4"),
@@ -1438,15 +1471,63 @@ mod tests {
                 style: None,
                 content: &nodes,
                 array_spec: &ArraySpec {
-                    beginning_line: None,
+                    border_left: None,
+                    border_top: None,
                     is_sub: false,
                     column_spec: &[
-                        ColumnSpec::WithContent(ColumnAlignment::LeftJustified, None),
-                        ColumnSpec::WithContent(ColumnAlignment::Centered, None),
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::LeftJustified,
+                            border_right: None
+                        },
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::Centered,
+                            border_right: None
+                        },
                     ],
                 },
             }),
             "<mtable><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_array_with_hlines() {
+        // A leading `\hline` (solid) sets `border_top` on the array spec, and an `\hline`
+        // after the `\\` sets `border_top` on the corresponding `RowSeparator`.
+        let nodes = [
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator {
+                label_info: None,
+                border_top: Some(LineType::Dashed),
+            },
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
+        ];
+
+        assert_eq!(
+            render(&Node::Array {
+                style: None,
+                content: &nodes,
+                array_spec: &ArraySpec {
+                    border_left: None,
+                    border_top: Some(LineType::Solid),
+                    is_sub: false,
+                    column_spec: &[
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::Centered,
+                            border_right: None
+                        },
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::Centered,
+                            border_right: None
+                        },
+                    ],
+                },
+            }),
+            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 

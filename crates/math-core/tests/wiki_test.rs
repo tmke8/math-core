@@ -913,8 +913,8 @@ fn wiki_test() {
         }
     }
     assert_eq!(n_match, 10);
-    assert_eq!(n_diff, 198);
-    assert_eq!(n_fail, 10);
+    assert_eq!(n_diff, 199);
+    assert_eq!(n_fail, 9);
 }
 
 /// Prettify HTML input
@@ -1191,7 +1191,10 @@ fn test_nonfailing_wiki_tests() {
             r"\begin{cases} 3x + 5y + z \\ 7x - 2y + 4z \\ -6x + 3y + 2z \end{cases}",
         ),
         (164, r"f(x) \,\!"),
-        // (165, r"\begin{array}{|c|c|c|} a & b & S \\ \hline 0 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 0 & 1 \\ 1 & 1 & 0 \\ \end{array}"),
+        (
+            165,
+            r"\begin{array}{|c|c|c|} a & b & S \\ \hline 0 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 0 & 1 \\ 1 & 1 & 0 \\ \end{array}",
+        ),
         (166, r"( \frac{1}{2} )^n"),
         (167, r"\left ( \frac{1}{2} \right )^n"),
         (168, r"\left ( \frac{a}{b} \right )"),

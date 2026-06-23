@@ -88,6 +88,14 @@ fn main() {
         ("kern_eoi", r"x\kern"),
         ("kern_eoi_in_unit", r"x\kern1e"),
         ("ampersand_outside_array", r"x & y"),
+        (
+            "hline_in_wrong_position",
+            r"\begin{array}{cc} 1 & \hline 2 \end{array}",
+        ),
+        (
+            "hline_in_non_array_env",
+            r"\begin{matrix} 1 \\ \hline 2 \end{matrix}",
+        ),
         ("hash_outside_macro_definition", r"x # y"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),

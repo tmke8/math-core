@@ -10,7 +10,7 @@ use mathml_renderer::{
     attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
     super_char::SuperChar,
 };
-use mathml_renderer::{length::Length, super_char::OverlayChar};
+use mathml_renderer::{length::Length, super_char::OverlayChar, table::LineType};
 
 use crate::character_class::{Class, MathVariant, ParenType};
 use crate::environments::Env;
@@ -27,6 +27,9 @@ pub enum Token<'source> {
     NewColumn,
     /// A new line in an array or matrix, e.g. `\\` in `\begin{matrix} a & b\\c & d \end{matrix}`.
     NewLine,
+    /// A horizontal rule in an array, i.e. `\hline` (solid) or `\hdashline` (dashed). Only legal
+    /// directly after a `\\` or at the very beginning of an array environment.
+    HLine(LineType),
     /// `\nonumber`/`\notag`, suppresses numbering for the current equation.
     NoNumber,
     /// `\tag`, tag for the current equation.
@@ -466,7 +469,8 @@ impl Token<'_> {
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
-            | CustomSpace(_) | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef => None,
+            | CustomSpace(_) | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef
+            | HLine(_) => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)

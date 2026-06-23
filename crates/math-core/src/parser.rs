@@ -7,7 +7,7 @@ use mathml_renderer::{
     length::{Length, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::RowLabelInfo,
+    table::{LineType, RowLabelInfo},
 };
 
 use crate::{
@@ -56,6 +56,9 @@ struct ParserState<'arena> {
     allow_columns: bool,
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     meaningful_newlines: bool,
+    /// `true` if we are inside an `array`/`darray`/`subarray` environment, where `\hline` and
+    /// `\hdashline` are allowed (directly after `\\` or at the start of the environment).
+    in_array: bool,
     numbered: Option<NumberedEnvState<'arena>>,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
@@ -139,6 +142,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right_boundary_hack: false,
                 allow_columns: false,
                 meaningful_newlines: false,
+                in_array: false,
                 numbered: None,
                 style,
             },
@@ -1342,6 +1346,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     if matches!(env, Env::Subarray) {
                         spec.is_sub = true;
                     }
+                    // A `\hline`/`\hdashline` directly at the start of the array (whitespace is
+                    // skipped by `peek`) becomes the top border of the whole array.
+                    if let Token::HLine(line_type) = *self.tokens.peek().token() {
+                        self.tokens.next()?;
+                        spec.border_top = Some(line_type);
+                    }
                     Some(self.arena.alloc_array_spec(spec))
                 } else {
                     None
@@ -1352,6 +1362,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_meaningful_newlines = mem::replace(
                     &mut self.state.meaningful_newlines,
                     env.meaningful_newlines(),
+                );
+                let old_in_array = mem::replace(
+                    &mut self.state.in_array,
+                    matches!(env, Env::Array | Env::DArray | Env::Subarray),
                 );
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_numbered =
@@ -1365,6 +1379,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 self.state.allow_columns = old_allow_columns;
                 self.state.meaningful_newlines = old_meaningful_newlines;
+                self.state.in_array = old_in_array;
                 self.state.style = old_style;
                 let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
 
@@ -1471,13 +1486,42 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ))
                 }
             }
+            Token::HLine(line_type) => {
+                // `\hline`/`\hdashline` reaching here means it wasn't consumed at the start of an
+                // array or directly after a `\\`, so it's in an illegal position.
+                Err(LatexError(
+                    span.into(),
+                    LatexErrKind::CannotBeUsedHere {
+                        got: match line_type {
+                            LineType::Solid => LimitedUsabilityToken::HLine,
+                            LineType::Dashed => LimitedUsabilityToken::HDashLine,
+                        },
+                        correct_place: Place::ArrayRowStart,
+                    },
+                ))
+            }
             Token::NewLine => 'new_line: {
                 class = Class::Open;
                 if !self.state.meaningful_newlines {
                     // FIXME: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
-                    Ok(Node::EMPTY_ROW)
-                } else if let Some(numbered_state) = &mut self.state.numbered {
+                    break 'new_line Ok(Node::EMPTY_ROW);
+                }
+                // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
+                // becomes the top border of the row that follows. Only legal inside an array;
+                // elsewhere it falls through to the `Token::HLine` error arm.
+                let border_top = if self.state.in_array {
+                    match *self.tokens.peek().token() {
+                        Token::HLine(line_type) => {
+                            self.tokens.next()?;
+                            Some(line_type)
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                if let Some(numbered_state) = &mut self.state.numbered {
                     if let Some(row_counter) = &mut numbered_state.num_rows {
                         match row_counter.checked_add(1) {
                             Some(new_counter) => {
@@ -1510,12 +1554,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                                 // If we don't have a tag, we're not setting a link target either
                                 None
                             };
-                            Ok(Node::RowSeparator(label_info))
+                            Ok(Node::RowSeparator {
+                                label_info,
+                                border_top,
+                            })
                         }
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
                     }
                 } else {
-                    Ok(Node::RowSeparator(None))
+                    Ok(Node::RowSeparator {
+                        label_info: None,
+                        border_top,
+                    })
                 }
             }
             Token::EqRef => {

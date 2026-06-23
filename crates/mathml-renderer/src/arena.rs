@@ -44,15 +44,12 @@ impl Arena {
         }
     }
 
-    pub fn alloc_column_specs<'arena>(
-        &'arena self,
-        column_specs: &[ColumnSpec],
-    ) -> &'arena [ColumnSpec] {
+    pub fn alloc_column_spec<'arena>(&'arena self, column_spec: ColumnSpec) -> ColumnSpec<'arena> {
         // `DroplessArena::alloc_slice()` panics on empty slices.
-        if column_specs.is_empty() {
+        if column_spec.is_empty() {
             &[]
         } else {
-            self.inner.alloc_slice(column_specs)
+            self.inner.alloc_slice(column_spec)
         }
     }
 
