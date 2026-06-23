@@ -84,6 +84,8 @@ pub enum Place {
     TableEnv,
     #[strum(serialize = r"in a numbered equation environment")]
     NumberedEnv,
+    #[strum(serialize = r"directly after a `\\` or at the beginning of an array")]
+    ArrayRowStart,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -100,6 +102,10 @@ pub enum LimitedUsabilityToken {
     NoLimits,
     #[strum(serialize = r"\displaylimits")]
     DisplayLimits,
+    #[strum(serialize = r"\hline")]
+    HLine,
+    #[strum(serialize = r"\hdashline")]
+    HDashLine,
 }
 
 impl From<LimitsKind> for LimitedUsabilityToken {

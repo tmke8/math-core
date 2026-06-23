@@ -5,7 +5,7 @@ use strum_macros::EnumString;
 use mathml_renderer::{
     arena::Arena,
     length::{Length, LengthUnit},
-    table::{ArraySpec, ColumnAlignment, ColumnSpec, LineType},
+    table::{ArraySpec, ColumnAlignment, ColumnSpecEntry, LineType},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, EnumString)]
@@ -87,7 +87,7 @@ pub fn parse_column_specification<'arena>(
     arena: &'arena Arena,
 ) -> Option<ArraySpec<'arena>> {
     let mut column_spec = Vec::new();
-    let mut beginning_line: Option<LineType> = None;
+    let mut border_left: Option<LineType> = None;
     let mut has_content_column = false;
 
     // We will work with bytes to avoid UTF-8 checks.
@@ -103,7 +103,10 @@ pub fn parse_column_specification<'arena>(
                     _ => unreachable!(),
                 };
 
-                column_spec.push(ColumnSpec::WithContent(alignment, None));
+                column_spec.push(ColumnSpecEntry::WithContent {
+                    alignment,
+                    border_right: None,
+                });
                 has_content_column = true;
             }
             b'|' | b':' => {
@@ -115,18 +118,22 @@ pub fn parse_column_specification<'arena>(
                 if let Some(last) = column_spec.last_mut() {
                     // If the last column was a content column, we need to add a line type.
                     // If it is already set, we add a new element to the column spec vector.
-                    if let ColumnSpec::WithContent(_, last_line_type @ None) = last {
+                    if let ColumnSpecEntry::WithContent {
+                        border_right: last_line_type @ None,
+                        ..
+                    } = last
+                    {
                         *last_line_type = Some(line_type);
                     } else {
-                        column_spec.push(ColumnSpec::OnlyLine(line_type))
+                        column_spec.push(ColumnSpecEntry::OnlyLine(line_type))
                     }
                 } else {
                     // Nothing has been added yet, so this is the first column.
-                    if beginning_line.is_none() {
-                        beginning_line = Some(line_type);
+                    if border_left.is_none() {
+                        border_left = Some(line_type);
                     } else {
-                        // If there already is a `beginning_line`, we have a double line.
-                        column_spec.push(ColumnSpec::OnlyLine(line_type))
+                        // If there already is a `border_left`, we have a double line.
+                        column_spec.push(ColumnSpecEntry::OnlyLine(line_type))
                     }
                 }
             }
@@ -145,9 +152,10 @@ pub fn parse_column_specification<'arena>(
     }
 
     Some(ArraySpec {
-        beginning_line,
+        border_left,
+        border_top: None,
         is_sub: false,
-        column_spec: arena.alloc_column_specs(column_spec.as_slice()),
+        column_spec: arena.alloc_column_spec(column_spec.as_slice()),
     })
 }
 
@@ -173,19 +181,28 @@ mod tests {
     fn column_parse_simple() {
         let arena = Arena::new();
         let spec = parse_column_specification("l|c|r", &arena).unwrap();
-        assert!(spec.beginning_line.is_none());
+        assert!(spec.border_left.is_none());
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
-            ColumnSpec::WithContent(ColumnAlignment::LeftJustified, Some(LineType::Solid))
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::LeftJustified,
+                border_right: Some(LineType::Solid)
+            }
         ));
         assert!(matches!(
             spec.column_spec[1],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, Some(LineType::Solid))
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: Some(LineType::Solid)
+            }
         ));
         assert!(matches!(
             spec.column_spec[2],
-            ColumnSpec::WithContent(ColumnAlignment::RightJustified, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::RightJustified,
+                border_right: None
+            }
         ));
     }
 
@@ -193,19 +210,28 @@ mod tests {
     fn column_parse_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("|ccc", &arena).unwrap();
-        assert!(matches!(spec.beginning_line, Some(LineType::Solid)));
+        assert!(matches!(spec.border_left, Some(LineType::Solid)));
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: None
+            }
         ));
         assert!(matches!(
             spec.column_spec[1],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: None
+            }
         ));
         assert!(matches!(
             spec.column_spec[2],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: None
+            }
         ));
     }
 
@@ -213,19 +239,22 @@ mod tests {
     fn column_parse_multiple_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("   | ||c", &arena).unwrap();
-        assert!(matches!(spec.beginning_line, Some(LineType::Solid)));
+        assert!(matches!(spec.border_left, Some(LineType::Solid)));
         assert_eq!(spec.column_spec.len(), 3);
         assert!(matches!(
             spec.column_spec[0],
-            ColumnSpec::OnlyLine(LineType::Solid)
+            ColumnSpecEntry::OnlyLine(LineType::Solid)
         ));
         assert!(matches!(
             spec.column_spec[1],
-            ColumnSpec::OnlyLine(LineType::Solid)
+            ColumnSpecEntry::OnlyLine(LineType::Solid)
         ));
         assert!(matches!(
             spec.column_spec[2],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: None
+            }
         ));
     }
 
@@ -233,31 +262,40 @@ mod tests {
     fn column_parse_with_spaces() {
         let arena = Arena::new();
         let spec = parse_column_specification(" c   : |   c|    : |      c ", &arena).unwrap();
-        assert!(spec.beginning_line.is_none());
+        assert!(spec.border_left.is_none());
         assert_eq!(spec.column_spec.len(), 6);
         assert!(matches!(
             spec.column_spec[0],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, Some(LineType::Dashed))
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: Some(LineType::Dashed)
+            }
         ));
         assert!(matches!(
             spec.column_spec[1],
-            ColumnSpec::OnlyLine(LineType::Solid)
+            ColumnSpecEntry::OnlyLine(LineType::Solid)
         ));
         assert!(matches!(
             spec.column_spec[2],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, Some(LineType::Solid))
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: Some(LineType::Solid)
+            }
         ));
         assert!(matches!(
             spec.column_spec[3],
-            ColumnSpec::OnlyLine(LineType::Dashed)
+            ColumnSpecEntry::OnlyLine(LineType::Dashed)
         ));
         assert!(matches!(
             spec.column_spec[4],
-            ColumnSpec::OnlyLine(LineType::Solid)
+            ColumnSpecEntry::OnlyLine(LineType::Solid)
         ));
         assert!(matches!(
             spec.column_spec[5],
-            ColumnSpec::WithContent(ColumnAlignment::Centered, None)
+            ColumnSpecEntry::WithContent {
+                alignment: ColumnAlignment::Centered,
+                border_right: None
+            }
         ));
     }
 

@@ -1,0 +1,67 @@
+---
+source: crates/math-core/tests/wiki_test.rs
+expression: "\\begin{array}{|c|c|c|} a & b & S \\\\ \\hline 0 & 0 & 1 \\\\ 0 & 1 & 1 \\\\ 1 & 0 & 1 \\\\ 1 & 1 & 0 \\\\ \\end{array}"
+---
+<math>
+    <mtable style="border-left: 0.05em solid currentcolor;" displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mi>a</mi>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mi>b</mi>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mi>S</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;">
+                <mn>0</mn>
+            </mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;">
+                <mn>0</mn>
+            </mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>0</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>0</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+                <mn>0</mn>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;">
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

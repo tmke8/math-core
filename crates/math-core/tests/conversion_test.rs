@@ -582,6 +582,10 @@ fn main() {
             r"\begin{array}{ ||::|l } 10\\ 2 \end{array}",
         ),
         (
+            "array_hlines",
+            r"\begin{array}{cc} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{array}",
+        ),
+        (
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),

@@ -4,6 +4,7 @@ use mathml_renderer::{
     },
     super_char::{OverlayChar, SuperChar},
     symbol,
+    table::LineType,
 };
 
 use crate::predefined;
@@ -386,8 +387,10 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "harr" => Relation(symbol::LEFT_RIGHT_ARROW),
     "hat" => Accent(symbol::MODIFIER_LETTER_CIRCUMFLEX_ACCENT, true, OpAttrs::STRETCHY_FALSE),
     "hbar" => Letter(SuperChar::from_char(symbol::PLANCK_CONSTANT_OVER_TWO_PI), Mode::Math),
+    "hdashline" => HLine(LineType::Dashed),
     "hearts" => Letter(SuperChar::from_char(symbol::WHITE_HEART_SUIT), Mode::Math),
     "heartsuit" => Letter(SuperChar::from_char(symbol::WHITE_HEART_SUIT), Mode::Math),
+    "hline" => HLine(LineType::Solid),
     "hookleftarrow" => Relation(symbol::LEFTWARDS_ARROW_WITH_HOOK),
     "hookrightarrow" => Relation(symbol::RIGHTWARDS_ARROW_WITH_HOOK),
     "hphantom" => Phantom(PhantomKind::H),

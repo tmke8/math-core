@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{matrix} 1 \\\\ \\hline 2 \\end{matrix}"
+---
+Error: Got "\hline", which may only appear directly after a `\\` or at the beginning of an array.
+   ╭─[ <input>:1:21 ]
+   │
+ 1 │ \begin{matrix} 1 \\ \hline 2 \end{matrix}
+   │                     ───┬──  
+   │                        ╰──── may only appear directly after a `\\` or at the beginning of an array
+───╯
