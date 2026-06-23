@@ -213,7 +213,7 @@ impl LatexToMathML {
             let end = byte_offset_to_utf16_offset(&context, e.0.end) as u32;
             LatexError {
                 message: JsValue::from_str(&e.error_message()),
-                label: JsValue::from_str(&e.label()),
+                label: JsValue::from_str(e.label()),
                 start,
                 end,
                 context: Some(JsValue::from_str(&context)),
@@ -246,7 +246,7 @@ impl LatexToMathML {
                     let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
-                        label: JsValue::from_str(&e.label()),
+                        label: JsValue::from_str(e.label()),
                         start,
                         end,
                         context: None,
@@ -279,7 +279,7 @@ impl LatexToMathML {
                     let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
                     Err(LatexError {
                         message: JsValue::from_str(&e.error_message()),
-                        label: JsValue::from_str(&e.label()),
+                        label: JsValue::from_str(e.label()),
                         start,
                         end,
                         context: None,

@@ -4,7 +4,7 @@ expression: "\\underbrace{ a+b+\\cdots+z }_{26}"
 ---
 <math>
     <munder>
-        <munder>
+        <munder accentunder="true">
             <mrow>
                 <mi>a</mi>
                 <mo>+</mo>

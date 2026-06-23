@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "x\\kern"
 ---
-Error: Expected length with units, got "".
+Error: Expected length with units, found "".
    ╭─[ <input>:1:7 ]
    │
  1 │ x\kern

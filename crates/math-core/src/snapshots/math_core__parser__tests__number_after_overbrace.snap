@@ -3,15 +3,6 @@ source: crates/math-core/src/parser.rs
 expression: "\\overbrace12"
 ---
 [
-  Over(
-    symbol: Operator(
-      op: "⏞",
-      attrs: OpAttrs(""),
-      size: None,
-      left: None,
-      right: None,
-    ),
-    target: Number("1"),
-  ),
+  OverAccent("⏞", OpAttrs(""), Number("1")),
   Number("2"),
 ]

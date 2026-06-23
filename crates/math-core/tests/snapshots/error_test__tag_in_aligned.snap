@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{aligned}\\tag{32}1\\end{aligned}"
 ---
-Error: Got "\tag", which may only appear in a numbered equation environment.
+Error: Found "\tag", which may only appear in a numbered equation environment.
    ╭─[ <input>:1:16 ]
    │
  1 │ \begin{aligned}\tag{32}1\end{aligned}
    │                ──┬─  
-   │                  ╰─── may only appear in a numbered equation environment
+   │                  ╰─── cannot be used here
 ───╯

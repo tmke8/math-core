@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\text{hello}\\limits_0^1"
 ---
-Error: Got "\limits", which may only appear after \int, \sum, ....
+Error: Found "\limits", which may only appear after \int, \sum, ....
    ╭─[ <input>:1:13 ]
    │
  1 │ \text{hello}\limits_0^1
    │             ───┬───  
-   │                ╰───── may only appear after \int, \sum, ...
+   │                ╰───── cannot be used here
 ───╯

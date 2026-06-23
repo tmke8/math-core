@@ -2,10 +2,10 @@
 source: crates/math-core/src/token_queue.rs
 expression: "{x + y"
 ---
-Error: Expected token "}", but not found.
+Error: Expected closing token "}", but reached end of input.
    ╭─[ <input>:1:7 ]
    │
  1 │ {x + y
    │       │ 
-   │       ╰─ expected "}" to close this group
+   │       ╰─ a group was never closed
 ───╯

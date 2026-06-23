@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ops::Range;
 
@@ -125,7 +124,7 @@ impl LatexErrKind {
             LatexErrKind::UnclosedGroup(expected) => {
                 write!(
                     s,
-                    "Expected token \"{}\", but not found.",
+                    "Expected closing token \"{}\", but reached end of input.",
                     <&str>::from(expected)
                 )?;
             }
@@ -169,7 +168,7 @@ impl LatexErrKind {
             LatexErrKind::MismatchedEnvironment { expected, got } => {
                 write!(
                     s,
-                    "Expected \"\\end{{{}}}\", but got \"\\end{{{}}}\".",
+                    "Expected \"\\end{{{}}}\", but found \"\\end{{{}}}\".",
                     expected.as_str(),
                     got.as_str()
                 )?;
@@ -177,7 +176,7 @@ impl LatexErrKind {
             LatexErrKind::CannotBeUsedHere { got, correct_place } => {
                 write!(
                     s,
-                    "Got \"{}\", which may only appear {}.",
+                    "Found \"{}\", which may only appear {}.",
                     <&str>::from(got),
                     <&str>::from(correct_place)
                 )?;
@@ -210,7 +209,7 @@ impl LatexErrKind {
                 )?;
             }
             LatexErrKind::ExpectedLength(got) => {
-                write!(s, "Expected length with units, got \"{got}\".")?;
+                write!(s, "Expected length with units, found \"{got}\".")?;
             }
             LatexErrKind::IllegalUnit {
                 unit,
@@ -232,7 +231,7 @@ impl LatexErrKind {
                 write!(s, "Found invalid unit \"{unit}\".")?;
             }
             LatexErrKind::ExpectedColSpec(got) => {
-                write!(s, "Expected column specification, got \"{got}\".")?;
+                write!(s, "Expected column specification, found \"{got}\".")?;
             }
             LatexErrKind::NotValidInTextMode => {
                 write!(s, "Not valid in text mode.")?;
@@ -264,7 +263,7 @@ impl LatexErrKind {
             LatexErrKind::ExpectedParamNumberGotEOI => {
                 write!(
                     s,
-                    "Expected parameter number after '#', but got end of input."
+                    "Expected parameter number after '#', but reached end of input."
                 )?;
             }
             LatexErrKind::HardLimitExceeded => {
@@ -328,52 +327,46 @@ impl LatexError {
     }
 
     /// Returns a short label for the main error location.
-    pub fn label(&self) -> Cow<'static, str> {
+    pub fn label(&self) -> &'static str {
         match &self.1 {
-            LatexErrKind::UnclosedGroup(expected) => format!(
-                "expected \"{}\" to close this group",
-                <&str>::from(expected)
-            )
-            .into(),
-            LatexErrKind::UnmatchedClose(_) => "no matching opening for this".into(),
+            LatexErrKind::UnclosedGroup(_) => "a group was never closed",
+            LatexErrKind::UnmatchedClose(_) => "no matching opening for this",
             LatexErrKind::ExpectedArgumentGotClose | LatexErrKind::ExpectedArgumentGotEOI => {
-                "expected an argument here".into()
+                "expected an argument here"
             }
-            LatexErrKind::ExpectedDelimiter(_) => "expected a delimiter here".into(),
-            LatexErrKind::DisallowedChar(_) => "disallowed character".into(),
-            LatexErrKind::UnknownEnvironment(_) => "unknown environment".into(),
-            LatexErrKind::UnknownCommand(_) => "unknown command".into(),
-            LatexErrKind::UnknownColor(_) => "unknown color".into(),
-            LatexErrKind::MismatchedEnvironment { expected, .. } => {
-                format!("expected \"\\end{{{}}}\" here", expected.as_str()).into()
+            LatexErrKind::ExpectedDelimiter(_) => "expected a delimiter here",
+            LatexErrKind::DisallowedChar(_) => "disallowed character",
+            LatexErrKind::UnknownEnvironment(_) => "unknown environment",
+            LatexErrKind::UnknownCommand(_) => "unknown command",
+            LatexErrKind::UnknownColor(_) => "unknown color",
+            LatexErrKind::MismatchedEnvironment { .. } => {
+                "expected a different environment name here"
             }
-            LatexErrKind::CannotBeUsedHere { correct_place, .. } => {
-                format!("may only appear {}", <&str>::from(correct_place)).into()
-            }
-            LatexErrKind::ExpectedRelation => "expected a relation".into(),
-            LatexErrKind::ExpectedLargeOp => "expected a large operator".into(),
-            LatexErrKind::ExpectedStyle => "expected a style".into(),
-            LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here".into(),
-            LatexErrKind::ExpectedExactlyOneToken => "expected exactly one token here".into(),
-            LatexErrKind::BoundFollowedByBound => "unexpected bound".into(),
-            LatexErrKind::DuplicateSubOrSup => "duplicate".into(),
-            LatexErrKind::CannotBeUsedAsArgument => "used as argument".into(),
-            LatexErrKind::ExpectedAscii => "special or not ASCII".into(),
-            LatexErrKind::ExpectedLength(_) => "expected length here".into(),
-            LatexErrKind::IllegalUnit { .. } => "illegal unit here".into(),
-            LatexErrKind::InvalidUnit(_) => "invalid unit here".into(),
-            LatexErrKind::ExpectedColSpec(_) => "expected a column spec here".into(),
-            LatexErrKind::NotValidInTextMode => "this is not valid in text mode".into(),
-            LatexErrKind::NotValidInMathMode => "this is not valid in math mode".into(),
-            LatexErrKind::CouldNotExtractText => "could not extract text from this".into(),
-            LatexErrKind::MoreThanOneLabel => "duplicate label".into(),
-            LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac".into(),
-            LatexErrKind::InvalidMacroName(_) => "invalid name here".into(),
-            LatexErrKind::InvalidParameterNumber => "must be 1-9".into(),
-            LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter".into(),
-            LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number".into(),
-            LatexErrKind::HardLimitExceeded => "limit exceeded".into(),
-            LatexErrKind::Internal => "internal error".into(),
+            LatexErrKind::CannotBeUsedHere { .. } => "cannot be used here",
+            LatexErrKind::ExpectedRelation => "expected a relation",
+            LatexErrKind::ExpectedLargeOp => "expected a large operator",
+            LatexErrKind::ExpectedStyle => "expected a style",
+            LatexErrKind::ExpectedAtMostOneToken => "expected at most one token here",
+            LatexErrKind::ExpectedExactlyOneToken => "expected exactly one token here",
+            LatexErrKind::BoundFollowedByBound => "unexpected bound",
+            LatexErrKind::DuplicateSubOrSup => "duplicate",
+            LatexErrKind::CannotBeUsedAsArgument => "used as argument",
+            LatexErrKind::ExpectedAscii => "special or not ASCII",
+            LatexErrKind::ExpectedLength(_) => "expected length here",
+            LatexErrKind::IllegalUnit { .. } => "illegal unit here",
+            LatexErrKind::InvalidUnit(_) => "invalid unit here",
+            LatexErrKind::ExpectedColSpec(_) => "expected a column spec here",
+            LatexErrKind::NotValidInTextMode => "this is not valid in text mode",
+            LatexErrKind::NotValidInMathMode => "this is not valid in math mode",
+            LatexErrKind::CouldNotExtractText => "could not extract text from this",
+            LatexErrKind::MoreThanOneLabel => "duplicate label",
+            LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac",
+            LatexErrKind::InvalidMacroName(_) => "invalid name here",
+            LatexErrKind::InvalidParameterNumber => "must be 1-9",
+            LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter",
+            LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number",
+            LatexErrKind::HardLimitExceeded => "limit exceeded",
+            LatexErrKind::Internal => "internal error",
         }
     }
 }

@@ -17,7 +17,7 @@ use crate::{
     },
     color_defs::get_color,
     environments::{
-        CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, NumberedEnvState, OPEN_BRACE, OPEN_BRACKET,
+        CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
@@ -48,18 +48,11 @@ struct ParserState<'arena> {
     cmd_args: Vec<TokSpan<'arena>>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
-    /// `true` if the boundaries at the end of a  sequence are not real boundaries;
+    /// `true` if the boundaries at the end of a sequence are not real boundaries;
     /// this is not the case for style-only rows.
     /// This is currently a hack, which should be replaced by a more robust solution later.
     right_boundary_hack: bool,
-    /// `true` if we are inside an environment that allows columns (`&`).
-    allow_columns: bool,
-    /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
-    meaningful_newlines: bool,
-    /// `true` if we are inside an `array`/`darray`/`subarray` environment, where `\hline` and
-    /// `\hdashline` are allowed (directly after `\\` or at the start of the environment).
-    in_array: bool,
-    numbered: Option<NumberedEnvState<'arena>>,
+    env: EnvState<'arena>,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
 }
@@ -140,10 +133,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 cmd_arg_offsets: [0; 9],
                 transform: None,
                 right_boundary_hack: false,
-                allow_columns: false,
-                meaningful_newlines: false,
-                in_array: false,
-                numbered: None,
+                env: EnvState::default(),
                 style,
             },
         })
@@ -302,14 +292,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(())
             }
             Token::NoNumber => {
-                if let Some(numbered_state) = &mut self.state.numbered {
+                if let Some(numbered_state) = &mut self.state.env.numbered {
                     numbered_state.suppress_next_number = true;
                 }
                 Ok(())
             }
             Token::Tag => {
                 let (tag_name, _) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.numbered {
+                if let Some(numbered_state) = &mut self.state.env.numbered {
                     numbered_state.custom_next_tag = Some(tag_name);
                     Ok(())
                 } else {
@@ -324,7 +314,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Label => {
                 let (label_name, _) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.numbered {
+                if let Some(numbered_state) = &mut self.state.env.numbered {
                     if numbered_state.label.is_some() {
                         Err(LatexError(span, LatexErrKind::MoreThanOneLabel))
                     } else {
@@ -903,17 +893,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
-                let symbol = self.commit(Node::Operator {
-                    op: x.as_op(),
-                    attrs: OpAttrs::empty(),
-                    left: None,
-                    right: None,
-                    size: None,
-                });
                 let base = if is_over {
-                    Node::Over { symbol, target }
+                    Node::OverAccent(x.as_op(), OpAttrs::empty(), target)
                 } else {
-                    Node::Under { symbol, target }
+                    Node::UnderAccent(x.as_op(), OpAttrs::empty(), target)
                 };
                 if (is_over && matches!(self.tokens.peek().token(), Token::Circumflex))
                     || (!is_over && matches!(self.tokens.peek().token(), Token::Underscore))
@@ -1357,19 +1340,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     None
                 };
 
-                let old_allow_columns =
-                    mem::replace(&mut self.state.allow_columns, env.allows_columns());
-                let old_meaningful_newlines = mem::replace(
-                    &mut self.state.meaningful_newlines,
-                    env.meaningful_newlines(),
-                );
-                let old_in_array = mem::replace(
-                    &mut self.state.in_array,
-                    matches!(env, Env::Array | Env::DArray | Env::Subarray),
-                );
                 let old_style = mem::replace(&mut self.state.style, env.style());
-                let old_numbered =
-                    mem::replace(&mut self.state.numbered, env.get_numbered_env_state());
+                let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
                 let content = self.arena.push_slice(&self.parse_sequence(
                     SequenceEnd::EndToken(EndToken::End),
@@ -1377,11 +1349,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     true, // keep_end_token
                 )?);
 
-                self.state.allow_columns = old_allow_columns;
-                self.state.meaningful_newlines = old_meaningful_newlines;
-                self.state.in_array = old_in_array;
                 self.state.style = old_style;
-                let numbered_state = mem::replace(&mut self.state.numbered, old_numbered);
+                let env_state = mem::replace(&mut self.state.env, old_env_state);
+                let numbered_state = env_state.numbered;
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
                 let (end_env, end_span) = self.next_token()?.into_parts();
@@ -1473,7 +1443,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 return Ok((Class::Close, node_vec_to_node(self.arena, &nodes, false)));
             }
             Token::NewColumn => {
-                if self.state.allow_columns {
+                if self.state.env.allow_columns {
                     class = Class::Close;
                     Ok(Node::ColumnSeparator)
                 } else {
@@ -1502,7 +1472,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::NewLine => 'new_line: {
                 class = Class::Open;
-                if !self.state.meaningful_newlines {
+                if !self.state.env.meaningful_newlines {
                     // FIXME: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
                     break 'new_line Ok(Node::EMPTY_ROW);
@@ -1510,7 +1480,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
                 // becomes the top border of the row that follows. Only legal inside an array;
                 // elsewhere it falls through to the `Token::HLine` error arm.
-                let border_top = if self.state.in_array {
+                let border_top = if self.state.env.in_array {
                     match *self.tokens.peek().token() {
                         Token::HLine(line_type) => {
                             self.tokens.next()?;
@@ -1521,7 +1491,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     None
                 };
-                if let Some(numbered_state) = &mut self.state.numbered {
+                if let Some(numbered_state) = &mut self.state.env.numbered {
                     if let Some(row_counter) = &mut numbered_state.num_rows {
                         match row_counter.checked_add(1) {
                             Some(new_counter) => {

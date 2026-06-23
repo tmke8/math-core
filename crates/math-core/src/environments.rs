@@ -84,7 +84,7 @@ impl Env {
     }
 
     #[inline]
-    pub(super) fn allows_columns(self) -> bool {
+    fn allows_columns(self) -> bool {
         !matches!(
             self,
             Env::Equation
@@ -97,12 +97,7 @@ impl Env {
     }
 
     #[inline]
-    pub(super) fn meaningful_newlines(self) -> bool {
-        !matches!(self, Env::Equation | Env::EquationStar)
-    }
-
-    #[inline]
-    pub(super) fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
+    fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
         if matches!(
             self,
             Env::Align
@@ -128,6 +123,15 @@ impl Env {
             })
         } else {
             None
+        }
+    }
+
+    pub(super) fn new_state(self) -> EnvState<'static> {
+        EnvState {
+            allow_columns: self.allows_columns(),
+            meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
+            in_array: matches!(self, Env::Array | Env::DArray | Env::Subarray),
+            numbered: self.get_numbered_env_state(),
         }
     }
 
@@ -278,6 +282,18 @@ impl Env {
             }
         }
     }
+}
+
+#[derive(Debug, Default)]
+pub struct EnvState<'arena> {
+    /// `true` if we are inside an environment that allows columns (`&`).
+    pub allow_columns: bool,
+    /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
+    pub meaningful_newlines: bool,
+    /// `true` if we are inside an `array`/`darray`/`subarray` environment, where `\hline` and
+    /// `\hdashline` are allowed (directly after `\\` or at the start of the environment).
+    pub in_array: bool,
+    pub numbered: Option<NumberedEnvState<'arena>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
