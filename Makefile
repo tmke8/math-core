@@ -40,8 +40,8 @@ testpage: $(SUBSET_WOFF2)
 	cargo run --example browser_test --package math-core > playground/test.html
 
 comparison: $(SUBSET_WOFF2) playground/mathmlfixes.css
-	cargo run --bin mathcore -- -c docs/mathcore.toml --inline-del ₮ --block-del ₮₮ --continue-on-error - < docs/comparison.html > playground/comparison.html
-	cargo run --bin mathcore -- -c docs/unicode_math_symbols.toml --inline-open '\(' --inline-close '\)' - < docs/unicode-math-table.html > playground/unicode-math-table.html
+	cargo run --bin mathcore -- -c docs/mathcore.toml --inline-del ₮ --block-del ₮₮ --continue-on-error docs/comparison.html > playground/comparison.html
+	cargo run --bin mathcore -- -c docs/unicode_math_symbols.toml --inline-open '\(' --inline-close '\)' docs/unicode-math-table.html > playground/unicode-math-table.html
 
 allsymbols: scripts/all_symbols.txt
 

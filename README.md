@@ -60,6 +60,13 @@ You can download precompiled binaries from the GitHub Release page. Alternativel
 cargo install math-core-cli
 ```
 
+Basic usage is this:
+
+```sh
+mathcore --write article.html
+```
+where `--write` indicates that the input file should be overwritten.
+
 You can see an explanation of the CLI interface with
 ```sh
 mathcore --help
