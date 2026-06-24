@@ -82,6 +82,11 @@ struct Args {
     #[arg(short, long, conflicts_with = "formula")]
     recursive: bool,
 
+    /// Overwrite the input file in place instead of writing to stdout
+    /// (recursive mode always writes in place)
+    #[arg(short, long, conflicts_with_all = ["formula", "recursive"])]
+    write: bool,
+
     /// Dry run: convert but don't write anything
     #[arg(long, conflicts_with = "formula")]
     dry_run: bool,
@@ -179,7 +184,7 @@ fn main() {
         } else if args.recursive {
             convert_html_recursive(&args, fpath, &mut replacer, &mut converter);
         } else {
-            convert_html(&args, fpath, &mut replacer, &mut converter);
+            convert_html(&args, fpath, args.write, &mut replacer, &mut converter);
         }
     } else if let Some(formula) = &args.formula {
         convert_and_exit(&args, formula, &mut converter);
@@ -293,18 +298,33 @@ fn convert_html_recursive(
         && let Some(ext) = path.extension()
         && ext == "html"
     {
-        convert_html(args, path, replacer, converter);
+        // In recursive mode we always write back to the files, since dumping
+        // multiple files to stdout would not be useful.
+        convert_html(args, path, true, replacer, converter);
     }
 }
 
-fn convert_html(args: &Args, fp: &Path, replacer: &mut Replacer, converter: &mut LatexToMathML) {
+fn convert_html(
+    args: &Args,
+    fp: &Path,
+    write: bool,
+    replacer: &mut Replacer,
+    converter: &mut LatexToMathML,
+) {
     let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(&e));
     let converted = replace(replacer, &original, converter, args.continue_on_error)
         .unwrap_or_else(|e| exit_conversion_error(e, Some(fp)));
-    if !args.dry_run && original != converted {
-        let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(&e));
-        fp.write_all(converted.as_bytes())
-            .unwrap_or_else(|e| exit_io_error(&e));
+    if args.dry_run {
+        return;
+    }
+    if write {
+        if original != converted {
+            let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(&e));
+            fp.write_all(converted.as_bytes())
+                .unwrap_or_else(|e| exit_io_error(&e));
+        }
+    } else {
+        print!("{converted}");
     }
 }
 
