@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::num::NonZeroU16;
 
+use percent_encoding::{AsciiSet, CONTROLS, percent_encode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -47,6 +48,23 @@ impl fmt::Display for EscapeHtml<'_> {
         Ok(())
     }
 }
+
+/// According to: https://stackoverflow.com/a/26119120
+const FRAGMENT_SAFE: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'<')
+    .add(b'>')
+    .add(b'[')
+    .add(b'\\')
+    .add(b']')
+    .add(b'^')
+    .add(b'`')
+    .add(b'{')
+    .add(b'|')
+    .add(b'}');
 
 /// Stores the contents of [`Node::AHref`].
 /// Needs to be a separate `struct` to keep [`Node`]
@@ -745,7 +763,7 @@ impl<'state> Emitter<'state> {
                 write!(
                     self.s,
                     r##"<mtext><a href="#{}">({})</a></mtext>"##,
-                    EscapeHtml(label),
+                    percent_encode(label.as_bytes(), FRAGMENT_SAFE),
                     EscapeHtml(tag)
                 )?;
             }
@@ -917,7 +935,11 @@ fn write_equation_num(
     if let Some(label_info) = label_info {
         write!(s, r#";{RIGHT_ALIGN}""#)?;
         if let Some(link_target) = label_info.link_target {
-            write!(s, r#" id="{}">"#, EscapeHtml(link_target))?;
+            write!(
+                s,
+                r#" id="{}">"#,
+                percent_encode(link_target.as_bytes(), FRAGMENT_SAFE)
+            )?;
         } else {
             write!(s, ">")?;
         }
@@ -1593,6 +1615,16 @@ mod tests {
                 notation: Notation::UP_DIAGONAL | Notation::DOWN_DIAGONAL
             }),
             "<menclose notation=\"updiagonalstrike downdiagonalstrike\"><mrow><mi>a</mi><mi>b</mi><mi>c</mi></mrow><mrow class=\"menclose-updiagonalstrike\"></mrow><mrow class=\"menclose-downdiagonalstrike\"></mrow></menclose>"
+        );
+    }
+
+    #[test]
+    fn fragment_encoding() {
+        let ascii_samples = b"\x00\x01\x1F !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\x7F";
+        let encoded = percent_encode(ascii_samples, FRAGMENT_SAFE).to_string();
+        assert_eq!(
+            encoded,
+            "%00%01%1F%20!%22%23$%25&'()*+,-./09:;%3C=%3E?@AZ%5B%5C%5D%5E_%60az%7B%7C%7D~%7F"
         );
     }
 }

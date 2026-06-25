@@ -425,7 +425,11 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
                 None
             }
         }
-        Token::Digit(ch) | Token::MathOrTextMode(_, ch) => Some(ch),
+        Token::Digit(ch) | Token::MathOrTextMode(_, ch)
+            if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') =>
+        {
+            Some(ch)
+        }
         Token::Whitespace => Some(' '),
         _ => None,
     }

@@ -301,7 +301,7 @@ fn main() {
         ),
         (
             "label_url_escape",
-            r#"\begin{align} 1\label{<b>}\\\eqref{<b>}\end{align}"#,
+            r#"\begin{align} 1\label{ !()*+,-./0:;<=>?@|}\\\eqref{ !()*+,-./0:;<=>?@|}\end{align}"#,
         ),
         (
             "label_on_multline_last_row",
