@@ -23,6 +23,7 @@ strum_macros = { workspace = true }
 static_assertions = { workspace = true }
 bitflags = "2.13.0"
 rustc-hash = { workspace = true }
+percent-encoding = "2.3.2"
 
 [dev-dependencies]
 

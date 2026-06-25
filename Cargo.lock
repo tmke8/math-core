@@ -404,6 +404,7 @@ version = "0.6.4"
 dependencies = [
  "bitflags",
  "dtoa",
+ "percent-encoding",
  "rustc-hash",
  "serde",
  "stable-arena",
@@ -493,6 +494,12 @@ name = "oorandom"
 version = "11.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
+
+[[package]]
+name = "percent-encoding"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "phf"
