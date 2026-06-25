@@ -20,7 +20,7 @@ clap = { version = "4.6.1", features = ["derive"] }
 math-core = { path = "../math-core", features = ["serde", "ariadne"], version = "0.6.4" }
 ariadne = { workspace = true }
 memchr = { workspace = true }
-phf = { version = "0.13.1", features = ["macros"] }
+phf = { version = "0.14.0", features = ["macros"] }
 toml = "1.1.2"
 serde = { workspace = true }
 
