@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\displaystyle{\\mathop{sa\\frac{0}{1}}\\displaylimits_a^a}"
+---
+<math>
+    <mrow displaystyle="true" scriptlevel="0">
+        <munderover>
+            <mpadded style="padding-left:0;padding-right:0.1667em;">
+                <mrow>
+                    <mi>s</mi>
+                    <mi>a</mi>
+                    <mfrac>
+                        <mn>0</mn>
+                        <mn>1</mn>
+                    </mfrac>
+                </mrow>
+            </mpadded>
+            <mi>a</mi>
+            <mi>a</mi>
+        </munderover>
+    </mrow>
+</math>
