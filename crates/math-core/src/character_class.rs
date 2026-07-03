@@ -1,7 +1,7 @@
 use mathml_renderer::{
     arena::Arena,
-    ast::{Node, RowAttrs},
-    attribute::{MathSpacing, OpAttrs, Style, TextTransform},
+    ast::Node,
+    attribute::{MathSpacing, OpAttrs, RowAttrs, Style, TextTransform},
     symbol::{self, MathMLOperator, OrdCategory, OrdLike, Rel, RelCategory},
 };
 

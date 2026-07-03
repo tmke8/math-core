@@ -7,9 +7,9 @@
 //! ```rust
 //! use rustc_hash::FxHashMap;
 //!
-//! use math_core_renderer_internal::ast::{CssClassNames, Emitter, Node, RowAttrs};
+//! use math_core_renderer_internal::ast::{CssClassNames, Emitter, Indentation, Node};
 //! use math_core_renderer_internal::symbol;
-//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs};
+//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs, RowAttrs};
 //!
 //! let ast = Node::Row {
 //!     nodes: &[
@@ -30,7 +30,7 @@
 //!
 //! let label_map = FxHashMap::default();
 //! let css_classes = CssClassNames::default();
-//! let mut emitter = Emitter::new(String::new(), &label_map, &css_classes);
+//! let mut emitter = Emitter::new(String::new(), &label_map, &css_classes, Indentation::default());
 //! emitter.emit(&ast, 0).unwrap();
 //! let output = emitter.into_string();
 //! assert_eq!(
@@ -41,6 +41,7 @@
 pub mod arena;
 pub mod ast;
 pub mod attribute;
+mod escaping;
 pub mod fmt;
 mod itoa;
 pub mod length;

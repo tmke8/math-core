@@ -3,6 +3,7 @@ use std::{fmt::Write, num::NonZeroU16};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
+use crate::ast::Indentation;
 use crate::fmt::new_line_and_indent;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -142,8 +143,9 @@ impl<'arena> ColumnGenerator<'arena> {
         &mut self,
         s: &mut String,
         indent_num: usize,
+        indentation: Indentation,
     ) -> Result<(), std::fmt::Error> {
-        new_line_and_indent(s, indent_num);
+        new_line_and_indent(s, indent_num, indentation);
         let column_idx = self.column_idx;
         self.column_idx += 1;
         // Top border (from `\hline`/`\hdashline`) applied to every cell of the current row.
@@ -211,7 +213,7 @@ impl<'arena> ColumnGenerator<'arena> {
                     }
                     write!(s, "padding-left: 0.1em;padding-right: 0.1em;")?;
                     write!(s, "\"></mtd>")?;
-                    new_line_and_indent(s, indent_num);
+                    new_line_and_indent(s, indent_num, indentation);
                 }
                 match column_spec {
                     ColumnSpecEntry::WithContent {

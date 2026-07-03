@@ -83,6 +83,7 @@ impl LatexToMathML {
             allow_unreliable_rendering,
             unicode_substitution,
             css_classes: CssClassNames::default(),
+            indentation: math_core::Indentation::default(),
         };
 
         let inner = math_core::LatexToMathML::new(config);

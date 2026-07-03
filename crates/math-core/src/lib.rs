@@ -46,7 +46,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub use mathml_renderer::ast::{CssClassNames, Warnings};
+pub use mathml_renderer::ast::{CssClassNames, IndentKeyword, Indentation, Warnings};
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
@@ -163,6 +163,9 @@ pub struct MathCoreConfig {
     pub unicode_substitution: UnicodeSubstitution,
     /// CSS class names for various elements in the output.
     pub css_classes: CssClassNames,
+    /// The indentation unit used when pretty-printing the MathML output. Either a number of spaces
+    /// (e.g. `2`) or the string `"tab"` for a tab character. See [`Indentation`].
+    pub indentation: Indentation,
 }
 
 /// A map from custom command names to their number of arguments and the slice of tokens that
@@ -194,6 +197,7 @@ struct EmitterConfig {
     xml_namespace: bool,
     annotation: bool,
     css_classes: CssClassNames,
+    indentation: Indentation,
 }
 
 impl From<MathCoreConfig> for EmitterConfig {
@@ -204,6 +208,7 @@ impl From<MathCoreConfig> for EmitterConfig {
             xml_namespace: config.xml_namespace,
             annotation: config.annotation,
             css_classes: config.css_classes,
+            indentation: config.indentation,
         }
     }
 }
@@ -385,21 +390,31 @@ fn emit(
     let warnings: Warnings;
     if flags.annotation {
         let children_indent = if pretty_print { 2 } else { 0 };
-        new_line_and_indent(&mut output, base_indent);
+        new_line_and_indent(&mut output, base_indent, flags.indentation);
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(arena, &ast, false);
-        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map, &flags.css_classes);
+        let mut emitter = Emitter::new(
+            std::mem::take(&mut output),
+            label_map,
+            &flags.css_classes,
+            flags.indentation,
+        );
         let _ = emitter.emit(node, children_indent);
         warnings = emitter.warnings();
         output = emitter.into_string();
-        new_line_and_indent(&mut output, children_indent);
+        new_line_and_indent(&mut output, children_indent, flags.indentation);
         output.push_str("<annotation encoding=\"application/x-tex\">");
         html_utils::escape_html_content(&mut output, latex);
         output.push_str("</annotation>");
-        new_line_and_indent(&mut output, base_indent);
+        new_line_and_indent(&mut output, base_indent, flags.indentation);
         output.push_str("</semantics>");
     } else {
-        let mut emitter = Emitter::new(std::mem::take(&mut output), label_map, &flags.css_classes);
+        let mut emitter = Emitter::new(
+            std::mem::take(&mut output),
+            label_map,
+            &flags.css_classes,
+            flags.indentation,
+        );
         for node in ast {
             // We ignore the result of `emit` here, because the only possible error is a formatting
             // error when writing to the string, but `String`'s `write_str` implementation never

@@ -2,8 +2,8 @@ use std::{mem, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{MultiscriptPair, Node, RowAttrs},
-    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, Style},
+    ast::{MultiscriptPair, Node},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttrs, Style},
     length::{Length, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
