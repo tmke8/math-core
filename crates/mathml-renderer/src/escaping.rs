@@ -2,7 +2,7 @@ use std::fmt;
 
 use percent_encoding::{AsciiSet, CONTROLS};
 #[cfg(feature = "serde")]
-use serde::{Serialize};
+use serde::Serialize;
 
 /// A wrapper around `str` to do HTML escaping
 /// in the `Display` impl.

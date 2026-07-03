@@ -201,9 +201,9 @@ pub enum Node<'arena> {
 static_assertions::assert_eq_size!(Node<'_>, [usize; 4]);
 
 macro_rules! writeln_indent {
-    ($buf:expr, $indent:expr, $($tail:tt)+) => {
-        new_line_and_indent($buf, $indent);
-        write!($buf, $($tail)+)?
+    ($self:ident, $indent:expr, $($tail:tt)+) => {
+        new_line_and_indent(&mut $self.s, $indent, $self.indentation);
+        write!($self.s, $($tail)+)?
     };
 }
 
@@ -230,11 +230,41 @@ impl Default for CssClassNames {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
+pub enum Indentation {
+    Keyword(IndentKeyword),
+    Spaces(usize),
+}
+
+impl Default for Indentation {
+    fn default() -> Self {
+        Indentation::Spaces(4)
+    }
+}
+
+impl Indentation {
+    pub fn tab() -> Self {
+        Indentation::Keyword(IndentKeyword::Tab)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum IndentKeyword {
+    #[default]
+    Tab,
+}
+
 #[derive(Debug)]
 pub struct Emitter<'state> {
     s: String,
     label_map: &'state FxHashMap<Box<str>, Box<str>>,
     css_classes: &'state CssClassNames,
+    indentation: Indentation,
     warnings: Warnings,
 }
 
@@ -243,11 +273,13 @@ impl<'state> Emitter<'state> {
         s: String,
         label_map: &'state FxHashMap<Box<str>, Box<str>>,
         css_classes: &'state CssClassNames,
+        indentation: Indentation,
     ) -> Self {
         Self {
             s,
             label_map,
             css_classes,
+            indentation,
             warnings: Warnings::new(),
         }
     }
@@ -261,7 +293,7 @@ impl<'state> Emitter<'state> {
         };
 
         // Get the base indentation out of the way.
-        new_line_and_indent(&mut self.s, base_indent);
+        new_line_and_indent(&mut self.s, base_indent, self.indentation);
 
         match *node {
             Node::Number(number) => {
@@ -402,7 +434,7 @@ impl<'state> Emitter<'state> {
                 write!(self.s, "{open}")?;
                 self.emit(first, child_indent)?;
                 self.emit(second, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "{close}");
+                writeln_indent!(self, base_indent, "{close}");
             }
             // The following nodes have exactly three children.
             ref node @ (Node::SubSup {
@@ -425,7 +457,7 @@ impl<'state> Emitter<'state> {
                 self.emit(first, child_indent)?;
                 self.emit(second, child_indent)?;
                 self.emit(third, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "{close}");
+                writeln_indent!(self, base_indent, "{close}");
             }
             Node::Multiscripts { base, pre, post } => {
                 write!(self.s, "<mmultiscripts>")?;
@@ -435,14 +467,14 @@ impl<'state> Emitter<'state> {
                     self.emit(sup, child_indent)?;
                 }
                 if !pre.is_empty() {
-                    writeln_indent!(&mut self.s, child_indent, "<mprescripts/>");
+                    writeln_indent!(self, child_indent, "<mprescripts/>");
                     for &MultiscriptPair { sub, sup } in *pre {
                         self.emit(sub, child_indent)?;
                         self.emit(sup, child_indent)?;
                     }
                 }
 
-                writeln_indent!(&mut self.s, base_indent, "</mmultiscripts>");
+                writeln_indent!(self, base_indent, "</mmultiscripts>");
             }
             ref
             node @ (Node::OverAccent(op, attr, target) | Node::UnderAccent(op, attr, target)) => {
@@ -454,15 +486,15 @@ impl<'state> Emitter<'state> {
                 };
                 write!(self.s, "{open}")?;
                 self.emit(target, child_indent)?;
-                writeln_indent!(&mut self.s, child_indent, "<mo");
+                writeln_indent!(self, child_indent, "<mo");
                 attr.write_to(&mut self.s);
                 write!(self.s, ">{op}</mo>")?;
-                writeln_indent!(&mut self.s, base_indent, "{close}");
+                writeln_indent!(self, base_indent, "{close}");
             }
             Node::Sqrt(content) => {
                 write!(self.s, "<msqrt>")?;
                 self.emit(content, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</msqrt>");
+                writeln_indent!(self, base_indent, "</msqrt>");
             }
             Node::Frac {
                 num,
@@ -484,7 +516,7 @@ impl<'state> Emitter<'state> {
                 write!(self.s, ">")?;
                 self.emit(num, child_indent)?;
                 self.emit(den, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</mfrac>");
+                writeln_indent!(self, base_indent, "</mfrac>");
             }
             Node::Row {
                 nodes,
@@ -524,7 +556,7 @@ impl<'state> Emitter<'state> {
                     for node in nodes {
                         self.emit(node, child_indent)?;
                     }
-                    writeln_indent!(&mut self.s, base_indent, "</mrow>");
+                    writeln_indent!(self, base_indent, "</mrow>");
                 }
             }
             Node::Padded {
@@ -553,12 +585,12 @@ impl<'state> Emitter<'state> {
                 }
                 write!(self.s, ">")?;
                 self.emit(node, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</mpadded>");
+                writeln_indent!(self, base_indent, "</mpadded>");
             }
             Node::Phantom { node } => {
                 write!(self.s, "<mphantom>")?;
                 self.emit(node, child_indent)?;
-                writeln_indent!(&mut self.s, base_indent, "</mphantom>");
+                writeln_indent!(self, base_indent, "</mphantom>");
             }
             Node::Table {
                 content,
@@ -670,26 +702,26 @@ impl<'state> Emitter<'state> {
                 self.emit(content, child_indent)?;
                 if notation.contains(Notation::UP_DIAGONAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        self,
                         child_indent,
                         "<mrow class=\"menclose-updiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::DOWN_DIAGONAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        self,
                         child_indent,
                         "<mrow class=\"menclose-downdiagonalstrike\"></mrow>"
                     );
                 }
                 if notation.contains(Notation::HORIZONTAL) {
                     writeln_indent!(
-                        &mut self.s,
+                        self,
                         child_indent,
                         "<mrow class=\"menclose-horizontalstrike\"></mrow>"
                     );
                 }
-                writeln_indent!(&mut self.s, base_indent, "</menclose>");
+                writeln_indent!(self, base_indent, "</menclose>");
             }
             Node::AHref(&AHref { href, text }) => {
                 write!(
@@ -745,22 +777,22 @@ impl<'state> Emitter<'state> {
         } else {
             0
         };
-        writeln_indent!(&mut self.s, child_indent, "<mtr>");
+        writeln_indent!(self, child_indent, "<mtr>");
         if let Some(numbering_cols) = numbering_cols {
-            numbering_cols.initial_dummy_column(&mut self.s, child_indent2)?;
+            numbering_cols.initial_dummy_column(&mut self.s, child_indent2, self.indentation)?;
         }
-        col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+        col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
         for node in content {
             match **node {
                 Node::ColumnSeparator => {
-                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
-                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                    writeln_indent!(self, child_indent2, "</mtd>");
+                    col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
                 }
                 Node::RowSeparator {
                     label_info,
                     border_top,
                 } => {
-                    writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+                    writeln_indent!(self, child_indent2, "</mtd>");
                     if let Some(numbering_cols) = numbering_cols {
                         write_equation_num(
                             &mut self.s,
@@ -768,26 +800,31 @@ impl<'state> Emitter<'state> {
                             child_indent3,
                             label_info,
                             numbering_cols,
+                            self.indentation,
                         )?;
                     }
-                    writeln_indent!(&mut self.s, child_indent, "</mtr>");
-                    writeln_indent!(&mut self.s, child_indent, "<mtr>");
+                    writeln_indent!(self, child_indent, "</mtr>");
+                    writeln_indent!(self, child_indent, "<mtr>");
                     if let Some(numbering_cols) = numbering_cols {
-                        numbering_cols.initial_dummy_column(&mut self.s, child_indent2)?;
+                        numbering_cols.initial_dummy_column(
+                            &mut self.s,
+                            child_indent2,
+                            self.indentation,
+                        )?;
                     }
                     col_gen.reset_to_new_row();
                     // A `\hline`/`\hdashline` right after this `\\` becomes the top border of the
                     // row we're about to open. MathML `<mtr>` borders aren't rendered by all
                     // browsers (notably Firefox), so it's applied per-cell by the column generator.
                     col_gen.set_row_border_top(border_top);
-                    col_gen.write_next_mtd(&mut self.s, child_indent2)?;
+                    col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
                 }
                 _ => {
                     self.emit(node, child_indent3)?;
                 }
             }
         }
-        writeln_indent!(&mut self.s, child_indent2, "</mtd>");
+        writeln_indent!(self, child_indent2, "</mtd>");
         if let Some(numbering_cols) = numbering_cols {
             write_equation_num(
                 &mut self.s,
@@ -795,10 +832,11 @@ impl<'state> Emitter<'state> {
                 child_indent3,
                 last_row_info,
                 numbering_cols,
+                self.indentation,
             )?;
         }
-        writeln_indent!(&mut self.s, child_indent, "</mtr>");
-        writeln_indent!(&mut self.s, base_indent, "</mtable>");
+        writeln_indent!(self, child_indent, "</mtr>");
+        writeln_indent!(self, base_indent, "</mtable>");
         Ok(())
     }
 
@@ -852,13 +890,16 @@ impl NumberColums {
         self,
         s: &mut String,
         child_indent2: usize,
+        indentation: Indentation,
     ) -> Result<(), std::fmt::Error> {
         match self {
             NumberColums::Narrow => {
-                writeln_indent!(s, child_indent2, r#"<mtd style="width: 7.5%"#);
+                new_line_and_indent(s, child_indent2, indentation);
+                write!(s, r#"<mtd style="width: 7.5%"#)?;
             }
             NumberColums::Wide => {
-                writeln_indent!(s, child_indent2, r#"<mtd style="width: 50%"#);
+                new_line_and_indent(s, child_indent2, indentation);
+                write!(s, r#"<mtd style="width: 50%"#)?;
             }
         }
         Ok(())
@@ -870,8 +911,9 @@ impl NumberColums {
         self,
         s: &mut String,
         child_indent2: usize,
+        indentation: Indentation,
     ) -> Result<(), std::fmt::Error> {
-        self.dummy_column_opening(s, child_indent2)?;
+        self.dummy_column_opening(s, child_indent2, indentation)?;
         write!(s, "\"></mtd>")?;
         Ok(())
     }
@@ -883,8 +925,9 @@ fn write_equation_num(
     child_indent3: usize,
     label_info: Option<&RowLabelInfo>,
     numbering_cols: NumberColums,
+    indentation: Indentation,
 ) -> Result<(), std::fmt::Error> {
-    numbering_cols.dummy_column_opening(s, child_indent2)?;
+    numbering_cols.dummy_column_opening(s, child_indent2, indentation)?;
     if let Some(label_info) = label_info {
         write!(s, r#";{RIGHT_ALIGN}""#)?;
         if let Some(link_target) = label_info.link_target {
@@ -896,13 +939,10 @@ fn write_equation_num(
         } else {
             write!(s, ">")?;
         }
-        writeln_indent!(
-            s,
-            child_indent3,
-            "<mtext>({})</mtext>",
-            EscapeHtml(label_info.tag)
-        );
-        writeln_indent!(s, child_indent2, "</mtd>");
+        new_line_and_indent(s, child_indent3, indentation);
+        write!(s, "<mtext>({})</mtext>", EscapeHtml(label_info.tag))?;
+        new_line_and_indent(s, child_indent2, indentation);
+        write!(s, "</mtd>")?;
     } else {
         write!(s, "\"></mtd>")?;
     }
@@ -966,7 +1006,7 @@ mod tests {
         let output = String::new();
         let label_map = FxHashMap::default();
         let css_classes = CssClassNames::default();
-        let mut emitter = Emitter::new(output, &label_map, &css_classes);
+        let mut emitter = Emitter::new(output, &label_map, &css_classes, Indentation::default());
         emitter.emit(node, 0).unwrap();
         emitter.into_string()
     }

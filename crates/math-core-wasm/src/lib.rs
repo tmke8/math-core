@@ -207,6 +207,7 @@ impl LatexToMathML {
             allow_unreliable_rendering,
             unicode_substitution,
             css_classes: CssClassNames::default(),
+            indentation: math_core::Indentation::default(),
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;
