@@ -30,7 +30,7 @@ fn convert_all(unicode_substitution: UnicodeSubstitution, suffix: &str) {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
-        assert_snapshot!(format!("{name}--{suffix}"), &mathml, problem);
+        assert_snapshot!(format!("{name}--{suffix}"), &mathml.mathml, problem);
     }
 }
 

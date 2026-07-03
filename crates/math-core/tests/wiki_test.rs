@@ -886,7 +886,7 @@ fn wiki_test() {
         let mathml = converter.convert_with_local_state(&with_row, MathDisplay::Inline);
         match mathml {
             Ok(mathml) => {
-                if mathml != correct {
+                if mathml.mathml != correct {
                     // println!("latex: {}", latex);
                     // let mathml = prettify(&mathml);
                     // let correct = prettify(correct);
@@ -1437,6 +1437,6 @@ fn test_nonfailing_wiki_tests() {
             .convert_with_local_state(problem, crate::MathDisplay::Inline)
             .unwrap_or_else(|_| panic!("failed to convert `{}`", problem));
         let name = format!("wiki{:03}", num);
-        assert_snapshot!(name.as_str(), &mathml, problem);
+        assert_snapshot!(name.as_str(), &mathml.mathml, problem);
     }
 }
