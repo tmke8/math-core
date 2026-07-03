@@ -15,7 +15,7 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [dependencies]
-stable-arena = { version = "0.2.0", default-features = false }
+stable-arena = { version = "0.3.0", default-features = false }
 serde = { workspace = true, optional = true }
 dtoa = { version = "1.0" }
 strum = { workspace = true }
