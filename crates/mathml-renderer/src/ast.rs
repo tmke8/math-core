@@ -1,14 +1,16 @@
 use std::borrow::Cow;
-use std::fmt::{self, Write};
+use std::fmt::Write;
 use std::num::NonZeroU16;
 
 use bitflags::bitflags;
-use percent_encoding::{AsciiSet, CONTROLS, percent_encode};
+use percent_encoding::percent_encode;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use rustc_hash::FxHashMap;
 
+use crate::attribute::RowAttrs;
+use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthUnit, LengthValue};
@@ -25,48 +27,6 @@ use crate::{
     super_char::SuperChar,
 };
 
-/// A wrapper around `str` to do HTML escaping
-/// in the `Display` impl.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
-#[repr(transparent)]
-struct EscapeHtml<'a>(&'a str);
-
-impl fmt::Display for EscapeHtml<'_> {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for c in self.0.chars() {
-            match c {
-                '<' => write!(f, "&lt;")?,
-                '>' => write!(f, "&gt;")?,
-                '&' => write!(f, "&amp;")?,
-                '"' => write!(f, "&quot;")?,
-                '\'' => write!(f, "&#39;")?,
-                _ => write!(f, "{c}")?,
-            }
-        }
-        Ok(())
-    }
-}
-
-/// According to: https://stackoverflow.com/a/26119120
-const FRAGMENT_SAFE: &AsciiSet = &CONTROLS
-    .add(b' ')
-    .add(b'"')
-    .add(b'#')
-    .add(b'%')
-    .add(b'<')
-    .add(b'>')
-    .add(b'[')
-    .add(b'\\')
-    .add(b']')
-    .add(b'^')
-    .add(b'`')
-    .add(b'{')
-    .add(b'|')
-    .add(b'}');
-
 /// Stores the contents of [`Node::AHref`].
 /// Needs to be a separate `struct` to keep [`Node`]
 /// 4 words in size
@@ -75,25 +35,6 @@ const FRAGMENT_SAFE: &AsciiSet = &CONTROLS
 pub struct AHref<'arena> {
     pub href: &'arena str,
     pub text: &'arena str,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct RowAttrs {
-    // `color: …;` CSS property
-    pub color: Option<(u8, u8, u8)>,
-    // `style` attribute
-    pub style: Option<Style>,
-    // `math-shift: compact;` CSS property
-    pub math_shift_compact: bool,
-}
-
-impl RowAttrs {
-    pub const DEFAULT: Self = Self {
-        color: None,
-        style: None,
-        math_shift_compact: false,
-    };
 }
 
 /// A single sub/sup pair in [`Multicripts`].

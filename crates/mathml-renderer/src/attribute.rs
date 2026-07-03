@@ -425,6 +425,25 @@ impl TextTransform {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct RowAttrs {
+    // `color: …;` CSS property
+    pub color: Option<(u8, u8, u8)>,
+    // `style` attribute
+    pub style: Option<Style>,
+    // `math-shift: compact;` CSS property
+    pub math_shift_compact: bool,
+}
+
+impl RowAttrs {
+    pub const DEFAULT: Self = Self {
+        color: None,
+        style: None,
+        math_shift_compact: false,
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::super_char::{SuperChar, VariationSelector};

@@ -159,7 +159,7 @@ impl std::fmt::Write for StringBuilder<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::RowAttrs;
+    use crate::attribute::RowAttrs;
 
     use super::*;
 
