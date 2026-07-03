@@ -238,7 +238,7 @@ impl LatexToMathML {
             MathDisplay::Inline
         };
         match self.inner.convert_with_local_state(content, display) {
-            Ok(result) => Ok(JsValue::from_str(&result)),
+            Ok(result) => Ok(JsValue::from_str(&result.mathml)),
             Err(e) => {
                 if self.throw_on_error {
                     // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.
@@ -271,7 +271,7 @@ impl LatexToMathML {
             MathDisplay::Inline
         };
         match self.inner.convert_with_global_state(content, display) {
-            Ok(result) => Ok(JsValue::from_str(&result)),
+            Ok(result) => Ok(JsValue::from_str(&result.mathml)),
             Err(e) => {
                 if self.throw_on_error {
                     // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.

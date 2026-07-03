@@ -17,8 +17,8 @@
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
 //! let config = MathCoreConfig::default();
 //! let converter = LatexToMathML::new(config).unwrap();
-//! let mathml = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
-//! println!("{}", mathml);
+//! let result = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
+//! println!("{}", result.mathml);
 //! ```
 //!
 //! # Features
@@ -46,7 +46,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub use mathml_renderer::ast::CssClassNames;
+pub use mathml_renderer::ast::{CssClassNames, Warnings};
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
@@ -259,7 +259,7 @@ impl LatexToMathML {
         &mut self,
         latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError>> {
+    ) -> Result<ConvertResult, Box<LatexError>> {
         convert(
             latex,
             display,
@@ -279,19 +279,19 @@ impl LatexToMathML {
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
     /// let config = MathCoreConfig::default();
     /// let converter = LatexToMathML::new(config).unwrap();
-    /// let mathml = converter.convert_with_local_state(latex, MathDisplay::Inline).unwrap();
-    /// println!("{}", mathml);
+    /// let result = converter.convert_with_local_state(latex, MathDisplay::Inline).unwrap();
+    /// println!("{}", result.mathml);
     ///
     /// let latex = r#"x = \frac{ - b \pm \sqrt{ b^2 - 4 a c } }{ 2 a }"#;
-    /// let mathml = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
-    /// println!("{}", mathml);
+    /// let result = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
+    /// println!("{}", result.mathml);
     /// ```
     ///
     pub fn convert_with_local_state(
         &self,
         latex: &str,
         display: MathDisplay,
-    ) -> Result<String, Box<LatexError>> {
+    ) -> Result<ConvertResult, Box<LatexError>> {
         let mut state = GlobalState::default();
         convert(
             latex,
@@ -320,7 +320,7 @@ impl LatexToMathML {
     pub fn convert_all(
         &self,
         snippets: &[(&str, MathDisplay)],
-    ) -> Vec<Result<String, Box<LatexError>>> {
+    ) -> Vec<Result<ConvertResult, Box<LatexError>>> {
         let mut state = GlobalState::default();
         let arena = Arena::new();
         let ast_vec: Vec<ParseResult<(Vec<&Node<'_>>, &str, MathDisplay)>> = snippets
@@ -354,7 +354,7 @@ fn convert(
     parser_cfg: &ParserConfig,
     state: &mut GlobalState,
     flags: &EmitterConfig,
-) -> Result<String, Box<LatexError>> {
+) -> Result<ConvertResult, Box<LatexError>> {
     let arena = Arena::new();
     let ast = parse(latex, &arena, parser_cfg, state, display)?;
     Ok(emit(ast, latex, display, &state.label_map, &arena, flags))
@@ -367,7 +367,7 @@ fn emit(
     label_map: &FxHashMap<Box<str>, Box<str>>,
     arena: &Arena,
     flags: &EmitterConfig,
-) -> String {
+) -> ConvertResult {
     let mut output = String::new();
     output.push_str("<math");
     if flags.xml_namespace {
@@ -382,6 +382,7 @@ fn emit(
         || (matches!(flags.pretty_print, PrettyPrint::Auto) && display == MathDisplay::Block);
 
     let base_indent = if pretty_print { 1 } else { 0 };
+    let warnings: Warnings;
     if flags.annotation {
         let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent);
@@ -389,6 +390,7 @@ fn emit(
         let node = parser::node_vec_to_node(arena, &ast, false);
         let mut emitter = Emitter::new(std::mem::take(&mut output), label_map, &flags.css_classes);
         let _ = emitter.emit(node, children_indent);
+        warnings = emitter.warnings();
         output = emitter.into_string();
         new_line_and_indent(&mut output, children_indent);
         output.push_str("<annotation encoding=\"application/x-tex\">");
@@ -404,13 +406,23 @@ fn emit(
             // returns an error.
             let _ = emitter.emit(node, base_indent);
         }
+        warnings = emitter.warnings();
         output = emitter.into_string();
     }
     if pretty_print {
         output.push('\n');
     }
     output.push_str("</math>");
-    output
+    ConvertResult {
+        mathml: output,
+        warnings,
+    }
+}
+
+/// The result of a LaTeX to MathML conversion.
+pub struct ConvertResult {
+    pub mathml: String,
+    pub warnings: Warnings,
 }
 
 fn parse<'arena>(

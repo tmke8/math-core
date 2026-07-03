@@ -146,7 +146,7 @@ impl LatexToMathML {
                     Err(LatexError::new_err(err))
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output)),
+            Ok(output) => Ok(PyString::new(py, &output.mathml)),
         }
     }
 
@@ -187,7 +187,7 @@ impl LatexToMathML {
                     Err(LatexError::new_err(err))
                 }
             }
-            Ok(output) => Ok(PyString::new(py, &output)),
+            Ok(output) => Ok(PyString::new(py, &output.mathml)),
         }
     }
 

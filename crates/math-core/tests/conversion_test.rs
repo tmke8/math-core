@@ -718,7 +718,7 @@ fn main() {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
-        assert_snapshot!(name, &mathml, problem);
+        assert_snapshot!(name, &mathml.mathml, problem);
     }
 }
 
@@ -740,6 +740,6 @@ fn forward_references_test() {
     let result = converter.convert_all(&latex_snippets);
     let snippet1 = result[0].as_ref().unwrap();
     let snippet2 = result[1].as_ref().unwrap();
-    assert_snapshot!("forward_ref_snippet1", snippet1, latex_snippets[0].0);
-    assert_snapshot!("forward_ref_snippet2", snippet2, latex_snippets[1].0);
+    assert_snapshot!("forward_ref_snippet1", snippet1.mathml, latex_snippets[0].0);
+    assert_snapshot!("forward_ref_snippet2", snippet2.mathml, latex_snippets[1].0);
 }

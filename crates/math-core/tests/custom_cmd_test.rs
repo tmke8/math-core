@@ -22,7 +22,7 @@ fn test_zero_arg() {
         .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
-    assert_snapshot!("custom_cmd_zero_arg", mathml, latex);
+    assert_snapshot!("custom_cmd_zero_arg", mathml.mathml, latex);
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn test_one_arg() {
         .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
-    assert_snapshot!("custom_cmd_one_arg", mathml, latex);
+    assert_snapshot!("custom_cmd_one_arg", mathml.mathml, latex);
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn test_spacing() {
         .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
-    assert_snapshot!("custom_cmd_spacing", mathml, latex);
+    assert_snapshot!("custom_cmd_spacing", mathml.mathml, latex);
 }
 
 #[test]
@@ -107,5 +107,5 @@ fn test_literal_args() {
         .convert_with_local_state(latex, MathDisplay::Inline)
         .unwrap();
 
-    assert_snapshot!("custom_cmd_literal_args", mathml, latex);
+    assert_snapshot!("custom_cmd_literal_args", mathml.mathml, latex);
 }

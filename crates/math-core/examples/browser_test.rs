@@ -36,6 +36,7 @@ fn main() {
                 converter
                     .convert_with_local_state(input, MathDisplay::Block)
                     .expect(input)
+                    .mathml
             )
         })
         .collect::<Vec<_>>()

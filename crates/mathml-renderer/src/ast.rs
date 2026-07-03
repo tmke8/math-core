@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::num::NonZeroU16;
 
+use bitflags::bitflags;
 use percent_encoding::{AsciiSet, CONTROLS, percent_encode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -293,6 +294,7 @@ pub struct Emitter<'state> {
     s: String,
     label_map: &'state FxHashMap<Box<str>, Box<str>>,
     css_classes: &'state CssClassNames,
+    warnings: Warnings,
 }
 
 impl<'state> Emitter<'state> {
@@ -305,6 +307,7 @@ impl<'state> Emitter<'state> {
             s,
             label_map,
             css_classes,
+            warnings: Warnings::new(),
         }
     }
 
@@ -758,7 +761,10 @@ impl<'state> Emitter<'state> {
             Node::EqRef(label) => {
                 let tag: &str = match self.label_map.get(label) {
                     Some(tag) => tag,
-                    None => "??",
+                    None => {
+                        self.warnings.set_undefined_references();
+                        "??"
+                    }
                 };
                 write!(
                     self.s,
@@ -768,6 +774,7 @@ impl<'state> Emitter<'state> {
                 )?;
             }
             Node::UnknownCommand(cmd_name) => {
+                self.warnings.set_unknown_commands();
                 write!(
                     self.s,
                     r#"<merror class="{}"><mtext>\{cmd_name}</mtext></merror>"#,
@@ -857,6 +864,11 @@ impl<'state> Emitter<'state> {
     #[must_use]
     pub fn into_string(self) -> String {
         self.s
+    }
+
+    #[must_use]
+    pub fn warnings(&self) -> Warnings {
+        self.warnings
     }
 }
 
@@ -954,6 +966,43 @@ fn write_equation_num(
         write!(s, "\"></mtd>")?;
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Warnings {
+    inner: InnerWarnings,
+}
+
+impl Warnings {
+    fn new() -> Self {
+        Self {
+            inner: InnerWarnings::empty(),
+        }
+    }
+    fn set_undefined_references(&mut self) {
+        self.inner.insert(InnerWarnings::UNDEFINED_REFERENCES);
+    }
+    fn set_unknown_commands(&mut self) {
+        self.inner.insert(InnerWarnings::UNKNOWN_COMMANDS);
+    }
+    pub fn has_undefined_references(&self) -> bool {
+        self.inner.contains(InnerWarnings::UNDEFINED_REFERENCES)
+    }
+    pub fn has_unknown_commands(&self) -> bool {
+        self.inner.contains(InnerWarnings::UNKNOWN_COMMANDS)
+    }
+    pub fn has_any(&self) -> bool {
+        !self.inner.is_empty()
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct InnerWarnings: u8 {
+        const UNDEFINED_REFERENCES = 1;
+        const UNKNOWN_COMMANDS = 1 << 1;
+    }
 }
 
 #[cfg(test)]
