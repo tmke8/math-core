@@ -1,6 +1,7 @@
-use std::mem;
-use std::ops::Range;
-use std::str::CharIndices;
+use alloc::boxed::Box;
+use core::mem;
+use core::ops::Range;
+use core::str::CharIndices;
 
 use mathml_renderer::{attribute::OpAttrs, symbol};
 

@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 use bitflags::bitflags;
 #[cfg(feature = "serde")]
 use serde::Serialize;

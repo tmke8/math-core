@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 /// Escapes special characters in `input` for safe inclusion in HTML content.
 /// Specifically, it replaces:
 /// - `&` with `&amp;`

@@ -1,5 +1,7 @@
 //! Functions for parsing specifications in LaTeX commands.
 
+use alloc::vec::Vec;
+
 use strum_macros::EnumString;
 
 use mathml_renderer::{

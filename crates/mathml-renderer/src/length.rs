@@ -1,6 +1,6 @@
 //! Lengths, both absolute and relative to font size.
 
-// use std::fmt::Write;
+use alloc::string::String;
 
 #[cfg(feature = "serde")]
 use serde::Serialize;

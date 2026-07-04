@@ -19,15 +19,16 @@ categories = ["science"]
 exclude = ["/src/snapshots", "/tests/snapshots"]
 
 [dependencies]
-mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.7.0" }
-serde = { workspace = true, optional = true }
-serde-tuple-vec-map = { version = "1.0.1", optional = true }
-phf = { version = "0.13.1", features = ["macros"] }
-strum = { workspace = true }
+mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.7.0", default-features = false }
+serde = { version = "1.0.228", optional = true, default-features = false, features = ["derive", "alloc"] }
+serde-tuple-vec-map = { version = "1.0.1", optional = true, default-features = false }
+phf = { version = "0.13.1", default-features = false, features = ["macros"] }
+strum = { version = "0.28.0", default-features = false }
 strum_macros = { workspace = true }
 static_assertions  = { workspace = true }
 rustc-hash = { workspace = true }
-memchr = { workspace = true }
+hashbrown = "0.16"
+memchr = { version = "2.8.1", default-features = false }
 ariadne = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -38,6 +39,15 @@ regex = "1.12.3"
 minijinja = "2.20.0"
 
 [features]
+default = ["std"]
+std = [
+    "memchr/std",
+    "phf/std",
+    "strum/std",
+    "mathml-renderer/std",
+    "serde?/std",
+    "serde-tuple-vec-map?/std",
+]
 serde = ["dep:serde", "dep:serde-tuple-vec-map", "mathml-renderer/serde"]
 ariadne = ["dep:ariadne"]
 

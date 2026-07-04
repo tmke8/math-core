@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
 name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,6 +229,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a3076410a55c90011c298b04d0cfa770b00fa04e1e3c97d3f6c9de105a03844"
 
 [[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -264,6 +276,11 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash",
+]
 
 [[package]]
 name = "heck"
@@ -360,6 +377,7 @@ name = "math-core"
 version = "0.7.0"
 dependencies = [
  "ariadne",
+ "hashbrown",
  "insta",
  "math-core",
  "math-core-renderer-internal",
@@ -395,7 +413,6 @@ dependencies = [
  "ariadne",
  "math-core",
  "pyo3",
- "rustc-hash",
 ]
 
 [[package]]
@@ -404,6 +421,7 @@ version = "0.7.0"
 dependencies = [
  "bitflags",
  "dtoa",
+ "hashbrown",
  "percent-encoding",
  "rustc-hash",
  "serde",
@@ -421,7 +439,6 @@ dependencies = [
  "js-sys",
  "lol_alloc",
  "math-core",
- "rustc-hash",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

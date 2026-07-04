@@ -1,4 +1,5 @@
-use std::{fmt::Write, num::NonZeroU16};
+use alloc::string::String;
+use core::{fmt::Write, num::NonZeroU16};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -144,7 +145,7 @@ impl<'arena> ColumnGenerator<'arena> {
         s: &mut String,
         indent_num: usize,
         indentation: Indentation,
-    ) -> Result<(), std::fmt::Error> {
+    ) -> Result<(), core::fmt::Error> {
         new_line_and_indent(s, indent_num, indentation);
         let column_idx = self.column_idx;
         self.column_idx += 1;
@@ -279,7 +280,7 @@ impl<'arena> ColumnGenerator<'arena> {
 
 /// Write a centered cell (`<mtd>`) with no other styling, adding a top border if one is set
 /// for the current row.
-fn write_simple_mtd(s: &mut String, border_top: &str) -> std::fmt::Result {
+fn write_simple_mtd(s: &mut String, border_top: &str) -> core::fmt::Result {
     if border_top.is_empty() {
         write!(s, "{SIMPLE_CENTERED}")
     } else {

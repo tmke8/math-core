@@ -1,4 +1,4 @@
-use std::fmt::{self, Debug};
+use core::fmt::{self, Debug};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -86,7 +86,7 @@ impl BMPChar {
 
 // We use a custom `Debug` implementation to render `BMPChar` as a `char`.
 impl Debug for BMPChar {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.as_char()))
     }
 }

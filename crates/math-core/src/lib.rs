@@ -25,6 +25,10 @@
 //!
 //! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
 //!
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+
+extern crate alloc;
+
 mod atof;
 mod character_class;
 mod color_defs;
@@ -42,9 +46,16 @@ mod text_parser;
 mod token;
 mod token_queue;
 
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+/// Hash map with a fast, non-cryptographic hasher, backed by `hashbrown` so it works in `no_std`.
+pub(crate) type FxHashMap<K, V> = hashbrown::HashMap<K, V, FxBuildHasher>;
 
 pub use mathml_renderer::ast::{CssClassNames, IndentKeyword, Indentation, Warnings};
 use mathml_renderer::{
@@ -235,7 +246,7 @@ impl LatexToMathML {
     /// that caused the error.
     pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
         let (custom_cmd_tokens, custom_cmd_map) = parse_custom_commands(
-            std::mem::take(&mut config.macros),
+            core::mem::take(&mut config.macros),
             config.unicode_substitution,
         )?;
         let parser_cfg = ParserConfig {
@@ -394,7 +405,7 @@ fn emit(
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(arena, &ast, false);
         let mut emitter = Emitter::new(
-            std::mem::take(&mut output),
+            core::mem::take(&mut output),
             label_map,
             &flags.css_classes,
             flags.indentation,
@@ -410,7 +421,7 @@ fn emit(
         output.push_str("</semantics>");
     } else {
         let mut emitter = Emitter::new(
-            std::mem::take(&mut output),
+            core::mem::take(&mut output),
             label_map,
             &flags.css_classes,
             flags.indentation,

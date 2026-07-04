@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 use crate::ast::{IndentKeyword, Indentation};
 
 pub fn new_line_and_indent(s: &mut String, indent_num: usize, indentation: Indentation) {

@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use percent_encoding::{AsciiSet, CONTROLS};
 #[cfg(feature = "serde")]
