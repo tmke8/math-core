@@ -296,13 +296,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             c if c.is_ascii_digit() => Token::Digit(c),
             // fast path to avoid expensive lookup below
             c if c.is_ascii_alphabetic() => Token::Letter(c.into(), Mode::MathOrText),
-            c => {
-                if let Some(tok) = get_operator_from_unicode(c) {
-                    tok
-                } else {
-                    Token::Letter(c.into(), Mode::MathOrText)
-                }
-            }
+            c if let Some(tok) = get_operator_from_unicode(c) => tok,
+            c => Token::Letter(c.into(), Mode::MathOrText),
         };
         LexerResult::Tok(TokSpan::new(tok, span))
     }
@@ -416,14 +411,11 @@ enum EnvMarker {
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
-        Token::Letter(ch, _) => {
+        Token::Letter(ch, _)
             if let Some(c) = ch.try_as_char()
-                && (c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@'))
-            {
-                Some(c)
-            } else {
-                None
-            }
+                && (c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@')) =>
+        {
+            Some(c)
         }
         Token::Digit(ch) | Token::MathOrTextMode(_, ch)
             if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') =>
