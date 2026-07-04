@@ -381,10 +381,10 @@ mod tests {
         let input = "Nested $$outer $inner$ delimiter$$";
         let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(7, ConvErrKind::MismatchedDelimiters(15), _)
-        ));
+        );
     }
 
     #[test]
@@ -392,10 +392,10 @@ mod tests {
         let input = "Nested $outer $$inner$$ delimiter$";
         let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(7, ConvErrKind::MismatchedDelimiters(14), _)
-        ));
+        );
     }
 
     #[test]
@@ -403,10 +403,10 @@ mod tests {
         let input = "Unclosed $delimiter";
         let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(9, ConvErrKind::UnclosedDelimiter, _)
-        ));
+        );
     }
 
     #[test]
@@ -442,10 +442,10 @@ mod tests {
         let input = "Mismatch $$ and $ signs";
         let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(9, ConvErrKind::MismatchedDelimiters(16), _)
-        ));
+        );
     }
 
     #[test]
@@ -474,10 +474,10 @@ mod tests {
         let input = r"let \(a=1 and \[b=2\]\).";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(4, ConvErrKind::MismatchedDelimiters(19), _)
-        ));
+        );
     }
 
     #[test]
@@ -485,10 +485,10 @@ mod tests {
         let input = r"let \(a=1 and \[b=2\).";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(14, ConvErrKind::NestedDelimiters, _)
-        ));
+        );
     }
 
     #[test]
@@ -496,10 +496,10 @@ mod tests {
         let input = r"let \(a=1 and \(b=2\).";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(14, ConvErrKind::NestedDelimiters, _)
-        ));
+        );
     }
 
     #[test]
@@ -507,10 +507,10 @@ mod tests {
         let input = r"let \(a=1 and b=2.";
         let result = replace(input, (r"\(", r"\)"), (r"\[", r"\]"), false).unwrap_err();
         println!("{}", result);
-        assert!(matches!(
+        std::assert_matches!(
             result,
             ConversionError(4, ConvErrKind::UnclosedDelimiter, _)
-        ));
+        );
     }
 
     #[test]
@@ -567,14 +567,14 @@ mod tests {
     //             Err(LatexError(0, LatexErrKind::UnexpectedEOI))
     //         })
     //         .unwrap_err();
-    //     assert!(matches!(
+    //     std::assert_matches!(
     //         err,
     //         ConversionError(
     //             6,
     //             ConvErrKind::LatexError(LatexError(0, LatexErrKind::UnexpectedEOI), "&=1"),
     //             _
     //         )
-    //     ));
+    //     );
     // }
 
     // #[test]

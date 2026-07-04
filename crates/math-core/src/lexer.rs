@@ -559,7 +559,7 @@ mod tests {
             let (tok, span) = tokloc.into_parts();
             writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
-        assert!(matches!(lexer.parse_cmd_args(), Some(3)));
+        std::assert_matches!(lexer.parse_cmd_args(), Some(3));
         assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
 
