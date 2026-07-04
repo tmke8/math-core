@@ -1,7 +1,7 @@
 //! Convert LaTeX math to MathML Core.
 //!
 //! For more background on what that means and on what to do with the resulting MathML code,
-//! see the repo's README: https://github.com/tmke8/math-core
+//! see the repo's README: <https://github.com/tmke8/math-core>
 //!
 //! # Usage
 //!
@@ -23,7 +23,16 @@
 //!
 //! # Features
 //!
-//! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
+//! - `std` (enabled by default): Uses the Rust standard library. Disabling this feature (with
+//!   `default-features = false`) makes the crate `no_std`; the `alloc` crate is still required.
+//!   Note that disabling `std` also disables some speedups in dependencies (e.g. `memchr` then
+//!   can no longer use runtime CPU feature detection).
+//! - `serde`: With this feature, `MathCoreConfig` implements serde's `Serialize` and
+//!   `Deserialize`.
+//! - `ariadne`: Adds `LatexError::to_report()`, which converts an error into an
+//!   [`ariadne`](https://docs.rs/ariadne) report for pretty-printing the error together with a
+//!   source code snippet. The `ariadne` crate itself requires `std`, so this feature is not
+//!   usable on `no_std` targets.
 //!
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 
@@ -265,12 +274,12 @@ impl LatexToMathML {
 
     /// Convert LaTeX to MathML with a global equation counter.
     ///
-    /// For basic usage, see the documentation of [`convert_with_local_state`].
+    /// For basic usage, see the documentation of [`Self::convert_with_local_state`].
     ///
     /// This conversion function maintains state, in order to count equations correctly across
     /// different calls to this function.
     ///
-    /// The counter can be reset with [`reset_global_state`].
+    /// The counter can be reset with [`Self::reset_global_state`].
     pub fn convert_with_global_state(
         &mut self,
         latex: &str,
