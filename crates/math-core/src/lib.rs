@@ -1,7 +1,7 @@
 //! Convert LaTeX math to MathML Core.
 //!
 //! For more background on what that means and on what to do with the resulting MathML code,
-//! see the repo's README: https://github.com/tmke8/math-core
+//! see the repo's README: <https://github.com/tmke8/math-core>
 //!
 //! # Usage
 //!
@@ -23,8 +23,21 @@
 //!
 //! # Features
 //!
-//! - `serde`: With this feature, `MathCoreConfig` implements serde's `Deserialize`.
+//! - `std` (enabled by default): Uses the Rust standard library. Disabling this feature (with
+//!   `default-features = false`) makes the crate `no_std`; the `alloc` crate is still required.
+//!   Note that disabling `std` also disables some speedups in dependencies (e.g. `memchr` then
+//!   can no longer use runtime CPU feature detection).
+//! - `serde`: With this feature, `MathCoreConfig` implements serde's `Serialize` and
+//!   `Deserialize`.
+//! - `ariadne`: Adds `LatexError::to_report()`, which converts an error into an
+//!   [`ariadne`](https://docs.rs/ariadne) report for pretty-printing the error together with a
+//!   source code snippet. The `ariadne` crate itself requires `std`, so this feature is not
+//!   usable on `no_std` targets.
 //!
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+
+extern crate alloc;
+
 mod atof;
 mod character_class;
 mod color_defs;
@@ -42,9 +55,16 @@ mod text_parser;
 mod token;
 mod token_queue;
 
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+/// Hash map with a fast, non-cryptographic hasher, backed by `hashbrown` so it works in `no_std`.
+pub(crate) type FxHashMap<K, V> = hashbrown::HashMap<K, V, FxBuildHasher>;
 
 pub use mathml_renderer::ast::{CssClassNames, IndentKeyword, Indentation, Warnings};
 use mathml_renderer::{
@@ -235,7 +255,7 @@ impl LatexToMathML {
     /// that caused the error.
     pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
         let (custom_cmd_tokens, custom_cmd_map) = parse_custom_commands(
-            std::mem::take(&mut config.macros),
+            core::mem::take(&mut config.macros),
             config.unicode_substitution,
         )?;
         let parser_cfg = ParserConfig {
@@ -254,12 +274,12 @@ impl LatexToMathML {
 
     /// Convert LaTeX to MathML with a global equation counter.
     ///
-    /// For basic usage, see the documentation of [`convert_with_local_state`].
+    /// For basic usage, see the documentation of [`Self::convert_with_local_state`].
     ///
     /// This conversion function maintains state, in order to count equations correctly across
     /// different calls to this function.
     ///
-    /// The counter can be reset with [`reset_global_state`].
+    /// The counter can be reset with [`Self::reset_global_state`].
     pub fn convert_with_global_state(
         &mut self,
         latex: &str,
@@ -394,7 +414,7 @@ fn emit(
         output.push_str("<semantics>");
         let node = parser::node_vec_to_node(arena, &ast, false);
         let mut emitter = Emitter::new(
-            std::mem::take(&mut output),
+            core::mem::take(&mut output),
             label_map,
             &flags.css_classes,
             flags.indentation,
@@ -410,7 +430,7 @@ fn emit(
         output.push_str("</semantics>");
     } else {
         let mut emitter = Emitter::new(
-            std::mem::take(&mut output),
+            core::mem::take(&mut output),
             label_map,
             &flags.css_classes,
             flags.indentation,

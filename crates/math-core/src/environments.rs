@@ -1,5 +1,7 @@
-use std::fmt::Write;
-use std::num::NonZeroU16;
+use alloc::string::String;
+use alloc::vec;
+use core::fmt::Write;
+use core::num::NonZeroU16;
 
 use mathml_renderer::{
     arena::Arena,

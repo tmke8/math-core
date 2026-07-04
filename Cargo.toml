@@ -12,7 +12,7 @@ version = "0.7.0"
 repository = "https://github.com/tmke8/math-core"
 
 [workspace.dependencies]
-rustc-hash = "2.1.2"
+rustc-hash = { version = "2.1.2", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 memchr = "2.8.1"
 strum = "0.28.0"

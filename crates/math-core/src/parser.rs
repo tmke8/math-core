@@ -1,4 +1,8 @@
-use std::{mem, ops::Range};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::{mem, ops::Range};
 
 use mathml_renderer::{
     arena::{Arena, Buffer},
@@ -1637,9 +1641,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                                 ));
                             };
                             (
-                                (r * 255.0).round() as u8,
-                                (g * 255.0).round() as u8,
-                                (b * 255.0).round() as u8,
+                                (r * 255.0 + 0.5) as u8,
+                                (g * 255.0 + 0.5) as u8,
+                                (b * 255.0 + 0.5) as u8,
                             )
                         }
                         "RGB" => {
@@ -2065,7 +2069,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         &mut self,
         mut first: Option<(Token, Span)>,
     ) -> ParseResult<BoundsWithLimits<'arena>> {
-        std::debug_assert_matches!(
+        core::debug_assert_matches!(
             first,
             Some((Token::Underscore | Token::Circumflex | Token::Prime(_), _)) | None
         );
@@ -2454,7 +2458,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             };
             let Some(unit_char) = unit_char else {
                 let start = unit_start.unwrap_or(peek_span.start());
-                let unit_str = std::str::from_utf8(&unit[..i]).unwrap_or("");
+                let unit_str = core::str::from_utf8(&unit[..i]).unwrap_or("");
                 return Err(Box::new(LatexError(
                     start..peek_span.start(),
                     LatexErrKind::InvalidUnit(unit_str.into()),
@@ -2465,7 +2469,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             unit_start.get_or_insert(span.start());
             arg_end = span.end();
         }
-        let unit = std::str::from_utf8(&unit).unwrap_or("");
+        let unit = core::str::from_utf8(&unit).unwrap_or("");
 
         let unit_span = unit_start.unwrap_or(arg_end)..arg_end;
         let Ok(latex_unit) = LatexUnit::try_from(unit) else {
@@ -2514,7 +2518,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<std::slice::Iter<TokSpan<'arena>>> = None;
+        let mut custom_arg_iter: Option<core::slice::Iter<TokSpan<'arena>>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(&tokloc) = iter.next() {

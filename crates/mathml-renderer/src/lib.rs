@@ -5,7 +5,7 @@
 //! # Example
 //!
 //! ```rust
-//! use rustc_hash::FxHashMap;
+//! use hashbrown::HashMap as FxHashMap;
 //!
 //! use math_core_renderer_internal::ast::{CssClassNames, Emitter, Indentation, Node};
 //! use math_core_renderer_internal::symbol;
@@ -38,6 +38,13 @@
 //!     "<mrow><munder><mo lspace=\"0\">∑</mo><mi>i</mi></munder><mi>i</mi></mrow>"
 //! );
 //! ```
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+
+extern crate alloc;
+
+/// Hash map with a fast, non-cryptographic hasher, backed by `hashbrown` so it works in `no_std`.
+pub(crate) type FxHashMap<K, V> = hashbrown::HashMap<K, V, rustc_hash::FxBuildHasher>;
+
 pub mod arena;
 pub mod ast;
 pub mod attribute;

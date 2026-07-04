@@ -1,4 +1,6 @@
-use rustc_hash::FxHashMap;
+use alloc::boxed::Box;
+
+use crate::FxHashMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct GlobalState {

@@ -1,5 +1,7 @@
-use std::fmt::{self, Write};
-use std::ops::Range;
+use alloc::boxed::Box;
+use alloc::string::String;
+use core::fmt::{self, Write};
+use core::ops::Range;
 
 use strum_macros::IntoStaticStr;
 
@@ -119,7 +121,7 @@ impl From<LimitsKind> for LimitedUsabilityToken {
 
 impl LatexErrKind {
     /// Returns the error message as a string.
-    fn write_msg(&self, s: &mut String) -> std::fmt::Result {
+    fn write_msg(&self, s: &mut String) -> core::fmt::Result {
         match self {
             LatexErrKind::UnclosedGroup(expected) => {
                 write!(
@@ -401,24 +403,24 @@ impl fmt::Display for LatexError {
     }
 }
 
-impl std::error::Error for LatexError {}
+impl core::error::Error for LatexError {}
 
 pub trait GetUnwrap {
     /// `str::get` with `Option::unwrap`.
-    fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str;
+    fn get_unwrap(&self, range: core::ops::Range<usize>) -> &str;
 }
 
 impl GetUnwrap for str {
     #[cfg(target_arch = "wasm32")]
     #[inline]
-    fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str {
+    fn get_unwrap(&self, range: core::ops::Range<usize>) -> &str {
         // On WASM, panics are really expensive in terms of code size,
         // so we use an unchecked get here.
         unsafe { self.get_unchecked(range) }
     }
     #[cfg(not(target_arch = "wasm32"))]
     #[inline]
-    fn get_unwrap(&self, range: std::ops::Range<usize>) -> &str {
+    fn get_unwrap(&self, range: core::ops::Range<usize>) -> &str {
         self.get(range).expect("valid range")
     }
 }

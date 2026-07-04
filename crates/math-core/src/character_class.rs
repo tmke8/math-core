@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use mathml_renderer::{
     arena::Arena,
     ast::Node,

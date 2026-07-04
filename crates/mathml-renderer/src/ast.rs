@@ -1,13 +1,15 @@
-use std::borrow::Cow;
-use std::fmt::Write;
-use std::num::NonZeroU16;
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::string::String;
+use core::fmt::Write;
+use core::num::NonZeroU16;
 
 use bitflags::bitflags;
 use percent_encoding::percent_encode;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use rustc_hash::FxHashMap;
+use crate::FxHashMap;
 
 use crate::attribute::RowAttrs;
 use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
@@ -284,7 +286,7 @@ impl<'state> Emitter<'state> {
         }
     }
 
-    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> std::fmt::Result {
+    pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> core::fmt::Result {
         // Compute the indentation for the children of the node.
         let child_indent = if base_indent > 0 {
             base_indent.saturating_add(1)
@@ -302,18 +304,17 @@ impl<'state> Emitter<'state> {
             Node::IdentifierChar(letter, attr) => {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
-                let write_mrow;
-                if is_upright {
+                let write_mrow = if is_upright {
                     write!(self.s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
-                    write_mrow = true;
+                    true
                 } else if letter.try_as_char().is_none() {
                     // check if multi-char
                     write!(self.s, "<mrow><mspace/><mi>")?;
-                    write_mrow = true;
+                    true
                 } else {
                     write!(self.s, "<mi>")?;
-                    write_mrow = false;
-                }
+                    false
+                };
                 write!(self.s, "{letter}</mi>")?;
                 if write_mrow {
                     write!(self.s, "</mrow>")?;
@@ -766,7 +767,7 @@ impl<'state> Emitter<'state> {
         mut col_gen: ColumnGenerator,
         numbering_cols: Option<NumberColums>,
         last_row_info: Option<&RowLabelInfo>,
-    ) -> Result<(), std::fmt::Error> {
+    ) -> Result<(), core::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
         } else {
@@ -856,7 +857,7 @@ fn emit_operator_attributes(
     attrs: OpAttrs,
     left: Option<MathSpacing>,
     right: Option<MathSpacing>,
-) -> std::fmt::Result {
+) -> core::fmt::Result {
     s.push_str("<mo");
     attrs.write_to(s);
     match (left, right) {
@@ -891,7 +892,7 @@ impl NumberColums {
         s: &mut String,
         child_indent2: usize,
         indentation: Indentation,
-    ) -> Result<(), std::fmt::Error> {
+    ) -> Result<(), core::fmt::Error> {
         match self {
             NumberColums::Narrow => {
                 new_line_and_indent(s, child_indent2, indentation);
@@ -912,7 +913,7 @@ impl NumberColums {
         s: &mut String,
         child_indent2: usize,
         indentation: Indentation,
-    ) -> Result<(), std::fmt::Error> {
+    ) -> Result<(), core::fmt::Error> {
         self.dummy_column_opening(s, child_indent2, indentation)?;
         write!(s, "\"></mtd>")?;
         Ok(())
@@ -926,7 +927,7 @@ fn write_equation_num(
     label_info: Option<&RowLabelInfo>,
     numbering_cols: NumberColums,
     indentation: Indentation,
-) -> Result<(), std::fmt::Error> {
+) -> Result<(), core::fmt::Error> {
     numbering_cols.dummy_column_opening(s, child_indent2, indentation)?;
     if let Some(label_info) = label_info {
         write!(s, r#";{RIGHT_ALIGN}""#)?;

@@ -16,18 +16,25 @@ repository = { workspace = true }
 
 [dependencies]
 stable-arena = { version = "0.3.0", default-features = false }
-serde = { workspace = true, optional = true }
+serde = { version = "1.0.228", optional = true, default-features = false, features = ["derive", "alloc"] }
 dtoa = { version = "1.0" }
-strum = { workspace = true }
+strum = { version = "0.28.0", default-features = false }
 strum_macros = { workspace = true }
 static_assertions = { workspace = true }
 bitflags = "2.13.0"
 rustc-hash = { workspace = true }
-percent-encoding = "2.3.2"
+hashbrown = { version = "0.16", default-features = false }
+percent-encoding = { version = "2.3.2", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 
 [features]
+default = ["std"]
+std = [
+    "percent-encoding/std",
+    "strum/std",
+    "serde?/std",
+]
 serde = ["dep:serde", "bitflags/serde"]
 
 [lints]

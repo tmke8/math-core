@@ -360,6 +360,7 @@ name = "math-core"
 version = "0.7.0"
 dependencies = [
  "ariadne",
+ "hashbrown",
  "insta",
  "math-core",
  "math-core-renderer-internal",
@@ -395,7 +396,6 @@ dependencies = [
  "ariadne",
  "math-core",
  "pyo3",
- "rustc-hash",
 ]
 
 [[package]]
@@ -404,6 +404,7 @@ version = "0.7.0"
 dependencies = [
  "bitflags",
  "dtoa",
+ "hashbrown",
  "percent-encoding",
  "rustc-hash",
  "serde",
@@ -421,7 +422,6 @@ dependencies = [
  "js-sys",
  "lol_alloc",
  "math-core",
- "rustc-hash",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

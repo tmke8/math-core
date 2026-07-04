@@ -1,7 +1,9 @@
+use alloc::string::String;
+
 pub fn append_u8_as_hex(output: &mut String, b: u8) {
     let buf = [digit_to_hex_ascii(b >> 4), digit_to_hex_ascii(b & 0x0F)];
     // SAFETY: `buf` is always valid ASCII.
-    output.push_str(unsafe { std::str::from_utf8_unchecked(&buf) });
+    output.push_str(unsafe { core::str::from_utf8_unchecked(&buf) });
 }
 
 #[inline]

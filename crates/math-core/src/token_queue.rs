@@ -1,4 +1,7 @@
-use std::{collections::VecDeque, ops::Range};
+use alloc::boxed::Box;
+use alloc::collections::VecDeque;
+use alloc::vec::Vec;
+use core::ops::Range;
 
 use crate::{
     character_class::Class,
