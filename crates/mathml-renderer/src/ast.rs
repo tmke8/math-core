@@ -304,18 +304,17 @@ impl<'state> Emitter<'state> {
             Node::IdentifierChar(letter, attr) => {
                 let is_upright = matches!(attr, LetterAttr::ForcedUpright);
                 // Only set "mathvariant" if we are not transforming the letter.
-                let write_mrow;
-                if is_upright {
+                let write_mrow = if is_upright {
                     write!(self.s, "<mrow><mspace/><mi mathvariant=\"normal\">")?;
-                    write_mrow = true;
+                    true
                 } else if letter.try_as_char().is_none() {
                     // check if multi-char
                     write!(self.s, "<mrow><mspace/><mi>")?;
-                    write_mrow = true;
+                    true
                 } else {
                     write!(self.s, "<mi>")?;
-                    write_mrow = false;
-                }
+                    false
+                };
                 write!(self.s, "{letter}</mi>")?;
                 if write_mrow {
                     write!(self.s, "</mrow>")?;
