@@ -1637,9 +1637,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                                 ));
                             };
                             (
-                                (r * 255.0).round() as u8,
-                                (g * 255.0).round() as u8,
-                                (b * 255.0).round() as u8,
+                                (r * 255.0 + 0.5) as u8,
+                                (g * 255.0 + 0.5) as u8,
+                                (b * 255.0 + 0.5) as u8,
                             )
                         }
                         "RGB" => {
