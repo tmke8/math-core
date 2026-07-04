@@ -94,6 +94,7 @@ mod tests {
         let toml_content = r#"
 pretty-print = "always"
 xml-namespace = true
+indentation = 4
 
 [macros]
 R = '\mathbb{R}'
@@ -103,20 +104,24 @@ R = '\mathbb{R}'
 unknown-command = "unknown-cmd"
         "#;
         let config = parse_config(toml_content).unwrap();
-        assert!(matches!(config.math_core.pretty_print, PrettyPrint::Always));
+        std::assert_matches!(config.math_core.pretty_print, PrettyPrint::Always);
         assert!(config.math_core.xml_namespace);
         let r_macro = config.math_core.macros.iter().find(|(k, _)| k == "R");
         assert_eq!(r_macro.unwrap().1, "\\mathbb{R}");
         let e_macro = config.math_core.macros.iter().find(|(k, _)| k == "é");
         assert_eq!(e_macro.unwrap().1, "\\acute{e}");
         assert_eq!(config.math_core.css_classes.unknown_command, "unknown-cmd");
+        std::assert_matches!(
+            config.math_core.indentation,
+            math_core::Indentation::Spaces(4)
+        );
     }
 
     #[test]
     fn test_invalid_config() {
         let invalid_toml = "invalid_toml";
         let result = parse_config(invalid_toml);
-        assert!(matches!(result, Err(ConfigError::Parse(_))));
+        std::assert_matches!(result, Err(ConfigError::Parse(_)));
     }
 
     #[test]
@@ -126,7 +131,7 @@ unknown-command = "unknown-cmd"
 R = '\mathbb{R}'
         "#;
         let config = parse_config(toml_content).unwrap();
-        assert!(matches!(config.math_core.pretty_print, PrettyPrint::Never));
+        std::assert_matches!(config.math_core.pretty_print, PrettyPrint::Never);
         let r_macro = config.math_core.macros.iter().find(|(k, _)| k == "R");
         assert_eq!(r_macro.unwrap().1, "\\mathbb{R}");
     }

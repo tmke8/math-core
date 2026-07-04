@@ -431,7 +431,7 @@ mod tests {
             manager.load_token_skip_whitespace().unwrap();
             manager.load_token_skip_whitespace().unwrap();
             // Check that the first token is `GroupBegin`.
-            assert!(matches!(manager.next().unwrap().token(), Token::GroupBegin));
+            std::assert_matches!(manager.next().unwrap().token(), Token::GroupBegin);
             let mut tokens = Vec::new();
             let tokens = match manager.record_group(&mut tokens, true) {
                 Ok(_) => {
@@ -484,27 +484,27 @@ mod tests {
         queue.next().unwrap(); // Consume 'x'
         assert_eq!(queue.next_non_whitespace, 1);
         assert_eq!(queue.queue.len(), 2);
-        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
+        std::assert_matches!(queue.queue[0].token(), Token::Whitespace);
         assert!(
             matches!(queue.peek().token(), Token::Letter(c, _) if c.try_as_char() == Some('y'))
         );
 
         // Test the branch that needs to load more tokens.
         let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
-        assert!(matches!(tok_idx, Some(3)));
+        std::assert_matches!(tok_idx, Some(3));
         assert_eq!(queue.queue.len(), 4);
-        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
-        assert!(matches!(queue.queue[2].token(), Token::Whitespace));
+        std::assert_matches!(queue.queue[0].token(), Token::Whitespace);
+        std::assert_matches!(queue.queue[2].token(), Token::Whitespace);
         assert!(
             matches!(queue.queue[3].token(), Token::Letter(c, _) if c.try_as_char() == Some('z'))
         );
 
         // Test the branch that finds the token in the existing buffer.
         let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
-        assert!(matches!(tok_idx, Some(3)));
+        std::assert_matches!(tok_idx, Some(3));
         assert_eq!(queue.queue.len(), 4);
-        assert!(matches!(queue.queue[0].token(), Token::Whitespace));
-        assert!(matches!(queue.queue[2].token(), Token::Whitespace));
+        std::assert_matches!(queue.queue[0].token(), Token::Whitespace);
+        std::assert_matches!(queue.queue[2].token(), Token::Whitespace);
         assert!(
             matches!(queue.queue[3].token(), Token::Letter(c, _)if c.try_as_char() == Some('z'))
         );

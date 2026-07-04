@@ -168,13 +168,13 @@ mod tests {
         let arena = Arena::new();
         let node = Node::EMPTY_ROW;
         let reference = arena.push(node);
-        assert!(matches!(
+        std::assert_matches!(
             reference,
             Node::Row {
                 nodes: [],
                 attrs: RowAttrs::DEFAULT,
             },
-        ));
+        );
     }
 
     #[test]

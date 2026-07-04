@@ -2065,10 +2065,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         &mut self,
         mut first: Option<(Token, Span)>,
     ) -> ParseResult<BoundsWithLimits<'arena>> {
-        debug_assert!(matches!(
+        std::debug_assert_matches!(
             first,
             Some((Token::Underscore | Token::Circumflex | Token::Prime(_), _)) | None
-        ));
+        );
 
         let mut ret: BoundsWithLimits = BoundsWithLimits::default();
 

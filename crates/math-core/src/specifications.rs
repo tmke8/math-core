@@ -183,79 +183,79 @@ mod tests {
         let spec = parse_column_specification("l|c|r", &arena).unwrap();
         assert!(spec.border_left.is_none());
         assert_eq!(spec.column_spec.len(), 3);
-        assert!(matches!(
+        std::assert_matches!(
             spec.column_spec[0],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::LeftJustified,
                 border_right: Some(LineType::Solid)
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[1],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: Some(LineType::Solid)
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[2],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::RightJustified,
                 border_right: None
             }
-        ));
+        );
     }
 
     #[test]
     fn column_parse_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("|ccc", &arena).unwrap();
-        assert!(matches!(spec.border_left, Some(LineType::Solid)));
+        std::assert_matches!(spec.border_left, Some(LineType::Solid));
         assert_eq!(spec.column_spec.len(), 3);
-        assert!(matches!(
+        std::assert_matches!(
             spec.column_spec[0],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: None
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[1],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: None
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[2],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: None
             }
-        ));
+        );
     }
 
     #[test]
     fn column_parse_multiple_line_at_beginning() {
         let arena = Arena::new();
         let spec = parse_column_specification("   | ||c", &arena).unwrap();
-        assert!(matches!(spec.border_left, Some(LineType::Solid)));
+        std::assert_matches!(spec.border_left, Some(LineType::Solid));
         assert_eq!(spec.column_spec.len(), 3);
-        assert!(matches!(
+        std::assert_matches!(
             spec.column_spec[0],
             ColumnSpecEntry::OnlyLine(LineType::Solid)
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[1],
             ColumnSpecEntry::OnlyLine(LineType::Solid)
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[2],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: None
             }
-        ));
+        );
     }
 
     #[test]
@@ -264,39 +264,39 @@ mod tests {
         let spec = parse_column_specification(" c   : |   c|    : |      c ", &arena).unwrap();
         assert!(spec.border_left.is_none());
         assert_eq!(spec.column_spec.len(), 6);
-        assert!(matches!(
+        std::assert_matches!(
             spec.column_spec[0],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: Some(LineType::Dashed)
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[1],
             ColumnSpecEntry::OnlyLine(LineType::Solid)
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[2],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: Some(LineType::Solid)
             }
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[3],
             ColumnSpecEntry::OnlyLine(LineType::Dashed)
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[4],
             ColumnSpecEntry::OnlyLine(LineType::Solid)
-        ));
-        assert!(matches!(
+        );
+        std::assert_matches!(
             spec.column_spec[5],
             ColumnSpecEntry::WithContent {
                 alignment: ColumnAlignment::Centered,
                 border_right: None
             }
-        ));
+        );
     }
 
     #[test]
