@@ -27,6 +27,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
+    predefined,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
@@ -1761,6 +1762,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Some(node) => Ok(node),
                     None => unreachable!(),
                 }
+            }
+            Token::Dots => {
+                let next_token_is_mathbin_or_mathrel =
+                    if let Ok(class) = self.tokens.peek_class_token(parse_as.in_sequence()) {
+                        matches!(class, Class::BinaryOp | Class::Relation)
+                    } else {
+                        false
+                    };
+                self.tokens
+                    .queue_in_front(if next_token_is_mathbin_or_mathrel {
+                        &predefined::CDOTS
+                    } else {
+                        &predefined::DOTS
+                    });
+                let token = self.next_token();
+                // FIXME: Use `become` here once it is stable.
+                return self.parse_token(token, parse_as, prev_class);
             }
             Token::Prescript => {
                 let sup = self.parse_next(ParseAs::Arg)?;

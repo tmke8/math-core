@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "A + B +\\dots \\boldsymbol{+}Z"
+---
+<math>
+    <mi>A</mi>
+    <mo>+</mo>
+    <mi>B</mi>
+    <mo>+</mo>
+    <mo lspace="0">.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0">.</mo>
+    <mo>+</mo>
+    <mi>Z</mi>
+</math>

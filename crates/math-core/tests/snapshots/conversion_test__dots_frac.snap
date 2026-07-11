@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\frac{A \\dots}{B\\dots}"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mi>A</mi>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0" rspace="0">.</mo>
+        </mrow>
+        <mrow>
+            <mi>B</mi>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0" rspace="0">.</mo>
+            <mo lspace="0" rspace="0">.</mo>
+        </mrow>
+    </mfrac>
+</math>

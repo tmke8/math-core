@@ -707,6 +707,16 @@ fn main() {
             r"a \colonsim b \Colonsim c \coloncolonsim d \simcolon e \Simcolon f \simcoloncolon g",
         ),
         ("colon_eq", r"a \Eqcolon b \Eqqcolon c"),
+        ("dots_in_list", r"A,B,\dots,Z"),
+        ("dots_in_list_space", r"A,B,\dots Z"),
+        ("dots_in_ops", r"A + B +\dots +Z"),
+        ("dots_in_ops_bold", r"A + B +\dots \boldsymbol{+}Z"),
+        ("dots_in_ops_negative", r"A + B +\dots -Z"),
+        ("dots_in_ops_eq", r"A = B =\dots =Z"),
+        ("dots_in_integral", r"\int \dots dx"),
+        ("dots_implicit_mul", r"A B \dots Z"),
+        ("dots_implicit_trail", r"A B \dots"),
+        ("dots_frac", r"\frac{A \dots}{B\dots}"),
     ];
 
     let config = MathCoreConfig {
