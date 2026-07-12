@@ -123,6 +123,8 @@ pub enum Token<'source> {
     Inner(Op),
     /// ', ′, ″, ‴, ‵, ‶, ‷, or ⁗ (in math mode)
     Prime(PrimeKind),
+    /// `\dots` (in math mode) dynamically switches between … and ⋯
+    Dots,
     /// A token to force an operator to have `\mathord` spacing (all spacing forced to zero).
     /// This is, for example, needed for `⟋` and `⟍` produced by `\diagup` and `\diagdown`,
     /// which in MathML Core would otherwise have operator spacing.
@@ -451,7 +453,7 @@ impl Token<'_> {
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
-            Inner(_) | ForceMathInner(_) => Some(Class::Inner),
+            Inner(_) | ForceMathInner(_) | Dots => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "A B \\dots"
+---
+<math>
+    <mi>A</mi>
+    <mi>B</mi>
+    <mo>.</mo>
+    <mo lspace="0" rspace="0.1667em">.</mo>
+    <mo lspace="0" rspace="0">.</mo>
+</math>
