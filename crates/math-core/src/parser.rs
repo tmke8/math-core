@@ -1765,11 +1765,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Dots => {
                 let next_token_is_mathbin_or_mathrel =
-                    if let Ok(class) = self.tokens.peek_class_token(parse_as.in_sequence()) {
-                        matches!(class, Class::BinaryOp | Class::Relation)
-                    } else {
-                        false
-                    };
+                    matches!(next_class, Class::BinaryOp | Class::Relation);
                 self.tokens
                     .queue_in_front(if next_token_is_mathbin_or_mathrel {
                         &predefined::CDOTS

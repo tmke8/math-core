@@ -453,7 +453,7 @@ impl Token<'_> {
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
-            Inner(_) | ForceMathInner(_) => Some(Class::Inner),
+            Inner(_) | ForceMathInner(_) | Dots => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,
@@ -490,7 +490,6 @@ impl Token<'_> {
             | Underset
             | OverUnderBrace(_, _)
             | Sqrt
-            | Dots
             | Transform(_)
             | Ord(_)
             | Prime(_)
