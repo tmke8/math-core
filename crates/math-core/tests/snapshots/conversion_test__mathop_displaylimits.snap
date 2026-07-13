@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathop{sa\\frac{0}{1}}\\displaylimits_a^a"
+---
+<math>
+    <msubsup>
+        <mpadded style="padding-left:0;padding-right:0.1667em;">
+            <mrow>
+                <mi>s</mi>
+                <mi>a</mi>
+                <mfrac>
+                    <mn>0</mn>
+                    <mn>1</mn>
+                </mfrac>
+            </mrow>
+        </mpadded>
+        <mi>a</mi>
+        <mi>a</mi>
+    </msubsup>
+</math>
