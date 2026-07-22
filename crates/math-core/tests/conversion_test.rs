@@ -331,6 +331,8 @@ fn main() {
         ),
         ("colon_fusion", r"a := 2 \land b :\equiv 3"),
         ("double_colon", r"a :: b"),
+        ("begingroup_endgroup", r"x^\begingroup ab\endgroup"),
+        ("lparen_rparen", r"\lparen x \rparen"),
         ("colon_first_group", r"x{:x}"),
         ("colon_last_group", r"{x:}x"),
         ("colon_alone_group", r"x{:}x"),
