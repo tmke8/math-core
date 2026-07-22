@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x^\\begingroup ab\\endgroup"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mrow>
+            <mi>a</mi>
+            <mi>b</mi>
+        </mrow>
+    </msup>
+</math>
