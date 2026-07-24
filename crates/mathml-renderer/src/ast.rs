@@ -683,7 +683,14 @@ impl<'state> Emitter<'state> {
             Node::Enclose { content, notation } => {
                 write!(self.s, "<menclose notation=\"")?;
                 let mut first = true;
+                if notation.contains(Notation::BOX) {
+                    write!(self.s, "box")?;
+                    first = false;
+                }
                 if notation.contains(Notation::UP_DIAGONAL) {
+                    if !first {
+                        write!(self.s, " ")?;
+                    }
                     write!(self.s, "updiagonalstrike")?;
                     first = false;
                 }
@@ -692,12 +699,6 @@ impl<'state> Emitter<'state> {
                         write!(self.s, " ")?;
                     }
                     write!(self.s, "downdiagonalstrike")?;
-                }
-                if notation.contains(Notation::HORIZONTAL) {
-                    if !first {
-                        write!(self.s, " ")?;
-                    }
-                    write!(self.s, "horizontalstrike")?;
                 }
                 write!(self.s, "\">")?;
                 self.emit(content, child_indent)?;
@@ -713,13 +714,6 @@ impl<'state> Emitter<'state> {
                         self,
                         child_indent,
                         "<mrow class=\"menclose-downdiagonalstrike\"></mrow>"
-                    );
-                }
-                if notation.contains(Notation::HORIZONTAL) {
-                    writeln_indent!(
-                        self,
-                        child_indent,
-                        "<mrow class=\"menclose-horizontalstrike\"></mrow>"
                     );
                 }
                 writeln_indent!(self, base_indent, "</menclose>");

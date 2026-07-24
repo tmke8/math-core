@@ -9,10 +9,19 @@
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./mathmlfixes.css" />
     <style>
+      html {
+        font-size: 19px;
+      }
+      body {
+        font-size: 1rem;
+      }
+      main#content > p, th, td {
+        font-size: 0.8421rem;
+      }
       math {
         font-family: "NewComputerModernMath Book", math;
         font-feature-settings: "dtls" 0;
-        font-size: 1.2rem;
+        font-size: 1.21em;
         mtext {
           font-family: "NewComputerModern Book", serif;
           code {
@@ -21,11 +30,8 @@
         }
       }
       .math-core-error > code {
-        color: #b22222;
+        color: #c00;
         font-family: "Times New Roman", Cambria, Georgia, serif;
-      }
-      .not-supported {
-        color: #b22222;
       }
     </style>
 
@@ -1831,7 +1837,7 @@
           </tr>
           <tr>
             <td>\def</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\def\foo{x^2} \foo + \foo₮</td>
             <td>\(\def\foo{x^2} \foo + \foo\)</td>
             <td><code>\def\foo{x^2} \foo + \foo</code></td>
           </tr>
@@ -2427,7 +2433,7 @@
           </tr>
           <tr>
             <td>\gdef</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}₮</td>
             <td>\(\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}\)</td>
             <td><code>\gdef\bbar#1{#1^2} \bbar{y} + \bbar{y}</code></td>
           </tr>
@@ -2493,7 +2499,7 @@
           </tr>
           <tr>
             <td>\global</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\global\def\add#1#2{#1+#2} \add 2 3₮</td>
             <td>\(\global\def\add#1#2{#1+#2} \add 2 3\)</td>
             <td><code>\global\def\add#1#2{#1+#2} \add 2 3</code></td>
           </tr>
@@ -3955,7 +3961,7 @@
           </tr>
           <tr>
             <td>\newcommand</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\newcommand\chk{\checkmark} \chk₮</td>
             <td>\(\newcommand\chk{\checkmark} \chk\)</td>
             <td><code>\newcommand\chk{\checkmark} \chk</code></td>
           </tr>
@@ -4743,7 +4749,7 @@
           </tr>
           <tr>
             <td>\providecommand</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\providecommand\greet{\text{Hello}} \greet₮</td>
             <td>\(\providecommand\greet{\text{Hello}} \greet\)</td>
             <td><code>\providecommand\greet{\text{Hello}} \greet</code></td>
           </tr>
@@ -4914,7 +4920,7 @@
           </tr>
           <tr>
             <td>\renewcommand</td>
-            <td><span class="not-supported">Not supported</span></td>
+            <td>₮\def\hail{Hi!}\renewcommand\hail{\text{Ahoy!}} \hail₮</td>
             <td>\(\def\hail{Hi!}\renewcommand\hail{\text{Ahoy!}} \hail\)</td>
             <td><code>\def\hail{Hi!}</code><br /><code>\renewcommand\hail{\text{Ahoy!}}</code><br /><code>\hail</code></td>
           </tr>

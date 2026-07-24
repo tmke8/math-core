@@ -28,9 +28,12 @@ mtr > mtd:last-child {
         position: relative;
         padding: 0.5ex 0;
     }
+    menclose[notation~="box" i] {
+        border: 0.04em solid;
+        padding: 0.3rem;
+    }
     mrow.menclose-updiagonalstrike,
-    mrow.menclose-downdiagonalstrike,
-    mrow.menclose-horizontalstrike {
+    mrow.menclose-downdiagonalstrike {
         display: inline-block;
         position: absolute;
         left: 0.5px;
@@ -53,14 +56,6 @@ mtr > mtd:last-child {
             0.05em 0em,
             100% calc(100% - 0.05em),
             calc(100% - 0.05em) 100%
-        );
-    }
-    mrow.menclose-horizontalstrike {
-        clip-path: polygon(
-            0em calc(55% + 0.0333em),
-            0em calc(55% - 0.0333em),
-            100% calc(55% - 0.0333em),
-            100% calc(55% + 0.0333em)
         );
     }
 }
