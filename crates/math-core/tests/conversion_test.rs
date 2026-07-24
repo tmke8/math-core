@@ -719,6 +719,7 @@ fn main() {
         ("dots_implicit_mul", r"A B \dots Z"),
         ("dots_implicit_trail", r"A B \dots"),
         ("dots_frac", r"\frac{A \dots}{B\dots}"),
+        ("boxed", r"\boxed{abc}"),
     ];
 
     let config = MathCoreConfig {

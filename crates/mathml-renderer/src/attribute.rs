@@ -155,9 +155,9 @@ bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize))]
     pub struct Notation: u8 {
-        const HORIZONTAL = 1; // (not used at the moment)
-        const UP_DIAGONAL = 1 << 1;
-        const DOWN_DIAGONAL = 1 << 2;
+        const UP_DIAGONAL = 1;
+        const DOWN_DIAGONAL = 1 << 1;
+        const BOX = 1 << 2;
     }
 }
 

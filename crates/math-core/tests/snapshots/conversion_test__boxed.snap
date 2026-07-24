@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\boxed{abc}"
+---
+<math>
+    <menclose notation="box">
+        <mrow>
+            <mi>a</mi>
+            <mi>b</mi>
+            <mi>c</mi>
+        </mrow>
+    </menclose>
+</math>

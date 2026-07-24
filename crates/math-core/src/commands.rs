@@ -224,6 +224,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "botdoteq" => Relation(symbol::EQUALS_SIGN_WITH_DOT_BELOW),
     "bowtie" => Relation(symbol::BOWTIE),
     "boxdot" => ForceBinaryOp(symbol::SQUARED_DOT_OPERATOR.as_op()),
+    "boxed" => Enclose(Notation::BOX),
     "boxminus" => BinaryOp(symbol::SQUARED_MINUS),
     "boxplus" => BinaryOp(symbol::SQUARED_PLUS),
     "boxtimes" => ForceBinaryOp(symbol::SQUARED_TIMES.as_op()),
