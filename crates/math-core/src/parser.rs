@@ -1238,6 +1238,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(fenced(self.arena, content, open_paren, close_paren, None))
             }
             Token::Middle => {
+                class = Class::Open;
                 let tok_loc = self.next_token()?;
                 let op = extract_delimiter(tok_loc, DelimiterModifier::Middle)?;
                 let spacing = if matches!(op.spacing, DelimiterSpacing::Zero) {
