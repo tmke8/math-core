@@ -158,6 +158,7 @@ bitflags! {
         const UP_DIAGONAL = 1;
         const DOWN_DIAGONAL = 1 << 1;
         const BOX = 1 << 2;
+        const ACTUARIAL = 1 << 3;
     }
 }
 
