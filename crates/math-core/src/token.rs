@@ -199,6 +199,9 @@ pub enum Token<'source> {
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
     MathOrTextMode(&'static Token<'static>, char),
+    /// A token which changes the meaning of the character `|` for the rest of the
+    /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
+    VerticalLineDef(VerticalLineDef),
     /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
     /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
     /// of the unknown command.
@@ -206,6 +209,23 @@ pub enum Token<'source> {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+}
+
+/// The current meaning of the character `|`.
+///
+/// Some commands (`\set`, `\Set`, `\Braket`) locally redefine `|` to be a separator with
+/// extra spacing around it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum VerticalLineDef {
+    /// An ordinary vertical line (mathord).
+    #[default]
+    Default,
+    /// `\;|\;`, as in `\set`.
+    RelSpacing,
+    /// `\;\middle|\;`, as in `\Set`.
+    StretchyRelSpacing,
+    /// `\,\middle|\,`, as in `\Braket`.
+    StretchyOpSpacing,
 }
 
 /// The character class assigned by `\mathord` / `\mathbin` / `\mathopen` / `\mathclose`.
@@ -472,7 +492,7 @@ impl Token<'_> {
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
             Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
             | CustomSpace(_) | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef
-            | HLine(_) => None,
+            | HLine(_) | VerticalLineDef(_) => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
