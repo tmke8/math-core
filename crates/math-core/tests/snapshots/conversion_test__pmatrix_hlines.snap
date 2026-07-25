@@ -1,0 +1,28 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{pmatrix} \\hdashline 1 & 2 \\\\ \\hline 3 & 4 \\end{pmatrix}"
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mtable style="border-top: 0.05em dashed currentcolor;" displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mn>1</mn>
+                </mtd>
+                <mtd>
+                    <mn>2</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="border-top: 0.05em solid currentcolor;">
+                    <mn>3</mn>
+                </mtd>
+                <mtd style="border-top: 0.05em solid currentcolor;">
+                    <mn>4</mn>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>)</mo>
+    </mrow>
+</math>

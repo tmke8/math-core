@@ -27,8 +27,8 @@ pub enum Token<'source> {
     NewColumn,
     /// A new line in an array or matrix, e.g. `\\` in `\begin{matrix} a & b\\c & d \end{matrix}`.
     NewLine,
-    /// A horizontal rule in an array, i.e. `\hline` (solid) or `\hdashline` (dashed). Only legal
-    /// directly after a `\\` or at the very beginning of an array environment.
+    /// A horizontal rule in an array or matrix, i.e. `\hline` (solid) or `\hdashline` (dashed).
+    /// Only legal directly after a `\\` or at the very beginning of such an environment.
     HLine(LineType),
     /// `\nonumber`/`\notag`, suppresses numbering for the current equation.
     NoNumber,

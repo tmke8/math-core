@@ -94,7 +94,7 @@ fn main() {
         ),
         (
             "hline_in_non_array_env",
-            r"\begin{matrix} 1 \\ \hline 2 \end{matrix}",
+            r"\begin{cases} 1 \\ \hline 2 \end{cases}",
         ),
         ("hash_outside_macro_definition", r"x # y"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),

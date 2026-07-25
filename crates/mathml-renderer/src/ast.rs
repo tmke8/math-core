@@ -153,6 +153,9 @@ pub enum Node<'arena> {
     Table {
         align: Alignment,
         style: Option<Style>,
+        /// A line above the first row, from a `\hline`/`\hdashline` at the start of the
+        /// environment.
+        border_top: Option<LineType>,
         content: &'arena [&'arena Node<'arena>],
     },
     /// `<mtable>...</mtable>` for equation arrays like the `align` environment
@@ -597,10 +600,17 @@ impl<'state> Emitter<'state> {
                 content,
                 align,
                 style,
+                border_top,
             } => {
                 let mtd_opening = ColumnGenerator::new_predefined(align);
 
                 write!(self.s, "<mtable")?;
+                // A leading `\hline`/`\hdashline` becomes a border on the table itself.
+                match border_top {
+                    Some(LineType::Solid) => write!(self.s, " style=\"{BORDER_TOP_SOLID}\"")?,
+                    Some(LineType::Dashed) => write!(self.s, " style=\"{BORDER_TOP_DASHED}\"")?,
+                    None => (),
+                }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
@@ -1459,6 +1469,7 @@ mod tests {
                 content: &nodes,
                 align: Alignment::Centered,
                 style: None,
+                border_top: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );
@@ -1580,6 +1591,34 @@ mod tests {
                         },
                     ],
                 },
+            }),
+            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_table_with_hlines() {
+        // Same as `render_array_with_hlines`, but for a matrix: the leading `\hline` sets
+        // `border_top` on the table itself.
+        let nodes = [
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator {
+                label_info: None,
+                border_top: Some(LineType::Dashed),
+            },
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
+        ];
+
+        assert_eq!(
+            render(&Node::Table {
+                content: &nodes,
+                align: Alignment::Centered,
+                style: None,
+                border_top: Some(LineType::Solid),
             }),
             "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );

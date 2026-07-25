@@ -588,6 +588,18 @@ fn main() {
             r"\begin{array}{cc} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{array}",
         ),
         (
+            "matrix_hlines",
+            r"\begin{matrix} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{matrix}",
+        ),
+        (
+            "pmatrix_hlines",
+            r"\begin{pmatrix} \hdashline 1 & 2 \\ \hline 3 & 4 \end{pmatrix}",
+        ),
+        (
+            "vmatrix_hline",
+            r"\begin{vmatrix} 1 & 2 \\ \hline 3 & 4 \end{vmatrix}",
+        ),
+        (
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),
