@@ -32,6 +32,12 @@ mtr > mtd:last-child {
         border: 0.04em solid;
         padding: 0.3rem;
     }
+    menclose[notation~="actuarial" i] {
+        padding: 0.03889rem 0.03889rem 0 0.03889rem;
+        border-width: 0.08em 0.08em 0em 0em;
+        border-style: solid;
+        margin-right: 0.03889rem;
+    }
     mrow.menclose-updiagonalstrike,
     mrow.menclose-downdiagonalstrike {
         display: inline-block;

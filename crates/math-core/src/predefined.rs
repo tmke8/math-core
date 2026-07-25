@@ -1,4 +1,4 @@
-use mathml_renderer::symbol;
+use mathml_renderer::{attribute::Notation, super_char::SuperChar, symbol};
 
 use crate::token::Token::{self, *};
 use crate::{character_class::MathVariant, token::PhantomKind};
@@ -193,6 +193,11 @@ pub static SIM_DOUBLE_COLON: [Token<'static>; 3] = [
     Relation(symbol::TILDE_OPERATOR),
     ForceRelation(symbol::RATIO.as_op()),
     ForceRelation(symbol::RATIO.as_op()),
+];
+
+pub static ANGLN: [Token<'static>; 2] = [
+    Enclose(Notation::ACTUARIAL),
+    Letter(SuperChar::from_char('n'), Mode::Math),
 ];
 
 pub static APPROX_COLON: [Token<'static>; 2] = [

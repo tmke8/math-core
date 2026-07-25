@@ -720,6 +720,7 @@ fn main() {
         ("dots_implicit_trail", r"A B \dots"),
         ("dots_frac", r"\frac{A \dots}{B\dots}"),
         ("boxed", r"\boxed{abc}"),
+        ("angl", r"a_{\angl n} + a_\angln"),
     ];
 
     let config = MathCoreConfig {

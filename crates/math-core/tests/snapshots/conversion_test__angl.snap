@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a_{\\angl n} + a_\\angln"
+---
+<math>
+    <msub>
+        <mi>a</mi>
+        <menclose notation="actuarial">
+            <mi>n</mi>
+        </menclose>
+    </msub>
+    <mo>+</mo>
+    <msub>
+        <mi>a</mi>
+        <menclose notation="actuarial">
+            <mi>n</mi>
+        </menclose>
+    </msub>
+</math>

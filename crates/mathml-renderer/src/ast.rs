@@ -687,6 +687,13 @@ impl<'state> Emitter<'state> {
                     write!(self.s, "box")?;
                     first = false;
                 }
+                if notation.contains(Notation::ACTUARIAL) {
+                    if !first {
+                        write!(self.s, " ")?;
+                    }
+                    write!(self.s, "actuarial")?;
+                    first = false;
+                }
                 if notation.contains(Notation::UP_DIAGONAL) {
                     if !first {
                         write!(self.s, " ")?;
