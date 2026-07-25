@@ -482,6 +482,7 @@ fn main() {
             r"\left(\frac12\middle\uparrow\frac12\right)",
         ),
         ("middle_bracket", r"\left(\frac12\middle]\frac12\right)"),
+        ("middle_equality", r"\left(=\middle|=\right)"),
         ("left_right_different_stretch", r"\left/\frac12\right)"),
         ("double_struck_cmds", r"\N\R\Z"),
         ("xrightarrow", r"\xrightarrow{x}"),

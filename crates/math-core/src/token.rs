@@ -445,7 +445,7 @@ impl Token<'_> {
             Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
                 Some(Class::Open)
             }
-            Close(_) | SquareBracketClose | ForceClose(..) | Right => Some(Class::Close),
+            Close(_) | SquareBracketClose | ForceClose(..) | Right | Middle => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_)
             | ForceLargeOp(..)
@@ -477,7 +477,6 @@ impl Token<'_> {
             | UprightLetter(_)
             | Digit(_)
             | Big(_, None)
-            | Middle
             | Frac(_)
             | InfixGenFrac { .. }
             | Genfrac
