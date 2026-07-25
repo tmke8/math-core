@@ -85,7 +85,7 @@ pub enum Place {
     TableEnv,
     #[strum(serialize = r"in a numbered equation environment")]
     NumberedEnv,
-    #[strum(serialize = r"directly after a `\\` or at the beginning of an array")]
+    #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
 }
 

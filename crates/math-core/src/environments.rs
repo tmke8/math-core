@@ -8,7 +8,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, RowLabelInfo},
+    table::{Alignment, ArraySpec, LineType, RowLabelInfo},
 };
 
 use crate::character_class::{StretchableOp, fenced};
@@ -98,6 +98,24 @@ impl Env {
         )
     }
 
+    /// `true` for environments in which `\hline`/`\hdashline` may appear (the `array` family and
+    /// the `matrix` family).
+    #[inline]
+    pub(super) fn allows_hlines(self) -> bool {
+        matches!(
+            self,
+            Env::Array
+                | Env::DArray
+                | Env::Subarray
+                | Env::Matrix
+                | Env::PMatrix
+                | Env::BMatrix
+                | Env::Bmatrix
+                | Env::VMatrix
+                | Env::Vmatrix
+        )
+    }
+
     #[inline]
     fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
         if matches!(
@@ -132,7 +150,7 @@ impl Env {
         EnvState {
             allow_columns: self.allows_columns(),
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
-            in_array: matches!(self, Env::Array | Env::DArray | Env::Subarray),
+            allow_hlines: self.allows_hlines(),
             numbered: self.get_numbered_env_state(),
         }
     }
@@ -156,6 +174,7 @@ impl Env {
         arena: &'arena Arena,
         last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         num_rows: Option<NonZeroU16>,
+        border_top: Option<LineType>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
@@ -167,6 +186,7 @@ impl Env {
                 align: Alignment::Alternating,
                 style: Some(Style::Display),
                 content,
+                border_top: None,
             },
             Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
                 Node::EquationArray {
@@ -179,11 +199,13 @@ impl Env {
                 align: Alignment::Centered,
                 style: Some(Style::Display),
                 content,
+                border_top: None,
             },
             Env::Matrix => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Text),
                 content,
+                border_top,
             },
             Env::MultLine => {
                 debug_assert!(num_rows.is_some());
@@ -199,6 +221,7 @@ impl Env {
                     content,
                     align,
                     style: Some(Style::Text),
+                    border_top: None,
                 });
                 fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
             }
@@ -208,6 +231,7 @@ impl Env {
                     content,
                     align,
                     style: Some(Style::Text),
+                    border_top: None,
                 });
                 fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
             }
@@ -217,6 +241,7 @@ impl Env {
                     content,
                     align,
                     style: Some(Style::Display),
+                    border_top: None,
                 });
                 fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
             }
@@ -226,6 +251,7 @@ impl Env {
                     content,
                     align,
                     style: Some(Style::Display),
+                    border_top: None,
                 });
                 fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
             }
@@ -276,6 +302,7 @@ impl Env {
                         content,
                         align,
                         style,
+                        border_top,
                     })],
                     Some(open),
                     Some(close),
@@ -292,9 +319,9 @@ pub struct EnvState<'arena> {
     pub allow_columns: bool,
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     pub meaningful_newlines: bool,
-    /// `true` if we are inside an `array`/`darray`/`subarray` environment, where `\hline` and
-    /// `\hdashline` are allowed (directly after `\\` or at the start of the environment).
-    pub in_array: bool,
+    /// `true` if we are inside an environment where `\hline` and `\hdashline` are allowed
+    /// (directly after `\\` or at the start of the environment).
+    pub allow_hlines: bool,
     pub numbered: Option<NumberedEnvState<'arena>>,
 }
 

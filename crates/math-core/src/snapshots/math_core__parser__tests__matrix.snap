@@ -15,6 +15,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
       Table(
         align: Centered,
         style: Some(Text),
+        border_top: None,
         content: [
           IdentifierChar("x", Default),
           RowSeparator(

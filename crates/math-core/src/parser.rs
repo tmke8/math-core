@@ -1322,7 +1322,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::Begin(env) => 'begin_env: {
-                let array_spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
+                let spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
                     // Parse the array options.
                     let (options, span) = self.parse_string_literal()?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
@@ -1334,16 +1334,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     if matches!(env, Env::Subarray) {
                         spec.is_sub = true;
                     }
-                    // A `\hline`/`\hdashline` directly at the start of the array (whitespace is
-                    // skipped by `peek`) becomes the top border of the whole array.
-                    if let Token::HLine(line_type) = *self.tokens.peek().token() {
-                        self.tokens.next()?;
-                        spec.border_top = Some(line_type);
-                    }
-                    Some(self.arena.alloc_array_spec(spec))
+                    Some(spec)
                 } else {
                     None
                 };
+
+                // A `\hline`/`\hdashline` directly at the start of the environment (whitespace is
+                // skipped by `peek`) becomes the top border of the whole table.
+                let mut border_top = None;
+                if env.allows_hlines()
+                    && let Token::HLine(line_type) = *self.tokens.peek().token()
+                {
+                    self.tokens.next()?;
+                    border_top = Some(line_type);
+                }
+                // For arrays, the top border is stored in the array spec, which already carries
+                // the borders coming from the column specification.
+                let array_spec = spec.map(|mut spec| {
+                    spec.border_top = border_top;
+                    self.arena.alloc_array_spec(spec)
+                });
 
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
@@ -1410,7 +1420,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 class = Class::Close;
 
-                Ok(env.construct_node(content, array_spec, self.arena, last_row_info, num_rows))
+                Ok(env.construct_node(
+                    content,
+                    array_spec,
+                    self.arena,
+                    last_row_info,
+                    num_rows,
+                    border_top,
+                ))
             }
             Token::OperatorName { with_limits } => {
                 let snippets = self.extract_text(None, false)?;
@@ -1483,9 +1500,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     break 'new_line Ok(Node::EMPTY_ROW);
                 }
                 // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
-                // becomes the top border of the row that follows. Only legal inside an array;
-                // elsewhere it falls through to the `Token::HLine` error arm.
-                let border_top = if self.state.env.in_array {
+                // becomes the top border of the row that follows. Only legal inside an array or
+                // matrix; elsewhere it falls through to the `Token::HLine` error arm.
+                let border_top = if self.state.env.allow_hlines {
                     match *self.tokens.peek().token() {
                         Token::HLine(line_type) => {
                             self.tokens.next()?;

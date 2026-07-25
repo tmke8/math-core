@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{array}{cc} 1 & \\hline 2 \\end{array}"
 ---
-Error: Found "\hline", which may only appear directly after a `\\` or at the beginning of an array.
+Error: Found "\hline", which may only appear directly after a `\\` or at the beginning of an array or matrix.
    ╭─[ <input>:1:23 ]
    │
  1 │ \begin{array}{cc} 1 & \hline 2 \end{array}

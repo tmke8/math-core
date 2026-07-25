@@ -6,6 +6,7 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
   Table(
     align: Centered,
     style: Some(Text),
+    border_top: None,
     content: [
       Operator(
         op: "∑",

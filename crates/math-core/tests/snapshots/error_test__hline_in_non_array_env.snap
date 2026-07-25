@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\begin{matrix} 1 \\\\ \\hline 2 \\end{matrix}"
+expression: "\\begin{cases} 1 \\\\ \\hline 2 \\end{cases}"
 ---
-Error: Found "\hline", which may only appear directly after a `\\` or at the beginning of an array.
-   ╭─[ <input>:1:21 ]
+Error: Found "\hline", which may only appear directly after a `\\` or at the beginning of an array or matrix.
+   ╭─[ <input>:1:20 ]
    │
- 1 │ \begin{matrix} 1 \\ \hline 2 \end{matrix}
-   │                     ───┬──  
-   │                        ╰──── cannot be used here
+ 1 │ \begin{cases} 1 \\ \hline 2 \end{cases}
+   │                    ───┬──  
+   │                       ╰──── cannot be used here
 ───╯
