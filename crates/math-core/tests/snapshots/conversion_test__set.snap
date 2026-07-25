@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\set{x|x<5}"
+---
+<math>
+    <mo stretchy="false">{</mo>
+    <mspace width="0.16666667em"/>
+    <mi>x</mi>
+    <mspace width="0.2777778em"/>
+    <mo stretchy="false" lspace="0" rspace="0">|</mo>
+    <mspace width="0.2777778em"/>
+    <mi>x</mi>
+    <mo>&lt;</mo>
+    <mn>5</mn>
+    <mspace width="0.16666667em"/>
+    <mo stretchy="false">}</mo>
+</math>

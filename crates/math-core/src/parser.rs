@@ -33,7 +33,7 @@ use crate::{
     text_parser::TextSnippet,
     token::{
         EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, PrimeDirection,
-        PrimeKind, Span, TokSpan, Token, UnitKind,
+        PrimeKind, Span, TokSpan, Token, UnitKind, VerticalLineDef,
     },
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -60,6 +60,8 @@ struct ParserState<'arena> {
     env: EnvState<'arena>,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
+    /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
+    vertical_line_def: VerticalLineDef,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -140,6 +142,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right_boundary_hack: false,
                 env: EnvState::default(),
                 style,
+                vertical_line_def: VerticalLineDef::Default,
             },
         })
     }
@@ -174,6 +177,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
+            // Check whether `|` currently has a non-default meaning.
+            if self.substitute_vertical_line()? {
+                continue;
+            }
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
@@ -262,6 +269,29 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(nodes)
     }
 
+    /// Replace the character `|` by the token stream it stands for, if it was redefined by
+    /// `\set`, `\Set` or `\Braket`.
+    ///
+    /// Returns `true` if a substitution was made, in which case the caller has to start over
+    /// with the newly queued tokens.
+    fn substitute_vertical_line(&mut self) -> ParseResult<bool> {
+        let replacement: &[Token<'static>] = match self.state.vertical_line_def {
+            VerticalLineDef::Default => return Ok(false),
+            VerticalLineDef::RelSpacing => &predefined::REL_SPACED_VERTICAL_LINE,
+            VerticalLineDef::StretchyRelSpacing => &predefined::REL_SPACED_MIDDLE_VERTICAL_LINE,
+            VerticalLineDef::StretchyOpSpacing => &predefined::OP_SPACED_MIDDLE_VERTICAL_LINE,
+        };
+        // Only the literal character `|` is redefined; `\vert` and friends are unaffected.
+        // (The replacement streams contain the unwrapped `Token::Ord`, so they are not
+        // substituted again.)
+        if !matches!(self.tokens.peek().token(), Token::MathOrTextMode(_, '|')) {
+            return Ok(false);
+        }
+        self.next_token()?; // Discard the `|`.
+        self.tokens.queue_in_front(replacement);
+        Ok(true)
+    }
+
     #[inline]
     fn handle_tokens_without_output(
         &mut self,
@@ -294,6 +324,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::TransformSwitch(tf) => {
                 self.state.transform = Some(tf);
+                Ok(())
+            }
+            Token::VerticalLineDef(def) => {
+                self.state.vertical_line_def = def;
                 Ok(())
             }
             Token::NoNumber => {
@@ -1931,7 +1965,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ))
                 }
             }
-            Token::Whitespace | Token::MathOrTextMode(_, _) => {
+            Token::Whitespace | Token::MathOrTextMode(_, _) | Token::VerticalLineDef(_) => {
                 // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))

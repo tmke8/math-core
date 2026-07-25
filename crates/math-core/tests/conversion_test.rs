@@ -734,6 +734,18 @@ fn main() {
         ("dots_frac", r"\frac{A \dots}{B\dots}"),
         ("boxed", r"\boxed{abc}"),
         ("angl", r"a_{\angl n} + a_\angln"),
+        (
+            "big_braket",
+            r"\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}",
+        ),
+        ("set", r"\set{x|x<5}"),
+        ("big_set", r"\Set{ x | x<\dfrac 1 2 }"),
+        ("set_without_vertical_line", r"\set{x}"),
+        ("vertical_line_reset_after_set", r"\set{x|y}|z"),
+        (
+            "vertical_line_not_redefined_for_vert",
+            r"\Braket{\phi\vert\psi}",
+        ),
     ];
 
     let config = MathCoreConfig {
