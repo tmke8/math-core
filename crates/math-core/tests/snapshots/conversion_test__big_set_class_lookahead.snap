@@ -1,19 +1,14 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\Set{ x | x<\\dfrac 1 2 }"
+expression: "\\Set{ = | x }"
 ---
 <math>
     <mrow>
         <mo>{</mo>
         <mspace width="0.22222222em"/>
-        <mi>x</mi>
+        <mo lspace="0" rspace="0">=</mo>
         <mo stretchy="true" form="infix">|</mo>
         <mi>x</mi>
-        <mo>&lt;</mo>
-        <mfrac displaystyle="true">
-            <mn>1</mn>
-            <mn>2</mn>
-        </mfrac>
         <mspace width="0.22222222em"/>
         <mo>}</mo>
     </mrow>

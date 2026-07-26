@@ -6,9 +6,7 @@ expression: "\\Braket{\\phi|\\dfrac{\\partial^2}{\\partial t^2}|\\psi}"
     <mrow>
         <mo>⟨</mo>
         <mi>ϕ</mi>
-        <mspace width="0.16666667em"/>
-        <mo stretchy="true" lspace="0" rspace="0">|</mo>
-        <mspace width="0.16666667em"/>
+        <mo stretchy="true" form="infix" lspace="0.1667em" rspace="0.1667em">|</mo>
         <mfrac displaystyle="true">
             <msup>
                 <mi>∂</mi>
@@ -22,9 +20,7 @@ expression: "\\Braket{\\phi|\\dfrac{\\partial^2}{\\partial t^2}|\\psi}"
                 </msup>
             </mrow>
         </mfrac>
-        <mspace width="0.16666667em"/>
-        <mo stretchy="true" lspace="0" rspace="0">|</mo>
-        <mspace width="0.16666667em"/>
+        <mo stretchy="true" form="infix" lspace="0.1667em" rspace="0.1667em">|</mo>
         <mi>ψ</mi>
         <mo>⟩</mo>
     </mrow>

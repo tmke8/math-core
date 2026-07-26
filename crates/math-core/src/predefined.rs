@@ -118,9 +118,9 @@ pub static BIG_KET: [Token<'static>; 5] = [
 pub static BIG_BRAKET: [Token<'static>; 7] = [
     Left,
     Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
-    VerticalLineDef(VLDef::StretchyOpSpacing),
+    VerticalLineDef(Some(VLDef::StretchyOpSpacing)),
     CustomCmdArg(0),
-    VerticalLineDef(VLDef::Default), // reset
+    VerticalLineDef(None), // reset
     Right,
     Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
 ];
@@ -129,9 +129,9 @@ pub static BIG_BRAKET: [Token<'static>; 7] = [
 pub static SET: [Token<'static>; 7] = [
     Open(symbol::LEFT_CURLY_BRACKET),
     Space(LatexUnit::Mu.length_with_unit(3.0)),
-    VerticalLineDef(VLDef::RelSpacing),
+    VerticalLineDef(Some(VLDef::RelSpacing)),
     CustomCmdArg(0),
-    VerticalLineDef(VLDef::Default), // reset
+    VerticalLineDef(None), // reset
     Space(LatexUnit::Mu.length_with_unit(3.0)),
     Close(symbol::RIGHT_CURLY_BRACKET),
 ];
@@ -141,35 +141,12 @@ pub static BIG_SET: [Token<'static>; 9] = [
     Left,
     Open(symbol::LEFT_CURLY_BRACKET),
     Space(LatexUnit::Mu.length_with_unit(4.0)),
-    VerticalLineDef(VLDef::StretchyRelSpacing),
+    VerticalLineDef(Some(VLDef::StretchyRelSpacing)),
     CustomCmdArg(0),
-    VerticalLineDef(VLDef::Default), // reset
+    VerticalLineDef(None), // reset
     Space(LatexUnit::Mu.length_with_unit(4.0)),
     Right,
     Close(symbol::RIGHT_CURLY_BRACKET),
-];
-
-/// The replacement for `|` under [`VLDef::RelSpacing`], i.e. `\;|\;`.
-pub static REL_SPACED_VERTICAL_LINE: [Token<'static>; 3] = [
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Ord(symbol::VERTICAL_LINE),
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-];
-
-/// The replacement for `|` under [`VLDef::StretchyRelSpacing`], i.e. `\;\middle|\;`.
-pub static REL_SPACED_MIDDLE_VERTICAL_LINE: [Token<'static>; 4] = [
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-    Middle,
-    Ord(symbol::VERTICAL_LINE),
-    Space(LatexUnit::Mu.length_with_unit(5.0)),
-];
-
-/// The replacement for `|` under [`VLDef::StretchyOpSpacing`], i.e. `\,\middle|\,`.
-pub static OP_SPACED_MIDDLE_VERTICAL_LINE: [Token<'static>; 4] = [
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
-    Middle,
-    Ord(symbol::VERTICAL_LINE),
-    Space(LatexUnit::Mu.length_with_unit(3.0)),
 ];
 
 pub static COLON_EQUALS: [Token<'static>; 2] = [

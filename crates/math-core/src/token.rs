@@ -201,7 +201,7 @@ pub enum Token<'source> {
     MathOrTextMode(&'static Token<'static>, char),
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
-    VerticalLineDef(VerticalLineDef),
+    VerticalLineDef(Option<VerticalLineDef>),
     /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
     /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
     /// of the unknown command.
@@ -215,13 +215,10 @@ pub enum Token<'source> {
 ///
 /// Some commands (`\set`, `\Set`, `\Braket`) locally redefine `|` to be a separator with
 /// extra spacing around it.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerticalLineDef {
-    /// An ordinary vertical line (mathord).
-    #[default]
-    Default,
     /// `\;|\;`, as in `\set`.
-    RelSpacing,
+    RelSpacing = 1,
     /// `\;\middle|\;`, as in `\Set`.
     StretchyRelSpacing,
     /// `\,\middle|\,`, as in `\Braket`.
