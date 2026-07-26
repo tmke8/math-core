@@ -1,13 +1,13 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\Braket{\\phi\\vert\\psi}"
+expression: "\\Braket{=|x}"
 ---
 <math>
     <mrow>
         <mo>⟨</mo>
-        <mi>ϕ</mi>
+        <mo lspace="0" rspace="0">=</mo>
         <mo stretchy="true" form="infix" lspace="0.1667em" rspace="0.1667em">|</mo>
-        <mi>ψ</mi>
+        <mi>x</mi>
         <mo>⟩</mo>
     </mrow>
 </math>

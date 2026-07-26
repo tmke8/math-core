@@ -61,7 +61,7 @@ struct ParserState<'arena> {
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
-    vertical_line_def: VerticalLineDef,
+    vertical_line_def: Option<VerticalLineDef>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -142,7 +142,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right_boundary_hack: false,
                 env: EnvState::default(),
                 style,
-                vertical_line_def: VerticalLineDef::Default,
+                vertical_line_def: None,
             },
         })
     }
@@ -177,10 +177,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         // Because we don't want to consume the end token, we just peek here.
         while !sequence_end.matches(self.tokens.peek().token()) {
-            // Check whether `|` currently has a non-default meaning.
-            if self.substitute_vertical_line()? {
-                continue;
-            }
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
@@ -267,29 +263,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         self.state.transform = old_tf;
         self.state.style = old_style;
         Ok(nodes)
-    }
-
-    /// Replace the character `|` by the token stream it stands for, if it was redefined by
-    /// `\set`, `\Set` or `\Braket`.
-    ///
-    /// Returns `true` if a substitution was made, in which case the caller has to start over
-    /// with the newly queued tokens.
-    fn substitute_vertical_line(&mut self) -> ParseResult<bool> {
-        let replacement: &[Token<'static>] = match self.state.vertical_line_def {
-            VerticalLineDef::Default => return Ok(false),
-            VerticalLineDef::RelSpacing => &predefined::REL_SPACED_VERTICAL_LINE,
-            VerticalLineDef::StretchyRelSpacing => &predefined::REL_SPACED_MIDDLE_VERTICAL_LINE,
-            VerticalLineDef::StretchyOpSpacing => &predefined::OP_SPACED_MIDDLE_VERTICAL_LINE,
-        };
-        // Only the literal character `|` is redefined; `\vert` and friends are unaffected.
-        // (The replacement streams contain the unwrapped `Token::Ord`, so they are not
-        // substituted again.)
-        if !matches!(self.tokens.peek().token(), Token::MathOrTextMode(_, '|')) {
-            return Ok(false);
-        }
-        self.next_token()?; // Discard the `|`.
-        self.tokens.queue_in_front(replacement);
-        Ok(true)
     }
 
     #[inline]
@@ -400,7 +373,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
-        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+        let next_class = self.peek_class_token(parse_as.in_sequence())?;
         let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
             Class::Default
         } else {
@@ -549,7 +522,31 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     return Ok((class, target));
                 }
             }
-            Token::Ord(ord) => {
+            Token::Ord(ord) => 'ord: {
+                if matches!(ord, symbol::VERTICAL_LINE)
+                    && let Some(vld) = self.state.vertical_line_def
+                {
+                    let mut attrs = OpAttrs::FORM_INFIX;
+                    // For vertical line, `form="infix"` implies relation spacing, so we can set
+                    // spacing to `None` in order to get relation spacing.
+                    let (stretchy, spacing) = match vld {
+                        VerticalLineDef::StretchyOpSpacing => (true, Some(MathSpacing::ThreeMu)),
+                        VerticalLineDef::StretchyRelSpacing => (true, None),
+                        VerticalLineDef::RelSpacing => (false, None),
+                    };
+                    // `form="infix"` also implies `stretchy="false"`, so we have to explicitly set
+                    // `stretchy="true"` if the vertical line is stretchy.
+                    if stretchy {
+                        attrs |= OpAttrs::STRETCHY_TRUE;
+                    }
+                    break 'ord Ok(Node::Operator {
+                        op: ord.as_op(),
+                        attrs,
+                        left: spacing,
+                        right: spacing,
+                        size: None,
+                    });
+                }
                 let attrs = if matches!(
                     ord.category(),
                     OrdCategory::F
@@ -636,7 +633,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let tok_span = self.next_token()?;
                 let (_, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
                 // Recompute the next class:
-                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                let next_class = self.peek_class_token(parse_as.in_sequence())?;
                 let (left, right) = match kind {
                     MathClassKind::Ord => {
                         class = Class::Default;
@@ -1310,7 +1307,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // and delimiter spacing.
                 let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
                     // We need to achieve relation spacing here.
-                    let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                    let next_class = self.peek_class_token(parse_as.in_sequence())?;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
                     }
@@ -2004,7 +2001,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.state.style = old_style;
                 self.state.right_boundary_hack = old_boundary_hack;
                 // Re-compute the next class.
-                let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+                let next_class = self.peek_class_token(parse_as.in_sequence())?;
 
                 let pad = &const { Node::Space(LatexUnit::Em.length_with_unit(0.4286)) };
                 let label_space = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
@@ -2358,7 +2355,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds tokens.
-        let next_class = self.tokens.peek_class_token(parse_as.in_sequence())?;
+        let next_class = self.peek_class_token(parse_as.in_sequence())?;
         Ok((
             if matches!(
                 prev_class,
@@ -2628,6 +2625,33 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             builder.push_char(ch);
         }
         Ok((builder.finish(self.arena), span))
+    }
+
+    fn peek_class_token(&mut self, in_sequence: bool) -> ParseResult<Class> {
+        if !in_sequence {
+            return Ok(Class::Default);
+        }
+        let (token_idx, class) = self.tokens.peek_class_token()?;
+        if let Some(vld) = self.state.vertical_line_def
+            && matches!(
+                self.tokens
+                    .from_index(token_idx)
+                    .map(|tokloc| tokloc.token()),
+                Some(Token::MathOrTextMode(
+                    Token::Ord(symbol::VERTICAL_LINE),
+                    '|'
+                ))
+            )
+        {
+            Ok(match vld {
+                VerticalLineDef::RelSpacing => Class::Default,
+                VerticalLineDef::StretchyOpSpacing | VerticalLineDef::StretchyRelSpacing => {
+                    Class::Close
+                }
+            })
+        } else {
+            Ok(class)
+        }
     }
 }
 

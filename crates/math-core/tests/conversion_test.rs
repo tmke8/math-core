@@ -746,6 +746,9 @@ fn main() {
             "vertical_line_not_redefined_for_vert",
             r"\Braket{\phi\vert\psi}",
         ),
+        ("big_set_class_lookahead", r"\Set{ = | x }"),
+        ("set_class_lookahead", r"\set{ = | x }"),
+        ("big_braket_class_lookahead", r"\Braket{=|x}"),
     ];
 
     let config = MathCoreConfig {

@@ -176,20 +176,15 @@ impl<'arena> TokenQueue<'arena> {
     /// Peek at the first token which has a character class.
     ///
     /// This excludes, for example, `Space` tokens.
-    pub(super) fn peek_class_token(&mut self, in_sequence: bool) -> Result<Class, Box<LatexError>> {
-        if !in_sequence {
-            return Ok(Class::Default);
-        }
+    pub(super) fn peek_class_token(&mut self) -> Result<(usize, Class), Box<LatexError>> {
         // First check the common case where the next token is already a token with class.
         if let Some(class) = self.peek().token().class() {
-            return Ok(class);
-        }
-        if let Some(class) = self.find_or_load_after_next(has_class)? {
+            Ok((self.next_non_whitespace, class))
+        } else if let Some(class) = self.find_or_load_after_next(has_class)? {
             Ok(class)
         } else {
             debug_assert!(self.lexer_is_eoi, "peek_class_token called without ensure");
-            // EOI is treated as having class `Close`.
-            Ok(Class::Close)
+            Ok((self.queue.len(), Class::End))
         }
     }
 
@@ -336,14 +331,25 @@ impl<'arena> TokenQueue<'arena> {
             Ok(MacroArgument::Token(first))
         }
     }
+
+    /// Get a token from the buffer by its index.
+    ///
+    /// Returns `None` if the index is out of bounds.
+    pub(super) fn from_index(&self, idx: usize) -> Option<&TokSpan<'arena>> {
+        self.queue.get(idx)
+    }
 }
 
 fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {
     (!matches!(tok, Token::Whitespace)).then_some(idx)
 }
 
-fn has_class(_idx: usize, tok: &Token) -> Option<Class> {
-    tok.class()
+fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
+    if let Some(class) = tok.class() {
+        Some((idx, class))
+    } else {
+        None
+    }
 }
 
 /// A macro argument, which is either a single token or a group of tokens.
