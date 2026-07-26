@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\two{}{b}"
+---
+<math>
+    <mrow></mrow>
+    <mo>+</mo>
+    <mi>b</mi>
+</math>

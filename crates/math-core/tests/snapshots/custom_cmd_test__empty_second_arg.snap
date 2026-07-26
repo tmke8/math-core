@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\odv{y}{}"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+            <mi>y</mi>
+        </mrow>
+        <mrow>
+            <mrow><mspace/><mi mathvariant="normal">d</mi></mrow>
+            <mrow></mrow>
+        </mrow>
+    </mfrac>
+</math>

@@ -220,9 +220,9 @@ pub enum VerticalLineDef {
     /// `\;|\;`, as in `\set`.
     RelSpacing = 1,
     /// `\;\middle|\;`, as in `\Set`.
-    StretchyRelSpacing,
+    RelSpacingStretchy,
     /// `\,\middle|\,`, as in `\Braket`.
-    StretchyOpSpacing,
+    OpSpacingStretchy,
 }
 
 /// The character class assigned by `\mathord` / `\mathbin` / `\mathopen` / `\mathclose`.

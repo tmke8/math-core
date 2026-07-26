@@ -335,7 +335,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Get a token from the buffer by its index.
     ///
     /// Returns `None` if the index is out of bounds.
-    pub(super) fn from_index(&self, idx: usize) -> Option<&TokSpan<'arena>> {
+    pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan<'arena>> {
         self.queue.get(idx)
     }
 }
@@ -345,11 +345,7 @@ fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {
 }
 
 fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
-    if let Some(class) = tok.class() {
-        Some((idx, class))
-    } else {
-        None
-    }
+    tok.class().map(|class| (idx, class))
 }
 
 /// A macro argument, which is either a single token or a group of tokens.

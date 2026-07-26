@@ -530,8 +530,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // For vertical line, `form="infix"` implies relation spacing, so we can set
                     // spacing to `None` in order to get relation spacing.
                     let (stretchy, spacing) = match vld {
-                        VerticalLineDef::StretchyOpSpacing => (true, Some(MathSpacing::ThreeMu)),
-                        VerticalLineDef::StretchyRelSpacing => (true, None),
+                        VerticalLineDef::OpSpacingStretchy => (true, Some(MathSpacing::ThreeMu)),
+                        VerticalLineDef::RelSpacingStretchy => (true, None),
                         VerticalLineDef::RelSpacing => (false, None),
                     };
                     // `form="infix"` also implies `stretchy="false"`, so we have to explicitly set
@@ -2088,9 +2088,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     .copied()
                     .unwrap_or(self.state.cmd_args.len());
                 if let Some(arg) = self.state.cmd_args.get(start..end) {
-                    self.tokens.queue_in_front(arg);
-                    let token = self.next_token();
-                    return self.parse_token(token, parse_as, prev_class);
+                    if arg.is_empty() {
+                        // An empty argument expands to nothing, which is equivalent to `{}`.
+                        // We must not fetch the next token here, because that token belongs
+                        // to the token stream of the custom command, not to the argument.
+                        Ok(Node::Row {
+                            nodes: &[],
+                            attrs: RowAttrs::DEFAULT,
+                        })
+                    } else {
+                        self.tokens.queue_in_front(arg);
+                        let token = self.next_token();
+                        return self.parse_token(token, parse_as, prev_class);
+                    }
                 } else {
                     // We somehow cannot find the requested argument.
                     Err(LatexError(span.into(), LatexErrKind::Internal))
@@ -2635,8 +2645,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         if let Some(vld) = self.state.vertical_line_def
             && matches!(
                 self.tokens
-                    .from_index(token_idx)
-                    .map(|tokloc| tokloc.token()),
+                    .get_token_by_index(token_idx)
+                    .map(TokSpan::token),
                 Some(Token::MathOrTextMode(
                     Token::Ord(symbol::VERTICAL_LINE),
                     '|'
@@ -2645,7 +2655,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         {
             Ok(match vld {
                 VerticalLineDef::RelSpacing => Class::Default,
-                VerticalLineDef::StretchyOpSpacing | VerticalLineDef::StretchyRelSpacing => {
+                VerticalLineDef::OpSpacingStretchy | VerticalLineDef::RelSpacingStretchy => {
                     Class::Close
                 }
             })

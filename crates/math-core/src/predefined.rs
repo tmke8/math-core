@@ -118,7 +118,7 @@ pub static BIG_KET: [Token<'static>; 5] = [
 pub static BIG_BRAKET: [Token<'static>; 7] = [
     Left,
     Open(symbol::MATHEMATICAL_LEFT_ANGLE_BRACKET),
-    VerticalLineDef(Some(VLDef::StretchyOpSpacing)),
+    VerticalLineDef(Some(VLDef::OpSpacingStretchy)),
     CustomCmdArg(0),
     VerticalLineDef(None), // reset
     Right,
@@ -141,12 +141,21 @@ pub static BIG_SET: [Token<'static>; 9] = [
     Left,
     Open(symbol::LEFT_CURLY_BRACKET),
     Space(LatexUnit::Mu.length_with_unit(4.0)),
-    VerticalLineDef(Some(VLDef::StretchyRelSpacing)),
+    VerticalLineDef(Some(VLDef::RelSpacingStretchy)),
     CustomCmdArg(0),
     VerticalLineDef(None), // reset
     Space(LatexUnit::Mu.length_with_unit(4.0)),
     Right,
     Close(symbol::RIGHT_CURLY_BRACKET),
+];
+
+/// `\textcolor{...}{...}`, which is `{\color{#1}#2}`.
+pub static TEXTCOLOR: [Token<'static>; 5] = [
+    GroupBegin,
+    Color,
+    CustomCmdArg(0),
+    CustomCmdArg(1),
+    GroupEnd,
 ];
 
 pub static COLON_EQUALS: [Token<'static>; 2] = [
