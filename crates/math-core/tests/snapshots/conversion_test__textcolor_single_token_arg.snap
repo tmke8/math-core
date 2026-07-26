@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\textcolor{red}x"
+---
+<math>
+    <mi>a</mi>
+    <mrow style="color:#FF0000;">
+        <mi>x</mi>
+    </mrow>
+</math>

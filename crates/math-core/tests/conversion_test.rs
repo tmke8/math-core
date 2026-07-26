@@ -554,6 +554,13 @@ fn main() {
         ("color_rgb_float", r"{\color[rgb]{1, 0.33,0.5}x^2}"),
         ("color_html_long", r"{\color[HTML]{f101a1}x^2}"),
         ("color_html_long_uppercase", r"{\color[HTML]{F101A1}x^2}"),
+        ("textcolor", r"\textcolor{Blue}{x^2}"),
+        ("textcolor_single_token_arg", r"a\textcolor{red}x"),
+        ("textcolor_empty_arg", r"a\textcolor{red}{}b"),
+        (
+            "textcolor_nested",
+            r"\textcolor{purple}{a\textcolor{green}{b}c}",
+        ),
         ("hspace", r"\hspace{1cm}"),
         ("hspace_whitespace", r"\hspace{  4em }"),
         ("hspace_whitespace_in_between", r"\hspace{  4  em }"),

@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\textcolor{purple}{a\\textcolor{green}{b}c}"
+---
+<math>
+    <mrow style="color:#BF0140;">
+        <mi>a</mi>
+        <mrow style="color:#03FF00;">
+            <mi>b</mi>
+        </mrow>
+        <mi>c</mi>
+    </mrow>
+</math>

@@ -91,6 +91,40 @@ fn test_spacing() {
 }
 
 #[test]
+fn test_empty_args() {
+    let macros = vec![
+        (
+            "odv".to_string(),
+            r"\frac{\mathrm d #1}{\mathrm d #2}".to_string(),
+        ),
+        ("bb".to_string(), r"\mathbb{#1}".to_string()),
+        ("two".to_string(), r"#1+#2".to_string()),
+    ];
+
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        ("empty_first_arg", r"\odv{}{x}"),
+        ("empty_second_arg", r"\odv{y}{}"),
+        ("empty_only_arg", r"\bb{}"),
+        ("empty_arg_at_stream_end", r"\two{a}{}"),
+        ("empty_arg_at_stream_start", r"\two{}{b}"),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap();
+
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+#[test]
 fn test_literal_args() {
     let macros = vec![("hs".to_string(), r"\hspace{#1}".to_string())];
 

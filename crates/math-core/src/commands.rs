@@ -789,6 +789,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "textbf" => Text(Some(HtmlTextStyle::Bold)),
     "textbraceleft" => TextMode(TextToken::Letter('{')),
     "textbraceright" => TextMode(TextToken::Letter('}')),
+    "textcolor" => CustomCmd(2, &predefined::TEXTCOLOR),
     "textdagger" => TextMode(TextToken::Letter(symbol::DAGGER.try_as_char().unwrap())),
     "textdaggerdbl" => TextMode(TextToken::Letter(symbol::DOUBLE_DAGGER.try_as_char().unwrap())),
     "textdegree" => TextMode(TextToken::Letter(symbol::DEGREE_SIGN)),
