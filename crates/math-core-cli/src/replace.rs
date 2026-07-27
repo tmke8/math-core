@@ -211,50 +211,68 @@ impl<'args> Replacer<'args> {
     }
 
     /// Finds the next occurrence of either an inline or block delimiter.
+    ///
+    /// Both delimiters are searched within a window that starts small and doubles until a
+    /// delimiter is found or the whole input has been covered. This keeps the cost of a call
+    /// proportional to the distance to the nearest delimiter instead of to the length of
+    /// `input`. Searching the full input for both delimiters would be quadratic overall
+    /// whenever one of the two never occurs in the document — e.g. the block delimiter in a
+    /// document that only contains inline math, which then gets scanned to the end of the file
+    /// once per formula.
     fn find_next_delimiter(&self, input: &str, opening: bool) -> Option<(MathDisplay, usize)> {
+        /// Size of the first window; large enough that densely spaced delimiters are found on
+        /// the first attempt.
+        const INITIAL_WINDOW: usize = 1024;
+
         let input = input.as_bytes();
+        let (inline_finder, block_finder) = if opening {
+            (&self.opening_finders.0, &self.opening_finders.1)
+        } else {
+            (&self.closing_finders.0, &self.closing_finders.1)
+        };
+        let (inline_len, block_len) = if opening {
+            self.opening_lengths
+        } else {
+            self.closing_lengths
+        };
 
-        // Find positions for both delimiter types
-        let inline_result = self.find_delimiter_position(
-            input,
-            if opening {
-                &self.opening_finders.0
-            } else {
-                &self.closing_finders.0
-            },
-            if opening {
-                self.opening_lengths.0
-            } else {
-                self.closing_lengths.0
-            },
-        );
+        let mut window = INITIAL_WINDOW;
+        loop {
+            let end = window.min(input.len());
+            let haystack = &input[..end];
 
-        let block_result = self.find_delimiter_position(
-            input,
-            if opening {
-                &self.opening_finders.1
-            } else {
-                &self.closing_finders.1
-            },
-            if opening {
-                self.opening_lengths.1
-            } else {
-                self.closing_lengths.1
-            },
-        );
+            let inline_result = self.find_delimiter_position(haystack, inline_finder, inline_len);
+            let block_result = self.find_delimiter_position(haystack, block_finder, block_len);
 
-        // Return the closest delimiter, with display taking priority on ties
-        match (inline_result, block_result) {
-            (Some(inline_pos), Some(block_pos)) => {
-                if block_pos <= inline_pos {
-                    Some((MathDisplay::Block, block_pos))
-                } else {
-                    Some((MathDisplay::Inline, inline_pos))
+            // Take the closest delimiter, with block display taking priority on ties.
+            let found = match (inline_result, block_result) {
+                (Some(inline_pos), Some(block_pos)) => {
+                    if block_pos <= inline_pos {
+                        (MathDisplay::Block, block_pos)
+                    } else {
+                        (MathDisplay::Inline, inline_pos)
+                    }
                 }
+                (Some(pos), None) => (MathDisplay::Inline, pos),
+                (None, Some(pos)) => (MathDisplay::Block, pos),
+                (None, None) => {
+                    if end == input.len() {
+                        return None;
+                    }
+                    window = window.saturating_mul(2);
+                    continue;
+                }
+            };
+
+            // A delimiter starting at or before `found.1` could still have been cut off by the
+            // window, which would make the other delimiter the closer one. Grow the window until
+            // that is ruled out.
+            let needed = found.1 + inline_len.max(block_len);
+            if needed > end && end < input.len() {
+                window = needed;
+                continue;
             }
-            (Some(pos), None) => Some((MathDisplay::Inline, pos)),
-            (None, Some(pos)) => Some((MathDisplay::Block, pos)),
-            (None, None) => None,
+            return Some(found);
         }
     }
 
@@ -339,6 +357,40 @@ mod tests {
         let input = "Hello $world$ and $$universe$$";
         let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
         assert_eq!(result, "Hello [T1:world] and [T2:universe]");
+    }
+
+    /// The search window in `find_next_delimiter` starts at 1024 bytes, so anything beyond that
+    /// is only found after the window has grown.
+    #[test]
+    fn test_delimiters_beyond_search_window() {
+        let filler = "a".repeat(5000);
+        let input: &'static str = format!("{filler}$world$ and $$universe$${filler}").leak();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
+        assert_eq!(
+            result,
+            format!("{filler}[T1:world] and [T2:universe]{filler}")
+        );
+    }
+
+    /// Only one of the two delimiter types occurs, so the other one is never found no matter how
+    /// far the window grows.
+    #[test]
+    fn test_one_delimiter_type_absent_beyond_window() {
+        let filler = "a".repeat(5000);
+        let input: &'static str = format!("{filler}\\(world\\){filler}").leak();
+        let result = replace(input, ("\\(", "\\)"), ("$$", "$$"), false).unwrap();
+        assert_eq!(result, format!("{filler}[T1:world]{filler}"));
+    }
+
+    /// A block delimiter that starts one byte before the window ends is initially invisible (the
+    /// window cuts it in half) while the inline delimiter sharing its first byte is found right
+    /// away. The window has to grow before the tie can be resolved in favor of block display.
+    #[test]
+    fn test_delimiter_straddling_window_end() {
+        let filler = "a".repeat(1023);
+        let input: &'static str = format!("{filler}$$universe$$").leak();
+        let result = replace(input, ("$", "$"), ("$$", "$$"), false).unwrap();
+        assert_eq!(result, format!("{filler}[T2:universe]"));
     }
 
     #[test]
