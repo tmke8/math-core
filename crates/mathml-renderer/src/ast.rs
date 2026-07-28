@@ -952,7 +952,12 @@ fn write_equation_num(
             write!(s, ">")?;
         }
         new_line_and_indent(s, child_indent3, indentation);
-        write!(s, "<mtext>({})</mtext>", EscapeHtml(label_info.tag))?;
+        let tag = EscapeHtml(label_info.tag.text);
+        if label_info.tag.parenthesized {
+            write!(s, "<mtext>({tag})</mtext>")?;
+        } else {
+            write!(s, "<mtext>{tag}</mtext>")?;
+        }
         new_line_and_indent(s, child_indent2, indentation);
         write!(s, "</mtd>")?;
     } else {
@@ -1001,7 +1006,7 @@ bitflags! {
 #[cfg(test)]
 mod tests {
     use super::super::symbol;
-    use super::super::table::{ColumnAlignment, ColumnSpecEntry};
+    use super::super::table::{ColumnAlignment, ColumnSpecEntry, EquationTag};
     use super::*;
 
     const WORD: usize = std::mem::size_of::<usize>();
@@ -1483,7 +1488,10 @@ mod tests {
             &Node::Number("2"),
             &Node::RowSeparator {
                 label_info: Some(&RowLabelInfo {
-                    tag: "1",
+                    tag: EquationTag {
+                        text: "1",
+                        parenthesized: true,
+                    },
                     link_target: None,
                 }),
                 border_top: None,
@@ -1494,7 +1502,10 @@ mod tests {
         ];
 
         let info_with_tag = RowLabelInfo {
-            tag: "2",
+            tag: EquationTag {
+                text: "2",
+                parenthesized: true,
+            },
             link_target: None,
         };
         assert_eq!(

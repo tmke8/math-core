@@ -8,7 +8,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, LineType, RowLabelInfo},
+    table::{Alignment, ArraySpec, EquationTag, LineType, RowLabelInfo},
 };
 
 use crate::character_class::{StretchableOp, fenced};
@@ -338,7 +338,7 @@ pub(super) enum NumberingMode {
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
     pub(super) suppress_next_number: bool,
-    pub(super) custom_next_tag: Option<&'arena str>,
+    pub(super) custom_next_tag: Option<EquationTag<'arena>>,
     pub(super) label: Option<&'arena str>,
     pub(super) num_rows: Option<NonZeroU16>,
 }
@@ -349,7 +349,7 @@ impl<'arena> NumberedEnvState<'arena> {
         equation_counter: &mut usize,
         is_last: bool,
         arena: &'arena Arena,
-    ) -> Result<Option<&'arena str>, ()> {
+    ) -> Result<Option<EquationTag<'arena>>, ()> {
         if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
             // Not the last row; do nothing for now.
             return Ok(None);
@@ -368,7 +368,10 @@ impl<'arena> NumberedEnvState<'arena> {
             let mut buffer = String::new();
             write!(buffer, "{}", equation_counter).map_err(|_| ())?;
             let tag = arena.alloc_str(&buffer);
-            Ok(Some(tag))
+            Ok(Some(EquationTag {
+                text: tag,
+                parenthesized: true,
+            }))
         }
     }
 }

@@ -32,8 +32,9 @@ pub enum Token<'source> {
     HLine(LineType),
     /// `\nonumber`/`\notag`, suppresses numbering for the current equation.
     NoNumber,
-    /// `\tag`, tag for the current equation.
-    Tag,
+    /// `\tag`/`\tag*`, tag for the current equation.
+    /// `parenthesized` is `false` for the starred variant, which omits the parentheses.
+    Tag { parenthesized: bool },
     /// `\label`, label for the current equation.
     Label,
     /// `\eqref`, equation reference to a label.
@@ -487,9 +488,20 @@ impl Token<'_> {
                 MathClassKind::Inner => Class::Inner,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
-            Whitespace | Space(_) | Overlay(_) | TransformSwitch(_) | NoNumber | Tag
-            | CustomSpace(_) | KernOrSkip(_) | Limits(_) | NonBreakingSpace | Label | EqRef
-            | HLine(_) | VerticalLineDef(_) => None,
+            Whitespace
+            | Space(_)
+            | Overlay(_)
+            | TransformSwitch(_)
+            | NoNumber
+            | Tag { .. }
+            | CustomSpace(_)
+            | KernOrSkip(_)
+            | Limits(_)
+            | NonBreakingSpace
+            | Label
+            | EqRef
+            | HLine(_)
+            | VerticalLineDef(_) => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
