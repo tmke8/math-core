@@ -11,7 +11,7 @@ use mathml_renderer::{
     length::{Length, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::{LineType, RowLabelInfo},
+    table::{EquationTag, LineType, RowLabelInfo},
 };
 
 use crate::{
@@ -309,16 +309,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 Ok(())
             }
-            Token::Tag => {
+            Token::Tag { parenthesized } => {
                 let (tag_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.env.numbered {
-                    numbered_state.custom_next_tag = Some(tag_name);
+                    numbered_state.custom_next_tag = Some(EquationTag {
+                        text: tag_name,
+                        parenthesized,
+                    });
                     Ok(())
                 } else {
                     Err(LatexError(
                         span,
                         LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Tag,
+                            got: if parenthesized {
+                                LimitedUsabilityToken::Tag
+                            } else {
+                                LimitedUsabilityToken::TagStar
+                            },
                             correct_place: Place::NumberedEnv,
                         },
                     ))
@@ -1135,7 +1142,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::TransformSwitch(_)
             | Token::NoNumber
-            | Token::Tag
+            | Token::Tag { .. }
             | Token::Label
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
@@ -1429,7 +1436,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = n.label.take();
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.global_state.label_map.insert(label.into(), tag.into());
+                                    self.global_state
+                                        .label_map
+                                        .insert(label.into(), tag.text.into());
                                 }
                                 Some(
                                     self.arena
@@ -1568,7 +1577,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = numbered_state.label.take();
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.global_state.label_map.insert(label.into(), tag.into());
+                                    self.global_state
+                                        .label_map
+                                        .insert(label.into(), tag.text.into());
                                 }
                                 Some(
                                     self.arena

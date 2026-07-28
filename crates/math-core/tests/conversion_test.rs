@@ -269,6 +269,18 @@ fn main() {
             "tag_html_escape",
             r"\begin{align} x \tag{<b>} \\ y \end{align}",
         ),
+        (
+            "tag_star",
+            r"\begin{align} 1\nonumber\tag*{32}\\2\end{align}",
+        ),
+        (
+            "tag_star_in_align_star",
+            r"\begin{align*} 1\tag*{A1}\\2\end{align*}",
+        ),
+        (
+            "tag_star_with_label",
+            r"\begin{align*} 1\label{eq:1}\tag*{32}\\2\eqref{eq:1}\end{align*}",
+        ),
         ("label", r#"\begin{align} 1\label{eq:1}\\2\end{align}"#),
         (
             "label_and_tag",

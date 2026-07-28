@@ -69,8 +69,18 @@ pub enum Alignment {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct RowLabelInfo<'arena> {
-    pub tag: &'arena str,
+    pub tag: EquationTag<'arena>,
     pub link_target: Option<&'arena str>,
+}
+
+/// The equation number (or custom text from `\tag`) shown next to an equation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct EquationTag<'arena> {
+    pub text: &'arena str,
+    /// `true` if the text should be surrounded by parentheses when rendered.
+    /// Tags set with `\tag*` are rendered without parentheses.
+    pub parenthesized: bool,
 }
 
 enum AlignmentType<'arena> {

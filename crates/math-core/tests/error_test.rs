@@ -103,6 +103,10 @@ fn main() {
         ("tag_with_underscore", r"\begin{align}\tag{a_b}1\end{align}"),
         ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
         (
+            "tag_star_in_aligned",
+            r#"\begin{aligned}\tag*{32}1\end{aligned}"#,
+        ),
+        (
             "duplicate_label",
             r#"\begin{align}\label{a}1\label{b}\end{align}"#,
         ),

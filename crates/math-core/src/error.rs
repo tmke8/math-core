@@ -95,6 +95,8 @@ pub enum LimitedUsabilityToken {
     Ampersand,
     #[strum(serialize = r"\tag")]
     Tag,
+    #[strum(serialize = r"\tag*")]
+    TagStar,
     #[strum(serialize = r"\label")]
     Label,
     #[strum(serialize = r"\limits")]
