@@ -51,6 +51,7 @@ mod parser;
 mod predefined;
 mod specifications;
 mod split_on_ascii;
+mod string_pool;
 mod text_parser;
 mod token;
 mod token_queue;
@@ -505,12 +506,21 @@ fn parse_custom_commands(
                 Lexer::new(definition.as_str(), true, None, unicode_substitution);
             let start = tokens.len();
             loop {
-                match lexer.next_token_no_unknown_command() {
+                match lexer.next_token() {
                     Ok(tokloc) => {
-                        if matches!(tokloc.token(), Token::Eoi) {
-                            break;
+                        let (tok, span) = tokloc.into_parts();
+                        match tok {
+                            Token::Eoi => break,
+                            // Unknown commands cannot be stored, because the name only lives
+                            // in the pool of this temporary lexer.
+                            Token::UnknownCommand(name) => {
+                                break 'value Err(Box::new(LatexError(
+                                    span.into(),
+                                    LatexErrKind::UnknownCommand(lexer.resolve(name).into()),
+                                )));
+                            }
+                            tok => tokens.push(tok),
                         }
-                        tokens.push(tokloc.into_token());
                     }
                     Err(err) => {
                         break 'value Err(err);

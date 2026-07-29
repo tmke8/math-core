@@ -14,9 +14,14 @@ use mathml_renderer::{length::Length, super_char::OverlayChar, table::LineType};
 
 use crate::character_class::{Class, MathVariant, ParenType};
 use crate::environments::Env;
+use crate::string_pool::InternedStr;
 
+/// A token produced by the lexer.
+///
+/// The lifetime parameter refers to the lifetime of the configuration, which outlives every
+/// input string that is processed with that configuration.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Token<'source> {
+pub enum Token<'config> {
     /// End of input.
     Eoi,
     /// The beginning of an environment, e.g. `\begin{matrix}`.
@@ -194,7 +199,7 @@ pub enum Token<'source> {
     CustomCmdArg(u8),
     /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
     /// arguments that the custom command takes.
-    CustomCmd(u8, &'source [Token<'static>]),
+    CustomCmd(u8, &'config [Token<'static>]),
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
@@ -203,10 +208,10 @@ pub enum Token<'source> {
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
-    /// A token for unknown commands. This is used when `ignore_unknown_commands` is `true` in the
-    /// configuration, and the parser encounters an unknown command. The `&'source str` is the name
-    /// of the unknown command.
-    UnknownCommand(&'source str),
+    /// A token for unknown commands. The `InternedStr` is an index into the
+    /// [`StringPool`](crate::string_pool::StringPool) of the lexer which produced this token; it
+    /// can be resolved with [`Lexer::resolve`](crate::lexer::Lexer::resolve).
+    UnknownCommand(InternedStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
