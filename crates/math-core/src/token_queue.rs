@@ -188,12 +188,47 @@ impl<'arena> TokenQueue<'arena> {
         }
     }
 
+    /// Reject an unknown command, unless the configuration says to render it instead.
+    ///
+    /// The lexer deliberately does not decide what to do with an unknown command, because
+    /// the name of one can be something we want to use rather than reject. Doing it here
+    /// means that unknown commands are reported as such no matter where they show up,
+    /// instead of the consumer having to report whatever it expected in that position.
+    fn reject_unknown_command(&self, tokspan: &TokSpan<'arena>) -> Result<(), Box<LatexError>> {
+        if let Token::UnknownCommand(name) = *tokspan.token()
+            && !self
+                .lexer
+                .parser_cfg()
+                .is_some_and(|cfg| cfg.ignore_unknown_commands)
+        {
+            // The name lives in the lexer's string pool, so we have to copy it out.
+            return Err(Box::new(LatexError(
+                tokspan.span().into(),
+                LatexErrKind::UnknownCommand(self.lexer.resolve(name).into()),
+            )));
+        }
+        Ok(())
+    }
+
     /// Get the next math-mode token.
     ///
     /// This method skips any whitespace tokens and unwraps [`Token::MathOrTextMode`].
     ///
     /// This method also ensures that there is always a peekable token after this one.
     pub(super) fn next(&mut self) -> Result<TokSpan<'arena>, Box<LatexError>> {
+        let ret = self.next_allowing_unknown_command()?;
+        self.reject_unknown_command(&ret)?;
+        Ok(ret)
+    }
+
+    /// Same as [`Self::next`], but unknown commands are returned as tokens instead of
+    /// being rejected.
+    ///
+    /// This is for the places which want to get hold of the name of a command which is
+    /// not defined (yet).
+    pub(super) fn next_allowing_unknown_command(
+        &mut self,
+    ) -> Result<TokSpan<'arena>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -228,6 +263,7 @@ impl<'arena> TokenQueue<'arena> {
                 // We popped `next_non_whitespace` itself, so we need to find the next one.
                 self.ensure_next_non_whitespace()?;
             }
+            self.reject_unknown_command(&ret)?;
             Ok(ret)
         } else {
             // We must have reached EOI previously.

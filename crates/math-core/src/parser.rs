@@ -2117,7 +2117,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Err(LatexError(span.into(), LatexErrKind::Internal))
                 }
             }
-            Token::UnknownCommand(name) => Ok(Node::UnknownCommand(name)),
+            Token::UnknownCommand(name) => {
+                // The name lives in the lexer's string pool, so we have to copy it out.
+                let name = self.tokens.lexer.resolve(name);
+                Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
+            }
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     let mut builder = self.buffer.get_builder();

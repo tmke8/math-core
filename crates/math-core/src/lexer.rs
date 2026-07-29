@@ -8,14 +8,12 @@ use mathml_renderer::{attribute::OpAttrs, symbol};
 use crate::commands::{get_command, get_operator_from_unicode};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
+use crate::string_pool::{InternedStr, StringPool};
 use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
 use crate::{ParserConfig, UnicodeSubstitution};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source>
-where
-    'config: 'source,
-{
+pub(crate) struct Lexer<'config, 'source> {
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,
@@ -23,6 +21,9 @@ where
     parse_cmd_args: Option<u8>,
     parser_cfg: Option<&'config ParserConfig>,
     unicode_substitution: UnicodeSubstitution,
+    /// Storage for the names of unknown commands, so that the tokens which refer to them
+    /// don't have to borrow the input.
+    pool: StringPool,
 }
 
 impl<'config, 'source> Lexer<'config, 'source> {
@@ -45,6 +46,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             },
             parser_cfg,
             unicode_substitution,
+            pool: StringPool::default(),
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -58,6 +60,17 @@ impl<'config, 'source> Lexer<'config, 'source> {
     #[inline]
     pub(crate) fn parse_cmd_args(&self) -> Option<u8> {
         self.parse_cmd_args
+    }
+
+    /// Resolve the name of an unknown command which was interned by this lexer.
+    #[inline]
+    pub(crate) fn resolve(&self, name: InternedStr) -> &str {
+        self.pool.get(name)
+    }
+
+    #[inline]
+    pub(crate) fn parser_cfg(&self) -> Option<&'config ParserConfig> {
+        self.parser_cfg
     }
 
     /// One character progresses.
@@ -153,47 +166,19 @@ impl<'config, 'source> Lexer<'config, 'source> {
         }
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'source>, Box<LatexError>> {
-        match self.next_token_internal() {
-            LexerResult::Tok(tok) => Ok(tok),
-            LexerResult::UnknownCommand(cmd, span) => {
-                if self
-                    .parser_cfg
-                    .is_some_and(|cfg| cfg.ignore_unknown_commands)
-                {
-                    Ok(TokSpan::new(Token::UnknownCommand(cmd), span))
-                } else {
-                    Err(Box::new(LatexError(
-                        span.into(),
-                        LatexErrKind::UnknownCommand(cmd.into()),
-                    )))
-                }
-            }
-            LexerResult::Err(err) => Err(err),
-        }
-    }
-
-    pub(crate) fn next_token_no_unknown_command(
-        &mut self,
-    ) -> Result<TokSpan<'config>, Box<LatexError>> {
-        match self.next_token_internal() {
-            LexerResult::Tok(tok) => Ok(tok),
-            LexerResult::UnknownCommand(cmd, span) => Err(Box::new(LatexError(
-                span.into(),
-                LatexErrKind::UnknownCommand(cmd.into()),
-            ))),
-            LexerResult::Err(err) => Err(err),
-        }
-    }
-
-    fn next_token_internal(&mut self) -> LexerResult<'config, 'source> {
+    /// Produce the next token.
+    ///
+    /// Unknown commands are *not* an error here; they are returned as
+    /// [`Token::UnknownCommand`]. It is up to the caller to decide what to do with them,
+    /// because the caller may want to get hold of the name of an as-yet-undefined command.
+    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'config>, Box<LatexError>> {
         if let Some(span) = self.skip_whitespace() {
-            return LexerResult::Tok(TokSpan::new(Token::Whitespace, span));
+            return Ok(TokSpan::new(Token::Whitespace, span));
         }
 
         let (loc, ch) = self.read_char();
         let Some(ch) = ch else {
-            return LexerResult::Tok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
+            return Ok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
         };
         if ch == '%' {
             // Skip comments.
@@ -202,12 +187,12 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             self.read_char(); // Consume the newline character.
             // FIXME: use `become` here when stabilized.
-            return self.next_token_internal();
+            return self.next_token();
         }
         let mut span = Span::new(loc, loc + ch.len_utf8());
         let tok = match ch {
             '\u{0}' => {
-                return LexerResult::Err(Box::new(LatexError(
+                return Err(Box::new(LatexError(
                     loc..(loc + 1),
                     LatexErrKind::DisallowedChar(ch),
                 )));
@@ -226,7 +211,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                         {
                             param_num
                         } else {
-                            return LexerResult::Err(Box::new(LatexError(
+                            return Err(Box::new(LatexError(
                                 (loc + 1)..(loc + 2),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
@@ -241,18 +226,18 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     } else {
                         let (loc, ch) = self.read_char();
                         if let Some(ch) = ch {
-                            return LexerResult::Err(Box::new(LatexError(
+                            return Err(Box::new(LatexError(
                                 loc..(loc + ch.len_utf8()),
                                 LatexErrKind::InvalidParameterNumber,
                             )));
                         }
-                        return LexerResult::Err(Box::new(LatexError(
+                        return Err(Box::new(LatexError(
                             loc..loc,
                             LatexErrKind::ExpectedParamNumberGotEOI,
                         )));
                     }
                 } else {
-                    return LexerResult::Err(Box::new(LatexError(
+                    return Err(Box::new(LatexError(
                         loc..(loc + 1),
                         LatexErrKind::MacroParameterOutsideCustomCommand,
                     )));
@@ -300,14 +285,14 @@ impl<'config, 'source> Lexer<'config, 'source> {
             c if let Some(tok) = get_operator_from_unicode(c) => tok,
             c => Token::Letter(c.into(), Mode::MathOrText),
         };
-        LexerResult::Tok(TokSpan::new(tok, span))
+        Ok(TokSpan::new(tok, span))
     }
 
     fn parse_command(
         &mut self,
         span: Span,
         cmd_string: &'source str,
-    ) -> LexerResult<'config, 'source> {
+    ) -> Result<TokSpan<'config>, Box<LatexError>> {
         'unreliable_rendering: {
             if self
                 .parser_cfg
@@ -321,7 +306,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     "utilde" => Token::Accent(symbol::TILDE.as_bmp_op(), false, OpAttrs::empty()),
                     _ => break 'unreliable_rendering,
                 };
-                return LexerResult::Tok(TokSpan::new(tok, span));
+                return Ok(TokSpan::new(tok, span));
             }
         }
         'unicode_substitution: {
@@ -337,7 +322,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     "eqcolon" | "eqqcolon" => Token::Relation(symbol::EQUALS_COLON),
                     _ => break 'unicode_substitution,
                 };
-                return LexerResult::Tok(TokSpan::new(tok, span));
+                return Ok(TokSpan::new(tok, span));
             }
         }
         let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
@@ -392,12 +377,15 @@ impl<'config, 'source> Lexer<'config, 'source> {
                     ))
                 }
             } else {
-                return LexerResult::UnknownCommand(cmd_string, span);
+                // Copy the name into our own storage, so that the token doesn't
+                // have to borrow the input.
+                let name = self.pool.intern(cmd_string);
+                return Ok(TokSpan::new(Token::UnknownCommand(name), span));
             }
         };
         match tok {
-            Ok((tok, span)) => LexerResult::Tok(TokSpan::new(tok, span)),
-            Err(err) => LexerResult::Err(Box::new(err)),
+            Ok((tok, span)) => Ok(TokSpan::new(tok, span)),
+            Err(err) => Err(Box::new(err)),
         }
     }
 }
@@ -426,13 +414,6 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
         Token::Whitespace => Some(' '),
         _ => None,
     }
-}
-
-#[derive(Debug)]
-enum LexerResult<'config, 'source> {
-    Tok(TokSpan<'config>),
-    UnknownCommand(&'source str, Span),
-    Err(Box<LatexError>),
 }
 
 #[cfg(test)]
@@ -475,6 +456,7 @@ mod tests {
             ("genfrac_without_parens", r"\genfrac{}{}{0pt}{2}{a+b}{c+d}"),
             ("begin_array", r"\begin{array}{c|c}"),
             ("end_array", r"\end{array}{c|c}"),
+            ("unknown_command", r"\unknowncmd + x"),
         ];
 
         for (name, problem) in problems.into_iter() {
@@ -496,7 +478,6 @@ mod tests {
     #[test]
     fn test_lexer_errors() {
         let problems = [
-            ("unknown_command", r"\unknowncmd + x"),
             ("missing_brace", r"\begin x + y"),
             ("disallowed_chars", r"\begin{matrix x + y}"),
             (
@@ -572,5 +553,36 @@ mod tests {
             }
         }
         assert_eq!(input, output);
+    }
+
+    /// Tokens must remain valid for as long as the configuration, and in particular must not
+    /// borrow the input string. This is what allows tokens collected while lexing one snippet
+    /// to be used while lexing the next one.
+    #[test]
+    fn tokens_outlive_source() {
+        let cfg = ParserConfig {
+            ignore_unknown_commands: true,
+            ..Default::default()
+        };
+        let tokens: Vec<Token<'_>> = {
+            let source = String::from(r"\notacommand x");
+            let mut lexer = Lexer::new(
+                source.as_str(),
+                false,
+                Some(&cfg),
+                UnicodeSubstitution::default(),
+            );
+            let mut tokens = Vec::new();
+            loop {
+                let tok = lexer.next_token().unwrap().into_token();
+                if matches!(tok, Token::Eoi) {
+                    break;
+                }
+                tokens.push(tok);
+            }
+            tokens
+            // `source` and `lexer` are dropped here; the tokens only borrow `cfg`.
+        };
+        std::assert_matches!(tokens.first(), Some(Token::UnknownCommand(_)));
     }
 }
