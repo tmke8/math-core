@@ -42,6 +42,7 @@ mod atof;
 mod character_class;
 mod color_defs;
 mod commands;
+mod custom_cmds;
 mod environments;
 mod error;
 mod global_state;
@@ -77,7 +78,12 @@ use mathml_renderer::{
 
 pub use self::error::LatexError;
 use self::{
-    error::LatexErrKind, global_state::GlobalState, lexer::Lexer, parser::Parser, token::Token,
+    custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
+    error::LatexErrKind,
+    global_state::GlobalState,
+    lexer::Lexer,
+    parser::Parser,
+    token::Token,
 };
 
 /// Display mode for the LaTeX math equations.
@@ -189,25 +195,22 @@ pub struct MathCoreConfig {
     pub indentation: Indentation,
 }
 
-/// A map from custom command names to their number of arguments and the slice of tokens that
-/// defines the command. The tokens are stored in a separate vector.
-type CustomCmdMap = FxHashMap<String, (u8, (usize, usize))>;
-
 /// Subset of `MathCoreConfig` relevant for the parser.
 #[derive(Debug, Default)]
 struct ParserConfig {
-    custom_cmd_tokens: Vec<Token<'static>>,
-    custom_cmd_map: CustomCmdMap,
+    custom_cmds: CustomCmds,
     ignore_unknown_commands: bool,
     allow_unreliable_rendering: bool,
     unicode_substitution: UnicodeSubstitution,
 }
 
 impl ParserConfig {
-    pub fn get_command<'config>(&'config self, command: &str) -> Option<Token<'config>> {
-        let (num_args, slice) = *self.custom_cmd_map.get(command)?;
-        let tokens = self.custom_cmd_tokens.get(slice.0..slice.1)?;
-        Some(Token::CustomCmd(num_args, tokens))
+    pub fn get_command(&self, command: &str) -> Option<Token> {
+        self.custom_cmds.get(command, CmdSource::Config)
+    }
+
+    pub fn custom_cmd_body(&self, start: usize, end: usize) -> Option<&[Token]> {
+        self.custom_cmds.body(start, end)
     }
 }
 
@@ -255,13 +258,12 @@ impl LatexToMathML {
     /// be parsed. The error contains the parsing error, the macro index and the macro definition
     /// that caused the error.
     pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
-        let (custom_cmd_tokens, custom_cmd_map) = parse_custom_commands(
+        let custom_cmds = parse_custom_commands(
             core::mem::take(&mut config.macros),
             config.unicode_substitution,
         )?;
         let parser_cfg = ParserConfig {
-            custom_cmd_tokens,
-            custom_cmd_map,
+            custom_cmds,
             ignore_unknown_commands: config.ignore_unknown_commands,
             allow_unreliable_rendering: config.allow_unreliable_rendering,
             unicode_substitution: config.unicode_substitution,
@@ -328,12 +330,13 @@ impl LatexToMathML {
         )
     }
 
-    /// Reset the equation counter and the label map.
+    /// Reset the equation counter, the label map and the commands defined with `\newcommand`.
     ///
     /// This should normally be done at the beginning of a new document or section.
     pub fn reset_global_state(&mut self) {
         self.state.equation_count = 0;
         self.state.label_map.clear();
+        self.state.custom_cmds.clear();
     }
 
     /// Convert a collection of LaTeX snippets to MathML.
@@ -472,12 +475,7 @@ fn parse<'arena>(
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,
     };
-    let lexer = Lexer::new(
-        latex,
-        false,
-        Some(parser_cfg),
-        parser_cfg.unicode_substitution,
-    );
+    let lexer = Lexer::new(latex, Some(parser_cfg), parser_cfg.unicode_substitution);
     let mut p = Parser::new(lexer, arena, state, style)?;
     let nodes = p.parse()?;
     Ok(nodes)
@@ -486,9 +484,9 @@ fn parse<'arena>(
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     unicode_substitution: UnicodeSubstitution,
-) -> Result<(Vec<Token<'static>>, CustomCmdMap), MacroParseError> {
-    let mut map = FxHashMap::with_capacity_and_hasher(macros.len(), FxBuildHasher);
-    let mut tokens = Vec::new();
+) -> Result<CustomCmds, MacroParseError> {
+    let mut custom_cmds = CustomCmds::with_capacity(macros.len());
+    let mut body = Vec::new();
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
@@ -501,10 +499,11 @@ fn parse_custom_commands(
         // In order to be able to return `definition` in case of an error, we need to ensure
         // that the lexer (which borrows `definition`) is dropped before we return the error.
         // Therefore, we put the whole lexing process into its own block.
-        let value = 'value: {
+        body.clear();
+        let mut num_args = 0;
+        let result = 'body: {
             let mut lexer: Lexer<'static, '_> =
-                Lexer::new(definition.as_str(), true, None, unicode_substitution);
-            let start = tokens.len();
+                Lexer::new(definition.as_str(), None, unicode_substitution);
             loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
@@ -514,45 +513,32 @@ fn parse_custom_commands(
                             // Unknown commands cannot be stored, because the name only lives
                             // in the pool of this temporary lexer.
                             Token::UnknownCommand(name) => {
-                                break 'value Err(Box::new(LatexError(
+                                break 'body Err(Box::new(LatexError(
                                     span.into(),
                                     LatexErrKind::UnknownCommand(lexer.resolve(name).into()),
                                 )));
                             }
-                            tok => tokens.push(tok),
+                            Token::CustomCmdArgInput(n) => {
+                                if n >= num_args {
+                                    num_args = n + 1;
+                                }
+                                body.push(Token::CustomCmdArg(n));
+                            }
+                            tok => body.push(tok),
                         }
                     }
                     Err(err) => {
-                        break 'value Err(err);
+                        break 'body Err(err);
                     }
                 }
             }
-            let end = tokens.len();
-            let num_args = lexer.parse_cmd_args().unwrap_or(0);
-            Ok((num_args, (start, end)))
+            Ok(())
         };
 
-        match value {
-            Err(err) => {
-                return Err((err, idx, definition));
-            }
-            Ok(v) => {
-                map.insert(name, v);
-            }
+        if let Err(err) = result {
+            return Err((err, idx, definition));
         }
+        custom_cmds.insert(name.as_str(), num_args, &body);
     }
-    Ok((tokens, map))
-}
-
-fn is_valid_macro_name(s: &str) -> bool {
-    if s.is_empty() {
-        return false;
-    }
-    let mut chars = s.chars();
-    match (chars.next(), chars.next()) {
-        // If the name contains only one character, any character is valid.
-        (Some(_), None) => true,
-        // If the name contains more than one character, all characters must be ASCII alphabetic.
-        _ => s.bytes().all(|b| b.is_ascii_alphabetic()),
-    }
+    Ok(custom_cmds)
 }

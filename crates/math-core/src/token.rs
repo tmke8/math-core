@@ -13,15 +13,13 @@ use mathml_renderer::{
 use mathml_renderer::{length::Length, super_char::OverlayChar, table::LineType};
 
 use crate::character_class::{Class, MathVariant, ParenType};
+use crate::custom_cmds::CmdSource;
 use crate::environments::Env;
 use crate::string_pool::InternedStr;
 
 /// A token produced by the lexer.
-///
-/// The lifetime parameter refers to the lifetime of the configuration, which outlives every
-/// input string that is processed with that configuration.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Token<'config> {
+pub enum Token {
     /// End of input.
     Eoi,
     /// The beginning of an environment, e.g. `\begin{matrix}`.
@@ -197,14 +195,25 @@ pub enum Token<'config> {
     /// A token used in custom commands defined by the user. The `u8` is the index of the argument,
     /// going from 0 to 8. For example, `\#1` corresponds to `CustomCmdArg(0)`.
     CustomCmdArg(u8),
-    /// A token referencing a stream of tokens defined by the user. The `u8` is the number of
-    /// arguments that the custom command takes.
-    CustomCmd(u8, &'config [Token<'static>]),
+    /// A token referencing a predefined stream of tokens. The `u8` is the number of arguments
+    /// that the command takes.
+    CustomCmd(u8, &'static [Token]),
+    /// A token for `#1`, `#2`, etc. in a custom command definition. The `u8` is the index of the
+    /// argument, going from 0 to 8. For example, `#1` corresponds to `CustomCmdArgInput(0)`.
+    CustomCmdArgInput(u8),
+    /// A token referencing a stream of tokens defined by the user, either in the configuration
+    /// or in the document with `\newcommand`. The `u8` is the number of arguments that the
+    /// command takes, the `Option<Class>` is the character class of the body, and the two
+    /// indices delimit the body within the [`CustomCmds`](crate::custom_cmds::CustomCmds) store
+    /// identified by the [`CmdSource`].
+    CustomCmdRef(CmdSource, u8, Option<Class>, usize, usize),
+    /// `\newcommand`
+    NewCommand,
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
-    MathOrTextMode(&'static Token<'static>, char),
+    MathOrTextMode(&'static Token, char),
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
@@ -454,11 +463,11 @@ impl PrimeKind {
 }
 
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(Token<'_>, [usize; 3]);
+static_assertions::assert_eq_size!(Token, [usize; 3]);
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(Result<Token<'_>, &'static i32>, [usize; 3]);
+static_assertions::assert_eq_size!(Result<Token, &'static i32>, [usize; 3]);
 
-impl Token<'_> {
+impl Token {
     /// Returns the character class of this token.
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
@@ -493,6 +502,9 @@ impl Token<'_> {
                 MathClassKind::Inner => Class::Inner,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
+            // We cannot look into the store here, so the class was computed when the
+            // command was defined.
+            CustomCmdRef(_, _, class, _, _) => *class,
             Whitespace
             | Space(_)
             | Overlay(_)
@@ -506,7 +518,9 @@ impl Token<'_> {
             | Label
             | EqRef
             | HLine(_)
-            | VerticalLineDef(_) => None,
+            | NewCommand
+            | VerticalLineDef(_)
+            | CustomCmdArgInput(_) => None,
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
@@ -615,34 +629,34 @@ impl From<Span> for Range<usize> {
 
 /// A token together with its span in the input string.
 #[derive(Clone, Copy, Debug)]
-pub struct TokSpan<'config>(Token<'config>, Span);
+pub struct TokSpan(Token, Span);
 
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(TokSpan<'_>, [usize; 5]);
+static_assertions::assert_eq_size!(TokSpan, [usize; 5]);
 
-impl<'config> TokSpan<'config> {
+impl TokSpan {
     #[inline]
-    pub const fn new(token: Token<'config>, span: Span) -> Self {
+    pub const fn new(token: Token, span: Span) -> Self {
         TokSpan(token, span)
     }
 
     #[inline]
-    pub fn token(&self) -> &Token<'config> {
+    pub fn token(&self) -> &Token {
         &self.0
     }
 
     #[inline]
-    pub fn into_token(self) -> Token<'config> {
+    pub fn into_token(self) -> Token {
         self.0
     }
 
     #[inline]
-    pub fn into_parts(self) -> (Token<'config>, Span) {
+    pub fn into_parts(self) -> (Token, Span) {
         (self.0, self.1)
     }
 
     // #[inline]
-    // pub fn token_mut(&mut self) -> &mut Token<'config> {
+    // pub fn token_mut(&mut self) -> &mut Token {
     //     &mut self.0
     // }
 
@@ -652,9 +666,9 @@ impl<'config> TokSpan<'config> {
     }
 }
 
-impl<'config> From<Token<'config>> for TokSpan<'config> {
+impl From<Token> for TokSpan {
     #[inline]
-    fn from(token: Token<'config>) -> Self {
+    fn from(token: Token) -> Self {
         TokSpan(token, Span::default())
     }
 }

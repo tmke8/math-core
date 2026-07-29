@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "n \\in \\zz"
+---
+<math>
+    <mi>n</mi>
+    <mo>∈</mo>
+    <mi>ℤ</mi>
+</math>

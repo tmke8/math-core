@@ -2,10 +2,10 @@
 source: crates/math-core/tests/error_test.rs
 expression: "x # y"
 ---
-Error: Macro parameter found outside of custom command definition.
-   ╭─[ <input>:1:3 ]
+Error: Invalid parameter number. Must be 1-9.
+   ╭─[ <input>:1:4 ]
    │
  1 │ x # y
-   │   ┬  
-   │   ╰── unexpected macro parameter
+   │    ┬  
+   │    ╰── must be 1-9
 ───╯

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\pair}[2]{(#1, #2)}\\pair{x}{y}"
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <mo>,</mo>
+    <mi>y</mi>
+    <mo stretchy="false">)</mo>
+</math>

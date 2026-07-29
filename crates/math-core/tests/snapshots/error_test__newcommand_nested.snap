@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\zzz}{\\newcommand{\\yyy}{1}}"
+---
+Error: Unknown command "\yyy".
+   ╭─[ <input>:1:31 ]
+   │
+ 1 │ \newcommand{\zzz}{\newcommand{\yyy}{1}}
+   │                               ──┬─  
+   │                                 ╰─── unknown command
+───╯

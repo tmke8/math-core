@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\zzz}{1}\\newcommand{\\zzz}{2}"
+---
+Error: This command is already defined.
+   ╭─[ <input>:1:33 ]
+   │
+ 1 │ \newcommand{\zzz}{1}\newcommand{\zzz}{2}
+   │                                 ──┬─  
+   │                                   ╰─── already defined
+───╯

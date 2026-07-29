@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{x}{y}"
+---
+Error: Expected the name of a command.
+   ╭─[ <input>:1:13 ]
+   │
+ 1 │ \newcommand{x}{y}
+   │             ┬  
+   │             ╰── expected a command name here
+───╯

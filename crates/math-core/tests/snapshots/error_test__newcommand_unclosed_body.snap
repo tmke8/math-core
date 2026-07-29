@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\zzz}{1"
+---
+Error: Expected closing token "}", but reached end of input.
+   ╭─[ <input>:1:20 ]
+   │
+ 1 │ \newcommand{\zzz}{1
+   │                    │ 
+   │                    ╰─ a group was never closed
+───╯

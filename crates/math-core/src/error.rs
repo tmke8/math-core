@@ -55,7 +55,15 @@ pub(crate) enum LatexErrKind {
     MoreThanOneLabel,
     MoreThanOneInfixCmd,
     InvalidMacroName(String),
+    /// `\newcommand` was given something which is not a command name.
+    ExpectedCommandName,
+    /// `\newcommand` was given a name which is already taken.
+    CommandAlreadyDefined,
     InvalidParameterNumber,
+    ParameterNumberOutOfRange {
+        n: u8,
+        actual: u8,
+    },
     MacroParameterOutsideCustomCommand,
     ExpectedParamNumberGotEOI,
     HardLimitExceeded,
@@ -255,8 +263,20 @@ impl LatexErrKind {
             LatexErrKind::InvalidMacroName(name) => {
                 write!(s, "Invalid macro name: \"\\{name}\".")?;
             }
+            LatexErrKind::ExpectedCommandName => {
+                write!(s, "Expected the name of a command.")?;
+            }
+            LatexErrKind::CommandAlreadyDefined => {
+                write!(s, "This command is already defined.")?;
+            }
             LatexErrKind::InvalidParameterNumber => {
                 write!(s, "Invalid parameter number. Must be 1-9.")?;
+            }
+            LatexErrKind::ParameterNumberOutOfRange { n, actual } => {
+                write!(
+                    s,
+                    "Parameter number {actual} is out of range. Expected a number of at most {n}."
+                )?;
             }
             LatexErrKind::MacroParameterOutsideCustomCommand => {
                 write!(
@@ -366,7 +386,10 @@ impl LatexError {
             LatexErrKind::MoreThanOneLabel => "duplicate label",
             LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac",
             LatexErrKind::InvalidMacroName(_) => "invalid name here",
+            LatexErrKind::ExpectedCommandName => "expected a command name here",
+            LatexErrKind::CommandAlreadyDefined => "already defined",
             LatexErrKind::InvalidParameterNumber => "must be 1-9",
+            LatexErrKind::ParameterNumberOutOfRange { .. } => "parameter number out of range",
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter",
             LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number",
             LatexErrKind::HardLimitExceeded => "limit exceeded",

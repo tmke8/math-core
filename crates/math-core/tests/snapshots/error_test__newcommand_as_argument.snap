@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt\\newcommand{\\zzz}{1}"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \sqrt\newcommand{\zzz}{1}
+   │      ─────┬─────  
+   │           ╰─────── used as argument
+───╯

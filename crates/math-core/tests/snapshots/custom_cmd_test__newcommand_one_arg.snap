@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\bb}[1]{\\mathbb{#1}}\\bb{C}"
+---
+<math>
+    <mi>ℂ</mi>
+</math>
