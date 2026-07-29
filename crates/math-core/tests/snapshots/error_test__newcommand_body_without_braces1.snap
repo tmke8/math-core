@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand\\zzz#1"
+---
+Error: Parameter number 1 is out of range. Expected a number of at most 0.
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \newcommand\zzz#1
+   │                ─┬  
+   │                 ╰── parameter number out of range
+───╯

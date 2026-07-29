@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\a}{1}#1"
+---
+Error: Macro parameter found outside of custom command definition.
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \newcommand{\a}{1}#1
+   │                   ─┬  
+   │                    ╰── unexpected macro parameter
+───╯

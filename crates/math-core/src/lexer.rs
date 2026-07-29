@@ -6,6 +6,7 @@ use core::str::CharIndices;
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::commands::{get_command, get_operator_from_unicode};
+use crate::custom_cmds::{CmdSource, CustomCmds};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::string_pool::{InternedStr, StringPool};
@@ -18,8 +19,13 @@ pub(crate) struct Lexer<'config, 'source> {
     peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
-    parse_cmd_args: Option<u8>,
     parser_cfg: Option<&'config ParserConfig>,
+    /// The commands which the document defines for itself, with `\newcommand`.
+    ///
+    /// This is owned by the lexer for the duration of one snippet; it is moved in and out of
+    /// [`GlobalState`](crate::global_state::GlobalState) by the parser, so that definitions
+    /// survive from one snippet to the next.
+    pub(super) custom_cmds: CustomCmds,
     unicode_substitution: UnicodeSubstitution,
     /// Storage for the names of unknown commands, so that the tokens which refer to them
     /// don't have to borrow the input.
@@ -30,7 +36,6 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(
         input: &'source str,
-        parsing_custom_cmds: bool,
         parser_cfg: Option<&'config ParserConfig>,
         unicode_substitution: UnicodeSubstitution,
     ) -> Self {
@@ -39,12 +44,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
             peek: (0, None),
             input_string: input,
             input_length: input.len(),
-            parse_cmd_args: if parsing_custom_cmds {
-                Some(0) // Start counting command arguments.
-            } else {
-                None
-            },
             parser_cfg,
+            custom_cmds: CustomCmds::default(),
             unicode_substitution,
             pool: StringPool::default(),
         };
@@ -58,8 +59,8 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     #[inline]
-    pub(crate) fn parse_cmd_args(&self) -> Option<u8> {
-        self.parse_cmd_args
+    pub(super) fn input(&self) -> &'source str {
+        self.input_string
     }
 
     /// Resolve the name of an unknown command which was interned by this lexer.
@@ -171,7 +172,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     /// Unknown commands are *not* an error here; they are returned as
     /// [`Token::UnknownCommand`]. It is up to the caller to decide what to do with them,
     /// because the caller may want to get hold of the name of an as-yet-undefined command.
-    pub(crate) fn next_token(&mut self) -> Result<TokSpan<'config>, Box<LatexError>> {
+    pub(crate) fn next_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
         if let Some(span) = self.skip_whitespace() {
             return Ok(TokSpan::new(Token::Whitespace, span));
         }
@@ -199,47 +200,39 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
             ' ' => Token::Letter(symbol::NO_BREAK_SPACE.into(), Mode::MathOrText),
             '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK.into(), Mode::MathOrText),
+            // In a custom command, `#` is used to denote a parameter. We always lex it as such
+            // and leave it to the consumer of the tokens to decide whether a parameter is
+            // allowed in that position.
             '#' => {
-                if let Some(num) = &mut self.parse_cmd_args {
-                    if let Some(next) = self.peek.1
-                        && next.is_ascii_digit()
+                if let Some(next) = self.peek.1
+                    && next.is_ascii_digit()
+                {
+                    let param_num = (next as u32).wrapping_sub('1' as u32);
+                    let param_num = if let Ok(param_num) = u8::try_from(param_num)
+                        && (0..=8).contains(&param_num)
                     {
-                        // In pre-defined commands, `#` is used to denote a parameter.
-                        let param_num = (next as u32).wrapping_sub('1' as u32);
-                        let param_num = if let Ok(param_num) = u8::try_from(param_num)
-                            && (0..=8).contains(&param_num)
-                        {
-                            param_num
-                        } else {
-                            return Err(Box::new(LatexError(
-                                (loc + 1)..(loc + 2),
-                                LatexErrKind::InvalidParameterNumber,
-                            )));
-                        };
-                        if (param_num + 1) > *num {
-                            *num = param_num + 1;
-                        }
-                        // Discard the digit after `#`.
-                        self.read_char();
-                        span = span.with_length(2);
-                        Token::CustomCmdArg(param_num)
+                        param_num
                     } else {
-                        let (loc, ch) = self.read_char();
-                        if let Some(ch) = ch {
-                            return Err(Box::new(LatexError(
-                                loc..(loc + ch.len_utf8()),
-                                LatexErrKind::InvalidParameterNumber,
-                            )));
-                        }
                         return Err(Box::new(LatexError(
-                            loc..loc,
-                            LatexErrKind::ExpectedParamNumberGotEOI,
+                            (loc + 1)..(loc + 2),
+                            LatexErrKind::InvalidParameterNumber,
+                        )));
+                    };
+                    // Discard the digit after `#`.
+                    self.read_char();
+                    span = span.with_length(2);
+                    Token::CustomCmdArgInput(param_num)
+                } else {
+                    let (loc, ch) = self.read_char();
+                    if let Some(ch) = ch {
+                        return Err(Box::new(LatexError(
+                            loc..(loc + ch.len_utf8()),
+                            LatexErrKind::InvalidParameterNumber,
                         )));
                     }
-                } else {
                     return Err(Box::new(LatexError(
-                        loc..(loc + 1),
-                        LatexErrKind::MacroParameterOutsideCustomCommand,
+                        loc..loc,
+                        LatexErrKind::ExpectedParamNumberGotEOI,
                     )));
                 }
             }
@@ -292,7 +285,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         &mut self,
         span: Span,
         cmd_string: &'source str,
-    ) -> Result<TokSpan<'config>, Box<LatexError>> {
+    ) -> Result<TokSpan, Box<LatexError>> {
         'unreliable_rendering: {
             if self
                 .parser_cfg
@@ -325,9 +318,13 @@ impl<'config, 'source> Lexer<'config, 'source> {
                 return Ok(TokSpan::new(tok, span));
             }
         }
-        let tok: Result<(Token<'config>, Span), LatexError> = if let Some(tok) = self
-            .parser_cfg
-            .and_then(|custom_cmds| custom_cmds.get_command(cmd_string))
+        let tok: Result<(Token, Span), LatexError> = if let Some(tok) = self
+            .custom_cmds
+            .get(cmd_string, CmdSource::Document)
+            .or_else(|| {
+                self.parser_cfg
+                    .and_then(|parser_cfg| parser_cfg.get_command(cmd_string))
+            })
             .or_else(|| get_command(cmd_string))
         {
             Ok((tok, span))
@@ -460,7 +457,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None, UnicodeSubstitution::default());
+            let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
             // Call `lexer.next_token(false)` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
@@ -488,7 +485,7 @@ mod tests {
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, false, None, UnicodeSubstitution::default());
+            let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
@@ -516,14 +513,8 @@ mod tests {
 
     #[test]
     fn test_parsing_custom_commands() {
-        let parsing_custom_cmds = true;
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let mut lexer = Lexer::new(
-            problem,
-            parsing_custom_cmds,
-            None,
-            UnicodeSubstitution::default(),
-        );
+        let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
@@ -533,14 +524,13 @@ mod tests {
             let (tok, span) = tokloc.into_parts();
             writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
-        std::assert_matches!(lexer.parse_cmd_args(), Some(3));
         assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
 
     #[test]
     fn test_recover_limited_ascii() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
-        let mut lexer = Lexer::new(input, false, None, UnicodeSubstitution::default());
+        let mut lexer = Lexer::new(input, None, UnicodeSubstitution::default());
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {
@@ -564,14 +554,9 @@ mod tests {
             ignore_unknown_commands: true,
             ..Default::default()
         };
-        let tokens: Vec<Token<'_>> = {
+        let tokens: Vec<Token> = {
             let source = String::from(r"\notacommand x");
-            let mut lexer = Lexer::new(
-                source.as_str(),
-                false,
-                Some(&cfg),
-                UnicodeSubstitution::default(),
-            );
+            let mut lexer = Lexer::new(source.as_str(), Some(&cfg), UnicodeSubstitution::default());
             let mut tokens = Vec::new();
             loop {
                 let tok = lexer.next_token().unwrap().into_token();

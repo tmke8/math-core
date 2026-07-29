@@ -97,6 +97,33 @@ fn main() {
             r"\begin{cases} 1 \\ \hline 2 \end{cases}",
         ),
         ("hash_outside_macro_definition", r"x # y"),
+        ("macro_parameter_outside_macro", r"x #1 y"),
+        (
+            "macro_parameter_after_macro_definition",
+            r"\newcommand{\a}{1}#1",
+        ),
+        ("newcommand_redefines_builtin", r"\newcommand{\frac}[2]{x}"),
+        (
+            "newcommand_redefines_newcommand",
+            r"\newcommand{\zzz}{1}\newcommand{\zzz}{2}",
+        ),
+        ("newcommand_without_command", r"\newcommand{x}{y}"),
+        (
+            "newcommand_unknown_cmd_in_body",
+            r"\newcommand{\zzz}{\asdf}",
+        ),
+        (
+            "newcommand_parameter_out_of_range",
+            r"\newcommand{\zzz}[1]{#2}",
+        ),
+        ("newcommand_unclosed_body", r"\newcommand{\zzz}{1"),
+        ("newcommand_as_argument", r"\sqrt\newcommand{\zzz}{1}"),
+        (
+            "newcommand_nested",
+            r"\newcommand{\zzz}{\newcommand{\yyy}{1}}",
+        ),
+        ("newcommand_body_without_braces2", r"1.\newcommand\zzz#1"),
+        ("newcommand_body_without_braces1", r"\newcommand\zzz#1"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\imp}{\\implies}a \\imp b"
+---
+<math>
+    <mi>a</mi>
+    <mspace width="0.2777778em"/>
+    <mo stretchy="false">⟹</mo>
+    <mspace width="0.2777778em"/>
+    <mi>b</mi>
+</math>

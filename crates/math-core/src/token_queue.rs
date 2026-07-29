@@ -5,6 +5,7 @@ use core::ops::Range;
 
 use crate::{
     character_class::Class,
+    custom_cmds::CmdSource,
     error::{LatexErrKind, LatexError},
     lexer::Lexer,
     token::{EndToken, Span, TokSpan, Token},
@@ -13,7 +14,7 @@ use crate::{
 /// A token queue that allows peeking at the next non-whitespace token.
 pub(super) struct TokenQueue<'arena> {
     pub lexer: Lexer<'arena, 'arena>,
-    queue: VecDeque<TokSpan<'arena>>,
+    queue: VecDeque<TokSpan>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
@@ -99,7 +100,7 @@ impl<'arena> TokenQueue<'arena> {
     /// always at least one non-whitespace token in the buffer when this is called,
     /// unless EOI has been reached.
     #[inline]
-    pub(super) fn peek(&self) -> &TokSpan<'arena> {
+    pub(super) fn peek(&self) -> &TokSpan {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
@@ -113,7 +114,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Peek at the next token without consuming it, including whitespace
     /// and [`Token::MathOrTextMode`].
     #[inline]
-    pub(super) fn peek_any_token(&self) -> &TokSpan<'arena> {
+    pub(super) fn peek_any_token(&self) -> &TokSpan {
         if let Some(tok) = self.queue.front() {
             tok
         } else {
@@ -161,7 +162,7 @@ impl<'arena> TokenQueue<'arena> {
     }
 
     /// Peek at the second non-whitespace token without consuming it.
-    pub(super) fn peek_second(&mut self) -> Result<&TokSpan<'arena>, Box<LatexError>> {
+    pub(super) fn peek_second(&mut self) -> Result<&TokSpan, Box<LatexError>> {
         if let Some(tok) = self
             .find_or_load_after_next(is_not_whitespace)?
             .and_then(|idx| self.queue.get(idx))
@@ -194,7 +195,7 @@ impl<'arena> TokenQueue<'arena> {
     /// the name of one can be something we want to use rather than reject. Doing it here
     /// means that unknown commands are reported as such no matter where they show up,
     /// instead of the consumer having to report whatever it expected in that position.
-    fn reject_unknown_command(&self, tokspan: &TokSpan<'arena>) -> Result<(), Box<LatexError>> {
+    fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
         if let Token::UnknownCommand(name) = *tokspan.token()
             && !self
                 .lexer
@@ -215,7 +216,7 @@ impl<'arena> TokenQueue<'arena> {
     /// This method skips any whitespace tokens and unwraps [`Token::MathOrTextMode`].
     ///
     /// This method also ensures that there is always a peekable token after this one.
-    pub(super) fn next(&mut self) -> Result<TokSpan<'arena>, Box<LatexError>> {
+    pub(super) fn next(&mut self) -> Result<TokSpan, Box<LatexError>> {
         let ret = self.next_allowing_unknown_command()?;
         self.reject_unknown_command(&ret)?;
         Ok(ret)
@@ -226,9 +227,7 @@ impl<'arena> TokenQueue<'arena> {
     ///
     /// This is for the places which want to get hold of the name of a command which is
     /// not defined (yet).
-    pub(super) fn next_allowing_unknown_command(
-        &mut self,
-    ) -> Result<TokSpan<'arena>, Box<LatexError>> {
+    pub(super) fn next_allowing_unknown_command(&mut self) -> Result<TokSpan, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -254,7 +253,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Get the next token without skipping or unwrapping anything.
     ///
     /// This method may return whitespace tokens and [`Token::MathOrTextMode`].
-    pub(super) fn next_any_token(&mut self) -> Result<TokSpan<'arena>, Box<LatexError>> {
+    pub(super) fn next_any_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -278,7 +277,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Queue a stream of tokens in the front of the buffer.
     ///
     /// We use a ring buffer, so this is efficient as long as the number of tokens is not too large.
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan<'arena>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan> + Copy]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
@@ -296,13 +295,108 @@ impl<'arena> TokenQueue<'arena> {
         }
     }
 
+    /// Queue the body of a custom command in the front of the buffer.
+    ///
+    /// Returns `false` if the given range doesn't exist, which should never happen.
+    pub(super) fn queue_cmd_body(&mut self, source: CmdSource, start: usize, end: usize) -> bool {
+        match source {
+            CmdSource::Config => {
+                // The reference to the config is `Copy`, so getting it out of the lexer
+                // ends the borrow of the lexer, leaving us free to modify the queue.
+                let Some(body) = self
+                    .lexer
+                    .parser_cfg()
+                    .and_then(|cfg| cfg.custom_cmd_body(start, end))
+                else {
+                    return false;
+                };
+                self.queue_in_front(body);
+            }
+            CmdSource::Document => {
+                // The store lives in the lexer, which is part of `self`, so we take it out
+                // for the duration of the push and then put it back.
+                let cmds = core::mem::take(&mut self.lexer.custom_cmds);
+                let found = if let Some(body) = cmds.body(start, end) {
+                    self.queue_in_front(body);
+                    true
+                } else {
+                    false
+                };
+                self.lexer.custom_cmds = cmds;
+                if !found {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// Resolve buffered tokens for commands which have been defined in the meantime.
+    ///
+    /// Commands are normally resolved by the lexer, but the buffer may already contain a
+    /// token for a command which is only defined once we get to it: right after a
+    /// `\newcommand`, and at the very beginning of a snippet, because the buffer is primed
+    /// before the definitions of the previous snippets are handed to the lexer.
+    pub(super) fn resolve_buffered_unknown_commands(&mut self) {
+        let TokenQueue { lexer, queue, .. } = self;
+        for tokspan in queue.iter_mut() {
+            if let Token::UnknownCommand(name) = *tokspan.token()
+                && let Some(tok) = lexer
+                    .custom_cmds
+                    .get(lexer.resolve(name), CmdSource::Document)
+            {
+                *tokspan = TokSpan::new(tok, tokspan.span());
+            }
+        }
+    }
+
+    /// Record the body of a command defined with `\newcommand`.
+    ///
+    /// The next token must be the opening `{`, which this consumes; the closing `}` is left
+    /// for the caller. Both of those are dictated by the one-token lookahead: macro
+    /// parameters have to be allowed before the token after the `{` is loaded from the lexer,
+    /// and disallowed again before the token after the `}` is.
+    pub(super) fn record_macro_body(
+        &mut self,
+        tokens: &mut Vec<TokSpan>,
+    ) -> Result<(), Box<LatexError>> {
+        core::debug_assert_matches!(self.peek().token(), Token::GroupBegin);
+        self.next()?; // Discard the opening `{`.
+        let mut nesting_level = 0usize;
+        loop {
+            let tokloc = *self.peek_any_token();
+            match tokloc.token() {
+                Token::GroupBegin => {
+                    nesting_level += 1;
+                }
+                Token::GroupEnd => {
+                    // If the nesting level reaches one below where we started, we stop
+                    // reading, leaving the `}` for the caller.
+                    let Some(new_level) = nesting_level.checked_sub(1) else {
+                        return Ok(());
+                    };
+                    nesting_level = new_level;
+                }
+                Token::Eoi => {
+                    return Err(Box::new(LatexError(
+                        tokloc.span().into(),
+                        LatexErrKind::UnclosedGroup(EndToken::GroupClose),
+                    )));
+                }
+                _ => {}
+            }
+            self.next_any_token()?;
+            tokens.push(tokloc);
+        }
+    }
+
     /// Read a group of tokens, ending with (an unopened) `}`.
     ///
     /// The initial `{` must have already been consumed. The closing `}` is not included
     /// in the output token vector.
     pub(super) fn record_group(
         &mut self,
-        tokens: &mut Vec<TokSpan<'arena>>,
+        tokens: &mut Vec<TokSpan>,
         preserve_all: bool,
     ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
@@ -344,10 +438,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Any immediately following whitespace is always skipped. If the argument is a group, then
     /// the parameter `preserve_all` determines whether the whitespace tokens within the group
     /// are included in the output vector or not.
-    pub fn read_argument(
-        &mut self,
-        preserve_all: bool,
-    ) -> Result<MacroArgument<'arena>, Box<LatexError>> {
+    pub fn read_argument(&mut self, preserve_all: bool) -> Result<MacroArgument, Box<LatexError>> {
         let first = if preserve_all {
             // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
             // perform the unwrapping that `next()` does. So we use this hack here of copying the
@@ -371,7 +462,7 @@ impl<'arena> TokenQueue<'arena> {
     /// Get a token from the buffer by its index.
     ///
     /// Returns `None` if the index is out of bounds.
-    pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan<'arena>> {
+    pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
         self.queue.get(idx)
     }
 }
@@ -385,15 +476,15 @@ fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
 }
 
 /// A macro argument, which is either a single token or a group of tokens.
-pub enum MacroArgument<'source> {
-    Token(TokSpan<'source>),
+pub enum MacroArgument {
+    Token(TokSpan),
     /// The `Range` is the range of the entire group, including the opening and closing braces.
-    Group(Vec<TokSpan<'source>>, Range<usize>),
+    Group(Vec<TokSpan>, Range<usize>),
 }
 
-impl<'source> MacroArgument<'source> {
+impl MacroArgument {
     /// Try to interpret this macro argument as a single token.
-    pub fn into_one_or_none(self) -> Result<OneOrNone<'source>, Box<LatexError>> {
+    pub fn into_one_or_none(self) -> Result<OneOrNone, Box<LatexError>> {
         match self {
             MacroArgument::Token(tok) => Ok(OneOrNone::One(tok)),
             MacroArgument::Group(tokens, span) => {
@@ -412,7 +503,7 @@ impl<'source> MacroArgument<'source> {
     }
 
     /// Try to interpret this macro argument as a single token.
-    pub fn into_one(self) -> Result<TokSpan<'source>, Box<LatexError>> {
+    pub fn into_one(self) -> Result<TokSpan, Box<LatexError>> {
         match self {
             MacroArgument::Token(tok) => Ok(tok),
             MacroArgument::Group(tokens, span) => {
@@ -429,13 +520,13 @@ impl<'source> MacroArgument<'source> {
     }
 }
 
-pub enum OneOrNone<'source> {
-    One(TokSpan<'source>),
+pub enum OneOrNone {
+    One(TokSpan),
     None(Range<usize>),
 }
 
-impl<'source> From<OneOrNone<'source>> for Option<TokSpan<'source>> {
-    fn from(value: OneOrNone<'source>) -> Self {
+impl From<OneOrNone> for Option<TokSpan> {
+    fn from(value: OneOrNone) -> Self {
         match value {
             OneOrNone::One(tok) => Some(tok),
             OneOrNone::None(_) => None,
@@ -466,7 +557,7 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let lexer = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
+            let lexer = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.load_token_skip_whitespace().unwrap();
@@ -500,7 +591,7 @@ mod tests {
     fn test_get_whitespace_tokens() {
         let input = r"\text{  x +   y }";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, false, None, crate::UnicodeSubstitution::default());
+        let lexer = Lexer::new(input, None, crate::UnicodeSubstitution::default());
         let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
 
         let mut token_str = String::new();
@@ -520,7 +611,7 @@ mod tests {
     fn test_find_or_load_after_next() {
         let input = r"x y z";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, false, None, crate::UnicodeSubstitution::default());
+        let lexer = Lexer::new(input, None, crate::UnicodeSubstitution::default());
         let mut queue = TokenQueue::new(lexer).expect("Failed to create TokenManager");
         queue.next().unwrap(); // Consume 'x'
         assert_eq!(queue.next_non_whitespace, 1);
@@ -561,7 +652,7 @@ mod tests {
         ];
 
         for (name, problem, preserve_all) in problems.into_iter() {
-            let lexer = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
+            let lexer = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             let tokens = match manager.read_argument(preserve_all) {
                 Ok(MacroArgument::Group(tokens, _)) => {

@@ -38,7 +38,7 @@ use crate::{
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
 
-const FULL_STOP_TOKEN: Token<'static> = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
+const FULL_STOP_TOKEN: Token = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
 
 pub(crate) struct Parser<'state, 'arena> {
     pub(super) tokens: TokenQueue<'arena>,
@@ -50,7 +50,11 @@ pub(crate) struct Parser<'state, 'arena> {
 
 #[derive(Debug)]
 struct ParserState<'arena> {
-    cmd_args: Vec<TokSpan<'arena>>,
+    cmd_args: Vec<TokSpan>,
+    /// A buffer for reading the arguments of a custom command, which we cannot read directly
+    /// into `cmd_args` because the old arguments are still needed at that point. It is kept
+    /// around so that the two buffers can be reused for the whole parse.
+    cmd_args_scratch: Vec<TokSpan>,
     cmd_arg_offsets: [usize; 9],
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a sequence are not real boundaries;
@@ -64,6 +68,12 @@ struct ParserState<'arena> {
     vertical_line_def: Option<VerticalLineDef>,
 }
 
+impl Drop for Parser<'_, '_> {
+    fn drop(&mut self) {
+        self.return_custom_cmds();
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SequenceEnd {
     EndToken(EndToken),
@@ -72,7 +82,7 @@ enum SequenceEnd {
 
 impl SequenceEnd {
     #[inline]
-    fn matches(self, other: &Token<'_>) -> bool {
+    fn matches(self, other: &Token) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::AnyEndToken => matches!(
@@ -130,13 +140,20 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
+        let mut tokens = TokenQueue::new(lexer)?;
+        // The commands which the document has defined so far are handed to the lexer, which
+        // is what resolves command names; `Drop` hands them back. Note that the token queue
+        // has already loaded a token at this point, so we have to resolve that one by hand.
+        tokens.lexer.custom_cmds = mem::take(&mut global_state.custom_cmds);
+        tokens.resolve_buffered_unknown_commands();
         Ok(Parser {
-            tokens: TokenQueue::new(lexer)?,
+            tokens,
             buffer: Buffer::new(input_length),
             arena,
             global_state,
             state: ParserState {
                 cmd_args: Vec::new(),
+                cmd_args_scratch: Vec::new(),
                 cmd_arg_offsets: [0; 9],
                 transform: None,
                 right_boundary_hack: false,
@@ -148,8 +165,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     #[inline(never)]
-    fn next_token(&mut self) -> ParseResult<TokSpan<'arena>> {
+    fn next_token(&mut self) -> ParseResult<TokSpan> {
         self.tokens.next()
+    }
+
+    /// Hand the commands defined by the document back to the global state.
+    ///
+    /// This has to happen on every exit path, including the ones taken because of a parse
+    /// error, so that a snippet which fails to parse doesn't discard the definitions which
+    /// preceded the failure.
+    fn return_custom_cmds(&mut self) {
+        self.global_state.custom_cmds = mem::take(&mut self.tokens.lexer.custom_cmds);
     }
 
     #[inline]
@@ -268,7 +294,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline]
     fn handle_tokens_without_output(
         &mut self,
-        tokspan: &TokSpan<'arena>,
+        tokspan: &TokSpan,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
@@ -297,6 +323,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::TransformSwitch(tf) => {
                 self.state.transform = Some(tf);
+                Ok(())
+            }
+            Token::NewCommand => {
+                self.define_command()?;
                 Ok(())
             }
             Token::VerticalLineDef(def) => {
@@ -374,7 +404,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// Parse the given token into a node.
     fn parse_token(
         &mut self,
-        cur_tokloc: ParseResult<TokSpan<'arena>>,
+        cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
@@ -1144,6 +1174,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::NoNumber
             | Token::Tag { .. }
             | Token::Label
+            | Token::NewCommand
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
@@ -2063,58 +2094,39 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::CustomCmd(num_args, token_stream) => {
-                if num_args > 0 {
-                    // The fact that we only clear for `num_args > 0` is a hack to
-                    // allow zero-argument token streams to be used within
-                    // non-zero-argument token streams.
-                    self.state.cmd_args.clear();
-                }
-                for arg_num in 0..num_args {
-                    let tokloc = self.next_token()?;
-                    if matches!(tokloc.token(), Token::GroupBegin) {
-                        self.tokens.record_group(&mut self.state.cmd_args, true)?;
-                    } else {
-                        self.state.cmd_args.push(tokloc);
-                    }
-                    if let Some(offset) = self.state.cmd_arg_offsets.get_mut(arg_num as usize) {
-                        *offset = self.state.cmd_args.len();
-                    }
-                }
+                self.record_cmd_args(num_args)?;
                 self.tokens.queue_in_front(token_stream);
                 let token = self.next_token();
                 // FIXME: Use `become` here once it is stable.
                 return self.parse_token(token, parse_as, prev_class);
             }
+            Token::CustomCmdRef(source, num_args, _, start, end) => {
+                self.record_cmd_args(num_args)?;
+                if !self.tokens.queue_cmd_body(source, start, end) {
+                    return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
+                }
+                let token = self.next_token();
+                // FIXME: Use `become` here once it is stable.
+                return self.parse_token(token, parse_as, prev_class);
+            }
+            Token::CustomCmdArgInput(_) => Err(LatexError(
+                span.into(),
+                LatexErrKind::MacroParameterOutsideCustomCommand,
+            )),
             Token::CustomCmdArg(arg_num) => {
-                let start = self
-                    .state
-                    .cmd_arg_offsets
-                    .get(arg_num.wrapping_sub(1) as usize)
-                    .copied()
-                    .unwrap_or(0);
-                let end = self
-                    .state
-                    .cmd_arg_offsets
-                    .get(arg_num as usize)
-                    .copied()
-                    .unwrap_or(self.state.cmd_args.len());
-                if let Some(arg) = self.state.cmd_args.get(start..end) {
-                    if arg.is_empty() {
-                        // An empty argument expands to nothing, which is equivalent to `{}`.
-                        // We must not fetch the next token here, because that token belongs
-                        // to the token stream of the custom command, not to the argument.
-                        Ok(Node::Row {
-                            nodes: &[],
-                            attrs: RowAttrs::DEFAULT,
-                        })
-                    } else {
-                        self.tokens.queue_in_front(arg);
-                        let token = self.next_token();
-                        return self.parse_token(token, parse_as, prev_class);
-                    }
+                let arg = self.state.cmd_arg_slice(arg_num);
+                if arg.is_empty() {
+                    // An empty argument expands to nothing, which is equivalent to `{}`.
+                    // We must not fetch the next token here, because that token belongs
+                    // to the token stream of the custom command, not to the argument.
+                    Ok(Node::Row {
+                        nodes: &[],
+                        attrs: RowAttrs::DEFAULT,
+                    })
                 } else {
-                    // We somehow cannot find the requested argument.
-                    Err(LatexError(span.into(), LatexErrKind::Internal))
+                    self.tokens.queue_in_front(arg);
+                    let token = self.next_token();
+                    return self.parse_token(token, parse_as, prev_class);
                 }
             }
             Token::UnknownCommand(name) => {
@@ -2138,6 +2150,206 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Ok(n) => Ok((class, self.commit(n))),
             Err(e) => Err(Box::new(e)),
         }
+    }
+
+    /// Parse a `\newcommand` definition and register the new command.
+    ///
+    /// `\newcommand` is not scoped: the definition is available for the rest of the document,
+    /// including the math snippets which come after this one.
+    fn define_command(&mut self) -> ParseResult<()> {
+        // The name of the new command, optionally wrapped in braces.
+        let braced = matches!(self.tokens.peek().token(), Token::GroupBegin);
+        if braced {
+            self.next_token()?;
+        }
+        // We have to bypass the usual rejection of unknown commands here, because the name of
+        // a command which doesn't exist yet is exactly what we are looking for.
+        let name_tokspan = self.tokens.next_allowing_unknown_command()?;
+        let name = match *name_tokspan.token() {
+            Token::UnknownCommand(name) => {
+                // The name lives in the lexer's string pool, which doesn't outlive this
+                // snippet, so we have to copy it out.
+                self.arena.alloc_str(self.tokens.lexer.resolve(name))
+            }
+            // Any other token means that the lexer already knew this name.
+            _ => {
+                let span: Range<usize> = name_tokspan.span().into();
+                let is_command = self
+                    .tokens
+                    .lexer
+                    .input()
+                    .get(span.clone())
+                    .is_some_and(|s| s.starts_with('\\'));
+                return Err(Box::new(LatexError(
+                    span,
+                    if is_command {
+                        LatexErrKind::CommandAlreadyDefined
+                    } else {
+                        LatexErrKind::ExpectedCommandName
+                    },
+                )));
+            }
+        };
+        if braced {
+            let tokspan = self.next_token()?;
+            if !matches!(tokspan.token(), Token::GroupEnd) {
+                return Err(Box::new(LatexError(
+                    tokspan.span().into(),
+                    LatexErrKind::ExpectedExactlyOneToken,
+                )));
+            }
+        }
+
+        // The number of arguments, e.g. `[1]`. (Optional arguments are not supported.)
+        let num_args = if matches!(self.tokens.peek().token(), Token::SquareBracketOpen) {
+            self.next_token()?;
+            let tokspan = self.next_token()?;
+            let num_args = match *tokspan.token() {
+                Token::Digit(digit) => digit.to_digit(10).unwrap_or(0) as u8,
+                _ => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::InvalidParameterNumber,
+                    )));
+                }
+            };
+            let tokspan = self.next_token()?;
+            if !matches!(tokspan.token(), Token::SquareBracketClose) {
+                return Err(Box::new(LatexError(
+                    tokspan.span().into(),
+                    LatexErrKind::InvalidParameterNumber,
+                )));
+            }
+            num_args
+        } else {
+            0
+        };
+
+        // The body. We must not consume the opening `{` here, because that would make the
+        // token queue load the first token of the body while macro parameters are still
+        // disallowed; `record_macro_body` takes care of the braces instead.
+        let mut body_tokspans = Vec::new();
+        if matches!(self.tokens.peek().token(), Token::GroupBegin) {
+            self.tokens.record_macro_body(&mut body_tokspans)?;
+            // `record_macro_body` leaves the closing `}` for us.
+            self.next_token()?;
+        } else {
+            let tokspan = self.next_token()?;
+            if matches!(tokspan.token(), Token::Eoi) {
+                return Err(Box::new(LatexError(
+                    tokspan.span().into(),
+                    LatexErrKind::ExpectedArgumentGotEOI,
+                )));
+            }
+            // A body which isn't a group consists of a single token.
+            body_tokspans.push(tokspan);
+        }
+
+        let body = body_tokspans
+            .into_iter()
+            .map(|tokspan| {
+                let (tok, span) = tokspan.into_parts();
+                match tok {
+                    // The name of an unknown command only lives in the string pool of the lexer
+                    // which produced it, so it cannot be stored. We have to reject this even when
+                    // `ignore_unknown_commands` is set, which is why the token queue doesn't do it
+                    // for us.
+                    Token::UnknownCommand(name) => Err(Box::new(LatexError(
+                        span.into(),
+                        LatexErrKind::UnknownCommand(self.tokens.lexer.resolve(name).into()),
+                    ))),
+                    Token::CustomCmdArgInput(arg_num) => {
+                        if arg_num >= num_args {
+                            Err(Box::new(LatexError(
+                                span.into(),
+                                LatexErrKind::ParameterNumberOutOfRange {
+                                    actual: arg_num + 1,
+                                    n: num_args,
+                                },
+                            )))
+                        } else {
+                            Ok(Token::CustomCmdArg(arg_num))
+                        }
+                    }
+                    Token::NewCommand => Err(Box::new(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedAsArgument,
+                    ))),
+                    tok => Ok(tok),
+                }
+            })
+            .collect::<Result<Vec<Token>, _>>()?;
+
+        if !self.tokens.lexer.custom_cmds.insert(name, num_args, &body) {
+            return Err(Box::new(LatexError(
+                name_tokspan.span().into(),
+                LatexErrKind::CommandAlreadyDefined,
+            )));
+        }
+        // The token after the definition has already been loaded from the lexer, so it may
+        // still say "unknown command" for the command we have just defined.
+        self.tokens.resolve_buffered_unknown_commands();
+        Ok(())
+    }
+
+    /// Read the arguments of a custom command into `cmd_args`, ready for `CustomCmdArg` to
+    /// substitute them into the body.
+    fn record_cmd_args(&mut self, num_args: u8) -> ParseResult<()> {
+        if num_args == 0 {
+            // Zero-argument token streams can be used within non-zero-argument ones, so we
+            // have to leave the arguments of the enclosing command alone.
+            return Ok(());
+        }
+        // Read the arguments into the scratch buffer rather than directly into `cmd_args`,
+        // because an argument may refer to the arguments of the command that we are in the
+        // middle of expanding, and those are what we are about to replace.
+        let mut scratch = mem::take(&mut self.state.cmd_args_scratch);
+        scratch.clear();
+        let mut offsets = [0usize; 9];
+        for arg_num in 0..num_args {
+            let tokloc = self.next_token()?;
+            if matches!(tokloc.token(), Token::GroupBegin) {
+                self.tokens.record_group(&mut scratch, true)?;
+            } else {
+                scratch.push(tokloc);
+            }
+            if let Some(offset) = offsets.get_mut(arg_num as usize) {
+                *offset = scratch.len();
+            }
+        }
+
+        if scratch
+            .iter()
+            .any(|tokloc| matches!(tokloc.token(), Token::CustomCmdArg(_)))
+        {
+            // Substitute the arguments of the enclosing command now. If we left that to the
+            // usual expansion of `CustomCmdArg`, it would look the argument up in the very
+            // arguments we are replacing, and expand to itself forever.
+            let mut args = Vec::with_capacity(scratch.len());
+            let mut subst_offsets = [0usize; 9];
+            let mut start = 0;
+            for (arg_num, &end) in offsets.iter().enumerate().take(num_args as usize) {
+                for tokloc in scratch.get(start..end).unwrap_or(&[]) {
+                    if let Token::CustomCmdArg(outer_num) = *tokloc.token() {
+                        args.extend_from_slice(self.state.cmd_arg_slice(outer_num));
+                    } else {
+                        args.push(*tokloc);
+                    }
+                }
+                start = end;
+                if let Some(offset) = subst_offsets.get_mut(arg_num) {
+                    *offset = args.len();
+                }
+            }
+            self.state.cmd_args_scratch = scratch;
+            self.state.cmd_args = args;
+            self.state.cmd_arg_offsets = subst_offsets;
+        } else {
+            // Nothing to substitute, so the two buffers can simply change places.
+            self.state.cmd_args_scratch = mem::replace(&mut self.state.cmd_args, scratch);
+            self.state.cmd_arg_offsets = offsets;
+        }
+        Ok(())
     }
 
     /// Same as `parse_token`, but also gets the next token.
@@ -2606,7 +2818,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
         let mut builder = self.buffer.get_builder();
         let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<core::slice::Iter<TokSpan<'arena>>> = None;
+        let mut custom_arg_iter: Option<core::slice::Iter<TokSpan>> = None;
         loop {
             let tokloc = if let Some(iter) = &mut custom_arg_iter {
                 if let Some(&tokloc) = iter.next() {
@@ -2681,6 +2893,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 }
 
 impl ParserState<'_> {
+    /// The tokens which make up the given argument of the command currently being expanded.
+    fn cmd_arg_slice(&self, arg_num: u8) -> &[TokSpan] {
+        let start = self
+            .cmd_arg_offsets
+            .get(arg_num.wrapping_sub(1) as usize)
+            .copied()
+            .unwrap_or(0);
+        let end = self
+            .cmd_arg_offsets
+            .get(arg_num as usize)
+            .copied()
+            .unwrap_or(self.cmd_args.len());
+        self.cmd_args.get(start..end).unwrap_or(&[])
+    }
+
     fn relation_spacing(
         &self,
         prev_class: Class,
@@ -2835,7 +3062,7 @@ fn middle_stretch_attrs(op: StretchableOp) -> OpAttrs {
     }
 }
 
-fn extract_delimiter(tok: TokSpan<'_>, location: DelimiterModifier) -> ParseResult<StretchableOp> {
+fn extract_delimiter(tok: TokSpan, location: DelimiterModifier) -> ParseResult<StretchableOp> {
     let (tok, span) = tok.into_parts();
     const SQ_L_BRACKET: StretchableOp =
         StretchableOp::from_ord(symbol::LEFT_SQUARE_BRACKET).unwrap();
@@ -3034,7 +3261,7 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new(problem, false, None, crate::UnicodeSubstitution::default());
+            let l = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
             let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
@@ -3072,7 +3299,7 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new("", false, None, crate::UnicodeSubstitution::default());
+            let l = Lexer::new("", None, crate::UnicodeSubstitution::default());
             let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
@@ -3088,7 +3315,7 @@ mod tests {
         let input = format!("{{{}}}", literal);
         let arena = Arena::new();
         let mut state = GlobalState::default();
-        let l = Lexer::new(&input, false, None, crate::UnicodeSubstitution::default());
+        let l = Lexer::new(&input, None, crate::UnicodeSubstitution::default());
         let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
         let parsed = p
             .parse_string_literal()

@@ -570,6 +570,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "negthinspace" => Space(LatexUnit::Mu.length_with_unit(-3.0)),
     "neq" => Relation(symbol::NOT_EQUAL_TO),
     "nequiv" => Relation(symbol::NOT_IDENTICAL_TO),
+    "newcommand" => NewCommand,
     "newline" => NewLine,
     "nexists" => Ord(symbol::THERE_DOES_NOT_EXIST),
     "ngeq" => Relation(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
@@ -933,7 +934,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "~" => TextMode(TextToken::Accent(symbol::COMBINING_TILDE)),
 };
 
-pub fn get_command(command: &str) -> Option<Token<'static>> {
+pub fn get_command(command: &str) -> Option<Token> {
     if let Some(token) = COMMANDS.get(command) {
         Some(*token)
     } else {
@@ -1876,7 +1877,7 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '⭌' => Relation(symbol::RIGHTWARDS_ARROW_ABOVE_REVERSE_TILDE_OPERATOR),
 };
 
-pub fn get_operator_from_unicode(c: char) -> Option<Token<'static>> {
+pub fn get_operator_from_unicode(c: char) -> Option<Token> {
     UNICODE_OPERATORS
         .get(&c)
         .map(|tok| Token::MathOrTextMode(tok, c))

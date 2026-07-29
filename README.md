@@ -215,9 +215,6 @@ Other things that haven’t been implemented yet:
 ## Features that are not planned
 There are some things we will (most likely) never support.
 
-### Definition commands like `\def`, `\newcommand`, `\definecolor`
-Again, supporting these would make the code much more complicated and anyway, these commands need to be repeated in every document. It seems more convenient to users and to the development of this project if new commands can only be defined in the config file.
-
 ### Italic numbers, `\mathit{012}`
 There is no Unicode range for this, so the only way to implement this would be with a custom font and a CSS class, which we would prefer to avoid.
 
