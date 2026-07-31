@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "{x_\\color{blue} x}"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:4 ]
+   │
+ 1 │ {x_\color{blue} x}
+   │    ───┬──  
+   │       ╰──── used as argument
+───╯
