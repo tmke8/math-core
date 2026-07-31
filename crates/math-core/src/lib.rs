@@ -198,7 +198,7 @@ pub struct MathCoreConfig {
 /// Subset of `MathCoreConfig` relevant for the parser.
 #[derive(Debug, Default)]
 struct ParserConfig {
-    custom_cmds: CustomCmds,
+    custom_cmds_from_cfg: CustomCmds,
     ignore_unknown_commands: bool,
     allow_unreliable_rendering: bool,
     unicode_substitution: UnicodeSubstitution,
@@ -206,11 +206,11 @@ struct ParserConfig {
 
 impl ParserConfig {
     pub fn get_command(&self, command: &str) -> Option<Token> {
-        self.custom_cmds.get(command, CmdSource::Config)
+        self.custom_cmds_from_cfg.get(command, CmdSource::Config)
     }
 
     pub fn custom_cmd_body(&self, start: usize, end: usize) -> Option<&[Token]> {
-        self.custom_cmds.body(start, end)
+        self.custom_cmds_from_cfg.body(start, end)
     }
 }
 
@@ -263,7 +263,7 @@ impl LatexToMathML {
             config.unicode_substitution,
         )?;
         let parser_cfg = ParserConfig {
-            custom_cmds,
+            custom_cmds_from_cfg: custom_cmds,
             ignore_unknown_commands: config.ignore_unknown_commands,
             allow_unreliable_rendering: config.allow_unreliable_rendering,
             unicode_substitution: config.unicode_substitution,
@@ -475,8 +475,8 @@ fn parse<'arena>(
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,
     };
-    let lexer = Lexer::new(latex, Some(parser_cfg), parser_cfg.unicode_substitution);
-    let mut p = Parser::new(lexer, arena, state, style)?;
+    let lexer = Lexer::new(latex, parser_cfg, state);
+    let mut p = Parser::new(lexer, arena, style)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }
@@ -487,6 +487,11 @@ fn parse_custom_commands(
 ) -> Result<CustomCmds, MacroParseError> {
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
     let mut body = Vec::new();
+    let parser_cfg = ParserConfig {
+        unicode_substitution,
+        ..Default::default()
+    };
+    let mut state = GlobalState::default();
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
@@ -502,8 +507,7 @@ fn parse_custom_commands(
         body.clear();
         let mut num_args = 0;
         let result = 'body: {
-            let mut lexer: Lexer<'static, '_> =
-                Lexer::new(definition.as_str(), None, unicode_substitution);
+            let mut lexer = Lexer::new(definition.as_str(), &parser_cfg, &mut state);
             loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {

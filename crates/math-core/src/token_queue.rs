@@ -12,8 +12,8 @@ use crate::{
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
-pub(super) struct TokenQueue<'arena> {
-    pub lexer: Lexer<'arena, 'arena>,
+pub(super) struct TokenQueue<'state, 'arena> {
+    pub lexer: Lexer<'arena, 'state, 'arena>,
     queue: VecDeque<TokSpan>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
@@ -21,8 +21,8 @@ pub(super) struct TokenQueue<'arena> {
 
 static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
 
-impl<'arena> TokenQueue<'arena> {
-    pub(super) fn new(lexer: Lexer<'arena, 'arena>) -> Result<Self, Box<LatexError>> {
+impl<'state, 'arena> TokenQueue<'state, 'arena> {
+    pub(super) fn new(lexer: Lexer<'arena, 'state, 'arena>) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
             queue: VecDeque::with_capacity(2),
@@ -197,10 +197,7 @@ impl<'arena> TokenQueue<'arena> {
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
         if let Token::UnknownCommand(name) = *tokspan.token()
-            && !self
-                .lexer
-                .parser_cfg()
-                .is_some_and(|cfg| cfg.ignore_unknown_commands)
+            && !self.lexer.parser_cfg().ignore_unknown_commands
         {
             // The name lives in the lexer's string pool, so we have to copy it out.
             return Err(Box::new(LatexError(
@@ -303,11 +300,7 @@ impl<'arena> TokenQueue<'arena> {
             CmdSource::Config => {
                 // The reference to the config is `Copy`, so getting it out of the lexer
                 // ends the borrow of the lexer, leaving us free to modify the queue.
-                let Some(body) = self
-                    .lexer
-                    .parser_cfg()
-                    .and_then(|cfg| cfg.custom_cmd_body(start, end))
-                else {
+                let Some(body) = self.lexer.parser_cfg().custom_cmd_body(start, end) else {
                     return false;
                 };
                 self.queue_in_front(body);
@@ -315,14 +308,14 @@ impl<'arena> TokenQueue<'arena> {
             CmdSource::Document => {
                 // The store lives in the lexer, which is part of `self`, so we take it out
                 // for the duration of the push and then put it back.
-                let cmds = core::mem::take(&mut self.lexer.custom_cmds);
+                let cmds = core::mem::take(&mut self.lexer.global_state.custom_cmds);
                 let found = if let Some(body) = cmds.body(start, end) {
                     self.queue_in_front(body);
                     true
                 } else {
                     false
                 };
-                self.lexer.custom_cmds = cmds;
+                self.lexer.global_state.custom_cmds = cmds;
                 if !found {
                     return false;
                 }
@@ -342,6 +335,7 @@ impl<'arena> TokenQueue<'arena> {
         for tokspan in queue.iter_mut() {
             if let Token::UnknownCommand(name) = *tokspan.token()
                 && let Some(tok) = lexer
+                    .global_state
                     .custom_cmds
                     .get(lexer.resolve(name), CmdSource::Document)
             {
@@ -556,8 +550,10 @@ mod tests {
             ("early_error", r"{x + \unknowncmd + y}"),
         ];
 
+        let parser_cfg = crate::ParserConfig::default();
+        let mut state = crate::GlobalState::default();
         for (name, problem) in problems.into_iter() {
-            let lexer = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
+            let lexer = Lexer::new(problem, &parser_cfg, &mut state);
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.load_token_skip_whitespace().unwrap();
@@ -591,7 +587,9 @@ mod tests {
     fn test_get_whitespace_tokens() {
         let input = r"\text{  x +   y }";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, None, crate::UnicodeSubstitution::default());
+        let parser_cfg = crate::ParserConfig::default();
+        let mut state = crate::GlobalState::default();
+        let lexer = Lexer::new(input, &parser_cfg, &mut state);
         let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
 
         let mut token_str = String::new();
@@ -611,7 +609,9 @@ mod tests {
     fn test_find_or_load_after_next() {
         let input = r"x y z";
         // let input = r"\text  xy";
-        let lexer = Lexer::new(input, None, crate::UnicodeSubstitution::default());
+        let parser_cfg = crate::ParserConfig::default();
+        let mut state = crate::GlobalState::default();
+        let lexer = Lexer::new(input, &parser_cfg, &mut state);
         let mut queue = TokenQueue::new(lexer).expect("Failed to create TokenManager");
         queue.next().unwrap(); // Consume 'x'
         assert_eq!(queue.next_non_whitespace, 1);
@@ -651,8 +651,10 @@ mod tests {
             ("consecutive_whitespace_skip", r"{x   y} z", false),
         ];
 
+        let parser_cfg = crate::ParserConfig::default();
         for (name, problem, preserve_all) in problems.into_iter() {
-            let lexer = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
+            let mut state = crate::GlobalState::default();
+            let lexer = Lexer::new(problem, &parser_cfg, &mut state);
             let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
             let tokens = match manager.read_argument(preserve_all) {
                 Ok(MacroArgument::Group(tokens, _)) => {

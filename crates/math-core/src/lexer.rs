@@ -6,38 +6,33 @@ use core::str::CharIndices;
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::commands::{get_command, get_operator_from_unicode};
-use crate::custom_cmds::{CmdSource, CustomCmds};
+use crate::custom_cmds::CmdSource;
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
+use crate::global_state::GlobalState;
 use crate::string_pool::{InternedStr, StringPool};
 use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
 use crate::{ParserConfig, UnicodeSubstitution};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'source> {
+pub(crate) struct Lexer<'config, 'state, 'source> {
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
-    parser_cfg: Option<&'config ParserConfig>,
-    /// The commands which the document defines for itself, with `\newcommand`.
-    ///
-    /// This is owned by the lexer for the duration of one snippet; it is moved in and out of
-    /// [`GlobalState`](crate::global_state::GlobalState) by the parser, so that definitions
-    /// survive from one snippet to the next.
-    pub(super) custom_cmds: CustomCmds,
-    unicode_substitution: UnicodeSubstitution,
+    parser_cfg: &'config ParserConfig,
+    pub(crate) global_state: &'state mut GlobalState,
     /// Storage for the names of unknown commands, so that the tokens which refer to them
     /// don't have to borrow the input.
     pool: StringPool,
 }
 
-impl<'config, 'source> Lexer<'config, 'source> {
+impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
     /// Receive the input source code and generate a LEXER instance.
     pub(crate) fn new(
         input: &'source str,
-        parser_cfg: Option<&'config ParserConfig>,
-        unicode_substitution: UnicodeSubstitution,
+        parser_cfg: &'config ParserConfig,
+        global_state: &'state mut GlobalState,
     ) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
@@ -45,8 +40,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
             input_string: input,
             input_length: input.len(),
             parser_cfg,
-            custom_cmds: CustomCmds::default(),
-            unicode_substitution,
+            global_state,
             pool: StringPool::default(),
         };
         lexer.read_char(); // Initialize `peek`.
@@ -70,7 +64,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
     }
 
     #[inline]
-    pub(crate) fn parser_cfg(&self) -> Option<&'config ParserConfig> {
+    pub(crate) fn parser_cfg(&self) -> &'config ParserConfig {
         self.parser_cfg
     }
 
@@ -287,10 +281,7 @@ impl<'config, 'source> Lexer<'config, 'source> {
         cmd_string: &'source str,
     ) -> Result<TokSpan, Box<LatexError>> {
         'unreliable_rendering: {
-            if self
-                .parser_cfg
-                .is_some_and(|cfg| cfg.allow_unreliable_rendering)
-            {
+            if self.parser_cfg.allow_unreliable_rendering {
                 let tok = match cmd_string {
                     "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
                     "widetilde" => {
@@ -303,7 +294,10 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
         }
         'unicode_substitution: {
-            if matches!(self.unicode_substitution, UnicodeSubstitution::Conventional) {
+            if matches!(
+                self.parser_cfg.unicode_substitution,
+                UnicodeSubstitution::Conventional
+            ) {
                 // When unicode substitution is enabled, certain composite symbols are rendered
                 // as a single combined Unicode character instead of their constituent parts.
                 let tok = match cmd_string {
@@ -319,12 +313,10 @@ impl<'config, 'source> Lexer<'config, 'source> {
             }
         }
         let tok: Result<(Token, Span), LatexError> = if let Some(tok) = self
+            .global_state
             .custom_cmds
             .get(cmd_string, CmdSource::Document)
-            .or_else(|| {
-                self.parser_cfg
-                    .and_then(|parser_cfg| parser_cfg.get_command(cmd_string))
-            })
+            .or_else(|| self.parser_cfg.get_command(cmd_string))
             .or_else(|| get_command(cmd_string))
         {
             Ok((tok, span))
@@ -457,7 +449,9 @@ mod tests {
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
+            let mut global_state = GlobalState::default();
+            let parser_cfg = ParserConfig::default();
+            let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
             // Call `lexer.next_token(false)` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
@@ -485,7 +479,9 @@ mod tests {
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
-            let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
+            let mut global_state = GlobalState::default();
+            let parser_cfg = ParserConfig::default();
+            let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
             let err = loop {
                 match lexer.next_token() {
                     Ok(tokloc) => {
@@ -514,7 +510,9 @@ mod tests {
     #[test]
     fn test_parsing_custom_commands() {
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let mut lexer = Lexer::new(problem, None, UnicodeSubstitution::default());
+        let mut global_state = GlobalState::default();
+        let parser_cfg = ParserConfig::default();
+        let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
         let mut tokens = String::new();
         loop {
             let tokloc = lexer.next_token().unwrap();
@@ -530,7 +528,9 @@ mod tests {
     #[test]
     fn test_recover_limited_ascii() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
-        let mut lexer = Lexer::new(input, None, UnicodeSubstitution::default());
+        let mut global_state = GlobalState::default();
+        let parser_cfg = ParserConfig::default();
+        let mut lexer = Lexer::new(input, &parser_cfg, &mut global_state);
 
         let mut output = String::new();
         while let Ok(tokloc) = lexer.next_token() {
@@ -554,9 +554,10 @@ mod tests {
             ignore_unknown_commands: true,
             ..Default::default()
         };
+        let mut global_state = GlobalState::default();
         let tokens: Vec<Token> = {
             let source = String::from(r"\notacommand x");
-            let mut lexer = Lexer::new(source.as_str(), Some(&cfg), UnicodeSubstitution::default());
+            let mut lexer = Lexer::new(source.as_str(), &cfg, &mut global_state);
             let mut tokens = Vec::new();
             loop {
                 let tok = lexer.next_token().unwrap().into_token();
