@@ -183,6 +183,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         self.parse_sequence(SequenceEnd::EndToken(EndToken::Eoi), Class::Open, true)
     }
 
+    /// Parse a sequence of tokens, if the parser is not in an argument.
+    ///
+    /// Arguments bind tighter than some kinds of grouping, so, if in an argument,
+    /// the sequence is empty.
+    fn parse_sequence_if_in_sequence(
+        &mut self,
+        parse_as: ParseAs,
+        span: Span,
+        sequence_end: SequenceEnd,
+        prev_class: Class,
+        keep_end_token: bool,
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
+        if !parse_as.in_sequence() {
+            return Err(LatexError(span.into(), LatexErrKind::CannotBeUsedAsArgument).into());
+        }
+        self.parse_sequence(sequence_end, prev_class, keep_end_token)
+    }
+
     /// Parse a sequence of tokens until the given end token is encountered.
     ///
     /// If `keep_end_token` is set to `true`, this function does not consume the end token.
@@ -1428,7 +1446,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
-                let content = self.arena.push_slice(&self.parse_sequence(
+                let content = self.arena.push_slice(&self.parse_sequence_if_in_sequence(
+                    parse_as,
+                    span,
                     SequenceEnd::EndToken(EndToken::End),
                     Class::Open,
                     true, // keep_end_token
@@ -1800,7 +1820,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     };
                     color
                 };
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
+                let content = self.parse_sequence_if_in_sequence(
+                    parse_as,
+                    span,
+                    SequenceEnd::AnyEndToken,
+                    prev_class,
+                    true,
+                )?;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attrs: RowAttrs {
@@ -1831,7 +1857,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Style(style) => {
                 let old_style = mem::replace(&mut self.state.style, style);
-                let content = self.parse_sequence(SequenceEnd::AnyEndToken, prev_class, true)?;
+                let content = self.parse_sequence_if_in_sequence(
+                    parse_as,
+                    span,
+                    SequenceEnd::AnyEndToken,
+                    prev_class,
+                    true,
+                )?;
                 self.state.style = old_style;
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),

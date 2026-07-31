@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt\\displaystyle x"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \sqrt\displaystyle x
+   │      ──────┬──────  
+   │            ╰──────── used as argument
+───╯
