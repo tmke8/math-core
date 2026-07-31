@@ -25,7 +25,6 @@ use crate::{
         OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
-    global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
     predefined,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
@@ -41,10 +40,9 @@ use crate::{
 const FULL_STOP_TOKEN: Token = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
 
 pub(crate) struct Parser<'state, 'arena> {
-    pub(super) tokens: TokenQueue<'arena>,
+    pub(super) tokens: TokenQueue<'state, 'arena>,
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
-    global_state: &'state mut GlobalState,
     state: ParserState<'arena>,
 }
 
@@ -66,12 +64,6 @@ struct ParserState<'arena> {
     style: Style,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
     vertical_line_def: Option<VerticalLineDef>,
-}
-
-impl Drop for Parser<'_, '_> {
-    fn drop(&mut self) {
-        self.return_custom_cmds();
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -134,23 +126,16 @@ pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'state, 'arena> Parser<'state, 'arena> {
     pub(crate) fn new(
-        lexer: Lexer<'arena, 'arena>,
+        lexer: Lexer<'arena, 'state, 'arena>,
         arena: &'arena Arena,
-        global_state: &'state mut GlobalState,
         style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
-        let mut tokens = TokenQueue::new(lexer)?;
-        // The commands which the document has defined so far are handed to the lexer, which
-        // is what resolves command names; `Drop` hands them back. Note that the token queue
-        // has already loaded a token at this point, so we have to resolve that one by hand.
-        tokens.lexer.custom_cmds = mem::take(&mut global_state.custom_cmds);
-        tokens.resolve_buffered_unknown_commands();
+        let tokens = TokenQueue::new(lexer)?;
         Ok(Parser {
             tokens,
             buffer: Buffer::new(input_length),
             arena,
-            global_state,
             state: ParserState {
                 cmd_args: Vec::new(),
                 cmd_args_scratch: Vec::new(),
@@ -167,15 +152,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline(never)]
     fn next_token(&mut self) -> ParseResult<TokSpan> {
         self.tokens.next()
-    }
-
-    /// Hand the commands defined by the document back to the global state.
-    ///
-    /// This has to happen on every exit path, including the ones taken because of a parse
-    /// error, so that a snippet which fails to parse doesn't discard the definitions which
-    /// preceded the failure.
-    fn return_custom_cmds(&mut self) {
-        self.global_state.custom_cmds = mem::take(&mut self.tokens.lexer.custom_cmds);
     }
 
     #[inline]
@@ -1479,7 +1455,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_tag(
-                        &mut self.global_state.equation_count,
+                        &mut self.tokens.lexer.global_state.equation_count,
                         true,
                         self.arena,
                     ) {
@@ -1487,7 +1463,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = n.label.take();
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.global_state
+                                    self.tokens
+                                        .lexer
+                                        .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
                                 }
@@ -1620,7 +1598,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                     match numbered_state.next_equation_tag(
-                        &mut self.global_state.equation_count,
+                        &mut self.tokens.lexer.global_state.equation_count,
                         false,
                         self.arena,
                     ) {
@@ -1628,7 +1606,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = numbered_state.label.take();
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.global_state
+                                    self.tokens
+                                        .lexer
+                                        .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
                                 }
@@ -2312,7 +2292,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             })
             .collect::<Result<Vec<Token>, _>>()?;
 
-        if !self.tokens.lexer.custom_cmds.insert(name, num_args, &body) {
+        if !self
+            .tokens
+            .lexer
+            .global_state
+            .custom_cmds
+            .insert(name, num_args, &body)
+        {
             return Err(Box::new(LatexError(
                 name_tokspan.span().into(),
                 LatexErrKind::CommandAlreadyDefined,
@@ -3227,6 +3213,8 @@ impl<'arena> BoundsWithLimits<'arena> {
 mod tests {
     use insta::assert_ron_snapshot;
 
+    use crate::global_state::GlobalState;
+
     use super::*;
 
     #[test]
@@ -3290,11 +3278,12 @@ mod tests {
             ("phantom_full", r"\phantom{a}"),
             ("mathstrut", r"\mathstrut"),
         ];
+        let parser_cfg = crate::ParserConfig::default();
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new(problem, None, crate::UnicodeSubstitution::default());
-            let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
+            let l = Lexer::new(problem, &parser_cfg, &mut state);
+            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -3328,11 +3317,12 @@ mod tests {
                 ],
             ),
         ];
+        let parser_cfg = crate::ParserConfig::default();
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new("", None, crate::UnicodeSubstitution::default());
-            let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
+            let l = Lexer::new("", &parser_cfg, &mut state);
+            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -3346,9 +3336,10 @@ mod tests {
         let literal = r#" !()*+,-./012:;<=>?@ABCabc|"#;
         let input = format!("{{{}}}", literal);
         let arena = Arena::new();
+        let parser_cfg = crate::ParserConfig::default();
         let mut state = GlobalState::default();
-        let l = Lexer::new(&input, None, crate::UnicodeSubstitution::default());
-        let mut p = Parser::new(l, &arena, &mut state, Style::Text).unwrap();
+        let l = Lexer::new(&input, &parser_cfg, &mut state);
+        let mut p = Parser::new(l, &arena, Style::Text).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));
