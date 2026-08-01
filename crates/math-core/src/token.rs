@@ -207,9 +207,8 @@ pub enum Token {
     /// indices delimit the body within the [`CustomCmds`](crate::custom_cmds::CustomCmds) store
     /// identified by the [`CmdSource`].
     CustomCmdRef(CmdSource, u8, Option<Class>, usize, usize),
-    /// `\newcommand`, and `\providecommand` if `provide` is set. The latter silently keeps the
-    /// existing definition if the command is already defined, instead of reporting an error.
-    NewCommand { provide: bool },
+    /// `\newcommand`, `\providecommand` or `\renewcommand`; the mode says which one.
+    NewCommand(DefineMode),
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
@@ -225,6 +224,18 @@ pub enum Token {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+}
+
+/// How a command definition deals with a name which is already defined.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DefineMode {
+    /// `\newcommand`: the name must not be defined yet.
+    New,
+    /// `\providecommand`: if the name is already defined, the existing definition is kept and
+    /// the new one is discarded.
+    Provide,
+    /// `\renewcommand`: the name must already be defined, and its definition is replaced.
+    Renew,
 }
 
 /// The current meaning of the character `|`.
@@ -519,7 +530,7 @@ impl Token {
             | Label
             | EqRef
             | HLine(_)
-            | NewCommand { .. }
+            | NewCommand(_)
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
             Letter(_, _)

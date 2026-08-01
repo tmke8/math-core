@@ -240,6 +240,123 @@ fn test_providecommand() {
 }
 
 #[test]
+fn test_renewcommand() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        (
+            "renewcommand_replaces_newcommand",
+            r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{\mathbb{Q}}\zz",
+        ),
+        // The command is used directly after the redefinition, so the token for it has
+        // already been read with the old definition in place.
+        (
+            "renewcommand_used_immediately",
+            r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{\mathbb{Q}}\zz\zz",
+        ),
+        // The number of arguments may change, too.
+        (
+            "renewcommand_changes_num_args",
+            r"\newcommand{\bb}{\mathbb{Z}}\renewcommand{\bb}[1]{\mathbb{#1}}\bb{C}",
+        ),
+        (
+            "renewcommand_unbraced_name",
+            r"\newcommand\half{\frac{1}{2}}\renewcommand\half{\frac{1}{3}}\half",
+        ),
+        // A builtin command can be redefined as well.
+        (
+            "renewcommand_replaces_builtin",
+            r"\renewcommand{\epsilon}{\varepsilon}\epsilon",
+        ),
+        (
+            "renewcommand_replaces_builtin_with_args",
+            r"\renewcommand{\frac}[2]{#1/#2}\frac{1}{2}",
+        ),
+        // The old definition is still in place inside the body of the new one, so this
+        // doesn't recurse (in LaTeX, it would).
+        (
+            "renewcommand_body_uses_old_definition",
+            r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{(\zz)}\zz",
+        ),
+        // A body refers to the definition which was in place when it was recorded, so
+        // redefining a command doesn't change the commands which use it. LaTeX, which
+        // resolves names at expansion time, gives `2` here.
+        (
+            "renewcommand_does_not_affect_earlier_body",
+            r"\newcommand{\xx}{1}\newcommand{\yy}{\xx}\renewcommand{\xx}{2}\yy",
+        ),
+        // After a `\renewcommand`, `\providecommand` still finds the name taken.
+        (
+            "renewcommand_then_providecommand",
+            r"\renewcommand{\epsilon}{a}\providecommand{\epsilon}{b}\epsilon",
+        ),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+#[test]
+fn test_renewcommand_config_macro() {
+    let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    // A macro from the configuration can be redefined, ...
+    let latex = r"\renewcommand{\half}{\frac{1}{3}}\half";
+    let mathml = converter
+        .convert_with_local_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("renewcommand_replaces_config_macro", mathml.mathml, latex);
+
+    // ... but only for the snippet which does it, because the configuration is immutable.
+    let latex = r"\half";
+    let mathml = converter
+        .convert_with_local_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("renewcommand_config_macro_after", mathml.mathml, latex);
+}
+
+#[test]
+fn test_renewcommand_across_snippets() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}\zz", MathDisplay::Inline)
+        .unwrap();
+    // A definition from an earlier snippet can be replaced, ...
+    converter
+        .convert_with_global_state(r"\renewcommand{\zz}{\mathbb{Q}}", MathDisplay::Inline)
+        .unwrap();
+    let mathml = converter
+        .convert_with_global_state(r"\zz", MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("renewcommand_across_snippets", mathml.mathml, r"\zz");
+
+    // ... but not after the global state has been reset.
+    converter.reset_global_state();
+    assert!(
+        converter
+            .convert_with_global_state(r"\renewcommand{\zz}{\mathbb{R}}", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+#[test]
 fn test_providecommand_with_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {

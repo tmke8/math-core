@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\renewcommand{x}{y}"
+---
+Error: Expected the name of a command.
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \renewcommand{x}{y}
+   │               ┬  
+   │               ╰── expected a command name here
+───╯

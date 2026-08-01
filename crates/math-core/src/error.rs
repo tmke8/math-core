@@ -59,6 +59,8 @@ pub(crate) enum LatexErrKind {
     ExpectedCommandName,
     /// `\newcommand` was given a name which is already taken.
     CommandAlreadyDefined,
+    /// `\renewcommand` was given a name which isn't defined yet.
+    CommandNotDefined,
     InvalidParameterNumber,
     ParameterNumberOutOfRange {
         n: u8,
@@ -269,6 +271,9 @@ impl LatexErrKind {
             LatexErrKind::CommandAlreadyDefined => {
                 write!(s, "This command is already defined.")?;
             }
+            LatexErrKind::CommandNotDefined => {
+                write!(s, "This command is not defined.")?;
+            }
             LatexErrKind::InvalidParameterNumber => {
                 write!(s, "Invalid parameter number. Must be 1-9.")?;
             }
@@ -388,6 +393,7 @@ impl LatexError {
             LatexErrKind::InvalidMacroName(_) => "invalid name here",
             LatexErrKind::ExpectedCommandName => "expected a command name here",
             LatexErrKind::CommandAlreadyDefined => "already defined",
+            LatexErrKind::CommandNotDefined => "not defined",
             LatexErrKind::InvalidParameterNumber => "must be 1-9",
             LatexErrKind::ParameterNumberOutOfRange { .. } => "parameter number out of range",
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter",

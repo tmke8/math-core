@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand\\half{\\frac{1}{2}}\\renewcommand\\half{\\frac{1}{3}}\\half"
+---
+<math>
+    <mfrac>
+        <mn>1</mn>
+        <mn>3</mn>
+    </mfrac>
+</math>

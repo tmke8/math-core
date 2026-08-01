@@ -74,6 +74,15 @@ impl CustomCmds {
         if self.map.contains_key(name) {
             return false;
         }
+        self.insert_or_replace(name, num_args, body);
+        true
+    }
+
+    /// Define a command, overwriting an existing definition of the same name.
+    ///
+    /// The body of the old definition stays in the store, because other definitions may
+    /// contain references into it.
+    pub(crate) fn insert_or_replace(&mut self, name: &str, num_args: u8, body: &[Token]) {
         let start = self.tokens.len();
         self.tokens.extend_from_slice(body);
         let end = self.tokens.len();
@@ -86,7 +95,6 @@ impl CustomCmds {
                 end,
             },
         );
-        true
     }
 
     pub(crate) fn clear(&mut self) {
