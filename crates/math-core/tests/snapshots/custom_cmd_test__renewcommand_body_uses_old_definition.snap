@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zz}{\\mathbb{Z}}\\renewcommand{\\zz}{(\\zz)}\\zz"
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mi>ℤ</mi>
+    <mo stretchy="false">)</mo>
+</math>

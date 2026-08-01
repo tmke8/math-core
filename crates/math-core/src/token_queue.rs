@@ -344,6 +344,22 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         }
     }
 
+    /// Update buffered tokens for a command which has just been redefined.
+    ///
+    /// The reason is the same as for [`Self::resolve_buffered_unknown_commands`]: the token
+    /// after a `\renewcommand` has already been loaded, so a use of the command right after
+    /// its redefinition would otherwise still refer to the old definition. We recognize the
+    /// tokens by their source text, because the old definition can be any token at all.
+    pub(super) fn resolve_buffered_redefined_command(&mut self, name: &str, tok: Token) {
+        let TokenQueue { lexer, queue, .. } = self;
+        for tokspan in queue.iter_mut() {
+            let span: Range<usize> = tokspan.span().into();
+            if lexer.input().get(span).and_then(|s| s.strip_prefix('\\')) == Some(name) {
+                *tokspan = TokSpan::new(tok, tokspan.span());
+            }
+        }
+    }
+
     /// Record the body of a command defined with `\newcommand`.
     ///
     /// The next token must be the opening `{`, which this consumes; the closing `}` is left

@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zz}{\\mathbb{Z}}\\renewcommand{\\zz}{\\mathbb{Q}}\\zz\\zz"
+---
+<math>
+    <mi>ℚ</mi>
+    <mi>ℚ</mi>
+</math>

@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\providecommand{\\zz}{\\mathbb{Z}}x \\in \\zz"
+---
+<math>
+    <mi>x</mi>
+    <mo>∈</mo>
+    <mi>ℤ</mi>
+</math>

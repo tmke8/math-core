@@ -10,7 +10,7 @@ use mathml_renderer::{
 use crate::predefined;
 use crate::specifications::LatexUnit;
 use crate::token::{
-    ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, PrimeKind, TextToken,
+    DefineMode, ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, PrimeKind, TextToken,
     Token::{self, *},
     UnitKind,
 };
@@ -570,7 +570,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "negthinspace" => Space(LatexUnit::Mu.length_with_unit(-3.0)),
     "neq" => Relation(symbol::NOT_EQUAL_TO),
     "nequiv" => Relation(symbol::NOT_IDENTICAL_TO),
-    "newcommand" => NewCommand,
+    "newcommand" => NewCommand(DefineMode::New),
     "newline" => NewLine,
     "nexists" => Ord(symbol::THERE_DOES_NOT_EXIST),
     "ngeq" => Relation(symbol::NEITHER_GREATER_THAN_NOR_EQUAL_TO),
@@ -672,6 +672,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "prod" => Op(symbol::N_ARY_PRODUCT),
     "projlim" => PseudoOperatorLimits("proj\u{2009}lim"),
     "propto" => Relation(symbol::PROPORTIONAL_TO),
+    "providecommand" => NewCommand(DefineMode::Provide),
     "psi" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_PSI), Mode::Math),
     "qquad" => Space(LatexUnit::Em.length_with_unit(2.0)),
     "quad" => MathOrTextMode(&Space(LatexUnit::Em.length_with_unit(1.0)), symbol::EM_SPACE),
@@ -690,6 +691,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "rceil" => Close(symbol::RIGHT_CEILING),
     "real" => Letter(SuperChar::from_char(symbol::BLACK_LETTER_CAPITAL_R), Mode::Math),
     "reals" => Letter(SuperChar::from_char(symbol::DOUBLE_STRUCK_CAPITAL_R), Mode::Math),
+    "renewcommand" => NewCommand(DefineMode::Renew),
     "restriction" => Relation(symbol::UPWARDS_HARPOON_WITH_BARB_RIGHTWARDS),
     "rfloor" => Close(symbol::RIGHT_FLOOR),
     "rgroup" => Close(symbol::MATHEMATICAL_RIGHT_FLATTENED_PARENTHESIS),

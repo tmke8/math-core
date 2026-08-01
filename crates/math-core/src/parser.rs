@@ -20,6 +20,7 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
+    custom_cmds::{CmdSource, is_valid_macro_name},
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -31,8 +32,8 @@ use crate::{
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
     token::{
-        EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind, PrimeDirection,
-        PrimeKind, Span, TokSpan, Token, UnitKind, VerticalLineDef,
+        DefineMode, EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind,
+        PrimeDirection, PrimeKind, Span, TokSpan, Token, UnitKind, VerticalLineDef,
     },
     token_queue::{MacroArgument, OneOrNone, TokenQueue},
 };
@@ -319,8 +320,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.state.transform = Some(tf);
                 Ok(())
             }
-            Token::NewCommand => {
-                self.define_command()?;
+            Token::NewCommand(mode) => {
+                self.define_command(mode)?;
                 Ok(())
             }
             Token::VerticalLineDef(def) => {
@@ -1168,7 +1169,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::NoNumber
             | Token::Tag { .. }
             | Token::Label
-            | Token::NewCommand
+            | Token::NewCommand(_)
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
@@ -2168,7 +2169,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ///
     /// `\newcommand` is not scoped: the definition is available for the rest of the document,
     /// including the math snippets which come after this one.
-    fn define_command(&mut self) -> ParseResult<()> {
+    ///
+    /// The `mode` decides what happens when the name is (not) already defined:
+    /// `\providecommand` parses the definition as usual and then throws it away if the name is
+    /// taken, and `\renewcommand` requires the name to be taken and overwrites the definition.
+    fn define_command(&mut self, mode: DefineMode) -> ParseResult<()> {
         // The name of the new command, optionally wrapped in braces.
         let braced = matches!(self.tokens.peek().token(), Token::GroupBegin);
         if braced {
@@ -2177,29 +2182,52 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // We have to bypass the usual rejection of unknown commands here, because the name of
         // a command which doesn't exist yet is exactly what we are looking for.
         let name_tokspan = self.tokens.next_allowing_unknown_command()?;
-        let name = match *name_tokspan.token() {
+        // The name to register the definition under, and whether it replaces an existing
+        // definition. `None` means throwing the definition away, which is what
+        // `\providecommand` does when the name is already taken.
+        let target = match *name_tokspan.token() {
             Token::UnknownCommand(name) => {
+                if matches!(mode, DefineMode::Renew) {
+                    return Err(Box::new(LatexError(
+                        name_tokspan.span().into(),
+                        LatexErrKind::CommandNotDefined,
+                    )));
+                }
                 // The name lives in the lexer's string pool, which doesn't outlive this
                 // snippet, so we have to copy it out.
-                self.arena.alloc_str(self.tokens.lexer.resolve(name))
+                let name = self.arena.alloc_str(self.tokens.lexer.resolve(name));
+                Some((name, false))
             }
             // Any other token means that the lexer already knew this name.
             _ => {
                 let span: Range<usize> = name_tokspan.span().into();
-                let is_command = self
+                // The name as it appears in the source, without the leading backslash.
+                let name = self
                     .tokens
                     .lexer
                     .input()
                     .get(span.clone())
-                    .is_some_and(|s| s.starts_with('\\'));
-                return Err(Box::new(LatexError(
-                    span,
-                    if is_command {
-                        LatexErrKind::CommandAlreadyDefined
-                    } else {
-                        LatexErrKind::ExpectedCommandName
-                    },
-                )));
+                    .and_then(|s| s.strip_prefix('\\'))
+                    .filter(|name| is_valid_macro_name(name));
+                let Some(name) = name else {
+                    return Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::ExpectedCommandName,
+                    )));
+                };
+                match mode {
+                    DefineMode::New => {
+                        return Err(Box::new(LatexError(
+                            span,
+                            LatexErrKind::CommandAlreadyDefined,
+                        )));
+                    }
+                    DefineMode::Provide => None,
+                    // The name may belong to a builtin command or to a macro from the
+                    // configuration; in both cases, the new definition shadows the old one,
+                    // because the lexer looks in the document's definitions first.
+                    DefineMode::Renew => Some((self.arena.alloc_str(name), true)),
+                }
             }
         };
         if braced {
@@ -2283,7 +2311,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             Ok(Token::CustomCmdArg(arg_num))
                         }
                     }
-                    Token::NewCommand => Err(Box::new(LatexError(
+                    Token::NewCommand(_) => Err(Box::new(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
@@ -2292,21 +2320,39 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             })
             .collect::<Result<Vec<Token>, _>>()?;
 
-        if !self
-            .tokens
-            .lexer
-            .global_state
-            .custom_cmds
-            .insert(name, num_args, &body)
-        {
-            return Err(Box::new(LatexError(
-                name_tokspan.span().into(),
-                LatexErrKind::CommandAlreadyDefined,
-            )));
+        let Some((name, replace)) = target else {
+            // `\providecommand` for a command which already exists: the definition we just
+            // parsed is discarded.
+            return Ok(());
+        };
+        let custom_cmds = &mut self.tokens.lexer.global_state.custom_cmds;
+        if replace {
+            custom_cmds.insert_or_replace(name, num_args, &body);
+            // The token after the definition has already been loaded from the lexer, so it
+            // may still refer to the definition we have just replaced.
+            if let Some(tok) = self
+                .tokens
+                .lexer
+                .global_state
+                .custom_cmds
+                .get(name, CmdSource::Document)
+            {
+                self.tokens.resolve_buffered_redefined_command(name, tok);
+            }
+        } else {
+            // The name came from an unknown command, so it cannot be in the store already:
+            // the lexer resolves the names it knows, and the buffered tokens are re-resolved
+            // whenever something is defined.
+            if !custom_cmds.insert(name, num_args, &body) {
+                return Err(Box::new(LatexError(
+                    name_tokspan.span().into(),
+                    LatexErrKind::Internal,
+                )));
+            }
+            // The token after the definition has already been loaded from the lexer, so it
+            // may still say "unknown command" for the command we have just defined.
+            self.tokens.resolve_buffered_unknown_commands();
         }
-        // The token after the definition has already been loaded from the lexer, so it may
-        // still say "unknown command" for the command we have just defined.
-        self.tokens.resolve_buffered_unknown_commands();
         Ok(())
     }
 

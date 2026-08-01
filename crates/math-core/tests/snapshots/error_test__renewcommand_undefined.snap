@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\renewcommand{\\zzz}{1}"
+---
+Error: This command is not defined.
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \renewcommand{\zzz}{1}
+   │               ──┬─  
+   │                 ╰─── not defined
+───╯
