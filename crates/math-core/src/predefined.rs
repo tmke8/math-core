@@ -69,6 +69,13 @@ pub static MOD: [Token; 4] = [
     Space(LatexUnit::Mu.length_with_unit(6.0)),
 ];
 
+pub static POD: [Token; 4] = [
+    Space(LatexUnit::Em.length_with_unit(1.0)),
+    Open(symbol::LEFT_PARENTHESIS),
+    CustomCmdArg(0),
+    Close(symbol::RIGHT_PARENTHESIS),
+];
+
 pub static PMOD: [Token; 7] = [
     Space(LatexUnit::Em.length_with_unit(1.0)),
     Open(symbol::LEFT_PARENTHESIS),

@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\phase{-78^\\circ}"
+---
+<math>
+    <menclose notation="phasorangle">
+        <mrow>
+            <mo lspace="0" rspace="0">−</mo>
+            <msup>
+                <mn>78</mn>
+                <mo>∘</mo>
+            </msup>
+        </mrow>
+        <mrow class="menclose-phasorangle"></mrow>
+    </menclose>
+</math>

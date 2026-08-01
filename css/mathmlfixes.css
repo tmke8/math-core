@@ -38,6 +38,25 @@ mtr > mtd:last-child {
         border-style: solid;
         margin-right: 0.03889rem;
     }
+    menclose[notation~="phasorangle" i] {
+        border-bottom: 0.067em solid;
+        padding: 0.2em 0.2em 0.1em 0.6em;
+    }
+    mrow.menclose-phasorangle {
+        display: inline-block;
+        position: absolute;
+        left: 0.5px;
+        bottom: -0.04em;
+        height: 100%;
+        aspect-ratio: 0.5;
+        background-color: currentcolor;
+        clip-path: polygon(
+            0.05em 100%,
+            0 calc(100% - 0.05em),
+            calc(100% - 0.05em) 0,
+            100% 0.05em
+        );
+    }
     mrow.menclose-updiagonalstrike,
     mrow.menclose-downdiagonalstrike {
         display: inline-block;

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\nobreakspace b + \\text{c\\nobreakspace d}"
+---
+<math>
+    <mi>a</mi>
+    <mtext> </mtext>
+    <mi>b</mi>
+    <mo>+</mo>
+    <mtext>c d</mtext>
+</math>

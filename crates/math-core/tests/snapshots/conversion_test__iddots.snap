@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix} a & \\iddots \\\\ \\ddots & b \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+            <mtd>
+                <mo rspace="0">⋰</mo>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mo lspace="0" rspace="0">⋱</mo>
+            </mtd>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

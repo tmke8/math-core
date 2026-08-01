@@ -704,6 +704,13 @@ impl<'state> Emitter<'state> {
                     write!(self.s, "actuarial")?;
                     first = false;
                 }
+                if notation.contains(Notation::PHASOR_ANGLE) {
+                    if !first {
+                        write!(self.s, " ")?;
+                    }
+                    write!(self.s, "phasorangle")?;
+                    first = false;
+                }
                 if notation.contains(Notation::UP_DIAGONAL) {
                     if !first {
                         write!(self.s, " ")?;
@@ -719,6 +726,13 @@ impl<'state> Emitter<'state> {
                 }
                 write!(self.s, "\">")?;
                 self.emit(content, child_indent)?;
+                if notation.contains(Notation::PHASOR_ANGLE) {
+                    writeln_indent!(
+                        self,
+                        child_indent,
+                        "<mrow class=\"menclose-phasorangle\"></mrow>"
+                    );
+                }
                 if notation.contains(Notation::UP_DIAGONAL) {
                     writeln_indent!(
                         self,
