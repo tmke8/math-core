@@ -319,8 +319,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.state.transform = Some(tf);
                 Ok(())
             }
-            Token::NewCommand => {
-                self.define_command()?;
+            Token::NewCommand { provide } => {
+                self.define_command(provide)?;
                 Ok(())
             }
             Token::VerticalLineDef(def) => {
@@ -1168,7 +1168,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::NoNumber
             | Token::Tag { .. }
             | Token::Label
-            | Token::NewCommand
+            | Token::NewCommand { .. }
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
@@ -2168,7 +2168,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ///
     /// `\newcommand` is not scoped: the definition is available for the rest of the document,
     /// including the math snippets which come after this one.
-    fn define_command(&mut self) -> ParseResult<()> {
+    ///
+    /// With `provide` set (`\providecommand`), a name which is already defined is not an error;
+    /// the definition is parsed as usual and then discarded, leaving the old one in place.
+    fn define_command(&mut self, provide: bool) -> ParseResult<()> {
         // The name of the new command, optionally wrapped in braces.
         let braced = matches!(self.tokens.peek().token(), Token::GroupBegin);
         if braced {
@@ -2177,11 +2180,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // We have to bypass the usual rejection of unknown commands here, because the name of
         // a command which doesn't exist yet is exactly what we are looking for.
         let name_tokspan = self.tokens.next_allowing_unknown_command()?;
+        // `None` means that the command is already defined and we are in `\providecommand`,
+        // so the definition has to be parsed but not registered.
         let name = match *name_tokspan.token() {
             Token::UnknownCommand(name) => {
                 // The name lives in the lexer's string pool, which doesn't outlive this
                 // snippet, so we have to copy it out.
-                self.arena.alloc_str(self.tokens.lexer.resolve(name))
+                Some(self.arena.alloc_str(self.tokens.lexer.resolve(name)))
             }
             // Any other token means that the lexer already knew this name.
             _ => {
@@ -2192,14 +2197,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     .input()
                     .get(span.clone())
                     .is_some_and(|s| s.starts_with('\\'));
-                return Err(Box::new(LatexError(
-                    span,
-                    if is_command {
-                        LatexErrKind::CommandAlreadyDefined
-                    } else {
-                        LatexErrKind::ExpectedCommandName
-                    },
-                )));
+                if !is_command {
+                    return Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::ExpectedCommandName,
+                    )));
+                }
+                if !provide {
+                    return Err(Box::new(LatexError(
+                        span,
+                        LatexErrKind::CommandAlreadyDefined,
+                    )));
+                }
+                None
             }
         };
         if braced {
@@ -2283,7 +2293,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             Ok(Token::CustomCmdArg(arg_num))
                         }
                     }
-                    Token::NewCommand => Err(Box::new(LatexError(
+                    Token::NewCommand { .. } => Err(Box::new(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
@@ -2292,6 +2302,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             })
             .collect::<Result<Vec<Token>, _>>()?;
 
+        let Some(name) = name else {
+            // `\providecommand` for a command which already exists: the definition we just
+            // parsed is discarded.
+            return Ok(());
+        };
         if !self
             .tokens
             .lexer

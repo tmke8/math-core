@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\providecommand{x}{y}"
+---
+Error: Expected the name of a command.
+   ╭─[ <input>:1:17 ]
+   │
+ 1 │ \providecommand{x}{y}
+   │                 ┬  
+   │                 ╰── expected a command name here
+───╯

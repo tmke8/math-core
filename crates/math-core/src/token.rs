@@ -207,8 +207,9 @@ pub enum Token {
     /// indices delimit the body within the [`CustomCmds`](crate::custom_cmds::CustomCmds) store
     /// identified by the [`CmdSource`].
     CustomCmdRef(CmdSource, u8, Option<Class>, usize, usize),
-    /// `\newcommand`
-    NewCommand,
+    /// `\newcommand`, and `\providecommand` if `provide` is set. The latter silently keeps the
+    /// existing definition if the command is already defined, instead of reporting an error.
+    NewCommand { provide: bool },
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
@@ -518,7 +519,7 @@ impl Token {
             | Label
             | EqRef
             | HLine(_)
-            | NewCommand
+            | NewCommand { .. }
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
             Letter(_, _)

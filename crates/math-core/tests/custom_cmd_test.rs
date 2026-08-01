@@ -196,6 +196,69 @@ fn test_newcommand() {
 }
 
 #[test]
+fn test_providecommand() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        // For a name which isn't taken, `\providecommand` behaves like `\newcommand`.
+        (
+            "providecommand_zero_args",
+            r"\providecommand{\zz}{\mathbb{Z}}x \in \zz",
+        ),
+        (
+            "providecommand_one_arg",
+            r"\providecommand{\bb}[1]{\mathbb{#1}}\bb{C}",
+        ),
+        (
+            "providecommand_unbraced_name",
+            r"\providecommand\half{\frac{1}{2}}\half",
+        ),
+        // If the name is taken, the existing definition wins and the new one is discarded.
+        (
+            "providecommand_existing_custom_cmd",
+            r"\newcommand{\zz}{\mathbb{Z}}\providecommand{\zz}{\mathbb{Q}}\zz",
+        ),
+        (
+            "providecommand_existing_builtin",
+            r"\providecommand{\frac}[2]{#1/#2}\frac{1}{2}",
+        ),
+        // A discarded definition doesn't stop a later `\newcommand` of the same name.
+        (
+            "providecommand_then_newcommand",
+            r"\providecommand{\alpha}{a}\newcommand{\zz}{\mathbb{Z}}\zz",
+        ),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+#[test]
+fn test_providecommand_with_config_macro() {
+    let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    // A macro from the configuration also counts as already defined.
+    let latex = r"\providecommand{\half}{\frac{1}{3}}\half";
+    let mathml = converter
+        .convert_with_local_state(latex, MathDisplay::Inline)
+        .unwrap();
+
+    assert_snapshot!("providecommand_existing_config_macro", mathml.mathml, latex);
+}
+
+#[test]
 fn test_newcommand_uses_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {

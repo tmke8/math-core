@@ -124,6 +124,20 @@ fn main() {
         ),
         ("newcommand_body_without_braces2", r"1.\newcommand\zzz#1"),
         ("newcommand_body_without_braces1", r"\newcommand\zzz#1"),
+        ("providecommand_without_command", r"\providecommand{x}{y}"),
+        (
+            "providecommand_as_argument",
+            r"\sqrt\providecommand{\zzz}{1}",
+        ),
+        // The body is parsed even when the definition is going to be discarded.
+        (
+            "providecommand_unknown_cmd_in_discarded_body",
+            r"\providecommand{\frac}{\asdf}",
+        ),
+        (
+            "providecommand_unclosed_discarded_body",
+            r"\providecommand{\frac}{1",
+        ),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),
