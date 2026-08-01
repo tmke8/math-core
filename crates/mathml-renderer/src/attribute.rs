@@ -159,6 +159,7 @@ bitflags! {
         const DOWN_DIAGONAL = 1 << 1;
         const BOX = 1 << 2;
         const ACTUARIAL = 1 << 3;
+        const PHASOR_ANGLE = 1 << 4;
     }
 }
 

@@ -753,6 +753,7 @@ fn main() {
         ("dots_frac", r"\frac{A \dots}{B\dots}"),
         ("boxed", r"\boxed{abc}"),
         ("angl", r"a_{\angl n} + a_\angln"),
+        ("phase", r"\phase{-78^\circ}"),
         (
             "big_braket",
             r"\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}",

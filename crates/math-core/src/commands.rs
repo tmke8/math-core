@@ -651,6 +651,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "partial" => Letter(SuperChar::from_char(symbol::PARTIAL_DIFFERENTIAL), Mode::Math),
     "perp" => Relation(symbol::PERPENDICULAR),
     "phantom" => Phantom(PhantomKind::Full),
+    "phase" => Enclose(Notation::PHASOR_ANGLE),
     "phi" => Letter(SuperChar::from_char(symbol::GREEK_PHI_SYMBOL), Mode::Math),
     "pi" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_PI), Mode::Math),
     "pitchfork" => Relation(symbol::PITCHFORK),
