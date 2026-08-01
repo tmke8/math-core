@@ -754,6 +754,15 @@ fn main() {
         ("boxed", r"\boxed{abc}"),
         ("angl", r"a_{\angl n} + a_\angln"),
         ("phase", r"\phase{-78^\circ}"),
+        ("pod", r"a \equiv b \pod{m}"),
+        (
+            "iddots",
+            r"\begin{matrix} a & \iddots \\ \ddots & b \end{matrix}",
+        ),
+        (
+            "nobreakspace",
+            r"a\nobreakspace b + \text{c\nobreakspace d}",
+        ),
         (
             "big_braket",
             r"\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}",
