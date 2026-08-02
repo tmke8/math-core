@@ -2147,6 +2147,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let name = self.tokens.lexer.resolve(name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
+            Token::MathChoiceInternal(_, choice) => {
+                let token = choice.select(self.state.style);
+                // FIXME: Use `become` here once it is stable.
+                return self.parse_token(Ok(TokSpan::new(token, span)), parse_as, prev_class);
+            }
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
                     let mut builder = self.buffer.get_builder();

@@ -624,6 +624,7 @@ fn main() {
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),
         ("mod", r"a \equiv r \mod n"),
+        ("mod_display_style", r"\displaystyle a \equiv r \mod n"),
         ("nested_custom_cmd", r"\ket{x\ket f} x"),
         ("and_between_letters", r"x\And x"),
         ("and_before_relation", r"x\And =x"),
@@ -755,6 +756,8 @@ fn main() {
         ("angl", r"a_{\angl n} + a_\angln"),
         ("phase", r"\phase{-78^\circ}"),
         ("pod", r"a \equiv b \pod{m}"),
+        ("pod_display_style", r"\displaystyle a \equiv b \pod{m}"),
+        ("pmod_script_style", r"x^{a \equiv b \pmod{m}}"),
         (
             "iddots",
             r"\begin{matrix} a & \iddots \\ \ddots & b \end{matrix}",

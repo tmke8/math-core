@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\displaystyle a \\equiv r \\mod n"
+---
+<math>
+    <mrow displaystyle="true" scriptlevel="0">
+        <mi>a</mi>
+        <mo>≡</mo>
+        <mi>r</mi>
+        <mspace width="1em"/>
+        <mrow><mspace/><mi>mod</mi></mrow>
+        <mspace width="0.33333334em"/>
+        <mi>n</mi>
+    </mrow>
+</math>

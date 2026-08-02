@@ -224,6 +224,40 @@ pub enum Token {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+    /// This token is intended to be used in predefined token streams.
+    /// It is a restricted version of LaTeX's `\mathchoice`: it expands to one of the four
+    /// tokens in the [`MathChoice`], depending on the style which is current where the token
+    /// appears. The restrictions are that every alternative consists of a *single* token, and
+    /// that all four alternatives must have the same character class, because the class has to
+    /// be known before the style is (see [`Token::class`]). That class is stored alongside;
+    /// a debug assertion checks that it agrees with the alternatives.
+    MathChoiceInternal(Option<Class>, &'static MathChoice),
+}
+
+/// The four alternatives of a [`Token::MathChoiceInternal`], one for each style.
+#[derive(Debug, PartialEq)]
+pub struct MathChoice {
+    pub display: Token,
+    pub text: Token,
+    pub script: Token,
+    pub scriptscript: Token,
+}
+
+impl MathChoice {
+    /// The alternative which applies in the given style.
+    pub const fn select(&self, style: Style) -> Token {
+        match style {
+            Style::Display => self.display,
+            Style::Text => self.text,
+            Style::Script => self.script,
+            Style::ScriptScript => self.scriptscript,
+        }
+    }
+
+    /// All four alternatives, for checking that they agree with each other.
+    fn all(&self) -> [Token; 4] {
+        [self.display, self.text, self.script, self.scriptscript]
+    }
 }
 
 /// How a command definition deals with a name which is already defined.
@@ -514,6 +548,13 @@ impl Token {
                 MathClassKind::Inner => Class::Inner,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
+            MathChoiceInternal(class, choice) => {
+                debug_assert!(
+                    choice.all().iter().all(|tok| tok.class() == *class),
+                    "all alternatives of a `MathChoice` must have the class stored in the token",
+                );
+                *class
+            }
             // We cannot look into the store here, so the class was computed when the
             // command was defined.
             CustomCmdRef(_, _, class, _, _) => *class,

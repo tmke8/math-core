@@ -4,7 +4,7 @@ expression: "\\pmod{3}_4"
 ---
 [
   Space(Length(
-    value: 1.0,
+    value: 0.44444445,
     unit: Em,
   )),
   Operator(
