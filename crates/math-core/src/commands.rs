@@ -696,6 +696,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "rceil" => Close(symbol::RIGHT_CEILING),
     "real" => Letter(SuperChar::from_char(symbol::BLACK_LETTER_CAPITAL_R), Mode::Math),
     "reals" => Letter(SuperChar::from_char(symbol::DOUBLE_STRUCK_CAPITAL_R), Mode::Math),
+    "relax" => Relax,
     "renewcommand" => NewCommand(DefineMode::Renew),
     "restriction" => Relation(symbol::UPWARDS_HARPOON_WITH_BARB_RIGHTWARDS),
     "rfloor" => Close(symbol::RIGHT_FLOOR),

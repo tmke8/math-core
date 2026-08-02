@@ -181,6 +181,42 @@ fn test_newcommand() {
             "newcommand_nested_cmd_in_body",
             r"\newcommand{\br}[1]{[#1]}\newcommand{\dbr}[1]{\br{\br{#1}}}\dbr{z}",
         ),
+        // A command which takes an argument, followed by a reference to the argument of the
+        // command being expanded. The inner command must not consume the outer argument.
+        (
+            "newcommand_arg_after_nested_cmd",
+            r"\newcommand{\zoo}[1]{\ket{a}#1}\zoo{b}",
+        ),
+        // The same, but with the argument reference inside the nested command as well, and
+        // with the two arguments in the opposite order.
+        (
+            "newcommand_arg_in_and_after_nested_cmd",
+            r"\newcommand{\zoo}[2]{\ket{#2}#1}\zoo{b}{c}",
+        ),
+        // A predefined command which takes an argument, in the same position.
+        (
+            "newcommand_arg_after_predefined_cmd",
+            r"\newcommand{\zoo}[1]{\pod{a}#1}\zoo{b}",
+        ),
+        // `\text` rejects anything that isn't a text-mode token, so an argument reference
+        // inside it only works because the argument is substituted before `\text` sees it.
+        (
+            "newcommand_arg_in_text",
+            r"\newcommand{\txt}[1]{\text{a#1b}}\txt{xy}",
+        ),
+        // A body which is empty expands to `\relax`, and must not swallow what comes after
+        // it. The `\relax` still shows up as an empty row here, because the first token of
+        // an expansion goes through `parse_token` rather than through the sequence handling
+        // which drops a `\relax`.
+        ("newcommand_empty_body", r"\newcommand{\nop}{}a\nop b"),
+        // The same command as an argument, where it has to produce an empty group.
+        ("newcommand_empty_body_as_arg", r"\newcommand{\nop}{}x^\nop"),
+        // An empty argument is equivalent to `{}`, so it still counts as an argument for the
+        // construct it is substituted into.
+        (
+            "newcommand_empty_arg_as_group",
+            r"\newcommand{\p}[1]{x^#1}\p{}",
+        ),
         // The class of the body determines the spacing, as it does for config macros.
         ("newcommand_spacing", r"\newcommand{\eq}{=}x + \eq 3"),
         (

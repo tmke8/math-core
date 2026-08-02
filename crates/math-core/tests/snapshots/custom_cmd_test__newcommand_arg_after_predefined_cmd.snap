@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zoo}[1]{\\pod{a}#1}\\zoo{b}"
+---
+<math>
+    <mspace width="0.44444445em"/>
+    <mo stretchy="false">(</mo>
+    <mi>a</mi>
+    <mo stretchy="false">)</mo>
+    <mi>b</mi>
+</math>

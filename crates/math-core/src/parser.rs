@@ -35,7 +35,7 @@ use crate::{
         DefineMode, EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind,
         PrimeDirection, PrimeKind, Span, TokSpan, Token, UnitKind, VerticalLineDef,
     },
-    token_queue::{MacroArgument, OneOrNone, TokenQueue},
+    token_queue::{CmdArgs, MacroArgument, OneOrNone, TokenQueue},
 };
 
 const FULL_STOP_TOKEN: Token = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
@@ -49,12 +49,9 @@ pub(crate) struct Parser<'state, 'arena> {
 
 #[derive(Debug)]
 struct ParserState<'arena> {
-    cmd_args: Vec<TokSpan>,
-    /// A buffer for reading the arguments of a custom command, which we cannot read directly
-    /// into `cmd_args` because the old arguments are still needed at that point. It is kept
-    /// around so that the two buffers can be reused for the whole parse.
-    cmd_args_scratch: Vec<TokSpan>,
-    cmd_arg_offsets: [usize; 9],
+    /// The arguments of the custom command which is being expanded right now. They are only
+    /// needed until the body has been queued, so this is really just a reusable buffer.
+    cmd_args: CmdArgs,
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a sequence are not real boundaries;
     /// this is not the case for style-only rows.
@@ -138,9 +135,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             buffer: Buffer::new(input_length),
             arena,
             state: ParserState {
-                cmd_args: Vec::new(),
-                cmd_args_scratch: Vec::new(),
-                cmd_arg_offsets: [0; 9],
+                cmd_args: CmdArgs::default(),
                 transform: None,
                 right_boundary_hack: false,
                 env: EnvState::default(),
@@ -316,6 +311,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Err(LatexError(span, LatexErrKind::MoreThanOneInfixCmd))
                 }
             }
+            // In a sequence, `\relax` really does produce nothing at all. In an argument it
+            // has to produce an empty group instead; see `parse_token`.
+            Token::Relax => Ok(()),
             Token::TransformSwitch(tf) => {
                 self.state.transform = Some(tf);
                 Ok(())
@@ -2107,15 +2105,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::CustomCmd(num_args, token_stream) => {
-                self.record_cmd_args(num_args)?;
-                self.tokens.queue_in_front(token_stream);
+                self.read_cmd_args(num_args)?;
+                self.tokens
+                    .queue_body_substituting(token_stream, &self.state.cmd_args, span);
                 let token = self.next_token();
                 // FIXME: Use `become` here once it is stable.
                 return self.parse_token(token, parse_as, prev_class);
             }
             Token::CustomCmdRef(source, num_args, _, start, end) => {
-                self.record_cmd_args(num_args)?;
-                if !self.tokens.queue_cmd_body(source, start, end) {
+                self.read_cmd_args(num_args)?;
+                if !self
+                    .tokens
+                    .queue_cmd_body(source, start, end, &self.state.cmd_args, span)
+                {
                     return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
                 }
                 let token = self.next_token();
@@ -2126,21 +2128,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 span.into(),
                 LatexErrKind::MacroParameterOutsideCustomCommand,
             )),
-            Token::CustomCmdArg(arg_num) => {
-                let arg = self.state.cmd_arg_slice(arg_num);
-                if arg.is_empty() {
-                    // An empty argument expands to nothing, which is equivalent to `{}`.
-                    // We must not fetch the next token here, because that token belongs
-                    // to the token stream of the custom command, not to the argument.
-                    Ok(Node::Row {
-                        nodes: &[],
-                        attrs: RowAttrs::DEFAULT,
-                    })
-                } else {
-                    self.tokens.queue_in_front(arg);
-                    let token = self.next_token();
-                    return self.parse_token(token, parse_as, prev_class);
-                }
+            // `\relax` produces no output, but it still has to produce a *node*, because it
+            // may stand where a construct needs an argument: `x^\relax`, or `x^\nop` for a
+            // command with an empty body. An empty row is what an empty argument produces
+            // too, and MathML elements like `msup` need their children either way.
+            // A `\relax` which is in a sequence rather than in an argument never gets here;
+            // `handle_tokens_without_output` drops it before that.
+            Token::Relax => Ok(Node::Row {
+                nodes: &[],
+                attrs: RowAttrs::DEFAULT,
+            }),
+            // The arguments of a custom command are substituted into its body when the body
+            // is queued, so this token never reaches the parser.
+            Token::CustomCmdArg(_) => {
+                debug_assert!(false, "`CustomCmdArg` should have been substituted");
+                Err(LatexError(span.into(), LatexErrKind::Internal))
             }
             Token::UnknownCommand(name) => {
                 // The name lives in the lexer's string pool, so we have to copy it out.
@@ -2154,48 +2156,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Style::Script => 2,
                     Style::ScriptScript => 3,
                 };
-                // Read all four arguments, but keep only the chosen one. Because every
-                // argument we don't want is truncated away again, what remains at the end is
-                // exactly the chosen one. We deliberately don't go through `record_cmd_args`
-                // here, so that an argument can still refer to the arguments of a custom
-                // command that we may be in the middle of expanding.
-                let mut arg = Vec::new();
-                for arg_num in 0..4 {
-                    let start = arg.len();
-                    let tokspan = self.next_token()?;
-                    match tokspan.token() {
-                        Token::GroupBegin => {
-                            self.tokens.record_group(&mut arg, true)?;
-                        }
-                        // Throwing the unwanted arguments away again would hide a missing
-                        // one, so we have to check for the end of the input ourselves.
-                        Token::Eoi => {
-                            return Err(Box::new(LatexError(
-                                tokspan.span().into(),
-                                LatexErrKind::ExpectedArgumentGotEOI,
-                            )));
-                        }
-                        // An argument which isn't a group consists of a single token.
-                        _ => arg.push(tokspan),
-                    }
-                    if arg_num != chosen {
-                        arg.truncate(start);
-                    }
-                }
-                if arg.is_empty() {
-                    // An empty argument expands to nothing, which is equivalent to `{}`.
-                    // We must not fetch the next token here, because that token comes after
-                    // the entire `\mathchoice`.
-                    Ok(Node::Row {
-                        nodes: &[],
-                        attrs: RowAttrs::DEFAULT,
-                    })
-                } else {
-                    self.tokens.queue_in_front(&arg);
-                    let token = self.next_token();
-                    // FIXME: Use `become` here once it is stable.
-                    return self.parse_token(token, parse_as, prev_class);
-                }
+                // All four alternatives are read, but only the chosen one is queued; the
+                // others are not typeset at all, unlike in LaTeX.
+                self.read_cmd_args(4)?;
+                self.tokens
+                    .queue_arg_in_front(self.state.cmd_args.get(chosen), span);
+                let token = self.next_token();
+                // FIXME: Use `become` here once it is stable.
+                return self.parse_token(token, parse_as, prev_class);
             }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
@@ -2411,62 +2379,30 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(())
     }
 
-    /// Read the arguments of a custom command into `cmd_args`, ready for `CustomCmdArg` to
-    /// substitute them into the body.
-    fn record_cmd_args(&mut self, num_args: u8) -> ParseResult<()> {
-        if num_args == 0 {
-            // Zero-argument token streams can be used within non-zero-argument ones, so we
-            // have to leave the arguments of the enclosing command alone.
-            return Ok(());
-        }
-        // Read the arguments into the scratch buffer rather than directly into `cmd_args`,
-        // because an argument may refer to the arguments of the command that we are in the
-        // middle of expanding, and those are what we are about to replace.
-        let mut scratch = mem::take(&mut self.state.cmd_args_scratch);
-        scratch.clear();
-        let mut offsets = [0usize; 9];
+    /// Read the arguments of a custom command, ready to be substituted into its body.
+    ///
+    /// The arguments are read as raw token streams; nothing in them is expanded here. They
+    /// are only needed until the body has been queued, so they go straight into the one
+    /// buffer, overwriting the arguments of whichever command was expanded before.
+    fn read_cmd_args(&mut self, num_args: u8) -> ParseResult<()> {
+        self.state.cmd_args.clear();
         for arg_num in 0..num_args {
-            let tokloc = self.next_token()?;
-            if matches!(tokloc.token(), Token::GroupBegin) {
-                self.tokens.record_group(&mut scratch, true)?;
-            } else {
-                scratch.push(tokloc);
-            }
-            if let Some(offset) = offsets.get_mut(arg_num as usize) {
-                *offset = scratch.len();
-            }
-        }
-
-        if scratch
-            .iter()
-            .any(|tokloc| matches!(tokloc.token(), Token::CustomCmdArg(_)))
-        {
-            // Substitute the arguments of the enclosing command now. If we left that to the
-            // usual expansion of `CustomCmdArg`, it would look the argument up in the very
-            // arguments we are replacing, and expand to itself forever.
-            let mut args = Vec::with_capacity(scratch.len());
-            let mut subst_offsets = [0usize; 9];
-            let mut start = 0;
-            for (arg_num, &end) in offsets.iter().enumerate().take(num_args as usize) {
-                for tokloc in scratch.get(start..end).unwrap_or(&[]) {
-                    if let Token::CustomCmdArg(outer_num) = *tokloc.token() {
-                        args.extend_from_slice(self.state.cmd_arg_slice(outer_num));
-                    } else {
-                        args.push(*tokloc);
-                    }
+            let tokspan = self.next_token()?;
+            match tokspan.token() {
+                Token::GroupBegin => {
+                    self.tokens
+                        .record_group(self.state.cmd_args.buffer(), true)?;
                 }
-                start = end;
-                if let Some(offset) = subst_offsets.get_mut(arg_num) {
-                    *offset = args.len();
+                Token::Eoi => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::ExpectedArgumentGotEOI,
+                    )));
                 }
+                // An argument which isn't a group consists of a single token.
+                _ => self.state.cmd_args.push(tokspan),
             }
-            self.state.cmd_args_scratch = scratch;
-            self.state.cmd_args = args;
-            self.state.cmd_arg_offsets = subst_offsets;
-        } else {
-            // Nothing to substitute, so the two buffers can simply change places.
-            self.state.cmd_args_scratch = mem::replace(&mut self.state.cmd_args, scratch);
-            self.state.cmd_arg_offsets = offsets;
+            self.state.cmd_args.finish_arg(arg_num);
         }
         Ok(())
     }
@@ -2936,42 +2872,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
         };
         let mut builder = self.buffer.get_builder();
-        let mut token_iter = tokens.into_iter();
-        let mut custom_arg_iter: Option<core::slice::Iter<TokSpan>> = None;
-        loop {
-            let tokloc = if let Some(iter) = &mut custom_arg_iter {
-                if let Some(&tokloc) = iter.next() {
-                    tokloc
-                } else {
-                    // Finished reading the custom command argument.
-                    custom_arg_iter = None;
-                    continue;
-                }
-            } else if let Some(tokloc) = token_iter.next() {
-                tokloc
-            } else {
-                break;
-            };
-            let (tok, span) = tokloc.into_parts();
-            if let Token::CustomCmdArg(arg_num) = tok {
-                // Queue the custom command argument tokens.
-                let start = self
-                    .state
-                    .cmd_arg_offsets
-                    .get(arg_num.wrapping_sub(1) as usize)
-                    .copied()
-                    .unwrap_or(0);
-                let end = self
-                    .state
-                    .cmd_arg_offsets
-                    .get(arg_num as usize)
-                    .copied()
-                    .unwrap_or(self.state.cmd_args.len());
-                if let Some(arg) = self.state.cmd_args.get(start..end) {
-                    custom_arg_iter = Some(arg.iter());
-                }
-                continue;
-            }
+        // The tokens come out of the queue, so any custom command among them has already
+        // been expanded, arguments and all.
+        for tokspan in tokens {
+            let (tok, span) = tokspan.into_parts();
             let Some(ch) = recover_limited_ascii(tok) else {
                 return Err(Box::new(LatexError(
                     span.into(),
@@ -3012,21 +2916,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 }
 
 impl ParserState<'_> {
-    /// The tokens which make up the given argument of the command currently being expanded.
-    fn cmd_arg_slice(&self, arg_num: u8) -> &[TokSpan] {
-        let start = self
-            .cmd_arg_offsets
-            .get(arg_num.wrapping_sub(1) as usize)
-            .copied()
-            .unwrap_or(0);
-        let end = self
-            .cmd_arg_offsets
-            .get(arg_num as usize)
-            .copied()
-            .unwrap_or(self.cmd_args.len());
-        self.cmd_args.get(start..end).unwrap_or(&[])
-    }
-
     fn relation_spacing(
         &self,
         prev_class: Class,

@@ -174,10 +174,15 @@ pub static BIG_SET: [Token; 9] = [
 ];
 
 /// `\textcolor{...}{...}`, which is `{\color{#1}#2}`.
-pub static TEXTCOLOR: [Token; 5] = [
+///
+/// The braces around the first argument matter: `\color` reads the color name as a string
+/// literal, so the argument has to be a group, just as it is in the LaTeX definition.
+pub static TEXTCOLOR: [Token; 7] = [
     GroupBegin,
     Color,
+    GroupBegin,
     CustomCmdArg(0),
+    GroupEnd,
     CustomCmdArg(1),
     GroupEnd,
 ];

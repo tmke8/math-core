@@ -758,8 +758,16 @@ fn main() {
         ("pod", r"a \equiv b \pod{m}"),
         ("pod_display_style", r"\displaystyle a \equiv b \pod{m}"),
         ("pmod_script_style", r"x^{a \equiv b \pmod{m}}"),
+        // In a sequence, `\relax` produces nothing at all; as an argument it has to produce
+        // an empty group, because the construct around it needs a child either way.
+        ("relax", r"a\relax b"),
+        ("relax_as_argument", r"x^\relax"),
+        ("relax_between_relation_and_operand", r"x =\relax y"),
         ("mathchoice", r"\mathchoice{D}{T}{S}{SS}"),
-        ("mathchoice_display_style", r"\displaystyle\mathchoice{D}{T}{S}{SS}"),
+        (
+            "mathchoice_display_style",
+            r"\displaystyle\mathchoice{D}{T}{S}{SS}",
+        ),
         (
             "mathchoice_script_styles",
             r"x^{\mathchoice{D}{T}{S}{SS}} x^{x^{\mathchoice{D}{T}{S}{SS}}}",
@@ -769,7 +777,10 @@ fn main() {
         // An empty alternative is legal and expands to nothing.
         ("mathchoice_empty", r"a\mathchoice{}{}{}{}b"),
         // The alternatives which don't apply are not typeset at all.
-        ("mathchoice_unused_arg_not_typeset", r"\mathchoice{\frac}{x}{y}{z}"),
+        (
+            "mathchoice_unused_arg_not_typeset",
+            r"\mathchoice{\frac}{x}{y}{z}",
+        ),
         (
             "iddots",
             r"\begin{matrix} a & \iddots \\ \ddots & b \end{matrix}",

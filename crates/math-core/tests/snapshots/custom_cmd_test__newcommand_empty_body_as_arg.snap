@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\nop}{}x^\\nop"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mrow></mrow>
+    </msup>
+</math>

@@ -224,6 +224,10 @@ pub enum Token {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+    /// `\relax`, which does nothing at all: it produces no output and doesn't touch any of
+    /// the parser state. Besides the command itself, this is what a custom command with an
+    /// empty body expands to, so that such a command still has a token to expand to.
+    Relax,
     /// `\mathchoice{display}{text}{script}{scriptscript}`, which expands to whichever of its
     /// four arguments matches the style which is current where the command appears.
     /// Unlike in LaTeX, the three other arguments are not typeset at all.
@@ -565,6 +569,7 @@ impl Token {
             // The class of `\mathchoice` would be the class of one of its arguments, which we
             // can't look at from here, so it has no class of its own either.
             MathChoice
+            | Relax
             | Whitespace
             | Space(_)
             | Overlay(_)

@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zoo}[1]{\\ket{a}#1}\\zoo{b}"
+---
+<math>
+    <mo stretchy="false" form="prefix">|</mo>
+    <mi>a</mi>
+    <mo stretchy="false">⟩</mo>
+    <mi>b</mi>
+</math>
