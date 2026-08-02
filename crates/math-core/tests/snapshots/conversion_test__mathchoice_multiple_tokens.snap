@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathchoice{ab}{cd}{ef}{gh}"
+---
+<math>
+    <mi>c</mi>
+    <mi>d</mi>
+</math>

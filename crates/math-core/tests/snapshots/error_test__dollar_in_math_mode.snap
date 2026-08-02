@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: a$b
+---
+Error: Unexpected "$".
+   ╭─[ <input>:1:2 ]
+   │
+ 1 │ a$b
+   │  ┬  
+   │  ╰── unexpected dollar sign
+───╯

@@ -58,6 +58,11 @@ pub enum Token {
     GroupBegin,
     /// The character `}`.
     GroupEnd,
+    /// The character `$`, which in LaTeX switches between math mode and text mode. We don't
+    /// support that yet, so this token is always an error; it only exists to say so with a
+    /// better message than "unknown character". The escaped `\$`, which is a literal dollar
+    /// sign rather than a mode switch, is a [`Token::Letter`] and stays valid.
+    Dollar,
     /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
@@ -224,6 +229,48 @@ pub enum Token {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+    /// `\relax`, which does nothing at all: it produces no output and doesn't touch any of
+    /// the parser state. Besides the command itself, this is what a custom command with an
+    /// empty body expands to, so that such a command still has a token to expand to.
+    Relax,
+    /// `\mathchoice{display}{text}{script}{scriptscript}`, which expands to whichever of its
+    /// four arguments matches the style which is current where the command appears.
+    /// Unlike in LaTeX, the three other arguments are not typeset at all.
+    MathChoice,
+    /// This token is intended to be used in predefined token streams.
+    /// It is a restricted version of LaTeX's `\mathchoice`: it expands to one of the four
+    /// tokens in the [`MathChoice`], depending on the style which is current where the token
+    /// appears. The restrictions are that every alternative consists of a *single* token, and
+    /// that all four alternatives must have the same character class, because the class has to
+    /// be known before the style is (see [`Token::class`]). That class is stored alongside;
+    /// a debug assertion checks that it agrees with the alternatives.
+    MathChoiceInternal(Option<Class>, &'static MathChoice),
+}
+
+/// The four alternatives of a [`Token::MathChoiceInternal`], one for each style.
+#[derive(Debug, PartialEq)]
+pub struct MathChoice {
+    pub display: Token,
+    pub text: Token,
+    pub script: Token,
+    pub scriptscript: Token,
+}
+
+impl MathChoice {
+    /// The alternative which applies in the given style.
+    pub const fn select(&self, style: Style) -> Token {
+        match style {
+            Style::Display => self.display,
+            Style::Text => self.text,
+            Style::Script => self.script,
+            Style::ScriptScript => self.scriptscript,
+        }
+    }
+
+    /// All four alternatives, for checking that they agree with each other.
+    fn all(&self) -> [Token; 4] {
+        [self.display, self.text, self.script, self.scriptscript]
+    }
 }
 
 /// How a command definition deals with a name which is already defined.
@@ -514,10 +561,21 @@ impl Token {
                 MathClassKind::Inner => Class::Inner,
             }),
             CustomCmd(_, toks) => toks.iter().find_map(Token::class),
+            MathChoiceInternal(class, choice) => {
+                debug_assert!(
+                    choice.all().iter().all(|tok| tok.class() == *class),
+                    "all alternatives of a `MathChoice` must have the class stored in the token",
+                );
+                *class
+            }
             // We cannot look into the store here, so the class was computed when the
             // command was defined.
             CustomCmdRef(_, _, class, _, _) => *class,
-            Whitespace
+            // The class of `\mathchoice` would be the class of one of its arguments, which we
+            // can't look at from here, so it has no class of its own either.
+            MathChoice
+            | Relax
+            | Whitespace
             | Space(_)
             | Overlay(_)
             | TransformSwitch(_)
@@ -564,6 +622,9 @@ impl Token {
             | UnknownCommand(_)
             | InternalStringLiteral(_)
             | ForceOrd(_)
+            // `Dollar` is always an error, so its class is never really used; a dollar sign
+            // would be an ordinary atom if we did support it.
+            | Dollar
             | Accent(_, _, _) => Some(Class::Default),
         }
     }

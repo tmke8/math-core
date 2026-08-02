@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\relax b"
+---
+<math>
+    <mi>a</mi>
+    <mi>b</mi>
+</math>

@@ -624,6 +624,7 @@ fn main() {
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),
         ("mod", r"a \equiv r \mod n"),
+        ("mod_display_style", r"\displaystyle a \equiv r \mod n"),
         ("nested_custom_cmd", r"\ket{x\ket f} x"),
         ("and_between_letters", r"x\And x"),
         ("and_before_relation", r"x\And =x"),
@@ -752,9 +753,38 @@ fn main() {
         ("dots_implicit_trail", r"A B \dots"),
         ("dots_frac", r"\frac{A \dots}{B\dots}"),
         ("boxed", r"\boxed{abc}"),
+        // Unlike `\boxed`, the content of an `\fbox` is text, so spaces are kept.
+        ("fbox", r"\fbox{a b}"),
+        ("fbox_single_token_arg", r"x + \fbox x"),
+        ("fbox_empty_arg", r"\fbox{}"),
         ("angl", r"a_{\angl n} + a_\angln"),
         ("phase", r"\phase{-78^\circ}"),
         ("pod", r"a \equiv b \pod{m}"),
+        ("pod_display_style", r"\displaystyle a \equiv b \pod{m}"),
+        ("pmod_script_style", r"x^{a \equiv b \pmod{m}}"),
+        // In a sequence, `\relax` produces nothing at all; as an argument it has to produce
+        // an empty group, because the construct around it needs a child either way.
+        ("relax", r"a\relax b"),
+        ("relax_as_argument", r"x^\relax"),
+        ("relax_between_relation_and_operand", r"x =\relax y"),
+        ("mathchoice", r"\mathchoice{D}{T}{S}{SS}"),
+        (
+            "mathchoice_display_style",
+            r"\displaystyle\mathchoice{D}{T}{S}{SS}",
+        ),
+        (
+            "mathchoice_script_styles",
+            r"x^{\mathchoice{D}{T}{S}{SS}} x^{x^{\mathchoice{D}{T}{S}{SS}}}",
+        ),
+        // Each alternative may consist of more than one token.
+        ("mathchoice_multiple_tokens", r"\mathchoice{ab}{cd}{ef}{gh}"),
+        // An empty alternative is legal and expands to nothing.
+        ("mathchoice_empty", r"a\mathchoice{}{}{}{}b"),
+        // The alternatives which don't apply are not typeset at all.
+        (
+            "mathchoice_unused_arg_not_typeset",
+            r"\mathchoice{\frac}{x}{y}{z}",
+        ),
         (
             "iddots",
             r"\begin{matrix} a & \iddots \\ \ddots & b \end{matrix}",

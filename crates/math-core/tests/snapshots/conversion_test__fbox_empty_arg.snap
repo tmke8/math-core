@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\fbox{}"
+---
+<math>
+    <menclose notation="box">
+        <mrow></mrow>
+    </menclose>
+</math>

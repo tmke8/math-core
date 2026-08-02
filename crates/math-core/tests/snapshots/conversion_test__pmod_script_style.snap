@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x^{a \\equiv b \\pmod{m}}"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mrow>
+            <mi>a</mi>
+            <mo lspace="0" rspace="0">≡</mo>
+            <mi>b</mi>
+            <mspace width="0.44444445em"/>
+            <mo stretchy="false">(</mo>
+            <mrow><mspace/><mi>mod</mi></mrow>
+            <mspace width="0.33333334em"/>
+            <mi>m</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </msup>
+</math>

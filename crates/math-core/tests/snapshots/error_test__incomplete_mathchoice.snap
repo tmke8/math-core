@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\mathchoice{a}{b}"
+---
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:18 ]
+   │
+ 1 │ \mathchoice{a}{b}
+   │                  │ 
+   │                  ╰─ expected an argument here
+───╯

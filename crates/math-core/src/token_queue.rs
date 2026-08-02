@@ -280,22 +280,101 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         for tok in tokens.iter().rev() {
             self.queue.push_front((*tok).into());
         }
+        self.update_next_non_whitespace();
+    }
 
-        // Update the next_non_whitespace position.
+    /// Update the `next_non_whitespace` position after tokens have been queued in front.
+    fn update_next_non_whitespace(&mut self) {
         if let Some(pos) = self.find_next_non_whitespace() {
             self.next_non_whitespace = pos;
         } else {
             // There is only one scenario in which we wouldn't find a non-whitespace token:
             // We reached EOI previously and all queued tokens are whitespace.
-            debug_assert!(self.lexer_is_eoi, "queue_in_front called without ensure");
+            debug_assert!(self.lexer_is_eoi, "queued in front without ensure");
             self.next_non_whitespace = self.queue.len();
         }
     }
 
-    /// Queue the body of a custom command in the front of the buffer.
+    /// Queue the body of a custom command in the front of the buffer, substituting the
+    /// arguments of the command for the [`Token::CustomCmdArg`] tokens in it.
+    ///
+    /// The substitution happens here, when the body is queued, rather than when the parser
+    /// gets to the argument tokens. Doing it eagerly means that no `CustomCmdArg` is ever
+    /// queued, so the arguments are no longer needed once this returns. That is what makes it
+    /// possible for the body of a command to contain another command which takes arguments of
+    /// its own: there is no longer a "currently expanding command" whose arguments the inner
+    /// command could overwrite.
+    ///
+    /// The `span` of the command being expanded is used for the tokens which are inserted
+    /// for something that isn't there: the braces of an empty argument, and the `\relax` of
+    /// an empty body.
+    ///
+    /// Always queues at least one token, so that the caller can parse the expansion by
+    /// simply taking the next token.
+    pub(super) fn queue_body_substituting(
+        &mut self,
+        tokens: &[impl Into<TokSpan> + Copy],
+        args: &CmdArgs,
+        span: Span,
+    ) {
+        if tokens.is_empty() {
+            // A body which is empty produces nothing at all, but we still have to queue
+            // something: without it, the caller would take the token which comes after the
+            // command and treat that as the expansion.
+            self.queue.push_front(TokSpan::new(Token::Relax, span));
+            self.update_next_non_whitespace();
+            return;
+        }
+        self.queue.reserve(tokens.len());
+        // Queue the token stream in the front in reverse order.
+        for tok in tokens.iter().rev() {
+            let tokspan: TokSpan = (*tok).into();
+            if let Token::CustomCmdArg(arg_num) = *tokspan.token() {
+                self.push_arg_front(args.get(arg_num), span);
+            } else {
+                self.queue.push_front(tokspan);
+            }
+        }
+        self.update_next_non_whitespace();
+    }
+
+    /// Queue the tokens of one argument of a custom command in the front of the buffer.
+    ///
+    /// An argument with no tokens is queued as an empty group, because an empty argument is
+    /// equivalent to `{}`. Substituting nothing at all would make it disappear from
+    /// constructs which need an argument, which would then take whatever comes next instead.
+    /// The `span` is only used for the braces of that empty group.
+    fn push_arg_front(&mut self, arg: &[TokSpan], span: Span) {
+        if arg.is_empty() {
+            self.queue.push_front(TokSpan::new(Token::GroupEnd, span));
+            self.queue.push_front(TokSpan::new(Token::GroupBegin, span));
+        } else {
+            for tokspan in arg.iter().rev() {
+                self.queue.push_front(*tokspan);
+            }
+        }
+    }
+
+    /// Queue one argument of a custom command in the front of the buffer, as
+    /// [`Self::push_arg_front`] does. Always queues at least one token.
+    pub(super) fn queue_arg_in_front(&mut self, arg: &[TokSpan], span: Span) {
+        self.queue.reserve(arg.len());
+        self.push_arg_front(arg, span);
+        self.update_next_non_whitespace();
+    }
+
+    /// Queue the body of a custom command which is kept in one of the stores, substituting
+    /// its arguments as [`Self::queue_body_substituting`] does.
     ///
     /// Returns `false` if the given range doesn't exist, which should never happen.
-    pub(super) fn queue_cmd_body(&mut self, source: CmdSource, start: usize, end: usize) -> bool {
+    pub(super) fn queue_cmd_body(
+        &mut self,
+        source: CmdSource,
+        start: usize,
+        end: usize,
+        args: &CmdArgs,
+        span: Span,
+    ) -> bool {
         match source {
             CmdSource::Config => {
                 // The reference to the config is `Copy`, so getting it out of the lexer
@@ -303,25 +382,23 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 let Some(body) = self.lexer.parser_cfg().custom_cmd_body(start, end) else {
                     return false;
                 };
-                self.queue_in_front(body);
+                self.queue_body_substituting(body, args, span);
+                true
             }
             CmdSource::Document => {
                 // The store lives in the lexer, which is part of `self`, so we take it out
                 // for the duration of the push and then put it back.
                 let cmds = core::mem::take(&mut self.lexer.global_state.custom_cmds);
                 let found = if let Some(body) = cmds.body(start, end) {
-                    self.queue_in_front(body);
+                    self.queue_body_substituting(body, args, span);
                     true
                 } else {
                     false
                 };
                 self.lexer.global_state.custom_cmds = cmds;
-                if !found {
-                    return false;
-                }
+                found
             }
         }
-        true
     }
 
     /// Resolve buffered tokens for commands which have been defined in the meantime.
@@ -483,6 +560,58 @@ fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {
 
 fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
     tok.class().map(|class| (idx, class))
+}
+
+/// The arguments of the custom command which is currently being expanded.
+///
+/// The tokens of all arguments are kept in one flat vector; `offsets[i]` is where the
+/// argument with index `i` ends. The buffer is reused for the whole parse, and it is only
+/// alive for as long as it takes to queue the body of the command: because the arguments are
+/// substituted into the body right away, nothing refers to them afterwards.
+#[derive(Debug, Default)]
+pub(super) struct CmdArgs {
+    tokens: Vec<TokSpan>,
+    offsets: [usize; 9],
+}
+
+impl CmdArgs {
+    /// The tokens which make up the given argument.
+    pub(super) fn get(&self, arg_num: u8) -> &[TokSpan] {
+        let start = self
+            .offsets
+            .get(arg_num.wrapping_sub(1) as usize)
+            .copied()
+            .unwrap_or(0);
+        let end = self
+            .offsets
+            .get(arg_num as usize)
+            .copied()
+            .unwrap_or(self.tokens.len());
+        self.tokens.get(start..end).unwrap_or(&[])
+    }
+
+    /// Forget the arguments of the command which was expanded before this one.
+    pub(super) fn clear(&mut self) {
+        self.tokens.clear();
+        self.offsets = [0; 9];
+    }
+
+    /// Append a token to the argument which is currently being read.
+    pub(super) fn push(&mut self, tokspan: TokSpan) {
+        self.tokens.push(tokspan);
+    }
+
+    /// Mark the end of the argument with the given index.
+    pub(super) fn finish_arg(&mut self, arg_num: u8) {
+        if let Some(offset) = self.offsets.get_mut(arg_num as usize) {
+            *offset = self.tokens.len();
+        }
+    }
+
+    /// The buffer to read the tokens of an argument into.
+    pub(super) fn buffer(&mut self) -> &mut Vec<TokSpan> {
+        &mut self.tokens
+    }
 }
 
 /// A macro argument, which is either a single token or a group of tokens.

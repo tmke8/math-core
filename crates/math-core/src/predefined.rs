@@ -1,5 +1,6 @@
 use mathml_renderer::{attribute::Notation, super_char::SuperChar, symbol};
 
+use crate::token::MathChoice;
 use crate::token::Token::{self, *};
 use crate::token::VerticalLineDef as VLDef;
 use crate::{character_class::MathVariant, token::PhantomKind};
@@ -62,22 +63,39 @@ pub static BMOD: [Token; 4] = [
     Space(LatexUnit::Mu.length_with_unit(4.0)),
 ];
 
+/// The space in front of `\mod`: `\mkern18mu` in display style and `\mkern12mu` otherwise.
+static MOD_SPACE: MathChoice = MathChoice {
+    display: Space(LatexUnit::Mu.length_with_unit(18.0)),
+    text: Space(LatexUnit::Mu.length_with_unit(12.0)),
+    script: Space(LatexUnit::Mu.length_with_unit(12.0)),
+    scriptscript: Space(LatexUnit::Mu.length_with_unit(12.0)),
+};
+
+/// The space in front of `\pod` and `\pmod`: `\mkern18mu` in display style and `\mkern8mu`
+/// otherwise.
+static POD_SPACE: MathChoice = MathChoice {
+    display: Space(LatexUnit::Mu.length_with_unit(18.0)),
+    text: Space(LatexUnit::Mu.length_with_unit(8.0)),
+    script: Space(LatexUnit::Mu.length_with_unit(8.0)),
+    scriptscript: Space(LatexUnit::Mu.length_with_unit(8.0)),
+};
+
 pub static MOD: [Token; 4] = [
-    Space(LatexUnit::Em.length_with_unit(1.0)),
+    MathChoiceInternal(None, &MOD_SPACE),
     Transform(MathVariant::Normal),
     InternalStringLiteral("mod"),
     Space(LatexUnit::Mu.length_with_unit(6.0)),
 ];
 
 pub static POD: [Token; 4] = [
-    Space(LatexUnit::Em.length_with_unit(1.0)),
+    MathChoiceInternal(None, &POD_SPACE),
     Open(symbol::LEFT_PARENTHESIS),
     CustomCmdArg(0),
     Close(symbol::RIGHT_PARENTHESIS),
 ];
 
 pub static PMOD: [Token; 7] = [
-    Space(LatexUnit::Em.length_with_unit(1.0)),
+    MathChoiceInternal(None, &POD_SPACE),
     Open(symbol::LEFT_PARENTHESIS),
     Transform(MathVariant::Normal),
     InternalStringLiteral("mod"),
@@ -155,11 +173,29 @@ pub static BIG_SET: [Token; 9] = [
     Close(symbol::RIGHT_CURLY_BRACKET),
 ];
 
+/// `\fbox{...}`, which is `\boxed{\text{#1}}`.
+///
+/// The difference to `\boxed` is that the content of an `\fbox` is text rather than math,
+/// which is why the argument goes through `\text` here. The braces around it are needed
+/// because `\text` takes only a single token otherwise.
+pub static FBOX: [Token; 5] = [
+    Enclose(Notation::BOX),
+    Text(None),
+    GroupBegin,
+    CustomCmdArg(0),
+    GroupEnd,
+];
+
 /// `\textcolor{...}{...}`, which is `{\color{#1}#2}`.
-pub static TEXTCOLOR: [Token; 5] = [
+///
+/// The braces around the first argument matter: `\color` reads the color name as a string
+/// literal, so the argument has to be a group, just as it is in the LaTeX definition.
+pub static TEXTCOLOR: [Token; 7] = [
     GroupBegin,
     Color,
+    GroupBegin,
     CustomCmdArg(0),
+    GroupEnd,
     CustomCmdArg(1),
     GroupEnd,
 ];

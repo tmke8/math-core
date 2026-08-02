@@ -1,0 +1,20 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x^{\\mathchoice{D}{T}{S}{SS}} x^{x^{\\mathchoice{D}{T}{S}{SS}}}"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mi>S</mi>
+    </msup>
+    <msup>
+        <mi>x</mi>
+        <msup>
+            <mi>x</mi>
+            <mrow>
+                <mi>S</mi>
+                <mi>S</mi>
+            </mrow>
+        </msup>
+    </msup>
+</math>

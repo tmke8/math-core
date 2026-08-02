@@ -6,7 +6,7 @@ expression: "a \\equiv r \\mod n"
     <mi>a</mi>
     <mo>≡</mo>
     <mi>r</mi>
-    <mspace width="1em"/>
+    <mspace width="0.6666667em"/>
     <mrow><mspace/><mi>mod</mi></mrow>
     <mspace width="0.33333334em"/>
     <mi>n</mi>

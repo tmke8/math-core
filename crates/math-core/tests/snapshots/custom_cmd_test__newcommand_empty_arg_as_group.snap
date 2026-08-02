@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\p}[1]{x^#1}\\p{}"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mrow></mrow>
+    </msup>
+</math>
