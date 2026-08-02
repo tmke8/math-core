@@ -70,11 +70,17 @@ impl CustomCmds {
     }
 
     /// Define a new command, returning `false` if a command of that name already exists.
-    pub(crate) fn insert(&mut self, name: &str, num_args: u8, body: &[Token]) -> bool {
+    pub(crate) fn insert(
+        &mut self,
+        name: &str,
+        num_args: u8,
+        body: &[Token],
+        first_class: Option<Class>,
+    ) -> bool {
         if self.map.contains_key(name) {
             return false;
         }
-        self.insert_or_replace(name, num_args, body);
+        self.insert_or_replace(name, num_args, body, first_class);
         true
     }
 
@@ -82,7 +88,13 @@ impl CustomCmds {
     ///
     /// The body of the old definition stays in the store, because other definitions may
     /// contain references into it.
-    pub(crate) fn insert_or_replace(&mut self, name: &str, num_args: u8, body: &[Token]) {
+    pub(crate) fn insert_or_replace(
+        &mut self,
+        name: &str,
+        num_args: u8,
+        body: &[Token],
+        first_class: Option<Class>,
+    ) {
         let start = self.tokens.len();
         self.tokens.extend_from_slice(body);
         let end = self.tokens.len();
@@ -90,7 +102,7 @@ impl CustomCmds {
             name.into(),
             CmdDef {
                 num_args,
-                class: body.iter().find_map(Token::class),
+                class: first_class,
                 start,
                 end,
             },

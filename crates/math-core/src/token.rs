@@ -591,6 +591,12 @@ impl Token {
             | NewCommand(_)
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
+            CustomCmdArg(_) => {
+                if cfg!(debug_assertions) {
+                    panic!("`CustomCmdArg` should never appear in the token queue.");
+                }
+                None
+            }
             Letter(_, _)
             | UprightLetter(_)
             | Digit(_)
@@ -616,7 +622,6 @@ impl Token {
             | Cramped
             | Color
             | Phantom(_)
-            | CustomCmdArg(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
             | UnknownCommand(_)

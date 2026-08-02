@@ -2015,7 +2015,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ))
                 }
             }
-            Token::Whitespace | Token::MathOrTextMode(_, _) | Token::VerticalLineDef(_) => {
+            Token::Whitespace
+            | Token::MathOrTextMode(_, _)
+            | Token::VerticalLineDef(_)
+            | Token::CustomCmdArg(_) => {
                 // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
@@ -2139,12 +2142,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 nodes: &[],
                 attrs: RowAttrs::DEFAULT,
             }),
-            // The arguments of a custom command are substituted into its body when the body
-            // is queued, so this token never reaches the parser.
-            Token::CustomCmdArg(_) => {
-                debug_assert!(false, "`CustomCmdArg` should have been substituted");
-                Err(LatexError(span.into(), LatexErrKind::Internal))
-            }
             Token::UnknownCommand(name) => {
                 // The name lives in the lexer's string pool, so we have to copy it out.
                 let name = self.tokens.lexer.resolve(name);
@@ -2309,6 +2306,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             body_tokspans.push(tokspan);
         }
 
+        let mut first_class: Option<Class> = None;
         let body = body_tokspans
             .into_iter()
             .map(|tokspan| {
@@ -2339,7 +2337,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
-                    tok => Ok(tok),
+                    tok => {
+                        if first_class.is_none() {
+                            first_class = tok.class();
+                        }
+                        Ok(tok)
+                    }
                 }
             })
             .collect::<Result<Vec<Token>, _>>()?;
@@ -2351,7 +2354,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
         let custom_cmds = &mut self.tokens.lexer.global_state.custom_cmds;
         if replace {
-            custom_cmds.insert_or_replace(name, num_args, &body);
+            custom_cmds.insert_or_replace(name, num_args, &body, first_class);
             // The token after the definition has already been loaded from the lexer, so it
             // may still refer to the definition we have just replaced.
             if let Some(tok) = self
@@ -2367,7 +2370,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // The name came from an unknown command, so it cannot be in the store already:
             // the lexer resolves the names it knows, and the buffered tokens are re-resolved
             // whenever something is defined.
-            if !custom_cmds.insert(name, num_args, &body) {
+            if !custom_cmds.insert(name, num_args, &body, first_class) {
                 return Err(Box::new(LatexError(
                     name_tokspan.span().into(),
                     LatexErrKind::Internal,
