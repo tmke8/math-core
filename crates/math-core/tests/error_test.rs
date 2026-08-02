@@ -27,6 +27,13 @@ fn main() {
         ("incomplete_mathchoice", r"\mathchoice{a}{b}"),
         // The content of an `\fbox` is text, so a math-only command is rejected in it.
         ("math_command_in_fbox", r"\fbox{\alpha}"),
+        // A `$` switches modes in LaTeX, which we don't support: in text mode it would open
+        // nested math mode, and in math mode there is nothing to switch to. The escaped
+        // `\$`, which is a literal dollar sign, stays valid in both (see `special_symbols`).
+        ("dollar_in_math_mode", r"a$b"),
+        ("dollar_delimiters_around_input", r"$x^2$"),
+        ("dollar_in_text_mode", r"\text{if $y$}"),
+        ("dollar_in_operatorname", r"\operatorname{a$b}"),
         ("incomplete_sup", r"x^"),
         ("sup_closed", r"{x^}"),
         ("invalid_sup", r"x^^"),

@@ -230,6 +230,7 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
                     )));
                 }
             }
+            '$' => Token::Dollar,
             '&' => Token::NewColumn,
             '\'' => Token::MathOrTextMode(&Token::Prime(PrimeKind::Single), '’'),
             '<' => Token::MathOrTextMode(&Token::Relation(symbol::LESS_THAN_SIGN), '<'),

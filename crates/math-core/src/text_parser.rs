@@ -49,7 +49,15 @@ impl<'arena> Parser<'_, 'arena> {
                 self.tokens.next()
             };
             let (token, span) = tokloc?.into_parts();
-            let c: Result<SuperChar, LatexErrKind> = if let Token::TextMode(text_token) = token {
+            let c: Result<SuperChar, LatexErrKind> = if matches!(token, Token::Dollar) {
+                // In text mode, a `$` would switch to math mode, which is the feature we
+                // don't have yet. Anywhere else there is no mode for it to switch to.
+                Err(if text_mode {
+                    LatexErrKind::NestedMathModeUnimplemented
+                } else {
+                    LatexErrKind::UnexpectedDollar
+                })
+            } else if let Token::TextMode(text_token) = token {
                 if text_mode {
                     match text_token {
                         TextToken::Accent(accent) => {

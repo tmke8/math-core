@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{if $y$}"
+---
+Error: Math mode within text mode is not implemented yet.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \text{if $y$}
+   │          ┬  
+   │          ╰── cannot switch to math mode here
+───╯

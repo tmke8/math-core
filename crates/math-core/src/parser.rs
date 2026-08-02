@@ -2128,6 +2128,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 span.into(),
                 LatexErrKind::MacroParameterOutsideCustomCommand,
             )),
+            Token::Dollar => Err(LatexError(span.into(), LatexErrKind::UnexpectedDollar)),
             // `\relax` produces no output, but it still has to produce a *node*, because it
             // may stand where a construct needs an argument: `x^\relax`, or `x^\nop` for a
             // command with an empty body. An empty row is what an empty argument produces

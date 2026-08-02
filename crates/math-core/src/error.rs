@@ -51,6 +51,10 @@ pub(crate) enum LatexErrKind {
     ExpectedStyle,
     NotValidInTextMode,
     NotValidInMathMode,
+    /// A `$` in text mode, which would switch back to math mode.
+    NestedMathModeUnimplemented,
+    /// A `$` in math mode, where there is no mode to switch to.
+    UnexpectedDollar,
     CouldNotExtractText,
     MoreThanOneLabel,
     MoreThanOneInfixCmd,
@@ -253,6 +257,12 @@ impl LatexErrKind {
             LatexErrKind::NotValidInMathMode => {
                 write!(s, "Not valid in math mode.")?;
             }
+            LatexErrKind::NestedMathModeUnimplemented => {
+                write!(s, "Math mode within text mode is not implemented yet.")?;
+            }
+            LatexErrKind::UnexpectedDollar => {
+                write!(s, "Unexpected \"$\".")?;
+            }
             LatexErrKind::CouldNotExtractText => {
                 write!(s, "Could not extract text from the given macro.")?;
             }
@@ -387,6 +397,8 @@ impl LatexError {
             LatexErrKind::ExpectedColSpec(_) => "expected a column spec here",
             LatexErrKind::NotValidInTextMode => "this is not valid in text mode",
             LatexErrKind::NotValidInMathMode => "this is not valid in math mode",
+            LatexErrKind::NestedMathModeUnimplemented => "cannot switch to math mode here",
+            LatexErrKind::UnexpectedDollar => "unexpected dollar sign",
             LatexErrKind::CouldNotExtractText => "could not extract text from this",
             LatexErrKind::MoreThanOneLabel => "duplicate label",
             LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac",

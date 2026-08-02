@@ -58,6 +58,11 @@ pub enum Token {
     GroupBegin,
     /// The character `}`.
     GroupEnd,
+    /// The character `$`, which in LaTeX switches between math mode and text mode. We don't
+    /// support that yet, so this token is always an error; it only exists to say so with a
+    /// better message than "unknown character". The escaped `\$`, which is a literal dollar
+    /// sign rather than a mode switch, is a [`Token::Letter`] and stays valid.
+    Dollar,
     /// A token for `\frac` and `\cfrac`, `\dfrac` and `\tfrac`. The `Option<FracAttr>` is `None`
     /// for `\frac` and, for example, `Some(FracAttr::DisplayStyleTrue)` for `\dfrac`.
     Frac(Option<FracAttr>),
@@ -617,6 +622,9 @@ impl Token {
             | UnknownCommand(_)
             | InternalStringLiteral(_)
             | ForceOrd(_)
+            // `Dollar` is always an error, so its class is never really used; a dollar sign
+            // would be an ordinary atom if we did support it.
+            | Dollar
             | Accent(_, _, _) => Some(Class::Default),
         }
     }

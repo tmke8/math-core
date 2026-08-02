@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\operatorname{a$b}"
+---
+Error: Unexpected "$".
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \operatorname{a$b}
+   │                ┬  
+   │                ╰── unexpected dollar sign
+───╯
