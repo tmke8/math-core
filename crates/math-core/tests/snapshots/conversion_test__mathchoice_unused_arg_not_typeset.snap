@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathchoice{\\frac}{x}{y}{z}"
+---
+<math>
+    <mi>x</mi>
+</math>

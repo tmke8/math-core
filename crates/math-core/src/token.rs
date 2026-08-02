@@ -224,6 +224,10 @@ pub enum Token {
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
+    /// `\mathchoice{display}{text}{script}{scriptscript}`, which expands to whichever of its
+    /// four arguments matches the style which is current where the command appears.
+    /// Unlike in LaTeX, the three other arguments are not typeset at all.
+    MathChoice,
     /// This token is intended to be used in predefined token streams.
     /// It is a restricted version of LaTeX's `\mathchoice`: it expands to one of the four
     /// tokens in the [`MathChoice`], depending on the style which is current where the token
@@ -558,7 +562,10 @@ impl Token {
             // We cannot look into the store here, so the class was computed when the
             // command was defined.
             CustomCmdRef(_, _, class, _, _) => *class,
-            Whitespace
+            // The class of `\mathchoice` would be the class of one of its arguments, which we
+            // can't look at from here, so it has no class of its own either.
+            MathChoice
+            | Whitespace
             | Space(_)
             | Overlay(_)
             | TransformSwitch(_)

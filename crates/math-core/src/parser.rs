@@ -2147,6 +2147,56 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let name = self.tokens.lexer.resolve(name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
+            Token::MathChoice => {
+                let chosen = match self.state.style {
+                    Style::Display => 0,
+                    Style::Text => 1,
+                    Style::Script => 2,
+                    Style::ScriptScript => 3,
+                };
+                // Read all four arguments, but keep only the chosen one. Because every
+                // argument we don't want is truncated away again, what remains at the end is
+                // exactly the chosen one. We deliberately don't go through `record_cmd_args`
+                // here, so that an argument can still refer to the arguments of a custom
+                // command that we may be in the middle of expanding.
+                let mut arg = Vec::new();
+                for arg_num in 0..4 {
+                    let start = arg.len();
+                    let tokspan = self.next_token()?;
+                    match tokspan.token() {
+                        Token::GroupBegin => {
+                            self.tokens.record_group(&mut arg, true)?;
+                        }
+                        // Throwing the unwanted arguments away again would hide a missing
+                        // one, so we have to check for the end of the input ourselves.
+                        Token::Eoi => {
+                            return Err(Box::new(LatexError(
+                                tokspan.span().into(),
+                                LatexErrKind::ExpectedArgumentGotEOI,
+                            )));
+                        }
+                        // An argument which isn't a group consists of a single token.
+                        _ => arg.push(tokspan),
+                    }
+                    if arg_num != chosen {
+                        arg.truncate(start);
+                    }
+                }
+                if arg.is_empty() {
+                    // An empty argument expands to nothing, which is equivalent to `{}`.
+                    // We must not fetch the next token here, because that token comes after
+                    // the entire `\mathchoice`.
+                    Ok(Node::Row {
+                        nodes: &[],
+                        attrs: RowAttrs::DEFAULT,
+                    })
+                } else {
+                    self.tokens.queue_in_front(&arg);
+                    let token = self.next_token();
+                    // FIXME: Use `become` here once it is stable.
+                    return self.parse_token(token, parse_as, prev_class);
+                }
+            }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
                 // FIXME: Use `become` here once it is stable.

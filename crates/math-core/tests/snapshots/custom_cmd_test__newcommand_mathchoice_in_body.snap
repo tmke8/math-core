@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\mc}[1]{\\mathchoice{D}{T}{S}{SS}#1\\mathchoice{#1}{[#1]}{#1}{#1}}\\mc{z}"
+---
+<math>
+    <mi>T</mi>
+    <mi>z</mi>
+    <mo stretchy="false">[</mo>
+    <mi>z</mi>
+    <mo stretchy="false">]</mo>
+</math>

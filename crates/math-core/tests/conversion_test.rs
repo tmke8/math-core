@@ -758,6 +758,18 @@ fn main() {
         ("pod", r"a \equiv b \pod{m}"),
         ("pod_display_style", r"\displaystyle a \equiv b \pod{m}"),
         ("pmod_script_style", r"x^{a \equiv b \pmod{m}}"),
+        ("mathchoice", r"\mathchoice{D}{T}{S}{SS}"),
+        ("mathchoice_display_style", r"\displaystyle\mathchoice{D}{T}{S}{SS}"),
+        (
+            "mathchoice_script_styles",
+            r"x^{\mathchoice{D}{T}{S}{SS}} x^{x^{\mathchoice{D}{T}{S}{SS}}}",
+        ),
+        // Each alternative may consist of more than one token.
+        ("mathchoice_multiple_tokens", r"\mathchoice{ab}{cd}{ef}{gh}"),
+        // An empty alternative is legal and expands to nothing.
+        ("mathchoice_empty", r"a\mathchoice{}{}{}{}b"),
+        // The alternatives which don't apply are not typeset at all.
+        ("mathchoice_unused_arg_not_typeset", r"\mathchoice{\frac}{x}{y}{z}"),
         (
             "iddots",
             r"\begin{matrix} a & \iddots \\ \ddots & b \end{matrix}",

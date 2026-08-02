@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathchoice{D}{T}{S}{SS}"
+---
+<math>
+    <mi>T</mi>
+</math>

@@ -24,6 +24,7 @@ fn main() {
         ),
         ("incomplete_sqrt", r"\sqrt  "),
         ("sqrt_closed", r"{\sqrt}"),
+        ("incomplete_mathchoice", r"\mathchoice{a}{b}"),
         ("incomplete_sup", r"x^"),
         ("sup_closed", r"{x^}"),
         ("invalid_sup", r"x^^"),

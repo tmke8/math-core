@@ -187,6 +187,12 @@ fn test_newcommand() {
             "newcommand_empty_arg",
             r"\newcommand{\bb}[1]{\mathbb{#1}}\bb{}",
         ),
+        // `\mathchoice` must not clobber the arguments of the command it appears in, neither
+        // when it comes before the argument reference nor when it contains one itself.
+        (
+            "newcommand_mathchoice_in_body",
+            r"\newcommand{\mc}[1]{\mathchoice{D}{T}{S}{SS}#1\mathchoice{#1}{[#1]}{#1}{#1}}\mc{z}",
+        ),
     ] {
         let mathml = converter
             .convert_with_local_state(latex, MathDisplay::Inline)
