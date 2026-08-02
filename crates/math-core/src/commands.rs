@@ -357,6 +357,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "exist" => Ord(symbol::THERE_EXISTS),
     "exists" => Ord(symbol::THERE_EXISTS),
     "fallingdotseq" => Relation(symbol::APPROXIMATELY_EQUAL_TO_OR_THE_IMAGE_OF),
+    "fbox" => CustomCmd(1, &predefined::FBOX),
     "fcmp" => BinaryOp(symbol::Z_NOTATION_RELATIONAL_COMPOSITION),
     "fint" => Op(symbol::INTEGRAL_AVERAGE_WITH_SLASH),
     "flat" => Letter(SuperChar::from_char(symbol::MUSIC_FLAT_SIGN), Mode::Math),

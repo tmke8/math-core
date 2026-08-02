@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x + \\fbox x"
+---
+<math>
+    <mi>x</mi>
+    <mo>+</mo>
+    <menclose notation="box">
+        <mtext>x</mtext>
+    </menclose>
+</math>

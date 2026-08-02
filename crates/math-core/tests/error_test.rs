@@ -25,6 +25,8 @@ fn main() {
         ("incomplete_sqrt", r"\sqrt  "),
         ("sqrt_closed", r"{\sqrt}"),
         ("incomplete_mathchoice", r"\mathchoice{a}{b}"),
+        // The content of an `\fbox` is text, so a math-only command is rejected in it.
+        ("math_command_in_fbox", r"\fbox{\alpha}"),
         ("incomplete_sup", r"x^"),
         ("sup_closed", r"{x^}"),
         ("invalid_sup", r"x^^"),

@@ -173,6 +173,19 @@ pub static BIG_SET: [Token; 9] = [
     Close(symbol::RIGHT_CURLY_BRACKET),
 ];
 
+/// `\fbox{...}`, which is `\boxed{\text{#1}}`.
+///
+/// The difference to `\boxed` is that the content of an `\fbox` is text rather than math,
+/// which is why the argument goes through `\text` here. The braces around it are needed
+/// because `\text` takes only a single token otherwise.
+pub static FBOX: [Token; 5] = [
+    Enclose(Notation::BOX),
+    Text(None),
+    GroupBegin,
+    CustomCmdArg(0),
+    GroupEnd,
+];
+
 /// `\textcolor{...}{...}`, which is `{\color{#1}#2}`.
 ///
 /// The braces around the first argument matter: `\color` reads the color name as a string
