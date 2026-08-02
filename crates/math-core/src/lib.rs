@@ -506,6 +506,7 @@ fn parse_custom_commands(
         // Therefore, we put the whole lexing process into its own block.
         body.clear();
         let mut num_args = 0;
+        let mut first_class: Option<character_class::Class> = None;
         let result = 'body: {
             let mut lexer = Lexer::new(definition.as_str(), &parser_cfg, &mut state);
             loop {
@@ -528,7 +529,12 @@ fn parse_custom_commands(
                                 }
                                 body.push(Token::CustomCmdArg(n));
                             }
-                            tok => body.push(tok),
+                            tok => {
+                                if first_class.is_none() {
+                                    first_class = tok.class();
+                                }
+                                body.push(tok)
+                            }
                         }
                     }
                     Err(err) => {
@@ -542,7 +548,7 @@ fn parse_custom_commands(
         if let Err(err) = result {
             return Err((err, idx, definition));
         }
-        custom_cmds.insert(name.as_str(), num_args, &body);
+        custom_cmds.insert(name.as_str(), num_args, &body, first_class);
     }
     Ok(custom_cmds)
 }
