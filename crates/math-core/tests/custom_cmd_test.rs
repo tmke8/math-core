@@ -373,6 +373,7 @@ fn test_renewcommand_config_macro() {
 fn test_renewcommand_across_snippets() {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
+        global_group: true,
         ..Default::default()
     };
     let mut converter = LatexToMathML::new(config).unwrap();
@@ -439,6 +440,7 @@ fn test_newcommand_uses_config_macro() {
 fn test_newcommand_across_snippets() {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
+        global_group: true,
         ..Default::default()
     };
     let mut converter = LatexToMathML::new(config).unwrap();
@@ -468,6 +470,7 @@ fn test_newcommand_across_snippets() {
 fn test_newcommand_in_convert_all() {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
+        global_group: true,
         ..Default::default()
     };
     let converter = LatexToMathML::new(config).unwrap();
@@ -478,6 +481,69 @@ fn test_newcommand_in_convert_all() {
     ]);
     let mathml = &results[1].as_ref().unwrap().mathml;
     assert_snapshot!("newcommand_in_convert_all", mathml, r"n \in \zz");
+}
+
+#[test]
+fn test_newcommand_without_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    // Outside of the global group, which is the default, a definition is only good for the
+    // snippet which contains it, ...
+    let latex = r"\newcommand{\bb}[1]{\mathbb{#1}}\bb{R}";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("newcommand_without_global_group", mathml.mathml, latex);
+
+    // ... so the next snippet doesn't know it, ...
+    assert!(
+        converter
+            .convert_with_global_state(r"\bb{C}", MathDisplay::Inline)
+            .is_err()
+    );
+    // ... and can define it again itself.
+    converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+}
+
+#[test]
+fn test_renewcommand_without_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}\zz", MathDisplay::Inline)
+        .unwrap();
+    // The definition from the earlier snippet is gone, so there is nothing to replace.
+    assert!(
+        converter
+            .convert_with_global_state(r"\renewcommand{\zz}{\mathbb{Q}}", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+#[test]
+fn test_newcommand_in_convert_all_without_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    let results = converter.convert_all(&[
+        (r"\newcommand{\zz}{\mathbb{Z}}", MathDisplay::Inline),
+        (r"n \in \zz", MathDisplay::Inline),
+    ]);
+    assert!(results[0].is_ok());
+    assert!(results[1].is_err());
 }
 
 #[test]

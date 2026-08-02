@@ -385,17 +385,24 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 self.queue_body_substituting(body, args, span);
                 true
             }
-            CmdSource::Document => {
+            CmdSource::Document | CmdSource::Local => {
                 // The store lives in the lexer, which is part of `self`, so we take it out
                 // for the duration of the push and then put it back.
-                let cmds = core::mem::take(&mut self.lexer.global_state.custom_cmds);
+                let store = match source {
+                    CmdSource::Local => &mut self.lexer.local_cmds,
+                    _ => &mut self.lexer.global_state.custom_cmds,
+                };
+                let cmds = core::mem::take(store);
                 let found = if let Some(body) = cmds.body(start, end) {
                     self.queue_body_substituting(body, args, span);
                     true
                 } else {
                     false
                 };
-                self.lexer.global_state.custom_cmds = cmds;
+                match source {
+                    CmdSource::Local => self.lexer.local_cmds = cmds,
+                    _ => self.lexer.global_state.custom_cmds = cmds,
+                }
                 found
             }
         }
@@ -407,14 +414,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// token for a command which is only defined once we get to it: right after a
     /// `\newcommand`, and at the very beginning of a snippet, because the buffer is primed
     /// before the definitions of the previous snippets are handed to the lexer.
-    pub(super) fn resolve_buffered_unknown_commands(&mut self) {
+    ///
+    /// The `source` says which store the definition we have just seen went into.
+    pub(super) fn resolve_buffered_unknown_commands(&mut self, source: CmdSource) {
         let TokenQueue { lexer, queue, .. } = self;
         for tokspan in queue.iter_mut() {
             if let Token::UnknownCommand(name) = *tokspan.token()
-                && let Some(tok) = lexer
-                    .global_state
-                    .custom_cmds
-                    .get(lexer.resolve(name), CmdSource::Document)
+                && let Some(tok) = lexer.get_custom_cmd(lexer.resolve(name), source)
             {
                 *tokspan = TokSpan::new(tok, tokspan.span());
             }

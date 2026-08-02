@@ -92,6 +92,7 @@ interface MathCoreOptions {
     ignoreUnknownCommands?: boolean;
     annotation?: boolean;
     allowUnreliableRendering?: boolean;
+    globalGroup?: boolean;
     unicodeSubstitution?: "never" | "conventional";
 }
 "#;
@@ -121,6 +122,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn allowUnreliableRendering(this: &MathCoreOptions) -> Option<bool>;
+
+    #[wasm_bindgen(method, getter)]
+    fn globalGroup(this: &MathCoreOptions) -> Option<bool>;
 
     #[wasm_bindgen(method, getter)]
     fn unicodeSubstitution(this: &MathCoreOptions) -> Option<String>;
@@ -184,6 +188,7 @@ impl LatexToMathML {
         let ignore_unknown_commands = js_config.ignoreUnknownCommands().unwrap_or_default();
         let annotation = js_config.annotation().unwrap_or_default();
         let allow_unreliable_rendering = js_config.allowUnreliableRendering().unwrap_or_default();
+        let global_group = js_config.globalGroup().unwrap_or_default();
         let unicode_substitution = if let Some(us) = js_config.unicodeSubstitution() {
             match us.as_str() {
                 "never" => math_core::UnicodeSubstitution::Never,
@@ -205,6 +210,7 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
             allow_unreliable_rendering,
+            global_group,
             unicode_substitution,
             css_classes: CssClassNames::default(),
             indentation: math_core::Indentation::default(),
