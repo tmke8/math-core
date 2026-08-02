@@ -168,6 +168,7 @@ new LatexToMathML(options: MathCoreOptions)
 | `throwOnError` | `boolean` | `true` | Throw `LatexError` on conversion errors. If `false`, returns an HTML error snippet instead. |
 | `ignoreUnknownCommands` | `boolean` | `false` | Render unknown commands as red text instead of erroring. |
 | `annotation` | `boolean` | `false` | Include the original LaTeX as an annotation in the MathML output. |
+| `globalGroup` | `boolean` | `false` | Run the conversion in the global group, so that commands defined with `\newcommand` stay defined for subsequent calls to `convert_with_global_state`. If `false`, such definitions are local to the snippet which contains them. |
 
 **Methods:**
 

@@ -20,7 +20,7 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::{CmdSource, is_valid_macro_name},
+    custom_cmds::is_valid_macro_name,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -2188,8 +2188,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
     /// Parse a `\newcommand` definition and register the new command.
     ///
-    /// `\newcommand` is not scoped: the definition is available for the rest of the document,
-    /// including the math snippets which come after this one.
+    /// How far the definition reaches depends on
+    /// [`global_group`](crate::MathCoreConfig::global_group): in the global group, it is
+    /// available for the rest of the document, including the math snippets which come after
+    /// this one; otherwise it is forgotten at the end of this snippet.
     ///
     /// The `mode` decides what happens when the name is (not) already defined:
     /// `\providecommand` parses the definition as usual and then throws it away if the name is
@@ -2352,18 +2354,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // parsed is discarded.
             return Ok(());
         };
-        let custom_cmds = &mut self.tokens.lexer.global_state.custom_cmds;
+        // Depending on whether we run in the global group, the definition either goes into the
+        // store which outlives this snippet, or into the one which doesn't.
+        let (custom_cmds, source) = self.tokens.lexer.definition_store();
         if replace {
             custom_cmds.insert_or_replace(name, num_args, &body, first_class);
             // The token after the definition has already been loaded from the lexer, so it
             // may still refer to the definition we have just replaced.
-            if let Some(tok) = self
-                .tokens
-                .lexer
-                .global_state
-                .custom_cmds
-                .get(name, CmdSource::Document)
-            {
+            if let Some(tok) = custom_cmds.get(name, source) {
                 self.tokens.resolve_buffered_redefined_command(name, tok);
             }
         } else {
@@ -2378,7 +2376,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             // The token after the definition has already been loaded from the lexer, so it
             // may still say "unknown command" for the command we have just defined.
-            self.tokens.resolve_buffered_unknown_commands();
+            self.tokens.resolve_buffered_unknown_commands(source);
         }
         Ok(())
     }

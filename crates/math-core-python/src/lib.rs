@@ -36,6 +36,7 @@ impl LatexToMathML {
         ignore_unknown_commands=false,
         annotation=false,
         allow_unreliable_rendering=false,
+        global_group=false,
         fancy_error=true,
         unicode_substitution="conventional"))]
     fn new(
@@ -46,6 +47,7 @@ impl LatexToMathML {
         ignore_unknown_commands: bool,
         annotation: bool,
         allow_unreliable_rendering: bool,
+        global_group: bool,
         fancy_error: bool,
         unicode_substitution: &str,
     ) -> PyResult<Self> {
@@ -81,6 +83,7 @@ impl LatexToMathML {
             ignore_unknown_commands,
             annotation,
             allow_unreliable_rendering,
+            global_group,
             unicode_substitution,
             css_classes: CssClassNames::default(),
             indentation: math_core::Indentation::default(),

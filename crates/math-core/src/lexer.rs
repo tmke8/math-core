@@ -6,7 +6,7 @@ use core::str::CharIndices;
 use mathml_renderer::{attribute::OpAttrs, symbol};
 
 use crate::commands::{get_command, get_operator_from_unicode};
-use crate::custom_cmds::CmdSource;
+use crate::custom_cmds::{CmdSource, CustomCmds};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::global_state::GlobalState;
@@ -22,6 +22,10 @@ pub(crate) struct Lexer<'config, 'state, 'source> {
     input_length: usize,
     parser_cfg: &'config ParserConfig,
     pub(crate) global_state: &'state mut GlobalState,
+    /// The commands which the snippet defines for itself with `\newcommand`, when the
+    /// conversion does *not* run in the global group. They are dropped together with the lexer,
+    /// which is why they don't outlive the snippet.
+    pub(crate) local_cmds: CustomCmds,
     /// Storage for the names of unknown commands, so that the tokens which refer to them
     /// don't have to borrow the input.
     pool: StringPool,
@@ -41,6 +45,7 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
             input_length: input.len(),
             parser_cfg,
             global_state,
+            local_cmds: CustomCmds::default(),
             pool: StringPool::default(),
         };
         lexer.read_char(); // Initialize `peek`.
@@ -66,6 +71,29 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
     #[inline]
     pub(crate) fn parser_cfg(&self) -> &'config ParserConfig {
         self.parser_cfg
+    }
+
+    /// Look up a custom command in one particular store.
+    #[inline]
+    pub(crate) fn get_custom_cmd(&self, name: &str, source: CmdSource) -> Option<Token> {
+        match source {
+            CmdSource::Config => self.parser_cfg.get_command(name),
+            CmdSource::Document => self.global_state.custom_cmds.get(name, source),
+            CmdSource::Local => self.local_cmds.get(name, source),
+        }
+    }
+
+    /// The store which new definitions go into, together with its [`CmdSource`].
+    ///
+    /// Which one that is depends on whether we run in the global group: if we do, the
+    /// definitions have to outlive the snippet, so they go into the global state.
+    #[inline]
+    pub(crate) fn definition_store(&mut self) -> (&mut CustomCmds, CmdSource) {
+        if self.parser_cfg.global_group {
+            (&mut self.global_state.custom_cmds, CmdSource::Document)
+        } else {
+            (&mut self.local_cmds, CmdSource::Local)
+        }
     }
 
     /// One character progresses.
@@ -314,9 +342,13 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
             }
         }
         let tok: Result<(Token, Span), LatexError> = if let Some(tok) = self
-            .global_state
-            .custom_cmds
-            .get(cmd_string, CmdSource::Document)
+            .local_cmds
+            .get(cmd_string, CmdSource::Local)
+            .or_else(|| {
+                self.global_state
+                    .custom_cmds
+                    .get(cmd_string, CmdSource::Document)
+            })
             .or_else(|| self.parser_cfg.get_command(cmd_string))
             .or_else(|| get_command(cmd_string))
         {

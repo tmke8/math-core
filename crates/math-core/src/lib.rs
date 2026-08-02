@@ -185,6 +185,14 @@ pub struct MathCoreConfig {
     /// If `true`, allow rendering commands that produce MathML Core output that is unreliably
     /// rendered by browsers.
     pub allow_unreliable_rendering: bool,
+    /// If `true`, run the conversion in the global group, which means that commands defined at
+    /// the top level of a snippet with `\newcommand` (and related commands) stay defined for the
+    /// snippets which come after it.
+    ///
+    /// If `false` (the default), such definitions are local to the snippet which contains them.
+    /// This matches LaTeX, where constructs like `\begin{equation}` and `$$` open a local group,
+    /// and it matches the default behavior of KaTeX.
+    pub global_group: bool,
     /// If not `UnicodeSubstitution::Never`, substitute certain LaTeX commands with their Unicode
     /// equivalents in the MathML output.
     pub unicode_substitution: UnicodeSubstitution,
@@ -201,6 +209,7 @@ struct ParserConfig {
     custom_cmds_from_cfg: CustomCmds,
     ignore_unknown_commands: bool,
     allow_unreliable_rendering: bool,
+    global_group: bool,
     unicode_substitution: UnicodeSubstitution,
 }
 
@@ -266,6 +275,7 @@ impl LatexToMathML {
             custom_cmds_from_cfg: custom_cmds,
             ignore_unknown_commands: config.ignore_unknown_commands,
             allow_unreliable_rendering: config.allow_unreliable_rendering,
+            global_group: config.global_group,
             unicode_substitution: config.unicode_substitution,
         };
         Ok(Self {

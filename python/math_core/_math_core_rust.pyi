@@ -12,6 +12,7 @@ class LatexToMathML:
         ignore_unknown_commands: bool = False,
         annotation: bool = False,
         allow_unreliable_rendering: bool = False,
+        global_group: bool = False,
         fancy_error: bool = True,
         unicode_substitution: Literal["never", "conventional"] = "conventional",
     ) -> None:
@@ -39,6 +40,13 @@ class LatexToMathML:
             ignore_unknown_commands: A boolean indicating whether to ignore unknown
                 LaTeX commands. If ``True``, unknown commands will be displayed as red
                 text and the conversion will continue, instead of returning an error.
+
+            global_group: A boolean indicating whether to run the conversion in the
+                global group. If ``True``, commands defined at the top level with
+                ``\newcommand`` (and related commands) stay defined for subsequent
+                calls to ``convert_with_global_state``. If ``False`` (the default),
+                such definitions are local to the snippet which contains them, which
+                is what LaTeX does for constructs like ``\begin{equation}``.
 
             fancy_error: A boolean indicating whether to render errors as rich Ariadne
                 reports. If ``True`` (the default), the ``LatexError`` message will

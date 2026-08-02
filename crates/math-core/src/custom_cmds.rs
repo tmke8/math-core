@@ -9,14 +9,19 @@ use crate::token::Token;
 
 /// Where the token stream of a custom command is stored.
 ///
-/// The two stores are kept separately, because one of them is part of the configuration and
-/// therefore immutable, whereas the other one is filled while a document is being parsed.
+/// The stores are kept separately, because they have different lifetimes: one is part of the
+/// configuration and therefore immutable, one is filled while a document is being parsed, and
+/// one only lives as long as the snippet which defines its commands.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CmdSource {
     /// The commands defined in [`MathCoreConfig::macros`](crate::MathCoreConfig::macros).
     Config,
-    /// The commands defined in the document itself, with `\newcommand`.
+    /// The commands which the document defines with `\newcommand` in the global group; they
+    /// stay defined for the snippets which follow.
     Document,
+    /// The commands which the document defines with `\newcommand` in a local group; they are
+    /// forgotten at the end of the snippet which defines them.
+    Local,
 }
 
 /// The definition of a custom command.
