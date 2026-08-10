@@ -124,6 +124,13 @@ enum ControlFlow {
     ProcessToken,
 }
 
+/// What one token turned into.
+enum Parsed<'arena> {
+    Node(Class, &'arena Node<'arena>),
+    /// We performed an expansion and the next token is the first token of the expansion.
+    Expansion,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum BoundStarterKind {
     /// `_`
@@ -413,12 +420,32 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     /// Parse the given token into a node.
+    ///
+    /// A token which expands to other tokens is not a node of its own, so we go around again
+    /// with the first token of the expansion. This is a loop rather than a tail call, because
+    /// one expansion can lead to the next without limit.
     fn parse_token(
         &mut self,
         cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let mut cur_tokloc = cur_tokloc;
+        loop {
+            match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
+                Parsed::Node(class, node) => return Ok((class, node)),
+                Parsed::Expansion => cur_tokloc = self.next_token(),
+            }
+        }
+    }
+
+    /// Parse one token into a node, or into the first token of its expansion.
+    fn parse_one_token(
+        &mut self,
+        cur_tokloc: ParseResult<TokSpan>,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<Parsed<'arena>> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
         let next_class = self.peek_class_token(parse_as.in_sequence())?;
@@ -562,12 +589,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     if let Some(node) = bounds.try_wrap_node_underover(target) {
                         Ok(node)
                     } else {
-                        return Ok((class, target));
+                        return Ok(Parsed::Node(class, target));
                     }
                 } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
                     Ok(node)
                 } else {
-                    return Ok((class, target));
+                    return Ok(Parsed::Node(class, target));
                 }
             }
             Token::Ord(ord) => 'ord: {
@@ -1041,12 +1068,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 } else {
                     match bounds.try_wrap_node_subsup(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 }
             }
@@ -1078,12 +1105,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 } else {
                     match bounds.try_wrap_node_subsup(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 }
             }
@@ -1179,7 +1206,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_tf = self.state.transform.replace(tf);
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
-                return Ok((Class::Close, content));
+                return Ok(Parsed::Node(Class::Close, content));
             }
             Token::TransformSwitch(_)
             | Token::NoNumber
@@ -1236,7 +1263,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                     false,
                 )?;
-                return Ok((
+                return Ok(Parsed::Node(
                     Class::Default,
                     node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
                 ));
@@ -1534,11 +1561,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
                     let node = match bounds.try_wrap_node_underover(op) {
                         Some(node) => node,
-                        None => return Ok((Class::Operator, op)),
+                        None => return Ok(Parsed::Node(Class::Operator, op)),
                     };
                     Ok(node)
                 } else {
-                    return Ok((Class::Operator, op));
+                    return Ok(Parsed::Node(Class::Operator, op));
                 }
             }
             Token::Text(transform) => {
@@ -1549,7 +1576,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         self.commit(Node::Text(style, size, text))
                     })
                     .collect::<Vec<_>>();
-                return Ok((Class::Close, node_vec_to_node(self.arena, &nodes, false)));
+                return Ok(Parsed::Node(
+                    Class::Close,
+                    node_vec_to_node(self.arena, &nodes, false),
+                ));
             }
             Token::NewColumn => {
                 if self.state.env.allow_columns {
@@ -1892,9 +1922,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     } else {
                         &predefined::DOTS
                     });
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::Prescript => {
                 let sup = self.parse_next(ParseAs::Arg)?;
@@ -2130,9 +2158,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.read_cmd_args(num_args)?;
                 self.tokens
                     .queue_body_substituting(token_stream, &self.state.cmd_args, span);
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::CustomCmdRef(source, num_args, _, start, end) => {
                 self.count_expansion(span)?;
@@ -2148,9 +2174,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
                 }
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::CustomCmdArgInput(_) => Err(LatexError(
                 span.into(),
@@ -2184,14 +2208,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.read_cmd_args(4)?;
                 self.tokens
                     .queue_arg_in_front(self.state.cmd_args.get(chosen), span);
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(Ok(TokSpan::new(token, span)), parse_as, prev_class);
+                self.tokens.queue_in_front(&[TokSpan::new(token, span)]);
+                return Ok(Parsed::Expansion);
             }
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -2206,7 +2228,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
         };
         match node {
-            Ok(n) => Ok((class, self.commit(n))),
+            Ok(n) => Ok(Parsed::Node(class, self.commit(n))),
             Err(e) => Err(Box::new(e)),
         }
     }
