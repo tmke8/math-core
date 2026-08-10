@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\displaystyle{\\mathop{\\sum}\\nolimits_a^a}"
+---
+<math>
+    <mrow displaystyle="true" scriptlevel="0">
+        <msubsup>
+            <mo stretchy="false" lspace="0" rspace="0.1667em">∑</mo>
+            <mi>a</mi>
+            <mi>a</mi>
+        </msubsup>
+    </mrow>
+</math>
