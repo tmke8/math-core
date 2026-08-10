@@ -118,9 +118,12 @@ fn main() {
             r"\newcommand{\zzz}{1}\newcommand{\zzz}{2}",
         ),
         ("newcommand_without_command", r"\newcommand{x}{y}"),
+        // A body may name a command which doesn't exist yet, because it may exist by the time
+        // the command is used. If it still doesn't, the error is reported at the use, because
+        // that is where we find out about it (and a body carries no spans of its own).
         (
             "newcommand_unknown_cmd_in_body",
-            r"\newcommand{\zzz}{\asdf}",
+            r"\newcommand{\zzz}{\asdf}\zzz",
         ),
         (
             "newcommand_parameter_out_of_range",
@@ -140,10 +143,6 @@ fn main() {
             r"\sqrt\providecommand{\zzz}{1}",
         ),
         // The body is parsed even when the definition is going to be discarded.
-        (
-            "providecommand_unknown_cmd_in_discarded_body",
-            r"\providecommand{\frac}{\asdf}",
-        ),
         (
             "providecommand_unclosed_discarded_body",
             r"\providecommand{\frac}{1",

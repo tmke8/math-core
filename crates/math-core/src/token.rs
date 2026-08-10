@@ -222,10 +222,21 @@ pub enum Token {
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
-    /// A token for unknown commands. The `InternedStr` is an index into the
-    /// [`StringPool`](crate::string_pool::StringPool) of the lexer which produced this token; it
-    /// can be resolved with [`Lexer::resolve`](crate::lexer::Lexer::resolve).
-    UnknownCommand(InternedStr),
+    /// A command name which the lexer has read but not given a meaning to.
+    ///
+    /// The name is the source text of the span of the token, without the leading backslash.
+    /// This token only exists between [`Lexer::next_token`](crate::lexer::Lexer::next_token) and
+    /// the resolution step of the token queue; it must never be queued.
+    CommandName,
+    /// A command whose name is not defined (yet). The `InternedStr` is an index into the
+    /// [`StringPool`](crate::string_pool::StringPool) which belongs to the given [`CmdSource`];
+    /// it can be resolved with
+    /// [`TokenQueue::name_of`](crate::token_queue::TokenQueue::name_of).
+    ///
+    /// The name is kept around because a command which is unknown when it is read may be
+    /// defined by the time it is used: that is what makes it possible for the body of a
+    /// custom command to mention a command which doesn't exist yet.
+    UnresolvedCommand(CmdSource, InternedStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -591,9 +602,9 @@ impl Token {
             | NewCommand(_)
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
-            CustomCmdArg(_) => {
+            CustomCmdArg(_) | CommandName => {
                 if cfg!(debug_assertions) {
-                    panic!("`CustomCmdArg` should never appear in the token queue.");
+                    panic!("`{self:?}` should never appear in the token queue.");
                 }
                 None
             }
@@ -624,7 +635,7 @@ impl Token {
             | Phantom(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
-            | UnknownCommand(_)
+            | UnresolvedCommand(_, _)
             | InternalStringLiteral(_)
             | ForceOrd(_)
             // `Dollar` is always an error, so its class is never really used; a dollar sign

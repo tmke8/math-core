@@ -15,6 +15,7 @@ use mathml_renderer::{
 };
 
 use crate::{
+    ParserConfig,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
@@ -26,6 +27,7 @@ use crate::{
         OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
+    global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
     predefined,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
@@ -62,7 +64,18 @@ struct ParserState<'arena> {
     style: Style,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
     vertical_line_def: Option<VerticalLineDef>,
+    /// How many more custom commands may be expanded before we give up.
+    ///
+    /// Names are resolved when a command is expanded, so a definition may refer to itself,
+    /// directly or through other definitions, and expanding it would never end. Rather than
+    /// detecting that, we simply stop after a while, as LaTeX and KaTeX do.
+    expansions_left: u32,
 }
+
+/// The number of custom command expansions allowed in one snippet.
+///
+/// This is the same limit that KaTeX uses for its `maxExpand` setting.
+const MAX_EXPANSIONS: u32 = 1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SequenceEnd {
@@ -124,12 +137,14 @@ pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'state, 'arena> Parser<'state, 'arena> {
     pub(crate) fn new(
-        lexer: Lexer<'arena, 'state, 'arena>,
+        lexer: Lexer<'arena>,
         arena: &'arena Arena,
+        parser_cfg: &'arena ParserConfig,
+        global_state: &'state mut GlobalState,
         style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
-        let tokens = TokenQueue::new(lexer)?;
+        let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
         Ok(Parser {
             tokens,
             buffer: Buffer::new(input_length),
@@ -141,6 +156,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 env: EnvState::default(),
                 style,
                 vertical_line_def: None,
+                expansions_left: MAX_EXPANSIONS,
             },
         })
     }
@@ -1454,7 +1470,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_tag(
-                        &mut self.tokens.lexer.global_state.equation_count,
+                        &mut self.tokens.global_state.equation_count,
                         true,
                         self.arena,
                     ) {
@@ -1463,7 +1479,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
-                                        .lexer
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -1597,7 +1612,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                     match numbered_state.next_equation_tag(
-                        &mut self.tokens.lexer.global_state.equation_count,
+                        &mut self.tokens.global_state.equation_count,
                         false,
                         self.arena,
                     ) {
@@ -1606,7 +1621,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
-                                        .lexer
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -2018,7 +2032,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::Whitespace
             | Token::MathOrTextMode(_, _)
             | Token::VerticalLineDef(_)
-            | Token::CustomCmdArg(_) => {
+            | Token::CustomCmdArg(_)
+            // A command name is given its meaning by the token queue, so it never gets here.
+            | Token::CommandName => {
                 // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
@@ -2108,6 +2124,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::CustomCmd(num_args, token_stream) => {
+                self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
                 self.tokens
                     .queue_body_substituting(token_stream, &self.state.cmd_args, span);
@@ -2116,6 +2133,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 return self.parse_token(token, parse_as, prev_class);
             }
             Token::CustomCmdRef(source, num_args, _, start, end) => {
+                self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
                 if !self
                     .tokens
@@ -2142,9 +2160,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 nodes: &[],
                 attrs: RowAttrs::DEFAULT,
             }),
-            Token::UnknownCommand(name) => {
-                // The name lives in the lexer's string pool, so we have to copy it out.
-                let name = self.tokens.lexer.resolve(name);
+            Token::UnresolvedCommand(source, name) => {
+                // The name lives in one of the string pools, so we have to copy it out.
+                let name = self.tokens.name_of(source, name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
             Token::MathChoice => {
@@ -2209,19 +2227,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // definition. `None` means throwing the definition away, which is what
         // `\providecommand` does when the name is already taken.
         let target = match *name_tokspan.token() {
-            Token::UnknownCommand(name) => {
+            Token::UnresolvedCommand(source, name) => {
                 if matches!(mode, DefineMode::Renew) {
                     return Err(Box::new(LatexError(
                         name_tokspan.span().into(),
                         LatexErrKind::CommandNotDefined,
                     )));
                 }
-                // The name lives in the lexer's string pool, which doesn't outlive this
+                // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                let name = self.arena.alloc_str(self.tokens.lexer.resolve(name));
+                let name = self.arena.alloc_str(self.tokens.name_of(source, name));
                 Some((name, false))
             }
-            // Any other token means that the lexer already knew this name.
+            // Any other token means that the name was already defined.
             _ => {
                 let span: Range<usize> = name_tokspan.span().into();
                 // The name as it appears in the source, without the leading backslash.
@@ -2248,7 +2266,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     DefineMode::Provide => None,
                     // The name may belong to a builtin command or to a macro from the
                     // configuration; in both cases, the new definition shadows the old one,
-                    // because the lexer looks in the document's definitions first.
+                    // because resolution looks in the document's definitions first.
                     DefineMode::Renew => Some((self.arena.alloc_str(name), true)),
                 }
             }
@@ -2309,19 +2327,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
 
         let mut first_class: Option<Class> = None;
-        let body = body_tokspans
+        let mut body = body_tokspans
             .into_iter()
             .map(|tokspan| {
                 let (tok, span) = tokspan.into_parts();
                 match tok {
-                    // The name of an unknown command only lives in the string pool of the lexer
-                    // which produced it, so it cannot be stored. We have to reject this even when
-                    // `ignore_unknown_commands` is set, which is why the token queue doesn't do it
-                    // for us.
-                    Token::UnknownCommand(name) => Err(Box::new(LatexError(
-                        span.into(),
-                        LatexErrKind::UnknownCommand(self.tokens.lexer.resolve(name).into()),
-                    ))),
                     Token::CustomCmdArgInput(arg_num) => {
                         if arg_num >= num_args {
                             Err(Box::new(LatexError(
@@ -2354,30 +2364,34 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // parsed is discarded.
             return Ok(());
         };
-        // Depending on whether we run in the global group, the definition either goes into the
-        // store which outlives this snippet, or into the one which doesn't.
-        let (custom_cmds, source) = self.tokens.lexer.definition_store();
-        if replace {
-            custom_cmds.insert_or_replace(name, num_args, &body, first_class);
-            // The token after the definition has already been loaded from the lexer, so it
-            // may still refer to the definition we have just replaced.
-            if let Some(tok) = custom_cmds.get(name, source) {
-                self.tokens.resolve_buffered_redefined_command(name, tok);
-            }
-        } else {
-            // The name came from an unknown command, so it cannot be in the store already:
-            // the lexer resolves the names it knows, and the buffered tokens are re-resolved
-            // whenever something is defined.
-            if !custom_cmds.insert(name, num_args, &body, first_class) {
-                return Err(Box::new(LatexError(
-                    name_tokspan.span().into(),
-                    LatexErrKind::Internal,
-                )));
-            }
-            // The token after the definition has already been loaded from the lexer, so it
-            // may still say "unknown command" for the command we have just defined.
-            self.tokens.resolve_buffered_unknown_commands(source);
+        if !self
+            .tokens
+            .define(name, num_args, &mut body, first_class, replace)
+        {
+            // The name came from an unresolved command, so it cannot be in the store already:
+            // the names which are defined are resolved when they are read, and the buffered
+            // tokens are re-resolved whenever something is defined.
+            return Err(Box::new(LatexError(
+                name_tokspan.span().into(),
+                LatexErrKind::Internal,
+            )));
         }
+        Ok(())
+    }
+
+    /// Account for one expansion of a custom command, and give up if there were too many.
+    ///
+    /// A command may expand to itself, directly or through other commands, in which case
+    /// expanding it would never end. We don't try to recognize that; we just stop when a
+    /// snippet has had more expansions than any reasonable one needs.
+    fn count_expansion(&mut self, span: Span) -> ParseResult<()> {
+        let Some(left) = self.state.expansions_left.checked_sub(1) else {
+            return Err(Box::new(LatexError(
+                span.into(),
+                LatexErrKind::TooManyExpansions,
+            )));
+        };
+        self.state.expansions_left = left;
         Ok(())
     }
 
@@ -3274,8 +3288,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new(problem, &parser_cfg, &mut state);
-            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+            let l = Lexer::new(problem);
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -3313,8 +3327,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new("", &parser_cfg, &mut state);
-            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+            let l = Lexer::new("");
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -3330,8 +3344,8 @@ mod tests {
         let arena = Arena::new();
         let parser_cfg = crate::ParserConfig::default();
         let mut state = GlobalState::default();
-        let l = Lexer::new(&input, &parser_cfg, &mut state);
-        let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+        let l = Lexer::new(&input);
+        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));

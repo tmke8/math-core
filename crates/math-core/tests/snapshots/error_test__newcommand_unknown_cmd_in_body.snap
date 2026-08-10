@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\newcommand{\\zzz}{\\asdf}"
+expression: "\\newcommand{\\zzz}{\\asdf}\\zzz"
 ---
 Error: Unknown command "\asdf".
-   ╭─[ <input>:1:19 ]
+   ╭─[ <input>:1:25 ]
    │
- 1 │ \newcommand{\zzz}{\asdf}
-   │                   ──┬──  
-   │                     ╰──── unknown command
+ 1 │ \newcommand{\zzz}{\asdf}\zzz
+   │                         ──┬─  
+   │                           ╰─── unknown command
 ───╯

@@ -4,17 +4,38 @@ use alloc::vec::Vec;
 use core::ops::Range;
 
 use crate::{
+    ParserConfig,
     character_class::Class,
-    custom_cmds::CmdSource,
+    command_name,
+    custom_cmds::{CmdLookup, CmdSource, CustomCmds},
     error::{LatexErrKind, LatexError},
+    global_state::GlobalState,
     lexer::Lexer,
+    string_pool::{InternedStr, StringPool},
     token::{EndToken, Span, TokSpan, Token},
 };
 
 /// A token queue that allows peeking at the next non-whitespace token.
+///
+/// This is also where command names are given their meaning: the lexer hands out a
+/// [`Token::CommandName`] for every command it reads, and it is resolved here, both when it
+/// comes out of the lexer and when it comes out of the body of a custom command. The latter is
+/// what makes it possible for a body to mention a command which is only defined later.
 pub(super) struct TokenQueue<'state, 'arena> {
-    pub lexer: Lexer<'arena, 'state, 'arena>,
+    pub lexer: Lexer<'arena>,
+    parser_cfg: &'arena ParserConfig,
+    pub global_state: &'state mut GlobalState,
+    /// The commands which the snippet defines for itself with `\newcommand`, when the
+    /// conversion does *not* run in the global group. They are dropped together with the
+    /// queue, which is why they don't outlive the snippet.
+    local_cmds: CustomCmds,
+    /// The names of the commands which `local_cmds` refers to but which were not defined when
+    /// they were read, as well as those of the unresolved commands in the queue itself.
+    cmd_names: StringPool,
     queue: VecDeque<TokSpan>,
+    /// A buffer for copying the body of a custom command out of its store, so that the stores
+    /// stay readable while the body is queued and resolved.
+    body_buf: Vec<Token>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
@@ -22,10 +43,19 @@ pub(super) struct TokenQueue<'state, 'arena> {
 static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
 
 impl<'state, 'arena> TokenQueue<'state, 'arena> {
-    pub(super) fn new(lexer: Lexer<'arena, 'state, 'arena>) -> Result<Self, Box<LatexError>> {
+    pub(super) fn new(
+        lexer: Lexer<'arena>,
+        parser_cfg: &'arena ParserConfig,
+        global_state: &'state mut GlobalState,
+    ) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
+            parser_cfg,
+            global_state,
+            local_cmds: CustomCmds::default(),
+            cmd_names: StringPool::default(),
             queue: VecDeque::with_capacity(2),
+            body_buf: Vec::new(),
             lexer_is_eoi: false,
             next_non_whitespace: 0,
         };
@@ -33,6 +63,54 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         let idx = tm.load_token_skip_whitespace()?;
         tm.next_non_whitespace = idx;
         Ok(tm)
+    }
+
+    /// The stores to resolve command names in.
+    #[inline]
+    fn lookup(&self) -> CmdLookup<'_> {
+        CmdLookup::new(
+            self.parser_cfg,
+            &self.local_cmds,
+            &self.global_state.custom_cmds,
+        )
+    }
+
+    /// The name of a command which the queue could not resolve.
+    ///
+    /// The name lives in the pool which belongs to the given [`CmdSource`], because the token
+    /// may have come out of the body of a command in that store.
+    pub(super) fn name_of(&self, source: CmdSource, name: InternedStr) -> &str {
+        name_in_pool(
+            source,
+            name,
+            self.parser_cfg,
+            self.global_state,
+            &self.cmd_names,
+        )
+    }
+
+    /// Give the token which the lexer has just produced its meaning, if it is a command.
+    ///
+    /// A name which isn't defined (yet) is interned, so that the token which carries it stays
+    /// valid once the input is gone.
+    fn resolve_lexed(&mut self, tokspan: &mut TokSpan) {
+        if !matches!(tokspan.token(), Token::CommandName) {
+            return;
+        }
+        // The input outlives the lexer, so this doesn't borrow `self`.
+        let input: &'arena str = self.lexer.input();
+        let name = command_name(input, tokspan.span().into());
+        let tok = self.lookup().resolve(name).unwrap_or_else(|| {
+            Token::UnresolvedCommand(CmdSource::Local, self.cmd_names.intern(name))
+        });
+        *tokspan = TokSpan::new(tok, tokspan.span());
+    }
+
+    /// Try to give a command which was unresolved when it was read its meaning now.
+    ///
+    /// Returns `None` if the name is still not defined anywhere.
+    fn resolve_stored(&self, source: CmdSource, name: InternedStr) -> Option<Token> {
+        self.lookup().resolve(self.name_of(source, name))
     }
 
     /// Load the next non-whitespace token from the lexer into the buffer, and return its index.
@@ -54,7 +132,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         let starting_len = self.queue.len();
         let mut non_skipped_offset = 0usize;
         loop {
-            let tok = self.lexer.next_token()?;
+            let mut tok = self.lexer.next_token()?;
+            // Commands are resolved right away, so that no unresolved command name is ever
+            // queued: the queue is what the character class lookahead reads from.
+            self.resolve_lexed(&mut tok);
             let result = predicate(starting_len + non_skipped_offset, tok.token());
             let is_eoi = matches!(tok.token(), Token::Eoi);
             self.queue.push_back(tok);
@@ -189,20 +270,21 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         }
     }
 
-    /// Reject an unknown command, unless the configuration says to render it instead.
+    /// Reject a command which is still not defined, unless the configuration says to render it
+    /// instead.
     ///
-    /// The lexer deliberately does not decide what to do with an unknown command, because
+    /// Resolution deliberately does not decide what to do with a name it cannot find, because
     /// the name of one can be something we want to use rather than reject. Doing it here
     /// means that unknown commands are reported as such no matter where they show up,
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
-        if let Token::UnknownCommand(name) = *tokspan.token()
-            && !self.lexer.parser_cfg().ignore_unknown_commands
+        if let Token::UnresolvedCommand(source, name) = *tokspan.token()
+            && !self.parser_cfg.ignore_unknown_commands
         {
-            // The name lives in the lexer's string pool, so we have to copy it out.
+            // The name lives in one of the string pools, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.lexer.resolve(name).into()),
+                LatexErrKind::UnknownCommand(self.name_of(source, name).into()),
             )));
         }
         Ok(())
@@ -251,6 +333,16 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This method may return whitespace tokens and [`Token::MathOrTextMode`].
     pub(super) fn next_any_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
+        let ret = self.next_any_token_allowing_unknown_command()?;
+        self.reject_unknown_command(&ret)?;
+        Ok(ret)
+    }
+
+    /// Same as [`Self::next_any_token`], but commands which are not defined (yet) are returned
+    /// as tokens instead of being rejected.
+    pub(super) fn next_any_token_allowing_unknown_command(
+        &mut self,
+    ) -> Result<TokSpan, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -259,7 +351,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 // We popped `next_non_whitespace` itself, so we need to find the next one.
                 self.ensure_next_non_whitespace()?;
             }
-            self.reject_unknown_command(&ret)?;
             Ok(ret)
         } else {
             // We must have reached EOI previously.
@@ -329,10 +420,22 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
             let tokspan: TokSpan = (*tok).into();
-            if let Token::CustomCmdArg(arg_num) = *tokspan.token() {
-                self.push_arg_front(args.get(arg_num), span);
-            } else {
-                self.queue.push_front(tokspan);
+            match *tokspan.token() {
+                Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(arg_num), span),
+                // A command which didn't exist when the body was recorded may exist by now.
+                Token::UnresolvedCommand(source, name) => {
+                    let resolved = self.resolve_stored(source, name);
+                    // A body carries no spans of its own, so if the command is still not
+                    // defined, the error has to point at the command we are expanding.
+                    let tok = resolved.unwrap_or(*tokspan.token());
+                    let tok_span = if resolved.is_some() {
+                        tokspan.span()
+                    } else {
+                        span
+                    };
+                    self.queue.push_front(TokSpan::new(tok, tok_span));
+                }
+                _ => self.queue.push_front(tokspan),
             }
         }
         self.update_next_non_whitespace();
@@ -375,56 +478,103 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         args: &CmdArgs,
         span: Span,
     ) -> bool {
-        match source {
-            CmdSource::Config => {
-                // The reference to the config is `Copy`, so getting it out of the lexer
-                // ends the borrow of the lexer, leaving us free to modify the queue.
-                let Some(body) = self.lexer.parser_cfg().custom_cmd_body(start, end) else {
-                    return false;
-                };
-                self.queue_body_substituting(body, args, span);
-                true
-            }
-            CmdSource::Document | CmdSource::Local => {
-                // The store lives in the lexer, which is part of `self`, so we take it out
-                // for the duration of the push and then put it back.
-                let store = match source {
-                    CmdSource::Local => &mut self.lexer.local_cmds,
-                    _ => &mut self.lexer.global_state.custom_cmds,
-                };
-                let cmds = core::mem::take(store);
-                let found = if let Some(body) = cmds.body(start, end) {
-                    self.queue_body_substituting(body, args, span);
-                    true
-                } else {
-                    false
-                };
-                match source {
-                    CmdSource::Local => self.lexer.local_cmds = cmds,
-                    _ => self.lexer.global_state.custom_cmds = cmds,
-                }
-                found
-            }
+        // The body is copied out of its store, because queueing it resolves the commands in
+        // it, which needs to read all of the stores.
+        let mut body = core::mem::take(&mut self.body_buf);
+        body.clear();
+        let found = if let Some(tokens) = match source {
+            CmdSource::Config => self.parser_cfg.custom_cmd_body(start, end),
+            CmdSource::Document => self.global_state.custom_cmds.body(start, end),
+            CmdSource::Local => self.local_cmds.body(start, end),
+        } {
+            body.extend_from_slice(tokens);
+            true
+        } else {
+            false
+        };
+        if found {
+            self.queue_body_substituting(&body, args, span);
         }
+        self.body_buf = body;
+        found
     }
 
     /// Resolve buffered tokens for commands which have been defined in the meantime.
     ///
-    /// Commands are normally resolved by the lexer, but the buffer may already contain a
-    /// token for a command which is only defined once we get to it: right after a
-    /// `\newcommand`, and at the very beginning of a snippet, because the buffer is primed
-    /// before the definitions of the previous snippets are handed to the lexer.
-    ///
-    /// The `source` says which store the definition we have just seen went into.
-    pub(super) fn resolve_buffered_unknown_commands(&mut self, source: CmdSource) {
-        let TokenQueue { lexer, queue, .. } = self;
+    /// Commands are normally resolved when they are read, but the buffer may already contain
+    /// the token of a command which is only defined once we get to it: the token right after
+    /// a `\newcommand` has already been read by then.
+    pub(super) fn resolve_buffered_unknown_commands(&mut self) {
+        let TokenQueue {
+            parser_cfg,
+            global_state,
+            local_cmds,
+            cmd_names,
+            queue,
+            ..
+        } = self;
+        let lookup = CmdLookup::new(parser_cfg, local_cmds, &global_state.custom_cmds);
         for tokspan in queue.iter_mut() {
-            if let Token::UnknownCommand(name) = *tokspan.token()
-                && let Some(tok) = lexer.get_custom_cmd(lexer.resolve(name), source)
+            if let Token::UnresolvedCommand(source, name) = *tokspan.token()
+                && let Some(tok) = lookup.resolve(name_in_pool(
+                    source,
+                    name,
+                    parser_cfg,
+                    global_state,
+                    cmd_names,
+                ))
             {
                 *tokspan = TokSpan::new(tok, tokspan.span());
             }
         }
+    }
+
+    /// Register a custom command, and make the tokens which are already buffered aware of it.
+    ///
+    /// Depending on whether we run in the global group, the definition either goes into the
+    /// store which outlives this snippet, or into the one which doesn't. Returns `false` if
+    /// `replace` is not set and the name is already taken.
+    pub(super) fn define(
+        &mut self,
+        name: &str,
+        num_args: u8,
+        body: &mut [Token],
+        first_class: Option<Class>,
+        replace: bool,
+    ) -> bool {
+        let source = if self.parser_cfg.global_group {
+            // The names which the body refers to have to outlive the snippet just like the
+            // body itself does, so they move to the pool of the global state.
+            for tok in body.iter_mut() {
+                if let Token::UnresolvedCommand(CmdSource::Local, name) = *tok {
+                    let name = self.global_state.cmd_names.intern(self.cmd_names.get(name));
+                    *tok = Token::UnresolvedCommand(CmdSource::Document, name);
+                }
+            }
+            CmdSource::Document
+        } else {
+            CmdSource::Local
+        };
+        let store = match source {
+            CmdSource::Document => &mut self.global_state.custom_cmds,
+            _ => &mut self.local_cmds,
+        };
+        if replace {
+            store.insert_or_replace(name, num_args, body, first_class);
+            // The token after the definition has already been loaded, so it may still refer
+            // to the definition we have just replaced.
+            if let Some(tok) = store.get(name, source) {
+                self.resolve_buffered_redefined_command(name, tok);
+            }
+        } else {
+            if !store.insert(name, num_args, body, first_class) {
+                return false;
+            }
+            // The token after the definition has already been loaded, so it may still say
+            // "unknown command" for the command we have just defined.
+            self.resolve_buffered_unknown_commands();
+        }
+        true
     }
 
     /// Update buffered tokens for a command which has just been redefined.
@@ -449,6 +599,9 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// for the caller. Both of those are dictated by the one-token lookahead: macro
     /// parameters have to be allowed before the token after the `{` is loaded from the lexer,
     /// and disallowed again before the token after the `}` is.
+    ///
+    /// A command which isn't defined (yet) is recorded as such instead of being rejected: it
+    /// may well be defined by the time the command being defined here is used.
     pub(super) fn record_macro_body(
         &mut self,
         tokens: &mut Vec<TokSpan>,
@@ -478,7 +631,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 }
                 _ => {}
             }
-            self.next_any_token()?;
+            self.next_any_token_allowing_unknown_command()?;
             tokens.push(tokloc);
         }
     }
@@ -558,6 +711,25 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
         self.queue.get(idx)
     }
+}
+
+/// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
+///
+/// This is a free function, rather than only a method on [`TokenQueue`], so that it can be
+/// called while the queue itself is borrowed.
+fn name_in_pool<'a>(
+    source: CmdSource,
+    name: InternedStr,
+    parser_cfg: &'a ParserConfig,
+    global_state: &'a GlobalState,
+    local_names: &'a StringPool,
+) -> &'a str {
+    match source {
+        CmdSource::Config => parser_cfg.cmd_names(),
+        CmdSource::Document => &global_state.cmd_names,
+        CmdSource::Local => local_names,
+    }
+    .get(name)
 }
 
 fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {
@@ -704,8 +876,9 @@ mod tests {
         let parser_cfg = crate::ParserConfig::default();
         let mut state = crate::GlobalState::default();
         for (name, problem) in problems.into_iter() {
-            let lexer = Lexer::new(problem, &parser_cfg, &mut state);
-            let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+            let lexer = Lexer::new(problem);
+            let mut manager = TokenQueue::new(lexer, &parser_cfg, &mut state)
+                .expect("Failed to create TokenManager");
             // Load up some tokens to ensure the code can deal with that.
             manager.load_token_skip_whitespace().unwrap();
             manager.load_token_skip_whitespace().unwrap();
@@ -740,8 +913,9 @@ mod tests {
         // let input = r"\text  xy";
         let parser_cfg = crate::ParserConfig::default();
         let mut state = crate::GlobalState::default();
-        let lexer = Lexer::new(input, &parser_cfg, &mut state);
-        let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+        let lexer = Lexer::new(input);
+        let mut manager =
+            TokenQueue::new(lexer, &parser_cfg, &mut state).expect("Failed to create TokenManager");
 
         let mut token_str = String::new();
 
@@ -762,8 +936,9 @@ mod tests {
         // let input = r"\text  xy";
         let parser_cfg = crate::ParserConfig::default();
         let mut state = crate::GlobalState::default();
-        let lexer = Lexer::new(input, &parser_cfg, &mut state);
-        let mut queue = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+        let lexer = Lexer::new(input);
+        let mut queue =
+            TokenQueue::new(lexer, &parser_cfg, &mut state).expect("Failed to create TokenManager");
         queue.next().unwrap(); // Consume 'x'
         assert_eq!(queue.next_non_whitespace, 1);
         assert_eq!(queue.queue.len(), 2);
@@ -805,8 +980,9 @@ mod tests {
         let parser_cfg = crate::ParserConfig::default();
         for (name, problem, preserve_all) in problems.into_iter() {
             let mut state = crate::GlobalState::default();
-            let lexer = Lexer::new(problem, &parser_cfg, &mut state);
-            let mut manager = TokenQueue::new(lexer).expect("Failed to create TokenManager");
+            let lexer = Lexer::new(problem);
+            let mut manager = TokenQueue::new(lexer, &parser_cfg, &mut state)
+                .expect("Failed to create TokenManager");
             let tokens = match manager.read_argument(preserve_all) {
                 Ok(MacroArgument::Group(tokens, _)) => {
                     let mut token_str = String::new();

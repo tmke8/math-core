@@ -25,6 +25,11 @@ impl StringPool {
         InternedStr(start, self.0.len())
     }
 
+    /// Forget all interned strings, invalidating every [`InternedStr`] of this pool.
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
     /// Retrieve a string which was previously interned in *this* pool.
     pub fn get(&self, index: InternedStr) -> &str {
         // SAFETY: `InternedStr` can only be obtained from `intern()`, which returns

@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\foo"
+---
+<math>
+    <mi>x</mi>
+    <mo>+</mo>
+    <mi>y</mi>
+</math>

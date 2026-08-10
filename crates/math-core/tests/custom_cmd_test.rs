@@ -345,6 +345,147 @@ fn test_renewcommand() {
 }
 
 #[test]
+fn test_forward_reference() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        // The body of a command may name a command which doesn't exist yet; the name is
+        // resolved when the command is used.
+        (
+            "forward_reference",
+            r"\newcommand{\foo}{x+\baz}\newcommand{\baz}{y}\foo",
+        ),
+        // The same, with the forward reference inside a nested group and with arguments.
+        (
+            "forward_reference_with_args",
+            r"\newcommand{\foo}[1]{\baz{#1}}\newcommand{\baz}[1]{[#1]}\foo{z}",
+        ),
+        // A forward reference is resolved every time the command is expanded, so the two uses
+        // here get different definitions.
+        (
+            "forward_reference_resolved_at_use",
+            r"\newcommand{\foo}{\baz}\newcommand{\baz}{1}\foo\renewcommand{\baz}{2}\foo",
+        ),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+
+    // A command which is never defined is an error, but only once it is used.
+    converter
+        .convert_with_local_state(r"\newcommand{\foo}{x+\baz}", MathDisplay::Inline)
+        .unwrap();
+    assert!(
+        converter
+            .convert_with_local_state(r"\newcommand{\foo}{x+\baz}\foo", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+#[test]
+fn test_forward_reference_across_snippets() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        global_group: true,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    // The name which the definition refers to is defined in a later snippet, so the name has
+    // to survive the snippet which mentions it.
+    converter
+        .convert_with_global_state(r"\newcommand{\foo}{x+\baz}", MathDisplay::Inline)
+        .unwrap();
+    converter
+        .convert_with_global_state(r"\newcommand{\baz}{y}", MathDisplay::Inline)
+        .unwrap();
+    let mathml = converter
+        .convert_with_global_state(r"\foo", MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("forward_reference_across_snippets", mathml.mathml, r"\foo");
+
+    // ... but not after the global state has been reset.
+    converter.reset_global_state();
+    assert!(
+        converter
+            .convert_with_global_state(r"\foo", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+#[test]
+fn test_expansion_limit() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for latex in [
+        // Two commands which expand to each other.
+        r"\newcommand{\a}{\b}\newcommand{\b}{\a}\a",
+        // A command which expands to itself.
+        r"\newcommand{\a}{x\a}\a",
+    ] {
+        let Err(err) = converter.convert_with_local_state(latex, MathDisplay::Inline) else {
+            panic!("`{latex}` should not have converted");
+        };
+        assert!(
+            err.to_string().contains("Too many expansions"),
+            "unexpected error for `{latex}`: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_config_macros_referring_to_each_other() {
+    let macros = vec![
+        // The macro which is defined first refers to the one which is defined later.
+        ("half".to_string(), r"\frac{1}{\two}".to_string()),
+        ("two".to_string(), r"2".to_string()),
+    ];
+    let config = MathCoreConfig {
+        macros,
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    let latex = r"\half";
+    let mathml = converter
+        .convert_with_local_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!(
+        "config_macros_referring_to_each_other",
+        mathml.mathml,
+        latex
+    );
+}
+
+#[test]
+fn test_config_macro_with_undefined_command() {
+    let macros = vec![
+        ("half".to_string(), r"\frac{1}{2}".to_string()),
+        ("bad".to_string(), r"\frac{1}{\nosuchcommand}".to_string()),
+    ];
+    let config = MathCoreConfig {
+        macros,
+        ..Default::default()
+    };
+
+    // A name which none of the macros defines is still reported right away.
+    let error = LatexToMathML::new(config).unwrap_err();
+    assert_eq!(error.1, 1);
+    assert_eq!(error.2, r"\frac{1}{\nosuchcommand}");
+}
+
+#[test]
 fn test_renewcommand_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {

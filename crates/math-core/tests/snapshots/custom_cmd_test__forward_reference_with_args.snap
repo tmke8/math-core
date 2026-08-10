@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\foo}[1]{\\baz{#1}}\\newcommand{\\baz}[1]{[#1]}\\foo{z}"
+---
+<math>
+    <mo stretchy="false">[</mo>
+    <mi>z</mi>
+    <mo stretchy="false">]</mo>
+</math>
