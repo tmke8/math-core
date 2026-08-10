@@ -178,6 +178,16 @@ impl<'a> CmdLookup<'a> {
     /// Returns `None` if the name isn't defined anywhere, in which case it may still be
     /// defined later on.
     pub(crate) fn resolve(&self, name: &str) -> Option<Token> {
+        // First check the stores, from most local to most global.
+        if let Some((local, document, config)) = self.stores
+            && let Some(tok) = local
+                .get(name, CmdSource::Local)
+                .or_else(|| document.get(name, CmdSource::Document))
+                .or_else(|| config.get(name, CmdSource::Config))
+        {
+            return Some(tok);
+        }
+        // Then check some conditionally-available commands which are built into the crate.
         'unreliable_rendering: {
             if self.parser_cfg.allow_unreliable_rendering() {
                 let tok = match name {
@@ -210,14 +220,7 @@ impl<'a> CmdLookup<'a> {
                 return Some(tok);
             }
         }
-        if let Some((local, document, config)) = self.stores
-            && let Some(tok) = local
-                .get(name, CmdSource::Local)
-                .or_else(|| document.get(name, CmdSource::Document))
-                .or_else(|| config.get(name, CmdSource::Config))
-        {
-            return Some(tok);
-        }
+        // Finally, check the commands which are built into the crate and always available.
         get_command(name)
     }
 }

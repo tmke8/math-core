@@ -511,6 +511,27 @@ fn test_renewcommand_config_macro() {
 }
 
 #[test]
+fn test_renewcommand_unreliable_rendering() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        allow_unreliable_rendering: true,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    // Overwrite a command that is only available when `allow_unreliable_rendering` is set.
+    let latex = r"\renewcommand{\widecheck}{x}\widecheck";
+    let mathml = converter
+        .convert_with_local_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!(
+        "renewcommand_replaces_builtin_unreliable",
+        mathml.mathml,
+        latex
+    );
+}
+
+#[test]
 fn test_renewcommand_across_snippets() {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,

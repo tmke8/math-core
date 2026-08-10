@@ -23,16 +23,13 @@ use crate::{
 /// what makes it possible for a body to mention a command which is only defined later.
 pub(super) struct TokenQueue<'state, 'arena> {
     pub lexer: Lexer<'arena>,
-    parser_cfg: &'arena ParserConfig,
+    pub parser_cfg: &'arena ParserConfig,
     pub global_state: &'state mut GlobalState,
     /// The commands which the snippet defines for itself with `\newcommand`, when the
     /// conversion does *not* run in the global group. They are dropped together with the
     /// queue, which is why they don't outlive the snippet.
-    local_cmds: CustomCmds,
+    pub local_cmds: CustomCmds,
     queue: VecDeque<TokSpan>,
-    /// A buffer for copying the body of a custom command out of its store, so that the stores
-    /// stay readable while the body is queued and resolved.
-    body_buf: Vec<Token>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
@@ -51,7 +48,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             global_state,
             local_cmds: CustomCmds::default(),
             queue: VecDeque::with_capacity(2),
-            body_buf: Vec::new(),
             lexer_is_eoi: false,
             next_non_whitespace: 0,
         };
@@ -460,39 +456,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         self.queue.reserve(arg.len());
         self.push_arg_front(arg, span);
         self.update_next_non_whitespace();
-    }
-
-    /// Queue the body of a custom command which is kept in one of the stores, substituting
-    /// its arguments as [`Self::queue_body_substituting`] does.
-    ///
-    /// Returns `false` if the given range doesn't exist, which should never happen.
-    pub(super) fn queue_cmd_body(
-        &mut self,
-        source: CmdSource,
-        start: usize,
-        end: usize,
-        args: &CmdArgs,
-        span: Span,
-    ) -> bool {
-        // The body is copied out of its store, because queueing it resolves the commands in
-        // it, which needs to read all of the stores.
-        let mut body = core::mem::take(&mut self.body_buf);
-        body.clear();
-        let found = if let Some(tokens) = match source {
-            CmdSource::Config => self.parser_cfg.custom_cmd_body(start, end),
-            CmdSource::Document => self.global_state.custom_cmds.body(start, end),
-            CmdSource::Local => self.local_cmds.body(start, end),
-        } {
-            body.extend_from_slice(tokens);
-            true
-        } else {
-            false
-        };
-        if found {
-            self.queue_body_substituting(&body, args, span);
-        }
-        self.body_buf = body;
-        found
     }
 
     /// Resolve buffered tokens for commands which have been defined in the meantime.

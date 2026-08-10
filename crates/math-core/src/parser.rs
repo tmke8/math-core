@@ -21,7 +21,7 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::is_valid_macro_name,
+    custom_cmds::{CmdSource, is_valid_macro_name},
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -47,6 +47,8 @@ pub(crate) struct Parser<'state, 'arena> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     state: ParserState<'arena>,
+    /// A buffer for copying the body of a custom command out of its store.
+    body_buf: Vec<Token>,
 }
 
 #[derive(Debug)]
@@ -158,6 +160,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 vertical_line_def: None,
                 expansions_left: MAX_EXPANSIONS,
             },
+            body_buf: Vec::new(),
         })
     }
 
@@ -2135,10 +2138,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::CustomCmdRef(source, num_args, _, start, end) => {
                 self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
-                if !self
-                    .tokens
-                    .queue_cmd_body(source, start, end, &self.state.cmd_args, span)
-                {
+                // We can't borrow the token slice of the body because we need to queue it 
+                // later, which requires a mutable borrow of `self.tokens`.
+                // So, we copy the body into a temporary buffer, which we can then queue.
+                if let Some(tokens) = match source {
+                    CmdSource::Config => self.tokens.parser_cfg.custom_cmd_body(start, end),
+                    CmdSource::Document => self.tokens.global_state.custom_cmds.body(start, end),
+                    CmdSource::Local => self.tokens.local_cmds.body(start, end),
+                } {
+                    self.body_buf.clear();
+                    self.body_buf.extend_from_slice(tokens);
+                    self.tokens.queue_body_substituting(&self.body_buf, &self.state.cmd_args, span);
+                } else {
                     return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
                 }
                 let token = self.next_token();

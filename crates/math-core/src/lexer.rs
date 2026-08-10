@@ -341,20 +341,6 @@ mod tests {
 
     use super::super::token::Token;
     use super::*;
-    use crate::ParserConfig;
-    use crate::custom_cmds::CmdLookup;
-
-    /// Resolve a command name the way the token queue does, so that the tokens in the
-    /// snapshots are the ones which the parser would get to see.
-    fn resolve(input: &str, tokspan: TokSpan, lookup: &CmdLookup<'_>) -> Token {
-        let (tok, span) = tokspan.into_parts();
-        if matches!(tok, Token::CommandName) {
-            let name = crate::command_name(input, span.into());
-            lookup.resolve(name).unwrap_or(Token::CommandName)
-        } else {
-            tok
-        }
-    }
 
     #[test]
     fn lexer_test() {
@@ -371,8 +357,6 @@ mod tests {
             ("space_and_number", r"\ 1"),
             ("space_in_text", r"\text{  x   y z}"),
             ("comment", "ab%hello\ncd"),
-            ("switch_to_text_mode", r"\prod\text\o\sum"),
-            ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
             ("custom_space", r"{x\hspace{2em}}"),
             ("hspace_whitespace_in_between", r"\hspace {  4  em } x"),
             ("color", r"{x\color{red} y}"),
@@ -387,11 +371,8 @@ mod tests {
             ("genfrac_without_parens", r"\genfrac{}{}{0pt}{2}{a+b}{c+d}"),
             ("begin_array", r"\begin{array}{c|c}"),
             ("end_array", r"\end{array}{c|c}"),
-            ("unknown_command", r"\unknowncmd + x"),
         ];
 
-        let parser_cfg = ParserConfig::default();
-        let lookup = CmdLookup::for_config_macros(&parser_cfg);
         for (name, problem) in problems.into_iter() {
             let mut lexer = Lexer::new(problem);
             // Call `lexer.next_token()` until we get `Token::EOI`.
@@ -401,8 +382,7 @@ mod tests {
                 if matches!(tokloc.token(), Token::Eoi) {
                     break;
                 }
-                let span = tokloc.span();
-                let tok = resolve(problem, tokloc, &lookup);
+                let (tok, span) = tokloc.into_parts();
                 writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
@@ -451,8 +431,6 @@ mod tests {
     #[test]
     fn test_parsing_custom_commands() {
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let parser_cfg = ParserConfig::default();
-        let lookup = CmdLookup::for_config_macros(&parser_cfg);
         let mut lexer = Lexer::new(problem);
         let mut tokens = String::new();
         loop {
@@ -460,8 +438,7 @@ mod tests {
             if matches!(tokloc.token(), Token::Eoi) {
                 break;
             }
-            let span = tokloc.span();
-            let tok = resolve(problem, tokloc, &lookup);
+            let (tok, span) = tokloc.into_parts();
             writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
         assert_snapshot!("parsing_custom_commands", tokens, problem);

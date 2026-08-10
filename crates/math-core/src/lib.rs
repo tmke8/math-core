@@ -553,15 +553,18 @@ fn parse_custom_commands(
                             Token::Eoi => break,
                             Token::CommandName => {
                                 let cmd_name = command_name(definition.as_str(), span.into());
-                                let tok = lookup.resolve(cmd_name).unwrap_or_else(|| {
-                                    let interned = custom_cmds.intern(cmd_name);
+                                let interned = custom_cmds.intern(cmd_name);
+                                // We resolve the command here only to know whether it *can* be
+                                // resolved and to know its class. The actual resolution is done
+                                // when the macro is used.
+                                if let Some(resolved) = lookup.resolve(cmd_name) {
+                                    if first_class.is_none() {
+                                        first_class = resolved.class();
+                                    }
+                                } else {
                                     unresolved.push((idx, interned, span.into()));
-                                    Token::UnresolvedCommand(CmdSource::Config, interned)
-                                });
-                                if first_class.is_none() {
-                                    first_class = tok.class();
                                 }
-                                body.push(tok);
+                                body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
                             }
                             Token::CustomCmdArgInput(n) => {
                                 if n >= num_args {
@@ -605,8 +608,5 @@ fn parse_custom_commands(
 
 /// The name of a command, given the span of its token: the source text without the backslash.
 fn command_name(input: &str, span: Range<usize>) -> &str {
-    input
-        .get(span)
-        .and_then(|s| s.strip_prefix('\\'))
-        .unwrap_or_default()
+    input.get((span.start + 1)..span.end).unwrap_or_default()
 }
