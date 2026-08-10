@@ -6,6 +6,7 @@ use rustc_hash::FxBuildHasher;
 
 use crate::character_class::Class;
 use crate::commands::get_command;
+use crate::string_pool::{InternedStr, StringPool};
 use crate::token::Token;
 use crate::{FxHashMap, ParserConfig, UnicodeSubstitution};
 
@@ -53,6 +54,8 @@ struct CmdDef {
 pub(crate) struct CustomCmds {
     tokens: Vec<Token>,
     map: FxHashMap<Box<str>, CmdDef>,
+    /// The names of the commands in [`Self::tokens`].
+    cmd_names: StringPool,
 }
 
 impl CustomCmds {
@@ -60,6 +63,7 @@ impl CustomCmds {
         CustomCmds {
             tokens: Vec::new(),
             map: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
+            cmd_names: StringPool::default(),
         }
     }
 
@@ -120,9 +124,19 @@ impl CustomCmds {
         );
     }
 
+    pub(crate) fn cmd_names(&self) -> &StringPool {
+        &self.cmd_names
+    }
+
+    #[inline]
+    pub(crate) fn intern(&mut self, s: &str) -> InternedStr {
+        self.cmd_names.intern(s)
+    }
+
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
         self.map.clear();
+        self.cmd_names.clear();
     }
 }
 

@@ -29,9 +29,6 @@ pub(super) struct TokenQueue<'state, 'arena> {
     /// conversion does *not* run in the global group. They are dropped together with the
     /// queue, which is why they don't outlive the snippet.
     local_cmds: CustomCmds,
-    /// The names of the commands which `local_cmds` refers to but which were not defined when
-    /// they were read, as well as those of the unresolved commands in the queue itself.
-    cmd_names: StringPool,
     queue: VecDeque<TokSpan>,
     /// A buffer for copying the body of a custom command out of its store, so that the stores
     /// stay readable while the body is queued and resolved.
@@ -53,7 +50,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             parser_cfg,
             global_state,
             local_cmds: CustomCmds::default(),
-            cmd_names: StringPool::default(),
             queue: VecDeque::with_capacity(2),
             body_buf: Vec::new(),
             lexer_is_eoi: false,
@@ -85,7 +81,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             name,
             self.parser_cfg,
             self.global_state,
-            &self.cmd_names,
+            self.local_cmds.cmd_names(),
         )
     }
 
@@ -101,7 +97,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         let input: &'arena str = self.lexer.input();
         let name = command_name(input, tokspan.span().into());
         let tok = self.lookup().resolve(name).unwrap_or_else(|| {
-            Token::UnresolvedCommand(CmdSource::Local, self.cmd_names.intern(name))
+            Token::UnresolvedCommand(CmdSource::Local, self.local_cmds.intern(name))
         });
         *tokspan = TokSpan::new(tok, tokspan.span());
     }
@@ -509,7 +505,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             parser_cfg,
             global_state,
             local_cmds,
-            cmd_names,
             queue,
             ..
         } = self;
@@ -521,7 +516,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                     name,
                     parser_cfg,
                     global_state,
-                    cmd_names,
+                    local_cmds.cmd_names(),
                 ))
             {
                 *tokspan = TokSpan::new(tok, tokspan.span());
@@ -547,7 +542,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // body itself does, so they move to the pool of the global state.
             for tok in body.iter_mut() {
                 if let Token::UnresolvedCommand(CmdSource::Local, name) = *tok {
-                    let name = self.global_state.cmd_names.intern(self.cmd_names.get(name));
+                    let name = self
+                        .global_state
+                        .custom_cmds
+                        .intern(self.local_cmds.cmd_names().get(name));
                     *tok = Token::UnresolvedCommand(CmdSource::Document, name);
                 }
             }
@@ -726,7 +724,7 @@ fn name_in_pool<'a>(
 ) -> &'a str {
     match source {
         CmdSource::Config => parser_cfg.cmd_names(),
-        CmdSource::Document => &global_state.cmd_names,
+        CmdSource::Document => global_state.custom_cmds.cmd_names(),
         CmdSource::Local => local_names,
     }
     .get(name)

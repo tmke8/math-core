@@ -211,9 +211,6 @@ pub struct MathCoreConfig {
 #[derive(Debug, Default)]
 struct ParserConfig {
     custom_cmds_from_cfg: CustomCmds,
-    /// The names of the commands which the bodies in `custom_cmds_from_cfg` refer to but which
-    /// were not defined when they were read. See [`Token::UnresolvedCommand`].
-    cmd_names_from_cfg: StringPool,
     ignore_unknown_commands: bool,
     allow_unreliable_rendering: bool,
     global_group: bool,
@@ -226,7 +223,7 @@ impl ParserConfig {
     }
 
     pub(crate) fn cmd_names(&self) -> &StringPool {
-        &self.cmd_names_from_cfg
+        self.custom_cmds_from_cfg.cmd_names()
     }
 
     pub(crate) fn allow_unreliable_rendering(&self) -> bool {
@@ -286,13 +283,12 @@ impl LatexToMathML {
     /// be parsed. The error contains the parsing error, the macro index and the macro definition
     /// that caused the error.
     pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
-        let (custom_cmds, cmd_names) = parse_custom_commands(
+        let custom_cmds = parse_custom_commands(
             core::mem::take(&mut config.macros),
             config.unicode_substitution,
         )?;
         let parser_cfg = ParserConfig {
             custom_cmds_from_cfg: custom_cmds,
-            cmd_names_from_cfg: cmd_names,
             ignore_unknown_commands: config.ignore_unknown_commands,
             allow_unreliable_rendering: config.allow_unreliable_rendering,
             global_group: config.global_group,
@@ -367,7 +363,6 @@ impl LatexToMathML {
         self.state.equation_count = 0;
         self.state.label_map.clear();
         self.state.custom_cmds.clear();
-        self.state.cmd_names.clear();
     }
 
     /// Convert a collection of LaTeX snippets to MathML.
@@ -522,9 +517,8 @@ fn parse<'arena>(
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     unicode_substitution: UnicodeSubstitution,
-) -> Result<(CustomCmds, StringPool), MacroParseError> {
+) -> Result<CustomCmds, MacroParseError> {
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
-    let mut cmd_names = StringPool::default();
     // The names which have to be defined by the time all macros have been read, together with
     // the macro they appear in and their position within its definition.
     let mut unresolved: Vec<(usize, InternedStr, Range<usize>)> = Vec::new();
@@ -560,7 +554,7 @@ fn parse_custom_commands(
                             Token::CommandName => {
                                 let cmd_name = command_name(definition.as_str(), span.into());
                                 let tok = lookup.resolve(cmd_name).unwrap_or_else(|| {
-                                    let interned = cmd_names.intern(cmd_name);
+                                    let interned = custom_cmds.intern(cmd_name);
                                     unresolved.push((idx, interned, span.into()));
                                     Token::UnresolvedCommand(CmdSource::Config, interned)
                                 });
@@ -600,13 +594,13 @@ fn parse_custom_commands(
     }
     // Now that all macros are known, every name which none of them defines is an error.
     for (idx, name, span) in unresolved {
-        let name = cmd_names.get(name);
+        let name = custom_cmds.cmd_names().get(name);
         if custom_cmds.get(name, CmdSource::Config).is_none() {
             let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name.into())));
             return Err((err, idx, definitions.swap_remove(idx)));
         }
     }
-    Ok((custom_cmds, cmd_names))
+    Ok(custom_cmds)
 }
 
 /// The name of a command, given the span of its token: the source text without the backslash.

@@ -2,7 +2,6 @@ use alloc::boxed::Box;
 
 use crate::FxHashMap;
 use crate::custom_cmds::CustomCmds;
-use crate::string_pool::StringPool;
 
 #[derive(Debug, Default)]
 pub(crate) struct GlobalState {
@@ -14,7 +13,4 @@ pub(crate) struct GlobalState {
     /// The commands which the document defines for itself, with `\newcommand`, when the
     /// conversion runs in the global group. They stay defined for the snippets which follow.
     pub(crate) custom_cmds: CustomCmds,
-    /// The names of the commands which the bodies in `custom_cmds` refer to but which were not
-    /// defined when they were read. See [`Token::UnresolvedCommand`](crate::token::Token).
-    pub(crate) cmd_names: StringPool,
 }
