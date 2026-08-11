@@ -85,7 +85,7 @@ fn parse_config(s: &str) -> Result<Config, ConfigError> {
 
 #[cfg(test)]
 mod tests {
-    use math_core::PrettyPrint;
+    use math_core::{MaxExpansions, PrettyPrint};
 
     use super::*;
 
@@ -95,6 +95,7 @@ mod tests {
 pretty-print = "always"
 xml-namespace = true
 indentation = 4
+max-expansions = 500
 
 [macros]
 R = '\mathbb{R}'
@@ -115,6 +116,7 @@ unknown-command = "unknown-cmd"
             config.math_core.indentation,
             math_core::Indentation::Spaces(4)
         );
+        assert_eq!(config.math_core.max_expansions, MaxExpansions(500));
     }
 
     #[test]
@@ -132,6 +134,7 @@ R = '\mathbb{R}'
         "#;
         let config = parse_config(toml_content).unwrap();
         std::assert_matches!(config.math_core.pretty_print, PrettyPrint::Never);
+        assert_eq!(config.math_core.max_expansions, MaxExpansions::default());
         let r_macro = config.math_core.macros.iter().find(|(k, _)| k == "R");
         assert_eq!(r_macro.unwrap().1, "\\mathbb{R}");
     }

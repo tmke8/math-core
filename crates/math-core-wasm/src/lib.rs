@@ -10,7 +10,9 @@ static ALLOCATOR: AssumeSingleThreaded<FreeListAllocator> =
     unsafe { AssumeSingleThreaded::new(FreeListAllocator::new()) };
 
 use js_sys::{Array, Map};
-use math_core::{CssClassNames, LatexError as CoreLatexError, MathDisplay, PrettyPrint};
+use math_core::{
+    CssClassNames, LatexError as CoreLatexError, MathDisplay, MaxExpansions, PrettyPrint,
+};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -94,6 +96,7 @@ interface MathCoreOptions {
     allowUnreliableRendering?: boolean;
     globalGroup?: boolean;
     unicodeSubstitution?: "never" | "conventional";
+    maxExpansions?: number;
 }
 "#;
 
@@ -128,6 +131,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn unicodeSubstitution(this: &MathCoreOptions) -> Option<String>;
+
+    #[wasm_bindgen(method, getter)]
+    fn maxExpansions(this: &MathCoreOptions) -> Option<u32>;
 }
 
 #[wasm_bindgen]
@@ -214,6 +220,9 @@ impl LatexToMathML {
             unicode_substitution,
             css_classes: CssClassNames::default(),
             indentation: math_core::Indentation::default(),
+            max_expansions: js_config
+                .maxExpansions()
+                .map_or_else(MaxExpansions::default, MaxExpansions),
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;

@@ -140,6 +140,23 @@ pub enum UnicodeSubstitution {
     // Aggressive,
 }
 
+/// The maximum number of custom command expansions allowed in one snippet.
+///
+/// Names are resolved when a command is expanded, so a definition may refer to itself, directly or
+/// through other definitions, and expanding it would never end. Rather than detecting that, we
+/// simply stop after this many expansions, as LaTeX and KaTeX do.
+///
+/// The default is 1000, which is the same limit that KaTeX uses for its `maxExpand` setting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
+pub struct MaxExpansions(pub u32);
+
+impl Default for MaxExpansions {
+    fn default() -> Self {
+        MaxExpansions(1000)
+    }
+}
+
 /// Configuration object for the LaTeX to MathML conversion.
 ///
 /// # Example usage
@@ -206,6 +223,9 @@ pub struct MathCoreConfig {
     /// The indentation unit used when pretty-printing the MathML output. Either a number of spaces
     /// (e.g. `2`) or the string `"tab"` for a tab character. See [`Indentation`].
     pub indentation: Indentation,
+    /// How many custom commands may be expanded in one snippet before the conversion gives up.
+    /// See [`MaxExpansions`].
+    pub max_expansions: MaxExpansions,
 }
 
 /// Subset of `MathCoreConfig` relevant for the parser.
@@ -216,6 +236,7 @@ struct ParserConfig {
     allow_unreliable_rendering: bool,
     global_group: bool,
     unicode_substitution: UnicodeSubstitution,
+    max_expansions: MaxExpansions,
 }
 
 /// Subset of `MathCoreConfig` relevant for the emitter.
@@ -273,6 +294,7 @@ impl LatexToMathML {
             allow_unreliable_rendering: config.allow_unreliable_rendering,
             global_group: config.global_group,
             unicode_substitution: config.unicode_substitution,
+            max_expansions: config.max_expansions,
         };
         Ok(Self {
             emitter_cfg: EmitterConfig::from(config),

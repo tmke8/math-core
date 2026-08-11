@@ -138,6 +138,7 @@ The main converter class.
 - `global_group` (`bool`, optional): A boolean indicating whether to run the conversion in the global group. If `True`, commands defined with `\newcommand` stay defined for subsequent calls to `convert_with_global_state`; if `False`, such definitions are local to the snippet which contains them. Default: `False`.
 - `fancy_error` (`bool`, optional): A boolean indicating whether to render errors as rich Ariadne diagnostic reports. If `True` (the default), the `LatexError` message contains a formatted diagnostic with source spans. Set to `False` to use compact plain-text messages instead.
 - `unicode_substitution`: A string indicating whether to substitute certain character combinations with a single Unicode symbol.
+- `max_expansions` (`int`, optional): The number of custom command expansions allowed in one snippet, after which the conversion gives up. The limit exists because a macro may expand to itself, directly or indirectly. Default: `1000`.
 
 **Methods:**
 - `convert_with_global_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using global state. May raise `LatexError`.

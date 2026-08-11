@@ -69,14 +69,10 @@ struct ParserState<'arena> {
     ///
     /// Names are resolved when a command is expanded, so a definition may refer to itself,
     /// directly or through other definitions, and expanding it would never end. Rather than
-    /// detecting that, we simply stop after a while, as LaTeX and KaTeX do.
+    /// detecting that, we simply stop after a while, as LaTeX and KaTeX do. How long that
+    /// takes is configurable; see [`crate::MaxExpansions`].
     expansions_left: u32,
 }
-
-/// The number of custom command expansions allowed in one snippet.
-///
-/// This is the same limit that KaTeX uses for its `maxExpand` setting.
-const MAX_EXPANSIONS: u32 = 1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SequenceEnd {
@@ -164,7 +160,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 env: EnvState::default(),
                 style,
                 vertical_line_def: None,
-                expansions_left: MAX_EXPANSIONS,
+                expansions_left: parser_cfg.max_expansions.0,
             },
             body_buf: Vec::new(),
         })

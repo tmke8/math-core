@@ -4,7 +4,7 @@ use pyo3::exceptions::PyException;
 use pyo3::types::{PyDict, PyString};
 use pyo3::{create_exception, prelude::*};
 
-use math_core::{CssClassNames, MathCoreConfig, MathDisplay, PrettyPrint};
+use math_core::{CssClassNames, MathCoreConfig, MathDisplay, MaxExpansions, PrettyPrint};
 
 create_exception!(_math_core_rust, LatexError, PyException);
 create_exception!(_math_core_rust, LockError, PyException);
@@ -38,7 +38,8 @@ impl LatexToMathML {
         allow_unreliable_rendering=false,
         global_group=false,
         fancy_error=true,
-        unicode_substitution="conventional"))]
+        unicode_substitution="conventional",
+        max_expansions=MaxExpansions::default().0))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -50,6 +51,7 @@ impl LatexToMathML {
         global_group: bool,
         fancy_error: bool,
         unicode_substitution: &str,
+        max_expansions: u32,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
@@ -87,6 +89,7 @@ impl LatexToMathML {
             unicode_substitution,
             css_classes: CssClassNames::default(),
             indentation: math_core::Indentation::default(),
+            max_expansions: MaxExpansions(max_expansions),
         };
 
         let inner = math_core::LatexToMathML::new(config);
