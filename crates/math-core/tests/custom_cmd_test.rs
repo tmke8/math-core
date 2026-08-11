@@ -1,5 +1,5 @@
 use insta::assert_snapshot;
-use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
+use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, MaxExpansions, PrettyPrint};
 
 #[test]
 fn test_zero_arg() {
@@ -441,6 +441,37 @@ fn test_expansion_limit() {
             "unexpected error for `{latex}`: {err}"
         );
     }
+}
+
+#[test]
+fn test_configurable_expansion_limit() {
+    // This terminates, but it needs three expansions: `\a`, and then `\b` twice.
+    let latex = r"\newcommand{\a}{\b\b}\newcommand{\b}{x}\a";
+
+    let strict = LatexToMathML::new(MathCoreConfig {
+        max_expansions: MaxExpansions(2),
+        ..Default::default()
+    })
+    .unwrap();
+    let Err(err) = strict.convert_with_local_state(latex, MathDisplay::Inline) else {
+        panic!("`{latex}` should not have converted with a limit of 2 expansions");
+    };
+    assert!(
+        err.to_string().contains("Too many expansions"),
+        "unexpected error: {err}"
+    );
+
+    // With a higher limit, the same input converts fine.
+    let lenient = LatexToMathML::new(MathCoreConfig {
+        max_expansions: MaxExpansions(100),
+        ..Default::default()
+    })
+    .unwrap();
+    assert!(
+        lenient
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .is_ok()
+    );
 }
 
 #[test]

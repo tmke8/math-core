@@ -15,6 +15,7 @@ class LatexToMathML:
         global_group: bool = False,
         fancy_error: bool = True,
         unicode_substitution: Literal["never", "conventional"] = "conventional",
+        max_expansions: int = 1000,
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -55,6 +56,10 @@ class LatexToMathML:
 
             unicode_substitution: A string indicating whether to substitute certain
                 character combinations with a single Unicode symbol.
+
+            max_expansions: The number of custom command expansions allowed in one
+                snippet. This limit exists because a macro may expand to itself,
+                directly or indirectly, in which case the expansion would never end.
         """
     def convert_with_global_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a global counter for equation numbering."""
