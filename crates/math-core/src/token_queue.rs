@@ -7,7 +7,7 @@ use crate::{
     ParserConfig,
     character_class::Class,
     commands::resolve_builtin_cmd,
-    custom_cmds::{CmdSource, CustomCmds},
+    custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
     error::{LatexErrKind, LatexError},
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
@@ -22,13 +22,16 @@ use crate::{
 /// comes out of the lexer and when it comes out of the body of a custom command. The latter is
 /// what makes it possible for a body to mention a command which is only defined later.
 pub(super) struct TokenQueue<'state, 'arena> {
-    pub lexer: Lexer<'arena>,
+    lexer: Lexer<'arena>,
     pub stores: Stores<'state, 'arena>,
     queue: VecDeque<TokSpan>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
 
+/// The stores which the token queue uses to resolve command names.
+///
+/// This is a separate struct because of lifetime issues.
 pub(super) struct Stores<'state, 'arena> {
     pub parser_cfg: &'arena ParserConfig,
     pub global_state: &'state mut GlobalState,
@@ -46,7 +49,7 @@ impl Stores<'_, '_> {
     fn resolve_command(&self, name: &str) -> Option<Token> {
         let local = &self.local_cmds;
         let document = &self.global_state.custom_cmds;
-        let config = self.parser_cfg.custom_cmds();
+        let config = &self.parser_cfg.custom_cmds_from_cfg;
         // First check the stores, from most local to most global.
         if let Some(tok) = local
             .get(name, CmdSource::Local)
@@ -62,7 +65,7 @@ impl Stores<'_, '_> {
     /// Get the body of a command which is defined in one of the stores.
     pub(crate) fn get_body(&self, source: CmdSource, start: usize, end: usize) -> Option<&[Token]> {
         match source {
-            CmdSource::Config => self.parser_cfg.custom_cmd_body(start, end),
+            CmdSource::Config => self.parser_cfg.custom_cmds_from_cfg.body(start, end),
             CmdSource::Document => self.global_state.custom_cmds.body(start, end),
             CmdSource::Local => self.local_cmds.body(start, end),
         }
@@ -71,7 +74,7 @@ impl Stores<'_, '_> {
     /// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
     pub(crate) fn name_in_pool(&self, source: CmdSource, name: InternedStr) -> &str {
         match source {
-            CmdSource::Config => self.parser_cfg.cmd_names(),
+            CmdSource::Config => self.parser_cfg.custom_cmds_from_cfg.cmd_names(),
             CmdSource::Document => self.global_state.custom_cmds.cmd_names(),
             CmdSource::Local => self.local_cmds.cmd_names(),
         }
@@ -192,9 +195,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Peek at the next non-whitespace token without consuming it.
     ///
     /// If the lexer has reached the end of the input, this will return an EOI token.
-    /// The public interface of `TokenManager` enforces the invariant that there is
+    /// The public interface of [`TokenQueue`] enforces the invariant that there is
     /// always at least one non-whitespace token in the buffer when this is called,
     /// unless EOI has been reached.
+    ///
+    /// This may return [`Token::UnresolvedCommand`] even when
+    /// [`ParserConfig::ignore_unknown_commands`] is set to `false`, in which case the subsequent
+    /// call to [`Self::next`] will return an error.
     #[inline]
     pub(super) fn peek(&self) -> &TokSpan {
         // `next_non_whitespace` points to the next non-whitespace token,
@@ -408,8 +415,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// gets to the argument tokens. Doing it eagerly means that no `CustomCmdArg` is ever
     /// queued, so the arguments are no longer needed once this returns. That is what makes it
     /// possible for the body of a command to contain another command which takes arguments of
-    /// its own: there is no longer a "currently expanding command" whose arguments the inner
-    /// command could overwrite.
+    /// its own.
     ///
     /// The `span` of the command being expanded is used for the tokens which are inserted
     /// for something that isn't there: the braces of an empty argument, and the `\relax` of
@@ -487,10 +493,11 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// the token of a command which is only defined once we get to it: the token right after
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
-        let TokenQueue { stores, queue, .. } = self;
-        for tokspan in queue.iter_mut() {
+        for tokspan in &mut self.queue {
             if let Token::UnresolvedCommand(source, name) = *tokspan.token()
-                && let Some(tok) = stores.resolve_command(stores.name_in_pool(source, name))
+                && let Some(tok) = self
+                    .stores
+                    .resolve_command(self.stores.name_in_pool(source, name))
             {
                 *tokspan = TokSpan::new(tok, tokspan.span());
             }
@@ -682,6 +689,15 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Returns `None` if the index is out of bounds.
     pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
         self.queue.get(idx)
+    }
+
+    pub(super) fn command_name_from_span(&self, span: Span) -> Option<&str> {
+        let range: Range<usize> = span.into();
+        self.lexer
+            .input()
+            .get(range)
+            .and_then(|s| s.strip_prefix('\\'))
+            .filter(|name| is_valid_macro_name(name))
     }
 }
 

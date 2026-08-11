@@ -225,7 +225,7 @@ pub enum Token {
     /// A command that hasn't been resolved yet. The `InternedStr` is an index into the
     /// [`StringPool`](crate::string_pool::StringPool) which belongs to the given [`CmdSource`];
     /// it can be resolved with
-    /// [`TokenQueue::name_of`](crate::token_queue::TokenQueue::name_of).
+    /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
     UnresolvedCommand(CmdSource, InternedStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.

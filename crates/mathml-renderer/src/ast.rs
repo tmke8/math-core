@@ -39,7 +39,7 @@ pub struct AHref<'arena> {
     pub text: &'arena str,
 }
 
-/// A single sub/sup pair in [`Multicripts`].
+/// A single sub/sup pair in [`Node::Multiscripts`].
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct MultiscriptPair<'arena> {

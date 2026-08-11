@@ -21,7 +21,6 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::is_valid_macro_name,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -2251,15 +2250,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             // Any other token means that the name was already defined.
             _ => {
-                let span: Range<usize> = name_tokspan.span().into();
+                let span = name_tokspan.span();
                 // The name as it appears in the source, without the leading backslash.
-                let name = self
-                    .tokens
-                    .lexer
-                    .input()
-                    .get(span.clone())
-                    .and_then(|s| s.strip_prefix('\\'))
-                    .filter(|name| is_valid_macro_name(name));
+                let name = self.tokens.command_name_from_span(span);
+                let span: Range<usize> = span.into();
                 let Some(name) = name else {
                     return Err(Box::new(LatexError(
                         span,

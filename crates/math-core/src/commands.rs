@@ -947,7 +947,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
 pub fn resolve_builtin_cmd(parser_cfg: &ParserConfig, command: &str) -> Option<Token> {
     // First check some conditionally-available commands which are built into the crate.
     'unreliable_rendering: {
-        if parser_cfg.allow_unreliable_rendering() {
+        if parser_cfg.allow_unreliable_rendering {
             let tok = match command {
                 "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
                 "widetilde" => {
@@ -961,7 +961,7 @@ pub fn resolve_builtin_cmd(parser_cfg: &ParserConfig, command: &str) -> Option<T
     }
     'unicode_substitution: {
         if matches!(
-            parser_cfg.unicode_substitution(),
+            parser_cfg.unicode_substitution,
             UnicodeSubstitution::Conventional
         ) {
             // When unicode substitution is enabled, certain composite symbols are rendered

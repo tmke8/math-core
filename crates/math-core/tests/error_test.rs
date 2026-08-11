@@ -7,6 +7,7 @@ fn main() {
         ("end_without_open", r"\end{matrix}"),
         ("curly_close_without_open", r"}"),
         ("unsupported_command", r"\asdf"),
+        ("unsupported_command_peeked", r"9\asdf"),
         (
             "unsupported_environment",
             r"\begin{xmatrix} 1 \end{xmatrix}",
@@ -25,11 +26,7 @@ fn main() {
         ("incomplete_sqrt", r"\sqrt  "),
         ("sqrt_closed", r"{\sqrt}"),
         ("incomplete_mathchoice", r"\mathchoice{a}{b}"),
-        // The content of an `\fbox` is text, so a math-only command is rejected in it.
         ("math_command_in_fbox", r"\fbox{\alpha}"),
-        // A `$` switches modes in LaTeX, which we don't support: in text mode it would open
-        // nested math mode, and in math mode there is nothing to switch to. The escaped
-        // `\$`, which is a literal dollar sign, stays valid in both (see `special_symbols`).
         ("dollar_in_math_mode", r"a$b"),
         ("dollar_delimiters_around_input", r"$x^2$"),
         ("dollar_in_text_mode", r"\text{if $y$}"),
@@ -118,9 +115,6 @@ fn main() {
             r"\newcommand{\zzz}{1}\newcommand{\zzz}{2}",
         ),
         ("newcommand_without_command", r"\newcommand{x}{y}"),
-        // A body may name a command which doesn't exist yet, because it may exist by the time
-        // the command is used. If it still doesn't, the error is reported at the use, because
-        // that is where we find out about it (and a body carries no spans of its own).
         (
             "newcommand_unknown_cmd_in_body",
             r"\newcommand{\zzz}{\asdf}\zzz",

@@ -85,7 +85,7 @@ use self::{
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
     parser::Parser,
-    string_pool::{InternedStr, StringPool},
+    string_pool::InternedStr,
     token::Token,
 };
 
@@ -218,28 +218,6 @@ struct ParserConfig {
     unicode_substitution: UnicodeSubstitution,
 }
 
-impl ParserConfig {
-    pub(crate) fn custom_cmds(&self) -> &CustomCmds {
-        &self.custom_cmds_from_cfg
-    }
-
-    pub(crate) fn cmd_names(&self) -> &StringPool {
-        self.custom_cmds_from_cfg.cmd_names()
-    }
-
-    pub(crate) fn allow_unreliable_rendering(&self) -> bool {
-        self.allow_unreliable_rendering
-    }
-
-    pub(crate) fn unicode_substitution(&self) -> UnicodeSubstitution {
-        self.unicode_substitution
-    }
-
-    pub fn custom_cmd_body(&self, start: usize, end: usize) -> Option<&[Token]> {
-        self.custom_cmds_from_cfg.body(start, end)
-    }
-}
-
 /// Subset of `MathCoreConfig` relevant for the emitter.
 #[derive(Debug, Default)]
 struct EmitterConfig {
@@ -287,6 +265,7 @@ impl LatexToMathML {
         let custom_cmds = parse_custom_commands(
             core::mem::take(&mut config.macros),
             config.unicode_substitution,
+            config.allow_unreliable_rendering,
         )?;
         let parser_cfg = ParserConfig {
             custom_cmds_from_cfg: custom_cmds,
@@ -518,6 +497,7 @@ fn parse<'arena>(
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     unicode_substitution: UnicodeSubstitution,
+    allow_unreliable_rendering: bool,
 ) -> Result<CustomCmds, MacroParseError> {
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
     // The names which have to be defined by the time all macros have been read, together with
@@ -526,6 +506,7 @@ fn parse_custom_commands(
     let mut body = Vec::new();
     let parser_cfg = ParserConfig {
         unicode_substitution,
+        allow_unreliable_rendering,
         ..Default::default()
     };
     // The definitions are kept around, because the check at the end has to be able to report
