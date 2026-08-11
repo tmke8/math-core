@@ -835,3 +835,128 @@ fn test_newcommand_does_not_leak_into_local_state() {
             .is_err()
     );
 }
+
+/// `\let` binds the meaning a name has right now, which is what a `\newcommand` body,
+/// recorded by name, deliberately doesn't do.
+#[test]
+fn test_let() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        // The reason `\let` exists: hold on to a definition one is about to replace. Without
+        // it, the redefinition would refer to itself and run into the expansion limit.
+        (
+            "let_keep_old_meaning",
+            r"\let\originalepsilon\epsilon\renewcommand{\epsilon}{1+\originalepsilon}\epsilon",
+        ),
+        // The `=` between the two names is optional, and so is the space around it.
+        ("let_plain", r"\let\a\alpha\a"),
+        ("let_equals", r"\let\a=\alpha\a"),
+        ("let_equals_spaced", r"\let\a = \alpha \a"),
+        // Only one `=` is skipped, so this binds `\eq` to `=` itself.
+        ("let_to_equals", r"\let\eq==x\eq y"),
+        // Early binding: `\a` keeps the meaning `\alpha` had at the `\let`, unlike
+        // `\newcommand{\a}{\alpha}`, whose body would follow the redefinition.
+        (
+            "let_does_not_follow_redefinition",
+            r"\let\a\alpha\renewcommand{\alpha}{\beta}\a",
+        ),
+        // A command which takes arguments keeps its arity.
+        ("let_command_with_args", r"\let\f\frac\f{1}{2}"),
+        // The source may be a custom command, in which case the reference to its body is
+        // what gets copied.
+        (
+            "let_to_custom_cmd",
+            r"\newcommand{\m}[1]{\sqrt{#1}}\let\n\m\n{2}",
+        ),
+        // `\let` and `\newcommand` write into the same place, so a name never means two
+        // things at once, no matter which of them comes last.
+        (
+            "let_overwrites_newcommand",
+            r"\newcommand{\a}{x}\let\a\alpha\a",
+        ),
+        (
+            "renewcommand_overwrites_let",
+            r"\let\a\alpha\renewcommand{\a}{x}\a",
+        ),
+        // A `\let` to a name which is itself `\let` copies the meaning, not the name, so
+        // redefining the middle name afterwards leaves both of the others alone.
+        ("let_chain", r"\let\a\alpha\let\b\a\renewcommand{\a}{x}\a\b"),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+/// In the global group, a `\let` outlives the snippet which contains it, just like a
+/// `\newcommand` does.
+#[test]
+fn test_let_across_snippets() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        global_group: true,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}", MathDisplay::Inline)
+        .unwrap();
+    // The source is a command from an earlier snippet, so its body lives in the store which
+    // outlives the snippets, and the reference to it stays good.
+    converter
+        .convert_with_global_state(r"\let\oldzz\zz", MathDisplay::Inline)
+        .unwrap();
+    converter
+        .convert_with_global_state(r"\renewcommand{\zz}{\mathbb{Q}}", MathDisplay::Inline)
+        .unwrap();
+    let latex = r"\zz \oldzz";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("let_across_snippets", mathml.mathml, latex);
+}
+
+#[test]
+fn test_let_without_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\let\a\alpha\a", MathDisplay::Inline)
+        .unwrap();
+    // Outside of the global group, the binding is forgotten with the snippet.
+    assert!(
+        converter
+            .convert_with_global_state(r"\a", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+#[test]
+fn test_let_with_ignore_unknown_commands() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ignore_unknown_commands: true,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    // A `\let` to a name which is unknown at the time of the `\let` is not an error, and
+    // the name can be defined later.
+    let latex = r"\let\a\zzzz\newcommand{\zzzz}{x}\a";
+    assert!(
+        converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .is_err()
+    );
+}

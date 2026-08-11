@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\zz \\oldzz"
+---
+<math>
+    <mi>ℚ</mi>
+    <mi>ℤ</mi>
+</math>

@@ -214,6 +214,10 @@ pub enum Token {
     CustomCmdRef(CmdSource, u8, Option<Class>, usize, usize),
     /// `\newcommand`, `\providecommand` or `\renewcommand`; the mode says which one.
     NewCommand(DefineMode),
+    /// `\let`, which gives a name the meaning another name has at that point. Unlike the body
+    /// of a `\newcommand`, that meaning does not follow a later redefinition of the name it
+    /// was taken from.
+    Let,
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
@@ -592,6 +596,7 @@ impl Token {
             | EqRef
             | HLine(_)
             | NewCommand(_)
+            | Let
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
             CustomCmdArg(_)  => {

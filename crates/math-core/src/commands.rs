@@ -476,6 +476,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "lesseqqgtr" => Relation(symbol::LESS_THAN_ABOVE_DOUBLE_LINE_EQUAL_ABOVE_GREATER_THAN),
     "lessgtr" => Relation(symbol::LESS_THAN_OR_GREATER_THAN),
     "lesssim" => Relation(symbol::LESS_THAN_OR_EQUIVALENT_TO),
+    "let" => Let,
     "lfloor" => Open(symbol::LEFT_FLOOR),
     "lgroup" => Open(symbol::MATHEMATICAL_LEFT_FLATTENED_PARENTHESIS),
     "lhd" => Relation(symbol::NORMAL_SUBGROUP_OF),

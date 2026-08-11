@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\let\\zzz"
+---
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ \let\zzz
+   │         │ 
+   │         ╰─ expected an argument here
+───╯

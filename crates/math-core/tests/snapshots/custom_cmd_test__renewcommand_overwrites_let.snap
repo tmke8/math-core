@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\let\\a\\alpha\\renewcommand{\\a}{x}\\a"
+---
+<math>
+    <mi>x</mi>
+</math>

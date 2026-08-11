@@ -344,6 +344,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.define_command(mode)?;
                 Ok(())
             }
+            Token::Let => {
+                self.let_command()?;
+                Ok(())
+            }
             Token::VerticalLineDef(def) => {
                 self.state.vertical_line_def = def;
                 Ok(())
@@ -1210,6 +1214,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::Tag { .. }
             | Token::Label
             | Token::NewCommand(_)
+            | Token::Let
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
@@ -2374,7 +2379,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                     // This has to come before the arm below, which would otherwise record
                     // `\newcommand` by name like any other command.
-                    Token::NewCommand(_) => Err(Box::new(LatexError(
+                    Token::NewCommand(_) | Token::Let => Err(Box::new(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
@@ -2420,6 +2425,76 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 LatexErrKind::Internal,
             )));
         }
+        Ok(())
+    }
+
+    /// Parse `\let\a=\b`, which gives `\a` the meaning `\b` has right now.
+    ///
+    /// Unlike the body of a `\newcommand`, the meaning is *not* recorded by name: `\let`
+    /// binds what the source means at this point and keeps it, which is what makes it useful
+    /// for holding on to a definition one is about to replace.
+    fn let_command(&mut self) -> ParseResult<()> {
+        // The name being defined. As in `define_command`, unknown commands must not be
+        // rejected here, because a name which means nothing yet is a perfectly good target.
+        let name_tokspan = self.tokens.next_allowing_unknown_command()?;
+        let name = match *name_tokspan.token() {
+            Token::UnresolvedCommand(source, name) => {
+                // The name lives in a string pool which doesn't necessarily outlive this
+                // snippet, so we have to copy it out.
+                self.arena
+                    .alloc_str(self.tokens.stores.name_in_pool(source, name))
+            }
+            // Any other token means that the name already means something, which `\let`
+            // overwrites without complaining.
+            _ => {
+                let Some(name) = name_tokspan.name() else {
+                    return Err(Box::new(LatexError(
+                        name_tokspan.span().into(),
+                        LatexErrKind::ExpectedCommandName,
+                    )));
+                };
+                name
+            }
+        };
+
+        // The `=` between the two names is optional. We compare instead of matching, because
+        // `peek` doesn't unwrap `Token::MathOrTextMode`, which is how `=` arrives from the
+        // lexer, whereas it arrives bare from the body of a custom command.
+        if matches!(
+            self.tokens.peek().token().unwrap_math_ref(),
+            Token::Relation(symbol::EQUALS_SIGN)
+        ) {
+            self.next_token()?;
+        }
+
+        let src = self.tokens.next()?;
+        let (token, span) = src.into_parts();
+        match token {
+            Token::Eoi => {
+                return Err(Box::new(LatexError(
+                    span.into(),
+                    LatexErrKind::ExpectedArgumentGotEOI,
+                )));
+            }
+            // We require resolved commands here for `\let`.
+            Token::UnresolvedCommand(source, name) => {
+                let name = self.tokens.stores.name_in_pool(source, name);
+                return Err(Box::new(LatexError(
+                    span.into(),
+                    LatexErrKind::UnknownCommand(name.into()),
+                )));
+            }
+            _ => {}
+        }
+        debug_assert!(
+            !(self.tokens.stores.parser_cfg.global_group
+                && matches!(token, Token::CustomCmdRef(CmdSource::Local, ..))),
+            "a reference into the local store would outlive it in the global group",
+        );
+        let mut body = [token];
+        // `\let` never complains about an existing meaning, so it always replaces; `define`
+        // then returns `true` unconditionally.
+        self.tokens.define(name, 0, &mut body, token.class(), true);
         Ok(())
     }
 

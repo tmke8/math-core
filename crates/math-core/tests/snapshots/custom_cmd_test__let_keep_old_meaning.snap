@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\let\\originalepsilon\\epsilon\\renewcommand{\\epsilon}{1+\\originalepsilon}\\epsilon"
+---
+<math>
+    <mn>1</mn>
+    <mo>+</mo>
+    <mi>ϵ</mi>
+</math>
