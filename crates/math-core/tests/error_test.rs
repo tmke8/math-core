@@ -142,7 +142,6 @@ fn main() {
             "providecommand_as_argument",
             r"\sqrt\providecommand{\zzz}{1}",
         ),
-        // The body is parsed even when the definition is going to be discarded.
         (
             "providecommand_unclosed_discarded_body",
             r"\providecommand{\frac}{1",

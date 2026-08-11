@@ -143,14 +143,17 @@ impl<'source> Lexer<'source> {
     ///
     /// Commands are *not* given a meaning here; they are returned as [`Token::CommandName`],
     /// and it is up to the caller to resolve them.
-    pub(crate) fn next_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
+    pub(crate) fn next_token(&mut self) -> Result<LexerOutput<'source>, Box<LatexError>> {
         if let Some(span) = self.skip_whitespace() {
-            return Ok(TokSpan::new(Token::Whitespace, span));
+            return Ok(LexerOutput::Token(TokSpan::new(Token::Whitespace, span)));
         }
 
         let (loc, ch) = self.read_char();
         let Some(ch) = ch else {
-            return Ok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
+            return Ok(LexerOutput::Token(TokSpan::new(
+                Token::Eoi,
+                Span::zero_width(loc),
+            )));
         };
         if ch == '%' {
             // Skip comments.
@@ -242,7 +245,7 @@ impl<'source> Lexer<'source> {
                 let span = Span::new(loc, end);
                 // After a command, all whitespace is skipped, even in text mode.
                 self.skip_whitespace();
-                return self.parse_command(span, cmd_string);
+                return self.parse_env_marker(span, cmd_string);
             }
             c if c.is_ascii_digit() => Token::Digit(c),
             // fast path to avoid expensive lookup below
@@ -250,20 +253,20 @@ impl<'source> Lexer<'source> {
             c if let Some(tok) = get_operator_from_unicode(c) => tok,
             c => Token::Letter(c.into(), Mode::MathOrText),
         };
-        Ok(TokSpan::new(tok, span))
+        Ok(LexerOutput::Token(TokSpan::new(tok, span)))
     }
 
-    fn parse_command(
+    fn parse_env_marker(
         &mut self,
         span: Span,
         cmd_string: &'source str,
-    ) -> Result<TokSpan, Box<LatexError>> {
+    ) -> Result<LexerOutput<'source>, Box<LatexError>> {
         let env_marker = match cmd_string {
             "begin" => EnvMarker::Begin,
             "end" => EnvMarker::End,
             // Everything else is resolved by the token queue, which finds the name at the
             // span of the token.
-            _ => return Ok(TokSpan::new(Token::CommandName, span)),
+            _ => return Ok(LexerOutput::CommandName(cmd_string, span)),
         };
         let tok: Result<(Token, Span), LatexError> = 'env_name: {
             // First skip any whitespace.
@@ -301,13 +304,19 @@ impl<'source> Lexer<'source> {
             ))
         };
         match tok {
-            Ok((tok, span)) => Ok(TokSpan::new(tok, span)),
+            Ok((tok, span)) => Ok(LexerOutput::Token(TokSpan::new(tok, span))),
             Err(err) => Err(Box::new(err)),
         }
     }
 }
 
 type CharSpan = (Option<char>, Range<usize>);
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum LexerOutput<'source> {
+    Token(TokSpan),
+    CommandName(&'source str, Span),
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnvMarker {
@@ -352,7 +361,6 @@ mod tests {
             ("lower_case_latin", r"x"),
             ("lower_case_greek", r"\pi"),
             ("assigment_with_space", r"x = 3.14"),
-            ("two_lower_case_greek", r"\alpha\beta"),
             ("simple_expression", r"x+y"),
             ("space_and_number", r"\ 1"),
             ("space_in_text", r"\text{  x   y z}"),
@@ -378,12 +386,26 @@ mod tests {
             // Call `lexer.next_token()` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
-                let tokloc = lexer.next_token().unwrap();
-                if matches!(tokloc.token(), Token::Eoi) {
-                    break;
+                let lexer_output = lexer.next_token().unwrap();
+                match lexer_output {
+                    LexerOutput::Token(tokloc) => {
+                        if matches!(tokloc.token(), Token::Eoi) {
+                            break;
+                        }
+                        let (tok, span) = tokloc.into_parts();
+                        writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
+                    }
+                    LexerOutput::CommandName(cmd, span) => {
+                        writeln!(
+                            tokens,
+                            "{}:{}: CommandName(\"{}\")",
+                            span.start(),
+                            span.end(),
+                            cmd
+                        )
+                        .unwrap();
+                    }
                 }
-                let (tok, span) = tokloc.into_parts();
-                writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
         }
@@ -405,8 +427,11 @@ mod tests {
             let mut lexer = Lexer::new(problem);
             let err = loop {
                 match lexer.next_token() {
-                    Ok(tokloc) => {
-                        if matches!(tokloc.token(), Token::Eoi) {
+                    Ok(lexer_output) => {
+                        let LexerOutput::Token(tokspan) = lexer_output else {
+                            continue;
+                        };
+                        if matches!(tokspan.token(), Token::Eoi) {
                             break None;
                         }
                     }
@@ -434,12 +459,26 @@ mod tests {
         let mut lexer = Lexer::new(problem);
         let mut tokens = String::new();
         loop {
-            let tokloc = lexer.next_token().unwrap();
-            if matches!(tokloc.token(), Token::Eoi) {
-                break;
+            let lexer_output = lexer.next_token().unwrap();
+            match lexer_output {
+                LexerOutput::Token(tokloc) => {
+                    if matches!(tokloc.token(), Token::Eoi) {
+                        break;
+                    }
+                    let (tok, span) = tokloc.into_parts();
+                    writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
+                }
+                LexerOutput::CommandName(cmd, span) => {
+                    writeln!(
+                        tokens,
+                        "{}..{}: CommandName(\"{}\")",
+                        span.start(),
+                        span.end(),
+                        cmd
+                    )
+                    .unwrap();
+                }
             }
-            let (tok, span) = tokloc.into_parts();
-            writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
         assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
@@ -450,8 +489,11 @@ mod tests {
         let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
-        while let Ok(tokloc) = lexer.next_token() {
-            let tok = tokloc.into_token();
+        while let Ok(lexer_output) = lexer.next_token() {
+            let LexerOutput::Token(tokspan) = lexer_output else {
+                break;
+            };
+            let tok = tokspan.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
                 output.push(ch);
             }

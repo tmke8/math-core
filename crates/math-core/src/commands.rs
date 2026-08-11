@@ -7,13 +7,13 @@ use mathml_renderer::{
     table::LineType,
 };
 
-use crate::predefined;
-use crate::specifications::LatexUnit;
 use crate::token::{
     DefineMode, ForceStretchy, InfixDelim, MathClassKind, Mode, PhantomKind, PrimeKind, TextToken,
     Token::{self, *},
     UnitKind,
 };
+use crate::{ParserConfig, predefined};
+use crate::{UnicodeSubstitution, specifications::LatexUnit};
 use crate::{
     character_class::{MathVariant, ParenType},
     token::LimitsKind,
@@ -944,7 +944,41 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "~" => TextMode(TextToken::Accent(symbol::COMBINING_TILDE)),
 };
 
-pub fn get_command(command: &str) -> Option<Token> {
+pub fn resolve_builtin_cmd(parser_cfg: &ParserConfig, command: &str) -> Option<Token> {
+    // First check some conditionally-available commands which are built into the crate.
+    'unreliable_rendering: {
+        if parser_cfg.allow_unreliable_rendering() {
+            let tok = match command {
+                "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
+                "widetilde" => {
+                    Token::Accent(symbol::TILDE.as_bmp_op(), true, OpAttrs::STRETCHY_TRUE)
+                }
+                "utilde" => Token::Accent(symbol::TILDE.as_bmp_op(), false, OpAttrs::empty()),
+                _ => break 'unreliable_rendering,
+            };
+            return Some(tok);
+        }
+    }
+    'unicode_substitution: {
+        if matches!(
+            parser_cfg.unicode_substitution(),
+            UnicodeSubstitution::Conventional
+        ) {
+            // When unicode substitution is enabled, certain composite symbols are rendered
+            // as a single combined Unicode character instead of their constituent parts.
+            let tok = match command {
+                "Coloneq" | "Coloneqq" => Token::Relation(symbol::DOUBLE_COLON_EQUAL),
+                "cdots" => Token::ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
+                "coloneq" | "coloneqq" => Token::Relation(symbol::COLON_EQUALS),
+                "dashcolon" => Token::Relation(symbol::EXCESS),
+                "dblcolon" => Token::Relation(symbol::PROPORTION),
+                "eqcolon" | "eqqcolon" => Token::Relation(symbol::EQUALS_COLON),
+                _ => break 'unicode_substitution,
+            };
+            return Some(tok);
+        }
+    }
+    // Then, check the commands which are built into the crate and always available.
     if let Some(token) = COMMANDS.get(command) {
         Some(*token)
     } else {

@@ -1,14 +1,12 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use mathml_renderer::{attribute::OpAttrs, symbol};
 use rustc_hash::FxBuildHasher;
 
+use crate::FxHashMap;
 use crate::character_class::Class;
-use crate::commands::get_command;
 use crate::string_pool::{InternedStr, StringPool};
 use crate::token::Token;
-use crate::{FxHashMap, ParserConfig, UnicodeSubstitution};
 
 /// Where the token stream of a custom command is stored.
 ///
@@ -137,91 +135,6 @@ impl CustomCmds {
         self.tokens.clear();
         self.map.clear();
         self.cmd_names.clear();
-    }
-}
-
-/// Everything that is needed to give a command name a meaning.
-///
-/// This is the one place which knows the order of precedence between the stores and the
-/// commands which are built into the crate.
-pub(crate) struct CmdLookup<'a> {
-    parser_cfg: &'a ParserConfig,
-    /// The stores which are filled while a document is parsed, in order of precedence, and
-    /// the store of the configuration. This is `None` while the macros of the configuration
-    /// itself are parsed: they may refer to each other, so none of them can be resolved
-    /// before all of them have been read.
-    stores: Option<(&'a CustomCmds, &'a CustomCmds, &'a CustomCmds)>,
-}
-
-impl<'a> CmdLookup<'a> {
-    pub(crate) fn new(
-        parser_cfg: &'a ParserConfig,
-        local: &'a CustomCmds,
-        document: &'a CustomCmds,
-    ) -> Self {
-        CmdLookup {
-            parser_cfg,
-            stores: Some((local, document, parser_cfg.custom_cmds())),
-        }
-    }
-
-    /// A lookup which only finds the commands that are built into the crate.
-    pub(crate) fn for_config_macros(parser_cfg: &'a ParserConfig) -> Self {
-        CmdLookup {
-            parser_cfg,
-            stores: None,
-        }
-    }
-
-    /// Give a command name (without the leading backslash) its meaning.
-    ///
-    /// Returns `None` if the name isn't defined anywhere, in which case it may still be
-    /// defined later on.
-    pub(crate) fn resolve(&self, name: &str) -> Option<Token> {
-        // First check the stores, from most local to most global.
-        if let Some((local, document, config)) = self.stores
-            && let Some(tok) = local
-                .get(name, CmdSource::Local)
-                .or_else(|| document.get(name, CmdSource::Document))
-                .or_else(|| config.get(name, CmdSource::Config))
-        {
-            return Some(tok);
-        }
-        // Then check some conditionally-available commands which are built into the crate.
-        'unreliable_rendering: {
-            if self.parser_cfg.allow_unreliable_rendering() {
-                let tok = match name {
-                    "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
-                    "widetilde" => {
-                        Token::Accent(symbol::TILDE.as_bmp_op(), true, OpAttrs::STRETCHY_TRUE)
-                    }
-                    "utilde" => Token::Accent(symbol::TILDE.as_bmp_op(), false, OpAttrs::empty()),
-                    _ => break 'unreliable_rendering,
-                };
-                return Some(tok);
-            }
-        }
-        'unicode_substitution: {
-            if matches!(
-                self.parser_cfg.unicode_substitution(),
-                UnicodeSubstitution::Conventional
-            ) {
-                // When unicode substitution is enabled, certain composite symbols are rendered
-                // as a single combined Unicode character instead of their constituent parts.
-                let tok = match name {
-                    "Coloneq" | "Coloneqq" => Token::Relation(symbol::DOUBLE_COLON_EQUAL),
-                    "cdots" => Token::ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
-                    "coloneq" | "coloneqq" => Token::Relation(symbol::COLON_EQUALS),
-                    "dashcolon" => Token::Relation(symbol::EXCESS),
-                    "dblcolon" => Token::Relation(symbol::PROPORTION),
-                    "eqcolon" | "eqqcolon" => Token::Relation(symbol::EQUALS_COLON),
-                    _ => break 'unicode_substitution,
-                };
-                return Some(tok);
-            }
-        }
-        // Finally, check the commands which are built into the crate and always available.
-        get_command(name)
     }
 }
 

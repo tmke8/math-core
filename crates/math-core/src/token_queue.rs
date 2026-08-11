@@ -6,12 +6,12 @@ use core::ops::Range;
 use crate::{
     ParserConfig,
     character_class::Class,
-    command_name,
-    custom_cmds::{CmdLookup, CmdSource, CustomCmds},
+    commands::resolve_builtin_cmd,
+    custom_cmds::{CmdSource, CustomCmds},
     error::{LatexErrKind, LatexError},
     global_state::GlobalState,
-    lexer::Lexer,
-    string_pool::{InternedStr, StringPool},
+    lexer::{Lexer, LexerOutput},
+    string_pool::InternedStr,
     token::{EndToken, Span, TokSpan, Token},
 };
 
@@ -23,15 +23,60 @@ use crate::{
 /// what makes it possible for a body to mention a command which is only defined later.
 pub(super) struct TokenQueue<'state, 'arena> {
     pub lexer: Lexer<'arena>,
+    pub stores: Stores<'state, 'arena>,
+    queue: VecDeque<TokSpan>,
+    lexer_is_eoi: bool,
+    next_non_whitespace: usize,
+}
+
+pub(super) struct Stores<'state, 'arena> {
     pub parser_cfg: &'arena ParserConfig,
     pub global_state: &'state mut GlobalState,
     /// The commands which the snippet defines for itself with `\newcommand`, when the
     /// conversion does *not* run in the global group. They are dropped together with the
     /// queue, which is why they don't outlive the snippet.
     pub local_cmds: CustomCmds,
-    queue: VecDeque<TokSpan>,
-    lexer_is_eoi: bool,
-    next_non_whitespace: usize,
+}
+
+impl Stores<'_, '_> {
+    /// Give a command name (without the leading backslash) its meaning.
+    ///
+    /// Returns `None` if the name isn't defined anywhere, in which case it may still be
+    /// defined later on.
+    fn resolve_command(&self, name: &str) -> Option<Token> {
+        let local = &self.local_cmds;
+        let document = &self.global_state.custom_cmds;
+        let config = self.parser_cfg.custom_cmds();
+        // First check the stores, from most local to most global.
+        if let Some(tok) = local
+            .get(name, CmdSource::Local)
+            .or_else(|| document.get(name, CmdSource::Document))
+            .or_else(|| config.get(name, CmdSource::Config))
+        {
+            return Some(tok);
+        }
+        // Then check the built-in commands.
+        resolve_builtin_cmd(self.parser_cfg, name)
+    }
+
+    /// Get the body of a command which is defined in one of the stores.
+    pub(crate) fn get_body(&self, source: CmdSource, start: usize, end: usize) -> Option<&[Token]> {
+        match source {
+            CmdSource::Config => self.parser_cfg.custom_cmd_body(start, end),
+            CmdSource::Document => self.global_state.custom_cmds.body(start, end),
+            CmdSource::Local => self.local_cmds.body(start, end),
+        }
+    }
+
+    /// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
+    pub(crate) fn name_in_pool(&self, source: CmdSource, name: InternedStr) -> &str {
+        match source {
+            CmdSource::Config => self.parser_cfg.cmd_names(),
+            CmdSource::Document => self.global_state.custom_cmds.cmd_names(),
+            CmdSource::Local => self.local_cmds.cmd_names(),
+        }
+        .get(name)
+    }
 }
 
 static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
@@ -44,9 +89,11 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ) -> Result<Self, Box<LatexError>> {
         let mut tm = TokenQueue {
             lexer,
-            parser_cfg,
-            global_state,
-            local_cmds: CustomCmds::default(),
+            stores: Stores {
+                parser_cfg,
+                global_state,
+                local_cmds: CustomCmds::default(),
+            },
             queue: VecDeque::with_capacity(2),
             lexer_is_eoi: false,
             next_non_whitespace: 0,
@@ -57,52 +104,28 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         Ok(tm)
     }
 
-    /// The stores to resolve command names in.
-    #[inline]
-    fn lookup(&self) -> CmdLookup<'_> {
-        CmdLookup::new(
-            self.parser_cfg,
-            &self.local_cmds,
-            &self.global_state.custom_cmds,
-        )
-    }
-
-    /// The name of a command which the queue could not resolve.
+    /// Resolve the lexer output into a token.
     ///
-    /// The name lives in the pool which belongs to the given [`CmdSource`], because the token
-    /// may have come out of the body of a command in that store.
-    pub(super) fn name_of(&self, source: CmdSource, name: InternedStr) -> &str {
-        name_in_pool(
-            source,
-            name,
-            self.parser_cfg,
-            self.global_state,
-            self.local_cmds.cmd_names(),
-        )
-    }
-
-    /// Give the token which the lexer has just produced its meaning, if it is a command.
-    ///
-    /// A name which isn't defined (yet) is interned, so that the token which carries it stays
-    /// valid once the input is gone.
-    fn resolve_lexed(&mut self, tokspan: &mut TokSpan) {
-        if !matches!(tokspan.token(), Token::CommandName) {
-            return;
+    /// The lexer output is either a token or a command name. We look up the command name and if we
+    /// can't find it, we return an unresolved command token with an interned name.
+    fn resolve_lexed(&mut self, lexed: LexerOutput<'arena>) -> TokSpan {
+        match lexed {
+            LexerOutput::Token(tokspan) => tokspan,
+            LexerOutput::CommandName(name, span) => {
+                let tok = self.stores.resolve_command(name).unwrap_or_else(|| {
+                    Token::UnresolvedCommand(CmdSource::Local, self.stores.local_cmds.intern(name))
+                });
+                TokSpan::new(tok, span)
+            }
         }
-        // The input outlives the lexer, so this doesn't borrow `self`.
-        let input: &'arena str = self.lexer.input();
-        let name = command_name(input, tokspan.span().into());
-        let tok = self.lookup().resolve(name).unwrap_or_else(|| {
-            Token::UnresolvedCommand(CmdSource::Local, self.local_cmds.intern(name))
-        });
-        *tokspan = TokSpan::new(tok, tokspan.span());
     }
 
     /// Try to give a command which was unresolved when it was read its meaning now.
     ///
     /// Returns `None` if the name is still not defined anywhere.
     fn resolve_stored(&self, source: CmdSource, name: InternedStr) -> Option<Token> {
-        self.lookup().resolve(self.name_of(source, name))
+        self.stores
+            .resolve_command(self.stores.name_in_pool(source, name))
     }
 
     /// Load the next non-whitespace token from the lexer into the buffer, and return its index.
@@ -124,10 +147,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         let starting_len = self.queue.len();
         let mut non_skipped_offset = 0usize;
         loop {
-            let mut tok = self.lexer.next_token()?;
+            let tok = self.lexer.next_token()?;
             // Commands are resolved right away, so that no unresolved command name is ever
             // queued: the queue is what the character class lookahead reads from.
-            self.resolve_lexed(&mut tok);
+            let tok = self.resolve_lexed(tok);
             let result = predicate(starting_len + non_skipped_offset, tok.token());
             let is_eoi = matches!(tok.token(), Token::Eoi);
             self.queue.push_back(tok);
@@ -271,12 +294,12 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
         if let Token::UnresolvedCommand(source, name) = *tokspan.token()
-            && !self.parser_cfg.ignore_unknown_commands
+            && !self.stores.parser_cfg.ignore_unknown_commands
         {
             // The name lives in one of the string pools, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.name_of(source, name).into()),
+                LatexErrKind::UnknownCommand(self.stores.name_in_pool(source, name).into()),
             )));
         }
         Ok(())
@@ -464,23 +487,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// the token of a command which is only defined once we get to it: the token right after
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
-        let TokenQueue {
-            parser_cfg,
-            global_state,
-            local_cmds,
-            queue,
-            ..
-        } = self;
-        let lookup = CmdLookup::new(parser_cfg, local_cmds, &global_state.custom_cmds);
+        let TokenQueue { stores, queue, .. } = self;
         for tokspan in queue.iter_mut() {
             if let Token::UnresolvedCommand(source, name) = *tokspan.token()
-                && let Some(tok) = lookup.resolve(name_in_pool(
-                    source,
-                    name,
-                    parser_cfg,
-                    global_state,
-                    local_cmds.cmd_names(),
-                ))
+                && let Some(tok) = stores.resolve_command(stores.name_in_pool(source, name))
             {
                 *tokspan = TokSpan::new(tok, tokspan.span());
             }
@@ -500,15 +510,16 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         first_class: Option<Class>,
         replace: bool,
     ) -> bool {
-        let source = if self.parser_cfg.global_group {
+        let source = if self.stores.parser_cfg.global_group {
             // The names which the body refers to have to outlive the snippet just like the
             // body itself does, so they move to the pool of the global state.
             for tok in body.iter_mut() {
                 if let Token::UnresolvedCommand(CmdSource::Local, name) = *tok {
                     let name = self
+                        .stores
                         .global_state
                         .custom_cmds
-                        .intern(self.local_cmds.cmd_names().get(name));
+                        .intern(self.stores.local_cmds.cmd_names().get(name));
                     *tok = Token::UnresolvedCommand(CmdSource::Document, name);
                 }
             }
@@ -517,8 +528,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             CmdSource::Local
         };
         let store = match source {
-            CmdSource::Document => &mut self.global_state.custom_cmds,
-            _ => &mut self.local_cmds,
+            CmdSource::Document => &mut self.stores.global_state.custom_cmds,
+            _ => &mut self.stores.local_cmds,
         };
         if replace {
             store.insert_or_replace(name, num_args, body, first_class);
@@ -672,25 +683,6 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
         self.queue.get(idx)
     }
-}
-
-/// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
-///
-/// This is a free function, rather than only a method on [`TokenQueue`], so that it can be
-/// called while the queue itself is borrowed.
-fn name_in_pool<'a>(
-    source: CmdSource,
-    name: InternedStr,
-    parser_cfg: &'a ParserConfig,
-    global_state: &'a GlobalState,
-    local_names: &'a StringPool,
-) -> &'a str {
-    match source {
-        CmdSource::Config => parser_cfg.cmd_names(),
-        CmdSource::Document => global_state.custom_cmds.cmd_names(),
-        CmdSource::Local => local_names,
-    }
-    .get(name)
 }
 
 fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {

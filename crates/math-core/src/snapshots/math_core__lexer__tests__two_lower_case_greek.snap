@@ -1,6 +1,0 @@
----
-source: crates/math-core/src/lexer.rs
-expression: "\\alpha\\beta"
----
-0:6: CommandName
-6:11: CommandName

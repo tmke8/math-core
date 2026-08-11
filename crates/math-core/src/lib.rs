@@ -79,10 +79,11 @@ use mathml_renderer::{
 
 pub use self::error::LatexError;
 use self::{
-    custom_cmds::{CmdLookup, CmdSource, CustomCmds, is_valid_macro_name},
+    commands::resolve_builtin_cmd,
+    custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
     error::LatexErrKind,
     global_state::GlobalState,
-    lexer::Lexer,
+    lexer::{Lexer, LexerOutput},
     parser::Parser,
     string_pool::{InternedStr, StringPool},
     token::Token,
@@ -527,7 +528,6 @@ fn parse_custom_commands(
         unicode_substitution,
         ..Default::default()
     };
-    let lookup = CmdLookup::for_config_macros(&parser_cfg);
     // The definitions are kept around, because the check at the end has to be able to report
     // the one which contains an unresolved name.
     let mut definitions: Vec<String> = Vec::with_capacity(macros.len());
@@ -547,17 +547,14 @@ fn parse_custom_commands(
             let mut lexer = Lexer::new(definition.as_str());
             loop {
                 match lexer.next_token() {
-                    Ok(tokloc) => {
-                        let (tok, span) = tokloc.into_parts();
-                        match tok {
-                            Token::Eoi => break,
-                            Token::CommandName => {
-                                let cmd_name = command_name(definition.as_str(), span.into());
+                    Ok(lexer_output) => {
+                        let token = match lexer_output {
+                            LexerOutput::CommandName(cmd_name, span) => {
                                 let interned = custom_cmds.intern(cmd_name);
                                 // We resolve the command here only to know whether it *can* be
                                 // resolved and to know its class. The actual resolution is done
                                 // when the macro is used.
-                                if let Some(resolved) = lookup.resolve(cmd_name) {
+                                if let Some(resolved) = resolve_builtin_cmd(&parser_cfg, cmd_name) {
                                     if first_class.is_none() {
                                         first_class = resolved.class();
                                     }
@@ -565,7 +562,12 @@ fn parse_custom_commands(
                                     unresolved.push((idx, interned, span.into()));
                                 }
                                 body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
+                                continue;
                             }
+                            LexerOutput::Token(tokspan) => tokspan.into_token(),
+                        };
+                        match token {
+                            Token::Eoi => break,
                             Token::CustomCmdArgInput(n) => {
                                 if n >= num_args {
                                     num_args = n + 1;
@@ -604,9 +606,4 @@ fn parse_custom_commands(
         }
     }
     Ok(custom_cmds)
-}
-
-/// The name of a command, given the span of its token: the source text without the backslash.
-fn command_name(input: &str, span: Range<usize>) -> &str {
-    input.get((span.start + 1)..span.end).unwrap_or_default()
 }

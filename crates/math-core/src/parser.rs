@@ -21,7 +21,7 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::{CmdSource, is_valid_macro_name},
+    custom_cmds::is_valid_macro_name,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -1473,7 +1473,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_tag(
-                        &mut self.tokens.global_state.equation_count,
+                        &mut self.tokens.stores.global_state.equation_count,
                         true,
                         self.arena,
                     ) {
@@ -1482,6 +1482,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
+                                        .stores
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -1615,7 +1616,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                     match numbered_state.next_equation_tag(
-                        &mut self.tokens.global_state.equation_count,
+                        &mut self.tokens.stores.global_state.equation_count,
                         false,
                         self.arena,
                     ) {
@@ -1624,6 +1625,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
+                                        .stores
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -2035,9 +2037,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::Whitespace
             | Token::MathOrTextMode(_, _)
             | Token::VerticalLineDef(_)
-            | Token::CustomCmdArg(_)
-            // A command name is given its meaning by the token queue, so it never gets here.
-            | Token::CommandName => {
+            | Token::CustomCmdArg(_) => {
                 // These tokens should have been skipped.
                 // We report an internal error here.
                 Err(LatexError(span.into(), LatexErrKind::Internal))
@@ -2138,17 +2138,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::CustomCmdRef(source, num_args, _, start, end) => {
                 self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
-                // We can't borrow the token slice of the body because we need to queue it 
+                // We can't borrow the token slice of the body because we need to queue it
                 // later, which requires a mutable borrow of `self.tokens`.
                 // So, we copy the body into a temporary buffer, which we can then queue.
-                if let Some(tokens) = match source {
-                    CmdSource::Config => self.tokens.parser_cfg.custom_cmd_body(start, end),
-                    CmdSource::Document => self.tokens.global_state.custom_cmds.body(start, end),
-                    CmdSource::Local => self.tokens.local_cmds.body(start, end),
-                } {
+                if let Some(tokens) = self.tokens.stores.get_body(source, start, end) {
                     self.body_buf.clear();
                     self.body_buf.extend_from_slice(tokens);
-                    self.tokens.queue_body_substituting(&self.body_buf, &self.state.cmd_args, span);
+                    self.tokens
+                        .queue_body_substituting(&self.body_buf, &self.state.cmd_args, span);
                 } else {
                     return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
                 }
@@ -2173,7 +2170,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }),
             Token::UnresolvedCommand(source, name) => {
                 // The name lives in one of the string pools, so we have to copy it out.
-                let name = self.tokens.name_of(source, name);
+                let name = self.tokens.stores.name_in_pool(source, name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
             Token::MathChoice => {
@@ -2247,7 +2244,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                let name = self.arena.alloc_str(self.tokens.name_of(source, name));
+                let name = self
+                    .arena
+                    .alloc_str(self.tokens.stores.name_in_pool(source, name));
                 Some((name, false))
             }
             // Any other token means that the name was already defined.
