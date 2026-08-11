@@ -21,6 +21,7 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
+    custom_cmds::CmdSource,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -54,7 +55,7 @@ pub(crate) struct Parser<'state, 'arena> {
 struct ParserState<'arena> {
     /// The arguments of the custom command which is being expanded right now. They are only
     /// needed until the body has been queued, so this is really just a reusable buffer.
-    cmd_args: CmdArgs,
+    cmd_args: CmdArgs<'arena>,
     transform: Option<MathVariant>,
     /// `true` if the boundaries at the end of a sequence are not real boundaries;
     /// this is not the case for style-only rows.
@@ -2239,6 +2240,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// The `mode` decides what happens when the name is (not) already defined:
     /// `\providecommand` parses the definition as usual and then throws it away if the name is
     /// taken, and `\renewcommand` requires the name to be taken and overwrites the definition.
+    ///
+    /// The body is recorded by name: a command in it means whatever its name means when the
+    /// command being defined here is expanded, not what it meant while the body was being read.
+    /// A body which mentions the command it is the body of therefore recurses, as it does in
+    /// LaTeX, and is stopped by the expansion limit rather than by the old definition.
     fn define_command(&mut self, mode: DefineMode) -> ParseResult<()> {
         // The name of the new command, optionally wrapped in braces.
         let braced = matches!(self.tokens.peek().token(), Token::GroupBegin);
@@ -2268,10 +2274,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             // Any other token means that the name was already defined.
             _ => {
-                let span = name_tokspan.span();
-                // The name as it appears in the source, without the leading backslash.
-                let name = self.tokens.command_name_from_span(span);
-                let span: Range<usize> = span.into();
+                // The name the token came from, which is `None` if it didn't come from a
+                // command at all.
+                let name = name_tokspan.name();
+                let span: Range<usize> = name_tokspan.span().into();
                 let Some(name) = name else {
                     return Err(Box::new(LatexError(
                         span,
@@ -2289,7 +2295,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // The name may belong to a builtin command or to a macro from the
                     // configuration; in both cases, the new definition shadows the old one,
                     // because resolution looks in the document's definitions first.
-                    DefineMode::Renew => Some((self.arena.alloc_str(name), true)),
+                    DefineMode::Renew => Some((name, true)),
                 }
             }
         };
@@ -2337,45 +2343,61 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // `record_macro_body` leaves the closing `}` for us.
             self.next_token()?;
         } else {
-            let tokspan = self.next_token()?;
-            if matches!(tokspan.token(), Token::Eoi) {
+            let queued = self.tokens.next_keeping_name()?;
+            if matches!(queued.token(), Token::Eoi) {
                 return Err(Box::new(LatexError(
-                    tokspan.span().into(),
+                    queued.span().into(),
                     LatexErrKind::ExpectedArgumentGotEOI,
                 )));
             }
             // A body which isn't a group consists of a single token.
-            body_tokspans.push(tokspan);
+            body_tokspans.push(queued);
         }
 
         let mut first_class: Option<Class> = None;
         let mut body = body_tokspans
             .into_iter()
-            .map(|tokspan| {
-                let (tok, span) = tokspan.into_parts();
+            .map(|queued| {
+                let (tok, span) = queued.into_tokspan().into_parts();
                 match tok {
                     Token::CustomCmdArgInput(arg_num) => {
                         if arg_num >= num_args {
-                            Err(Box::new(LatexError(
+                            return Err(Box::new(LatexError(
                                 span.into(),
                                 LatexErrKind::ParameterNumberOutOfRange {
                                     actual: arg_num + 1,
                                     n: num_args,
                                 },
-                            )))
-                        } else {
-                            Ok(Token::CustomCmdArg(arg_num))
+                            )));
                         }
+                        Ok(Token::CustomCmdArg(arg_num))
                     }
+                    // This has to come before the arm below, which would otherwise record
+                    // `\newcommand` by name like any other command.
                     Token::NewCommand(_) => Err(Box::new(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
                     tok => {
+                        // The class has to be known now, because it is stored with the
+                        // definition, so we take it from the meaning the command has here.
                         if first_class.is_none() {
                             first_class = tok.class();
                         }
-                        Ok(tok)
+                        match queued.name() {
+                            // A command is recorded by name rather than by what it means right
+                            // now, so that the body follows a later redefinition of that name,
+                            // the way it does in LaTeX. An unresolved command already holds its
+                            // name, so it is left alone.
+                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_, _)) => {
+                                let name = self.tokens.stores.local_cmds.intern(name);
+                                Ok(Token::UnresolvedCommand(CmdSource::Local, name))
+                            }
+                            // Anything which didn't come from a command name keeps its meaning:
+                            // ordinary characters, and `\begin`/`\end`, whose meaning the lexer
+                            // decides.
+                            _ => Ok(tok),
+                        }
                     }
                 }
             })
@@ -2425,20 +2447,22 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     fn read_cmd_args(&mut self, num_args: u8) -> ParseResult<()> {
         self.state.cmd_args.clear();
         for arg_num in 0..num_args {
-            let tokspan = self.next_token()?;
-            match tokspan.token() {
+            // The tokens keep the names they came from, so that an argument which is
+            // substituted into a `\newcommand` can be recorded by name like any other token.
+            let queued = self.tokens.next_keeping_name()?;
+            match queued.token() {
                 Token::GroupBegin => {
                     self.tokens
                         .record_group(self.state.cmd_args.buffer(), true)?;
                 }
                 Token::Eoi => {
                     return Err(Box::new(LatexError(
-                        tokspan.span().into(),
+                        queued.span().into(),
                         LatexErrKind::ExpectedArgumentGotEOI,
                     )));
                 }
                 // An argument which isn't a group consists of a single token.
-                _ => self.state.cmd_args.push(tokspan),
+                _ => self.state.cmd_args.push(queued),
             }
             self.state.cmd_args.finish_arg(arg_num);
         }

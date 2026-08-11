@@ -511,11 +511,13 @@ fn parse<'arena>(
 
 /// Read the macros of the configuration into a store of custom commands.
 ///
-/// A macro may refer to a command which is not defined here at all, and in particular to
-/// another macro of the configuration, no matter in which order the two are given: such a
-/// reference is kept as a [`Token::UnresolvedCommand`] and resolved when the macro is used.
-/// Once all macros have been read, every one of those references must point at something,
-/// which is what the final check is for.
+/// As in a body recorded from a `\newcommand`, every command is kept as a
+/// [`Token::UnresolvedCommand`] and only resolved when the macro is used. A macro may
+/// therefore refer to a command which is not defined here at all, and in particular to another
+/// macro of the configuration, no matter in which order the two are given. Once all macros have
+/// been read, every one of those references must point at something, which is what the final
+/// check is for; a document definition, which has no such point in time, is only checked when
+/// it is used.
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     unicode_substitution: UnicodeSubstitution,

@@ -35,9 +35,11 @@ struct CmdDef {
     /// The character class of the body, which we have to remember because
     /// [`Token::class`] cannot look into the store.
     ///
-    /// A body which begins with a command that isn't defined yet counts as an ordinary atom,
-    /// because the class has to be known here, before we can know what that command will
-    /// turn out to be.
+    /// The class is the one the body had when it was recorded, and it does not follow a later
+    /// redefinition of the command the body begins with, even though the *meaning* of that
+    /// command does. A body which begins with a command that isn't defined yet counts as an
+    /// ordinary atom, because the class has to be known here, before we can know what that
+    /// command will turn out to be.
     class: Option<Class>,
     start: usize,
     end: usize,

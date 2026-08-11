@@ -318,17 +318,11 @@ fn test_renewcommand() {
             "renewcommand_replaces_builtin_with_args",
             r"\renewcommand{\frac}[2]{#1/#2}\frac{1}{2}",
         ),
-        // The old definition is still in place inside the body of the new one, so this
-        // doesn't recurse (in LaTeX, it would).
+        // A body refers to the names it mentions, not to what they meant when it was
+        // recorded, so redefining a command does change the commands which use it, as it
+        // does in LaTeX.
         (
-            "renewcommand_body_uses_old_definition",
-            r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{(\zz)}\zz",
-        ),
-        // A body refers to the definition which was in place when it was recorded, so
-        // redefining a command doesn't change the commands which use it. LaTeX, which
-        // resolves names at expansion time, gives `2` here.
-        (
-            "renewcommand_does_not_affect_earlier_body",
+            "renewcommand_affects_earlier_body",
             r"\newcommand{\xx}{1}\newcommand{\yy}{\xx}\renewcommand{\xx}{2}\yy",
         ),
         // After a `\renewcommand`, `\providecommand` still finds the name taken.
@@ -336,12 +330,94 @@ fn test_renewcommand() {
             "renewcommand_then_providecommand",
             r"\renewcommand{\epsilon}{a}\providecommand{\epsilon}{b}\epsilon",
         ),
+        // Redefining a command in terms of a command which is *not* the one being redefined
+        // is not recursion, even when the two look alike.
+        (
+            "renewcommand_body_uses_other_command",
+            r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{(\mathbb{Z})}\zz",
+        ),
     ] {
         let mathml = converter
             .convert_with_local_state(latex, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
         assert_snapshot!(name, mathml.mathml, latex);
     }
+}
+
+/// A command in the body of a `\newcommand` is recorded by name, so it means whatever that
+/// name means when the command is expanded, the way it does in LaTeX. This is what config
+/// macros have always done; these are the cases where a document definition used to differ.
+#[test]
+fn test_late_resolution() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        // A builtin which is redefined after the body was recorded.
+        (
+            "late_resolution_of_builtin",
+            r"\newcommand{\foo}{\epsilon}\renewcommand{\epsilon}{e}\foo",
+        ),
+        // The same, with neither name in braces.
+        (
+            "late_resolution_unbraced_name",
+            r"\newcommand\foo{\epsilon}\renewcommand\epsilon{e}\foo",
+        ),
+        // A body which isn't a group consists of a single token, which is recorded by name
+        // just like the tokens of a group are.
+        (
+            "late_resolution_unbraced_body",
+            r"\newcommand\foo\epsilon\renewcommand\epsilon{e}\foo",
+        ),
+        // The definition is assembled out of the argument of another command, so its body
+        // reaches the queue by substitution rather than straight from the lexer.
+        (
+            "late_resolution_through_argument",
+            r"\newcommand{\m}[1]{x#1}\newcommand{\a}{1}\newcommand{\z}{0}\m{\renewcommand{\z}{\a}}\renewcommand{\a}{2}\z",
+        ),
+        // `\begin` and `\end` get their meaning in the lexer, which consumes the environment
+        // name along with them, so they have no name to be recorded under. `\\` does.
+        (
+            "late_resolution_env_in_body",
+            r"\newcommand{\m}{\begin{matrix}a\\b\end{matrix}}\m",
+        ),
+        // Two commands with an empty body mean the same thing without being the same command.
+        (
+            "late_resolution_empty_bodies",
+            r"\newcommand{\p}{}\newcommand{\q}{}\newcommand{\pq}{a\p b\q c}\renewcommand{\q}{!}\pq",
+        ),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+/// The same, across snippets: the name a body refers to has to outlive the snippet which
+/// recorded it, and the redefinition which it picks up comes from a later snippet.
+#[test]
+fn test_late_resolution_across_snippets() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        global_group: true,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\newcommand{\foo}{\epsilon}", MathDisplay::Inline)
+        .unwrap();
+    converter
+        .convert_with_global_state(r"\renewcommand{\epsilon}{e}", MathDisplay::Inline)
+        .unwrap();
+    let mathml = converter
+        .convert_with_global_state(r"\foo", MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("late_resolution_across_snippets", mathml.mathml, r"\foo");
 }
 
 #[test]
@@ -432,6 +508,9 @@ fn test_expansion_limit() {
         r"\newcommand{\a}{\b}\newcommand{\b}{\a}\a",
         // A command which expands to itself.
         r"\newcommand{\a}{x\a}\a",
+        // A `\renewcommand` whose body mentions the command being redefined. The body refers
+        // to the new definition, not to the old one, so this recurses, as it does in LaTeX.
+        r"\newcommand{\zz}{\mathbb{Z}}\renewcommand{\zz}{(\zz)}\zz",
     ] {
         let Err(err) = converter.convert_with_local_state(latex, MathDisplay::Inline) else {
             panic!("`{latex}` should not have converted");

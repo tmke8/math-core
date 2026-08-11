@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\p}{}\\newcommand{\\q}{}\\newcommand{\\pq}{a\\p b\\q c}\\renewcommand{\\q}{!}\\pq"
+---
+<math>
+    <mi>a</mi>
+    <mrow></mrow>
+    <mi>b</mi>
+    <mo form="postfix">!</mo>
+    <mi>c</mi>
+</math>

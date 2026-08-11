@@ -222,9 +222,11 @@ pub enum Token {
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
-    /// A command that hasn't been resolved yet. The `InternedStr` is an index into the
-    /// [`StringPool`](crate::string_pool::StringPool) which belongs to the given [`CmdSource`];
-    /// it can be resolved with
+    /// A command that hasn't been resolved yet, either because nothing of that name is defined
+    /// (yet) or because it stands in the body of a custom command, where names are deliberately
+    /// left to be resolved every time the command is expanded. The `InternedStr` is an index into
+    /// the [`StringPool`](crate::string_pool::StringPool) which belongs to the given
+    /// [`CmdSource`]; it can be resolved with
     /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
     UnresolvedCommand(CmdSource, InternedStr),
     /// This token is intended to be used in predefined token streams.
