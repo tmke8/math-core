@@ -1,6 +1,6 @@
 ---
 source: crates/math-core/tests/custom_cmd_test.rs
-expression: "\\newcommand{\\zz}{\\mathbb{Z}}\\renewcommand{\\zz}{(\\zz)}\\zz"
+expression: "\\newcommand{\\zz}{\\mathbb{Z}}\\renewcommand{\\zz}{(\\mathbb{Z})}\\zz"
 ---
 <math>
     <mo stretchy="false">(</mo>

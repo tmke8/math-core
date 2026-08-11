@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\m}{\\begin{matrix}a\\\\b\\end{matrix}}\\m"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

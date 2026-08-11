@@ -41,11 +41,6 @@ impl<'source> Lexer<'source> {
         self.input_length
     }
 
-    #[inline]
-    pub(super) fn input(&self) -> &'source str {
-        self.input_string
-    }
-
     /// One character progresses.
     fn read_char(&mut self) -> (usize, Option<char>) {
         mem::replace(

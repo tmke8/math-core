@@ -3,5 +3,5 @@ source: crates/math-core/tests/custom_cmd_test.rs
 expression: "\\newcommand{\\xx}{1}\\newcommand{\\yy}{\\xx}\\renewcommand{\\xx}{2}\\yy"
 ---
 <math>
-    <mn>1</mn>
+    <mn>2</mn>
 </math>

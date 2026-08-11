@@ -7,7 +7,7 @@ use crate::{
     ParserConfig,
     character_class::Class,
     commands::resolve_builtin_cmd,
-    custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
+    custom_cmds::{CmdSource, CustomCmds},
     error::{LatexErrKind, LatexError},
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
@@ -18,15 +18,102 @@ use crate::{
 /// A token queue that allows peeking at the next non-whitespace token.
 ///
 /// This is also where command names are given their meaning: the lexer hands out a
-/// [`Token::CommandName`] for every command it reads, and it is resolved here, both when it
-/// comes out of the lexer and when it comes out of the body of a custom command. The latter is
-/// what makes it possible for a body to mention a command which is only defined later.
+/// [`LexerOutput::CommandName`] for every command it reads, and it is resolved here, both when
+/// it comes out of the lexer and when it comes out of the body of a custom command. The latter
+/// is what makes it possible for a body to mention a command which is only defined later.
+///
+/// The queue holds on to the name a command came from, next to the meaning it was given; see
+/// [`QueuedTok`].
 pub(super) struct TokenQueue<'state, 'arena> {
     lexer: Lexer<'arena>,
     pub stores: Stores<'state, 'arena>,
-    queue: VecDeque<TokSpan>,
+    queue: VecDeque<QueuedTok<'arena>>,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
+}
+
+/// A token in the queue, together with the name of the command it came from.
+///
+/// Keeping the name is what lets the body of a `\newcommand` be recorded by name rather than by
+/// the meaning those names happen to have while the body is being read; the meaning is only
+/// looked up when the command is expanded, as it is in LaTeX. The token itself is resolved all
+/// the same, because the queue is what the character class lookahead reads from.
+///
+/// The name is `None` for everything which isn't a command, for `\begin` and `\end` (whose
+/// meaning the lexer decides, so they cannot be redefined), and for the tokens which reach the
+/// queue from the body of a custom command rather than from the lexer: those carry their names
+/// as [`Token::UnresolvedCommand`] instead.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct QueuedTok<'source>(TokSpan, Option<&'source str>);
+
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(QueuedTok<'static>, [usize; 7]);
+
+impl<'source> QueuedTok<'source> {
+    #[inline]
+    pub(super) const fn new(tokspan: TokSpan, name: Option<&'source str>) -> Self {
+        QueuedTok(tokspan, name)
+    }
+
+    #[inline]
+    pub(super) fn token(&self) -> &Token {
+        self.0.token()
+    }
+
+    #[inline]
+    pub(super) fn tokspan(&self) -> &TokSpan {
+        &self.0
+    }
+
+    #[inline]
+    pub(super) fn into_tokspan(self) -> TokSpan {
+        self.0
+    }
+
+    #[inline]
+    pub(super) fn span(&self) -> Span {
+        self.0.span()
+    }
+
+    /// The name of the command this token came from, if it came from one.
+    #[inline]
+    pub(super) fn name(&self) -> Option<&'source str> {
+        self.1
+    }
+
+    /// Give this token a new meaning, keeping its span and the name it came from.
+    #[inline]
+    fn with_token(&self, token: Token) -> Self {
+        QueuedTok(TokSpan::new(token, self.0.span()), self.1)
+    }
+
+    /// Unwrap a [`Token::MathOrTextMode`], as [`Token::unwrap_math`] does.
+    #[inline]
+    fn unwrap_math(self) -> Self {
+        let (tok, span) = self.0.into_parts();
+        QueuedTok(TokSpan::new(tok.unwrap_math(), span), self.1)
+    }
+}
+
+impl From<Token> for QueuedTok<'_> {
+    #[inline]
+    fn from(token: Token) -> Self {
+        QueuedTok(token.into(), None)
+    }
+}
+
+impl From<TokSpan> for QueuedTok<'_> {
+    #[inline]
+    fn from(tokspan: TokSpan) -> Self {
+        QueuedTok(tokspan, None)
+    }
+}
+
+impl From<QueuedTok<'_>> for TokSpan {
+    #[inline]
+    fn from(queued: QueuedTok<'_>) -> Self {
+        queued.0
+    }
 }
 
 /// The stores which the token queue uses to resolve command names.
@@ -82,7 +169,8 @@ impl Stores<'_, '_> {
     }
 }
 
-static EOI_TOK: TokSpan = TokSpan::new(Token::Eoi, Span::zero_width(0));
+static EOI_TOK: QueuedTok<'static> =
+    QueuedTok::new(TokSpan::new(Token::Eoi, Span::zero_width(0)), None);
 
 impl<'state, 'arena> TokenQueue<'state, 'arena> {
     pub(super) fn new(
@@ -110,15 +198,16 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Resolve the lexer output into a token.
     ///
     /// The lexer output is either a token or a command name. We look up the command name and if we
-    /// can't find it, we return an unresolved command token with an interned name.
-    fn resolve_lexed(&mut self, lexed: LexerOutput<'arena>) -> TokSpan {
+    /// can't find it, we return an unresolved command token with an interned name. Either way, the
+    /// name is kept alongside the token; see [`QueuedTok`].
+    fn resolve_lexed(&mut self, lexed: LexerOutput<'arena>) -> QueuedTok<'arena> {
         match lexed {
-            LexerOutput::Token(tokspan) => tokspan,
+            LexerOutput::Token(tokspan) => tokspan.into(),
             LexerOutput::CommandName(name, span) => {
                 let tok = self.stores.resolve_command(name).unwrap_or_else(|| {
                     Token::UnresolvedCommand(CmdSource::Local, self.stores.local_cmds.intern(name))
                 });
-                TokSpan::new(tok, span)
+                QueuedTok::new(TokSpan::new(tok, span), Some(name))
             }
         }
     }
@@ -207,10 +296,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         // `next_non_whitespace` points to the next non-whitespace token,
         // or to one past the end of the buffer if there is none.
         if let Some(tok) = self.queue.get(self.next_non_whitespace) {
-            tok
+            tok.tokspan()
         } else {
             debug_assert!(self.lexer_is_eoi, "peek called without ensure");
-            &EOI_TOK
+            EOI_TOK.tokspan()
         }
     }
 
@@ -218,6 +307,12 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// and [`Token::MathOrTextMode`].
     #[inline]
     pub(super) fn peek_any_token(&self) -> &TokSpan {
+        self.peek_any_keeping_name().tokspan()
+    }
+
+    /// Same as [`Self::peek_any_token`], but keeps the name the command came from.
+    #[inline]
+    fn peek_any_keeping_name(&self) -> &QueuedTok<'arena> {
         if let Some(tok) = self.queue.front() {
             tok
         } else {
@@ -270,10 +365,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             .find_or_load_after_next(is_not_whitespace)?
             .and_then(|idx| self.queue.get(idx))
         {
-            Ok(tok)
+            Ok(tok.tokspan())
         } else {
             debug_assert!(self.lexer_is_eoi, "peek_second called without ensure");
-            Ok(&EOI_TOK)
+            Ok(EOI_TOK.tokspan())
         }
     }
 
@@ -318,8 +413,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This method also ensures that there is always a peekable token after this one.
     pub(super) fn next(&mut self) -> Result<TokSpan, Box<LatexError>> {
+        Ok(self.next_keeping_name()?.into_tokspan())
+    }
+
+    /// Same as [`Self::next`], but keeps the name the command came from.
+    pub(super) fn next_keeping_name(&mut self) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         let ret = self.next_allowing_unknown_command()?;
-        self.reject_unknown_command(&ret)?;
+        self.reject_unknown_command(ret.tokspan())?;
         Ok(ret)
     }
 
@@ -328,7 +428,9 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This is for the places which want to get hold of the name of a command which is
     /// not defined (yet).
-    pub(super) fn next_allowing_unknown_command(&mut self) -> Result<TokSpan, Box<LatexError>> {
+    pub(super) fn next_allowing_unknown_command(
+        &mut self,
+    ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -337,8 +439,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         // Now pop the next token.
         if let Some(ret) = self.queue.pop_front() {
             self.ensure_next_non_whitespace()?;
-            let (tok, span) = ret.into_parts();
-            let ret = TokSpan::new(tok.unwrap_math(), span);
+            let ret = ret.unwrap_math();
             debug_assert!(!matches!(
                 ret.token(),
                 Token::Whitespace | Token::MathOrTextMode(_, _)
@@ -355,8 +456,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This method may return whitespace tokens and [`Token::MathOrTextMode`].
     pub(super) fn next_any_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
+        Ok(self.next_any_token_keeping_name()?.into_tokspan())
+    }
+
+    /// Same as [`Self::next_any_token`], but keeps the name the command came from.
+    fn next_any_token_keeping_name(&mut self) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         let ret = self.next_any_token_allowing_unknown_command()?;
-        self.reject_unknown_command(&ret)?;
+        self.reject_unknown_command(ret.tokspan())?;
         Ok(ret)
     }
 
@@ -364,7 +470,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// as tokens instead of being rejected.
     pub(super) fn next_any_token_allowing_unknown_command(
         &mut self,
-    ) -> Result<TokSpan, Box<LatexError>> {
+    ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         if let Some(ret) = self.queue.pop_front() {
             // `next_non_whitespace` may need to be updated.
             if let Some(new_pos) = self.next_non_whitespace.checked_sub(1) {
@@ -387,7 +493,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Queue a stream of tokens in the front of the buffer.
     ///
     /// We use a ring buffer, so this is efficient as long as the number of tokens is not too large.
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<TokSpan> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<QueuedTok<'arena>> + Copy]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
@@ -425,38 +531,42 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// simply taking the next token.
     pub(super) fn queue_body_substituting(
         &mut self,
-        tokens: &[impl Into<TokSpan> + Copy],
-        args: &CmdArgs,
+        tokens: &[impl Into<QueuedTok<'arena>> + Copy],
+        args: &CmdArgs<'arena>,
         span: Span,
     ) {
         if tokens.is_empty() {
             // A body which is empty produces nothing at all, but we still have to queue
             // something: without it, the caller would take the token which comes after the
             // command and treat that as the expansion.
-            self.queue.push_front(TokSpan::new(Token::Relax, span));
+            self.queue
+                .push_front(TokSpan::new(Token::Relax, span).into());
             self.update_next_non_whitespace();
             return;
         }
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            let tokspan: TokSpan = (*tok).into();
-            match *tokspan.token() {
+            let queued: QueuedTok<'arena> = (*tok).into();
+            match *queued.token() {
                 Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(arg_num), span),
-                // A command which didn't exist when the body was recorded may exist by now.
+                // A command which the body only refers to by name gets its meaning here, so a
+                // command which didn't exist when the body was recorded may exist by now, and
+                // one which has been redefined since means something else now.
                 Token::UnresolvedCommand(source, name) => {
                     let resolved = self.resolve_stored(source, name);
                     // A body carries no spans of its own, so if the command is still not
                     // defined, the error has to point at the command we are expanding.
-                    let tok = resolved.unwrap_or(*tokspan.token());
+                    let tok = resolved.unwrap_or(*queued.token());
                     let tok_span = if resolved.is_some() {
-                        tokspan.span()
+                        queued.span()
                     } else {
                         span
                     };
-                    self.queue.push_front(TokSpan::new(tok, tok_span));
+                    self.queue
+                        .push_front(QueuedTok::new(TokSpan::new(tok, tok_span), queued.name()));
                 }
-                _ => self.queue.push_front(tokspan),
+                _ => self.queue.push_front(queued),
             }
         }
         self.update_next_non_whitespace();
@@ -468,20 +578,22 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// equivalent to `{}`. Substituting nothing at all would make it disappear from
     /// constructs which need an argument, which would then take whatever comes next instead.
     /// The `span` is only used for the braces of that empty group.
-    fn push_arg_front(&mut self, arg: &[TokSpan], span: Span) {
+    fn push_arg_front(&mut self, arg: &[QueuedTok<'arena>], span: Span) {
         if arg.is_empty() {
-            self.queue.push_front(TokSpan::new(Token::GroupEnd, span));
-            self.queue.push_front(TokSpan::new(Token::GroupBegin, span));
+            self.queue
+                .push_front(TokSpan::new(Token::GroupEnd, span).into());
+            self.queue
+                .push_front(TokSpan::new(Token::GroupBegin, span).into());
         } else {
-            for tokspan in arg.iter().rev() {
-                self.queue.push_front(*tokspan);
+            for queued in arg.iter().rev() {
+                self.queue.push_front(*queued);
             }
         }
     }
 
     /// Queue one argument of a custom command in the front of the buffer, as
     /// [`Self::push_arg_front`] does. Always queues at least one token.
-    pub(super) fn queue_arg_in_front(&mut self, arg: &[TokSpan], span: Span) {
+    pub(super) fn queue_arg_in_front(&mut self, arg: &[QueuedTok<'arena>], span: Span) {
         self.queue.reserve(arg.len());
         self.push_arg_front(arg, span);
         self.update_next_non_whitespace();
@@ -493,13 +605,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// the token of a command which is only defined once we get to it: the token right after
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
-        for tokspan in &mut self.queue {
-            if let Token::UnresolvedCommand(source, name) = *tokspan.token()
+        for queued in &mut self.queue {
+            if let Token::UnresolvedCommand(source, name) = *queued.token()
                 && let Some(tok) = self
                     .stores
                     .resolve_command(self.stores.name_in_pool(source, name))
             {
-                *tokspan = TokSpan::new(tok, tokspan.span());
+                *queued = queued.with_token(tok);
             }
         }
     }
@@ -561,13 +673,11 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// The reason is the same as for [`Self::resolve_buffered_unknown_commands`]: the token
     /// after a `\renewcommand` has already been loaded, so a use of the command right after
     /// its redefinition would otherwise still refer to the old definition. We recognize the
-    /// tokens by their source text, because the old definition can be any token at all.
+    /// tokens by the name they came from, because the old definition can be any token at all.
     pub(super) fn resolve_buffered_redefined_command(&mut self, name: &str, tok: Token) {
-        let TokenQueue { lexer, queue, .. } = self;
-        for tokspan in queue.iter_mut() {
-            let span: Range<usize> = tokspan.span().into();
-            if lexer.input().get(span).and_then(|s| s.strip_prefix('\\')) == Some(name) {
-                *tokspan = TokSpan::new(tok, tokspan.span());
+        for queued in &mut self.queue {
+            if queued.name() == Some(name) {
+                *queued = queued.with_token(tok);
             }
         }
     }
@@ -579,17 +689,19 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// parameters have to be allowed before the token after the `{` is loaded from the lexer,
     /// and disallowed again before the token after the `}` is.
     ///
-    /// A command which isn't defined (yet) is recorded as such instead of being rejected: it
-    /// may well be defined by the time the command being defined here is used.
+    /// Every command keeps the name it came from, so that the body can be recorded by name
+    /// rather than by what those names mean right now. A command which isn't defined (yet) is
+    /// therefore recorded rather than rejected: it may well be defined by the time the command
+    /// being defined here is used.
     pub(super) fn record_macro_body(
         &mut self,
-        tokens: &mut Vec<TokSpan>,
+        tokens: &mut Vec<QueuedTok<'arena>>,
     ) -> Result<(), Box<LatexError>> {
         core::debug_assert_matches!(self.peek().token(), Token::GroupBegin);
         self.next()?; // Discard the opening `{`.
         let mut nesting_level = 0usize;
         loop {
-            let tokloc = *self.peek_any_token();
+            let tokloc = *self.peek_any_keeping_name();
             match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -619,17 +731,17 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// The initial `{` must have already been consumed. The closing `}` is not included
     /// in the output token vector.
-    pub(super) fn record_group(
+    pub(super) fn record_group<T: From<QueuedTok<'arena>>>(
         &mut self,
-        tokens: &mut Vec<TokSpan>,
+        tokens: &mut Vec<T>,
         preserve_all: bool,
     ) -> Result<usize, Box<LatexError>> {
         let mut nesting_level = 0usize;
         let end = loop {
             let tokloc = if preserve_all {
-                self.next_any_token()
+                self.next_any_token_keeping_name()
             } else {
-                self.next()
+                self.next_keeping_name()
             };
             let tokloc = tokloc?;
             match tokloc.token() {
@@ -653,7 +765,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 }
                 _ => {}
             }
-            tokens.push(tokloc);
+            tokens.push(tokloc.into());
         };
         Ok(end)
     }
@@ -688,16 +800,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// Returns `None` if the index is out of bounds.
     pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
-        self.queue.get(idx)
-    }
-
-    pub(super) fn command_name_from_span(&self, span: Span) -> Option<&str> {
-        let range: Range<usize> = span.into();
-        self.lexer
-            .input()
-            .get(range)
-            .and_then(|s| s.strip_prefix('\\'))
-            .filter(|name| is_valid_macro_name(name))
+        self.queue.get(idx).map(QueuedTok::tokspan)
     }
 }
 
@@ -716,14 +819,14 @@ fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
 /// alive for as long as it takes to queue the body of the command: because the arguments are
 /// substituted into the body right away, nothing refers to them afterwards.
 #[derive(Debug, Default)]
-pub(super) struct CmdArgs {
-    tokens: Vec<TokSpan>,
+pub(super) struct CmdArgs<'source> {
+    tokens: Vec<QueuedTok<'source>>,
     offsets: [usize; 9],
 }
 
-impl CmdArgs {
+impl<'source> CmdArgs<'source> {
     /// The tokens which make up the given argument.
-    pub(super) fn get(&self, arg_num: u8) -> &[TokSpan] {
+    pub(super) fn get(&self, arg_num: u8) -> &[QueuedTok<'source>] {
         let start = self
             .offsets
             .get(arg_num.wrapping_sub(1) as usize)
@@ -744,8 +847,8 @@ impl CmdArgs {
     }
 
     /// Append a token to the argument which is currently being read.
-    pub(super) fn push(&mut self, tokspan: TokSpan) {
-        self.tokens.push(tokspan);
+    pub(super) fn push(&mut self, queued: QueuedTok<'source>) {
+        self.tokens.push(queued);
     }
 
     /// Mark the end of the argument with the given index.
@@ -756,7 +859,7 @@ impl CmdArgs {
     }
 
     /// The buffer to read the tokens of an argument into.
-    pub(super) fn buffer(&mut self) -> &mut Vec<TokSpan> {
+    pub(super) fn buffer(&mut self) -> &mut Vec<QueuedTok<'source>> {
         &mut self.tokens
     }
 }
@@ -853,7 +956,7 @@ mod tests {
             manager.load_token_skip_whitespace().unwrap();
             // Check that the first token is `GroupBegin`.
             std::assert_matches!(manager.next().unwrap().token(), Token::GroupBegin);
-            let mut tokens = Vec::new();
+            let mut tokens: Vec<TokSpan> = Vec::new();
             let tokens = match manager.record_group(&mut tokens, true) {
                 Ok(_) => {
                     let mut token_str = String::new();
