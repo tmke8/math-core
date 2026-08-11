@@ -222,10 +222,11 @@ pub enum Token {
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
-    /// A token for unknown commands. The `InternedStr` is an index into the
-    /// [`StringPool`](crate::string_pool::StringPool) of the lexer which produced this token; it
-    /// can be resolved with [`Lexer::resolve`](crate::lexer::Lexer::resolve).
-    UnknownCommand(InternedStr),
+    /// A command that hasn't been resolved yet. The `InternedStr` is an index into the
+    /// [`StringPool`](crate::string_pool::StringPool) which belongs to the given [`CmdSource`];
+    /// it can be resolved with
+    /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
+    UnresolvedCommand(CmdSource, InternedStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -591,9 +592,9 @@ impl Token {
             | NewCommand(_)
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
-            CustomCmdArg(_) => {
+            CustomCmdArg(_)  => {
                 if cfg!(debug_assertions) {
-                    panic!("`CustomCmdArg` should never appear in the token queue.");
+                    panic!("`{self:?}` should never appear in the token queue.");
                 }
                 None
             }
@@ -624,7 +625,7 @@ impl Token {
             | Phantom(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
-            | UnknownCommand(_)
+            | UnresolvedCommand(_, _)
             | InternalStringLiteral(_)
             | ForceOrd(_)
             // `Dollar` is always an error, so its class is never really used; a dollar sign

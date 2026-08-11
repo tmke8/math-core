@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\foo}{\\baz}\\newcommand{\\baz}{1}\\foo\\renewcommand{\\baz}{2}\\foo"
+---
+<math>
+    <mn>1</mn>
+    <mn>2</mn>
+</math>

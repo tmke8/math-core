@@ -3,50 +3,34 @@ use core::mem;
 use core::ops::Range;
 use core::str::CharIndices;
 
-use mathml_renderer::{attribute::OpAttrs, symbol};
+use mathml_renderer::symbol;
 
-use crate::commands::{get_command, get_operator_from_unicode};
-use crate::custom_cmds::{CmdSource, CustomCmds};
+use crate::commands::get_operator_from_unicode;
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::global_state::GlobalState;
-use crate::string_pool::{InternedStr, StringPool};
 use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
-use crate::{ParserConfig, UnicodeSubstitution};
 
 /// Lexer
-pub(crate) struct Lexer<'config, 'state, 'source> {
+///
+/// The lexer does not give commands a meaning: every command other than `\begin` and `\end`
+/// becomes a [`Token::CommandName`], which the token queue then resolves. (`\begin` and `\end`
+/// have to be handled here, because their environment name is part of the input which has to
+/// be consumed; the price is that they cannot be redefined.)
+pub(crate) struct Lexer<'source> {
     input: CharIndices<'source>,
     peek: (usize, Option<char>),
     input_string: &'source str,
     input_length: usize,
-    parser_cfg: &'config ParserConfig,
-    pub(crate) global_state: &'state mut GlobalState,
-    /// The commands which the snippet defines for itself with `\newcommand`, when the
-    /// conversion does *not* run in the global group. They are dropped together with the lexer,
-    /// which is why they don't outlive the snippet.
-    pub(crate) local_cmds: CustomCmds,
-    /// Storage for the names of unknown commands, so that the tokens which refer to them
-    /// don't have to borrow the input.
-    pool: StringPool,
 }
 
-impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
+impl<'source> Lexer<'source> {
     /// Receive the input source code and generate a LEXER instance.
-    pub(crate) fn new(
-        input: &'source str,
-        parser_cfg: &'config ParserConfig,
-        global_state: &'state mut GlobalState,
-    ) -> Self {
+    pub(crate) fn new(input: &'source str) -> Self {
         let mut lexer = Lexer {
             input: input.char_indices(),
             peek: (0, None),
             input_string: input,
             input_length: input.len(),
-            parser_cfg,
-            global_state,
-            local_cmds: CustomCmds::default(),
-            pool: StringPool::default(),
         };
         lexer.read_char(); // Initialize `peek`.
         lexer
@@ -60,40 +44,6 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
     #[inline]
     pub(super) fn input(&self) -> &'source str {
         self.input_string
-    }
-
-    /// Resolve the name of an unknown command which was interned by this lexer.
-    #[inline]
-    pub(crate) fn resolve(&self, name: InternedStr) -> &str {
-        self.pool.get(name)
-    }
-
-    #[inline]
-    pub(crate) fn parser_cfg(&self) -> &'config ParserConfig {
-        self.parser_cfg
-    }
-
-    /// Look up a custom command in one particular store.
-    #[inline]
-    pub(crate) fn get_custom_cmd(&self, name: &str, source: CmdSource) -> Option<Token> {
-        match source {
-            CmdSource::Config => self.parser_cfg.get_command(name),
-            CmdSource::Document => self.global_state.custom_cmds.get(name, source),
-            CmdSource::Local => self.local_cmds.get(name, source),
-        }
-    }
-
-    /// The store which new definitions go into, together with its [`CmdSource`].
-    ///
-    /// Which one that is depends on whether we run in the global group: if we do, the
-    /// definitions have to outlive the snippet, so they go into the global state.
-    #[inline]
-    pub(crate) fn definition_store(&mut self) -> (&mut CustomCmds, CmdSource) {
-        if self.parser_cfg.global_group {
-            (&mut self.global_state.custom_cmds, CmdSource::Document)
-        } else {
-            (&mut self.local_cmds, CmdSource::Local)
-        }
     }
 
     /// One character progresses.
@@ -191,17 +141,19 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
 
     /// Produce the next token.
     ///
-    /// Unknown commands are *not* an error here; they are returned as
-    /// [`Token::UnknownCommand`]. It is up to the caller to decide what to do with them,
-    /// because the caller may want to get hold of the name of an as-yet-undefined command.
-    pub(crate) fn next_token(&mut self) -> Result<TokSpan, Box<LatexError>> {
+    /// Commands are *not* given a meaning here; they are returned as [`Token::CommandName`],
+    /// and it is up to the caller to resolve them.
+    pub(crate) fn next_token(&mut self) -> Result<LexerOutput<'source>, Box<LatexError>> {
         if let Some(span) = self.skip_whitespace() {
-            return Ok(TokSpan::new(Token::Whitespace, span));
+            return Ok(LexerOutput::Token(TokSpan::new(Token::Whitespace, span)));
         }
 
         let (loc, ch) = self.read_char();
         let Some(ch) = ch else {
-            return Ok(TokSpan::new(Token::Eoi, Span::zero_width(loc)));
+            return Ok(LexerOutput::Token(TokSpan::new(
+                Token::Eoi,
+                Span::zero_width(loc),
+            )));
         };
         if ch == '%' {
             // Skip comments.
@@ -293,7 +245,7 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
                 let span = Span::new(loc, end);
                 // After a command, all whitespace is skipped, even in text mode.
                 self.skip_whitespace();
-                return self.parse_command(span, cmd_string);
+                return self.parse_env_marker(span, cmd_string);
             }
             c if c.is_ascii_digit() => Token::Digit(c),
             // fast path to avoid expensive lookup below
@@ -301,118 +253,70 @@ impl<'config, 'state, 'source> Lexer<'config, 'state, 'source> {
             c if let Some(tok) = get_operator_from_unicode(c) => tok,
             c => Token::Letter(c.into(), Mode::MathOrText),
         };
-        Ok(TokSpan::new(tok, span))
+        Ok(LexerOutput::Token(TokSpan::new(tok, span)))
     }
 
-    fn parse_command(
+    fn parse_env_marker(
         &mut self,
         span: Span,
         cmd_string: &'source str,
-    ) -> Result<TokSpan, Box<LatexError>> {
-        'unreliable_rendering: {
-            if self.parser_cfg.allow_unreliable_rendering {
-                let tok = match cmd_string {
-                    "widecheck" => Token::Accent(symbol::CARON, true, OpAttrs::STRETCHY_TRUE),
-                    "widetilde" => {
-                        Token::Accent(symbol::TILDE.as_bmp_op(), true, OpAttrs::STRETCHY_TRUE)
-                    }
-                    "utilde" => Token::Accent(symbol::TILDE.as_bmp_op(), false, OpAttrs::empty()),
-                    _ => break 'unreliable_rendering,
-                };
-                return Ok(TokSpan::new(tok, span));
-            }
-        }
-        'unicode_substitution: {
-            if matches!(
-                self.parser_cfg.unicode_substitution,
-                UnicodeSubstitution::Conventional
-            ) {
-                // When unicode substitution is enabled, certain composite symbols are rendered
-                // as a single combined Unicode character instead of their constituent parts.
-                let tok = match cmd_string {
-                    "Coloneq" | "Coloneqq" => Token::Relation(symbol::DOUBLE_COLON_EQUAL),
-                    "cdots" => Token::ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
-                    "coloneq" | "coloneqq" => Token::Relation(symbol::COLON_EQUALS),
-                    "dashcolon" => Token::Relation(symbol::EXCESS),
-                    "dblcolon" => Token::Relation(symbol::PROPORTION),
-                    "eqcolon" | "eqqcolon" => Token::Relation(symbol::EQUALS_COLON),
-                    _ => break 'unicode_substitution,
-                };
-                return Ok(TokSpan::new(tok, span));
-            }
-        }
-        let tok: Result<(Token, Span), LatexError> = if let Some(tok) = self
-            .local_cmds
-            .get(cmd_string, CmdSource::Local)
-            .or_else(|| {
-                self.global_state
-                    .custom_cmds
-                    .get(cmd_string, CmdSource::Document)
-            })
-            .or_else(|| self.parser_cfg.get_command(cmd_string))
-            .or_else(|| get_command(cmd_string))
-        {
-            Ok((tok, span))
-        } else {
-            let env_marker = match cmd_string {
-                "begin" => Some(EnvMarker::Begin),
-                "end" => Some(EnvMarker::End),
-                _ => None,
-            };
-            if let Some(env_marker) = env_marker {
-                'env_name: {
-                    // First skip any whitespace.
-                    self.skip_whitespace();
-                    let group_loc = self.peek.0;
-                    // Read the environment name.
-                    let (name, end) = match self.read_env_name() {
-                        Ok(lit) => lit,
-                        Err((ch, span)) => match ch {
-                            None => {
-                                break 'env_name Err(LatexError(
-                                    span,
-                                    LatexErrKind::UnclosedGroup(EndToken::GroupClose),
-                                ));
-                            }
-                            Some(ch) => {
-                                break 'env_name Err(LatexError(
-                                    span,
-                                    LatexErrKind::DisallowedChar(ch),
-                                ));
-                            }
-                        },
-                    };
-                    // Convert the environment name to the `Env` enum.
-                    let Some(env) = Env::from_str(name) else {
+    ) -> Result<LexerOutput<'source>, Box<LatexError>> {
+        let env_marker = match cmd_string {
+            "begin" => EnvMarker::Begin,
+            "end" => EnvMarker::End,
+            // Everything else is resolved by the token queue, which finds the name at the
+            // span of the token.
+            _ => return Ok(LexerOutput::CommandName(cmd_string, span)),
+        };
+        let tok: Result<(Token, Span), LatexError> = 'env_name: {
+            // First skip any whitespace.
+            self.skip_whitespace();
+            let group_loc = self.peek.0;
+            // Read the environment name.
+            let (name, end) = match self.read_env_name() {
+                Ok(lit) => lit,
+                Err((ch, span)) => match ch {
+                    None => {
                         break 'env_name Err(LatexError(
-                            group_loc..end,
-                            LatexErrKind::UnknownEnvironment(name.into()),
+                            span,
+                            LatexErrKind::UnclosedGroup(EndToken::GroupClose),
                         ));
-                    };
-                    let span = Span::new(span.start(), end);
-                    Ok((
-                        match env_marker {
-                            EnvMarker::Begin => Token::Begin(env),
-                            EnvMarker::End => Token::End(env),
-                        },
-                        span,
-                    ))
-                }
-            } else {
-                // Copy the name into our own storage, so that the token doesn't
-                // have to borrow the input.
-                let name = self.pool.intern(cmd_string);
-                return Ok(TokSpan::new(Token::UnknownCommand(name), span));
-            }
+                    }
+                    Some(ch) => {
+                        break 'env_name Err(LatexError(span, LatexErrKind::DisallowedChar(ch)));
+                    }
+                },
+            };
+            // Convert the environment name to the `Env` enum.
+            let Some(env) = Env::from_str(name) else {
+                break 'env_name Err(LatexError(
+                    group_loc..end,
+                    LatexErrKind::UnknownEnvironment(name.into()),
+                ));
+            };
+            let span = Span::new(span.start(), end);
+            Ok((
+                match env_marker {
+                    EnvMarker::Begin => Token::Begin(env),
+                    EnvMarker::End => Token::End(env),
+                },
+                span,
+            ))
         };
         match tok {
-            Ok((tok, span)) => Ok(TokSpan::new(tok, span)),
+            Ok((tok, span)) => Ok(LexerOutput::Token(TokSpan::new(tok, span))),
             Err(err) => Err(Box::new(err)),
         }
     }
 }
 
 type CharSpan = (Option<char>, Range<usize>);
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum LexerOutput<'source> {
+    Token(TokSpan),
+    CommandName(&'source str, Span),
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnvMarker {
@@ -457,13 +361,10 @@ mod tests {
             ("lower_case_latin", r"x"),
             ("lower_case_greek", r"\pi"),
             ("assigment_with_space", r"x = 3.14"),
-            ("two_lower_case_greek", r"\alpha\beta"),
             ("simple_expression", r"x+y"),
             ("space_and_number", r"\ 1"),
             ("space_in_text", r"\text{  x   y z}"),
             ("comment", "ab%hello\ncd"),
-            ("switch_to_text_mode", r"\prod\text\o\sum"),
-            ("switch_to_text_mode_braces", r"\prod\text{\o}\sum"),
             ("custom_space", r"{x\hspace{2em}}"),
             ("hspace_whitespace_in_between", r"\hspace {  4  em } x"),
             ("color", r"{x\color{red} y}"),
@@ -478,22 +379,33 @@ mod tests {
             ("genfrac_without_parens", r"\genfrac{}{}{0pt}{2}{a+b}{c+d}"),
             ("begin_array", r"\begin{array}{c|c}"),
             ("end_array", r"\end{array}{c|c}"),
-            ("unknown_command", r"\unknowncmd + x"),
         ];
 
         for (name, problem) in problems.into_iter() {
-            let mut global_state = GlobalState::default();
-            let parser_cfg = ParserConfig::default();
-            let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
-            // Call `lexer.next_token(false)` until we get `Token::EOI`.
+            let mut lexer = Lexer::new(problem);
+            // Call `lexer.next_token()` until we get `Token::EOI`.
             let mut tokens = String::new();
             loop {
-                let tokloc = lexer.next_token().unwrap();
-                if matches!(tokloc.token(), Token::Eoi) {
-                    break;
+                let lexer_output = lexer.next_token().unwrap();
+                match lexer_output {
+                    LexerOutput::Token(tokloc) => {
+                        if matches!(tokloc.token(), Token::Eoi) {
+                            break;
+                        }
+                        let (tok, span) = tokloc.into_parts();
+                        writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
+                    }
+                    LexerOutput::CommandName(cmd, span) => {
+                        writeln!(
+                            tokens,
+                            "{}:{}: CommandName(\"{}\")",
+                            span.start(),
+                            span.end(),
+                            cmd
+                        )
+                        .unwrap();
+                    }
                 }
-                let (tok, span) = tokloc.into_parts();
-                writeln!(tokens, "{}:{}: {:?}", span.start(), span.end(), tok).unwrap();
             }
             assert_snapshot!(name, &tokens, problem);
         }
@@ -512,13 +424,14 @@ mod tests {
             ("null_character_in_string_literal", "\\text{\u{0}}"),
         ];
         for (name, problem) in problems.into_iter() {
-            let mut global_state = GlobalState::default();
-            let parser_cfg = ParserConfig::default();
-            let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
+            let mut lexer = Lexer::new(problem);
             let err = loop {
                 match lexer.next_token() {
-                    Ok(tokloc) => {
-                        if matches!(tokloc.token(), Token::Eoi) {
+                    Ok(lexer_output) => {
+                        let LexerOutput::Token(tokspan) = lexer_output else {
+                            continue;
+                        };
+                        if matches!(tokspan.token(), Token::Eoi) {
                             break None;
                         }
                     }
@@ -543,17 +456,29 @@ mod tests {
     #[test]
     fn test_parsing_custom_commands() {
         let problem = r"\frac{#1}{#2} + \sqrt{#3}";
-        let mut global_state = GlobalState::default();
-        let parser_cfg = ParserConfig::default();
-        let mut lexer = Lexer::new(problem, &parser_cfg, &mut global_state);
+        let mut lexer = Lexer::new(problem);
         let mut tokens = String::new();
         loop {
-            let tokloc = lexer.next_token().unwrap();
-            if matches!(tokloc.token(), Token::Eoi) {
-                break;
+            let lexer_output = lexer.next_token().unwrap();
+            match lexer_output {
+                LexerOutput::Token(tokloc) => {
+                    if matches!(tokloc.token(), Token::Eoi) {
+                        break;
+                    }
+                    let (tok, span) = tokloc.into_parts();
+                    writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
+                }
+                LexerOutput::CommandName(cmd, span) => {
+                    writeln!(
+                        tokens,
+                        "{}..{}: CommandName(\"{}\")",
+                        span.start(),
+                        span.end(),
+                        cmd
+                    )
+                    .unwrap();
+                }
             }
-            let (tok, span) = tokloc.into_parts();
-            writeln!(tokens, "{}..{}: {:?}", span.start(), span.end(), tok).unwrap();
         }
         assert_snapshot!("parsing_custom_commands", tokens, problem);
     }
@@ -561,13 +486,14 @@ mod tests {
     #[test]
     fn test_recover_limited_ascii() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
-        let mut global_state = GlobalState::default();
-        let parser_cfg = ParserConfig::default();
-        let mut lexer = Lexer::new(input, &parser_cfg, &mut global_state);
+        let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
-        while let Ok(tokloc) = lexer.next_token() {
-            let tok = tokloc.into_token();
+        while let Ok(lexer_output) = lexer.next_token() {
+            let LexerOutput::Token(tokspan) = lexer_output else {
+                break;
+            };
+            let tok = tokspan.into_token();
             if let Some(ch) = recover_limited_ascii(tok) {
                 output.push(ch);
             }
@@ -576,32 +502,5 @@ mod tests {
             }
         }
         assert_eq!(input, output);
-    }
-
-    /// Tokens must remain valid for as long as the configuration, and in particular must not
-    /// borrow the input string. This is what allows tokens collected while lexing one snippet
-    /// to be used while lexing the next one.
-    #[test]
-    fn tokens_outlive_source() {
-        let cfg = ParserConfig {
-            ignore_unknown_commands: true,
-            ..Default::default()
-        };
-        let mut global_state = GlobalState::default();
-        let tokens: Vec<Token> = {
-            let source = String::from(r"\notacommand x");
-            let mut lexer = Lexer::new(source.as_str(), &cfg, &mut global_state);
-            let mut tokens = Vec::new();
-            loop {
-                let tok = lexer.next_token().unwrap().into_token();
-                if matches!(tok, Token::Eoi) {
-                    break;
-                }
-                tokens.push(tok);
-            }
-            tokens
-            // `source` and `lexer` are dropped here; the tokens only borrow `cfg`.
-        };
-        std::assert_matches!(tokens.first(), Some(Token::UnknownCommand(_)));
     }
 }

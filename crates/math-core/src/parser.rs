@@ -15,17 +15,18 @@ use mathml_renderer::{
 };
 
 use crate::{
+    ParserConfig,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::is_valid_macro_name,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
+    global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
     predefined,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
@@ -45,6 +46,8 @@ pub(crate) struct Parser<'state, 'arena> {
     pub(super) buffer: Buffer,
     pub(super) arena: &'arena Arena,
     state: ParserState<'arena>,
+    /// A buffer for copying the body of a custom command out of its store.
+    body_buf: Vec<Token>,
 }
 
 #[derive(Debug)]
@@ -62,7 +65,18 @@ struct ParserState<'arena> {
     style: Style,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
     vertical_line_def: Option<VerticalLineDef>,
+    /// How many more custom commands may be expanded before we give up.
+    ///
+    /// Names are resolved when a command is expanded, so a definition may refer to itself,
+    /// directly or through other definitions, and expanding it would never end. Rather than
+    /// detecting that, we simply stop after a while, as LaTeX and KaTeX do.
+    expansions_left: u32,
 }
+
+/// The number of custom command expansions allowed in one snippet.
+///
+/// This is the same limit that KaTeX uses for its `maxExpand` setting.
+const MAX_EXPANSIONS: u32 = 1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SequenceEnd {
@@ -110,6 +124,13 @@ enum ControlFlow {
     ProcessToken,
 }
 
+/// What one token turned into.
+enum Parsed<'arena> {
+    Node(Class, &'arena Node<'arena>),
+    /// We performed an expansion and the next token is the first token of the expansion.
+    Expansion,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum BoundStarterKind {
     /// `_`
@@ -124,12 +145,14 @@ pub(super) type ParseResult<T> = Result<T, Box<LatexError>>;
 
 impl<'state, 'arena> Parser<'state, 'arena> {
     pub(crate) fn new(
-        lexer: Lexer<'arena, 'state, 'arena>,
+        lexer: Lexer<'arena>,
         arena: &'arena Arena,
+        parser_cfg: &'arena ParserConfig,
+        global_state: &'state mut GlobalState,
         style: Style,
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
-        let tokens = TokenQueue::new(lexer)?;
+        let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
         Ok(Parser {
             tokens,
             buffer: Buffer::new(input_length),
@@ -141,7 +164,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 env: EnvState::default(),
                 style,
                 vertical_line_def: None,
+                expansions_left: MAX_EXPANSIONS,
             },
+            body_buf: Vec::new(),
         })
     }
 
@@ -395,12 +420,32 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     /// Parse the given token into a node.
+    ///
+    /// A token which expands to other tokens is not a node of its own, so we go around again
+    /// with the first token of the expansion. This is a loop rather than a tail call, because
+    /// one expansion can lead to the next without limit.
     fn parse_token(
         &mut self,
         cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let mut cur_tokloc = cur_tokloc;
+        loop {
+            match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
+                Parsed::Node(class, node) => return Ok((class, node)),
+                Parsed::Expansion => cur_tokloc = self.next_token(),
+            }
+        }
+    }
+
+    /// Parse one token into a node, or into the first token of its expansion.
+    fn parse_one_token(
+        &mut self,
+        cur_tokloc: ParseResult<TokSpan>,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<Parsed<'arena>> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
         let next_class = self.peek_class_token(parse_as.in_sequence())?;
@@ -544,12 +589,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     if let Some(node) = bounds.try_wrap_node_underover(target) {
                         Ok(node)
                     } else {
-                        return Ok((class, target));
+                        return Ok(Parsed::Node(class, target));
                     }
                 } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
                     Ok(node)
                 } else {
-                    return Ok((class, target));
+                    return Ok(Parsed::Node(class, target));
                 }
             }
             Token::Ord(ord) => 'ord: {
@@ -1023,12 +1068,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 } else {
                     match bounds.try_wrap_node_subsup(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 }
             }
@@ -1060,12 +1105,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 } else {
                     match bounds.try_wrap_node_subsup(target) {
                         Some(node) => Ok(node),
-                        None => return Ok((class, target)),
+                        None => return Ok(Parsed::Node(class, target)),
                     }
                 }
             }
@@ -1161,7 +1206,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_tf = self.state.transform.replace(tf);
                 let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
-                return Ok((Class::Close, content));
+                return Ok(Parsed::Node(Class::Close, content));
             }
             Token::TransformSwitch(_)
             | Token::NoNumber
@@ -1218,7 +1263,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                     false,
                 )?;
-                return Ok((
+                return Ok(Parsed::Node(
                     Class::Default,
                     node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
                 ));
@@ -1454,7 +1499,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
                     match n.next_equation_tag(
-                        &mut self.tokens.lexer.global_state.equation_count,
+                        &mut self.tokens.stores.global_state.equation_count,
                         true,
                         self.arena,
                     ) {
@@ -1463,7 +1508,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
-                                        .lexer
+                                        .stores
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -1516,11 +1561,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
                     let node = match bounds.try_wrap_node_underover(op) {
                         Some(node) => node,
-                        None => return Ok((Class::Operator, op)),
+                        None => return Ok(Parsed::Node(Class::Operator, op)),
                     };
                     Ok(node)
                 } else {
-                    return Ok((Class::Operator, op));
+                    return Ok(Parsed::Node(Class::Operator, op));
                 }
             }
             Token::Text(transform) => {
@@ -1531,7 +1576,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         self.commit(Node::Text(style, size, text))
                     })
                     .collect::<Vec<_>>();
-                return Ok((Class::Close, node_vec_to_node(self.arena, &nodes, false)));
+                return Ok(Parsed::Node(
+                    Class::Close,
+                    node_vec_to_node(self.arena, &nodes, false),
+                ));
             }
             Token::NewColumn => {
                 if self.state.env.allow_columns {
@@ -1597,7 +1645,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                     match numbered_state.next_equation_tag(
-                        &mut self.tokens.lexer.global_state.equation_count,
+                        &mut self.tokens.stores.global_state.equation_count,
                         false,
                         self.arena,
                     ) {
@@ -1606,7 +1654,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
                                     self.tokens
-                                        .lexer
+                                        .stores
                                         .global_state
                                         .label_map
                                         .insert(label.into(), tag.text.into());
@@ -1874,9 +1922,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     } else {
                         &predefined::DOTS
                     });
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::Prescript => {
                 let sup = self.parse_next(ParseAs::Arg)?;
@@ -2108,24 +2154,27 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::CustomCmd(num_args, token_stream) => {
+                self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
                 self.tokens
                     .queue_body_substituting(token_stream, &self.state.cmd_args, span);
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::CustomCmdRef(source, num_args, _, start, end) => {
+                self.count_expansion(span)?;
                 self.read_cmd_args(num_args)?;
-                if !self
-                    .tokens
-                    .queue_cmd_body(source, start, end, &self.state.cmd_args, span)
-                {
+                // We can't borrow the token slice of the body because we need to queue it
+                // later, which requires a mutable borrow of `self.tokens`.
+                // So, we copy the body into a temporary buffer, which we can then queue.
+                if let Some(tokens) = self.tokens.stores.get_body(source, start, end) {
+                    self.body_buf.clear();
+                    self.body_buf.extend_from_slice(tokens);
+                    self.tokens
+                        .queue_body_substituting(&self.body_buf, &self.state.cmd_args, span);
+                } else {
                     return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
                 }
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::CustomCmdArgInput(_) => Err(LatexError(
                 span.into(),
@@ -2142,9 +2191,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 nodes: &[],
                 attrs: RowAttrs::DEFAULT,
             }),
-            Token::UnknownCommand(name) => {
-                // The name lives in the lexer's string pool, so we have to copy it out.
-                let name = self.tokens.lexer.resolve(name);
+            Token::UnresolvedCommand(source, name) => {
+                // The name lives in one of the string pools, so we have to copy it out.
+                let name = self.tokens.stores.name_in_pool(source, name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
             Token::MathChoice => {
@@ -2159,14 +2208,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.read_cmd_args(4)?;
                 self.tokens
                     .queue_arg_in_front(self.state.cmd_args.get(chosen), span);
-                let token = self.next_token();
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(token, parse_as, prev_class);
+                return Ok(Parsed::Expansion);
             }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
-                // FIXME: Use `become` here once it is stable.
-                return self.parse_token(Ok(TokSpan::new(token, span)), parse_as, prev_class);
+                self.tokens.queue_in_front(&[TokSpan::new(token, span)]);
+                return Ok(Parsed::Expansion);
             }
             Token::InternalStringLiteral(content) => {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -2181,7 +2228,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
         };
         match node {
-            Ok(n) => Ok((class, self.commit(n))),
+            Ok(n) => Ok(Parsed::Node(class, self.commit(n))),
             Err(e) => Err(Box::new(e)),
         }
     }
@@ -2209,29 +2256,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // definition. `None` means throwing the definition away, which is what
         // `\providecommand` does when the name is already taken.
         let target = match *name_tokspan.token() {
-            Token::UnknownCommand(name) => {
+            Token::UnresolvedCommand(source, name) => {
                 if matches!(mode, DefineMode::Renew) {
                     return Err(Box::new(LatexError(
                         name_tokspan.span().into(),
                         LatexErrKind::CommandNotDefined,
                     )));
                 }
-                // The name lives in the lexer's string pool, which doesn't outlive this
+                // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                let name = self.arena.alloc_str(self.tokens.lexer.resolve(name));
+                let name = self
+                    .arena
+                    .alloc_str(self.tokens.stores.name_in_pool(source, name));
                 Some((name, false))
             }
-            // Any other token means that the lexer already knew this name.
+            // Any other token means that the name was already defined.
             _ => {
-                let span: Range<usize> = name_tokspan.span().into();
+                let span = name_tokspan.span();
                 // The name as it appears in the source, without the leading backslash.
-                let name = self
-                    .tokens
-                    .lexer
-                    .input()
-                    .get(span.clone())
-                    .and_then(|s| s.strip_prefix('\\'))
-                    .filter(|name| is_valid_macro_name(name));
+                let name = self.tokens.command_name_from_span(span);
+                let span: Range<usize> = span.into();
                 let Some(name) = name else {
                     return Err(Box::new(LatexError(
                         span,
@@ -2248,7 +2292,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     DefineMode::Provide => None,
                     // The name may belong to a builtin command or to a macro from the
                     // configuration; in both cases, the new definition shadows the old one,
-                    // because the lexer looks in the document's definitions first.
+                    // because resolution looks in the document's definitions first.
                     DefineMode::Renew => Some((self.arena.alloc_str(name), true)),
                 }
             }
@@ -2309,19 +2353,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
 
         let mut first_class: Option<Class> = None;
-        let body = body_tokspans
+        let mut body = body_tokspans
             .into_iter()
             .map(|tokspan| {
                 let (tok, span) = tokspan.into_parts();
                 match tok {
-                    // The name of an unknown command only lives in the string pool of the lexer
-                    // which produced it, so it cannot be stored. We have to reject this even when
-                    // `ignore_unknown_commands` is set, which is why the token queue doesn't do it
-                    // for us.
-                    Token::UnknownCommand(name) => Err(Box::new(LatexError(
-                        span.into(),
-                        LatexErrKind::UnknownCommand(self.tokens.lexer.resolve(name).into()),
-                    ))),
                     Token::CustomCmdArgInput(arg_num) => {
                         if arg_num >= num_args {
                             Err(Box::new(LatexError(
@@ -2354,30 +2390,34 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // parsed is discarded.
             return Ok(());
         };
-        // Depending on whether we run in the global group, the definition either goes into the
-        // store which outlives this snippet, or into the one which doesn't.
-        let (custom_cmds, source) = self.tokens.lexer.definition_store();
-        if replace {
-            custom_cmds.insert_or_replace(name, num_args, &body, first_class);
-            // The token after the definition has already been loaded from the lexer, so it
-            // may still refer to the definition we have just replaced.
-            if let Some(tok) = custom_cmds.get(name, source) {
-                self.tokens.resolve_buffered_redefined_command(name, tok);
-            }
-        } else {
-            // The name came from an unknown command, so it cannot be in the store already:
-            // the lexer resolves the names it knows, and the buffered tokens are re-resolved
-            // whenever something is defined.
-            if !custom_cmds.insert(name, num_args, &body, first_class) {
-                return Err(Box::new(LatexError(
-                    name_tokspan.span().into(),
-                    LatexErrKind::Internal,
-                )));
-            }
-            // The token after the definition has already been loaded from the lexer, so it
-            // may still say "unknown command" for the command we have just defined.
-            self.tokens.resolve_buffered_unknown_commands(source);
+        if !self
+            .tokens
+            .define(name, num_args, &mut body, first_class, replace)
+        {
+            // The name came from an unresolved command, so it cannot be in the store already:
+            // the names which are defined are resolved when they are read, and the buffered
+            // tokens are re-resolved whenever something is defined.
+            return Err(Box::new(LatexError(
+                name_tokspan.span().into(),
+                LatexErrKind::Internal,
+            )));
         }
+        Ok(())
+    }
+
+    /// Account for one expansion of a custom command, and give up if there were too many.
+    ///
+    /// A command may expand to itself, directly or through other commands, in which case
+    /// expanding it would never end. We don't try to recognize that; we just stop when a
+    /// snippet has had more expansions than any reasonable one needs.
+    fn count_expansion(&mut self, span: Span) -> ParseResult<()> {
+        let Some(left) = self.state.expansions_left.checked_sub(1) else {
+            return Err(Box::new(LatexError(
+                span.into(),
+                LatexErrKind::TooManyExpansions,
+            )));
+        };
+        self.state.expansions_left = left;
         Ok(())
     }
 
@@ -3274,8 +3314,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new(problem, &parser_cfg, &mut state);
-            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+            let l = Lexer::new(problem);
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -3313,8 +3353,8 @@ mod tests {
         for (name, problem) in problems.into_iter() {
             let arena = Arena::new();
             let mut state = GlobalState::default();
-            let l = Lexer::new("", &parser_cfg, &mut state);
-            let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+            let l = Lexer::new("");
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -3330,8 +3370,8 @@ mod tests {
         let arena = Arena::new();
         let parser_cfg = crate::ParserConfig::default();
         let mut state = GlobalState::default();
-        let l = Lexer::new(&input, &parser_cfg, &mut state);
-        let mut p = Parser::new(l, &arena, Style::Text).unwrap();
+        let l = Lexer::new(&input);
+        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));

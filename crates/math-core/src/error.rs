@@ -73,6 +73,7 @@ pub(crate) enum LatexErrKind {
     MacroParameterOutsideCustomCommand,
     ExpectedParamNumberGotEOI,
     HardLimitExceeded,
+    TooManyExpansions,
     Internal,
 }
 
@@ -308,6 +309,12 @@ impl LatexErrKind {
             LatexErrKind::HardLimitExceeded => {
                 write!(s, "Hard limit exceeded. Please simplify your equation.")?;
             }
+            LatexErrKind::TooManyExpansions => {
+                write!(
+                    s,
+                    "Too many expansions of custom commands. A command may be expanding to itself."
+                )?;
+            }
             LatexErrKind::Internal => {
                 write!(
                     s,
@@ -411,6 +418,7 @@ impl LatexError {
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter",
             LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number",
             LatexErrKind::HardLimitExceeded => "limit exceeded",
+            LatexErrKind::TooManyExpansions => "expansion limit exceeded",
             LatexErrKind::Internal => "internal error",
         }
     }

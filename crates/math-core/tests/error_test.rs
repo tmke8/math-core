@@ -7,6 +7,7 @@ fn main() {
         ("end_without_open", r"\end{matrix}"),
         ("curly_close_without_open", r"}"),
         ("unsupported_command", r"\asdf"),
+        ("unsupported_command_peeked", r"9\asdf"),
         (
             "unsupported_environment",
             r"\begin{xmatrix} 1 \end{xmatrix}",
@@ -25,11 +26,7 @@ fn main() {
         ("incomplete_sqrt", r"\sqrt  "),
         ("sqrt_closed", r"{\sqrt}"),
         ("incomplete_mathchoice", r"\mathchoice{a}{b}"),
-        // The content of an `\fbox` is text, so a math-only command is rejected in it.
         ("math_command_in_fbox", r"\fbox{\alpha}"),
-        // A `$` switches modes in LaTeX, which we don't support: in text mode it would open
-        // nested math mode, and in math mode there is nothing to switch to. The escaped
-        // `\$`, which is a literal dollar sign, stays valid in both (see `special_symbols`).
         ("dollar_in_math_mode", r"a$b"),
         ("dollar_delimiters_around_input", r"$x^2$"),
         ("dollar_in_text_mode", r"\text{if $y$}"),
@@ -120,7 +117,7 @@ fn main() {
         ("newcommand_without_command", r"\newcommand{x}{y}"),
         (
             "newcommand_unknown_cmd_in_body",
-            r"\newcommand{\zzz}{\asdf}",
+            r"\newcommand{\zzz}{\asdf}\zzz",
         ),
         (
             "newcommand_parameter_out_of_range",
@@ -138,11 +135,6 @@ fn main() {
         (
             "providecommand_as_argument",
             r"\sqrt\providecommand{\zzz}{1}",
-        ),
-        // The body is parsed even when the definition is going to be discarded.
-        (
-            "providecommand_unknown_cmd_in_discarded_body",
-            r"\providecommand{\frac}{\asdf}",
         ),
         (
             "providecommand_unclosed_discarded_body",

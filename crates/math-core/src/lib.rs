@@ -60,6 +60,7 @@ mod token_queue;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::ops::Range;
 
 use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
@@ -78,11 +79,13 @@ use mathml_renderer::{
 
 pub use self::error::LatexError;
 use self::{
+    commands::resolve_builtin_cmd,
     custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
     error::LatexErrKind,
     global_state::GlobalState,
-    lexer::Lexer,
+    lexer::{Lexer, LexerOutput},
     parser::Parser,
+    string_pool::InternedStr,
     token::Token,
 };
 
@@ -172,6 +175,8 @@ pub struct MathCoreConfig {
     /// A configuration for pretty-printing the MathML output. See [`PrettyPrint`] for details.
     pub pretty_print: PrettyPrint,
     /// A list of LaTeX macros; each tuple contains (macro_name, macro_definition).
+    ///
+    /// A macro may use another macro of this list, no matter which of the two comes first.
     #[cfg_attr(feature = "serde", serde(with = "tuple_vec_map"))]
     pub macros: Vec<(String, String)>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
@@ -211,16 +216,6 @@ struct ParserConfig {
     allow_unreliable_rendering: bool,
     global_group: bool,
     unicode_substitution: UnicodeSubstitution,
-}
-
-impl ParserConfig {
-    pub fn get_command(&self, command: &str) -> Option<Token> {
-        self.custom_cmds_from_cfg.get(command, CmdSource::Config)
-    }
-
-    pub fn custom_cmd_body(&self, start: usize, end: usize) -> Option<&[Token]> {
-        self.custom_cmds_from_cfg.body(start, end)
-    }
 }
 
 /// Subset of `MathCoreConfig` relevant for the emitter.
@@ -270,6 +265,7 @@ impl LatexToMathML {
         let custom_cmds = parse_custom_commands(
             core::mem::take(&mut config.macros),
             config.unicode_substitution,
+            config.allow_unreliable_rendering,
         )?;
         let parser_cfg = ParserConfig {
             custom_cmds_from_cfg: custom_cmds,
@@ -485,23 +481,37 @@ fn parse<'arena>(
         MathDisplay::Inline => Style::Text,
         MathDisplay::Block => Style::Display,
     };
-    let lexer = Lexer::new(latex, parser_cfg, state);
-    let mut p = Parser::new(lexer, arena, style)?;
+    let lexer = Lexer::new(latex);
+    let mut p = Parser::new(lexer, arena, parser_cfg, state, style)?;
     let nodes = p.parse()?;
     Ok(nodes)
 }
 
+/// Read the macros of the configuration into a store of custom commands.
+///
+/// A macro may refer to a command which is not defined here at all, and in particular to
+/// another macro of the configuration, no matter in which order the two are given: such a
+/// reference is kept as a [`Token::UnresolvedCommand`] and resolved when the macro is used.
+/// Once all macros have been read, every one of those references must point at something,
+/// which is what the final check is for.
 fn parse_custom_commands(
     macros: Vec<(String, String)>,
     unicode_substitution: UnicodeSubstitution,
+    allow_unreliable_rendering: bool,
 ) -> Result<CustomCmds, MacroParseError> {
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
+    // The names which have to be defined by the time all macros have been read, together with
+    // the macro they appear in and their position within its definition.
+    let mut unresolved: Vec<(usize, InternedStr, Range<usize>)> = Vec::new();
     let mut body = Vec::new();
     let parser_cfg = ParserConfig {
         unicode_substitution,
+        allow_unreliable_rendering,
         ..Default::default()
     };
-    let mut state = GlobalState::default();
+    // The definitions are kept around, because the check at the end has to be able to report
+    // the one which contains an unresolved name.
+    let mut definitions: Vec<String> = Vec::with_capacity(macros.len());
     for (idx, (name, definition)) in macros.into_iter().enumerate() {
         if !is_valid_macro_name(name.as_str()) {
             return Err((
@@ -511,28 +521,34 @@ fn parse_custom_commands(
             ));
         }
 
-        // In order to be able to return `definition` in case of an error, we need to ensure
-        // that the lexer (which borrows `definition`) is dropped before we return the error.
-        // Therefore, we put the whole lexing process into its own block.
         body.clear();
         let mut num_args = 0;
         let mut first_class: Option<character_class::Class> = None;
         let result = 'body: {
-            let mut lexer = Lexer::new(definition.as_str(), &parser_cfg, &mut state);
+            let mut lexer = Lexer::new(definition.as_str());
             loop {
                 match lexer.next_token() {
-                    Ok(tokloc) => {
-                        let (tok, span) = tokloc.into_parts();
-                        match tok {
-                            Token::Eoi => break,
-                            // Unknown commands cannot be stored, because the name only lives
-                            // in the pool of this temporary lexer.
-                            Token::UnknownCommand(name) => {
-                                break 'body Err(Box::new(LatexError(
-                                    span.into(),
-                                    LatexErrKind::UnknownCommand(lexer.resolve(name).into()),
-                                )));
+                    Ok(lexer_output) => {
+                        let token = match lexer_output {
+                            LexerOutput::CommandName(cmd_name, span) => {
+                                let interned = custom_cmds.intern(cmd_name);
+                                // We resolve the command here only to know whether it *can* be
+                                // resolved and to know its class. The actual resolution is done
+                                // when the macro is used.
+                                if let Some(resolved) = resolve_builtin_cmd(&parser_cfg, cmd_name) {
+                                    if first_class.is_none() {
+                                        first_class = resolved.class();
+                                    }
+                                } else {
+                                    unresolved.push((idx, interned, span.into()));
+                                }
+                                body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
+                                continue;
                             }
+                            LexerOutput::Token(tokspan) => tokspan.into_token(),
+                        };
+                        match token {
+                            Token::Eoi => break,
                             Token::CustomCmdArgInput(n) => {
                                 if n >= num_args {
                                     num_args = n + 1;
@@ -559,6 +575,16 @@ fn parse_custom_commands(
             return Err((err, idx, definition));
         }
         custom_cmds.insert(name.as_str(), num_args, &body, first_class);
+        // The lexer, which borrows the definition, is gone by now.
+        definitions.push(definition);
+    }
+    // Now that all macros are known, every name which none of them defines is an error.
+    for (idx, name, span) in unresolved {
+        let name = custom_cmds.cmd_names().get(name);
+        if custom_cmds.get(name, CmdSource::Config).is_none() {
+            let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name.into())));
+            return Err((err, idx, definitions.swap_remove(idx)));
+        }
     }
     Ok(custom_cmds)
 }

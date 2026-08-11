@@ -4,7 +4,7 @@ expression: "{x\\color{red} y}"
 ---
 0:1: GroupBegin
 1:2: Letter("x", MathOrText)
-2:8: Color
+2:8: CommandName("color")
 8:9: GroupBegin
 9:10: Letter("r", MathOrText)
 10:11: Letter("e", MathOrText)

@@ -5,6 +5,7 @@ use rustc_hash::FxBuildHasher;
 
 use crate::FxHashMap;
 use crate::character_class::Class;
+use crate::string_pool::{InternedStr, StringPool};
 use crate::token::Token;
 
 /// Where the token stream of a custom command is stored.
@@ -33,6 +34,10 @@ struct CmdDef {
     num_args: u8,
     /// The character class of the body, which we have to remember because
     /// [`Token::class`] cannot look into the store.
+    ///
+    /// A body which begins with a command that isn't defined yet counts as an ordinary atom,
+    /// because the class has to be known here, before we can know what that command will
+    /// turn out to be.
     class: Option<Class>,
     start: usize,
     end: usize,
@@ -47,6 +52,8 @@ struct CmdDef {
 pub(crate) struct CustomCmds {
     tokens: Vec<Token>,
     map: FxHashMap<Box<str>, CmdDef>,
+    /// The names of the commands in [`Self::tokens`].
+    cmd_names: StringPool,
 }
 
 impl CustomCmds {
@@ -54,6 +61,7 @@ impl CustomCmds {
         CustomCmds {
             tokens: Vec::new(),
             map: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
+            cmd_names: StringPool::default(),
         }
     }
 
@@ -114,9 +122,19 @@ impl CustomCmds {
         );
     }
 
+    pub(crate) fn cmd_names(&self) -> &StringPool {
+        &self.cmd_names
+    }
+
+    #[inline]
+    pub(crate) fn intern(&mut self, s: &str) -> InternedStr {
+        self.cmd_names.intern(s)
+    }
+
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
         self.map.clear();
+        self.cmd_names.clear();
     }
 }
 
