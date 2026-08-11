@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\let\\zzz\\asdf"
+---
+Error: Unknown command "\asdf".
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ \let\zzz\asdf
+   │         ──┬──  
+   │           ╰──── unknown command
+───╯

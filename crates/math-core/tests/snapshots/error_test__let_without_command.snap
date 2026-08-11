@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\let x"
+---
+Error: Expected the name of a command.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \let x
+   │      ┬  
+   │      ╰── expected a command name here
+───╯
