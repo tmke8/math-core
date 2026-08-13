@@ -49,7 +49,7 @@
                         placeholder="Enter LaTeX math here..."
                         spellcheck="false"
                     ></textarea>
-                    <div class="options">
+                    <form class="options" id="optionsForm">
                         <div class="option-group">
                             <h3>Math font:</h3>
                             <div class="options">
@@ -154,11 +154,11 @@
                     class="output-box copyable"
                 ><code id="outputCode">&lt;math display="block"&gt;
 &lt;/math&gt;</code></pre>
-                <button id="generateBtn" class="generalBtn">Generate Link</button>
+                <button type="button" id="generateBtn" class="generalBtn">Generate Link</button>
                 <div id="linkContainer" class="hidden">
                     <h3>Generated Link:</h3>
                     <code class="url-display" id="generatedLink">&nbsp;</code>
-                    <button id="copyBtn" class="generalBtn">Copy to Clipboard</button>
+                    <button type="button" id="copyBtn" class="generalBtn">Copy to Clipboard</button>
                 </div>
 
                 <hr />
