@@ -84,7 +84,7 @@ impl Arena {
         self.inner.alloc(&*fat)
     }
 
-    pub fn alloc_length_set<'arena>(&'arena self, length_set: LengthSet) -> &'arena LengthSet {
+    pub fn alloc_length_set(&self, length_set: LengthSet) -> &LengthSet {
         self.inner.alloc(length_set)
     }
 }
