@@ -88,7 +88,16 @@ async function generateLink() {
 
   // Generate the URL
   const currentUrl = window.location.origin + window.location.pathname;
-  const generatedUrl = `${currentUrl}#input:${encodedContent}`;
+  /** @type {HTMLFormElement} */
+  const optionsForm = document.getElementById("optionsForm");
+  let generatedUrl = `${currentUrl}#input:${encodedContent}`;
+  for (let key of ["math-font", "prettyprint", "displaystyle"]) {
+    const option = optionsForm.elements.namedItem(key);
+    if (option && option.value !== null && option.value !== "") {
+      const value = encodeURIComponent(option.value);
+      generatedUrl += `&${key}:${value}`;
+    }
+  }
 
   // Display the link
   document.getElementById("generatedLink").innerText = generatedUrl;
@@ -100,7 +109,7 @@ async function loadFromUrl() {
   const hash = window.location.hash;
 
   if (hash.startsWith("#input:")) {
-    const encodedContent = hash.substring(7); // Remove '#input:' prefix
+    const [encodedContent, ...params] = hash.substring(7).split("&"); // Remove '#input:' prefix
 
     try {
       const compressedContent = base64UrlToUint8Array(encodedContent);
@@ -108,6 +117,24 @@ async function loadFromUrl() {
       const inputField = document.getElementById("inputField");
       console.assert(inputField instanceof HTMLTextAreaElement);
       inputField.value = decodedContent;
+
+      /** @type {HTMLFormElement} */
+      const optionsForm = document.getElementById("optionsForm");
+      for (let param of params) {
+        const [key, value] = param.split(":");
+        const item = optionsForm.elements.namedItem(key);
+        // set form elements based on given parameters,
+        // and dispatch event to update the output
+        if (item) {
+          item.value = decodeURIComponent(value);
+          if (item instanceof HTMLElement) {
+            item.dispatchEvent(new Event("change", { bubbles: true }));
+          } else if (item instanceof RadioNodeList) {
+            item.forEach(radio => radio.dispatchEvent(new Event("change", { bubbles: true })));
+          }
+        }
+      }
+
       // Trigger input event to update output
       inputField.dispatchEvent(new Event("input", { bubbles: true }));
 
