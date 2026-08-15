@@ -8,7 +8,7 @@ use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::{MultiscriptPair, Node},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttrs, Style},
-    length::{Length, LengthUnit},
+    length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
     table::{EquationTag, LineType, RowLabelInfo},
@@ -849,7 +849,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 class = prev_class;
                 Ok(self.parse_kern_or_skip(kind, span.end())?)
             }
-            Token::NonBreakingSpace => Ok(Node::Text(None, None, "\u{A0}")),
+            Token::NonBreakingSpace => Ok(Node::Text {
+                text_style: None,
+                text_size: None,
+                text_voffset: None,
+                text: "\u{A0}",
+            }),
             Token::Sqrt => {
                 let next = self.next_token();
                 if let Ok(tokloc) = next
@@ -1546,9 +1551,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::OperatorName { with_limits } => {
-                let snippets = self.extract_text(None, false)?;
+                let snippets = self.extract_text(None, None, false)?;
                 let mut builder = self.buffer.get_builder();
-                for TextSnippet(_style, _size, text) in snippets {
+                for TextSnippet(_style, _size, _voffset, text) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
@@ -1571,11 +1576,55 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::Text(transform) => {
-                let snippets = self.extract_text(transform, true)?;
+                let snippets = self.extract_text(transform, None, true)?;
                 let nodes = snippets
                     .into_iter()
-                    .map(|TextSnippet(style, size, text)| {
-                        self.commit(Node::Text(style, size, text))
+                    .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
+                        self.commit(Node::Text {
+                            text_style,
+                            text_size,
+                            text_voffset,
+                            text,
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                return Ok(Parsed::Node(
+                    Class::Close,
+                    node_vec_to_node(self.arena, &nodes, false),
+                ));
+            }
+            Token::RaiseBox => {
+                let (initial_voffset_str, span) = self.parse_string_literal()?;
+                let initial_voffset = match parse_length_specification(initial_voffset_str) {
+                    Some((voffset, unit, is_math_unit)) => {
+                        if is_math_unit {
+                            return Err(Box::new(LatexError(
+                                span,
+                                LatexErrKind::IllegalUnit {
+                                    unit: unit.into(),
+                                    math_unit_expected: false,
+                                },
+                            )));
+                        }
+                        LengthSet::from(voffset)
+                    }
+                    None => {
+                        return Err(Box::new(LatexError(
+                            span,
+                            LatexErrKind::ExpectedLength(initial_voffset_str.into()),
+                        )));
+                    }
+                };
+                let snippets = self.extract_text(None, Some(initial_voffset), true)?;
+                let nodes = snippets
+                    .into_iter()
+                    .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
+                        self.commit(Node::Text {
+                            text_style,
+                            text_size,
+                            text_voffset,
+                            text,
+                        })
                     })
                     .collect::<Vec<_>>();
                 return Ok(Parsed::Node(

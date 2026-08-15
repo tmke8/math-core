@@ -808,6 +808,28 @@ fn main() {
         ("big_set_class_lookahead", r"\Set{ = | x }"),
         ("set_class_lookahead", r"\set{ = | x }"),
         ("big_braket_class_lookahead", r"\Braket{=|x}"),
+        ("raisebox_basic", r"\raisebox{1em}{foobar}"),
+        ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
+        (
+            "raisebox_stack_same",
+            r"\raisebox{1em}{\raisebox{1em}{foobar}}",
+        ),
+        (
+            "raisebox_stack_different",
+            r"\raisebox{1em}{\raisebox{1pt}{foobar}}",
+        ),
+        (
+            "raisebox_multi",
+            r"\raisebox{1em}{foo{\raisebox{1pt}{bar}}}",
+        ),
+        (
+            "raisebox_multi_same",
+            r"\raisebox{1em}{foo{\raisebox{1em}{bar}}}",
+        ),
+        (
+            "raisebox_multi_cancel",
+            r"\raisebox{1em}{foo{\raisebox{-1em}{bar}}}",
+        ),
     ];
 
     let config = MathCoreConfig {

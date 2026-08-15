@@ -240,6 +240,8 @@ pub enum Token {
     /// the parser state. Besides the command itself, this is what a custom command with an
     /// empty body expands to, so that such a command still has a token to expand to.
     Relax,
+    /// `\raisebox{length}{text}` produces a text block with a vertical offset.
+    RaiseBox,
     /// `\mathchoice{display}{text}{script}{scriptscript}`, which expands to whichever of its
     /// four arguments matches the style which is current where the command appears.
     /// Unlike in LaTeX, the three other arguments are not typeset at all.
@@ -626,6 +628,7 @@ impl Token {
             | Prime(_)
             | Enclose(_)
             | Text(_)
+            | RaiseBox
             | Style(_)
             | Cramped
             | Color

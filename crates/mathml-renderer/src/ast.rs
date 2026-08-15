@@ -15,7 +15,7 @@ use crate::attribute::RowAttrs;
 use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
-use crate::length::{Length, LengthUnit, LengthValue};
+use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
 use crate::table::{
     Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnGenerator, LineType,
@@ -142,7 +142,12 @@ pub enum Node<'arena> {
     Phantom { node: &'arena Node<'arena> },
     /// `<mtext>...</mtext>`.
     /// The `str` gets HTML-escaped.
-    Text(Option<HtmlTextStyle>, Option<HtmlTextSize>, &'arena str),
+    Text {
+        text_style: Option<HtmlTextStyle>,
+        text_size: Option<HtmlTextSize>,
+        text_voffset: Option<LengthSet>,
+        text: &'arena str,
+    },
     /// `<mtext><a href="...">...</a></mtext>`.
     /// The link and text get HTML-escaped.
     AHref(&'arena AHref<'arena>),
@@ -363,7 +368,19 @@ impl<'state> Emitter<'state> {
                     EscapeHtml(letters)
                 )?;
             }
-            Node::Text(text_style, text_size, letters) => {
+            Node::Text {
+                text_style,
+                text_size,
+                text_voffset,
+                text: letters,
+            } => {
+                if let Some(voffset) = text_voffset {
+                    for voffset in voffset.iter() {
+                        write!(self.s, "<mpadded voffset=\"")?;
+                        voffset.push_to_string(&mut self.s);
+                        write!(self.s, "\">")?;
+                    }
+                }
                 write!(self.s, "<mtext")?;
                 if let Some(size) = text_size {
                     write!(self.s, " style=\"font-size:{}\"", <&str>::from(size))?;
@@ -388,6 +405,11 @@ impl<'state> Emitter<'state> {
                     Some(HtmlTextStyle::Underline) => ("<u>", "</u>"),
                 };
                 write!(self.s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
+                if let Some(voffset) = text_voffset {
+                    for _ in voffset.iter() {
+                        write!(self.s, "</mpadded>")?;
+                    }
+                }
             }
             Node::Space(space) => {
                 write!(self.s, "<mspace ")?;
@@ -1463,7 +1485,12 @@ mod tests {
     #[test]
     fn render_text() {
         assert_eq!(
-            render(&Node::Text(None, None, "hello")),
+            render(&Node::Text {
+                text_style: None,
+                text_size: None,
+                text_voffset: None,
+                text: "hello"
+            }),
             "<mtext>hello</mtext>"
         );
     }

@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use mathml_renderer::{
     arena::StringBuilder,
     attribute::{HtmlTextSize, HtmlTextStyle},
-    length::{Length, LengthUnit},
+    length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol,
 };
@@ -13,7 +13,7 @@ use mathml_renderer::{
 use crate::{
     error::{LatexErrKind, LatexError},
     parser::{ParseResult, Parser},
-    specifications::LatexUnit,
+    specifications::{LatexUnit, parse_length_specification},
     token::{EndToken, Mode, TextToken, Token},
 };
 
@@ -21,6 +21,7 @@ use crate::{
 pub(super) struct TextSnippet<'arena>(
     pub Option<HtmlTextStyle>,
     pub Option<HtmlTextSize>,
+    pub Option<LengthSet>,
     pub &'arena str,
 );
 
@@ -28,9 +29,10 @@ impl<'arena> Parser<'_, 'arena> {
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
+        initial_voffset: Option<LengthSet>,
         text_mode: bool,
     ) -> ParseResult<Vec<TextSnippet<'arena>>> {
-        let mut style_stack = vec![(0usize, initial_style)];
+        let mut style_stack = vec![(0usize, initial_style, initial_voffset)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<TextSnippet<'arena>> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
@@ -41,7 +43,9 @@ impl<'arena> Parser<'_, 'arena> {
         // reset on every style push, so the nesting level alone would be ambiguous.)
         let mut size_stack: Vec<(usize, usize, HtmlTextSize)> = Vec::new();
 
-        while let Some((previous_nesting, current_style)) = style_stack.last().copied() {
+        while let Some((previous_nesting, current_style, current_voffset)) =
+            style_stack.last().copied()
+        {
             let current_size = size_stack.last().map(|&(_, _, size)| size);
             let tokloc = if text_mode {
                 self.tokens.next_any_token()
@@ -74,9 +78,14 @@ impl<'arena> Parser<'_, 'arena> {
                                 && !builder.is_empty()
                             {
                                 let text = builder.finish(self.arena);
-                                snippets.push(TextSnippet(current_style, current_size, text));
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size,
+                                    current_voffset,
+                                    text,
+                                ));
                             }
-                            style_stack.push((brace_nesting, Some(style)));
+                            style_stack.push((brace_nesting, Some(style), current_voffset));
                             brace_nesting = 0;
                             continue;
                         }
@@ -86,7 +95,12 @@ impl<'arena> Parser<'_, 'arena> {
                                     str_builder = Some(builder);
                                 } else {
                                     let text = builder.finish(self.arena);
-                                    snippets.push(TextSnippet(current_style, current_size, text));
+                                    snippets.push(TextSnippet(
+                                        current_style,
+                                        current_size,
+                                        current_voffset,
+                                        text,
+                                    ));
                                     str_builder = Some(self.buffer.get_builder());
                                 }
                                 size_stack.push((style_stack.len(), brace_nesting, text_size));
@@ -127,6 +141,7 @@ impl<'arena> Parser<'_, 'arena> {
                     | Token::Text(_)
                     | Token::Eoi
                     | Token::Right
+                    | Token::RaiseBox
                     | Token::End(_)
             ) {
                 // These tokens are valid in both math and text mode.
@@ -147,7 +162,12 @@ impl<'arena> Parser<'_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         } else {
-                            snippets.push(TextSnippet(current_style, current_size, output));
+                            snippets.push(TextSnippet(
+                                current_style,
+                                current_size,
+                                current_voffset,
+                                output,
+                            ));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
                             discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
@@ -183,6 +203,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         snippets.push(TextSnippet(
                                             current_style,
                                             current_size,
+                                            current_voffset,
                                             text,
                                         ));
                                     }
@@ -200,7 +221,12 @@ impl<'arena> Parser<'_, 'arena> {
                             } else {
                                 if !builder.is_empty() {
                                     let text = builder.finish(self.arena);
-                                    snippets.push(TextSnippet(current_style, current_size, text));
+                                    snippets.push(TextSnippet(
+                                        current_style,
+                                        current_size,
+                                        current_voffset,
+                                        text,
+                                    ));
                                 }
                                 style_stack.pop();
                                 brace_nesting = previous_nesting;
@@ -224,7 +250,12 @@ impl<'arena> Parser<'_, 'arena> {
                             && !builder.is_empty()
                         {
                             let text = builder.finish(self.arena);
-                            snippets.push(TextSnippet(current_style, current_size, text));
+                            snippets.push(TextSnippet(
+                                current_style,
+                                current_size,
+                                current_voffset,
+                                text,
+                            ));
                         }
                         let new_style = match (current_style, style) {
                             (Some(HtmlTextStyle::Emphasis), Some(HtmlTextStyle::Emphasis)) => None,
@@ -234,8 +265,53 @@ impl<'arena> Parser<'_, 'arena> {
                             }
                             _ => style,
                         };
-                        style_stack.push((brace_nesting, new_style));
+                        style_stack.push((brace_nesting, new_style, current_voffset));
                         brace_nesting = 0;
+                        continue;
+                    }
+                    Token::RaiseBox => {
+                        if let Some(builder) = str_builder
+                            && !builder.is_empty()
+                        {
+                            let text = builder.finish(self.arena);
+                            snippets.push(TextSnippet(
+                                current_style,
+                                current_size,
+                                current_voffset,
+                                text,
+                            ));
+                        }
+
+                        let (voffset_str, span) = self.parse_string_literal()?;
+                        let new_voffset = match parse_length_specification(voffset_str) {
+                            Some((voffset, unit, is_math_unit)) => {
+                                if is_math_unit {
+                                    return Err(Box::new(LatexError(
+                                        span,
+                                        LatexErrKind::IllegalUnit {
+                                            unit: unit.into(),
+                                            math_unit_expected: false,
+                                        },
+                                    )));
+                                }
+                                LengthSet::from(voffset)
+                            }
+                            None => {
+                                return Err(Box::new(LatexError(
+                                    span,
+                                    LatexErrKind::ExpectedLength(voffset_str.into()),
+                                )));
+                            }
+                        };
+
+                        let voffset = match current_voffset {
+                            Some(current_voffset) => current_voffset + new_voffset,
+                            None => new_voffset,
+                        };
+
+                        style_stack.push((brace_nesting, current_style, Some(voffset)));
+                        brace_nesting = 0;
+                        str_builder = None;
                         continue;
                     }
                     Token::Eoi => {
@@ -265,7 +341,12 @@ impl<'arena> Parser<'_, 'arena> {
                             str_builder.push_str(output);
                             continue;
                         }
-                        snippets.push(TextSnippet(current_style, current_size, output));
+                        snippets.push(TextSnippet(
+                            current_style,
+                            current_size,
+                            current_voffset,
+                            output,
+                        ));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
                         discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);
@@ -320,7 +401,12 @@ impl<'arena> Parser<'_, 'arena> {
             } else {
                 let mut b = [0u8; SuperChar::MAX_LEN_UTF8];
                 let text = self.arena.alloc_str(c.encode_utf8(&mut b));
-                snippets.push(TextSnippet(current_style, current_size, text));
+                snippets.push(TextSnippet(
+                    current_style,
+                    current_size,
+                    current_voffset,
+                    text,
+                ));
                 style_stack.pop();
                 brace_nesting = previous_nesting;
                 discard_dead_sizes(&mut size_stack, style_stack.len(), brace_nesting);

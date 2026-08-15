@@ -3,5 +3,10 @@ source: crates/math-core/src/parser.rs
 expression: "\\text{% comment}\n\\%as}"
 ---
 [
-  Text(None, None, "%as"),
+  Text(
+    text_style: None,
+    text_size: None,
+    text_voffset: None,
+    text: "%as",
+  ),
 ]

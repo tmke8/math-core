@@ -3,5 +3,10 @@ source: crates/math-core/src/parser.rs
 expression: "\\textbf{abc}"
 ---
 [
-  Text(Some(Bold), None, "abc"),
+  Text(
+    text_style: Some(Bold),
+    text_size: None,
+    text_voffset: None,
+    text: "abc",
+  ),
 ]
