@@ -145,7 +145,7 @@ pub enum Node<'arena> {
     Text {
         text_style: Option<HtmlTextStyle>,
         text_size: Option<HtmlTextSize>,
-        text_voffset: Option<LengthSet>,
+        text_voffset: Option<&'arena LengthSet>,
         text: &'arena str,
     },
     /// `<mtext><a href="...">...</a></mtext>`.

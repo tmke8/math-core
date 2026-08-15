@@ -1580,6 +1580,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let nodes = snippets
                     .into_iter()
                     .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
+                        let text_voffset = text_voffset
+                            .as_ref()
+                            .map(|tv| self.arena.alloc_length_set(*tv));
                         self.commit(Node::Text {
                             text_style,
                             text_size,
@@ -1622,7 +1625,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         self.commit(Node::Text {
                             text_style,
                             text_size,
-                            text_voffset,
+                            text_voffset: text_voffset
+                                .as_ref()
+                                .map(|tv| self.arena.alloc_length_set(*tv)),
                             text,
                         })
                     })
