@@ -3,5 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\raisebox{1em}{\\raisebox{1pt}{foobar}}"
 ---
 <math>
-    <mpadded voffset="0.1rem"><mpadded voffset="1em"><mtext>foobar</mtext></mpadded></mpadded>
+    <mpadded voffset="0.1rem"><mpadded voffset="1em">
+        <mtext>foobar</mtext>
+    </mpadded></mpadded>
 </math>

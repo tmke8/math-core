@@ -6,7 +6,6 @@ expression: "[Text(None), GroupBegin, Letter(\"a\", MathOrText), InternalStringL
   Text(
     text_style: None,
     text_size: None,
-    text_voffset: None,
     text: "ahi",
   ),
 ]

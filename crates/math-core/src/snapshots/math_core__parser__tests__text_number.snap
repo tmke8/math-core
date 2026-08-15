@@ -6,7 +6,6 @@ expression: "\\text123"
   Text(
     text_style: None,
     text_size: None,
-    text_voffset: None,
     text: "1",
   ),
   Number("23"),

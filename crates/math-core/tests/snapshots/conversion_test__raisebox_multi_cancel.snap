@@ -4,7 +4,9 @@ expression: "\\raisebox{1em}{foo{\\raisebox{-1em}{bar}}}"
 ---
 <math>
     <mrow>
-        <mpadded voffset="1em"><mtext>foo</mtext></mpadded>
+        <mpadded voffset="1em">
+            <mtext>foo</mtext>
+        </mpadded>
         <mtext>bar</mtext>
     </mrow>
 </math>

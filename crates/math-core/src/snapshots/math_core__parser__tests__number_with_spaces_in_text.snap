@@ -6,7 +6,6 @@ expression: "\\text{1 2  3    4}"
   Text(
     text_style: None,
     text_size: None,
-    text_voffset: None,
     text: "1\u{a0}2\u{a0}3\u{a0}4",
   ),
 ]

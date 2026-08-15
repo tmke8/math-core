@@ -6,7 +6,6 @@ expression: "\\textbf{abc}"
   Text(
     text_style: Some(Bold),
     text_size: None,
-    text_voffset: None,
     text: "abc",
   ),
 ]

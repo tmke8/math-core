@@ -137,6 +137,7 @@ pub enum Node<'arena> {
         height_0: bool,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
+        voffset: Option<&'arena LengthSet>,
     },
     /// `<mphantom>...</mphantom>`
     Phantom { node: &'arena Node<'arena> },
@@ -145,7 +146,6 @@ pub enum Node<'arena> {
     Text {
         text_style: Option<HtmlTextStyle>,
         text_size: Option<HtmlTextSize>,
-        text_voffset: Option<&'arena LengthSet>,
         text: &'arena str,
     },
     /// `<mtext><a href="...">...</a></mtext>`.
@@ -371,16 +371,8 @@ impl<'state> Emitter<'state> {
             Node::Text {
                 text_style,
                 text_size,
-                text_voffset,
                 text: letters,
             } => {
-                if let Some(voffset) = text_voffset {
-                    for voffset in voffset.iter() {
-                        write!(self.s, "<mpadded voffset=\"")?;
-                        voffset.push_to_string(&mut self.s);
-                        write!(self.s, "\">")?;
-                    }
-                }
                 write!(self.s, "<mtext")?;
                 if let Some(size) = text_size {
                     write!(self.s, " style=\"font-size:{}\"", <&str>::from(size))?;
@@ -405,11 +397,6 @@ impl<'state> Emitter<'state> {
                     Some(HtmlTextStyle::Underline) => ("<u>", "</u>"),
                 };
                 write!(self.s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
-                if let Some(voffset) = text_voffset {
-                    for _ in voffset.iter() {
-                        write!(self.s, "</mpadded>")?;
-                    }
-                }
             }
             Node::Space(space) => {
                 write!(self.s, "<mspace ")?;
@@ -591,8 +578,26 @@ impl<'state> Emitter<'state> {
                 height_0,
                 left,
                 right,
+                voffset,
             } => {
                 write!(self.s, "<mpadded")?;
+                if let Some(voffset) = voffset {
+                    let mut voffset_iter = voffset.iter();
+                    // I really, really wish `calc()` worked. But I tried it, and it didn't.
+                    // To produce reasonably minimal XML, the last voffset component is
+                    // attached to the "primary" `<mpadded>` element. Any others get put on
+                    // wrapper elements.
+                    if let Some(voffset_length) = voffset_iter.next() {
+                        write!(self.s, r#" voffset=""#)?;
+                        voffset_length.push_to_string(&mut self.s);
+                        write!(self.s, r#"""#)?;
+                    }
+                    for voffset_length in voffset_iter {
+                        write!(self.s, r#"><mpadded voffset=""#)?;
+                        voffset_length.push_to_string(&mut self.s);
+                        write!(self.s, r#"""#)?;
+                    }
+                }
                 if width_0 {
                     write!(self.s, r#" width="0""#)?;
                 }
@@ -612,6 +617,11 @@ impl<'state> Emitter<'state> {
                 write!(self.s, ">")?;
                 self.emit(node, child_indent)?;
                 writeln_indent!(self, base_indent, "</mpadded>");
+                if let Some(voffset) = voffset {
+                    for _ in voffset.iter().skip(1) {
+                        write!(self.s, r#"</mpadded>"#)?;
+                    }
+                }
             }
             Node::Phantom { node } => {
                 write!(self.s, "<mphantom>")?;
@@ -1443,8 +1453,37 @@ mod tests {
                 height_0: false,
                 left: None,
                 right: Some(MathSpacing::FourMu),
+                voffset: None,
             }),
             "<mpadded width=\"0\" style=\"padding-right:0.2222em;\"><mn>x</mn></mpadded>"
+        );
+        assert_eq!(
+            render(&Node::Padded {
+                node: &Node::Number("x"),
+                width_0: true,
+                height_0: false,
+                left: None,
+                right: Some(MathSpacing::FourMu),
+                voffset: Length::from_parts(LengthValue(1.0), LengthUnit::Em)
+                    .map(LengthSet::from)
+                    .as_ref(),
+            }),
+            "<mpadded voffset=\"1em\" width=\"0\" style=\"padding-right:0.2222em;\"><mn>x</mn></mpadded>"
+        );
+        let a = Length::from_parts(LengthValue(1.0), LengthUnit::Em).unwrap();
+        let b = Length::from_parts(LengthValue(2.0), LengthUnit::Rem).unwrap();
+        let c = Length::from_parts(LengthValue(3.0), LengthUnit::Ex).unwrap();
+        let voffset = LengthSet::from(a) + LengthSet::from(b) + LengthSet::from(c);
+        assert_eq!(
+            render(&Node::Padded {
+                node: &Node::Number("x"),
+                width_0: true,
+                height_0: false,
+                left: None,
+                right: Some(MathSpacing::FourMu),
+                voffset: Some(&voffset),
+            }),
+            "<mpadded voffset=\"2rem\"><mpadded voffset=\"1em\"><mpadded voffset=\"3ex\" width=\"0\" style=\"padding-right:0.2222em;\"><mn>x</mn></mpadded></mpadded></mpadded>"
         );
     }
 
@@ -1488,7 +1527,6 @@ mod tests {
             render(&Node::Text {
                 text_style: None,
                 text_size: None,
-                text_voffset: None,
                 text: "hello"
             }),
             "<mtext>hello</mtext>"

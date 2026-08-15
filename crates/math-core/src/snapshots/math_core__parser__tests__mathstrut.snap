@@ -17,5 +17,6 @@ expression: "\\mathstrut"
     height_0: false,
     left: None,
     right: None,
+    voffset: None,
   ),
 ]

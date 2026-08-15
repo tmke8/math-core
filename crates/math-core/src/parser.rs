@@ -786,6 +786,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         height_0: false,
                         left,
                         right,
+                        voffset: None,
                     }),
                 }
             }
@@ -852,7 +853,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::NonBreakingSpace => Ok(Node::Text {
                 text_style: None,
                 text_size: None,
-                text_voffset: None,
                 text: "\u{A0}",
             }),
             Token::Sqrt => {
@@ -1580,14 +1580,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let nodes = snippets
                     .into_iter()
                     .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
-                        let text_voffset = text_voffset
-                            .as_ref()
-                            .map(|tv| self.arena.alloc_length_set(*tv));
-                        self.commit(Node::Text {
+                        let text_node = Node::Text {
                             text_style,
                             text_size,
-                            text_voffset,
                             text,
+                        };
+                        let voffset = text_voffset
+                            .as_ref()
+                            .filter(|voffset| **voffset != LengthSet::zero())
+                            .map(|tv| self.arena.alloc_length_set(*tv));
+                        self.commit(if voffset.is_some() {
+                            Node::Padded {
+                                node: self.commit(text_node),
+                                width_0: false,
+                                height_0: false,
+                                left: None,
+                                right: None,
+                                voffset,
+                            }
+                        } else {
+                            text_node
                         })
                     })
                     .collect::<Vec<_>>();
@@ -1622,13 +1634,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let nodes = snippets
                     .into_iter()
                     .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
-                        self.commit(Node::Text {
+                        let voffset = text_voffset
+                            .filter(|voffset| *voffset != LengthSet::zero())
+                            .as_ref()
+                            .map(|tv| self.arena.alloc_length_set(*tv));
+                        let text_node = Node::Text {
                             text_style,
                             text_size,
-                            text_voffset: text_voffset
-                                .as_ref()
-                                .map(|tv| self.arena.alloc_length_set(*tv)),
                             text,
+                        };
+                        self.commit(if voffset.is_some() {
+                            Node::Padded {
+                                node: self.commit(text_node),
+                                width_0: false,
+                                height_0: false,
+                                left: None,
+                                right: None,
+                                voffset,
+                            }
+                        } else {
+                            text_node
                         })
                     })
                     .collect::<Vec<_>>();
@@ -1928,6 +1953,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         height_0: true,
                         left: None,
                         right: None,
+                        voffset: None,
                     }),
                     PhantomKind::V => Ok(Node::Padded {
                         node: self.arena.push(Node::Phantom { node: inner }),
@@ -1935,6 +1961,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         height_0: false,
                         left: None,
                         right: None,
+                        voffset: None,
                     }),
                 }
             }
