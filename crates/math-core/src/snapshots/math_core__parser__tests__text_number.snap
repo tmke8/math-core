@@ -3,6 +3,10 @@ source: crates/math-core/src/parser.rs
 expression: "\\text123"
 ---
 [
-  Text(None, None, "1"),
+  Text(
+    text_style: None,
+    text_size: None,
+    text: "1",
+  ),
   Number("23"),
 ]

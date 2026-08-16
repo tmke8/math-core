@@ -5,6 +5,7 @@ use stable_arena::DroplessArena;
 
 use crate::{
     ast::{AHref, MultiscriptPair, Node},
+    length::LengthSet,
     super_char::SuperChar,
     table::{ArraySpec, ColumnSpec, RowLabelInfo},
 };
@@ -81,6 +82,10 @@ impl Arena {
     ) -> &'arena &'arena [MultiscriptPair<'pairs>] {
         let fat = self.inner.alloc_slice(pairs);
         self.inner.alloc(&*fat)
+    }
+
+    pub fn alloc_length_set(&self, length_set: LengthSet) -> &LengthSet {
+        self.inner.alloc(length_set)
     }
 }
 

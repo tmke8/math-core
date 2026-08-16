@@ -689,6 +689,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "rArr" => Relation(symbol::RIGHTWARDS_DOUBLE_ARROW),
     "rBrace" => Close(symbol::RIGHT_WHITE_CURLY_BRACKET),
     "rVert" => Close(symbol::DOUBLE_VERTICAL_LINE),
+    "raisebox" => RaiseBox,
     "rang" => Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
     "rangle" => Close(symbol::MATHEMATICAL_RIGHT_ANGLE_BRACKET),
     "rarr" => Relation(symbol::RIGHTWARDS_ARROW),

@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\raisebox{1em}{\\raisebox{1em}{foobar}}"
+---
+<math>
+    <mpadded voffset="2em">
+        <mtext>foobar</mtext>
+    </mpadded>
+</math>
