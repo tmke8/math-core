@@ -345,7 +345,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(())
             }
             Token::Let => {
-                self.let_command()?;
+                self.let_command(false)?;
+                Ok(())
+            }
+            Token::Global => {
+                self.global_prefix()?;
                 Ok(())
             }
             Token::VerticalLineDef(def) => {
@@ -1220,6 +1224,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::Label
             | Token::NewCommand(_)
             | Token::Let
+            | Token::Global
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
@@ -2441,7 +2446,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
 
         let mut first_class: Option<Class> = None;
-        let mut body = body_tokspans
+        let body = body_tokspans
             .into_iter()
             .map(|queued| {
                 let (tok, span) = queued.into_tokspan().into_parts();
@@ -2460,7 +2465,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                     // This has to come before the arm below, which would otherwise record
                     // `\newcommand` by name like any other command.
-                    Token::NewCommand(_) | Token::Let => Err(Box::new(LatexError(
+                    Token::NewCommand(_) | Token::Let | Token::Global => Err(Box::new(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedAsArgument,
                     ))),
@@ -2496,7 +2501,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
         if !self
             .tokens
-            .define(name, num_args, &mut body, first_class, replace)
+            .define(name, num_args, &body, first_class, replace, false)
         {
             // The name came from an unresolved command, so it cannot be in the store already:
             // the names which are defined are resolved when they are read, and the buffered
@@ -2509,12 +2514,46 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(())
     }
 
+    /// Parse the `\global` prefix, which only `\let` may follow.
+    ///
+    /// `\global` makes the definition after it outlive the snippet even when the conversion
+    /// doesn't run in the global group; in the global group it changes nothing, because every
+    /// definition outlives the snippet there anyway.
+    fn global_prefix(&mut self) -> ParseResult<()> {
+        loop {
+            let tokspan = self.tokens.next()?;
+            match tokspan.token() {
+                Token::Let => return self.let_command(true),
+                // `\global\global\let` is allowed, as it is in LaTeX.
+                Token::Global => {}
+                Token::Eoi => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::ExpectedArgumentGotEOI,
+                    )));
+                }
+                _ => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Global,
+                            correct_place: Place::BeforeLet,
+                        },
+                    )));
+                }
+            }
+        }
+    }
+
     /// Parse `\let\a=\b`, which gives `\a` the meaning `\b` has right now.
     ///
     /// Unlike the body of a `\newcommand`, the meaning is *not* recorded by name: `\let`
     /// binds what the source means at this point and keeps it, which is what makes it useful
     /// for holding on to a definition one is about to replace.
-    fn let_command(&mut self) -> ParseResult<()> {
+    ///
+    /// With `global`, the definition goes into the store which outlives the snippet, and
+    /// whatever it refers to in the local store is copied there along with it.
+    fn let_command(&mut self, is_global: bool) -> ParseResult<()> {
         // The name being defined. As in `define_command`, unknown commands must not be
         // rejected here, because a name which means nothing yet is a perfectly good target.
         let name_tokspan = self.tokens.next_allowing_unknown_command()?;
@@ -2567,15 +2606,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             _ => {}
         }
-        debug_assert!(
-            !(self.tokens.stores.parser_cfg.global_group
-                && matches!(token, Token::CustomCmdRef(CmdSource::Local, ..))),
-            "a reference into the local store would outlive it in the global group",
-        );
-        let mut body = [token];
+        let body = [token];
         // `\let` never complains about an existing meaning, so it always replaces; `define`
         // then returns `true` unconditionally.
-        self.tokens.define(name, 0, &mut body, token.class(), true);
+        self.tokens
+            .define(name, 0, &body, token.class(), true, is_global);
         Ok(())
     }
 

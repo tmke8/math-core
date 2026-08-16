@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\global x"
+---
+Error: Found "\global", which may only appear directly before \let.
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ \global x
+   │         ┬  
+   │         ╰── cannot be used here
+───╯

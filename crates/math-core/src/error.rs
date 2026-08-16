@@ -102,6 +102,8 @@ pub enum Place {
     NumberedEnv,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
+    #[strum(serialize = r"directly before \let")]
+    BeforeLet,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -124,6 +126,8 @@ pub enum LimitedUsabilityToken {
     HLine,
     #[strum(serialize = r"\hdashline")]
     HDashLine,
+    #[strum(serialize = r"\global")]
+    Global,
 }
 
 impl From<LimitsKind> for LimitedUsabilityToken {

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\zzz}{\\global\\let\\yyy\\alpha}"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \newcommand{\zzz}{\global\let\yyy\alpha}
+   │                   ───┬───  
+   │                      ╰───── used as argument
+───╯

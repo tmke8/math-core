@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\global\\let\\a\\alpha\n\\a"
+---
+<math>
+    <mi>α</mi>
+</math>
