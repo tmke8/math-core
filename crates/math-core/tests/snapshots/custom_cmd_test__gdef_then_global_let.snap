@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\gdef\\m#1{\\sqrt{#1}}\\global\\let\\n\\m\n\\n{2}"
+---
+<math>
+    <msqrt>
+        <mn>2</mn>
+    </msqrt>
+</math>

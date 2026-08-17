@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\a{\\b}\\def\\b{x}\\a"
+---
+<math>
+    <mi>x</mi>
+</math>

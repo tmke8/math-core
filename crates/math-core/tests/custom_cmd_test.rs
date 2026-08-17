@@ -1066,6 +1066,217 @@ fn test_global_let_in_global_group() {
     assert_snapshot!("global_let_in_global_group", mathml.mathml, latex);
 }
 
+/// `\def` defines a command the way `\newcommand` does, but with TeX's syntax.
+#[test]
+fn test_def() {
+    let config = MathCoreConfig {
+        macros: vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())],
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    for (name, latex) in [
+        ("def_zero_args", r"\def\zz{\mathbb{Z}}x \in \zz"),
+        ("def_one_arg", r"\def\bb#1{\mathbb{#1}}\bb{C}"),
+        // The arguments don't have to be braced, so `\add 2 3` gives `2+3`.
+        ("def_two_args", r"\def\add#1#2{#1+#2}\add 2 3"),
+        (
+            "def_nine_args",
+            r"\def\n#1#2#3#4#5#6#7#8#9{#9#8#7#6#5#4#3#2#1}\n123456789",
+        ),
+        // A body which is empty expands to `\relax`, and must not swallow what comes after it.
+        ("def_empty_body", r"\def\nop{}a\nop b"),
+        // Unlike `\newcommand`, `\def` replaces whatever the name meant before without
+        // complaining, whether that was a builtin, a macro from the configuration, or another
+        // definition made in this very snippet.
+        ("def_redefines_builtin", r"\def\frac#1#2{#1/#2}\frac{1}{2}"),
+        ("def_redefines_config_macro", r"\def\cfgcmd{y}\cfgcmd"),
+        ("def_redefines_def", r"\def\zz{1}\def\zz{2}\zz"),
+        (
+            "def_redefines_newcommand",
+            r"\newcommand{\zz}{1}\def\zz{2}\zz",
+        ),
+        (
+            "newcommand_redefines_def",
+            r"\def\zz{1}\renewcommand{\zz}{2}\zz",
+        ),
+        // The body is recorded by name, so it follows a later redefinition of that name and
+        // may refer to a command which doesn't exist yet.
+        ("def_late_binding", r"\def\a{\b}\def\b{x}\a"),
+        (
+            "def_follows_redefinition",
+            r"\def\a{\b}\def\b{x}\a\def\b{y}\a",
+        ),
+        // An argument may be used more than once, or not at all.
+        ("def_repeated_arg", r"\def\sq#1{#1^2}\sq{y}+\sq{y}"),
+        ("def_unused_arg", r"\def\drop#1{z}\drop{y}"),
+        // `\let` can hold on to a definition which a `\def` is about to replace.
+        (
+            "def_after_let",
+            r"\let\oldalpha\alpha\def\alpha{1+\oldalpha}\alpha",
+        ),
+        // Whitespace between `\def` and the name, and between the name and the parameter
+        // text, is skipped, the way TeX skips it when it reads the name. Whitespace *within*
+        // the parameter text is a delimiter, and is rejected; see the error tests.
+        ("def_spaced", r"\def \a #1{[#1]}\a{x}"),
+        ("def_spaced_without_params", r"\def \a {x}\a"),
+    ] {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
+/// `\gdef` and `\global\def` write into the store which outlives the snippet, even though the
+/// conversion doesn't run in the global group.
+#[test]
+fn test_gdef() {
+    // Each case defines something in the first snippet and uses it in the second one.
+    for (name, definition, usage) in [
+        ("gdef", r"\gdef\zz{z}", r"\zz"),
+        ("gdef_with_args", r"\gdef\bb#1{\mathbb{#1}}", r"\bb{C}"),
+        ("global_def", r"\global\def\add#1#2{#1+#2}", r"\add 2 3"),
+        // `\global` in front of something which is global already changes nothing, and it may
+        // be repeated, as it may in LaTeX.
+        ("global_gdef", r"\global\gdef\a{\alpha}", r"\a"),
+        ("global_global_def", r"\global\global\def\a{\alpha}", r"\a"),
+        // The body refers to a command defined in this very snippet, whose body therefore has
+        // to be copied into the store which outlives the snippet along with it.
+        (
+            "gdef_body_refers_to_local_cmd",
+            r"\newcommand{\zzz}{z}\gdef\g{\zzz}",
+            r"\newcommand{\zzz}{q}\g",
+        ),
+        // A `\global\let` to a `\gdef` picks up the arity.
+        (
+            "gdef_then_global_let",
+            r"\gdef\m#1{\sqrt{#1}}\global\let\n\m",
+            r"\n{2}",
+        ),
+    ] {
+        let config = MathCoreConfig {
+            pretty_print: PrettyPrint::Always,
+            ..Default::default()
+        };
+        let mut converter = LatexToMathML::new(config).unwrap();
+        converter
+            .convert_with_global_state(definition, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{definition}` with error '{e}'"));
+        let mathml = converter
+            .convert_with_global_state(usage, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{usage}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, &format!("{definition}\n{usage}"));
+    }
+}
+
+#[test]
+fn test_def_without_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\def\a{\alpha}\a", MathDisplay::Inline)
+        .unwrap();
+    // Outside of the global group, a plain `\def` is forgotten with the snippet.
+    assert!(
+        converter
+            .convert_with_global_state(r"\a", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
+/// A `\gdef` outlives the snippet, but the names its body mentions are still looked up when the
+/// command is expanded, as they are in LaTeX.
+#[test]
+fn test_gdef_keeps_late_binding() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\def\inner{x}\gdef\g{\inner+1}", MathDisplay::Inline)
+        .unwrap();
+    // `\g` outlived the snippet, but the `\inner` its body mentions did not.
+    assert!(
+        converter
+            .convert_with_global_state(r"\g", MathDisplay::Inline)
+            .is_err()
+    );
+    // With `\inner` defined again, `\g` works.
+    let latex = r"\def\inner{y}\g";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("gdef_late_binding", mathml.mathml, latex);
+}
+
+/// A global definition takes effect right away, as it does in TeX: it is not shadowed by a
+/// local definition of the same name for the rest of the snippet.
+#[test]
+fn test_gdef_beats_local() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    let latex = r"\def\a{1}\a\gdef\a{\alpha}\a";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("gdef_beats_local", mathml.mathml, latex);
+    // And it is still α in the next snippet.
+    let latex = r"\a";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("gdef_beats_local_next_snippet", mathml.mathml, latex);
+}
+
+/// In the global group, every definition outlives the snippet anyway, so a plain `\def` reaches
+/// just as far as a `\gdef`.
+#[test]
+fn test_def_in_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        global_group: true,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(r"\def\zzz{z}\gdef\zzzz{q}", MathDisplay::Inline)
+        .unwrap();
+    let latex = r"\zzz\zzzz";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("def_in_global_group", mathml.mathml, latex);
+}
+
+/// A `\def` may expand to itself, which the expansion limit stops.
+#[test]
+fn test_def_recursion() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config).unwrap();
+
+    assert!(
+        converter
+            .convert_with_local_state(r"\def\a{\a}\a", MathDisplay::Inline)
+            .is_err()
+    );
+}
+
 #[test]
 fn test_let_with_ignore_unknown_commands() {
     let config = MathCoreConfig {

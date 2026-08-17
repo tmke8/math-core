@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\def\\zzz{\\def\\yyy{1}}"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \def\zzz{\def\yyy{1}}
+   │          ──┬─  
+   │            ╰─── used as argument
+───╯

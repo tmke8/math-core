@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\zzz}{\\gdef\\yyy{1}}"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \newcommand{\zzz}{\gdef\yyy{1}}
+   │                   ──┬──  
+   │                     ╰──── used as argument
+───╯

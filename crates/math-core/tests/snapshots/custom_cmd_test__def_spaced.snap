@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def \\a #1{[#1]}\\a{x}"
+---
+<math>
+    <mo stretchy="false">[</mo>
+    <mi>x</mi>
+    <mo stretchy="false">]</mo>
+</math>

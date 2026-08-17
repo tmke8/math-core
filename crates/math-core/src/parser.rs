@@ -21,7 +21,6 @@ use crate::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
     },
     color_defs::get_color,
-    custom_cmds::CmdSource,
     environments::{
         CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
         OPEN_PAREN,
@@ -346,6 +345,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Let => {
                 self.let_command(false)?;
+                Ok(())
+            }
+            Token::Def(is_global) => {
+                self.def_command(is_global)?;
                 Ok(())
             }
             Token::Global => {
@@ -1224,6 +1227,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             | Token::Label
             | Token::NewCommand(_)
             | Token::Let
+            | Token::Def(_)
             | Token::Global
             | Token::InfixGenFrac { .. } => Err(LatexError(
                 span.into(),
@@ -2344,7 +2348,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
         // We have to bypass the usual rejection of unknown commands here, because the name of
         // a command which doesn't exist yet is exactly what we are looking for.
-        let name_tokspan = self.tokens.next_allowing_unknown_command()?;
+        let name_tokspan = self.tokens.next_allowing_unresolved_command()?;
         // The name to register the definition under, and whether it replaces an existing
         // definition. `None` means throwing the definition away, which is what
         // `\providecommand` does when the name is already taken.
@@ -2445,54 +2449,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             body_tokspans.push(queued);
         }
 
-        let mut first_class: Option<Class> = None;
-        let body = body_tokspans
-            .into_iter()
-            .map(|queued| {
-                let (tok, span) = queued.into_tokspan().into_parts();
-                match tok {
-                    Token::CustomCmdArgInput(arg_num) => {
-                        if arg_num >= num_args {
-                            return Err(Box::new(LatexError(
-                                span.into(),
-                                LatexErrKind::ParameterNumberOutOfRange {
-                                    actual: arg_num + 1,
-                                    n: num_args,
-                                },
-                            )));
-                        }
-                        Ok(Token::CustomCmdArg(arg_num))
-                    }
-                    // This has to come before the arm below, which would otherwise record
-                    // `\newcommand` by name like any other command.
-                    Token::NewCommand(_) | Token::Let | Token::Global => Err(Box::new(LatexError(
-                        span.into(),
-                        LatexErrKind::CannotBeUsedAsArgument,
-                    ))),
-                    tok => {
-                        // The class has to be known now, because it is stored with the
-                        // definition, so we take it from the meaning the command has here.
-                        if first_class.is_none() {
-                            first_class = tok.class();
-                        }
-                        match queued.name() {
-                            // A command is recorded by name rather than by what it means right
-                            // now, so that the body follows a later redefinition of that name,
-                            // the way it does in LaTeX. An unresolved command already holds its
-                            // name, so it is left alone.
-                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_, _)) => {
-                                let name = self.tokens.stores.local_cmds.intern(name);
-                                Ok(Token::UnresolvedCommand(CmdSource::Local, name))
-                            }
-                            // Anything which didn't come from a command name keeps its meaning:
-                            // ordinary characters, and `\begin`/`\end`, whose meaning the lexer
-                            // decides.
-                            _ => Ok(tok),
-                        }
-                    }
-                }
-            })
-            .collect::<Result<Vec<Token>, _>>()?;
+        let (body, first_class) = self
+            .tokens
+            .map_and_intern_recorded_tokens(body_tokspans, num_args)?;
 
         let Some((name, replace)) = target else {
             // `\providecommand` for a command which already exists: the definition we just
@@ -2514,7 +2473,81 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(())
     }
 
-    /// Parse the `\global` prefix, which only `\let` may follow.
+    /// Parse `\def\a#1#2{...}`, TeX's way of defining a command.
+    ///
+    /// The body means the same thing as the body of a `\newcommand`: it is recorded by name,
+    /// so it follows later redefinitions of the names in it. What differs is the syntax and
+    /// that an existing meaning of the name is replaced without complaint, as it is in TeX.
+    ///
+    /// Delimited parameters are not supported, so the parameter text may only be a run of
+    /// `#1`, `#2`, ... followed by the braced body. Whitespace within the parameter text is a
+    /// delimiter in TeX, so it is rejected here rather than skipped.
+    ///
+    /// With `is_global` (`\gdef` or `\global\def`), the definition goes into the store which
+    /// outlives the snippet, and whatever it refers to in the local store is copied there
+    /// along with it.
+    fn def_command(&mut self, is_global: bool) -> ParseResult<()> {
+        let name = self.tokens.read_definition_name(self.arena)?;
+
+        // Whitespace between the name and the parameter text is skipped.
+        // Buf after this point, whitespace is significant. (It can also be used as delimiter).
+        while matches!(self.tokens.peek_any_token().token(), Token::Whitespace) {
+            self.tokens.next_any_token()?;
+        }
+
+        // The parameter text, which ends where the body begins.
+        let mut num_args = 0u8;
+        loop {
+            let tokspan = self.tokens.peek_any_token();
+            match *tokspan.token() {
+                // The `{` must be left for `record_macro_body` below.
+                Token::GroupBegin => break,
+                Token::CustomCmdArgInput(arg_num) => {
+                    if arg_num != num_args {
+                        return Err(Box::new(LatexError(
+                            tokspan.span().into(),
+                            LatexErrKind::UnexpectedParameterNumber {
+                                expected: num_args + 1,
+                                actual: arg_num + 1,
+                            },
+                        )));
+                    }
+                    num_args += 1;
+                    self.tokens.next_any_token()?;
+                }
+                Token::Eoi => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::ExpectedArgumentGotEOI,
+                    )));
+                }
+                // Anything else would be a delimiter, whitespace included. We must not consume
+                // it, because an unknown command here would be reported as such instead.
+                _ => {
+                    return Err(Box::new(LatexError(
+                        tokspan.span().into(),
+                        LatexErrKind::DelimitedParameters,
+                    )));
+                }
+            }
+        }
+
+        let mut body_tokspans = Vec::new();
+        self.tokens.record_macro_body(&mut body_tokspans)?;
+        // `record_macro_body` leaves the closing `}` for us.
+        self.next_token()?;
+        let (body, first_class) = self
+            .tokens
+            .map_and_intern_recorded_tokens(body_tokspans, num_args)?;
+
+        // `\def` never complains about an existing meaning, so it always replaces; `define`
+        // then returns `true` unconditionally.
+        self.tokens
+            .define(name, num_args, &body, first_class, true, is_global);
+        Ok(())
+    }
+
+    /// Parse the `\global` prefix, which only `\let` and `\def` may follow.
     ///
     /// `\global` makes the definition after it outlive the snippet even when the conversion
     /// doesn't run in the global group; in the global group it changes nothing, because every
@@ -2524,6 +2557,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             let tokspan = self.tokens.next()?;
             match tokspan.token() {
                 Token::Let => return self.let_command(true),
+                // `\global\gdef` is allowed, and means the same as `\gdef`.
+                Token::Def(_) => return self.def_command(true),
                 // `\global\global\let` is allowed, as it is in LaTeX.
                 Token::Global => {}
                 Token::Eoi => {
@@ -2537,7 +2572,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         tokspan.span().into(),
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Global,
-                            correct_place: Place::BeforeLet,
+                            correct_place: Place::BeforeDefinition,
                         },
                     )));
                 }
@@ -2554,28 +2589,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// With `global`, the definition goes into the store which outlives the snippet, and
     /// whatever it refers to in the local store is copied there along with it.
     fn let_command(&mut self, is_global: bool) -> ParseResult<()> {
-        // The name being defined. As in `define_command`, unknown commands must not be
-        // rejected here, because a name which means nothing yet is a perfectly good target.
-        let name_tokspan = self.tokens.next_allowing_unknown_command()?;
-        let name = match *name_tokspan.token() {
-            Token::UnresolvedCommand(source, name) => {
-                // The name lives in a string pool which doesn't necessarily outlive this
-                // snippet, so we have to copy it out.
-                self.arena
-                    .alloc_str(self.tokens.stores.name_in_pool(source, name))
-            }
-            // Any other token means that the name already means something, which `\let`
-            // overwrites without complaining.
-            _ => {
-                let Some(name) = name_tokspan.name() else {
-                    return Err(Box::new(LatexError(
-                        name_tokspan.span().into(),
-                        LatexErrKind::ExpectedCommandName,
-                    )));
-                };
-                name
-            }
-        };
+        let name = self.tokens.read_definition_name(self.arena)?;
 
         // The `=` between the two names is optional. We compare instead of matching, because
         // `peek` doesn't unwrap `Token::MathOrTextMode`, which is how `=` arrives from the

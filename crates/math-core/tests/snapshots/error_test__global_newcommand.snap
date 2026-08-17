@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\global\\newcommand{\\zzz}{1}"
 ---
-Error: Found "\global", which may only appear directly before \let.
+Error: Found "\global", which may only appear directly before \let or \def.
    ╭─[ <input>:1:8 ]
    │
  1 │ \global\newcommand{\zzz}{1}

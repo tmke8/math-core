@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\zzz\\zzzz"
+---
+<math>
+    <mi>z</mi>
+    <mi>q</mi>
+</math>

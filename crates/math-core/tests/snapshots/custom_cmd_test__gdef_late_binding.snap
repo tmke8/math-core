@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\inner{y}\\g"
+---
+<math>
+    <mi>y</mi>
+    <mo>+</mo>
+    <mn>1</mn>
+</math>

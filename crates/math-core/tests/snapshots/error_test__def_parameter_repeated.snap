@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\def\\zzz#1#1{1}"
+---
+Error: Expected parameter #2, found #1. Parameters must be numbered consecutively, starting at 1.
+   ╭─[ <input>:1:11 ]
+   │
+ 1 │ \def\zzz#1#1{1}
+   │           ─┬  
+   │            ╰── unexpected parameter number
+───╯

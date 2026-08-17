@@ -218,8 +218,14 @@ pub enum Token {
     /// of a `\newcommand`, that meaning does not follow a later redefinition of the name it
     /// was taken from.
     Let,
+    /// `\def` (`false`) or `\gdef` (`true`), which define a command the way `\newcommand` does,
+    /// but with TeX's syntax and without ever complaining about a name which already means
+    /// something. The `bool` says whether the definition is global, as it is with `\gdef`.
+    /// Delimited parameters are not supported.
+    Def(bool),
     /// `\global`, the prefix which makes the definition that follows it outlive the snippet
-    /// even when the conversion doesn't run in the global group. Only `\let` may follow it.
+    /// even when the conversion doesn't run in the global group. Only `\let` and `\def` may
+    /// follow it.
     Global,
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
@@ -602,6 +608,7 @@ impl Token {
             | HLine(_)
             | NewCommand(_)
             | Let
+            | Def(_)
             | Global
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,

@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\let\\oldalpha\\alpha\\def\\alpha{1+\\oldalpha}\\alpha"
+---
+<math>
+    <mn>1</mn>
+    <mo>+</mo>
+    <mi>α</mi>
+</math>
