@@ -378,6 +378,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "ggg" => Relation(symbol::VERY_MUCH_GREATER_THAN),
     "gggtr" => Relation(symbol::VERY_MUCH_GREATER_THAN),
     "gimel" => Letter(SuperChar::from_char(symbol::GIMEL_SYMBOL), Mode::Math),
+    "global" => Global,
     "gnapprox" => Relation(symbol::GREATER_THAN_AND_NOT_APPROXIMATE),
     "gneq" => Relation(symbol::GREATER_THAN_AND_SINGLE_LINE_NOT_EQUAL_TO),
     "gneqq" => Relation(symbol::GREATER_THAN_BUT_NOT_EQUAL_TO),

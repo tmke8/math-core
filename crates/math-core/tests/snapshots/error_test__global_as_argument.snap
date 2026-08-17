@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt\\global\\let\\zzz\\alpha"
+---
+Error: Switch-like commands cannot be used as arguments.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \sqrt\global\let\zzz\alpha
+   │      ───┬───  
+   │         ╰───── used as argument
+───╯

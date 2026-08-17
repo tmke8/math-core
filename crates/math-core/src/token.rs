@@ -218,6 +218,9 @@ pub enum Token {
     /// of a `\newcommand`, that meaning does not follow a later redefinition of the name it
     /// was taken from.
     Let,
+    /// `\global`, the prefix which makes the definition that follows it outlive the snippet
+    /// even when the conversion doesn't run in the global group. Only `\let` may follow it.
+    Global,
     /// A token for commands that are only valid in text mode, e.g. `\O`.
     TextMode(TextToken),
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
@@ -599,6 +602,7 @@ impl Token {
             | HLine(_)
             | NewCommand(_)
             | Let
+            | Global
             | VerticalLineDef(_)
             | CustomCmdArgInput(_) => None,
             CustomCmdArg(_)  => {

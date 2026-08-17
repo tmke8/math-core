@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\global"
+---
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \global
+   │        │ 
+   │        ╰─ expected an argument here
+───╯

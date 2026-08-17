@@ -113,6 +113,48 @@ impl CustomCmds {
         let start = self.tokens.len();
         self.tokens.extend_from_slice(body);
         let end = self.tokens.len();
+        self.register(name, num_args, first_class, start, end);
+    }
+
+    /// Like [`Self::insert`], but for a body which may refer to `local`; see [`Self::absorb`].
+    pub(crate) fn insert_and_copy_local(
+        &mut self,
+        local: &CustomCmds,
+        name: &str,
+        num_args: u8,
+        body: &[Token],
+        first_class: Option<Class>,
+    ) -> bool {
+        if self.map.contains_key(name) {
+            return false;
+        }
+        self.insert_or_replace_and_copy_local(local, name, num_args, body, first_class);
+        true
+    }
+
+    /// Like [`Self::insert_or_replace`], but for a body which may refer to `local`; see
+    /// [`Self::absorb`].
+    pub(crate) fn insert_or_replace_and_copy_local(
+        &mut self,
+        local: &CustomCmds,
+        name: &str,
+        num_args: u8,
+        body: &[Token],
+        first_class: Option<Class>,
+    ) {
+        let (start, end) = self.absorb(local, body);
+        self.register(name, num_args, first_class, start, end);
+    }
+
+    /// Register the given slice under the given name.
+    fn register(
+        &mut self,
+        name: &str,
+        num_args: u8,
+        first_class: Option<Class>,
+        start: usize,
+        end: usize,
+    ) {
         self.map.insert(
             name.into(),
             CmdDef {
@@ -122,6 +164,64 @@ impl CustomCmds {
                 end,
             },
         );
+    }
+
+    /// Copy a body into this store, translating every `local` reference as it goes.
+    ///
+    /// This is what `\global` needs: a definition which is about to outlive the snippet must not
+    /// hold anything which points into the store that dies with the snippet. Names are re-interned
+    /// in this store's pool, and the body of a command the body refers to is copied here as well,
+    /// which in turn may bring further references along.
+    ///
+    /// Those further references are found by walking the very vector we are appending to, so the
+    /// copy is iterative no matter how long a chain of `\let`s it has to follow. It terminates
+    /// because the ranges in a store always point backwards — bodies are only ever appended — so
+    /// there can be no cycle.
+    fn absorb(&mut self, local: &CustomCmds, body: &[Token]) -> (usize, usize) {
+        let start = self.tokens.len();
+        self.tokens.extend_from_slice(body);
+        let end = self.tokens.len();
+        let mut i = start;
+        // We can't use `.iter_mut()` here because we append to the vector inside the loop.
+        // We also need to check the length each iteration.
+        while i < self.tokens.len() {
+            match self.tokens[i] {
+                // A command the body only refers to by name keeps being resolved by name; only
+                // the pool the name lives in changes.
+                Token::UnresolvedCommand(CmdSource::Local, name) => {
+                    let name = self.cmd_names.intern(local.cmd_names().get(name));
+                    self.tokens[i] = Token::UnresolvedCommand(CmdSource::Document, name);
+                }
+                // A reference to a body in the local store: we copy over the body. The tokens
+                // we append here to `self.tokens` are visited later by this same loop, so a
+                // reference inside the copied body gets translated too.
+                Token::CustomCmdRef(CmdSource::Local, num_args, class, body_start, body_end) => {
+                    let new_start = self.tokens.len();
+                    if let Some(body) = local.body(body_start, body_end) {
+                        self.tokens.extend_from_slice(body);
+                    }
+                    let new_end = self.tokens.len();
+                    self.tokens[i] = Token::CustomCmdRef(
+                        CmdSource::Document,
+                        num_args,
+                        class,
+                        new_start,
+                        new_end,
+                    );
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        (start, end)
+    }
+
+    /// Forget the definition of a command, if there is one.
+    ///
+    /// Only the name is forgotten; the body stays in the store, because other definitions may
+    /// contain references into it, just as with [`Self::insert_or_replace`].
+    pub(crate) fn remove(&mut self, name: &str) {
+        self.map.remove(name);
     }
 
     pub(crate) fn cmd_names(&self) -> &StringPool {

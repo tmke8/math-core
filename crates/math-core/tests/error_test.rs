@@ -153,6 +153,12 @@ fn main() {
         ("let_without_source", r"\let\zzz"),
         ("let_as_argument", r"\sqrt\let\zzz\alpha"),
         ("let_nested", r"\newcommand{\zzz}{\let\yyy\alpha}"),
+        // Only `\let` may follow `\global`.
+        ("global_without_let", r"\global x"),
+        ("global_newcommand", r"\global\newcommand{\zzz}{1}"),
+        ("global_at_end", r"\global"),
+        ("global_as_argument", r"\sqrt\global\let\zzz\alpha"),
+        ("global_nested", r"\newcommand{\zzz}{\global\let\yyy\alpha}"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),

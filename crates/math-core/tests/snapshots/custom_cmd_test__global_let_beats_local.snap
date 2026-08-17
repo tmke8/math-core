@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\a}{1}\\a\\global\\let\\a\\alpha\\a"
+---
+<math>
+    <mn>1</mn>
+    <mi>α</mi>
+</math>

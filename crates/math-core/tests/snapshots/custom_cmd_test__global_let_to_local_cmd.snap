@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zzz}{z}\\global\\let\\zzzz\\zzz\n\\zzzz"
+---
+<math>
+    <mi>z</mi>
+</math>

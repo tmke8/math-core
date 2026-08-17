@@ -942,6 +942,130 @@ fn test_let_without_global_group() {
     );
 }
 
+/// `\global\let` writes into the store which outlives the snippet, even though the conversion
+/// doesn't run in the global group.
+#[test]
+fn test_global_let() {
+    // Each case defines something in the first snippet and uses it in the second one.
+    for (name, definition, usage) in [
+        // The source is a command defined in this very snippet, so its body has to be copied
+        // into the store which outlives the snippet.
+        (
+            "global_let_to_local_cmd",
+            r"\newcommand{\zzz}{z}\global\let\zzzz\zzz",
+            r"\zzzz",
+        ),
+        // The copy has to follow a chain of `\let`s, and the arity has to survive it.
+        (
+            "global_let_chain",
+            r"\newcommand{\m}[1]{\sqrt{#1}}\let\n\m\global\let\o\n",
+            r"\o{2}",
+        ),
+        // Sources which live somewhere that outlives the snippet already, so nothing is copied.
+        ("global_let_to_builtin", r"\global\let\a\alpha", r"\a"),
+        (
+            "global_let_to_builtin_with_args",
+            r"\global\let\f\frac",
+            r"\f{1}{2}",
+        ),
+        ("global_let_to_config_cmd", r"\global\let\c\cfgcmd", r"\c"),
+        // `\global\global\let` is allowed, as it is in LaTeX.
+        ("global_let_doubled", r"\global\global\let\a\alpha", r"\a"),
+    ] {
+        let config = MathCoreConfig {
+            macros: vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())],
+            pretty_print: PrettyPrint::Always,
+            ..Default::default()
+        };
+        let mut converter = LatexToMathML::new(config).unwrap();
+        converter
+            .convert_with_global_state(definition, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{definition}` with error '{e}'"));
+        let mathml = converter
+            .convert_with_global_state(usage, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{usage}` with error '{e}'"));
+        assert_snapshot!(name, mathml.mathml, &format!("{definition}\n{usage}"));
+    }
+}
+
+/// A `\global\let` copies the meaning of its source, but the *names* that meaning refers to are
+/// still looked up when the command is expanded, as they are in LaTeX.
+#[test]
+fn test_global_let_keeps_late_binding() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(
+            r"\newcommand{\inner}{x}\newcommand{\outer}{\inner+1}\global\let\g\outer",
+            MathDisplay::Inline,
+        )
+        .unwrap();
+    // `\g` outlived the snippet, but the `\inner` its body mentions did not, so expanding it
+    // in the next snippet fails just like `\outer` itself would in LaTeX.
+    assert!(
+        converter
+            .convert_with_global_state(r"\g", MathDisplay::Inline)
+            .is_err()
+    );
+    // With `\inner` defined again, `\g` works.
+    let latex = r"\newcommand{\inner}{y}\g";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("global_let_late_binding", mathml.mathml, latex);
+}
+
+/// A global definition takes effect right away, as it does in TeX: it is not shadowed by a
+/// local definition of the same name for the rest of the snippet.
+#[test]
+fn test_global_let_beats_local() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    let latex = r"\newcommand{\a}{1}\a\global\let\a\alpha\a";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("global_let_beats_local", mathml.mathml, latex);
+    // And it is still α in the next snippet.
+    let latex = r"\a";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("global_let_beats_local_next_snippet", mathml.mathml, latex);
+}
+
+/// In the global group, every definition outlives the snippet anyway, so `\global` changes
+/// nothing.
+#[test]
+fn test_global_let_in_global_group() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        global_group: true,
+        ..Default::default()
+    };
+    let mut converter = LatexToMathML::new(config).unwrap();
+
+    converter
+        .convert_with_global_state(
+            r"\newcommand{\zzz}{z}\global\let\zzzz\zzz",
+            MathDisplay::Inline,
+        )
+        .unwrap();
+    let latex = r"\zzz\zzzz";
+    let mathml = converter
+        .convert_with_global_state(latex, MathDisplay::Inline)
+        .unwrap();
+    assert_snapshot!("global_let_in_global_group", mathml.mathml, latex);
+}
+
 #[test]
 fn test_let_with_ignore_unknown_commands() {
     let config = MathCoreConfig {

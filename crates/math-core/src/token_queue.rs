@@ -618,49 +618,57 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
 
     /// Register a custom command, and make the tokens which are already buffered aware of it.
     ///
-    /// Depending on whether we run in the global group, the definition either goes into the
-    /// store which outlives this snippet, or into the one which doesn't. Returns `false` if
-    /// `replace` is not set and the name is already taken.
+    /// The definition either goes into the store which outlives this snippet, or into the one
+    /// which doesn't: `global` says that this particular definition was made global with
+    /// `\global`, and [`ParserConfig::global_group`] says that all of them are. Returns `false`
+    /// if `replace` is not set and the name is already taken.
     pub(super) fn define(
         &mut self,
         name: &str,
         num_args: u8,
-        body: &mut [Token],
+        body: &[Token],
         first_class: Option<Class>,
         replace: bool,
+        is_global: bool,
     ) -> bool {
-        let source = if self.stores.parser_cfg.global_group {
-            // The names which the body refers to have to outlive the snippet just like the
-            // body itself does, so they move to the pool of the global state.
-            for tok in body.iter_mut() {
-                if let Token::UnresolvedCommand(CmdSource::Local, name) = *tok {
-                    let name = self
-                        .stores
-                        .global_state
-                        .custom_cmds
-                        .intern(self.stores.local_cmds.cmd_names().get(name));
-                    *tok = Token::UnresolvedCommand(CmdSource::Document, name);
-                }
-            }
+        let is_global = is_global || self.stores.parser_cfg.global_group;
+        let source = if is_global {
             CmdSource::Document
         } else {
             CmdSource::Local
         };
+        let stores = &mut self.stores;
+        if is_global {
+            // The body has to outlive the snippet, so anything it refers to in the local store
+            // is copied into the store of the global state along with it.
+            let local = &stores.local_cmds;
+            let document = &mut stores.global_state.custom_cmds;
+            if replace {
+                document.insert_or_replace_and_copy_local(local, name, num_args, body, first_class);
+            } else if !document.insert_and_copy_local(local, name, num_args, body, first_class) {
+                return false;
+            }
+            // A global definition takes effect right away, as it does in TeX, so a local
+            // definition of the same name must not go on shadowing it.
+            stores.local_cmds.remove(name);
+        } else if replace {
+            stores
+                .local_cmds
+                .insert_or_replace(name, num_args, body, first_class);
+        } else if !stores.local_cmds.insert(name, num_args, body, first_class) {
+            return false;
+        }
         let store = match source {
-            CmdSource::Document => &mut self.stores.global_state.custom_cmds,
-            _ => &mut self.stores.local_cmds,
+            CmdSource::Document => &self.stores.global_state.custom_cmds,
+            _ => &self.stores.local_cmds,
         };
         if replace {
-            store.insert_or_replace(name, num_args, body, first_class);
             // The token after the definition has already been loaded, so it may still refer
             // to the definition we have just replaced.
             if let Some(tok) = store.get(name, source) {
                 self.resolve_buffered_redefined_command(name, tok);
             }
         } else {
-            if !store.insert(name, num_args, body, first_class) {
-                return false;
-            }
             // The token after the definition has already been loaded, so it may still say
             // "unknown command" for the command we have just defined.
             self.resolve_buffered_unknown_commands();
