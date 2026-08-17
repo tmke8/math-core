@@ -156,6 +156,9 @@ impl<'source> Lexer<'source> {
                 self.read_char();
             }
             self.read_char(); // Consume the newline character.
+            // TeX skips whitespace on the line after a comment.
+            // This also prevents two whitespace tokens following each other.
+            self.skip_whitespace();
             // FIXME: use `become` here when stabilized.
             return self.next_token();
         }
@@ -360,6 +363,11 @@ mod tests {
             ("space_and_number", r"\ 1"),
             ("space_in_text", r"\text{  x   y z}"),
             ("comment", "ab%hello\ncd"),
+            ("comment_before_indented_line", "ab%hello\n  cd"),
+            (
+                "comment_after_whitespace_before_indented",
+                "ab %hello\n  cd",
+            ),
             ("custom_space", r"{x\hspace{2em}}"),
             ("hspace_whitespace_in_between", r"\hspace {  4  em } x"),
             ("color", r"{x\color{red} y}"),

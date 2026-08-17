@@ -1,0 +1,8 @@
+---
+source: crates/math-core/src/lexer.rs
+expression: "ab%hello\n  cd"
+---
+0:1: Letter("a", MathOrText)
+1:2: Letter("b", MathOrText)
+11:12: Letter("c", MathOrText)
+12:13: Letter("d", MathOrText)

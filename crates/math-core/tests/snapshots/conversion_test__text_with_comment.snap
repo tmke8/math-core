@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{x %comment\n   y}"
+---
+<math>
+    <mtext>x y</mtext>
+</math>
