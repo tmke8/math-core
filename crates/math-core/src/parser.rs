@@ -1560,28 +1560,45 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::OperatorName { with_limits } => {
+                class = Class::Operator;
                 let snippets = self.extract_text(None, None, false)?;
                 let mut builder = self.buffer.get_builder();
                 for TextSnippet(_style, _size, _voffset, text) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
+                let bounds_limits = self.get_bounds(None)?;
+                let bounds = bounds_limits.bounds;
+
+                let (use_underover, attrs) = match (bounds_limits.limits(), with_limits) {
+                    _ if bounds.is_trivial() => (false, OpAttrs::empty()),
+                    (None, true) | (Some(LimitsKind::Display), _) => {
+                        (true, OpAttrs::FORCE_MOVABLE_LIMITS)
+                    }
+                    (None, false) | (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
+                    (Some(LimitsKind::Always), _) => (true, OpAttrs::empty()),
+                };
+
+                // Compute spacing after getting the bounds, so that we don't
+                // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
-                    attrs: OpAttrs::empty(),
+                    attrs,
                     left,
                     right,
                     name: letters,
                 });
-                if with_limits {
-                    let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-                    let node = match bounds.try_wrap_node_underover(op) {
-                        Some(node) => node,
-                        None => return Ok(Parsed::Node(Class::Operator, op)),
-                    };
-                    Ok(node)
+
+                if use_underover {
+                    match bounds.try_wrap_node_underover(op) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, op)),
+                    }
                 } else {
-                    return Ok(Parsed::Node(Class::Operator, op));
+                    match bounds.try_wrap_node_subsup(op) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, op)),
+                    }
                 }
             }
             Token::Text(transform) => {
