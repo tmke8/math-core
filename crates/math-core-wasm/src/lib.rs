@@ -28,12 +28,14 @@ impl ConfigParseError {
     }
 }
 
-#[wasm_bindgen(getter_with_clone)]
+#[wasm_bindgen]
 pub struct LatexError {
     message: JsValue,
     label: JsValue,
     pub start: u32,
     pub end: u32,
+    /// The index of the snippet that caused the error; only set by `convert_all`.
+    pub index: Option<u32>,
     context: Option<JsValue>,
     report: Option<JsValue>,
 }
@@ -98,10 +100,24 @@ interface MathCoreOptions {
     unicodeSubstitution?: "never" | "conventional";
     maxExpansions?: number;
 }
+
+interface MathSnippet {
+    latex: string;
+    displayStyle: boolean;
+}
 "#;
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(typescript_type = "MathSnippet")]
+    pub type MathSnippet;
+
+    #[wasm_bindgen(method, getter)]
+    fn latex(this: &MathSnippet) -> String;
+
+    #[wasm_bindgen(method, getter)]
+    fn displayStyle(this: &MathSnippet) -> bool;
+
     #[wasm_bindgen(typescript_type = "MathCoreOptions")]
     pub type MathCoreOptions;
 
@@ -232,6 +248,7 @@ impl LatexToMathML {
                 label: JsValue::from_str(e.label()),
                 start,
                 end,
+                index: None,
                 context: Some(JsValue::from_str(&context)),
                 report: error_report(&e, "macro", &context),
             }
@@ -257,17 +274,7 @@ impl LatexToMathML {
             Ok(result) => Ok(JsValue::from_str(&result.mathml)),
             Err(e) => {
                 if self.throw_on_error {
-                    // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.
-                    let start = byte_offset_to_utf16_offset(content, e.0.start) as u32;
-                    let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
-                    Err(LatexError {
-                        message: JsValue::from_str(&e.error_message()),
-                        label: JsValue::from_str(e.label()),
-                        start,
-                        end,
-                        context: None,
-                        report: error_report(&e, "input", content),
-                    })
+                    Err(conversion_error(&e, content, None))
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))
                 }
@@ -290,17 +297,7 @@ impl LatexToMathML {
             Ok(result) => Ok(JsValue::from_str(&result.mathml)),
             Err(e) => {
                 if self.throw_on_error {
-                    // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.
-                    let start = byte_offset_to_utf16_offset(content, e.0.start) as u32;
-                    let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
-                    Err(LatexError {
-                        message: JsValue::from_str(&e.error_message()),
-                        label: JsValue::from_str(e.label()),
-                        start,
-                        end,
-                        context: None,
-                        report: error_report(&e, "input", content),
-                    })
+                    Err(conversion_error(&e, content, None))
                 } else {
                     Ok(JsValue::from_str(&e.to_html(content, display, None)))
                 }
@@ -308,8 +305,75 @@ impl LatexToMathML {
         }
     }
 
+    /// Convert a collection of LaTeX snippets to MathML.
+    ///
+    /// In contrast to the other conversion methods, this one resolves *forward references*
+    /// correctly, meaning that a snippet can refer to an equation which is only defined in a
+    /// later snippet. This is why all snippets of a document have to be passed in at once.
+    ///
+    /// The conversion does not touch the global state; it uses a fresh state for the whole batch.
+    #[wasm_bindgen(unchecked_return_type = "string[]")]
+    pub fn convert_all(&self, snippets: Vec<MathSnippet>) -> Result<JsValue, LatexError> {
+        let owned = snippets
+            .into_iter()
+            .map(|s| (s.latex(), s.displayStyle()))
+            .collect::<Vec<_>>();
+        let inputs: Vec<(&str, MathDisplay)> = owned
+            .iter()
+            .map(|(latex, display)| {
+                (
+                    latex.as_str(),
+                    if *display {
+                        MathDisplay::Block
+                    } else {
+                        MathDisplay::Inline
+                    },
+                )
+            })
+            .collect();
+
+        let output = self
+            .inner
+            .convert_all(&inputs)
+            .into_iter()
+            .enumerate()
+            .map(|(index, result)| {
+                let (latex, display) = inputs[index];
+                match result {
+                    Ok(result) => Ok(JsValue::from_str(&result.mathml)),
+                    Err(e) => {
+                        if self.throw_on_error {
+                            Err(conversion_error(&e, latex, Some(index as u32)))
+                        } else {
+                            Ok(JsValue::from_str(&e.to_html(latex, display, None)))
+                        }
+                    }
+                }
+            })
+            .collect::<Result<Vec<JsValue>, LatexError>>()?;
+        Ok(output.into())
+    }
+
     pub fn reset_global_state(&mut self) {
         self.inner.reset_global_state();
+    }
+}
+
+/// Build the error which is thrown on the JavaScript side for a failed conversion.
+///
+/// `index` is the position of the failing snippet within a batch, if there is a batch.
+fn conversion_error(e: &CoreLatexError, content: &str, index: Option<u32>) -> LatexError {
+    // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.
+    let start = byte_offset_to_utf16_offset(content, e.0.start) as u32;
+    let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
+    LatexError {
+        message: JsValue::from_str(&e.error_message()),
+        label: JsValue::from_str(e.label()),
+        start,
+        end,
+        index,
+        context: None,
+        report: error_report(e, "input", content),
     }
 }
 

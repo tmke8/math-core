@@ -137,6 +137,58 @@ describe("Convert Tests", function () {
       );
     });
   });
+  context("Converting all snippets at once", function () {
+    it("should resolve forward references", function () {
+      const converter = new LatexToMathML({});
+      const [snippet1, snippet2] = converter.convert_all([
+        { latex: "\\eqref{eq:a}", displayStyle: false },
+        {
+          latex: "\\begin{align}x\\label{eq:a}\\end{align}",
+          displayStyle: true,
+        },
+      ]);
+      assert.include(snippet1, "(1)");
+      assert.include(snippet2, "(1)");
+    });
+    it("should return an empty array for no snippets", function () {
+      const converter = new LatexToMathML({});
+      assert.deepEqual(converter.convert_all([]), []);
+    });
+    it("should throw an error which points at the failing snippet", function () {
+      const converter = new LatexToMathML({});
+      try {
+        converter.convert_all([
+          { latex: "x", displayStyle: false },
+          { latex: "\\asdf", displayStyle: false },
+        ]);
+        assert.fail("should have thrown");
+      } catch (e) {
+        assert.match(e.message, /Unknown command "\\asdf"./);
+        assert.equal(e.index, 1);
+        assert.equal(e.start, 0);
+        assert.equal(e.end, 5);
+      }
+    });
+    it("should continue on error", function () {
+      const converter = new LatexToMathML({ throwOnError: false });
+      const output = converter.convert_all([
+        { latex: "\\asdf", displayStyle: false },
+        { latex: "x", displayStyle: false },
+      ]);
+      assert.equal(
+        output[0],
+        '<span class="math-core-error" title="0: Unknown command &quot;\\asdf&quot;."><code>\\asdf</code></span>',
+      );
+      assert.equal(output[1], "<math><mi>x</mi></math>");
+    });
+    it("should throw an error on an invalid snippets array", function () {
+      const converter = new LatexToMathML({});
+      assert.throws(() => {
+        // @ts-expect-error
+        converter.convert_all([{ latex: 42, displaystyle: false }]);
+      }, /must be of type string/);
+    });
+  });
   context("Throwing an error", function () {
     it("should throw on error", function () {
       const converter = new LatexToMathML({});
