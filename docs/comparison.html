@@ -214,7 +214,7 @@
             <td>\;</td>
             <td>₮a\;\;{b}₮</td>
             <td>\(a\;\;{b}\)</td>
-            <td>a<code>a\;\;{b}</code></td>
+            <td><code>a\;\;{b}</code></td>
           </tr>
           <tr>
             <td>_</td>
@@ -621,10 +621,10 @@
           </tr>
           <tr>
             <td>\arraystretch</td>
-            <td>₮\def\arraystretch{1.5} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}₮</td>
-            <td>\(\def\arraystretch{1.5} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}\)</td>
+            <td>₮\def\arraystretch{2.0} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}₮</td>
+            <td>\(\def\arraystretch{2.0} \begin{array}{cc} a &amp; b \\ c &amp; d \end{array}\)</td>
             <td>
-              <pre><code>\def\arraystretch{1.5}
+              <pre><code>\def\arraystretch{2.0}
 \begin{array}{cc}
    a &amp; b \\
    c &amp; d
@@ -1870,7 +1870,11 @@
             <td>₮\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}\)</td>
             <td>
-              <code>\begin{darray}{l}\det x \\ \det_y x \\\det\limits_y x\end{darray}</code>
+              <pre><code>\begin{darray}{l}
+  \det x \\
+  \det_y x \\
+  \det\limits_y x
+\end{darray}</code></pre>
             </td>
           </tr>
           <tr>
@@ -2282,9 +2286,9 @@
           </tr>
           <tr>
             <td>\expandafter</td>
-            <td>₮\def\x{\beta}\expandafter\def\expandafter\y\expandafter{\x}\y₮</td>
-            <td>\(\def\x{\beta}\expandafter\def\expandafter\y\expandafter{\x}\y\)</td>
-            <td><code>\def\x{\beta}</code><br /><code>\expandafter\def\expandafter\y\expandafter{\x}</code><br /><code>\y</code></td>
+            <td>₮\def\x{\beta}\expandafter\def \expandafter\y\expandafter{\x}\y₮</td>
+            <td>\(\def\x{\beta}\expandafter\def \expandafter\y\expandafter{\x}\y\)</td>
+            <td><code>\def\x{\beta}\expandafter\def</code><br /><code>\expandafter\y\expandafter{\x}</code><br /><code>\y</code></td>
           </tr>
         </tbody>
       </table>
@@ -2404,19 +2408,34 @@
             <td>{gather}</td>
             <td>₮₮\begin{gather}a=b\\e=b+c\end{gather}₮₮</td>
             <td>\[\begin{gather}a=b\\e=b+c\end{gather}\]</td>
-            <td><code>\begin{gather}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gather}</code></td>
+            <td>
+                <pre><code>\begin{gather}
+    a=b \\
+    e=b+c
+\end{gather}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{gather*}</td>
             <td>₮₮\begin{gather*}a=b\\e=b+c\end{gather*}₮₮</td>
             <td>\[\begin{gather*}a=b\\e=b+c\end{gather*}\]</td>
-            <td><code>\begin{gather*}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gather*}</code></td>
+            <td>
+                <pre><code>\begin{gather*}
+    a=b \\
+    e=b+c
+\end{gather*}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>{gathered}</td>
             <td>₮\begin{gathered}a=b\\e=b+c\end{gathered}₮</td>
             <td>\(\begin{gathered}a=b\\e=b+c\end{gathered}\)</td>
-            <td><code>\begin{gathered}</code><br />   <code>a=b \\</code><br />   <code>e=b+c</code><br /><code>\end{gathered}</code></td>
+            <td>
+                <pre><code>\begin{gathered}
+    a=b \\
+    e=b+c
+\end{gathered}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\gcd</td>
@@ -3269,7 +3288,13 @@
             <td>\lim</td>
             <td>₮\begin{darray}{l}\lim x \\ \lim_y x \\\lim\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\lim x \\ \lim_y x \\\lim\limits_y x\end{darray}\)</td>
-            <td><code>\lim x</code><br /><code>\lim_y x</code><br /><code>\lim\limits_y x</code></td>
+            <td>
+                <pre><code>\begin{darray}{l}
+\lim x \\
+\lim_y x \\
+\lim\limits_y x
+\end{darray}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\liminf</td>
@@ -4165,13 +4190,13 @@
             <td>\nshortmid</td>
             <td>₮\nshortmid₮</td>
             <td>\(\nshortmid\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\nshortparallel</td>
             <td>₮\nshortparallel₮</td>
             <td>\(\nshortparallel\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\nsim</td>
@@ -4396,7 +4421,13 @@
             <td>\operatorname*</td>
             <td>₮\begin{darray}{l}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{darray}₮</td>
             <td>\(\begin{darray}{l}\operatorname*{asin} x \\ \operatorname*{asin}_y x \\ \operatorname*{asin}\limits_y x\end{darray}\)</td>
-            <td><code>\operatorname*{asin} x</code><br /><code>\operatorname*{asin}_y x</code><br /><code>\operatorname*{asin}\limits_y x\end</code></td>
+            <td>
+                <pre><code>\begin{darray}{l}
+    \operatorname*{asin} x \\
+    \operatorname*{asin}_y x \\
+    \operatorname*{asin}\limits_y x
+\end{darray}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\operatornamewithlimits</td>
@@ -5213,13 +5244,13 @@
             <td>\shortmid</td>
             <td>₮\shortmid₮</td>
             <td>\(\shortmid\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\shortparallel</td>
             <td>₮\shortparallel₮</td>
             <td>\(\shortparallel\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\shoveleft</td>
@@ -5315,7 +5346,7 @@
             <td>\smallfrown</td>
             <td>₮\smallfrown₮</td>
             <td>\(\smallfrown\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\smallint</td>
@@ -5333,13 +5364,13 @@
             <td>\smallsetminus</td>
             <td>₮\smallsetminus₮</td>
             <td>\(\smallsetminus\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\smallsmile</td>
             <td>₮\smallsmile₮</td>
             <td>\(\smallsmile\)</td>
-            <td></td>
+            <td>No Unicode symbol exists.</td>
           </tr>
           <tr>
             <td>\smash</td>
@@ -5385,9 +5416,14 @@
           </tr>
           <tr>
             <td>{split}</td>
-            <td>₮₮\begin{equation}\begin{split}∇·𝐃&=ρ_v \\ ∇·𝐁&=0 \end{split}\end{equation}₮₮</td>
-            <td>\[\begin{equation}\begin{split}∇·𝐃&=ρ_v \\ ∇·𝐁&=0 \end{split}\end{equation}\]</td>
-            <td><code>\begin{equation}</code><br /><code>\begin{split}</code><br />   <code>∇·𝐃&amp;=ρ_v \\</code><br />   <code>∇·𝐁&amp;=0</code><br /><code>\end{split}</code><br /><code>\end{equation}</code></td>
+            <td>₮₮\begin{equation}\begin{split}∇·𝐃&amp;=ρ_v \\ ∇·𝐁&amp;=0 \end{split}\end{equation}₮₮</td>
+            <td>\[\begin{equation}\begin{split}∇·𝐃&amp;=ρ_v \\ ∇·𝐁&amp;=0 \end{split}\end{equation}\]</td>
+            <td>
+                <pre><code>\begin{equation}\begin{split}
+  ∇·𝐃&amp;=ρ_v \\
+  ∇·𝐁&amp;=0
+\end{split}\end{equation}</code></pre>
+            </td>
           </tr>
           <tr>
             <td>\sqcap</td>
