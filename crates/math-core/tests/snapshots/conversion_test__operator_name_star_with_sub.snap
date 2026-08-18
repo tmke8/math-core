@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\operatorname*{max}_x"
+---
+<math>
+    <munder>
+        <mo movablelimits="true" lspace="0" rspace="0">max</mo>
+        <mi>x</mi>
+    </munder>
+</math>

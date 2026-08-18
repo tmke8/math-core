@@ -151,6 +151,21 @@ fn main() {
             "operator_name_with_text",
             r"\operatorname{\text{ab}c\textit{de}f}",
         ),
+        ("operator_name_star_with_sub", r"\operatorname*{max}_x"),
+        ("operator_name_with_sub", r"\operatorname{max}_x"),
+        (
+            "operator_name_star_with_limits",
+            r"\operatorname*{max}\limits_x",
+        ),
+        ("operator_name_with_limits", r"\operatorname{max}\limits_x"),
+        (
+            "operator_name_star_with_nolimits",
+            r"\operatorname*{max}\nolimits_x",
+        ),
+        (
+            "operator_name_with_displaylimits",
+            r"\operatorname{max}\displaylimits_x^y",
+        ),
         ("simple_binomial_coefficient", r"\binom12"),
         ("stretchy_parentheses", r"\left( x \right)"),
         ("stretchy_one-sided_parenthesis", r"\left( x \right."),
