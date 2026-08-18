@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\global x"
 ---
-Error: Found "\global", which may only appear directly before \let.
+Error: Found "\global", which may only appear directly before \let or \def.
    ╭─[ <input>:1:9 ]
    │
  1 │ \global x

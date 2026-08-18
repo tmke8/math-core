@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\drop#1{z}\\drop{y}"
+---
+<math>
+    <mi>z</mi>
+</math>

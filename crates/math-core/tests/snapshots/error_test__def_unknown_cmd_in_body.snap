@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\def\\zzz{\\asdf}\\zzz"
+---
+Error: Unknown command "\asdf".
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \def\zzz{\asdf}\zzz
+   │                ──┬─  
+   │                  ╰─── unknown command
+───╯

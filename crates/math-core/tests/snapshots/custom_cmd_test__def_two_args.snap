@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\add#1#2{#1+#2}\\add 2 3"
+---
+<math>
+    <mn>2</mn>
+    <mo>+</mo>
+    <mn>3</mn>
+</math>

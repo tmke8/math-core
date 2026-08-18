@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::ops::Range;
+use mathml_renderer::arena::Arena;
 
 use crate::{
     ParserConfig,
@@ -61,12 +62,12 @@ impl<'source> QueuedTok<'source> {
     }
 
     #[inline]
-    pub(super) fn tokspan(&self) -> &TokSpan {
+    fn tokspan(&self) -> &TokSpan {
         &self.0
     }
 
     #[inline]
-    pub(super) fn into_tokspan(self) -> TokSpan {
+    fn into_tokspan(self) -> TokSpan {
         self.0
     }
 
@@ -418,7 +419,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
 
     /// Same as [`Self::next`], but keeps the name the command came from.
     pub(super) fn next_keeping_name(&mut self) -> Result<QueuedTok<'arena>, Box<LatexError>> {
-        let ret = self.next_allowing_unknown_command()?;
+        let ret = self.next_allowing_unresolved_command()?;
         self.reject_unknown_command(ret.tokspan())?;
         Ok(ret)
     }
@@ -428,7 +429,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This is for the places which want to get hold of the name of a command which is
     /// not defined (yet).
-    pub(super) fn next_allowing_unknown_command(
+    pub(super) fn next_allowing_unresolved_command(
         &mut self,
     ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
@@ -733,6 +734,89 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             self.next_any_token_allowing_unknown_command()?;
             tokens.push(tokloc);
         }
+    }
+
+    /// Read a command name for a definition, e.g. `\a` in `\def\a#1{...}`.
+    ///
+    /// Unresolved commands must not be rejected here and we need to look at
+    /// [`crate::token_queue::QueuedTok`] to get the command name of any token we might read.
+    pub(super) fn read_definition_name(
+        &mut self,
+        arena: &'arena Arena,
+    ) -> Result<&'arena str, Box<LatexError>> {
+        let name_tokspan = self.next_allowing_unresolved_command()?;
+        match *name_tokspan.token() {
+            Token::UnresolvedCommand(source, name) => {
+                // The name lives in a string pool which doesn't necessarily outlive this
+                // snippet, so we have to copy it out.
+                Ok(arena.alloc_str(self.stores.name_in_pool(source, name)))
+            }
+            _ => name_tokspan.name().ok_or_else(|| {
+                Box::new(LatexError(
+                    name_tokspan.span().into(),
+                    LatexErrKind::ExpectedCommandName,
+                ))
+            }),
+        }
+    }
+
+    /// Map the tokens of a macro body to their final form, and intern the names of any commands.
+    pub(super) fn map_and_intern_recorded_tokens(
+        &mut self,
+        body_tokspans: Vec<QueuedTok<'arena>>,
+        num_args: u8,
+    ) -> Result<(Vec<Token>, Option<Class>), Box<LatexError>> {
+        let mut first_class: Option<Class> = None;
+        let body = body_tokspans
+            .into_iter()
+            .map(|queued| {
+                let (tok, span) = queued.into_tokspan().into_parts();
+                match tok {
+                    Token::CustomCmdArgInput(arg_num) => {
+                        if arg_num >= num_args {
+                            return Err(Box::new(LatexError(
+                                span.into(),
+                                LatexErrKind::ParameterNumberOutOfRange {
+                                    actual: arg_num + 1,
+                                    n: num_args,
+                                },
+                            )));
+                        }
+                        Ok(Token::CustomCmdArg(arg_num))
+                    }
+                    // This has to come before the arm below, which would otherwise record
+                    // `\newcommand` by name like any other command.
+                    Token::NewCommand(_) | Token::Let | Token::Def(_) | Token::Global => {
+                        Err(Box::new(LatexError(
+                            span.into(),
+                            LatexErrKind::CannotBeUsedAsArgument,
+                        )))
+                    }
+                    tok => {
+                        // The class has to be known now, because it is stored with the
+                        // definition, so we take it from the meaning the command has here.
+                        if first_class.is_none() {
+                            first_class = tok.class();
+                        }
+                        match queued.name() {
+                            // A command is recorded by name rather than by what it means right
+                            // now, so that the body follows a later redefinition of that name,
+                            // the way it does in LaTeX. An unresolved command already holds its
+                            // name, so it is left alone.
+                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_, _)) => {
+                                let name = self.stores.local_cmds.intern(name);
+                                Ok(Token::UnresolvedCommand(CmdSource::Local, name))
+                            }
+                            // Anything which didn't come from a command name keeps its meaning:
+                            // ordinary characters, and `\begin`/`\end`, whose meaning the lexer
+                            // decides.
+                            _ => Ok(tok),
+                        }
+                    }
+                }
+            })
+            .collect::<Result<Vec<Token>, _>>()?;
+        Ok((body, first_class))
     }
 
     /// Read a group of tokens, ending with (an unopened) `}`.

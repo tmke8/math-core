@@ -10,6 +10,11 @@ fn main() {
         ("newline", r"x\\y"),
         ("text", r"\text{hi}xx"),
         ("text_multi_space", r"\text{x   y}"),
+        ("text_with_comment", "\\text{x %comment\n   y}"),
+        (
+            "text_with_comment_no_space_before",
+            "\\text{x%comment\n   y}",
+        ),
         ("text_no_braces", r"\text x"),
         ("text_no_braces_space_after", r"\text x y"),
         ("text_no_braces_more_space", r"\text    xx"),

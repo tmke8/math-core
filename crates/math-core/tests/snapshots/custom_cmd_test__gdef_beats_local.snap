@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\a{1}\\a\\gdef\\a{\\alpha}\\a"
+---
+<math>
+    <mn>1</mn>
+    <mi>α</mi>
+</math>

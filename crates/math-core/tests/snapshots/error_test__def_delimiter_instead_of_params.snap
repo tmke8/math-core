@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\def\\zzz x{1}"
+---
+Error: Delimited parameters are not supported. Expected "#n" or "{" here.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \def\zzz x{1}
+   │          ┬  
+   │          ╰── unsupported delimiter
+───╯

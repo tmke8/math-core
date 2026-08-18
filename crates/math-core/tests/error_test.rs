@@ -153,12 +153,35 @@ fn main() {
         ("let_without_source", r"\let\zzz"),
         ("let_as_argument", r"\sqrt\let\zzz\alpha"),
         ("let_nested", r"\newcommand{\zzz}{\let\yyy\alpha}"),
-        // Only `\let` may follow `\global`.
+        // Only `\let` and `\def` may follow `\global`.
         ("global_without_let", r"\global x"),
         ("global_newcommand", r"\global\newcommand{\zzz}{1}"),
         ("global_at_end", r"\global"),
         ("global_as_argument", r"\sqrt\global\let\zzz\alpha"),
         ("global_nested", r"\newcommand{\zzz}{\global\let\yyy\alpha}"),
+        // The name of a `\def` is never braced, so this is not a command name.
+        ("def_without_command", r"\def x{y}"),
+        ("def_braced_name", r"\def{\zzz}{y}"),
+        ("def_at_end", r"\def"),
+        ("def_name_only", r"\def\zzz"),
+        // Delimited parameters are not supported.
+        ("def_delimited_parameters", r"\def\zzz#1.#2{1}"),
+        ("def_delimiter_instead_of_params", r"\def\zzz x{1}"),
+        ("def_delimiter_after_params", r"\def\zzz#1x{1}"),
+        // Whitespace within the parameter text is a delimiter too.
+        ("def_space_before_body", r"\def\zzz#1 {1}"),
+        ("def_space_between_params", r"\def\zzz#1 #2{1}"),
+        // The parameters must be numbered consecutively, starting at 1.
+        ("def_parameter_out_of_order", r"\def\zzz#2{1}"),
+        ("def_parameter_repeated", r"\def\zzz#1#1{1}"),
+        ("def_parameter_out_of_range", r"\def\zzz#1{#2}"),
+        ("def_unclosed_body", r"\def\zzz{1"),
+        ("def_unknown_cmd_in_body", r"\def\zzz{\asdf}\zzz"),
+        ("def_as_argument", r"\sqrt\def\zzz{1}"),
+        ("gdef_as_argument", r"\sqrt\gdef\zzz{1}"),
+        ("global_def_as_argument", r"\sqrt\global\def\zzz{1}"),
+        ("def_nested", r"\def\zzz{\def\yyy{1}}"),
+        ("newcommand_nested_def", r"\newcommand{\zzz}{\gdef\yyy{1}}"),
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),

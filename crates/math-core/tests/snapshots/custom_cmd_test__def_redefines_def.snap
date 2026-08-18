@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\zz{1}\\def\\zz{2}\\zz"
+---
+<math>
+    <mn>2</mn>
+</math>

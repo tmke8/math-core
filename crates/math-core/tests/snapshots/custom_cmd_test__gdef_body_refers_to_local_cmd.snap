@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\newcommand{\\zzz}{z}\\gdef\\g{\\zzz}\n\\newcommand{\\zzz}{q}\\g"
+---
+<math>
+    <mi>q</mi>
+</math>

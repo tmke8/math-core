@@ -70,6 +70,13 @@ pub(crate) enum LatexErrKind {
         n: u8,
         actual: u8,
     },
+    /// The parameter text of a `\def` contains something other than `#1`, `#2`, ...
+    DelimitedParameters,
+    /// The parameters of a `\def` are not numbered consecutively, starting at 1.
+    UnexpectedParameterNumber {
+        expected: u8,
+        actual: u8,
+    },
     MacroParameterOutsideCustomCommand,
     ExpectedParamNumberGotEOI,
     HardLimitExceeded,
@@ -102,8 +109,8 @@ pub enum Place {
     NumberedEnv,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
-    #[strum(serialize = r"directly before \let")]
-    BeforeLet,
+    #[strum(serialize = r"directly before \let or \def")]
+    BeforeDefinition,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, IntoStaticStr)]
@@ -298,6 +305,18 @@ impl LatexErrKind {
                     "Parameter number {actual} is out of range. Expected a number of at most {n}."
                 )?;
             }
+            LatexErrKind::DelimitedParameters => {
+                write!(
+                    s,
+                    "Delimited parameters are not supported. Expected \"#n\" or \"{{\" here."
+                )?;
+            }
+            LatexErrKind::UnexpectedParameterNumber { expected, actual } => {
+                write!(
+                    s,
+                    "Expected parameter #{expected}, found #{actual}. Parameters must be numbered consecutively, starting at 1."
+                )?;
+            }
             LatexErrKind::MacroParameterOutsideCustomCommand => {
                 write!(
                     s,
@@ -419,6 +438,8 @@ impl LatexError {
             LatexErrKind::CommandNotDefined => "not defined",
             LatexErrKind::InvalidParameterNumber => "must be 1-9",
             LatexErrKind::ParameterNumberOutOfRange { .. } => "parameter number out of range",
+            LatexErrKind::DelimitedParameters => "unsupported delimiter",
+            LatexErrKind::UnexpectedParameterNumber { .. } => "unexpected parameter number",
             LatexErrKind::MacroParameterOutsideCustomCommand => "unexpected macro parameter",
             LatexErrKind::ExpectedParamNumberGotEOI => "expected parameter number",
             LatexErrKind::HardLimitExceeded => "limit exceeded",

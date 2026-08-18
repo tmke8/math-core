@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\def\\nop{}a\\nop b"
+---
+<math>
+    <mi>a</mi>
+    <mrow></mrow>
+    <mi>b</mi>
+</math>

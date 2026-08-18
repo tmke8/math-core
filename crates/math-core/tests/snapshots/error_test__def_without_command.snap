@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\def x{y}"
+---
+Error: Expected the name of a command.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \def x{y}
+   │      ┬  
+   │      ╰── expected a command name here
+───╯

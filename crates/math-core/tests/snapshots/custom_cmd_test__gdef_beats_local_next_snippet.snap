@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "\\a"
+---
+<math>
+    <mi>α</mi>
+</math>
