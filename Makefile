@@ -18,7 +18,7 @@ playground/mathmlfixes.css: css/mathmlfixes.css
 	cp $< $@
 
 wasm:
-	cargo build --release --target wasm32-unknown-unknown --package $(PACKAGE)
+	cargo build --release --no-default-features --target wasm32-unknown-unknown --package $(PACKAGE)
 
 bindgen: wasm
 	wasm-bindgen target/wasm32-unknown-unknown/release/$(WASM_FILE) \

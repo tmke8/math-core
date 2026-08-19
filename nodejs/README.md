@@ -12,6 +12,7 @@ A Node.js library for converting LaTeX math expressions to MathML Core.
 - Support for both inline and display (block) math
 - Define custom LaTeX macros for extended functionality
 - Global and local counter for numbered equations
+- Batch conversion which resolves forward references between snippets
 - Pretty-printing option for readable MathML output
 - Comprehensive error handling with descriptive error messages
 
@@ -120,6 +121,28 @@ const doc2 = converter.convert_with_local_state(
 ); // Also contains (1) and (2)
 ```
 
+### Converting a Whole Document at Once
+
+`convert_all` converts a collection of snippets in one go, which is the only way to get
+*forward references* right: a snippet may refer to an equation which is only defined in a later
+snippet.
+
+```javascript
+const converter = new LatexToMathML({});
+
+const [reference, equation] = converter.convert_all([
+  { latex: "\\eqref{eq:euler}", displayStyle: false },
+  {
+    latex: "\\begin{align}e^{i\\pi} + 1 = 0\\label{eq:euler}\\end{align}",
+    displayStyle: true,
+  },
+]);
+// `reference` refers to equation (1), even though it comes first.
+```
+
+Equation numbering restarts with every call to `convert_all`; the state of
+`convert_with_global_state` is neither used nor modified.
+
 ### Error Handling
 
 By default, conversion errors throw a `LatexError` with detailed diagnostics:
@@ -175,6 +198,7 @@ new LatexToMathML(options: MathCoreOptions)
 
 - `convert_with_global_state(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using global state.
 - `convert_with_local_state(latex: string, displaystyle: boolean): string` — Convert LaTeX to MathML using local state.
+- `convert_all(snippets: MathSnippet[]): string[]` — Convert all snippets of a document at once, resolving forward references between them. A `MathSnippet` is `{ latex: string, displayStyle: boolean }`. Uses a fresh state for the batch, independent of the global state.
 - `reset_global_state(): void` — Reset the global state (e.g., set the equation counter to zero).
 
 ### `LatexError`
@@ -190,6 +214,7 @@ Error thrown when LaTeX parsing or conversion fails.
 | `context` | `string \| undefined` | The relevant LaTeX source. |
 | `start` | `number` | Start offset of the error in the source. |
 | `end` | `number` | End offset of the error in the source. |
+| `index` | `number \| undefined` | Index of the failing snippet; only set by `convert_all`. |
 
 ## Why MathML Core?
 
