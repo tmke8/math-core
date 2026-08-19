@@ -282,6 +282,7 @@ impl LatexToMathML {
         }
     }
 
+    #[cfg(feature = "all-conversions")]
     #[wasm_bindgen(unchecked_return_type = "string")]
     pub fn convert_with_global_state(
         &mut self,
@@ -312,6 +313,7 @@ impl LatexToMathML {
     /// later snippet. This is why all snippets of a document have to be passed in at once.
     ///
     /// The conversion does not touch the global state; it uses a fresh state for the whole batch.
+    #[cfg(feature = "all-conversions")]
     #[wasm_bindgen(unchecked_return_type = "string[]")]
     pub fn convert_all(&self, snippets: Vec<MathSnippet>) -> Result<JsValue, LatexError> {
         let owned = snippets
