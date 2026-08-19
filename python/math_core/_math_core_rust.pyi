@@ -65,6 +65,30 @@ class LatexToMathML:
         """Convert LaTeX to MathML with a global counter for equation numbering."""
     def convert_with_local_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a local counter for equation numbering."""
+    def convert_all(self, snippets: list[tuple[str, bool]]) -> list[str]:
+        """Convert a collection of LaTeX snippets to MathML.
+
+        In contrast to the other conversion methods, this one resolves *forward
+        references* correctly, meaning that a snippet can refer to an equation which
+        is only defined in a later snippet. This is why all snippets of a document
+        have to be passed in at once.
+
+        The conversion does not touch the global state; it uses a fresh state for the
+        whole batch.
+
+        Args:
+            snippets: A list of ``(latex, displaystyle)`` pairs, where ``latex`` is the
+                LaTeX code of the snippet and ``displaystyle`` indicates whether it is
+                a block equation.
+
+        Returns:
+            The MathML for each snippet, in the order the snippets were given in.
+
+        Raises:
+            LatexError: If any snippet fails to convert, unless the converter was
+                created with ``continue_on_error=True``, in which case an HTML snippet
+                describing the error takes the place of that snippet's MathML.
+        """
     def reset_global_state(self) -> None:
         """Reset the global equation counter for environments like ``align``."""
 

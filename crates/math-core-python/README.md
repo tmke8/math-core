@@ -122,6 +122,29 @@ doc2 = converter.convert_with_local_state(
 )  # Also contains (1) and (2)
 ```
 
+### Converting a Whole Document at Once
+
+`convert_all` converts a collection of snippets in one go, which is the only way to get
+*forward references* right: a snippet may refer to an equation which is only defined in a later
+snippet.
+
+```python
+converter = LatexToMathML()
+
+reference, equation = converter.convert_all([
+    (r"\eqref{eq:euler}", False),
+    (r"\begin{align}e^{i\pi} + 1 = 0\label{eq:euler}\end{align}", True),
+])
+# `reference` refers to equation (1), even though it comes first.
+```
+
+Each entry is a `(latex, displaystyle)` pair. Equation numbering restarts with every call to
+`convert_all`; the state of `convert_with_global_state` is neither used nor modified.
+
+If any snippet fails to convert, `LatexError` is raised, unless the converter was created with
+`continue_on_error=True`, in which case an HTML snippet describing the error takes the place of
+that snippet's MathML.
+
 ## API Reference
 
 ### LatexToMathML
@@ -143,6 +166,7 @@ The main converter class.
 **Methods:**
 - `convert_with_global_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using global state. May raise `LatexError`.
 - `convert_with_local_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using local state. May raise `LatexError`.
+- `convert_all(snippets: list[tuple[str, bool]]) -> list[str]`: Convert all snippets of a document at once, resolving forward references between them. Each snippet is a `(latex, displaystyle)` pair. Uses a fresh state for the batch, independent of the global state. May raise `LatexError`.
 - `reset_global_state() -> None`: Reset the global state (e.g., set the equation counter to zero).
 
 ### LatexError

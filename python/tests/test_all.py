@@ -160,3 +160,66 @@ def test_unicode_substitution():
         r'<math><mi>y</mi><mo lspace="0.2778em" rspace="0">∶</mo><mo lspace="0">=</mo><mi>x</mi></math>'
         == output
     )
+
+
+def test_convert_all():
+    converter = LatexToMathML()
+    snippet1, snippet2 = converter.convert_all(
+        [
+            (r"\eqref{eq:a}", False),
+            (r"\begin{align}x\label{eq:a}\end{align}", True),
+        ]
+    )
+    assert "(1)" in snippet1
+    assert "(1)" in snippet2
+
+
+def test_convert_all_empty():
+    converter = LatexToMathML()
+    assert converter.convert_all([]) == []
+
+
+def test_convert_all_error():
+    converter = LatexToMathML(fancy_error=False)
+    with raises(LatexError, match=r"^input1:0: Unknown command \"\\asdf\"."):
+        _ = converter.convert_all([("x", False), (r"\asdf", False)])
+
+
+def test_convert_all_fancy_error():
+    converter = LatexToMathML()
+    with raises(LatexError) as exc_info:
+        _ = converter.convert_all([("x", False), (r"\asdf", False)])
+    msg = str(exc_info.value)
+    assert r'Unknown command "\asdf"' in msg
+    assert "input1" in msg
+
+
+def test_convert_all_continue_on_error():
+    converter = LatexToMathML(continue_on_error=True)
+    output = converter.convert_all([(r"\asdf", False), ("x", False)])
+    assert output == [
+        r'<span class="math-core-error" title="0: Unknown command &quot;\asdf&quot;."><code>\asdf</code></span>',
+        "<math><mi>x</mi></math>",
+    ]
+
+
+def test_convert_all_invalid_input():
+    converter = LatexToMathML()
+    with raises(TypeError):
+        _ = converter.convert_all([(42, False)])  # type: ignore
+
+
+def test_convert_all_leaves_global_state_alone():
+    converter = LatexToMathML()
+    output = converter.convert_with_global_state(
+        r"\begin{align}x\end{align}", displaystyle=True
+    )
+    assert "(1)" in output
+
+    (batch,) = converter.convert_all([(r"\begin{align}y\end{align}", True)])
+    assert "(1)" in batch
+
+    output = converter.convert_with_global_state(
+        r"\begin{align}z\end{align}", displaystyle=True
+    )
+    assert "(2)" in output
