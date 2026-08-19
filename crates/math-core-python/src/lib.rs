@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::sync::RwLock;
 
 use pyo3::exceptions::PyException;
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::{PyDict, PyList, PyString};
 use pyo3::{create_exception, prelude::*};
 
 use math_core::{CssClassNames, MathCoreConfig, MathDisplay, MaxExpansions, PrettyPrint};
@@ -141,16 +142,13 @@ impl LatexToMathML {
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
-                } else if self.fancy_error {
-                    Err(LatexError::new_err(render_fancy_error(
-                        &latex_error,
-                        "input",
-                        latex,
-                    )))
                 } else {
-                    let mut err = String::new();
-                    latex_error.to_message(&mut err, latex);
-                    Err(LatexError::new_err(err))
+                    Err(conversion_error(
+                        &latex_error,
+                        latex,
+                        self.fancy_error,
+                        None,
+                    ))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output.mathml)),
@@ -182,20 +180,76 @@ impl LatexToMathML {
                         py,
                         &latex_error.to_html(latex, display, None),
                     ))
-                } else if self.fancy_error {
-                    Err(LatexError::new_err(render_fancy_error(
-                        &latex_error,
-                        "input",
-                        latex,
-                    )))
                 } else {
-                    let mut err = String::new();
-                    latex_error.to_message(&mut err, latex);
-                    Err(LatexError::new_err(err))
+                    Err(conversion_error(
+                        &latex_error,
+                        latex,
+                        self.fancy_error,
+                        None,
+                    ))
                 }
             }
             Ok(output) => Ok(PyString::new(py, &output.mathml)),
         }
+    }
+
+    /// Convert a collection of LaTeX snippets to MathML.
+    ///
+    /// In contrast to the other conversion methods, this one resolves *forward references*
+    /// correctly, meaning that a snippet can refer to an equation which is only defined in a
+    /// later snippet. This is why all snippets of a document have to be passed in at once.
+    ///
+    /// The conversion does not touch the global state; it uses a fresh state for the whole batch.
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "pyo3 can only extract into an owned collection"
+    )]
+    fn convert_all<'a>(
+        &self,
+        snippets: Vec<(String, bool)>,
+        py: Python<'a>,
+    ) -> PyResult<Bound<'a, PyList>> {
+        let inputs: Vec<(&str, MathDisplay)> = snippets
+            .iter()
+            .map(|(latex, displaystyle)| {
+                (
+                    latex.as_str(),
+                    if *displaystyle {
+                        MathDisplay::Block
+                    } else {
+                        MathDisplay::Inline
+                    },
+                )
+            })
+            .collect();
+
+        let outputs = self
+            .inner
+            .read()
+            .map_err(|_| LockError::new_err("Failed to acquire read lock"))?
+            .convert_all(&inputs)
+            .into_iter()
+            .enumerate()
+            .map(|(index, result)| {
+                let (latex, display) = inputs[index];
+                match result {
+                    Err(latex_error) => {
+                        if self.continue_on_error {
+                            Ok(latex_error.to_html(latex, display, None))
+                        } else {
+                            Err(conversion_error(
+                                &latex_error,
+                                latex,
+                                self.fancy_error,
+                                Some(index),
+                            ))
+                        }
+                    }
+                    Ok(output) => Ok(output.mathml),
+                }
+            })
+            .collect::<PyResult<Vec<String>>>()?;
+        PyList::new(py, outputs)
     }
 
     fn reset_global_state(&self) -> PyResult<()> {
@@ -214,6 +268,31 @@ fn _math_core_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LatexError", m.py().get_type::<LatexError>())?;
     m.add_class::<LatexToMathML>()?;
     Ok(())
+}
+
+/// Build the `LatexError` exception which is raised for a failed conversion.
+///
+/// `index` is the position of the failing snippet within a batch, if there is a batch.
+fn conversion_error(
+    error: &math_core::LatexError,
+    latex: &str,
+    fancy_error: bool,
+    index: Option<usize>,
+) -> PyErr {
+    let source_name = match index {
+        Some(index) => Cow::Owned(format!("input{index}")),
+        None => Cow::Borrowed("input"),
+    };
+    if fancy_error {
+        LatexError::new_err(render_fancy_error(error, &source_name, latex))
+    } else {
+        let mut err = match index {
+            Some(_) => format!("{source_name}:"),
+            None => String::new(),
+        };
+        error.to_message(&mut err, latex);
+        LatexError::new_err(err)
+    }
 }
 
 fn dict_to_tuple_vec(dict: &Bound<'_, PyDict>) -> PyResult<Vec<(String, String)>> {
