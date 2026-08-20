@@ -52,7 +52,6 @@ mod parser;
 mod predefined;
 mod specifications;
 mod split_on_ascii;
-mod string_pool;
 mod text_parser;
 mod token;
 mod token_queue;
@@ -555,7 +554,7 @@ fn parse_custom_commands(
                     Ok(lexer_output) => {
                         let token = match lexer_output {
                             LexerOutput::CommandName(cmd_name, span) => {
-                                let interned = custom_cmds.intern(cmd_name);
+                                let interned = LeanStr::from(cmd_name);
                                 // We resolve the command here only to know whether it *can* be
                                 // resolved and to know its class. The actual resolution is done
                                 // when the macro is used.
@@ -566,7 +565,7 @@ fn parse_custom_commands(
                                 } else {
                                     unresolved.push((idx, interned.clone(), span.into()));
                                 }
-                                body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
+                                body.push(Token::UnresolvedCommand(interned));
                                 continue;
                             }
                             LexerOutput::Token(tokspan) => tokspan.into_token(),
@@ -604,9 +603,8 @@ fn parse_custom_commands(
     }
     // Now that all macros are known, every name which none of them defines is an error.
     for (idx, name, span) in unresolved {
-        let name = custom_cmds.cmd_names().get(&name);
-        if custom_cmds.get(name, CmdSource::Config).is_none() {
-            let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name.into())));
+        if custom_cmds.get(&name, CmdSource::Config).is_none() {
+            let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name)));
             return Err((err, idx, definitions.swap_remove(idx)));
         }
     }

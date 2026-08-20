@@ -5,7 +5,6 @@ use rustc_hash::FxBuildHasher;
 
 use crate::FxHashMap;
 use crate::character_class::Class;
-use crate::string_pool::StringPool;
 use crate::token::Token;
 
 /// Where the token stream of a custom command is stored.
@@ -54,8 +53,6 @@ struct CmdDef {
 pub(crate) struct CustomCmds {
     tokens: Vec<Token>,
     map: FxHashMap<LeanStr, CmdDef>,
-    /// The names of the commands in [`Self::tokens`].
-    cmd_names: StringPool,
 }
 
 impl CustomCmds {
@@ -63,7 +60,6 @@ impl CustomCmds {
         CustomCmds {
             tokens: Vec::new(),
             map: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
-            cmd_names: StringPool::default(),
         }
     }
 
@@ -185,31 +181,19 @@ impl CustomCmds {
         // We can't use `.iter_mut()` here because we append to the vector inside the loop.
         // We also need to check the length each iteration.
         while i < self.tokens.len() {
-            match self.tokens[i].clone() {
-                // A command the body only refers to by name keeps being resolved by name; only
-                // the pool the name lives in changes.
-                Token::UnresolvedCommand(CmdSource::Local, name) => {
-                    let name = self.cmd_names.intern(local.cmd_names().get(&name));
-                    self.tokens[i] = Token::UnresolvedCommand(CmdSource::Document, name);
+            // A reference to a body in the local store: we copy over the body. The tokens
+            // we append here to `self.tokens` are visited later by this same loop, so a
+            // reference inside the copied body gets translated too.
+            if let Token::CustomCmdRef(CmdSource::Local, num_args, class, body_start, body_end) =
+                self.tokens[i]
+            {
+                let new_start = self.tokens.len();
+                if let Some(body) = local.body(body_start, body_end) {
+                    self.tokens.extend_from_slice(body);
                 }
-                // A reference to a body in the local store: we copy over the body. The tokens
-                // we append here to `self.tokens` are visited later by this same loop, so a
-                // reference inside the copied body gets translated too.
-                Token::CustomCmdRef(CmdSource::Local, num_args, class, body_start, body_end) => {
-                    let new_start = self.tokens.len();
-                    if let Some(body) = local.body(body_start, body_end) {
-                        self.tokens.extend_from_slice(body);
-                    }
-                    let new_end = self.tokens.len();
-                    self.tokens[i] = Token::CustomCmdRef(
-                        CmdSource::Document,
-                        num_args,
-                        class,
-                        new_start,
-                        new_end,
-                    );
-                }
-                _ => {}
+                let new_end = self.tokens.len();
+                self.tokens[i] =
+                    Token::CustomCmdRef(CmdSource::Document, num_args, class, new_start, new_end);
             }
             i += 1;
         }
@@ -224,19 +208,9 @@ impl CustomCmds {
         self.map.remove(name);
     }
 
-    pub(crate) fn cmd_names(&self) -> &StringPool {
-        &self.cmd_names
-    }
-
-    #[inline]
-    pub(crate) fn intern(&mut self, s: &str) -> LeanStr {
-        self.cmd_names.intern(s)
-    }
-
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
         self.map.clear();
-        self.cmd_names.clear();
     }
 }
 

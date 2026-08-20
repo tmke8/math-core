@@ -2300,11 +2300,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 nodes: &[],
                 attrs: RowAttrs::DEFAULT,
             }),
-            Token::UnresolvedCommand(source, name) => {
-                // The name lives in one of the string pools, so we have to copy it out.
-                let name = self.tokens.stores.name_in_pool(source, &name);
-                Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
-            }
+            Token::UnresolvedCommand(name) => Ok(Node::UnknownCommand(self.arena.alloc_str(&name))),
             Token::MathChoice => {
                 let chosen = match self.state.style {
                     Style::Display => 0,
@@ -2371,7 +2367,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // definition. `None` means throwing the definition away, which is what
         // `\providecommand` does when the name is already taken.
         let target = match name_tokspan.token() {
-            Token::UnresolvedCommand(source, name) => {
+            Token::UnresolvedCommand(name) => {
                 if matches!(mode, DefineMode::Renew) {
                     return Err(Box::new(LatexError(
                         name_tokspan.span().into(),
@@ -2380,9 +2376,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                let name = self
-                    .arena
-                    .alloc_str(self.tokens.stores.name_in_pool(*source, name));
+                let name = self.arena.alloc_str(name);
                 Some((name, false))
             }
             // Any other token means that the name was already defined.
@@ -2629,8 +2623,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 )));
             }
             // We require resolved commands here for `\let`.
-            Token::UnresolvedCommand(source, name) => {
-                let name = self.tokens.stores.name_in_pool(*source, name);
+            Token::UnresolvedCommand(name) => {
                 return Err(Box::new(LatexError(
                     span.into(),
                     LatexErrKind::UnknownCommand(name.into()),

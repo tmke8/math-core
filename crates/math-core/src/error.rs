@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use core::fmt::{self, Write};
 use core::ops::Range;
+use lean_string::LeanStr;
 
 use strum_macros::IntoStaticStr;
 
@@ -23,7 +24,7 @@ pub(crate) enum LatexErrKind {
     ExpectedDelimiter(DelimiterModifier),
     DisallowedChar(char),
     UnknownEnvironment(Box<str>),
-    UnknownCommand(Box<str>),
+    UnknownCommand(LeanStr),
     UnknownColor(Box<str>),
     MismatchedEnvironment {
         expected: Env,

@@ -158,11 +158,6 @@ impl Stores<'_, '_> {
             CmdSource::Local => self.local_cmds.body(start, end),
         }
     }
-
-    /// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
-    pub(crate) fn name_in_pool<'a>(&self, _source: CmdSource, name: &'a LeanStr) -> &'a str {
-        name.as_str()
-    }
 }
 
 static EOI_TOK: QueuedTok<'static> =
@@ -200,9 +195,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         match lexed {
             LexerOutput::Token(tokspan) => tokspan.into(),
             LexerOutput::CommandName(name, span) => {
-                let tok = self.stores.resolve_command(name).unwrap_or_else(|| {
-                    Token::UnresolvedCommand(CmdSource::Local, self.stores.local_cmds.intern(name))
-                });
+                let tok = self
+                    .stores
+                    .resolve_command(name)
+                    .unwrap_or_else(|| Token::UnresolvedCommand(LeanStr::from(name)));
                 QueuedTok::new(TokSpan::new(tok, span), Some(name))
             }
         }
@@ -211,9 +207,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Try to give a command which was unresolved when it was read its meaning now.
     ///
     /// Returns `None` if the name is still not defined anywhere.
-    fn resolve_stored(&self, source: CmdSource, name: &LeanStr) -> Option<Token> {
-        self.stores
-            .resolve_command(self.stores.name_in_pool(source, name))
+    fn resolve_stored(&self, name: &LeanStr) -> Option<Token> {
+        self.stores.resolve_command(name.as_str())
     }
 
     /// Load the next non-whitespace token from the lexer into the buffer, and return its index.
@@ -391,13 +386,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// means that unknown commands are reported as such no matter where they show up,
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
-        if let Token::UnresolvedCommand(source, name) = tokspan.token()
+        if let Token::UnresolvedCommand(name) = tokspan.token()
             && !self.stores.parser_cfg.ignore_unknown_commands
         {
             // The name lives in one of the string pools, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.stores.name_in_pool(*source, name).into()),
+                LatexErrKind::UnknownCommand(name.clone()),
             )));
         }
         Ok(())
@@ -551,8 +546,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 // A command which the body only refers to by name gets its meaning here, so a
                 // command which didn't exist when the body was recorded may exist by now, and
                 // one which has been redefined since means something else now.
-                Token::UnresolvedCommand(source, name) => {
-                    let resolved = self.resolve_stored(*source, name);
+                Token::UnresolvedCommand(name) => {
+                    let resolved = self.resolve_stored(name);
                     // A body carries no spans of its own, so if the command is still not
                     // defined, the error has to point at the command we are expanding.
                     let resolved_is_some = resolved.is_some();
@@ -601,10 +596,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
         for queued in &mut self.queue {
-            if let Token::UnresolvedCommand(source, name) = queued.token()
-                && let Some(tok) = self
-                    .stores
-                    .resolve_command(self.stores.name_in_pool(*source, name))
+            if let Token::UnresolvedCommand(name) = queued.token()
+                && let Some(tok) = self.stores.resolve_command(name)
             {
                 *queued = queued.with_token(tok);
             }
@@ -740,10 +733,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ) -> Result<&'arena str, Box<LatexError>> {
         let name_tokspan = self.next_allowing_unresolved_command()?;
         match name_tokspan.token() {
-            Token::UnresolvedCommand(source, name) => {
+            Token::UnresolvedCommand(name) => {
                 // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                Ok(arena.alloc_str(self.stores.name_in_pool(*source, name)))
+                Ok(arena.alloc_str(name))
             }
             _ => name_tokspan.name().ok_or_else(|| {
                 Box::new(LatexError(
@@ -798,9 +791,9 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                             // now, so that the body follows a later redefinition of that name,
                             // the way it does in LaTeX. An unresolved command already holds its
                             // name, so it is left alone.
-                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_, _)) => {
-                                let name = self.stores.local_cmds.intern(name);
-                                Ok(Token::UnresolvedCommand(CmdSource::Local, name))
+                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_)) => {
+                                let name = LeanStr::from(name);
+                                Ok(Token::UnresolvedCommand(name))
                             }
                             // Anything which didn't come from a command name keeps its meaning:
                             // ordinary characters, and `\begin`/`\end`, whose meaning the lexer

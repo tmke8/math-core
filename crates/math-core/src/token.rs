@@ -241,7 +241,7 @@ pub enum Token {
     /// the [`StringPool`](crate::string_pool::StringPool) which belongs to the given
     /// [`CmdSource`]; it can be resolved with
     /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
-    UnresolvedCommand(CmdSource, LeanStr),
+    UnresolvedCommand(LeanStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -646,7 +646,7 @@ impl Token {
             | Phantom(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
-            | UnresolvedCommand(_, _)
+            | UnresolvedCommand(_)
             | InternalStringLiteral(_)
             | ForceOrd(_)
             // `Dollar` is always an error, so its class is never really used; a dollar sign
