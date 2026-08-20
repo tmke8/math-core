@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::ops::Range;
@@ -223,19 +224,16 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
 
     /// Load the next non-whitespace token from the lexer into the buffer, and return its index.
     fn load_token_skip_whitespace(&mut self) -> Result<usize, Box<LatexError>> {
-        Ok(self
-            .load_token(is_not_whitespace)?
-            .unwrap_or(self.queue.len()))
+        let mut is_not_whitespace = IsNotWhitespace(None);
+        self.load_token(&mut is_not_whitespace)?;
+        Ok(is_not_whitespace.0.unwrap_or(self.queue.len()))
     }
 
     /// Load the next not-skipped token from the lexer into the buffer.
     /// If the end of the input is reached, this will return early.
-    fn load_token<T>(
-        &mut self,
-        predicate: fn(usize, &Token) -> Option<T>,
-    ) -> Result<Option<T>, Box<LatexError>> {
+    fn load_token(&mut self, predicate: &mut dyn Finder) -> Result<(), Box<LatexError>> {
         if self.lexer_is_eoi {
-            return Ok(None);
+            return Ok(());
         }
         let starting_len = self.queue.len();
         let mut non_skipped_offset = 0usize;
@@ -244,16 +242,16 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // Commands are resolved right away, so that no unresolved command name is ever
             // queued: the queue is what the character class lookahead reads from.
             let tok = self.resolve_lexed(tok);
-            let result = predicate(starting_len + non_skipped_offset, tok.token());
+            let found = predicate.check(starting_len + non_skipped_offset, tok.token());
             let is_eoi = matches!(tok.token(), Token::Eoi);
             self.queue.push_back(tok);
-            if let Some(result) = result {
-                return Ok(Some(result));
+            if found {
+                return Ok(());
             }
             non_skipped_offset += 1;
             if is_eoi {
                 self.lexer_is_eoi = true;
-                return Ok(None);
+                return Ok(());
             }
         }
     }
@@ -327,45 +325,40 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// This function starts its search after `next_non_whitespace` (i.e., it skips
     /// the first non-whitespace token). The idea is that the caller has already
     /// checked `next_non_whitespace` or is not interested in it.
-    fn find_or_load_after_next<T>(
+    fn find_or_load_after_next(
         &mut self,
-        predicate: fn(usize, &Token) -> Option<T>,
-    ) -> Result<Option<T>, Box<LatexError>> {
-        // We use a block here which returns an index to avoid borrow checker issues.
-        let result = {
-            // Ensure that the compiler can tell that `self.queue.range(start..)`
-            // cannot panic due to being out of bounds.
-            let start = self.next_non_whitespace;
-            if start < self.queue.len() {
-                let mut range = self.queue.range(start..);
-                range.next(); // Skip `next_non_whitespace`.
-                range
-                    .enumerate()
-                    .find_map(|(idx, ts)| predicate(start + 1 + idx, ts.token()))
-            } else {
-                debug_assert!(
-                    self.lexer_is_eoi,
-                    "find_or_load_after_next called without ensure"
-                );
-                return Ok(None);
+        predicate: &mut dyn Finder,
+    ) -> Result<(), Box<LatexError>> {
+        // Ensure that the compiler can tell that `self.queue.range(start..)`
+        // cannot panic due to being out of bounds.
+        let start = self.next_non_whitespace;
+        if start < self.queue.len() {
+            let mut range = self.queue.range(start..);
+            range.next(); // Skip `next_non_whitespace`.
+            let found = range
+                .enumerate()
+                .position(|(idx, ts)| predicate.check(start + 1 + idx, ts.token()))
+                .is_some();
+            if found {
+                return Ok(());
             }
-        };
-
-        if let Some(result) = result {
-            // If we found a token in the existing buffer, return it.
-            Ok(Some(result))
         } else {
-            // Otherwise, load more tokens until we find one or reach EOI.
-            self.load_token(predicate)
+            debug_assert!(
+                self.lexer_is_eoi,
+                "find_or_load_after_next called without ensure"
+            );
+            return Ok(());
         }
+
+        // Otherwise, load more tokens until we find one or reach EOI.
+        self.load_token(predicate)
     }
 
     /// Peek at the second non-whitespace token without consuming it.
     pub(super) fn peek_second(&mut self) -> Result<&TokSpan, Box<LatexError>> {
-        if let Some(tok) = self
-            .find_or_load_after_next(is_not_whitespace)?
-            .and_then(|idx| self.queue.get(idx))
-        {
+        let mut is_not_whitespace = IsNotWhitespace(None);
+        self.find_or_load_after_next(&mut is_not_whitespace)?;
+        if let Some(tok) = is_not_whitespace.0.and_then(|idx| self.queue.get(idx)) {
             Ok(tok.tokspan())
         } else {
             debug_assert!(self.lexer_is_eoi, "peek_second called without ensure");
@@ -380,11 +373,15 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         // First check the common case where the next token is already a token with class.
         if let Some(class) = self.peek().token().class() {
             Ok((self.next_non_whitespace, class))
-        } else if let Some(class) = self.find_or_load_after_next(has_class)? {
-            Ok(class)
         } else {
-            debug_assert!(self.lexer_is_eoi, "peek_class_token called without ensure");
-            Ok((self.queue.len(), Class::End))
+            let mut has_class = HasClass(None);
+            self.find_or_load_after_next(&mut has_class)?;
+            if let Some(class) = has_class.0 {
+                Ok(class)
+            } else {
+                debug_assert!(self.lexer_is_eoi, "peek_class_token called without ensure");
+                Ok((self.queue.len(), Class::End))
+            }
         }
     }
 
@@ -896,12 +893,33 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     }
 }
 
-fn is_not_whitespace(idx: usize, tok: &Token) -> Option<usize> {
-    (!matches!(tok, Token::Whitespace)).then_some(idx)
+trait Finder {
+    fn check(&mut self, idx: usize, tok: &Token) -> bool;
 }
 
-fn has_class(idx: usize, tok: &Token) -> Option<(usize, Class)> {
-    tok.class().map(|class| (idx, class))
+struct IsNotWhitespace(Option<usize>);
+
+impl Finder for IsNotWhitespace {
+    fn check(&mut self, idx: usize, tok: &Token) -> bool {
+        let is_not_whitespace = !matches!(tok, Token::Whitespace);
+        if is_not_whitespace {
+            self.0 = Some(idx);
+        }
+        is_not_whitespace
+    }
+}
+
+struct HasClass(Option<(usize, Class)>);
+
+impl Finder for HasClass {
+    fn check(&mut self, idx: usize, tok: &Token) -> bool {
+        if let Some(class) = tok.class() {
+            self.0 = Some((idx, class));
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// The arguments of the custom command which is currently being expanded.
@@ -1112,7 +1130,11 @@ mod tests {
         );
 
         // Test the branch that needs to load more tokens.
-        let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
+        let mut is_not_whitespace = IsNotWhitespace(None);
+        queue
+            .find_or_load_after_next(&mut is_not_whitespace)
+            .unwrap();
+        let tok_idx = is_not_whitespace.0;
         std::assert_matches!(tok_idx, Some(3));
         assert_eq!(queue.queue.len(), 4);
         std::assert_matches!(queue.queue[0].token(), Token::Whitespace);
@@ -1122,7 +1144,11 @@ mod tests {
         );
 
         // Test the branch that finds the token in the existing buffer.
-        let tok_idx = queue.find_or_load_after_next(is_not_whitespace).unwrap();
+        let mut is_not_whitespace = IsNotWhitespace(None);
+        queue
+            .find_or_load_after_next(&mut is_not_whitespace)
+            .unwrap();
+        let tok_idx = is_not_whitespace.0;
         std::assert_matches!(tok_idx, Some(3));
         assert_eq!(queue.queue.len(), 4);
         std::assert_matches!(queue.queue[0].token(), Token::Whitespace);
