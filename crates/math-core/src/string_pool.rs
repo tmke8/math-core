@@ -1,12 +1,4 @@
-use alloc::string::String;
-
-use crate::error::GetUnwrap;
-
-/// An index into a [`StringPool`].
-///
-/// This is only meaningful for the pool that produced it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct InternedStr(usize, usize);
+use lean_string::LeanStr;
 
 /// A pool of strings which have been copied out of the input.
 ///
@@ -15,25 +7,21 @@ pub struct InternedStr(usize, usize);
 /// Strings are not deduplicated; two calls to [`StringPool::intern`] with the same string
 /// yield two different [`InternedStr`] values.
 #[derive(Debug, Default)]
-pub struct StringPool(String);
+pub struct StringPool;
 
 impl StringPool {
     /// Copy `s` into the pool and return an index which can retrieve it again.
-    pub fn intern(&mut self, s: &str) -> InternedStr {
-        let start = self.0.len();
-        self.0.push_str(s);
-        InternedStr(start, self.0.len())
+    #[inline]
+    pub fn intern(&mut self, s: &str) -> LeanStr {
+        LeanStr::from(s)
     }
 
     /// Forget all interned strings, invalidating every [`InternedStr`] of this pool.
-    pub fn clear(&mut self) {
-        self.0.clear();
-    }
+    pub fn clear(&mut self) {}
 
     /// Retrieve a string which was previously interned in *this* pool.
-    pub fn get(&self, index: InternedStr) -> &str {
-        // SAFETY: `InternedStr` can only be obtained from `intern()`, which returns
-        // indices at `str` boundaries.
-        self.0.get_unwrap(index.0..index.1)
+    #[inline]
+    pub fn get<'a>(&self, index: &'a LeanStr) -> &'a str {
+        index.as_str()
     }
 }

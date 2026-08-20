@@ -985,7 +985,7 @@ pub fn resolve_builtin_cmd(parser_cfg: &ParserConfig, command: &str) -> Option<T
     }
     // Then, check the commands which are built into the crate and always available.
     if let Some(token) = COMMANDS.get(command) {
-        Some(*token)
+        Some(token.clone())
     } else {
         if let Some(function) = FUNCTIONS.get_key(command) {
             return Some(PseudoOperator(function));

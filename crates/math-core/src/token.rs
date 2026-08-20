@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+use lean_string::LeanStr;
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::{
@@ -15,10 +16,9 @@ use mathml_renderer::{length::Length, super_char::OverlayChar, table::LineType};
 use crate::character_class::{Class, MathVariant, ParenType};
 use crate::custom_cmds::CmdSource;
 use crate::environments::Env;
-use crate::string_pool::InternedStr;
 
 /// A token produced by the lexer.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     /// End of input.
     Eoi,
@@ -241,7 +241,7 @@ pub enum Token {
     /// the [`StringPool`](crate::string_pool::StringPool) which belongs to the given
     /// [`CmdSource`]; it can be resolved with
     /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
-    UnresolvedCommand(CmdSource, InternedStr),
+    UnresolvedCommand(CmdSource, LeanStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -276,18 +276,18 @@ pub struct MathChoice {
 
 impl MathChoice {
     /// The alternative which applies in the given style.
-    pub const fn select(&self, style: Style) -> Token {
+    pub const fn select(&self, style: Style) -> &Token {
         match style {
-            Style::Display => self.display,
-            Style::Text => self.text,
-            Style::Script => self.script,
-            Style::ScriptScript => self.scriptscript,
+            Style::Display => &self.display,
+            Style::Text => &self.text,
+            Style::Script => &self.script,
+            Style::ScriptScript => &self.scriptscript,
         }
     }
 
     /// All four alternatives, for checking that they agree with each other.
-    fn all(&self) -> [Token; 4] {
-        [self.display, self.text, self.script, self.scriptscript]
+    fn all(&self) -> [&Token; 4] {
+        [&self.display, &self.text, &self.script, &self.scriptscript]
     }
 }
 
@@ -665,14 +665,14 @@ impl Token {
             self
         }
     }
-    #[inline]
+    /* #[inline]
     pub fn unwrap_math(self) -> Self {
         if let Token::MathOrTextMode(tok, _) = self {
-            *tok
+            tok
         } else {
             self
         }
-    }
+    } */
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -728,7 +728,7 @@ impl From<Span> for Range<usize> {
 }
 
 /// A token together with its span in the input string.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct TokSpan(Token, Span);
 
 #[cfg(target_arch = "wasm32")]

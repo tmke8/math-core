@@ -864,7 +864,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }),
             Token::Sqrt => {
                 let next = self.next_token();
-                if let Ok(tokloc) = next
+                if let Ok(tokloc) = next.clone()
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
@@ -1796,7 +1796,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional style argument in square brackets (e.g. `\cramped[\scriptstyle]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (style, inner) = if let Ok(tokloc) = next
+                let (style, inner) = if let Ok(tokloc) = next.clone()
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let style_tok = self.next_token()?;
@@ -2193,7 +2193,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (under_arg, over_arg) = if let Ok(tokloc) = next
+                let (under_arg, over_arg) = if let Ok(tokloc) = next.clone()
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let nodes = self.parse_sequence(
@@ -2302,7 +2302,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }),
             Token::UnresolvedCommand(source, name) => {
                 // The name lives in one of the string pools, so we have to copy it out.
-                let name = self.tokens.stores.name_in_pool(source, name);
+                let name = self.tokens.stores.name_in_pool(source, &name);
                 Ok(Node::UnknownCommand(self.arena.alloc_str(name)))
             }
             Token::MathChoice => {
@@ -2321,7 +2321,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
-                self.tokens.queue_in_front(&[TokSpan::new(token, span)]);
+                self.tokens.queue_in_front(&[TokSpan::new(token.clone(), span)]);
                 return Ok(Parsed::Expansion);
             }
             Token::InternalStringLiteral(content) => {
@@ -2369,7 +2369,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // The name to register the definition under, and whether it replaces an existing
         // definition. `None` means throwing the definition away, which is what
         // `\providecommand` does when the name is already taken.
-        let target = match *name_tokspan.token() {
+        let target = match name_tokspan.token() {
             Token::UnresolvedCommand(source, name) => {
                 if matches!(mode, DefineMode::Renew) {
                     return Err(Box::new(LatexError(
@@ -2381,7 +2381,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // snippet, so we have to copy it out.
                 let name = self
                     .arena
-                    .alloc_str(self.tokens.stores.name_in_pool(source, name));
+                    .alloc_str(self.tokens.stores.name_in_pool(*source, name));
                 Some((name, false))
             }
             // Any other token means that the name was already defined.
@@ -2620,7 +2620,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         let src = self.tokens.next()?;
         let (token, span) = src.into_parts();
-        match token {
+        match &token {
             Token::Eoi => {
                 return Err(Box::new(LatexError(
                     span.into(),
@@ -2629,7 +2629,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             // We require resolved commands here for `\let`.
             Token::UnresolvedCommand(source, name) => {
-                let name = self.tokens.stores.name_in_pool(source, name);
+                let name = self.tokens.stores.name_in_pool(*source, name);
                 return Err(Box::new(LatexError(
                     span.into(),
                     LatexErrKind::UnknownCommand(name.into()),
@@ -2637,11 +2637,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             _ => {}
         }
+        let first_class = token.class();
         let body = [token];
         // `\let` never complains about an existing meaning, so it always replaces; `define`
         // then returns `true` unconditionally.
         self.tokens
-            .define(name, 0, &body, token.class(), true, is_global);
+            .define(name, 0, &body, first_class, true, is_global);
         Ok(())
     }
 
@@ -2717,8 +2718,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         loop {
             // retreive and consume next token
-            let (next_token, next_span) = first.unwrap_or_else(|| self.tokens.peek().into_parts());
-            let next_token = next_token.unwrap_math();
+            let (next_token, next_span) = first.clone().unwrap_or_else(|| self.tokens.peek().clone().into_parts());
+            let next_token = next_token.unwrap_math_ref().clone();
             if matches!(
                 next_token,
                 Token::Underscore | Token::Circumflex | Token::Prime(_) | Token::Limits(_)
@@ -2758,8 +2759,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     fn get_bounds_arg(
         &mut self,
     ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
-        let (first_tok, first_span) = self.tokens.peek().into_parts();
-        let first_tok = first_tok.unwrap_math();
+        let (first_tok, first_span) = self.tokens.peek().clone().into_parts();
+        let first_tok = first_tok.unwrap_math_ref().clone();
         match first_tok {
             Token::Prime(prime_kind) => {
                 self.tokens.next()?;
@@ -2817,7 +2818,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             let followed_by_circumflex = loop {
                 // We use `peek_any_token` here because primes can't be separated by whitespace
                 // from each other or from a `^` that follows
-                let next_tok = self.tokens.peek_any_token().token().unwrap_math();
+                let next_tok = self.tokens.peek_any_token().token().unwrap_math_ref();
 
                 match next_tok {
                     Token::Prime(new_kind) => {
@@ -3147,10 +3148,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let (tokens, span) = match self.tokens.read_argument(true)? {
             MacroArgument::Group(tokens, span) => (tokens, span),
             MacroArgument::Token(tokspan) => {
-                if let (Token::InternalStringLiteral(content), span) = tokspan.into_parts() {
+                let (tok, span) = tokspan.clone().into_parts();
+                if let Token::InternalStringLiteral(content) = tok {
                     return Ok((content, span.into()));
                 } else {
-                    let span = tokspan.span();
                     (vec![tokspan], span.into())
                 }
             }

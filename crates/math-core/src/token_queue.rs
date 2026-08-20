@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::ops::Range;
+use lean_string::LeanStr;
 use mathml_renderer::arena::Arena;
 
 use crate::{
@@ -12,7 +13,6 @@ use crate::{
     error::{LatexErrKind, LatexError},
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
-    string_pool::InternedStr,
     token::{EndToken, Span, TokSpan, Token},
 };
 
@@ -44,7 +44,7 @@ pub(super) struct TokenQueue<'state, 'arena> {
 /// meaning the lexer decides, so they cannot be redefined), and for the tokens which reach the
 /// queue from the body of a custom command rather than from the lexer: those carry their names
 /// as [`Token::UnresolvedCommand`] instead.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct QueuedTok<'source>(TokSpan, Option<&'source str>);
 
 #[cfg(target_arch = "wasm32")]
@@ -92,7 +92,7 @@ impl<'source> QueuedTok<'source> {
     #[inline]
     fn unwrap_math(self) -> Self {
         let (tok, span) = self.0.into_parts();
-        QueuedTok(TokSpan::new(tok.unwrap_math(), span), self.1)
+        QueuedTok(TokSpan::new(tok.unwrap_math_ref().clone(), span), self.1)
     }
 }
 
@@ -160,13 +160,8 @@ impl Stores<'_, '_> {
     }
 
     /// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
-    pub(crate) fn name_in_pool(&self, source: CmdSource, name: InternedStr) -> &str {
-        match source {
-            CmdSource::Config => self.parser_cfg.custom_cmds_from_cfg.cmd_names(),
-            CmdSource::Document => self.global_state.custom_cmds.cmd_names(),
-            CmdSource::Local => self.local_cmds.cmd_names(),
-        }
-        .get(name)
+    pub(crate) fn name_in_pool<'a>(&self, _source: CmdSource, name: &'a LeanStr) -> &'a str {
+        name.as_str()
     }
 }
 
@@ -216,7 +211,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Try to give a command which was unresolved when it was read its meaning now.
     ///
     /// Returns `None` if the name is still not defined anywhere.
-    fn resolve_stored(&self, source: CmdSource, name: InternedStr) -> Option<Token> {
+    fn resolve_stored(&self, source: CmdSource, name: &LeanStr) -> Option<Token> {
         self.stores
             .resolve_command(self.stores.name_in_pool(source, name))
     }
@@ -396,13 +391,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// means that unknown commands are reported as such no matter where they show up,
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
-        if let Token::UnresolvedCommand(source, name) = *tokspan.token()
+        if let Token::UnresolvedCommand(source, name) = tokspan.token()
             && !self.stores.parser_cfg.ignore_unknown_commands
         {
             // The name lives in one of the string pools, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.stores.name_in_pool(source, name).into()),
+                LatexErrKind::UnknownCommand(self.stores.name_in_pool(*source, name).into()),
             )));
         }
         Ok(())
@@ -449,7 +444,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         } else {
             // We must have reached EOI previously.
             debug_assert!(self.lexer_is_eoi, "next called without ensure");
-            Ok(EOI_TOK)
+            Ok(EOI_TOK.clone())
         }
     }
 
@@ -487,18 +482,18 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 self.lexer_is_eoi,
                 "next_with_whitespace called without ensure"
             );
-            Ok(EOI_TOK)
+            Ok(EOI_TOK.clone())
         }
     }
 
     /// Queue a stream of tokens in the front of the buffer.
     ///
     /// We use a ring buffer, so this is efficient as long as the number of tokens is not too large.
-    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<QueuedTok<'arena>> + Copy]) {
+    pub(super) fn queue_in_front(&mut self, tokens: &[impl Into<QueuedTok<'arena>> + Clone]) {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            self.queue.push_front((*tok).into());
+            self.queue.push_front((tok.clone()).into());
         }
         self.update_next_non_whitespace();
     }
@@ -532,7 +527,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// simply taking the next token.
     pub(super) fn queue_body_substituting(
         &mut self,
-        tokens: &[impl Into<QueuedTok<'arena>> + Copy],
+        tokens: &[impl Into<QueuedTok<'arena>> + Clone],
         args: &CmdArgs<'arena>,
         span: Span,
     ) {
@@ -548,18 +543,19 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            let queued: QueuedTok<'arena> = (*tok).into();
-            match *queued.token() {
-                Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(arg_num), span),
+            let queued: QueuedTok<'arena> = (tok.clone()).into();
+            match queued.token() {
+                Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(*arg_num), span),
                 // A command which the body only refers to by name gets its meaning here, so a
                 // command which didn't exist when the body was recorded may exist by now, and
                 // one which has been redefined since means something else now.
                 Token::UnresolvedCommand(source, name) => {
-                    let resolved = self.resolve_stored(source, name);
+                    let resolved = self.resolve_stored(*source, name);
                     // A body carries no spans of its own, so if the command is still not
                     // defined, the error has to point at the command we are expanding.
-                    let tok = resolved.unwrap_or(*queued.token());
-                    let tok_span = if resolved.is_some() {
+                    let resolved_is_some = resolved.is_some();
+                    let tok = resolved.unwrap_or(queued.token().clone());
+                    let tok_span = if resolved_is_some {
                         queued.span()
                     } else {
                         span
@@ -587,7 +583,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 .push_front(TokSpan::new(Token::GroupBegin, span).into());
         } else {
             for queued in arg.iter().rev() {
-                self.queue.push_front(*queued);
+                self.queue.push_front(queued.clone());
             }
         }
     }
@@ -607,10 +603,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
         for queued in &mut self.queue {
-            if let Token::UnresolvedCommand(source, name) = *queued.token()
+            if let Token::UnresolvedCommand(source, name) = queued.token()
                 && let Some(tok) = self
                     .stores
-                    .resolve_command(self.stores.name_in_pool(source, name))
+                    .resolve_command(self.stores.name_in_pool(*source, name))
             {
                 *queued = queued.with_token(tok);
             }
@@ -667,7 +663,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // The token after the definition has already been loaded, so it may still refer
             // to the definition we have just replaced.
             if let Some(tok) = store.get(name, source) {
-                self.resolve_buffered_redefined_command(name, tok);
+                self.resolve_buffered_redefined_command(name, &tok);
             }
         } else {
             // The token after the definition has already been loaded, so it may still say
@@ -683,10 +679,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// after a `\renewcommand` has already been loaded, so a use of the command right after
     /// its redefinition would otherwise still refer to the old definition. We recognize the
     /// tokens by the name they came from, because the old definition can be any token at all.
-    pub(super) fn resolve_buffered_redefined_command(&mut self, name: &str, tok: Token) {
+    pub(super) fn resolve_buffered_redefined_command(&mut self, name: &str, tok: &Token) {
         for queued in &mut self.queue {
             if queued.name() == Some(name) {
-                *queued = queued.with_token(tok);
+                *queued = queued.with_token(tok.clone());
             }
         }
     }
@@ -710,7 +706,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         self.next()?; // Discard the opening `{`.
         let mut nesting_level = 0usize;
         loop {
-            let tokloc = *self.peek_any_keeping_name();
+            let tokloc = self.peek_any_keeping_name().clone();
             match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -745,11 +741,11 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         arena: &'arena Arena,
     ) -> Result<&'arena str, Box<LatexError>> {
         let name_tokspan = self.next_allowing_unresolved_command()?;
-        match *name_tokspan.token() {
+        match name_tokspan.token() {
             Token::UnresolvedCommand(source, name) => {
                 // The name lives in a string pool which doesn't necessarily outlive this
                 // snippet, so we have to copy it out.
-                Ok(arena.alloc_str(self.stores.name_in_pool(source, name)))
+                Ok(arena.alloc_str(self.stores.name_in_pool(*source, name)))
             }
             _ => name_tokspan.name().ok_or_else(|| {
                 Box::new(LatexError(
@@ -770,6 +766,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         let body = body_tokspans
             .into_iter()
             .map(|queued| {
+                let queued_name = queued.name();
                 let (tok, span) = queued.into_tokspan().into_parts();
                 match tok {
                     Token::CustomCmdArgInput(arg_num) => {
@@ -798,7 +795,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                         if first_class.is_none() {
                             first_class = tok.class();
                         }
-                        match queued.name() {
+                        match queued_name {
                             // A command is recorded by name rather than by what it means right
                             // now, so that the body follows a later redefinition of that name,
                             // the way it does in LaTeX. An unresolved command already holds its
@@ -872,7 +869,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
             // perform the unwrapping that `next()` does. So we use this hack here of copying the
             // peek token and then discarding it with `next()`.
-            let tok = *self.peek();
+            let tok = self.peek().clone();
             self.next()?;
             tok
         } else {

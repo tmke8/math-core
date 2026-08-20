@@ -61,6 +61,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
+use lean_string::LeanStr;
 
 use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
@@ -85,7 +86,6 @@ use self::{
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
     parser::Parser,
-    string_pool::InternedStr,
     token::Token,
 };
 
@@ -526,7 +526,7 @@ fn parse_custom_commands(
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
     // The names which have to be defined by the time all macros have been read, together with
     // the macro they appear in and their position within its definition.
-    let mut unresolved: Vec<(usize, InternedStr, Range<usize>)> = Vec::new();
+    let mut unresolved: Vec<(usize, LeanStr, Range<usize>)> = Vec::new();
     let mut body = Vec::new();
     let parser_cfg = ParserConfig {
         unicode_substitution,
@@ -564,7 +564,7 @@ fn parse_custom_commands(
                                         first_class = resolved.class();
                                     }
                                 } else {
-                                    unresolved.push((idx, interned, span.into()));
+                                    unresolved.push((idx, interned.clone(), span.into()));
                                 }
                                 body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
                                 continue;
@@ -604,7 +604,7 @@ fn parse_custom_commands(
     }
     // Now that all macros are known, every name which none of them defines is an error.
     for (idx, name, span) in unresolved {
-        let name = custom_cmds.cmd_names().get(name);
+        let name = custom_cmds.cmd_names().get(&name);
         if custom_cmds.get(name, CmdSource::Config).is_none() {
             let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name.into())));
             return Err((err, idx, definitions.swap_remove(idx)));

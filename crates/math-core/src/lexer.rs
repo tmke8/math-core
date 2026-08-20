@@ -310,7 +310,7 @@ impl<'source> Lexer<'source> {
 
 type CharSpan = (Option<char>, Range<usize>);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum LexerOutput<'source> {
     Token(TokSpan),
     CommandName(&'source str, Span),
@@ -497,7 +497,7 @@ mod tests {
                 break;
             };
             let tok = tokspan.into_token();
-            if let Some(ch) = recover_limited_ascii(tok) {
+            if let Some(ch) = recover_limited_ascii(tok.clone()) {
                 output.push(ch);
             }
             if matches!(tok, Token::Eoi) {
