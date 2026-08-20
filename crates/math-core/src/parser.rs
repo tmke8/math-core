@@ -864,7 +864,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }),
             Token::Sqrt => {
                 let next = self.next_token();
-                if let Ok(tokloc) = next.clone()
+                if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
@@ -1796,7 +1796,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional style argument in square brackets (e.g. `\cramped[\scriptstyle]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (style, inner) = if let Ok(tokloc) = next.clone()
+                let (style, inner) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let style_tok = self.next_token()?;
@@ -2193,7 +2193,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (under_arg, over_arg) = if let Ok(tokloc) = next.clone()
+                let (under_arg, over_arg) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let nodes = self.parse_sequence(
@@ -2321,7 +2321,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::MathChoiceInternal(_, choice) => {
                 let token = choice.select(self.state.style);
-                self.tokens.queue_in_front(&[TokSpan::new(token.clone(), span)]);
+                self.tokens
+                    .queue_in_front(&[TokSpan::new(token.clone(), span)]);
                 return Ok(Parsed::Expansion);
             }
             Token::InternalStringLiteral(content) => {
@@ -2718,15 +2719,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         loop {
             // retreive and consume next token
-            let (next_token, next_span) = first.clone().unwrap_or_else(|| self.tokens.peek().clone().into_parts());
-            let next_token = next_token.unwrap_math_ref().clone();
-            if matches!(
+            let next_token = first
+                .as_ref()
+                .map(|tok| &tok.0)
+                .unwrap_or_else(|| self.tokens.peek().token());
+            let next_token = next_token.unwrap_math_ref();
+            let (next_token, next_span) = if matches!(
                 next_token,
                 Token::Underscore | Token::Circumflex | Token::Prime(_) | Token::Limits(_)
-            ) && first.take().is_none()
-            {
-                self.tokens.next()?;
-            }
+            ) {
+                if let Some(tokspan) = first.take() {
+                    tokspan
+                } else {
+                    self.tokens.next()?.into_parts()
+                }
+            } else {
+                break Ok(ret);
+            };
 
             // parse it into a bound
             let (bound_starter_kind, bound_to_replace) = match next_token {
@@ -2759,9 +2768,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     fn get_bounds_arg(
         &mut self,
     ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
-        let (first_tok, first_span) = self.tokens.peek().clone().into_parts();
-        let first_tok = first_tok.unwrap_math_ref().clone();
-        match first_tok {
+        let (first_tok, first_span) = self.tokens.peek().parts();
+        let first_tok = first_tok.unwrap_math_ref();
+        match *first_tok {
             Token::Prime(prime_kind) => {
                 self.tokens.next()?;
                 Ok((
@@ -3148,7 +3157,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let (tokens, span) = match self.tokens.read_argument(true)? {
             MacroArgument::Group(tokens, span) => (tokens, span),
             MacroArgument::Token(tokspan) => {
-                let (tok, span) = tokspan.clone().into_parts();
+                let (tok, span) = tokspan.parts();
                 if let Token::InternalStringLiteral(content) = tok {
                     return Ok((content, span.into()));
                 } else {
@@ -3161,7 +3170,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // been expanded, arguments and all.
         for tokspan in tokens {
             let (tok, span) = tokspan.into_parts();
-            let Some(ch) = recover_limited_ascii(tok) else {
+            let Some(ch) = recover_limited_ascii(&tok) else {
                 return Err(Box::new(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedAscii,

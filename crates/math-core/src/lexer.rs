@@ -322,8 +322,8 @@ enum EnvMarker {
     End = 2,
 }
 
-pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
-    match tok {
+pub(crate) fn recover_limited_ascii(tok: &Token) -> Option<char> {
+    match *tok {
         Token::Letter(ch, _)
             if let Some(c) = ch.try_as_char()
                 && (c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@')) =>
@@ -497,7 +497,7 @@ mod tests {
                 break;
             };
             let tok = tokspan.into_token();
-            if let Some(ch) = recover_limited_ascii(tok.clone()) {
+            if let Some(ch) = recover_limited_ascii(&tok) {
                 output.push(ch);
             }
             if matches!(tok, Token::Eoi) {

@@ -665,14 +665,14 @@ impl Token {
             self
         }
     }
-    /* #[inline]
+    #[inline]
     pub fn unwrap_math(self) -> Self {
         if let Token::MathOrTextMode(tok, _) = self {
-            tok
+            tok.clone()
         } else {
             self
         }
-    } */
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -753,6 +753,11 @@ impl TokSpan {
     #[inline]
     pub fn into_parts(self) -> (Token, Span) {
         (self.0, self.1)
+    }
+
+    #[inline]
+    pub fn parts(&self) -> (&Token, Span) {
+        (&self.0, self.1)
     }
 
     // #[inline]

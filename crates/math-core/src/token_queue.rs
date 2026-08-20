@@ -92,7 +92,7 @@ impl<'source> QueuedTok<'source> {
     #[inline]
     fn unwrap_math(self) -> Self {
         let (tok, span) = self.0.into_parts();
-        QueuedTok(TokSpan::new(tok.unwrap_math_ref().clone(), span), self.1)
+        QueuedTok(TokSpan::new(tok.unwrap_math(), span), self.1)
     }
 }
 
@@ -543,7 +543,9 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            let queued: QueuedTok<'arena> = (tok.clone()).into();
+            let queued: QueuedTok<'arena> = tok.clone().into();
+            let queued_name = queued.name();
+            let queued_span = queued.span();
             match queued.token() {
                 Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(*arg_num), span),
                 // A command which the body only refers to by name gets its meaning here, so a
@@ -554,14 +556,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                     // A body carries no spans of its own, so if the command is still not
                     // defined, the error has to point at the command we are expanding.
                     let resolved_is_some = resolved.is_some();
-                    let tok = resolved.unwrap_or(queued.token().clone());
-                    let tok_span = if resolved_is_some {
-                        queued.span()
-                    } else {
-                        span
-                    };
+                    let tok = resolved.unwrap_or(queued.into_tokspan().into_token());
+                    let tok_span = if resolved_is_some { queued_span } else { span };
                     self.queue
-                        .push_front(QueuedTok::new(TokSpan::new(tok, tok_span), queued.name()));
+                        .push_front(QueuedTok::new(TokSpan::new(tok, tok_span), queued_name));
                 }
                 _ => self.queue.push_front(queued),
             }
@@ -706,7 +704,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         self.next()?; // Discard the opening `{`.
         let mut nesting_level = 0usize;
         loop {
-            let tokloc = self.peek_any_keeping_name().clone();
+            let tokloc = self.peek_any_keeping_name();
             match tokloc.token() {
                 Token::GroupBegin => {
                     nesting_level += 1;
@@ -727,7 +725,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 }
                 _ => {}
             }
-            self.next_any_token_allowing_unknown_command()?;
+            let tokloc = self.next_any_token_allowing_unknown_command()?;
             tokens.push(tokloc);
         }
     }
@@ -866,12 +864,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// are included in the output vector or not.
     pub fn read_argument(&mut self, preserve_all: bool) -> Result<MacroArgument, Box<LatexError>> {
         let first = if preserve_all {
-            // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
-            // perform the unwrapping that `next()` does. So we use this hack here of copying the
-            // peek token and then discarding it with `next()`.
-            let tok = self.peek().clone();
-            self.next()?;
-            tok
+            self.next_any_token()?
         } else {
             self.next()?
         };
