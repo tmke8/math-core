@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use lean_string::LeanStr;
+use kstring::KString;
 use rustc_hash::FxBuildHasher;
 
 use crate::FxHashMap;
@@ -52,7 +52,7 @@ struct CmdDef {
 #[derive(Debug, Default)]
 pub(crate) struct CustomCmds {
     tokens: Vec<Token>,
-    map: FxHashMap<LeanStr, CmdDef>,
+    map: FxHashMap<KString, CmdDef>,
 }
 
 impl CustomCmds {
@@ -152,7 +152,7 @@ impl CustomCmds {
         end: usize,
     ) {
         self.map.insert(
-            name.into(),
+            KString::from_ref(name),
             CmdDef {
                 num_args,
                 class: first_class,

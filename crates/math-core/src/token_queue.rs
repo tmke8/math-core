@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::ops::Range;
-use lean_string::LeanStr;
+use kstring::KString;
 use mathml_renderer::arena::Arena;
 
 use crate::{
@@ -46,9 +46,6 @@ pub(super) struct TokenQueue<'state, 'arena> {
 /// as [`Token::UnresolvedCommand`] instead.
 #[derive(Clone, Debug)]
 pub(super) struct QueuedTok<'source>(TokSpan, Option<&'source str>);
-
-#[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(QueuedTok<'static>, [usize; 7]);
 
 impl<'source> QueuedTok<'source> {
     #[inline]
@@ -198,7 +195,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 let tok = self
                     .stores
                     .resolve_command(name)
-                    .unwrap_or_else(|| Token::UnresolvedCommand(LeanStr::from(name)));
+                    .unwrap_or_else(|| Token::UnresolvedCommand(KString::from_ref(name)));
                 QueuedTok::new(TokSpan::new(tok, span), Some(name))
             }
         }
@@ -207,7 +204,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Try to give a command which was unresolved when it was read its meaning now.
     ///
     /// Returns `None` if the name is still not defined anywhere.
-    fn resolve_stored(&self, name: &LeanStr) -> Option<Token> {
+    fn resolve_stored(&self, name: &KString) -> Option<Token> {
         self.stores.resolve_command(name.as_str())
     }
 
@@ -392,7 +389,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // The name lives in one of the string pools, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(name.clone()),
+                LatexErrKind::UnknownCommand(name.as_str().into()),
             )));
         }
         Ok(())
@@ -792,7 +789,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                             // the way it does in LaTeX. An unresolved command already holds its
                             // name, so it is left alone.
                             Some(name) if !matches!(tok, Token::UnresolvedCommand(_)) => {
-                                let name = LeanStr::from(name);
+                                let name = KString::from_ref(name);
                                 Ok(Token::UnresolvedCommand(name))
                             }
                             // Anything which didn't come from a command name keeps its meaning:

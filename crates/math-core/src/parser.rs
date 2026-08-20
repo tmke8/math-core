@@ -2626,7 +2626,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::UnresolvedCommand(name) => {
                 return Err(Box::new(LatexError(
                     span.into(),
-                    LatexErrKind::UnknownCommand(name.into()),
+                    LatexErrKind::UnknownCommand(name.as_str().into()),
                 )));
             }
             _ => {}

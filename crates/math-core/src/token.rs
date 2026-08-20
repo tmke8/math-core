@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use lean_string::LeanStr;
+use kstring::KString;
 use strum_macros::IntoStaticStr;
 
 use mathml_renderer::{
@@ -241,7 +241,7 @@ pub enum Token {
     /// the [`StringPool`](crate::string_pool::StringPool) which belongs to the given
     /// [`CmdSource`]; it can be resolved with
     /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
-    UnresolvedCommand(LeanStr),
+    UnresolvedCommand(KString),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -540,9 +540,9 @@ impl PrimeKind {
 }
 
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(Token, [usize; 3]);
+static_assertions::assert_eq_size!(Token, [usize; 4]);
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(Result<Token, &'static i32>, [usize; 3]);
+static_assertions::assert_eq_size!(Result<Token, &'static i32>, [usize; 4]);
 
 impl Token {
     /// Returns the character class of this token.
@@ -732,7 +732,7 @@ impl From<Span> for Range<usize> {
 pub struct TokSpan(Token, Span);
 
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(TokSpan, [usize; 5]);
+static_assertions::assert_eq_size!(TokSpan, [usize; 6]);
 
 impl TokSpan {
     #[inline]
