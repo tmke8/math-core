@@ -249,11 +249,8 @@ pub(crate) fn is_valid_macro_name(s: &str) -> bool {
     if s.is_empty() {
         return false;
     }
-    let mut chars = s.chars();
-    match (chars.next(), chars.next()) {
-        // If the name contains only one character, any character is valid.
-        (Some(_), None) => true,
+    // If the name contains only one character, any character is valid.
+    s.chars().count() == 1
         // If the name contains more than one character, all characters must be ASCII alphabetic.
-        _ => s.bytes().all(|b| b.is_ascii_alphabetic()),
-    }
+        || s.bytes().all(|b| b.is_ascii_alphabetic())
 }
