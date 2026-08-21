@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::ops::Range;
+use kstring::KString;
 use mathml_renderer::arena::Arena;
 
 use crate::{
@@ -403,7 +404,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
             // The name lives in the string pool, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.cmd_names.get(name).into()),
+                LatexErrKind::UnknownCommand(KString::from_ref(self.cmd_names.get(name))),
             )));
         }
         Ok(())
@@ -832,11 +833,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                         match tok {
                             // A command which came from the body of another custom command
                             // carries its name in the pool rather than beside the token.
-                            Token::UnresolvedCommand(name) => {
-                                Ok(RecordedToken::CommandName(self.cmd_names.get(name).into()))
-                            }
+                            Token::UnresolvedCommand(name) => Ok(RecordedToken::CommandName(
+                                KString::from_ref(self.cmd_names.get(name)),
+                            )),
                             tok => match queued.name() {
-                                Some(name) => Ok(RecordedToken::CommandName(name.into())),
+                                Some(name) => {
+                                    Ok(RecordedToken::CommandName(KString::from_ref(name)))
+                                }
                                 // Anything which didn't come from a command name keeps its
                                 // meaning: ordinary characters, and `\begin`/`\end`, whose
                                 // meaning the lexer decides.

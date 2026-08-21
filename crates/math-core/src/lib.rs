@@ -62,6 +62,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
 
+use kstring::KString;
 use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -420,7 +421,7 @@ fn emit(
     ast: Vec<&Node>,
     latex: &str,
     display: MathDisplay,
-    label_map: &FxHashMap<Box<str>, Box<str>>,
+    label_map: &FxHashMap<KString, KString>,
     arena: &Arena,
     flags: &EmitterConfig,
 ) -> ConvertResult {
@@ -525,7 +526,7 @@ fn parse_custom_commands(
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
     // The names which have to be defined by the time all macros have been read, together with
     // the macro they appear in and their position within its definition.
-    let mut unresolved: Vec<(usize, Box<str>, Range<usize>)> = Vec::new();
+    let mut unresolved: Vec<(usize, KString, Range<usize>)> = Vec::new();
     let mut body = Vec::new();
     let parser_cfg = ParserConfig {
         unicode_substitution,
@@ -562,9 +563,13 @@ fn parse_custom_commands(
                                         first_class = resolved.class();
                                     }
                                 } else {
-                                    unresolved.push((idx, cmd_name.into(), span.into()));
+                                    unresolved.push((
+                                        idx,
+                                        KString::from_ref(cmd_name),
+                                        span.into(),
+                                    ));
                                 }
-                                body.push(RecordedToken::CommandName(cmd_name.into()));
+                                body.push(RecordedToken::CommandName(KString::from_ref(cmd_name)));
                                 continue;
                             }
                             LexerOutput::Token(tokspan) => tokspan.into_token(),

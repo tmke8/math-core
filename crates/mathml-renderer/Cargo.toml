@@ -24,6 +24,7 @@ static_assertions = { workspace = true }
 bitflags = "2.13.0"
 rustc-hash = { workspace = true }
 hashbrown = { version = "0.17", default-features = false }
+kstring = { workspace = true }
 percent-encoding = { version = "2.3.2", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]

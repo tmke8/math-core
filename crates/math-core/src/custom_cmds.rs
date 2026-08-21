@@ -1,6 +1,6 @@
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use kstring::KString;
 use rustc_hash::FxBuildHasher;
 
 use crate::FxHashMap;
@@ -16,11 +16,11 @@ use crate::token::Token;
 #[derive(Clone, Debug)]
 pub(crate) enum RecordedToken {
     Token(Token),
-    CommandName(Box<str>),
+    CommandName(KString),
 }
 
 #[cfg(target_arch = "wasm32")]
-static_assertions::assert_eq_size!(RecordedToken, [usize; 3]);
+static_assertions::assert_eq_size!(RecordedToken, [usize; 4]);
 
 /// Where the token stream of a custom command is stored.
 ///
@@ -68,7 +68,7 @@ struct CmdDef {
 #[derive(Debug, Default)]
 pub(crate) struct CustomCmds {
     tokens: Vec<RecordedToken>,
-    map: FxHashMap<Box<str>, CmdDef>,
+    map: FxHashMap<KString, CmdDef>,
 }
 
 impl CustomCmds {
@@ -168,7 +168,7 @@ impl CustomCmds {
         end: usize,
     ) {
         self.map.insert(
-            name.into(),
+            KString::from_ref(name),
             CmdDef {
                 num_args,
                 class: first_class,

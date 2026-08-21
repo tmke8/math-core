@@ -4,6 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::{mem, ops::Range};
 
+use kstring::KString;
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::{MultiscriptPair, Node},
@@ -838,7 +839,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             Err(LatexError(
                                 span,
                                 LatexErrKind::IllegalUnit {
-                                    unit: unit.into(),
+                                    unit: KString::from_ref(unit),
                                     math_unit_expected,
                                 },
                             ))
@@ -846,7 +847,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                     None => Err(LatexError(
                         span,
-                        LatexErrKind::ExpectedLength(length.into()),
+                        LatexErrKind::ExpectedLength(KString::from_ref(length)),
                     )),
                 }
             }
@@ -940,7 +941,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             .ok_or_else(|| {
                                 Box::new(LatexError(
                                     span,
-                                    LatexErrKind::ExpectedLength(decimal.into()),
+                                    LatexErrKind::ExpectedLength(KString::from_ref(decimal)),
                                 ))
                             })?
                             .0
@@ -1450,7 +1451,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             span,
-                            LatexErrKind::ExpectedColSpec(options.into()),
+                            LatexErrKind::ExpectedColSpec(KString::from_ref(options)),
                         ));
                     };
                     if matches!(env, Env::Subarray) {
@@ -1521,11 +1522,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = n.label.take();
                             let info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.tokens
-                                        .stores
-                                        .global_state
-                                        .label_map
-                                        .insert(label.into(), tag.text.into());
+                                    self.tokens.stores.global_state.label_map.insert(
+                                        KString::from_ref(label),
+                                        KString::from_ref(tag.text),
+                                    );
                                 }
                                 Some(
                                     self.arena
@@ -1640,7 +1640,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             return Err(Box::new(LatexError(
                                 span,
                                 LatexErrKind::IllegalUnit {
-                                    unit: unit.into(),
+                                    unit: KString::from_ref(unit),
                                     math_unit_expected: false,
                                 },
                             )));
@@ -1650,7 +1650,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     None => {
                         return Err(Box::new(LatexError(
                             span,
-                            LatexErrKind::ExpectedLength(initial_voffset_str.into()),
+                            LatexErrKind::ExpectedLength(KString::from_ref(initial_voffset_str)),
                         )));
                     }
                 };
@@ -1758,11 +1758,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             let link_target = numbered_state.label.take();
                             let label_info = if let Some(tag) = tag {
                                 if let Some(label) = link_target {
-                                    self.tokens
-                                        .stores
-                                        .global_state
-                                        .label_map
-                                        .insert(label.into(), tag.text.into());
+                                    self.tokens.stores.global_state.label_map.insert(
+                                        KString::from_ref(label),
+                                        KString::from_ref(tag.text),
+                                    );
                                 }
                                 Some(
                                     self.arena
@@ -1849,9 +1848,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             _ => {
                                 break 'color Err(LatexError(
                                     span.into(),
-                                    LatexErrKind::UnknownColor(
-                                        type_name_builder.finish(self.arena).into(),
-                                    ),
+                                    LatexErrKind::UnknownColor(KString::from_ref(
+                                        type_name_builder.finish(self.arena),
+                                    )),
                                 ));
                             }
                         }
@@ -1871,7 +1870,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             else {
                                 break 'color Err(LatexError(
                                     span,
-                                    LatexErrKind::UnknownColor(color_description.into()),
+                                    LatexErrKind::UnknownColor(KString::from_ref(
+                                        color_description,
+                                    )),
                                 ));
                             };
                             let (Some(r), Some(g), Some(b)) = (
@@ -1881,7 +1882,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             ) else {
                                 break 'color Err(LatexError(
                                     span,
-                                    LatexErrKind::UnknownColor(color_description.into()),
+                                    LatexErrKind::UnknownColor(KString::from_ref(
+                                        color_description,
+                                    )),
                                 ));
                             };
                             (
@@ -1897,7 +1900,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             else {
                                 break 'color Err(LatexError(
                                     span,
-                                    LatexErrKind::UnknownColor(color_description.into()),
+                                    LatexErrKind::UnknownColor(KString::from_ref(
+                                        color_description,
+                                    )),
                                 ));
                             };
                             let (Some(r), Some(g), Some(b)) = (
@@ -1907,7 +1912,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             ) else {
                                 break 'color Err(LatexError(
                                     span,
-                                    LatexErrKind::UnknownColor(color_description.into()),
+                                    LatexErrKind::UnknownColor(KString::from_ref(
+                                        color_description,
+                                    )),
                                 ));
                             };
                             (r as u8, g as u8, b as u8)
@@ -1930,7 +1937,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                                 _ => {
                                     break 'color Err(LatexError(
                                         span,
-                                        LatexErrKind::UnknownColor(color_description.into()),
+                                        LatexErrKind::UnknownColor(KString::from_ref(
+                                            color_description,
+                                        )),
                                     ));
                                 }
                             }
@@ -1938,7 +1947,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         unexpected => {
                             break 'color Err(LatexError(
                                 span,
-                                LatexErrKind::UnknownColor(unexpected.into()),
+                                LatexErrKind::UnknownColor(KString::from_ref(unexpected)),
                             ));
                         }
                     }
@@ -1947,7 +1956,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     let Some(color) = get_color(color_name) else {
                         break 'color Err(LatexError(
                             span,
-                            LatexErrKind::UnknownColor(color_name.into()),
+                            LatexErrKind::UnknownColor(KString::from_ref(color_name)),
                         ));
                     };
                     color
@@ -2622,7 +2631,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let name = self.tokens.cmd_name(name);
                 return Err(Box::new(LatexError(
                     span.into(),
-                    LatexErrKind::UnknownCommand(name.into()),
+                    LatexErrKind::UnknownCommand(KString::from_ref(name)),
                 )));
             }
             _ => {}
@@ -3101,7 +3110,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let unit_str = core::str::from_utf8(&unit[..i]).unwrap_or("");
                 return Err(Box::new(LatexError(
                     start..peek_span.start(),
-                    LatexErrKind::InvalidUnit(unit_str.into()),
+                    LatexErrKind::InvalidUnit(KString::from_ref(unit_str)),
                 )));
             };
             unit[i] = unit_char as u8;
@@ -3115,7 +3124,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let Ok(latex_unit) = LatexUnit::try_from(unit) else {
             return Err(Box::new(LatexError(
                 unit_span,
-                LatexErrKind::InvalidUnit(unit.into()),
+                LatexErrKind::InvalidUnit(KString::from_ref(unit)),
             )));
         };
         let math_unit_expected = matches!(kind, UnitKind::MathUnits);
@@ -3123,7 +3132,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             return Err(Box::new(LatexError(
                 unit_span,
                 LatexErrKind::IllegalUnit {
-                    unit: unit.into(),
+                    unit: KString::from_ref(unit),
                     math_unit_expected,
                 },
             )));

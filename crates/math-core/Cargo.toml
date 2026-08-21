@@ -28,6 +28,7 @@ strum_macros = { workspace = true }
 static_assertions  = { workspace = true }
 rustc-hash = { workspace = true }
 hashbrown = { version = "0.17", default-features = false }
+kstring = { workspace = true }
 memchr = { version = "2.8.1", default-features = false }
 ariadne = { workspace = true, optional = true }
 
