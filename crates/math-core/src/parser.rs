@@ -864,7 +864,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }),
             Token::Sqrt => {
                 let next = self.next_token();
-                if let Ok(tokloc) = next
+                if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
@@ -1796,7 +1796,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional style argument in square brackets (e.g. `\cramped[\scriptstyle]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (style, inner) = if let Ok(tokloc) = next
+                let (style, inner) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let style_tok = self.next_token()?;
@@ -2193,7 +2193,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // Optional under-argument in square brackets (e.g. `\xrightarrow[a]{b}`),
                 // handled in the same style as `\sqrt`'s optional degree argument.
                 let next = self.next_token();
-                let (under_arg, over_arg) = if let Ok(tokloc) = next
+                let (under_arg, over_arg) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     let nodes = self.parse_sequence(
@@ -2637,11 +2637,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             _ => {}
         }
+        let first_class = token.class();
         let body = [token];
         // `\let` never complains about an existing meaning, so it always replaces; `define`
         // then returns `true` unconditionally.
         self.tokens
-            .define(name, 0, &body, token.class(), true, is_global);
+            .define(name, 0, &body, first_class, true, is_global);
         Ok(())
     }
 
@@ -2716,36 +2717,46 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let mut ret: BoundsWithLimits = BoundsWithLimits::default();
 
         loop {
-            // retreive and consume next token
-            let (next_token, next_span) = first.unwrap_or_else(|| self.tokens.peek().into_parts());
-            let next_token = next_token.unwrap_math();
+            // retrieve and consume next token
+            let (next_token, next_span) = first
+                .as_ref()
+                .map(|(tok, span)| (tok, *span))
+                .unwrap_or_else(|| {
+                    let tok = self.tokens.peek();
+                    (tok.token(), tok.span())
+                });
+            let next_token = next_token.unwrap_math_ref();
             if matches!(
                 next_token,
                 Token::Underscore | Token::Circumflex | Token::Prime(_) | Token::Limits(_)
-            ) && first.take().is_none()
-            {
-                self.tokens.next()?;
-            }
-
-            // parse it into a bound
-            let (bound_starter_kind, bound_to_replace) = match next_token {
-                Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
-                Token::Prime(kind) => (BoundStarterKind::Prime(kind), &mut ret.bounds.1),
-                Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
-                Token::Limits(kind) => {
-                    ret.limits_span = Some((kind, next_span));
-                    continue;
+            ) {
+                let token = *next_token;
+                // consume the token we're currently looking at
+                if first.take().is_none() {
+                    self.tokens.next()?;
                 }
-                // we are done!
-                _ => break Ok(ret),
-            };
+                // parse it into a bound
+                let (bound_starter_kind, bound_to_replace) = match token {
+                    Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
+                    Token::Prime(kind) => (BoundStarterKind::Prime(kind), &mut ret.bounds.1),
+                    Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
+                    Token::Limits(kind) => {
+                        ret.limits_span = Some((kind, next_span));
+                        continue;
+                    }
+                    _ => unreachable!(),
+                };
 
-            let node = self.get_sub_or_sup(bound_starter_kind)?;
-            if bound_to_replace.replace(node).is_some() {
-                return Err(Box::new(LatexError(
-                    next_span.into(),
-                    LatexErrKind::DuplicateSubOrSup,
-                )));
+                let node = self.get_sub_or_sup(bound_starter_kind)?;
+                if bound_to_replace.replace(node).is_some() {
+                    return Err(Box::new(LatexError(
+                        next_span.into(),
+                        LatexErrKind::DuplicateSubOrSup,
+                    )));
+                }
+            } else {
+                // we are done!
+                break Ok(ret);
             }
         }
     }
@@ -2758,9 +2769,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     fn get_bounds_arg(
         &mut self,
     ) -> ParseResult<(BoundsWithLimits<'arena>, Vec<&'arena Node<'arena>>)> {
-        let (first_tok, first_span) = self.tokens.peek().into_parts();
-        let first_tok = first_tok.unwrap_math();
-        match first_tok {
+        let first = self.tokens.peek();
+        let first_span = first.span();
+        match *first.token().unwrap_math_ref() {
             Token::Prime(prime_kind) => {
                 self.tokens.next()?;
                 Ok((
@@ -2817,7 +2828,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             let followed_by_circumflex = loop {
                 // We use `peek_any_token` here because primes can't be separated by whitespace
                 // from each other or from a `^` that follows
-                let next_tok = self.tokens.peek_any_token().token().unwrap_math();
+                let next_tok = self.tokens.peek_any_token().token().unwrap_math_ref();
 
                 match next_tok {
                     Token::Prime(new_kind) => {
