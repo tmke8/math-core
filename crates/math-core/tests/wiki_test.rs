@@ -509,6 +509,52 @@ const NOT_CONVERTIBLE: &[(u16, &str)] = &[
     (238, r"\mathrlap{\,/}{=}"),
 ];
 
+/// The section headings of the wiki page, each with the number of the first snippet below it.
+/// Taken from <https://temml.org/tests/wiki-tests>, which lays out the same snippets.
+///
+/// A heading is emitted in front of the first snippet whose number is at least as large as the one
+/// given here, so a section whose snippets we are all missing simply doesn't show up.
+const HEADINGS: &[(u16, &str)] = &[
+    (6, "Accents"),
+    (10, "Functions"),
+    (18, "Bounds"),
+    (21, "Projections"),
+    (22, "Differentials and derivatives"),
+    (25, "Letter-like symbols or constants"),
+    (27, "Modular arithmetic"),
+    (31, "Radicals"),
+    (32, "Operators"),
+    (39, "Sets"),
+    (50, "Relations"),
+    (68, "Geometric"),
+    (74, "Logic"),
+    (82, "Arrows"),
+    (97, "Special"),
+    (100, "Unsorted"),
+    (105, "Larger expressions"),
+    (140, "Fractions, matrices, multiline"),
+    (166, "Delimiters"),
+    (185, "Greek Alphabet"),
+    (193, "Hebrew symbols"),
+    (194, "Blackboard bold"),
+    (195, "Boldface"),
+    (196, "Boldface Greek"),
+    (204, "Italics"),
+    (205, "Greek Italics"),
+    (208, "Greek uppercase boldface italics"),
+    (210, "Roman typeface"),
+    (211, "Sans serif"),
+    (212, "Sans serif Greek"),
+    (215, "Calligraphy"),
+    (216, "Fraktur"),
+    (217, "Scriptstyle text"),
+    (218, "Mixed text faces"),
+    (223, "Color"),
+    (229, "Spacing"),
+    (234, "Wiki workarounds"),
+    (241, "Examples of implemented TeX formulas"),
+];
+
 /// The accepted page, relative to the crate root.
 const ACCEPTED_PAGE: &str = "../../playground/wiki_test.html";
 /// Where we write the page when it differs from the accepted one.
@@ -557,12 +603,28 @@ const HEADER: &str = r#"<!DOCTYPE html><html lang="en">
             text-align: right;
             font-family: monospace;
         }
+        th {
+            border: 1px solid #ccc;
+            padding: 0.7em;
+            text-align: left;
+            font-size: 1.15em;
+            background-color: #f0f0f0;
+        }
+        nav ul {
+            columns: 3 18em;
+            list-style: none;
+            margin: 0 0 2em;
+            padding: 0;
+        }
+        nav li {
+            line-height: 1.8;
+            break-inside: avoid;
+        }
         code {
             white-space: pre-wrap;
         }
     </style>
 <body>
-    <table>
 "#;
 
 /// Everything after the table rows.
@@ -581,6 +643,16 @@ const FOOTER: &str = r#"    </table>
 /// ```
 #[test]
 fn wiki_test() {
+    // Both the headings and the rows are emitted in one pass over `CONVERTIBLE`.
+    assert!(
+        CONVERTIBLE.is_sorted_by_key(|&(num, _)| num),
+        "`CONVERTIBLE` must be sorted by number"
+    );
+    assert!(
+        HEADINGS.is_sorted_by_key(|&(num, _)| num),
+        "`HEADINGS` must be sorted by number"
+    );
+
     let converter = LatexToMathML::new(MathCoreConfig {
         pretty_print: PrettyPrint::Always,
         macros: vec![
@@ -591,29 +663,56 @@ fn wiki_test() {
     })
     .unwrap();
 
-    let mut generated = String::from(HEADER);
+    // The table of contents can only list the sections that actually have rows, so we don't know
+    // it until the loop below has run; that's why the rows are collected separately.
+    let mut toc = String::new();
+    let mut rows = String::from("    <table>\n");
+    let mut headings = HEADINGS.iter().peekable();
     for &(num, latex) in CONVERTIBLE {
+        // Emit the heading that this snippet falls under. If several are pending, only the last
+        // one gets a row: the earlier sections have no snippets that we can convert.
+        let mut section = None;
+        while let Some(&&(start, title)) = headings.peek() {
+            if start > num {
+                break;
+            }
+            headings.next();
+            section = Some(title);
+        }
+        if let Some(title) = section {
+            let id = slug(title);
+            writeln!(
+                rows,
+                "        <tr id=\"{id}\"><th colspan=\"3\">{}</th></tr>",
+                escape(title)
+            )
+            .unwrap();
+            writeln!(
+                toc,
+                "            <li><a href=\"#{id}\">{}</a></li>",
+                escape(title)
+            )
+            .unwrap();
+        }
+
         let latex = gather_line_breaks(latex);
         let mathml = converter
             .convert_with_local_state(&latex, MathDisplay::Block)
             .unwrap_or_else(|e| panic!("snippet {num} failed to convert: `{latex}`\n{e}"))
             .mathml;
-        writeln!(generated, "        <tr id=\"n{num}\">").unwrap();
-        writeln!(
-            generated,
-            "            <td><a href=\"#n{num}\">{num}</a></td>"
-        )
-        .unwrap();
-        writeln!(
-            generated,
-            "            <td><code>{}</code></td>",
-            escape(&latex)
-        )
-        .unwrap();
-        generated.push_str("            <td>\n");
-        push_indented(&mut generated, &mathml, "                ");
-        generated.push_str("            </td>\n        </tr>\n");
+        writeln!(rows, "        <tr id=\"n{num}\">").unwrap();
+        writeln!(rows, "            <td><a href=\"#n{num}\">{num}</a></td>").unwrap();
+        writeln!(rows, "            <td><code>{}</code></td>", escape(&latex)).unwrap();
+        rows.push_str("            <td>\n");
+        push_indented(&mut rows, &mathml, "                ");
+        rows.push_str("            </td>\n        </tr>\n");
     }
+
+    let mut generated = String::from(HEADER);
+    generated.push_str("    <nav>\n        <ul>\n");
+    generated.push_str(&toc);
+    generated.push_str("        </ul>\n    </nav>\n");
+    generated.push_str(&rows);
     generated.push_str(FOOTER);
 
     for &(num, latex) in NOT_CONVERTIBLE {
@@ -659,6 +758,19 @@ fn gather_line_breaks(latex: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(latex)
     }
+}
+
+/// Turn a section title into an id we can link to, e.g. "Greek Alphabet" -> "greek-alphabet".
+fn slug(title: &str) -> String {
+    let mut out = String::with_capacity(title.len());
+    for c in title.chars() {
+        if c.is_ascii_alphanumeric() {
+            out.push(c.to_ascii_lowercase());
+        } else if !out.is_empty() && !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    out
 }
 
 /// Escape the characters that have a special meaning in HTML.

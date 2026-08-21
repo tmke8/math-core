@@ -39,11 +39,70 @@
             text-align: right;
             font-family: monospace;
         }
+        th {
+            border: 1px solid #ccc;
+            padding: 0.7em;
+            text-align: left;
+            font-size: 1.15em;
+            background-color: #f0f0f0;
+        }
+        nav ul {
+            columns: 3 18em;
+            list-style: none;
+            margin: 0 0 2em;
+            padding: 0;
+        }
+        nav li {
+            line-height: 1.8;
+            break-inside: avoid;
+        }
         code {
             white-space: pre-wrap;
         }
     </style>
 <body>
+    <nav>
+        <ul>
+            <li><a href="#accents">Accents</a></li>
+            <li><a href="#functions">Functions</a></li>
+            <li><a href="#bounds">Bounds</a></li>
+            <li><a href="#projections">Projections</a></li>
+            <li><a href="#differentials-and-derivatives">Differentials and derivatives</a></li>
+            <li><a href="#letter-like-symbols-or-constants">Letter-like symbols or constants</a></li>
+            <li><a href="#modular-arithmetic">Modular arithmetic</a></li>
+            <li><a href="#radicals">Radicals</a></li>
+            <li><a href="#operators">Operators</a></li>
+            <li><a href="#sets">Sets</a></li>
+            <li><a href="#relations">Relations</a></li>
+            <li><a href="#geometric">Geometric</a></li>
+            <li><a href="#logic">Logic</a></li>
+            <li><a href="#arrows">Arrows</a></li>
+            <li><a href="#special">Special</a></li>
+            <li><a href="#unsorted">Unsorted</a></li>
+            <li><a href="#larger-expressions">Larger expressions</a></li>
+            <li><a href="#fractions-matrices-multiline">Fractions, matrices, multiline</a></li>
+            <li><a href="#delimiters">Delimiters</a></li>
+            <li><a href="#greek-alphabet">Greek Alphabet</a></li>
+            <li><a href="#hebrew-symbols">Hebrew symbols</a></li>
+            <li><a href="#blackboard-bold">Blackboard bold</a></li>
+            <li><a href="#boldface">Boldface</a></li>
+            <li><a href="#boldface-greek">Boldface Greek</a></li>
+            <li><a href="#italics">Italics</a></li>
+            <li><a href="#greek-italics">Greek Italics</a></li>
+            <li><a href="#greek-uppercase-boldface-italics">Greek uppercase boldface italics</a></li>
+            <li><a href="#roman-typeface">Roman typeface</a></li>
+            <li><a href="#sans-serif">Sans serif</a></li>
+            <li><a href="#sans-serif-greek">Sans serif Greek</a></li>
+            <li><a href="#calligraphy">Calligraphy</a></li>
+            <li><a href="#fraktur">Fraktur</a></li>
+            <li><a href="#scriptstyle-text">Scriptstyle text</a></li>
+            <li><a href="#mixed-text-faces">Mixed text faces</a></li>
+            <li><a href="#color">Color</a></li>
+            <li><a href="#spacing">Spacing</a></li>
+            <li><a href="#wiki-workarounds">Wiki workarounds</a></li>
+            <li><a href="#examples-of-implemented-tex-formulas">Examples of implemented TeX formulas</a></li>
+        </ul>
+    </nav>
     <table>
         <tr id="n1">
             <td><a href="#n1">1</a></td>
@@ -119,6 +178,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="accents"><th colspan="3">Accents</th></tr>
         <tr id="n6">
             <td><a href="#n6">6</a></td>
             <td><code>\dot{a}, \ddot{a}, \acute{a}, \grave{a}</code></td>
@@ -222,6 +282,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="functions"><th colspan="3">Functions</th></tr>
         <tr id="n10">
             <td><a href="#n10">10</a></td>
             <td><code>\exp_a b = a^b, \exp b = e^b, 10^m</code></td>
@@ -391,6 +452,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="bounds"><th colspan="3">Bounds</th></tr>
         <tr id="n18">
             <td><a href="#n18">18</a></td>
             <td><code>\min x, \max y, \inf s, \sup t</code></td>
@@ -445,6 +507,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="projections"><th colspan="3">Projections</th></tr>
         <tr id="n21">
             <td><a href="#n21">21</a></td>
             <td><code>\Pr j, \hom l, \lVert z \rVert, \arg z</code></td>
@@ -465,6 +528,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="differentials-and-derivatives"><th colspan="3">Differentials and derivatives</th></tr>
         <tr id="n22">
             <td><a href="#n22">22</a></td>
             <td><code>dt, \mathrm{d}t, \partial t, \nabla\psi</code></td>
@@ -590,6 +654,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="letter-like-symbols-or-constants"><th colspan="3">Letter-like symbols or constants</th></tr>
         <tr id="n25">
             <td><a href="#n25">25</a></td>
             <td><code>\infty, \aleph, \complement,\backepsilon, \eth, \Finv, \hbar</code></td>
@@ -642,6 +707,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="modular-arithmetic"><th colspan="3">Modular arithmetic</th></tr>
         <tr id="n27">
             <td><a href="#n27">27</a></td>
             <td><code>s_k \equiv 0 \pmod{m}</code></td>
@@ -696,6 +762,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="radicals"><th colspan="3">Radicals</th></tr>
         <tr id="n31">
             <td><a href="#n31">31</a></td>
             <td><code>\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}</code></td>
@@ -738,6 +805,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="operators"><th colspan="3">Operators</th></tr>
         <tr id="n32">
             <td><a href="#n32">32</a></td>
             <td><code>+, -, \pm, \mp, \dotplus</code></td>
@@ -848,6 +916,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="sets"><th colspan="3">Sets</th></tr>
         <tr id="n39">
             <td><a href="#n39">39</a></td>
             <td><code>\{ \}, \text\O \empty \emptyset, \varnothing</code></td>
@@ -1006,6 +1075,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="relations"><th colspan="3">Relations</th></tr>
         <tr id="n50">
             <td><a href="#n50">50</a></td>
             <td><code>=, \ne, \neq, \equiv, \not\equiv</code></td>
@@ -1273,6 +1343,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="geometric"><th colspan="3">Geometric</th></tr>
         <tr id="n69">
             <td><a href="#n69">69</a></td>
             <td><code>\perp, \angle, \sphericalangle, \measuredangle, 45^\circ</code></td>
@@ -1357,6 +1428,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="logic"><th colspan="3">Logic</th></tr>
         <tr id="n74">
             <td><a href="#n74">74</a></td>
             <td><code>\forall, \exists, \nexists</code></td>
@@ -1512,6 +1584,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="arrows"><th colspan="3">Arrows</th></tr>
         <tr id="n82">
             <td><a href="#n82">82</a></td>
             <td><code>\Rrightarrow, \Lleftarrow</code></td>
@@ -1728,6 +1801,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="special"><th colspan="3">Special</th></tr>
         <tr id="n97">
             <td><a href="#n97">97</a></td>
             <td><code>\amalg \P \S \% \dagger\ddagger\ldots\cdots</code></td>
@@ -1782,6 +1856,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="unsorted"><th colspan="3">Unsorted</th></tr>
         <tr id="n101">
             <td><a href="#n101">101</a></td>
             <td><code>\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq</code></td>
@@ -1836,6 +1911,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="larger-expressions"><th colspan="3">Larger expressions</th></tr>
         <tr id="n105">
             <td><a href="#n105">105</a></td>
             <td><code>a^2, a^{x+3}</code></td>
@@ -2300,6 +2376,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="fractions-matrices-multiline"><th colspan="3">Fractions, matrices, multiline</th></tr>
         <tr id="n140">
             <td><a href="#n140">140</a></td>
             <td><code>\frac{2}{4}=0.5\text{ or }{2 \over 4}=0.5</code></td>
@@ -2804,6 +2881,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="delimiters"><th colspan="3">Delimiters</th></tr>
         <tr id="n166">
             <td><a href="#n166">166</a></td>
             <td><code>( \frac{1}{2} )^n</code></td>
@@ -3207,6 +3285,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="greek-alphabet"><th colspan="3">Greek Alphabet</th></tr>
         <tr id="n185">
             <td><a href="#n185">185</a></td>
             <td><code>\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta</code></td>
@@ -3337,6 +3416,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="hebrew-symbols"><th colspan="3">Hebrew symbols</th></tr>
         <tr id="n193">
             <td><a href="#n193">193</a></td>
             <td><code>\aleph \beth \gimel \daleth</code></td>
@@ -3349,6 +3429,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="blackboard-bold"><th colspan="3">Blackboard bold</th></tr>
         <tr id="n194">
             <td><a href="#n194">194</a></td>
             <td><code>\begin{gather*} \mathbb{ABCDEFGHI} \\ \mathbb{JKLMNOPQR} \\ \mathbb{STUVWXYZ} \end{gather*}</code></td>
@@ -3380,6 +3461,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="boldface"><th colspan="3">Boldface</th></tr>
         <tr id="n195">
             <td><a href="#n195">195</a></td>
             <td><code>\begin{gather*} \mathbf{ABCDEFGHI} \\ \mathbf{JKLMNOPQR} \\ \mathbf{STUVWXYZ} \\ \mathbf{abcdefghijklm} \\ \mathbf{nopqrstuvwxyz} \\ \mathbf{0123456789} \end{gather*}</code></td>
@@ -3432,6 +3514,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="boldface-greek"><th colspan="3">Boldface Greek</th></tr>
         <tr id="n196">
             <td><a href="#n196">196</a></td>
             <td><code>\boldsymbol{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}</code></td>
@@ -3504,6 +3587,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="italics"><th colspan="3">Italics</th></tr>
         <tr id="n204">
             <td><a href="#n204">204</a></td>
             <td><code>\mathit{0123456789}</code></td>
@@ -3513,6 +3597,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="greek-italics"><th colspan="3">Greek Italics</th></tr>
         <tr id="n205">
             <td><a href="#n205">205</a></td>
             <td><code>\mathit{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}</code></td>
@@ -3540,6 +3625,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="greek-uppercase-boldface-italics"><th colspan="3">Greek uppercase boldface italics</th></tr>
         <tr id="n208">
             <td><a href="#n208">208</a></td>
             <td><code>\boldsymbol{\varGamma \varDelta \varTheta \varLambda}</code></td>
@@ -3558,6 +3644,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="roman-typeface"><th colspan="3">Roman typeface</th></tr>
         <tr id="n210">
             <td><a href="#n210">210</a></td>
             <td><code>\begin{gather*} \mathrm{ABCDEFGHI} \\ \mathrm{JKLMNOPQR} \\ \mathrm{STUVWXYZ} \\ \mathrm{abcdefghijklm} \\ \mathrm{nopqrstuvwxyz} \\ \mathrm{0123456789} \end{gather*}</code></td>
@@ -3610,6 +3697,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="sans-serif"><th colspan="3">Sans serif</th></tr>
         <tr id="n211">
             <td><a href="#n211">211</a></td>
             <td><code>\begin{gather*} \mathsf{ABCDEFGHI} \\ \mathsf{JKLMNOPQR} \\ \mathsf{STUVWXYZ} \\ \mathsf{abcdefghijklm} \\ \mathsf{nopqrstuvwxyz} \\ \mathsf{0123456789} \end{gather*}</code></td>
@@ -3662,6 +3750,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="sans-serif-greek"><th colspan="3">Sans serif Greek</th></tr>
         <tr id="n212">
             <td><a href="#n212">212</a></td>
             <td><code>\mathsf{\Alpha \Beta \Gamma \Delta \Epsilon \Zeta \Eta \Theta}</code></td>
@@ -3689,6 +3778,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="calligraphy"><th colspan="3">Calligraphy</th></tr>
         <tr id="n215">
             <td><a href="#n215">215</a></td>
             <td><code>\begin{gather*} \mathcal{ABCDEFGHI} \\ \mathcal{JKLMNOPQR} \\ \mathcal{STUVWXYZ} \\ \mathcal{abcdefghi} \\ \mathcal{jklmnopqr} \\ \mathcal{stuvwxyz} \end{gather*}</code></td>
@@ -3741,6 +3831,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="fraktur"><th colspan="3">Fraktur</th></tr>
         <tr id="n216">
             <td><a href="#n216">216</a></td>
             <td><code>\begin{gather*} \mathfrak{ABCDEFGHI} \\ \mathfrak{JKLMNOPQR} \\ \mathfrak{STUVWXYZ} \\ \mathfrak{abcdefghi} \\ \mathfrak{jklmnopqr} \\ \mathfrak{stuvwxyz} \end{gather*}</code></td>
@@ -3793,6 +3884,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="scriptstyle-text"><th colspan="3">Scriptstyle text</th></tr>
         <tr id="n217">
             <td><a href="#n217">217</a></td>
             <td><code>{\scriptstyle\text{abcdefghijklm}}</code></td>
@@ -3804,6 +3896,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="mixed-text-faces"><th colspan="3">Mixed text faces</th></tr>
         <tr id="n218">
             <td><a href="#n218">218</a></td>
             <td><code>x y z</code></td>
@@ -3859,6 +3952,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="color"><th colspan="3">Color</th></tr>
         <tr id="n223">
             <td><a href="#n223">223</a></td>
             <td><code>{\color{Blue}x^2}+{\color{Orange}2x}- {\color{LimeGreen}1}</code></td>
@@ -3999,6 +4093,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="spacing"><th colspan="3">Spacing</th></tr>
         <tr id="n229">
             <td><a href="#n229">229</a></td>
             <td><code>\begin{gather*} a \qquad b \\ a \quad b \\ a\ b \\ a \text{ } b \\ a\;b \\ a\,b \\ ab \\ a b \\ \mathit{ab} \\ a\!b \end{gather*}</code></td>
@@ -4141,6 +4236,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="wiki-workarounds"><th colspan="3">Wiki workarounds</th></tr>
         <tr id="n234">
             <td><a href="#n234">234</a></td>
             <td><code>\wideparen{AB}</code></td>
@@ -4196,6 +4292,7 @@
                 </math>
             </td>
         </tr>
+        <tr id="examples-of-implemented-tex-formulas"><th colspan="3">Examples of implemented TeX formulas</th></tr>
         <tr id="n241">
             <td><a href="#n241">241</a></td>
             <td><code>ax^2 + bx + c = 0</code></td>
