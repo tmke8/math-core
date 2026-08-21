@@ -226,6 +226,9 @@ pub struct MathCoreConfig {
     /// How many custom commands may be expanded in one snippet before the conversion gives up.
     /// See [`MaxExpansions`].
     pub max_expansions: MaxExpansions,
+    /// Add this string to the start of every generated `id` attribute.
+    /// This is *not* URL escaped. Use the [`percent_encoding`] crate if you need to.
+    pub id_prefix: String,
 }
 
 /// Subset of `MathCoreConfig` relevant for the parser.
@@ -247,6 +250,7 @@ struct EmitterConfig {
     annotation: bool,
     css_classes: CssClassNames,
     indentation: Indentation,
+    id_prefix: String,
 }
 
 impl From<MathCoreConfig> for EmitterConfig {
@@ -258,6 +262,7 @@ impl From<MathCoreConfig> for EmitterConfig {
             annotation: config.annotation,
             css_classes: config.css_classes,
             indentation: config.indentation,
+            id_prefix: config.id_prefix,
         }
     }
 }
@@ -450,6 +455,7 @@ fn emit(
             label_map,
             &flags.css_classes,
             flags.indentation,
+            &flags.id_prefix,
         );
         let _ = emitter.emit(node, children_indent);
         warnings = emitter.warnings();
@@ -466,6 +472,7 @@ fn emit(
             label_map,
             &flags.css_classes,
             flags.indentation,
+            &flags.id_prefix,
         );
         for node in ast {
             // We ignore the result of `emit` here, because the only possible error is a formatting

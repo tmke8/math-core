@@ -30,7 +30,7 @@
 //!
 //! let label_map = FxHashMap::default();
 //! let css_classes = CssClassNames::default();
-//! let mut emitter = Emitter::new(String::new(), &label_map, &css_classes, Indentation::default());
+//! let mut emitter = Emitter::new(String::new(), &label_map, &css_classes, Indentation::default(), "");
 //! emitter.emit(&ast, 0).unwrap();
 //! let output = emitter.into_string();
 //! assert_eq!(

@@ -40,7 +40,8 @@ impl LatexToMathML {
         global_group=false,
         fancy_error=true,
         unicode_substitution="conventional",
-        max_expansions=MaxExpansions::default().0))]
+        max_expansions=MaxExpansions::default().0,
+        id_prefix=""))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -53,6 +54,7 @@ impl LatexToMathML {
         fancy_error: bool,
         unicode_substitution: &str,
         max_expansions: u32,
+        id_prefix: &str,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
@@ -91,6 +93,7 @@ impl LatexToMathML {
             css_classes: CssClassNames::default(),
             indentation: math_core::Indentation::default(),
             max_expansions: MaxExpansions(max_expansions),
+            id_prefix: String::from(id_prefix),
         };
 
         let inner = math_core::LatexToMathML::new(config);

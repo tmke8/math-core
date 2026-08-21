@@ -193,6 +193,7 @@ new LatexToMathML(options: MathCoreOptions)
 | `annotation` | `boolean` | `false` | Include the original LaTeX as an annotation in the MathML output. |
 | `globalGroup` | `boolean` | `false` | Run the conversion in the global group, so that commands defined with `\newcommand` stay defined for subsequent calls to `convert_with_global_state`. If `false`, such definitions are local to the snippet which contains them. |
 | `maxExpansions` | `number` | `1000` | How many custom commands may be expanded in one snippet before the conversion gives up. The limit exists because a macro may expand to itself, directly or indirectly. |
+| `idPrefix`      | `string` | `""`   | Added to the beginning of every `id` and anchor reference. Use this to avoid conflicts when embedding the output. |
 
 **Methods:**
 
