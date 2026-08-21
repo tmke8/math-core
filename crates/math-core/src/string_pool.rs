@@ -10,7 +10,11 @@ pub struct InternedStr(usize, usize);
 
 /// A pool of strings which have been copied out of the input.
 ///
-/// This exists so that tokens can refer to pieces of the input without borrowing it.
+/// This exists so that tokens can refer to pieces of the input without borrowing it. There is
+/// only one pool, which belongs to the
+/// [`TokenQueue`](crate::token_queue::TokenQueue) and dies with it, so an [`InternedStr`] is
+/// only good for as long as the conversion which produced it; anything which has to outlive
+/// that gets a copy of the string instead.
 ///
 /// Strings are not deduplicated; two calls to [`StringPool::intern`] with the same string
 /// yield two different [`InternedStr`] values.
@@ -25,12 +29,7 @@ impl StringPool {
         InternedStr(start, self.0.len())
     }
 
-    /// Forget all interned strings, invalidating every [`InternedStr`] of this pool.
-    pub fn clear(&mut self) {
-        self.0.clear();
-    }
-
-    /// Retrieve a string which was previously interned in *this* pool.
+    /// Retrieve a string which was previously interned.
     pub fn get(&self, index: InternedStr) -> &str {
         // SAFETY: `InternedStr` can only be obtained from `intern()`, which returns
         // indices at `str` boundaries.

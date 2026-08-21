@@ -5,14 +5,29 @@ use rustc_hash::FxBuildHasher;
 
 use crate::FxHashMap;
 use crate::character_class::Class;
-use crate::string_pool::{InternedStr, StringPool};
 use crate::token::Token;
+
+/// A token in the recorded body of a custom command.
+///
+/// A command is recorded by name rather than by what it means right now, so that the body
+/// follows a later redefinition of that name, the way it does in LaTeX; see
+/// [`TokenQueue::map_recorded_tokens`](crate::token_queue::TokenQueue::map_recorded_tokens).
+/// The name is owned, so a body outlives whatever it was read from.
+#[derive(Clone, Debug)]
+pub(crate) enum RecordedToken {
+    Token(Token),
+    CommandName(Box<str>),
+}
+
+#[cfg(target_arch = "wasm32")]
+static_assertions::assert_eq_size!(RecordedToken, [usize; 3]);
 
 /// Where the token stream of a custom command is stored.
 ///
 /// The stores are kept separately, because they have different lifetimes: one is part of the
 /// configuration and therefore immutable, one is filled while a document is being parsed, and
-/// one only lives as long as the snippet which defines its commands.
+/// one only lives as long as the snippet which defines its commands. A [`Token::CustomCmdRef`]
+/// therefore has to say which of them the range in it belongs to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CmdSource {
     /// The commands defined in [`MathCoreConfig::macros`](crate::MathCoreConfig::macros).
@@ -52,10 +67,8 @@ struct CmdDef {
 /// self-referential; this way, the body of one command can mention another command.
 #[derive(Debug, Default)]
 pub(crate) struct CustomCmds {
-    tokens: Vec<Token>,
+    tokens: Vec<RecordedToken>,
     map: FxHashMap<Box<str>, CmdDef>,
-    /// The names of the commands in [`Self::tokens`].
-    cmd_names: StringPool,
 }
 
 impl CustomCmds {
@@ -63,7 +76,6 @@ impl CustomCmds {
         CustomCmds {
             tokens: Vec::new(),
             map: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
-            cmd_names: StringPool::default(),
         }
     }
 
@@ -80,7 +92,7 @@ impl CustomCmds {
     }
 
     /// Get the body of a command, given the range stored in its [`Token::CustomCmdRef`].
-    pub(crate) fn body(&self, start: usize, end: usize) -> Option<&[Token]> {
+    pub(crate) fn body(&self, start: usize, end: usize) -> Option<&[RecordedToken]> {
         self.tokens.get(start..end)
     }
 
@@ -89,7 +101,7 @@ impl CustomCmds {
         &mut self,
         name: &str,
         num_args: u8,
-        body: &[Token],
+        body: &[RecordedToken],
         first_class: Option<Class>,
     ) -> bool {
         if self.map.contains_key(name) {
@@ -107,7 +119,7 @@ impl CustomCmds {
         &mut self,
         name: &str,
         num_args: u8,
-        body: &[Token],
+        body: &[RecordedToken],
         first_class: Option<Class>,
     ) {
         let start = self.tokens.len();
@@ -122,7 +134,7 @@ impl CustomCmds {
         local: &CustomCmds,
         name: &str,
         num_args: u8,
-        body: &[Token],
+        body: &[RecordedToken],
         first_class: Option<Class>,
     ) -> bool {
         if self.map.contains_key(name) {
@@ -139,7 +151,7 @@ impl CustomCmds {
         local: &CustomCmds,
         name: &str,
         num_args: u8,
-        body: &[Token],
+        body: &[RecordedToken],
         first_class: Option<Class>,
     ) {
         let (start, end) = self.absorb(local, body);
@@ -169,15 +181,16 @@ impl CustomCmds {
     /// Copy a body into this store, translating every `local` reference as it goes.
     ///
     /// This is what `\global` needs: a definition which is about to outlive the snippet must not
-    /// hold anything which points into the store that dies with the snippet. Names are re-interned
-    /// in this store's pool, and the body of a command the body refers to is copied here as well,
-    /// which in turn may bring further references along.
+    /// hold anything which points into the store that dies with the snippet. The body of a
+    /// command the body refers to is copied here as well, which in turn may bring further
+    /// references along. A command the body only refers to by name needs no translation,
+    /// because a [`RecordedToken::CommandName`] owns the name it holds.
     ///
     /// Those further references are found by walking the very vector we are appending to, so the
     /// copy is iterative no matter how long a chain of `\let`s it has to follow. It terminates
     /// because the ranges in a store always point backwards — bodies are only ever appended — so
     /// there can be no cycle.
-    fn absorb(&mut self, local: &CustomCmds, body: &[Token]) -> (usize, usize) {
+    fn absorb(&mut self, local: &CustomCmds, body: &[RecordedToken]) -> (usize, usize) {
         let start = self.tokens.len();
         self.tokens.extend_from_slice(body);
         let end = self.tokens.len();
@@ -185,31 +198,29 @@ impl CustomCmds {
         // We can't use `.iter_mut()` here because we append to the vector inside the loop.
         // We also need to check the length each iteration.
         while i < self.tokens.len() {
-            match self.tokens[i] {
-                // A command the body only refers to by name keeps being resolved by name; only
-                // the pool the name lives in changes.
-                Token::UnresolvedCommand(CmdSource::Local, name) => {
-                    let name = self.cmd_names.intern(local.cmd_names().get(name));
-                    self.tokens[i] = Token::UnresolvedCommand(CmdSource::Document, name);
+            // A reference to a body in the local store: we copy over the body. The tokens
+            // we append here to `self.tokens` are visited later by this same loop, so a
+            // reference inside the copied body gets translated too.
+            if let RecordedToken::Token(Token::CustomCmdRef(
+                CmdSource::Local,
+                num_args,
+                class,
+                body_start,
+                body_end,
+            )) = self.tokens[i]
+            {
+                let new_start = self.tokens.len();
+                if let Some(body) = local.body(body_start, body_end) {
+                    self.tokens.extend_from_slice(body);
                 }
-                // A reference to a body in the local store: we copy over the body. The tokens
-                // we append here to `self.tokens` are visited later by this same loop, so a
-                // reference inside the copied body gets translated too.
-                Token::CustomCmdRef(CmdSource::Local, num_args, class, body_start, body_end) => {
-                    let new_start = self.tokens.len();
-                    if let Some(body) = local.body(body_start, body_end) {
-                        self.tokens.extend_from_slice(body);
-                    }
-                    let new_end = self.tokens.len();
-                    self.tokens[i] = Token::CustomCmdRef(
-                        CmdSource::Document,
-                        num_args,
-                        class,
-                        new_start,
-                        new_end,
-                    );
-                }
-                _ => {}
+                let new_end = self.tokens.len();
+                self.tokens[i] = RecordedToken::Token(Token::CustomCmdRef(
+                    CmdSource::Document,
+                    num_args,
+                    class,
+                    new_start,
+                    new_end,
+                ));
             }
             i += 1;
         }
@@ -224,19 +235,9 @@ impl CustomCmds {
         self.map.remove(name);
     }
 
-    pub(crate) fn cmd_names(&self) -> &StringPool {
-        &self.cmd_names
-    }
-
-    #[inline]
-    pub(crate) fn intern(&mut self, s: &str) -> InternedStr {
-        self.cmd_names.intern(s)
-    }
-
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
         self.map.clear();
-        self.cmd_names.clear();
     }
 }
 

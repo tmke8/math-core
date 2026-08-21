@@ -236,12 +236,12 @@ pub enum Token {
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
     /// A command that hasn't been resolved yet, either because nothing of that name is defined
-    /// (yet) or because it stands in the body of a custom command, where names are deliberately
+    /// (yet) or because it comes from the body of a custom command, where names are deliberately
     /// left to be resolved every time the command is expanded. The `InternedStr` is an index into
-    /// the [`StringPool`](crate::string_pool::StringPool) which belongs to the given
-    /// [`CmdSource`]; it can be resolved with
-    /// [`Stores::name_in_pool`](crate::token_queue::Stores::name_in_pool).
-    UnresolvedCommand(CmdSource, InternedStr),
+    /// the one [`StringPool`](crate::string_pool::StringPool), which belongs to the token queue;
+    /// it can be resolved with
+    /// [`TokenQueue::cmd_name`](crate::token_queue::TokenQueue::cmd_name).
+    UnresolvedCommand(InternedStr),
     /// This token is intended to be used in predefined token streams.
     /// It is equivalent to `{abc}`, but has a much more compact representation.
     InternalStringLiteral(&'static str),
@@ -646,7 +646,7 @@ impl Token {
             | Phantom(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
-            | UnresolvedCommand(_, _)
+            | UnresolvedCommand(_)
             | InternalStringLiteral(_)
             | ForceOrd(_)
             // `Dollar` is always an error, so its class is never really used; a dollar sign

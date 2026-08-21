@@ -8,11 +8,11 @@ use crate::{
     ParserConfig,
     character_class::Class,
     commands::resolve_builtin_cmd,
-    custom_cmds::{CmdSource, CustomCmds},
+    custom_cmds::{CmdSource, CustomCmds, RecordedToken},
     error::{LatexErrKind, LatexError},
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
-    string_pool::InternedStr,
+    string_pool::{InternedStr, StringPool},
     token::{EndToken, Span, TokSpan, Token},
 };
 
@@ -23,12 +23,22 @@ use crate::{
 /// it comes out of the lexer and when it comes out of the body of a custom command. The latter
 /// is what makes it possible for a body to mention a command which is only defined later.
 ///
+/// The name of a command which cannot be resolved is kept in the one string pool there is,
+/// which belongs to this queue; see [`Self::cmd_names`].
+///
 /// The queue holds on to the name a command came from, next to the meaning it was given; see
 /// [`QueuedTok`].
 pub(super) struct TokenQueue<'state, 'arena> {
     lexer: Lexer<'arena>,
     pub stores: Stores<'state, 'arena>,
     queue: VecDeque<QueuedTok<'arena>>,
+    /// The names of the commands which couldn't be resolved, which is what the
+    /// [`InternedStr`] in a [`Token::UnresolvedCommand`] refers to.
+    ///
+    /// This is the only string pool there is, so there is no way of resolving a name against
+    /// the wrong one. It dies with the queue, which is why a name which has to outlive the
+    /// snippet is copied out of it, into the arena or into a [`RecordedToken::CommandName`].
+    cmd_names: StringPool,
     lexer_is_eoi: bool,
     next_non_whitespace: usize,
 }
@@ -42,8 +52,8 @@ pub(super) struct TokenQueue<'state, 'arena> {
 ///
 /// The name is `None` for everything which isn't a command, for `\begin` and `\end` (whose
 /// meaning the lexer decides, so they cannot be redefined), and for the tokens which reach the
-/// queue from the body of a custom command rather than from the lexer: those carry their names
-/// as [`Token::UnresolvedCommand`] instead.
+/// queue from the body of a custom command rather than from the lexer: an unresolved one of
+/// those carries its name in the pool, as [`Token::UnresolvedCommand`].
 #[derive(Clone, Copy, Debug)]
 pub(super) struct QueuedTok<'source>(TokSpan, Option<&'source str>);
 
@@ -119,7 +129,8 @@ impl From<QueuedTok<'_>> for TokSpan {
 
 /// The stores which the token queue uses to resolve command names.
 ///
-/// This is a separate struct because of lifetime issues.
+/// This is a separate struct because of lifetime issues. Being a field of its own also means
+/// that a body can be borrowed out of it while the queue itself is being written to.
 pub(super) struct Stores<'state, 'arena> {
     pub parser_cfg: &'arena ParserConfig,
     pub global_state: &'state mut GlobalState,
@@ -151,22 +162,12 @@ impl Stores<'_, '_> {
     }
 
     /// Get the body of a command which is defined in one of the stores.
-    pub(crate) fn get_body(&self, source: CmdSource, start: usize, end: usize) -> Option<&[Token]> {
+    fn get_body(&self, source: CmdSource, start: usize, end: usize) -> Option<&[RecordedToken]> {
         match source {
             CmdSource::Config => self.parser_cfg.custom_cmds_from_cfg.body(start, end),
             CmdSource::Document => self.global_state.custom_cmds.body(start, end),
             CmdSource::Local => self.local_cmds.body(start, end),
         }
-    }
-
-    /// The name of an unresolved command, taken from the pool which belongs to its [`CmdSource`].
-    pub(crate) fn name_in_pool(&self, source: CmdSource, name: InternedStr) -> &str {
-        match source {
-            CmdSource::Config => self.parser_cfg.custom_cmds_from_cfg.cmd_names(),
-            CmdSource::Document => self.global_state.custom_cmds.cmd_names(),
-            CmdSource::Local => self.local_cmds.cmd_names(),
-        }
-        .get(name)
     }
 }
 
@@ -187,6 +188,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                 local_cmds: CustomCmds::default(),
             },
             queue: VecDeque::with_capacity(2),
+            cmd_names: StringPool::default(),
             lexer_is_eoi: false,
             next_non_whitespace: 0,
         };
@@ -205,20 +207,19 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         match lexed {
             LexerOutput::Token(tokspan) => tokspan.into(),
             LexerOutput::CommandName(name, span) => {
-                let tok = self.stores.resolve_command(name).unwrap_or_else(|| {
-                    Token::UnresolvedCommand(CmdSource::Local, self.stores.local_cmds.intern(name))
-                });
+                let tok = self
+                    .stores
+                    .resolve_command(name)
+                    .unwrap_or_else(|| Token::UnresolvedCommand(self.cmd_names.intern(name)));
                 QueuedTok::new(TokSpan::new(tok, span), Some(name))
             }
         }
     }
 
-    /// Try to give a command which was unresolved when it was read its meaning now.
-    ///
-    /// Returns `None` if the name is still not defined anywhere.
-    fn resolve_stored(&self, source: CmdSource, name: InternedStr) -> Option<Token> {
-        self.stores
-            .resolve_command(self.stores.name_in_pool(source, name))
+    /// The name of an unresolved command, taken from the pool.
+    #[inline]
+    pub(super) fn cmd_name(&self, name: InternedStr) -> &str {
+        self.cmd_names.get(name)
     }
 
     /// Load the next non-whitespace token from the lexer into the buffer, and return its index.
@@ -396,13 +397,13 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// means that unknown commands are reported as such no matter where they show up,
     /// instead of the consumer having to report whatever it expected in that position.
     fn reject_unknown_command(&self, tokspan: &TokSpan) -> Result<(), Box<LatexError>> {
-        if let Token::UnresolvedCommand(source, name) = *tokspan.token()
+        if let Token::UnresolvedCommand(name) = *tokspan.token()
             && !self.stores.parser_cfg.ignore_unknown_commands
         {
-            // The name lives in one of the string pools, so we have to copy it out.
+            // The name lives in the string pool, so we have to copy it out.
             return Err(Box::new(LatexError(
                 tokspan.span().into(),
-                LatexErrKind::UnknownCommand(self.stores.name_in_pool(source, name).into()),
+                LatexErrKind::UnknownCommand(self.cmd_names.get(name).into()),
             )));
         }
         Ok(())
@@ -515,8 +516,12 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         }
     }
 
-    /// Queue the body of a custom command in the front of the buffer, substituting the
-    /// arguments of the command for the [`Token::CustomCmdArg`] tokens in it.
+    /// Queue the body of a built-in custom command in the front of the buffer, substituting
+    /// the arguments of the command for the [`Token::CustomCmdArg`] tokens in it.
+    ///
+    /// A body which is defined by the user rather than built in is queued by
+    /// [`Self::queue_stored_body_substituting`] instead; the difference is that such a body
+    /// refers to the commands in it by name, which has to be resolved here.
     ///
     /// The substitution happens here, when the body is queued, rather than when the parser
     /// gets to the argument tokens. Doing it eagerly means that no `CustomCmdArg` is ever
@@ -532,71 +537,96 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// simply taking the next token.
     pub(super) fn queue_body_substituting(
         &mut self,
-        tokens: &[impl Into<QueuedTok<'arena>> + Copy],
+        tokens: &[Token],
         args: &CmdArgs<'arena>,
         span: Span,
     ) {
         if tokens.is_empty() {
-            // A body which is empty produces nothing at all, but we still have to queue
-            // something: without it, the caller would take the token which comes after the
-            // command and treat that as the expansion.
-            self.queue
-                .push_front(TokSpan::new(Token::Relax, span).into());
-            self.update_next_non_whitespace();
+            self.queue_empty_body(span);
             return;
         }
         self.queue.reserve(tokens.len());
         // Queue the token stream in the front in reverse order.
         for tok in tokens.iter().rev() {
-            let queued: QueuedTok<'arena> = (*tok).into();
-            match *queued.token() {
-                Token::CustomCmdArg(arg_num) => self.push_arg_front(args.get(arg_num), span),
-                // A command which the body only refers to by name gets its meaning here, so a
-                // command which didn't exist when the body was recorded may exist by now, and
-                // one which has been redefined since means something else now.
-                Token::UnresolvedCommand(source, name) => {
-                    let resolved = self.resolve_stored(source, name);
-                    // A body carries no spans of its own, so if the command is still not
-                    // defined, the error has to point at the command we are expanding.
-                    let tok = resolved.unwrap_or(*queued.token());
-                    let tok_span = if resolved.is_some() {
-                        queued.span()
-                    } else {
-                        span
-                    };
-                    self.queue
-                        .push_front(QueuedTok::new(TokSpan::new(tok, tok_span), queued.name()));
+            match *tok {
+                Token::CustomCmdArg(arg_num) => {
+                    push_arg_front(&mut self.queue, args.get(arg_num), span);
                 }
-                _ => self.queue.push_front(queued),
+                tok => self.queue.push_front(tok.into()),
             }
         }
         self.update_next_non_whitespace();
     }
 
-    /// Queue the tokens of one argument of a custom command in the front of the buffer.
+    /// Queue the body of a custom command which is kept in one of the stores, as
+    /// [`Self::queue_body_substituting`] does.
     ///
-    /// An argument with no tokens is queued as an empty group, because an empty argument is
-    /// equivalent to `{}`. Substituting nothing at all would make it disappear from
-    /// constructs which need an argument, which would then take whatever comes next instead.
-    /// The `span` is only used for the braces of that empty group.
-    fn push_arg_front(&mut self, arg: &[QueuedTok<'arena>], span: Span) {
-        if arg.is_empty() {
-            self.queue
-                .push_front(TokSpan::new(Token::GroupEnd, span).into());
-            self.queue
-                .push_front(TokSpan::new(Token::GroupBegin, span).into());
-        } else {
-            for queued in arg.iter().rev() {
-                self.queue.push_front(*queued);
+    /// The lookup happens here rather than in the caller so that the body doesn't have to be
+    /// copied out of its store first: the store and the buffer are separate fields, so both
+    /// can be borrowed at once.
+    ///
+    /// Returns `false` if the range doesn't name a body in that store, which can only happen
+    /// if something has gone wrong.
+    #[must_use]
+    pub(super) fn queue_stored_body_substituting(
+        &mut self,
+        source: CmdSource,
+        start: usize,
+        end: usize,
+        args: &CmdArgs<'arena>,
+        span: Span,
+    ) -> bool {
+        let Some(body) = self.stores.get_body(source, start, end) else {
+            return false;
+        };
+        if body.is_empty() {
+            self.queue_empty_body(span);
+            return true;
+        }
+        self.queue.reserve(body.len());
+        // Queue the token stream in the front in reverse order.
+        for recorded in body.iter().rev() {
+            match recorded {
+                RecordedToken::Token(Token::CustomCmdArg(arg_num)) => {
+                    push_arg_front(&mut self.queue, args.get(*arg_num), span);
+                }
+                RecordedToken::Token(tok) => self.queue.push_front((*tok).into()),
+                // A command which the body only refers to by name gets its meaning here, so a
+                // command which didn't exist when the body was recorded may exist by now, and
+                // one which has been redefined since means something else now.
+                RecordedToken::CommandName(name) => {
+                    let queued = match self.stores.resolve_command(name) {
+                        Some(tok) => tok.into(),
+                        // A body carries no spans of its own, so if the command is still not
+                        // defined, the error has to point at the command we are expanding.
+                        None => {
+                            let name = self.cmd_names.intern(name);
+                            TokSpan::new(Token::UnresolvedCommand(name), span).into()
+                        }
+                    };
+                    self.queue.push_front(queued);
+                }
             }
         }
+        self.update_next_non_whitespace();
+        true
+    }
+
+    /// Queue what the body of a custom command with no tokens in it expands to.
+    ///
+    /// Such a body produces nothing at all, but we still have to queue something: without it,
+    /// the caller would take the token which comes after the command and treat that as the
+    /// expansion. The `span` is the one of the command being expanded.
+    fn queue_empty_body(&mut self, span: Span) {
+        self.queue
+            .push_front(TokSpan::new(Token::Relax, span).into());
+        self.update_next_non_whitespace();
     }
 
     /// Queue one argument of a custom command in the front of the buffer, as
-    /// [`Self::push_arg_front`] does. Always queues at least one token.
+    /// [`push_arg_front`] does. Always queues at least one token.
     pub(super) fn queue_arg_in_front(&mut self, arg: &[QueuedTok<'arena>], span: Span) {
-        self.queue.reserve(arg.len());
-        self.push_arg_front(arg, span);
+        push_arg_front(&mut self.queue, arg, span);
         self.update_next_non_whitespace();
     }
 
@@ -607,10 +637,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// a `\newcommand` has already been read by then.
     pub(super) fn resolve_buffered_unknown_commands(&mut self) {
         for queued in &mut self.queue {
-            if let Token::UnresolvedCommand(source, name) = *queued.token()
-                && let Some(tok) = self
-                    .stores
-                    .resolve_command(self.stores.name_in_pool(source, name))
+            if let Token::UnresolvedCommand(name) = *queued.token()
+                && let Some(tok) = self.stores.resolve_command(self.cmd_names.get(name))
             {
                 *queued = queued.with_token(tok);
             }
@@ -627,7 +655,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         &mut self,
         name: &str,
         num_args: u8,
-        body: &[Token],
+        body: &[RecordedToken],
         first_class: Option<Class>,
         replace: bool,
         is_global: bool,
@@ -746,10 +774,10 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ) -> Result<&'arena str, Box<LatexError>> {
         let name_tokspan = self.next_allowing_unresolved_command()?;
         match *name_tokspan.token() {
-            Token::UnresolvedCommand(source, name) => {
-                // The name lives in a string pool which doesn't necessarily outlive this
-                // snippet, so we have to copy it out.
-                Ok(arena.alloc_str(self.stores.name_in_pool(source, name)))
+            Token::UnresolvedCommand(name) => {
+                // The name lives in a string pool which doesn't outlive this snippet, so we
+                // have to copy it out.
+                Ok(arena.alloc_str(self.cmd_names.get(name)))
             }
             _ => name_tokspan.name().ok_or_else(|| {
                 Box::new(LatexError(
@@ -760,12 +788,12 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         }
     }
 
-    /// Map the tokens of a macro body to their final form, and intern the names of any commands.
-    pub(super) fn map_and_intern_recorded_tokens(
-        &mut self,
+    /// Map the tokens of a macro body to the form they are recorded in.
+    pub(super) fn map_recorded_tokens(
+        &self,
         body_tokspans: Vec<QueuedTok<'arena>>,
         num_args: u8,
-    ) -> Result<(Vec<Token>, Option<Class>), Box<LatexError>> {
+    ) -> Result<(Vec<RecordedToken>, Option<Class>), Box<LatexError>> {
         let mut first_class: Option<Class> = None;
         let body = body_tokspans
             .into_iter()
@@ -782,7 +810,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                                 },
                             )));
                         }
-                        Ok(Token::CustomCmdArg(arg_num))
+                        Ok(RecordedToken::Token(Token::CustomCmdArg(arg_num)))
                     }
                     // This has to come before the arm below, which would otherwise record
                     // `\newcommand` by name like any other command.
@@ -798,24 +826,27 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
                         if first_class.is_none() {
                             first_class = tok.class();
                         }
-                        match queued.name() {
-                            // A command is recorded by name rather than by what it means right
-                            // now, so that the body follows a later redefinition of that name,
-                            // the way it does in LaTeX. An unresolved command already holds its
-                            // name, so it is left alone.
-                            Some(name) if !matches!(tok, Token::UnresolvedCommand(_, _)) => {
-                                let name = self.stores.local_cmds.intern(name);
-                                Ok(Token::UnresolvedCommand(CmdSource::Local, name))
+                        // A command is recorded by name rather than by what it means right
+                        // now, so that the body follows a later redefinition of that name,
+                        // the way it does in LaTeX.
+                        match tok {
+                            // A command which came from the body of another custom command
+                            // carries its name in the pool rather than beside the token.
+                            Token::UnresolvedCommand(name) => {
+                                Ok(RecordedToken::CommandName(self.cmd_names.get(name).into()))
                             }
-                            // Anything which didn't come from a command name keeps its meaning:
-                            // ordinary characters, and `\begin`/`\end`, whose meaning the lexer
-                            // decides.
-                            _ => Ok(tok),
+                            tok => match queued.name() {
+                                Some(name) => Ok(RecordedToken::CommandName(name.into())),
+                                // Anything which didn't come from a command name keeps its
+                                // meaning: ordinary characters, and `\begin`/`\end`, whose
+                                // meaning the lexer decides.
+                                None => Ok(RecordedToken::Token(tok)),
+                            },
                         }
                     }
                 }
             })
-            .collect::<Result<Vec<Token>, _>>()?;
+            .collect::<Result<Vec<RecordedToken>, _>>()?;
         Ok((body, first_class))
     }
 
@@ -893,6 +924,36 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     /// Returns `None` if the index is out of bounds.
     pub(super) fn get_token_by_index(&self, idx: usize) -> Option<&TokSpan> {
         self.queue.get(idx).map(QueuedTok::tokspan)
+    }
+}
+
+/// Queue the tokens of one argument of a custom command in the front of the buffer.
+///
+/// An argument with no tokens is queued as an empty group, because an empty argument is
+/// equivalent to `{}`. Substituting nothing at all would make it disappear from constructs
+/// which need an argument, which would then take whatever comes next instead. The `span` is
+/// only used for the braces of that empty group.
+///
+/// The space for the tokens is reserved here rather than in the caller, because an argument
+/// stands for a single token in the body it is substituted into: a caller which reserved room
+/// for the body would be short by as much as the arguments bring along.
+///
+/// This is a free function rather than a method so that it can be called while the body being
+/// queued borrows another field of the queue.
+fn push_arg_front<'arena>(
+    queue: &mut VecDeque<QueuedTok<'arena>>,
+    arg: &[QueuedTok<'arena>],
+    span: Span,
+) {
+    if arg.is_empty() {
+        queue.reserve(2);
+        queue.push_front(TokSpan::new(Token::GroupEnd, span).into());
+        queue.push_front(TokSpan::new(Token::GroupBegin, span).into());
+    } else {
+        queue.reserve(arg.len());
+        for queued in arg.iter().rev() {
+            queue.push_front(*queued);
+        }
     }
 }
 
