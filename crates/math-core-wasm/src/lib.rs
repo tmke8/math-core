@@ -99,6 +99,7 @@ interface MathCoreOptions {
     globalGroup?: boolean;
     unicodeSubstitution?: "never" | "conventional";
     maxExpansions?: number;
+    idPrefix?: string;
 }
 
 interface MathSnippet {
