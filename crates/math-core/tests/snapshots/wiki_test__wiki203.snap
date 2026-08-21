@@ -1,7 +1,0 @@
----
-source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varrho\\varsigma\\vartheta\\varphi}"
----
-<math>
-    <mrow><mspace/><mi>𝝔𝝇𝝑𝝋</mi></mrow>
-</math>

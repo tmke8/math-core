@@ -1,7 +1,0 @@
----
-source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\Iota \\Kappa \\Lambda \\Mu \\Nu \\Xi \\Omicron \\Pi}"
----
-<math>
-    <mrow><mspace/><mi>𝚰𝚱𝚲𝚳𝚴𝚵𝚶𝚷</mi></mrow>
-</math>

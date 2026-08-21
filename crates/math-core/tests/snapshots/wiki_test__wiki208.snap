@@ -1,7 +1,0 @@
----
-source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varGamma \\varDelta \\varTheta \\varLambda}"
----
-<math>
-    <mrow><mspace/><mi>𝜞𝜟𝜣𝜦</mi></mrow>
-</math>

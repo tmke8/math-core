@@ -36,7 +36,7 @@ ariadne = { workspace = true, optional = true }
 math-core = { path = ".", features = ["serde", "ariadne"] }
 mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.7.0", features = ["serde"] }
 insta = { version = "1.47.2", features = ["default", "ron"] }
-regex = "1.12.3"
+similar = "2.7.0"
 minijinja = "2.20.0"
 
 [features]
