@@ -433,6 +433,10 @@ fn main() {
             "genfrac_1pt_with_space",
             r"\genfrac(]{  1pt     }{2}{a+b}{c+d}",
         ),
+        (
+            "genfrac_1pt_with_interargument_space",
+            r"\genfrac(]   {1pt}{2}{a+b}{c+d}",
+        ),
         ("genfrac_0.4pt", r"\genfrac(]{0.4pt}{2}{a+b}{c+d}"),
         ("genfrac_0.4ex", r"\genfrac(]{0.4ex}{2}{a+b}{c+d}"),
         ("genfrac_4em", r"\genfrac(]{4em}2{a+b}{c+d}"),
@@ -582,6 +586,7 @@ fn main() {
         ("equal_equal_with_space", r"4=\;=4"),
         ("subscript_equal_equal", r"x_==4"),
         ("color", r"{\color{Blue}x^2}"),
+        ("color_leading_whitespace", "{\\color  %\n  {Blue}x^2}"),
         ("color_rgb255", r"{\color[RGB]{255 ,0, 127}x^2}"),
         ("color_rgb_float", r"{\color[rgb]{1, 0.33,0.5}x^2}"),
         ("color_html_long", r"{\color[HTML]{f101a1}x^2}"),

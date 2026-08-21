@@ -658,7 +658,7 @@ impl Token {
 
     /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
     #[inline]
-    pub fn unwrap_math_ref(&self) -> &Self {
+    pub(crate) fn unwrap_math_ref(&self) -> &Self {
         if let Token::MathOrTextMode(tok, _) = self {
             tok
         } else {
@@ -666,7 +666,7 @@ impl Token {
         }
     }
     #[inline]
-    pub fn unwrap_math(self) -> Self {
+    pub(crate) fn unwrap_math(self) -> Self {
         if let Token::MathOrTextMode(tok, _) = self {
             *tok
         } else {

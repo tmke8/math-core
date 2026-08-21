@@ -1138,6 +1138,7 @@ mod tests {
             ("hyphen", r"-xy", true),
             ("hyphen_math_mode", r"-xy", false),
             ("consecutive_whitespace", r"{x   y} z", true),
+            ("leading_whitespace", r"  {x   y} z", true),
             ("consecutive_whitespace_skip", r"{x   y} z", false),
         ];
 
