@@ -287,43 +287,39 @@ impl Iterator for SuperCharChars {
 
 impl FusedIterator for SuperCharChars {}
 
+// The algorithm implementation comes from <https://algorithmica.org/en/eytzinger>.
 #[inline]
-fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
-    if let Ok(bmp) = u16::try_from(c) {
-        PRECOMPOSED_SOLIDUS_OVERLAY
-            .0
-            .binary_search_by_key(&bmp, |&[from, _]| from)
-            .ok()
-            // SAFETY: `PRECOMPOSED_SOLIDUS_OVERLAY` contains only valid Unicode characters
-            .map(|idx| unsafe {
-                char::from_u32_unchecked(PRECOMPOSED_SOLIDUS_OVERLAY.0[idx][1].into())
-            })
-    } else {
-        None
+const fn get_precomposed_solidus_overlay(c: char) -> Option<char> {
+    if c as u32 > u16::MAX as u32 {
+        return None;
     }
+    let bmp = c as u16;
+    let mut k = 1;
+    while k < PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER.0.len() {
+        let direction = if PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER.0[k][0] < bmp {
+            1
+        } else if PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER.0[k][0] == bmp {
+            break;
+        } else {
+            0
+        };
+        k = 2 * k + direction;
+    }
+    if k == 0 || k >= PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER.0.len() {
+        return None;
+    }
+    let slot = PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER.0[k];
+    if slot[0] != bmp {
+        return None;
+    }
+    // SAFETY: `PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER` contains only valid Unicode characters
+    Some(unsafe { char::from_u32_unchecked(slot[1] as u32) })
 }
 
 /// Whether this character has a canonical decomposition to a sequence containing U+338.
 /// Used in a debug assertion; should not be used in release because it is slow
 const fn is_precomposed_solidus_overlay_for_debug(c: char) -> bool {
-    // can't use `binary_search` in `const`,
-    // so we do a linear one
-
-    let cp = c as u32;
-    if cp > u16::MAX as u32 {
-        return false;
-    }
-    let cp = cp as u16;
-
-    let mut i: usize = 0;
-    while i < PRECOMPOSED_SOLIDUS_OVERLAY.0.len() {
-        if cp == PRECOMPOSED_SOLIDUS_OVERLAY.0[i][1] {
-            return true;
-        }
-        i += 1;
-    }
-
-    false
+    get_precomposed_solidus_overlay(c).is_some()
 }
 
 #[repr(align(128))] // align to cache line
@@ -331,8 +327,27 @@ struct Align128<T>(T);
 
 // This is a mapping from Unicode codepoints to their precomposed solidus-overlay variant.
 // They are all in the BMP, so we use `u16` instead of `char` to save space.
+const PRECOMPOSED_SOLIDUS_OVERLAY_EYTZINGER: Align128<
+    [[u16; 2]; PRECOMPOSED_SOLIDUS_OVERLAY_SORTED.len() + 1],
+> = Align128(
+    const {
+        let mut result = [[0, 0]; PRECOMPOSED_SOLIDUS_OVERLAY_SORTED.len() + 1];
+        const fn eytzingerise(data: &mut [[u16; 2]], mut i: usize, k: usize) -> usize {
+            if k < data.len() {
+                i = eytzingerise(data, i, 2 * k);
+                data[k] = PRECOMPOSED_SOLIDUS_OVERLAY_SORTED[i];
+                i = eytzingerise(data, i + 1, 2 * k + 1);
+            }
+            i
+        }
+        eytzingerise(&mut result, 0, 1);
+        result
+    },
+);
+
+// The original, sorted version from Unicode.
 // <https://util.unicode.org/UnicodeJsps/list-unicodeset.jsp?a=%5Cp%7BDecomposition_Mapping%3D%2F.%CC%B8%2F%7D%26%5Cp%7BisNFC%7D>
-const PRECOMPOSED_SOLIDUS_OVERLAY: Align128<[[u16; 2]; 88]> = Align128([
+const PRECOMPOSED_SOLIDUS_OVERLAY_SORTED: [[u16; 2]; 88] = [
     [0x003C, 0x226E], // LESS-THAN SIGN -> NOT LESS-THAN
     [0x003D, 0x2260], // EQUALS SIGN -> NOT EQUAL TO
     [0x003E, 0x226F], // GREATER-THAN SIGN -> NOT GREATER-THAN
@@ -421,7 +436,7 @@ const PRECOMPOSED_SOLIDUS_OVERLAY: Align128<[[u16; 2]; 88]> = Align128([
     [0x22EB, 0x22EB], // DOES NOT CONTAIN AS NORMAL SUBGROUP
     [0x22EC, 0x22EC], // NOT NORMAL SUBGROUP OF OR EQUAL TO
     [0x22ED, 0x22ED], // DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
-]);
+];
 
 #[cfg(test)]
 mod tests {
@@ -431,19 +446,25 @@ mod tests {
     #[test]
     fn solidus_table_sanity_check() {
         // Check that the table is sorted
-        assert!(PRECOMPOSED_SOLIDUS_OVERLAY.0.is_sorted_by_key(|a| a[0]));
+        assert!(PRECOMPOSED_SOLIDUS_OVERLAY_SORTED.is_sorted_by_key(|a| a[0]));
         // Check that the table has an even number of entries
-        assert!(PRECOMPOSED_SOLIDUS_OVERLAY.0.len().is_multiple_of(2));
+        assert!(PRECOMPOSED_SOLIDUS_OVERLAY_SORTED.len().is_multiple_of(2));
         // Check that exactly half the entries are an idempotent mapping
         assert!(
-            PRECOMPOSED_SOLIDUS_OVERLAY
-                .0
+            PRECOMPOSED_SOLIDUS_OVERLAY_SORTED
                 .iter()
                 .filter(|[from, to]| from == to)
                 .count()
                 * 2
-                == PRECOMPOSED_SOLIDUS_OVERLAY.0.len()
+                == PRECOMPOSED_SOLIDUS_OVERLAY_SORTED.len()
         );
+        // Check that the binary search always returns the same result as a scan.
+        for &[key, value] in &PRECOMPOSED_SOLIDUS_OVERLAY_SORTED {
+            assert_eq!(
+                get_precomposed_solidus_overlay(char::try_from(key as u32).unwrap()),
+                Some(char::try_from(value as u32).unwrap())
+            );
+        }
     }
 
     /// Test every operation on a representative set of [`SuperChar`] values.
@@ -482,8 +503,7 @@ mod tests {
         // every character participating in the precomposed solidus-overlay table,
         // covering both the "has a precomposed form" and "is a precomposed form" cases
         .chain(
-            PRECOMPOSED_SOLIDUS_OVERLAY
-                .0
+            PRECOMPOSED_SOLIDUS_OVERLAY_SORTED
                 .iter()
                 .flat_map(|&[from, to]| [from, to])
                 .map(|cp| char::from_u32(cp.into()).unwrap()),
