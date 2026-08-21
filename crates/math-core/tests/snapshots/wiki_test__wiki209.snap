@@ -1,7 +1,0 @@
----
-source: crates/math-core/tests/wiki_test.rs
-expression: "\\boldsymbol{\\varXi \\varPi \\varSigma \\varUpsilon \\varOmega}"
----
-<math>
-    <mrow><mspace/><mi>𝜩𝜫𝜮𝜰𝜴</mi></mrow>
-</math>

@@ -1,7 +1,0 @@
----
-source: crates/math-core/tests/wiki_test.rs
-expression: "\\text{\\textsf{textual description}}"
----
-<math>
-    <mtext><span class="math-core-sans-serif-font">textual description</span></mtext>
-</math>
