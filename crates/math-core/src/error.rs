@@ -1,8 +1,8 @@
-use alloc::boxed::Box;
 use alloc::string::String;
 use core::fmt::{self, Write};
 use core::ops::Range;
 
+use kstring::KString;
 use strum_macros::IntoStaticStr;
 
 use crate::environments::Env;
@@ -22,9 +22,9 @@ pub(crate) enum LatexErrKind {
     ExpectedArgumentGotEOI,
     ExpectedDelimiter(DelimiterModifier),
     DisallowedChar(char),
-    UnknownEnvironment(Box<str>),
-    UnknownCommand(Box<str>),
-    UnknownColor(Box<str>),
+    UnknownEnvironment(KString),
+    UnknownCommand(KString),
+    UnknownColor(KString),
     MismatchedEnvironment {
         expected: Env,
         got: Env,
@@ -41,13 +41,13 @@ pub(crate) enum LatexErrKind {
     DuplicateSubOrSup,
     CannotBeUsedAsArgument,
     ExpectedAscii,
-    ExpectedLength(Box<str>),
+    ExpectedLength(KString),
     IllegalUnit {
-        unit: Box<str>,
+        unit: KString,
         math_unit_expected: bool,
     },
-    InvalidUnit(Box<str>),
-    ExpectedColSpec(Box<str>),
+    InvalidUnit(KString),
+    ExpectedColSpec(KString),
     ExpectedStyle,
     NotValidInTextMode,
     NotValidInMathMode,

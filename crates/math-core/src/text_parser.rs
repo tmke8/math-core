@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use kstring::KString;
 use mathml_renderer::{
     arena::StringBuilder,
     attribute::{HtmlTextSize, HtmlTextStyle},
@@ -289,7 +290,7 @@ impl<'arena> Parser<'_, 'arena> {
                                     return Err(Box::new(LatexError(
                                         span,
                                         LatexErrKind::IllegalUnit {
-                                            unit: unit.into(),
+                                            unit: KString::from_ref(unit),
                                             math_unit_expected: false,
                                         },
                                     )));
@@ -299,7 +300,7 @@ impl<'arena> Parser<'_, 'arena> {
                             None => {
                                 return Err(Box::new(LatexError(
                                     span,
-                                    LatexErrKind::ExpectedLength(voffset_str.into()),
+                                    LatexErrKind::ExpectedLength(KString::from_ref(voffset_str)),
                                 )));
                             }
                         };

@@ -62,6 +62,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
 
+use kstring::KString;
 use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -80,12 +81,11 @@ use mathml_renderer::{
 pub use self::error::LatexError;
 use self::{
     commands::resolve_builtin_cmd,
-    custom_cmds::{CmdSource, CustomCmds, is_valid_macro_name},
+    custom_cmds::{CmdSource, CustomCmds, RecordedToken, is_valid_macro_name},
     error::LatexErrKind,
     global_state::GlobalState,
     lexer::{Lexer, LexerOutput},
     parser::Parser,
-    string_pool::InternedStr,
     token::Token,
 };
 
@@ -421,7 +421,7 @@ fn emit(
     ast: Vec<&Node>,
     latex: &str,
     display: MathDisplay,
-    label_map: &FxHashMap<Box<str>, Box<str>>,
+    label_map: &FxHashMap<KString, KString>,
     arena: &Arena,
     flags: &EmitterConfig,
 ) -> ConvertResult {
@@ -512,7 +512,7 @@ fn parse<'arena>(
 /// Read the macros of the configuration into a store of custom commands.
 ///
 /// As in a body recorded from a `\newcommand`, every command is kept as a
-/// [`Token::UnresolvedCommand`] and only resolved when the macro is used. A macro may
+/// [`RecordedToken::CommandName`] and only resolved when the macro is used. A macro may
 /// therefore refer to a command which is not defined here at all, and in particular to another
 /// macro of the configuration, no matter in which order the two are given. Once all macros have
 /// been read, every one of those references must point at something, which is what the final
@@ -526,7 +526,7 @@ fn parse_custom_commands(
     let mut custom_cmds = CustomCmds::with_capacity(macros.len());
     // The names which have to be defined by the time all macros have been read, together with
     // the macro they appear in and their position within its definition.
-    let mut unresolved: Vec<(usize, InternedStr, Range<usize>)> = Vec::new();
+    let mut unresolved: Vec<(usize, KString, Range<usize>)> = Vec::new();
     let mut body = Vec::new();
     let parser_cfg = ParserConfig {
         unicode_substitution,
@@ -555,7 +555,6 @@ fn parse_custom_commands(
                     Ok(lexer_output) => {
                         let token = match lexer_output {
                             LexerOutput::CommandName(cmd_name, span) => {
-                                let interned = custom_cmds.intern(cmd_name);
                                 // We resolve the command here only to know whether it *can* be
                                 // resolved and to know its class. The actual resolution is done
                                 // when the macro is used.
@@ -564,9 +563,13 @@ fn parse_custom_commands(
                                         first_class = resolved.class();
                                     }
                                 } else {
-                                    unresolved.push((idx, interned, span.into()));
+                                    unresolved.push((
+                                        idx,
+                                        KString::from_ref(cmd_name),
+                                        span.into(),
+                                    ));
                                 }
-                                body.push(Token::UnresolvedCommand(CmdSource::Config, interned));
+                                body.push(RecordedToken::CommandName(KString::from_ref(cmd_name)));
                                 continue;
                             }
                             LexerOutput::Token(tokspan) => tokspan.into_token(),
@@ -577,13 +580,13 @@ fn parse_custom_commands(
                                 if n >= num_args {
                                     num_args = n + 1;
                                 }
-                                body.push(Token::CustomCmdArg(n));
+                                body.push(RecordedToken::Token(Token::CustomCmdArg(n)));
                             }
                             tok => {
                                 if first_class.is_none() {
                                     first_class = tok.class();
                                 }
-                                body.push(tok)
+                                body.push(RecordedToken::Token(tok))
                             }
                         }
                     }
@@ -604,9 +607,8 @@ fn parse_custom_commands(
     }
     // Now that all macros are known, every name which none of them defines is an error.
     for (idx, name, span) in unresolved {
-        let name = custom_cmds.cmd_names().get(name);
-        if custom_cmds.get(name, CmdSource::Config).is_none() {
-            let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name.into())));
+        if custom_cmds.get(&name, CmdSource::Config).is_none() {
+            let err = Box::new(LatexError(span, LatexErrKind::UnknownCommand(name)));
             return Err((err, idx, definitions.swap_remove(idx)));
         }
     }

@@ -3,6 +3,7 @@ use core::mem;
 use core::ops::Range;
 use core::str::CharIndices;
 
+use kstring::KString;
 use mathml_renderer::symbol;
 
 use crate::commands::get_operator_from_unicode;
@@ -289,7 +290,7 @@ impl<'source> Lexer<'source> {
             let Some(env) = Env::from_str(name) else {
                 break 'env_name Err(LatexError(
                     group_loc..end,
-                    LatexErrKind::UnknownEnvironment(name.into()),
+                    LatexErrKind::UnknownEnvironment(KString::from_ref(name)),
                 ));
             };
             let span = Span::new(span.start(), end);

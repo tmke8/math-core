@@ -1,10 +1,10 @@
 use alloc::borrow::Cow;
-use alloc::boxed::Box;
 use alloc::string::String;
 use core::fmt::Write;
 use core::num::NonZeroU16;
 
 use bitflags::bitflags;
+use kstring::KString;
 use percent_encoding::percent_encode;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -272,7 +272,7 @@ pub enum IndentKeyword {
 #[derive(Debug)]
 pub struct Emitter<'state> {
     s: String,
-    label_map: &'state FxHashMap<Box<str>, Box<str>>,
+    label_map: &'state FxHashMap<KString, KString>,
     css_classes: &'state CssClassNames,
     indentation: Indentation,
     warnings: Warnings,
@@ -281,7 +281,7 @@ pub struct Emitter<'state> {
 impl<'state> Emitter<'state> {
     pub fn new(
         s: String,
-        label_map: &'state FxHashMap<Box<str>, Box<str>>,
+        label_map: &'state FxHashMap<KString, KString>,
         css_classes: &'state CssClassNames,
         indentation: Indentation,
     ) -> Self {
