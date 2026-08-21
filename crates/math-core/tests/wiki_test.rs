@@ -7,10 +7,10 @@ use similar::TextDiff;
 
 use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
-/// Snippets from <https://en.wikipedia.org/wiki/Help:Displaying_a_formula>.
-///
-/// The numbers are the positions in the original list; the gaps are snippets we didn't port.
-const CONVERTIBLE: &[(u16, &str)] = &[
+/// Snippets from <https://en.wikipedia.org/wiki/Help:Displaying_a_formula>, numbered as on
+/// <https://temml.org/tests/wiki-tests>, which lays out the same list. The only gap is 257, which
+/// the Temml page is missing as well.
+const SNIPPETS: &[(u16, &str)] = &[
     (1, r"\alpha"),
     (2, r"f(x) = x^2"),
     (3, r"\{1,e,\pi\}"),
@@ -55,6 +55,7 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (27, r"s_k \equiv 0 \pmod{m}"),
     (28, r"a \bmod b"),
     (29, r"\gcd(m, n), \operatorname{lcm}(m, n)"),
+    (30, r"\mid, \nmid, \shortmid, \nshortmid"),
     (
         31,
         r"\surd, \sqrt{2}, \sqrt[n]{2}, \sqrt[3]{\frac{x^3+y^3}{2}}",
@@ -73,6 +74,7 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         42,
         r"\cup, \Cup, \sqcup, \bigcup, \bigsqcup, \uplus, \biguplus",
     ),
+    (43, r"\setminus, \smallsetminus, \times"),
     (44, r"\subset, \Subset, \sqsubset"),
     (45, r"\supset, \Supset, \sqsupset"),
     (
@@ -89,6 +91,14 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (
         51,
         r"\doteq, \doteqdot, \overset{\underset{\mathrm{def}}{}}{=}, :=",
+    ),
+    (
+        52,
+        r"\sim, \nsim, \backsim, \thicksim, \simeq, \backsimeq, \eqsim, \cong, \ncong",
+    ),
+    (
+        53,
+        r"\approx, \thickapprox, \approxeq, \asymp, \propto, \varpropto",
     ),
     (54, r"<, \nless, \ll, \not\ll, \lll, \not\lll, \lessdot"),
     (
@@ -113,6 +123,10 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (65, r"\succcurlyeq, \curlyeqsucc"),
     (66, r"\precsim, \precnsim, \precapprox, \precnapprox"),
     (67, r"\succsim, \succnsim, \succapprox, \succnapprox"),
+    (
+        68,
+        r"\parallel, \nparallel, \shortparallel, \nshortparallel",
+    ),
     (
         69,
         r"\perp, \angle, \sphericalangle, \measuredangle, 45^\circ",
@@ -178,6 +192,10 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         r"\diamondsuit, \heartsuit, \clubsuit, \spadesuit, \Game, \flat, \natural, \sharp",
     ),
     (
+        100,
+        r"\diagup \diagdown \centerdot \ltimes \rtimes \leftthreetimes \rightthreetimes",
+    ),
+    (
         101,
         r"\eqcirc \circeq \triangleq \bumpeq\Bumpeq \doteqdot \risingdotseq \fallingdotseq",
     ),
@@ -198,6 +216,7 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (107, r"10^{30} a^{2+2} \\ a_{i,j} b_{f'}"),
     (108, r"x_2^3 \\ {x_2}^3"),
     (109, r"10^{10^{8}}"),
+    (110, r"\sideset{_1^2}{_3^4}\prod_a^b \\ {}_1^2\!\Omega_3^4"),
     (
         111,
         r"\overset{\alpha}{\omega} \\ \underset{\alpha}{\omega} \\ \overset{\alpha}{\underset{\gamma}{\omega}}\\ \stackrel{\alpha}{\omega}",
@@ -212,17 +231,40 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (116, r"A \xleftarrow{n+\mu-1} B \xrightarrow[T]{n\pm i-1} C"),
     (117, r"\overbrace{ 1+2+\cdots+100 }^{5050}"),
     (118, r"\underbrace{ a+b+\cdots+z }_{26}"),
+    (119, r"\sum_{k=1}^N k^2"),
+    (120, r"\textstyle \sum_{k=1}^N k^2"),
+    (121, r"\frac{\sum_{k=1}^N k^2}{a}"),
+    (122, r"\frac{\sum\limits^{^N}_{k=1} k^2}{a}"),
+    (123, r"\prod_{i=1}^N x_i"),
+    (124, r"\textstyle \prod_{i=1}^N x_i"),
+    (125, r"\coprod_{i=1}^N x_i"),
+    (126, r"\textstyle \coprod_{i=1}^N x_i"),
+    (127, r"\lim_{n \to \infty}x_n"),
+    (128, r"\textstyle \lim_{n \to \infty}x_n"),
+    (129, r"\int\limits_{1}^{3}\frac{e^3/x}{x^2}\, dx"),
+    (130, r"\int_{1}^{3}\frac{e^3/x}{x^2}\, dx"),
+    (131, r"\textstyle \int\limits_{-N}^{N} e^x dx"),
+    (132, r"\textstyle \int_{-N}^{N} e^x dx"),
+    (133, r"\iint\limits_D dx\,dy"),
+    (134, r"\iiint\limits_E dx\,dy\,dz"),
+    (135, r"\iiiint\limits_F dx\,dy\,dz\,dt"),
+    (136, r"\int_{(x,y)\in C} x^3\, dx + 4y^2\, dy"),
+    (137, r"\oint_{(x,y)\in C} x^3\, dx + 4y^2\, dy"),
+    (138, r"\bigcap_{i=1}^n E_i"),
+    (139, r"\bigcup_{i=1}^n E_i"),
     (140, r"\frac{2}{4}=0.5\text{ or }{2 \over 4}=0.5"),
     (141, r"\frac{2}{4}=0.5"),
     (
         142,
         r"\dfrac{2}{4} = 0.5 \qquad \dfrac{2}{c + \dfrac{2}{d + \dfrac{2}{4}}} = a",
     ),
+    (143, r"\cfrac{2}{c+\cfrac{2}{d+\cfrac{2}{4}}} = a"),
     (
         144,
         r"\cfrac{x}{1 + \cfrac{\cancel{y}} {\cancel{y}}} = \cfrac{x}{2}",
     ),
     (145, r"\binom{n}{k}"),
+    (146, r"\tbinom{n}{k}"),
     (147, r"\dbinom{n}{k}"),
     (148, r"\begin{matrix} x & y \\ z & v \end{matrix}"),
     (149, r"\begin{vmatrix} x & y \\ z & v \end{vmatrix}"),
@@ -234,12 +276,44 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (152, r"\begin{Bmatrix} x & y \\ z & v \end{Bmatrix}"),
     (153, r"\begin{pmatrix} x & y \\ z & v \end{pmatrix}"),
     (
+        154,
+        r"\bigl( \begin{smallmatrix} a&b\\ c&d \end{smallmatrix} \bigr)",
+    ),
+    (
         155,
         r"f(n) = \begin{cases} n/2, & \text{if }n\text{ is even} \\ 3n+1, & \text{if }n\text{ is odd} \end{cases}",
     ),
     (
         156,
         r"\begin{cases} 3x + 5y + z \\ 7x - 2y + 4z \\ -6x + 3y + 2z \end{cases}",
+    ),
+    (
+        157,
+        r"\begin{align} f(x) & = (a+b)^2 \\ & = a^2+2ab+b^2 \\ \end{align}",
+    ),
+    (
+        158,
+        r"\begin{alignat}{2} f(x) & = (a+b)^2 \\ & = a^2+2ab+b^2 \\ \end{alignat}",
+    ),
+    (
+        159,
+        r"\begin{alignat}{3} f(a,b) & = (a+b)^2 && = (a+b)(a+b) \\ & = a^2+ab+ba+b^2 && = a^2+2ab+b^2 \\ \end{alignat}",
+    ),
+    (
+        160,
+        r"\begin{array}{lcl} z & = & a \\ f(x,y,z) & = & x + y + z \end{array}",
+    ),
+    (
+        161,
+        r"\begin{array}{lcr} z & = & a \\ f(x,y,z) & = & x + y + z \end{array}",
+    ),
+    (
+        162,
+        r"\begin{alignat}{4} F:\; && C(X) && \;\to\; & C(X) \\ && g && \;\mapsto\; & g^2 \end{alignat}",
+    ),
+    (
+        163,
+        r"\begin{alignat}{4} F:\; && C(X) && \;\to\; && C(X) \\ && g && \;\mapsto\; && g^2 \end{alignat}",
     ),
     (164, r"f(x) \,\!"),
     (
@@ -432,6 +506,10 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         r"\color{Blue}{x^2}+\color{Orange}{2x}- \color{LimeGreen}{1}",
     ),
     (
+        228,
+        r"\definecolor{myorange}{rgb}{1,0.65,0.4} \color{myorange}e^{i \pi}\color{Black} + 1= 0",
+    ),
+    (
         229,
         r"a \qquad b \\ a \quad b \\ a\ b \\ a \text{ } b \\ a\;b \\ a\,b \\ ab \\ a b \\ \mathit{ab} \\ a\!b",
     ),
@@ -441,13 +519,32 @@ const CONVERTIBLE: &[(u16, &str)] = &[
     (233, r"| \mathord\uparrow \rangle"),
     (234, r"\wideparen{AB}"),
     (235, r"\dddot{x}"),
+    (236, r"\operatorname*{median}_{j\,\ne\,i} X_{i,j}"),
     (237, r"\text{\sout{q}}"),
+    (238, r"\mathrlap{\,/}{=}"),
     (239, r"\text{\textsf{textual description}}"),
     (240, r"α π"),
     (241, r"ax^2 + bx + c = 0"),
     (242, r"x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}"),
     (243, r"\left( \frac{\left(3-x\right) \times 2}{3-x} \right)"),
+    (
+        244,
+        r"S_{\text{new}} = S_{\text{old}} - \frac{ \left( 5-T \right) ^2} {2}",
+    ),
+    (
+        245,
+        r"\int_a^x \int_a^s f(y)\,dy\,ds = \int_a^x f(y)(x-y)\,dy",
+    ),
+    (
+        246,
+        r"\int_e^{\infty}\frac {1}{t(\ln t)^2}dt = \left. \frac{-1}{\ln t} \right\vert_e^\infty = 1",
+    ),
     (247, r"\det(\mathsf{A}-\lambda\mathsf{I}) = 0"),
+    (248, r"\sum_{i=0}^{n-1} i"),
+    (
+        249,
+        r"\sum_{m=1}^\infty\sum_{n=1}^\infty \frac{m^2 n}{3^m\left(m 3^n + n 3^m\right)}",
+    ),
     (250, r"u'' + p(x)u' + q(x)u=f(x),\quad x>a"),
     (
         251,
@@ -459,6 +556,10 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         r"\phi_n(\kappa) = 0.033C_n^2\kappa^{-11/3}, \quad\frac{1}{L_0}\ll\kappa\ll\frac{1}{l_0}",
     ),
     (
+        254,
+        r"\phi_n(\kappa) = 0.033C_n^2\kappa^{-11/3}, \quad\frac{1}{L_0}\ll\kappa\ll\frac{1}{l_0}",
+    ),
+    (
         255,
         r"f(x) = \begin{cases} 1 & -1 \le x < 0 \\ \frac{1}{2} & x = 0 \\ 1 - x^2 & \text{otherwise} \end{cases}",
     ),
@@ -466,6 +567,7 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         256,
         r"{}_pF_q(a_1,\dots,a_p;c_1,\dots,c_q;z) = \sum_{n=0}^\infty \frac{(a_1)_n\cdots(a_p)_n} {(c_1)_n\cdots(c_q)_n}\frac{z^n}{n!}",
     ),
+    (258, r"\frac{a}{b}\ \tfrac{a}{b}"),
     (259, r"S=dD\sin\alpha"),
     (
         260,
@@ -475,38 +577,6 @@ const CONVERTIBLE: &[(u16, &str)] = &[
         261,
         r"\begin{align} u & = \tfrac{1}{\sqrt{2}}(x+y) \qquad & x &= \tfrac{1}{\sqrt{2}}(u+v) \\[0.6ex] v & = \tfrac{1}{\sqrt{2}}(x-y) \qquad & y &= \tfrac{1}{\sqrt{2}}(u-v) \end{align}",
     ),
-];
-
-/// Snippets that we cannot convert (yet). We run these as well, so that we notice when one of
-/// them starts working after all.
-const NOT_CONVERTIBLE: &[(u16, &str)] = &[
-    (30, r"\mid, \nmid, \shortmid, \nshortmid"),
-    (43, r"\setminus, \smallsetminus, \times"),
-    (
-        52,
-        r"\sim, \nsim, \backsim, \thicksim, \simeq, \backsimeq, \eqsim, \cong, \ncong",
-    ),
-    (
-        53,
-        r"\approx, \thickapprox, \approxeq, \asymp, \propto, \varpropto",
-    ),
-    (
-        68,
-        r"\parallel, \nparallel, \shortparallel, \nshortparallel",
-    ),
-    (
-        100,
-        r"\diagup \diagdown \centerdot \ltimes \rtimes \leftthreetimes \rightthreetimes",
-    ),
-    (
-        154,
-        r"\bigl( \begin{smallmatrix} a&b\\ c&d \end{smallmatrix} \bigr)",
-    ),
-    (
-        228,
-        r"\definecolor{myorange}{rgb}{1,0.65,0.4} \color{myorange}e^{i \pi}\color{Black} + 1= 0",
-    ),
-    (238, r"\mathrlap{\,/}{=}"),
 ];
 
 /// The section headings of the wiki page, each with the number of the first snippet below it.
@@ -554,6 +624,11 @@ const HEADINGS: &[(u16, &str)] = &[
     (234, "Wiki workarounds"),
     (241, "Examples of implemented TeX formulas"),
 ];
+
+/// The numbers of the snippets that we cannot convert (yet). They still get a row in the
+/// table, but with the conversion error in place of the output, so that we notice when one of
+/// them starts working after all.
+const FAILING: &[u16] = &[30, 43, 52, 53, 68, 100, 154, 158, 159, 162, 163, 228, 238];
 
 /// The accepted page, relative to the crate root.
 const ACCEPTED_PAGE: &str = "../../playground/wiki_test.html";
@@ -623,6 +698,16 @@ const HEADER: &str = r#"<!DOCTYPE html><html lang="en">
         code {
             white-space: pre-wrap;
         }
+        td.error {
+            color: #c00;
+            font-family: monospace;
+        }
+        math[display="block"] {
+            /* Left align like the wiki page does. Firefox centers block math with `text-align`,
+               Chrome with `justify-self`, so we have to override both. */
+            text-align: left;
+            justify-self: start;
+        }
     </style>
 <body>
 "#;
@@ -632,8 +717,8 @@ const FOOTER: &str = r#"    </table>
 </body></html>
 "#;
 
-/// Convert all snippets, render the convertible ones into an HTML page and compare that page
-/// against the accepted one in `playground/`.
+/// Convert all snippets, render them into an HTML page and compare that page against the
+/// accepted one in `playground/`.
 ///
 /// If the two differ, the new page is written to `tests/snapshots/wiki_test.html.new` and the
 /// difference is printed. To accept it, run:
@@ -643,14 +728,21 @@ const FOOTER: &str = r#"    </table>
 /// ```
 #[test]
 fn wiki_test() {
-    // Both the headings and the rows are emitted in one pass over `CONVERTIBLE`.
+    // Both the headings and the rows are emitted in one pass over `SNIPPETS`.
     assert!(
-        CONVERTIBLE.is_sorted_by_key(|&(num, _)| num),
-        "`CONVERTIBLE` must be sorted by number"
+        SNIPPETS.is_sorted_by_key(|&(num, _)| num),
+        "`SNIPPETS` must be sorted by number"
     );
     assert!(
         HEADINGS.is_sorted_by_key(|&(num, _)| num),
         "`HEADINGS` must be sorted by number"
+    );
+    assert!(
+        FAILING.is_sorted()
+            && FAILING
+                .iter()
+                .all(|n| SNIPPETS.iter().any(|&(num, _)| num == *n)),
+        "`FAILING` must be sorted and only list numbers that are in `SNIPPETS`"
     );
 
     let converter = LatexToMathML::new(MathCoreConfig {
@@ -668,9 +760,9 @@ fn wiki_test() {
     let mut toc = String::new();
     let mut rows = String::from("    <table>\n");
     let mut headings = HEADINGS.iter().peekable();
-    for &(num, latex) in CONVERTIBLE {
+    for &(num, latex) in SNIPPETS {
         // Emit the heading that this snippet falls under. If several are pending, only the last
-        // one gets a row: the earlier sections have no snippets that we can convert.
+        // one gets a row: the earlier sections have no snippets in our list.
         let mut section = None;
         while let Some(&&(start, title)) = headings.peek() {
             if start > num {
@@ -696,16 +788,34 @@ fn wiki_test() {
         }
 
         let latex = gather_line_breaks(latex);
-        let mathml = converter
-            .convert_with_local_state(&latex, MathDisplay::Block)
-            .unwrap_or_else(|e| panic!("snippet {num} failed to convert: `{latex}`\n{e}"))
-            .mathml;
         writeln!(rows, "        <tr id=\"n{num}\">").unwrap();
         writeln!(rows, "            <td><a href=\"#n{num}\">{num}</a></td>").unwrap();
         writeln!(rows, "            <td><code>{}</code></td>", escape(&latex)).unwrap();
-        rows.push_str("            <td>\n");
-        push_indented(&mut rows, &mathml, "                ");
-        rows.push_str("            </td>\n        </tr>\n");
+        match converter.convert_with_local_state(&latex, MathDisplay::Block) {
+            Ok(converted) => {
+                assert!(
+                    !FAILING.contains(&num),
+                    "snippet {num} converts now; remove it from `FAILING`: `{latex}`"
+                );
+                rows.push_str("            <td>\n");
+                push_indented(&mut rows, &converted.mathml, "                ");
+                rows.push_str("            </td>\n");
+            }
+            Err(e) => {
+                assert!(
+                    FAILING.contains(&num),
+                    "snippet {num} failed to convert: `{latex}`\n{e}"
+                );
+                // Show the error where the output would go, so that the page records it too.
+                writeln!(
+                    rows,
+                    "            <td class=\"error\">{}</td>",
+                    escape(&e.to_string())
+                )
+                .unwrap();
+            }
+        }
+        rows.push_str("        </tr>\n");
     }
 
     let mut generated = String::from(HEADER);
@@ -714,15 +824,6 @@ fn wiki_test() {
     generated.push_str("        </ul>\n    </nav>\n");
     generated.push_str(&rows);
     generated.push_str(FOOTER);
-
-    for &(num, latex) in NOT_CONVERTIBLE {
-        assert!(
-            converter
-                .convert_with_local_state(&gather_line_breaks(latex), MathDisplay::Block)
-                .is_err(),
-            "snippet {num} converts now; move it to `CONVERTIBLE`: `{latex}`"
-        );
-    }
 
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let generated_path = crate_root.join(GENERATED_PAGE);
