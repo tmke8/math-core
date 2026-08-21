@@ -276,6 +276,7 @@ pub struct Emitter<'state> {
     css_classes: &'state CssClassNames,
     indentation: Indentation,
     warnings: Warnings,
+    id_prefix: &'state str,
 }
 
 impl<'state> Emitter<'state> {
@@ -284,6 +285,7 @@ impl<'state> Emitter<'state> {
         label_map: &'state FxHashMap<Box<str>, Box<str>>,
         css_classes: &'state CssClassNames,
         indentation: Indentation,
+        id_prefix: &'state str,
     ) -> Self {
         Self {
             s,
@@ -291,6 +293,7 @@ impl<'state> Emitter<'state> {
             css_classes,
             indentation,
             warnings: Warnings::new(),
+            id_prefix,
         }
     }
 
@@ -799,9 +802,10 @@ impl<'state> Emitter<'state> {
                 };
                 write!(
                     self.s,
-                    r##"<mtext><a href="#{}">({})</a></mtext>"##,
-                    percent_encode(label.as_bytes(), FRAGMENT_SAFE),
-                    EscapeHtml(tag)
+                    r##"<mtext><a href="#{id_prefix}{id}">({text})</a></mtext>"##,
+                    id_prefix = self.id_prefix,
+                    id = percent_encode(label.as_bytes(), FRAGMENT_SAFE),
+                    text = EscapeHtml(tag),
                 )?;
             }
             Node::UnknownCommand(cmd_name) => {
@@ -859,6 +863,7 @@ impl<'state> Emitter<'state> {
                             label_info,
                             numbering_cols,
                             self.indentation,
+                            self.id_prefix,
                         )?;
                     }
                     writeln_indent!(self, child_indent, "</mtr>");
@@ -891,6 +896,7 @@ impl<'state> Emitter<'state> {
                 last_row_info,
                 numbering_cols,
                 self.indentation,
+                self.id_prefix,
             )?;
         }
         writeln_indent!(self, child_indent, "</mtr>");
@@ -984,6 +990,7 @@ fn write_equation_num(
     label_info: Option<&RowLabelInfo>,
     numbering_cols: NumberColums,
     indentation: Indentation,
+    id_prefix: &str,
 ) -> Result<(), core::fmt::Error> {
     numbering_cols.dummy_column_opening(s, child_indent2, indentation)?;
     if let Some(label_info) = label_info {
@@ -991,8 +998,8 @@ fn write_equation_num(
         if let Some(link_target) = label_info.link_target {
             write!(
                 s,
-                r#" id="{}">"#,
-                percent_encode(link_target.as_bytes(), FRAGMENT_SAFE)
+                r#" id="{id_prefix}{id}">"#,
+                id = percent_encode(link_target.as_bytes(), FRAGMENT_SAFE)
             )?;
         } else {
             write!(s, ">")?;
@@ -1069,7 +1076,13 @@ mod tests {
         let output = String::new();
         let label_map = FxHashMap::default();
         let css_classes = CssClassNames::default();
-        let mut emitter = Emitter::new(output, &label_map, &css_classes, Indentation::default());
+        let mut emitter = Emitter::new(
+            output,
+            &label_map,
+            &css_classes,
+            Indentation::default(),
+            "test-id-prefix-",
+        );
         emitter.emit(node, 0).unwrap();
         emitter.into_string()
     }
@@ -1498,6 +1511,14 @@ mod tests {
     }
 
     #[test]
+    fn render_eqref() {
+        assert_eq!(
+            render(&Node::EqRef("thing")),
+            "<mtext><a href=\"#test-id-prefix-thing\">(??)</a></mtext>"
+        );
+    }
+
+    #[test]
     fn render_sized_operator() {
         assert_eq!(
             render(&Node::Operator {
@@ -1603,6 +1624,53 @@ mod tests {
                 last_row_info: None,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_equation_array_with_link_target() {
+        let nodes = [
+            &Node::Number("1"),
+            &Node::ColumnSeparator,
+            &Node::Number("2"),
+            &Node::RowSeparator {
+                label_info: Some(&RowLabelInfo {
+                    tag: EquationTag {
+                        text: "1",
+                        parenthesized: true,
+                    },
+                    link_target: Some("eq:1"),
+                }),
+                border_top: None,
+            },
+            &Node::Number("3"),
+            &Node::ColumnSeparator,
+            &Node::Number("4"),
+        ];
+
+        let info_with_tag = RowLabelInfo {
+            tag: EquationTag {
+                text: "2",
+                parenthesized: true,
+            },
+            link_target: Some("eq:2"),
+        };
+        assert_eq!(
+            render(&Node::EquationArray {
+                content: &nodes,
+                align: Alignment::Centered,
+                last_row_info: Some(&info_with_tag),
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:2\"><mtext>(2)</mtext></mtd></mtr></mtable>"
+        );
+
+        assert_eq!(
+            render(&Node::EquationArray {
+                content: &nodes,
+                align: Alignment::Centered,
+                last_row_info: None,
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
     }
 

@@ -150,6 +150,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn maxExpansions(this: &MathCoreOptions) -> Option<u32>;
+
+    #[wasm_bindgen(method, getter)]
+    fn idPrefix(this: &MathCoreOptions) -> Option<String>;
 }
 
 #[wasm_bindgen]
@@ -225,6 +228,7 @@ impl LatexToMathML {
         } else {
             math_core::UnicodeSubstitution::default()
         };
+        let id_prefix = js_config.idPrefix();
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             macros: macros.unwrap_or_default(),
@@ -239,6 +243,7 @@ impl LatexToMathML {
             max_expansions: js_config
                 .maxExpansions()
                 .map_or_else(MaxExpansions::default, MaxExpansions),
+            id_prefix: id_prefix.unwrap_or_default(),
         };
         let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;
