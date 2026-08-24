@@ -322,16 +322,12 @@ impl LatexToMathML {
     #[cfg(feature = "all-conversions")]
     #[wasm_bindgen(unchecked_return_type = "string[]")]
     pub fn convert_all(&self, snippets: Vec<MathSnippet>) -> Result<JsValue, LatexError> {
-        let owned = snippets
+        let inputs: Vec<(String, MathDisplay)> = snippets
             .into_iter()
-            .map(|s| (s.latex(), s.displayStyle()))
-            .collect::<Vec<_>>();
-        let inputs: Vec<(&str, MathDisplay)> = owned
-            .iter()
-            .map(|(latex, display)| {
+            .map(|s| {
                 (
-                    latex.as_str(),
-                    if *display {
+                    s.latex(),
+                    if s.displayStyle() {
                         MathDisplay::Block
                     } else {
                         MathDisplay::Inline
@@ -346,14 +342,14 @@ impl LatexToMathML {
             .into_iter()
             .enumerate()
             .map(|(index, result)| {
-                let (latex, display) = inputs[index];
+                let (latex, display) = &inputs[index];
                 match result {
                     Ok(result) => Ok(JsValue::from_str(&result.mathml)),
                     Err(e) => {
                         if self.throw_on_error {
                             Err(conversion_error(&e, latex, Some(index as u32)))
                         } else {
-                            Ok(JsValue::from_str(&e.to_html(latex, display, None)))
+                            Ok(JsValue::from_str(&e.to_html(latex, *display, None)))
                         }
                     }
                 }

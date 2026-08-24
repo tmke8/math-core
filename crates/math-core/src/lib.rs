@@ -379,17 +379,18 @@ impl LatexToMathML {
     /// correctly. However, in order to achieve this, all snippets need to be parsed first and can
     /// only then be emitted. This means you have to first extract all LaTeX snippets from your
     /// document and then call this method with the whole set.
-    pub fn convert_all(
+    pub fn convert_all<S: AsRef<str>>(
         &self,
-        snippets: &[(&str, MathDisplay)],
+        snippets: &[(S, MathDisplay)],
     ) -> Vec<Result<ConvertResult, Box<LatexError>>> {
         let mut state = GlobalState::default();
         let arena = Arena::new();
         let ast_vec: Vec<ParseResult<(Vec<&Node<'_>>, &str, MathDisplay)>> = snippets
             .iter()
             .map(|(latex, display)| {
+                let latex = latex.as_ref();
                 parse(latex, &arena, &self.parser_cfg, &mut state, *display)
-                    .map(|ast| (ast, *latex, *display))
+                    .map(|ast| (ast, latex, *display))
             })
             .collect::<Vec<_>>();
         ast_vec
