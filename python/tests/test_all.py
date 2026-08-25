@@ -26,7 +26,7 @@ def test_exception():
         _ = converter.convert_with_local_state(r"öäüßx^", displaystyle=False)
 
     with raises(ValueError):
-        _ = LatexToMathML(pretty_print="sometimes")  # type: ignore
+        _ = LatexToMathML(pretty_print="sometimes")  # pyright: ignore[reportArgumentType]
 
 
 def test_fancy_error():
@@ -206,7 +206,7 @@ def test_convert_all_continue_on_error():
 def test_convert_all_invalid_input():
     converter = LatexToMathML()
     with raises(TypeError):
-        _ = converter.convert_all([(42, False)])  # type: ignore
+        _ = converter.convert_all([(42, False)])  # pyright: ignore[reportArgumentType]
 
 
 def test_convert_all_leaves_global_state_alone():

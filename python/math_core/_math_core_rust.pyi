@@ -16,7 +16,7 @@ class LatexToMathML:
         fancy_error: bool = True,
         unicode_substitution: Literal["never", "conventional"] = "conventional",
         max_expansions: int = 1000,
-        id_prefix: string = "",
+        id_prefix: str = "",
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
