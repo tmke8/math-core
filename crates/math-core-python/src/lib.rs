@@ -203,21 +203,17 @@ impl LatexToMathML {
     /// later snippet. This is why all snippets of a document have to be passed in at once.
     ///
     /// The conversion does not touch the global state; it uses a fresh state for the whole batch.
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "pyo3 can only extract into an owned collection"
-    )]
     fn convert_all<'a>(
         &self,
         snippets: Vec<(String, bool)>,
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyList>> {
-        let inputs: Vec<(&str, MathDisplay)> = snippets
-            .iter()
+        let inputs: Vec<(String, MathDisplay)> = snippets
+            .into_iter()
             .map(|(latex, displaystyle)| {
                 (
-                    latex.as_str(),
-                    if *displaystyle {
+                    latex,
+                    if displaystyle {
                         MathDisplay::Block
                     } else {
                         MathDisplay::Inline
@@ -234,11 +230,11 @@ impl LatexToMathML {
             .into_iter()
             .enumerate()
             .map(|(index, result)| {
-                let (latex, display) = inputs[index];
+                let (latex, display) = &inputs[index];
                 match result {
                     Err(latex_error) => {
                         if self.continue_on_error {
-                            Ok(latex_error.to_html(latex, display, None))
+                            Ok(latex_error.to_html(latex, *display, None))
                         } else {
                             Err(conversion_error(
                                 &latex_error,

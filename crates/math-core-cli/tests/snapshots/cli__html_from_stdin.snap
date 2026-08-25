@@ -1,0 +1,15 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "-"
+  stdin: "inline $a+b$ and block $$c$$\n"
+---
+success: true
+exit_code: 0
+----- stdout -----
+inline <math><mi>a</mi><mo>+</mo><mi>b</mi></math> and block <math display="block"><mi>c</mi></math>
+
+
+----- stderr -----

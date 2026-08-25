@@ -1,0 +1,20 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "--formula"
+    - "\\frac"
+---
+success: false
+exit_code: 2
+----- stdout -----
+
+----- stderr -----
+Error: Expected argument but reached end of input.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \frac
+   │      │ 
+   │      ╰─ expected an argument here
+───╯

@@ -1,0 +1,15 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "--formula"
+    - x^2
+    - "--block"
+---
+success: true
+exit_code: 0
+----- stdout -----
+<math display="block"><msup><mi>x</mi><mn>2</mn></msup></math>
+
+----- stderr -----

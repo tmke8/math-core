@@ -1,23 +1,37 @@
+use std::borrow::Cow;
 use std::fmt;
 
 use memchr::memmem::Finder;
 
-use math_core::{LatexError, MathDisplay};
+use math_core::{LatexError, MathDisplay, Warnings};
 
 use crate::html_entities::replace_html_entities;
 
 #[derive(Debug)]
-pub struct ConversionError<'source, 'buf>(usize, ConvErrKind<'buf>, &'source str);
+pub struct ConversionError<'source>(usize, ConvErrKind<'source>, &'source str);
 
 #[derive(Debug)]
-pub enum ConvErrKind<'buf> {
+pub enum ConvErrKind<'source> {
     UnclosedDelimiter,
     NestedDelimiters,
     MismatchedDelimiters(usize),
-    LatexError(LatexError, &'buf str),
+    /// A snippet failed to convert; carries the error and the snippet it occurred in.
+    LatexError(LatexError, Cow<'source, str>),
 }
 
-impl fmt::Display for ConversionError<'_, '_> {
+impl<'source> ConversionError<'source> {
+    /// Report that the snippet found at `site` failed to convert.
+    pub(crate) fn latex_error(
+        input: &'source str,
+        site: &Site,
+        latex: Cow<'source, str>,
+        error: LatexError,
+    ) -> Self {
+        ConversionError(site.offset, ConvErrKind::LatexError(error, latex), input)
+    }
+}
+
+impl fmt::Display for ConversionError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (line, col) = line_and_col(self.0, self.2);
         match &self.1 {
@@ -37,19 +51,65 @@ impl fmt::Display for ConversionError<'_, '_> {
                     "Mismatched delimiters: opening at line {line}, column {col}, closing at line {close_line}, column {close_col}."
                 )
             }
-            ConvErrKind::LatexError(e, input) => {
+            ConvErrKind::LatexError(e, snippet) => {
                 let source_name = "<input>";
-                let report = e.to_report(source_name, true);
+                let report = e.to_report(source_name, crate::use_color());
                 let mut buf = Vec::new();
                 report
-                    .write((source_name, ariadne::Source::from(*input)), &mut buf)
+                    .write((source_name, ariadne::Source::from(snippet)), &mut buf)
                     .expect("failed to write report");
                 f.write_str(std::str::from_utf8(&buf).expect("report should be valid UTF-8"))
             }
         }
     }
 }
-impl std::error::Error for ConversionError<'_, '_> {}
+impl std::error::Error for ConversionError<'_> {}
+
+/// A warning that the conversion of one snippet of a document produced.
+///
+/// Unlike a [`ConversionError`], a warning does not stop the conversion; it only points out that
+/// the resulting MathML is probably not what the author intended.
+#[derive(Debug)]
+pub struct SnippetWarning<'source>(usize, WarnKind, &'source str);
+
+#[derive(Debug)]
+enum WarnKind {
+    UndefinedReference,
+    UnknownCommand,
+}
+
+impl<'source> SnippetWarning<'source> {
+    /// The warnings that the snippet found at `site` produced, one per kind.
+    pub(crate) fn for_site(
+        input: &'source str,
+        site: &Site,
+        warnings: Warnings,
+    ) -> impl Iterator<Item = Self> {
+        let offset = site.offset;
+        [
+            warnings
+                .has_undefined_references()
+                .then_some(WarnKind::UndefinedReference),
+            warnings
+                .has_unknown_commands()
+                .then_some(WarnKind::UnknownCommand),
+        ]
+        .into_iter()
+        .flatten()
+        .map(move |kind| SnippetWarning(offset, kind, input))
+    }
+}
+
+impl fmt::Display for SnippetWarning<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (line, col) = line_and_col(self.0, self.2);
+        let what = match self.1 {
+            WarnKind::UndefinedReference => "undefined reference",
+            WarnKind::UnknownCommand => "unknown command",
+        };
+        write!(f, "{what} in the formula on line {line}, column {col}.")
+    }
+}
 
 /// Determine line and column numbers of `loc` within the input string.
 fn line_and_col(loc: usize, input: &str) -> (usize, usize) {
@@ -77,9 +137,26 @@ pub struct Replacer<'args> {
     opening_lengths: (usize, usize),
     closing_lengths: (usize, usize),
     closing_identical: bool,
-    /// A buffer for storing the result of replacing HTML entities.
-    entity_buffer: String,
     ignore_escaped_delim: bool,
+}
+
+/// Where a LaTeX snippet was found in the document.
+pub(crate) struct Site<'source> {
+    /// The document text between the previous snippet (or the start of the document) and this one.
+    pub(crate) preceding_text: &'source str,
+    /// The byte offset of the snippet's content within the document, for error reporting.
+    pub(crate) offset: usize,
+}
+
+/// A document split into LaTeX snippets and the text surrounding them.
+pub(crate) struct Scan<'source> {
+    /// The snippets in document order, in the shape [`math_core::LatexToMathML::convert_all`]
+    /// expects.
+    pub(crate) snippets: Vec<(Cow<'source, str>, MathDisplay)>,
+    /// Where each snippet came from; `sites[i]` belongs to `snippets[i]`.
+    pub(crate) sites: Vec<Site<'source>>,
+    /// The document text following the last snippet.
+    pub(crate) trailing_text: &'source str,
 }
 
 impl<'args> Replacer<'args> {
@@ -99,26 +176,24 @@ impl<'args> Replacer<'args> {
             opening_lengths: (inline_delim.0.len(), block_delim.0.len()),
             closing_lengths: (inline_delim.1.len(), block_delim.1.len()),
             closing_identical: inline_delim.1 == block_delim.1,
-            entity_buffer: String::new(),
             ignore_escaped_delim,
         }
     }
 
-    /// Replaces the content of inline and block math delimiters in a LaTeX string.
+    /// Finds all LaTeX snippets between inline and block math delimiters.
+    ///
+    /// The snippets are returned together with the surrounding document text, so that the
+    /// document can be reassembled once the snippets have been converted. Conversion cannot
+    /// happen during the scan, because [`math_core::LatexToMathML::convert_all`] needs to see all
+    /// snippets of a document at once in order to resolve forward references.
     ///
     /// Any kind of nesting of delimiters is not allowed.
-    #[inline(always)]
-    pub(crate) fn replace<'source, 'buf, F, S>(
-        &'buf mut self,
+    pub(crate) fn scan<'source>(
+        &self,
         input: &'source str,
-        state: &'buf mut S,
-        f: F,
-    ) -> Result<String, ConversionError<'source, 'buf>>
-    where
-        F: for<'a> Fn(&'a mut S, &mut String, &'a str, MathDisplay) -> Result<(), Box<LatexError>>,
-        'source: 'buf,
-    {
-        let mut result = String::with_capacity(input.len());
+    ) -> Result<Scan<'source>, ConversionError<'source>> {
+        let mut snippets = Vec::new();
+        let mut sites = Vec::new();
         let mut current_pos = 0;
 
         while current_pos < input.len() {
@@ -129,7 +204,6 @@ impl<'args> Replacer<'args> {
 
             let Some((open_typ, idx)) = opening else {
                 // No more opening delimiters found
-                result.push_str(remaining);
                 break;
             };
 
@@ -139,8 +213,8 @@ impl<'args> Replacer<'args> {
             };
 
             let open_pos = current_pos + idx;
-            // Append everything before the opening delimiter
-            result.push_str(&input[current_pos..open_pos]);
+            // Everything before the opening delimiter is copied verbatim later on.
+            let preceding_text = &input[current_pos..open_pos];
             // Skip the opening delimiter itself
             let start = open_pos + opening_delim_len;
             let remaining = &input[start..];
@@ -183,31 +257,20 @@ impl<'args> Replacer<'args> {
                 ));
             }
             // Replace HTML entities
-            let replaced = replace_html_entities(&mut self.entity_buffer, content);
-            // Convert the content and check for error.
-            let is_error = { f(state, &mut result, replaced, open_typ).is_err() };
-            if is_error {
-                // If we stop on error, return the error together with the snippet.
-                // Unfortunately, due to limitations in the borrow checker, we have to run the
-                // conversion again to get the error.
-                // The reason seems to be that the borrow checker cannot tell that when we
-                // return `replaced` here, we are not maintaining the borrow for the next
-                // iteration of the loop.
-                // This is quite unfortunate, but we only have to do this in the error case,
-                // which is hopefully not too common.
-                let replaced = replace_html_entities(&mut self.entity_buffer, content);
-                let latex_error = f(state, &mut result, replaced, open_typ).unwrap_err();
-                return Err(ConversionError(
-                    start,
-                    ConvErrKind::LatexError(*latex_error, replaced),
-                    input,
-                ));
-            }
+            snippets.push((replace_html_entities(content), open_typ));
+            sites.push(Site {
+                preceding_text,
+                offset: start,
+            });
             // Update current position
             current_pos = end + closing_delim_len;
         }
 
-        Ok(result)
+        Ok(Scan {
+            snippets,
+            sites,
+            trailing_text: &input[current_pos..],
+        })
     }
 
     /// Finds the next occurrence of either an inline or block delimiter.
@@ -311,45 +374,26 @@ mod tests {
     use super::*;
     use std::fmt::Write;
 
-    /// Mock convert function for testing
-    fn mock_convert(
-        _state: &mut (),
-        buf: &mut String,
-        content: &str,
-        typ: MathDisplay,
-    ) -> Result<(), Box<LatexError>> {
-        match typ {
-            MathDisplay::Inline => write!(buf, "[T1:{}]", content).unwrap(),
-            MathDisplay::Block => write!(buf, "[T2:{}]", content).unwrap(),
-        }
-        Ok(())
-    }
-
+    /// Scan the input and reassemble it, marking up the snippets instead of converting them.
     fn replace(
         input: &'static str,
         inline_delim: (&str, &str),
         block_delim: (&str, &str),
         ignore_escaped_delim: bool,
-    ) -> Result<String, ConversionError<'static, 'static>> {
-        let mut replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim);
-        match replacer.replace(input, &mut (), mock_convert) {
-            Ok(s) => Ok(s),
-            Err(e) => match &e.1 {
-                // The following is needed to do a kind of "lifetime laundering".
-                ConvErrKind::MismatchedDelimiters(close) => Err(ConversionError(
-                    e.0,
-                    ConvErrKind::MismatchedDelimiters(*close),
-                    input,
-                )),
-                ConvErrKind::NestedDelimiters => {
-                    Err(ConversionError(e.0, ConvErrKind::NestedDelimiters, input))
-                }
-                ConvErrKind::UnclosedDelimiter => {
-                    Err(ConversionError(e.0, ConvErrKind::UnclosedDelimiter, input))
-                }
-                ConvErrKind::LatexError(_, _) => unreachable!(),
-            },
+    ) -> Result<String, ConversionError<'static>> {
+        let replacer = Replacer::new(inline_delim, block_delim, ignore_escaped_delim);
+        let scan = replacer.scan(input)?;
+
+        let mut result = String::new();
+        for ((latex, display), site) in scan.snippets.iter().zip(&scan.sites) {
+            result.push_str(site.preceding_text);
+            match display {
+                MathDisplay::Inline => write!(result, "[T1:{latex}]").unwrap(),
+                MathDisplay::Block => write!(result, "[T2:{latex}]").unwrap(),
+            }
         }
+        result.push_str(scan.trailing_text);
+        Ok(result)
     }
 
     #[test]
@@ -607,39 +651,4 @@ mod tests {
             "based on its length, [T1:P(p)=2^{-len(p)}], and then for a given\n    [T2:\n    P(p)=2^{-len(p)}\n    ]\n    Hello."
         );
     }
-
-    // #[test]
-    // fn test_error() {
-    //     let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"), false, false);
-    //     let input = r"let \(&amp;=1\).";
-    //     let mut unit = ();
-    //     // This conversion function always returns an error.
-    //     let err = replacer
-    //         .replace(input, &mut unit, |_state, _buf, _content, _typ| {
-    //             Err(LatexError(0, LatexErrKind::UnexpectedEOI))
-    //         })
-    //         .unwrap_err();
-    //     std::assert_matches!(
-    //         err,
-    //         ConversionError(
-    //             6,
-    //             ConvErrKind::LatexError(LatexError(0, LatexErrKind::UnexpectedEOI), "&=1"),
-    //             _
-    //         )
-    //     );
-    // }
-
-    // #[test]
-    // fn test_error_multiline() {
-    //     let mut replacer = Replacer::new((r"\(", r"\)"), (r"\[", r"\]"), false, false);
-    //     let input = "hello world\nlet\\(&amp;=1\\).";
-    //     let mut unit = ();
-    //     // This conversion function always returns an error.
-    //     let err = replacer
-    //         .replace(input, &mut unit, |_state, _buf, _content, _typ| {
-    //             Err(LatexError(0, LatexErrKind::UnexpectedEOI))
-    //         })
-    //         .unwrap_err();
-    //     assert!(format!("{err}").contains("line 2, column 6"));
-    // }
 }

@@ -1,0 +1,14 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "-"
+  stdin: "mismatch $$ and $ signs\n"
+---
+success: false
+exit_code: 2
+----- stdout -----
+
+----- stderr -----
+Conversion error: Mismatched delimiters: opening at line 1, column 10, closing at line 1, column 17.

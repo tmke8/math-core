@@ -1,0 +1,13 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args: []
+  stdin: a + b
+---
+success: true
+exit_code: 0
+----- stdout -----
+<math><mi>a</mi><mo>+</mo><mi>b</mi></math>
+
+----- stderr -----

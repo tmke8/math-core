@@ -1,0 +1,18 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "--inline-open"
+    - "\\("
+    - "--inline-close"
+    - "\\)"
+    - "-"
+  stdin: "let \\(a=1\\) and $not math$"
+---
+success: true
+exit_code: 0
+----- stdout -----
+let <math><mi>a</mi><mo>=</mo><mn>1</mn></math> and $not math$
+
+----- stderr -----
