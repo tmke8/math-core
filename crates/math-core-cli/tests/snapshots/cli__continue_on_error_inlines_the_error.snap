@@ -1,0 +1,16 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "-"
+    - "--continue-on-error"
+  stdin: "good $x$ then bad $\\frac$\n"
+---
+success: true
+exit_code: 0
+----- stdout -----
+good <math><mi>x</mi></math> then bad <span class="math-core-error" title="5: Expected argument but reached end of input."><code>\frac</code></span>
+
+
+----- stderr -----

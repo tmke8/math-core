@@ -1,0 +1,15 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "-"
+  stdin: "$a &lt; b$ and $x &gt; y$\n"
+---
+success: true
+exit_code: 0
+----- stdout -----
+<math><mi>a</mi><mo>&lt;</mo><mi>b</mi></math> and <math><mi>x</mi><mo>&gt;</mo><mi>y</mi></math>
+
+
+----- stderr -----

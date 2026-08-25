@@ -1,0 +1,16 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - "--config-file"
+    - nope.toml
+    - "--formula"
+    - x
+---
+success: false
+exit_code: 3
+----- stdout -----
+
+----- stderr -----
+Config file 'nope.toml' not found

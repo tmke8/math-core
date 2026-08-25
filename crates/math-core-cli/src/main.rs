@@ -1,7 +1,8 @@
 use std::{
     fs,
-    io::{Read, Write},
+    io::{IsTerminal, Read, Write},
     path::{Path, PathBuf},
+    sync::LazyLock,
 };
 
 use clap::Parser;
@@ -301,8 +302,57 @@ fn convert_html(
     }
 }
 
+/// Whether error reports should be colorized.
+///
+/// The rules are the same ones `clap` applies to its own colored output, so that the whole binary
+/// behaves consistently. See [`decide_color`].
+pub(crate) fn use_color() -> bool {
+    /// The convention both color variables use: set to anything other than the empty string.
+    fn is_set(var: &str) -> bool {
+        std::env::var_os(var).is_some_and(|value| !value.is_empty())
+    }
+
+    /// Whether `TERM` describes a terminal that cannot display colors.
+    ///
+    /// On Windows `TERM` is usually not set even though the console does support colors, so the
+    /// variable is only consulted on unix.
+    fn terminal_is_dumb() -> bool {
+        cfg!(unix)
+            && match std::env::var_os("TERM") {
+                Some(term) => term == "dumb",
+                None => true,
+            }
+    }
+
+    static USE_COLOR: LazyLock<bool> = LazyLock::new(|| {
+        decide_color(
+            is_set("NO_COLOR"),
+            is_set("CLICOLOR_FORCE"),
+            terminal_is_dumb(),
+            // Both kinds of report are written to stderr.
+            std::io::stderr().is_terminal(),
+        )
+    });
+    *USE_COLOR
+}
+
+/// Decide whether to colorize, given the state of the environment.
+///
+/// 1. `NO_COLOR` turns colors off (<https://no-color.org/>).
+/// 2. Otherwise `CLICOLOR_FORCE` turns them on. This is how colors can be kept when piping into a
+///    pager or capturing a CI log.
+/// 3. Otherwise colors are used only when stderr is a terminal that can display them.
+fn decide_color(
+    no_color: bool,
+    clicolor_force: bool,
+    terminal_is_dumb: bool,
+    is_terminal: bool,
+) -> bool {
+    !no_color && (clicolor_force || (is_terminal && !terminal_is_dumb))
+}
+
 fn render_ariadne_report(error: &LatexError, source_name: &str, input: &str) {
-    let report = error.to_report(source_name, true);
+    let report = error.to_report(source_name, use_color());
     report
         .eprint((source_name, ariadne::Source::from(input)))
         .expect("failed to write report");
@@ -324,6 +374,39 @@ fn exit_io_error(e: &std::io::Error) -> ! {
 
 #[cfg(test)]
 mod tests {
+
+    /// Check that the `clap` argument definitions are internally consistent, e.g. that every
+    /// `conflicts_with` and `requires` refers to an argument that actually exists.
+    #[test]
+    fn cli_definition_is_valid() {
+        use clap::CommandFactory;
+
+        crate::Args::command().debug_assert();
+    }
+
+    /// The full truth table of [`crate::decide_color`]. The wiring to the actual environment is
+    /// covered end to end by `tests/cli.rs`; the dumb-terminal case needs a real terminal and so
+    /// can only be checked here.
+    #[test]
+    fn color_decision() {
+        use crate::decide_color;
+
+        // NO_COLOR beats everything else.
+        for &clicolor_force in &[false, true] {
+            for &dumb in &[false, true] {
+                for &is_terminal in &[false, true] {
+                    assert!(!decide_color(true, clicolor_force, dumb, is_terminal));
+                }
+            }
+        }
+        // CLICOLOR_FORCE beats the terminal detection, dumb terminal included.
+        assert!(decide_color(false, true, false, false));
+        assert!(decide_color(false, true, true, false));
+        // Otherwise: only a non-dumb terminal gets colors.
+        assert!(decide_color(false, false, false, true));
+        assert!(!decide_color(false, false, true, true));
+        assert!(!decide_color(false, false, false, false));
+    }
 
     #[test]
     fn full_test() {

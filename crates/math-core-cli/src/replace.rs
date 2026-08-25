@@ -53,7 +53,7 @@ impl fmt::Display for ConversionError<'_> {
             }
             ConvErrKind::LatexError(e, snippet) => {
                 let source_name = "<input>";
-                let report = e.to_report(source_name, true);
+                let report = e.to_report(source_name, crate::use_color());
                 let mut buf = Vec::new();
                 report
                     .write((source_name, ariadne::Source::from(snippet)), &mut buf)
