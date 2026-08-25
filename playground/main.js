@@ -88,8 +88,8 @@ async function generateLink() {
 
   // Generate the URL
   const currentUrl = window.location.origin + window.location.pathname;
-  /** @type {HTMLFormElement} */
-  const optionsForm = document.getElementById("optionsForm");
+
+  const optionsForm = /** @type {HTMLFormElement} */ (document.getElementById("optionsForm"));
   let generatedUrl = `${currentUrl}#input:${encodedContent}`;
   for (let key of ["math-font", "prettyprint", "displaystyle"]) {
     const option = optionsForm.elements.namedItem(key);
@@ -118,8 +118,8 @@ async function loadFromUrl() {
       console.assert(inputField instanceof HTMLTextAreaElement);
       inputField.value = decodedContent;
 
-      /** @type {HTMLFormElement} */
-      const optionsForm = document.getElementById("optionsForm");
+
+      const optionsForm = /** @type {HTMLFormElement} */ (document.getElementById("optionsForm"));
       for (let param of params) {
         const [key, value] = param.split(":");
         const item = optionsForm.elements.namedItem(key);
@@ -349,7 +349,7 @@ function formatError(input, errorStart, errorEnd, errorMessage, errorLabel, sour
   // ("│") and corners ("╭"/"╯") all sit in the same column.
   const lineNo = String(line);
   const gutter = ' '.repeat(lineNo.length + 2);
-  const numberedGutter = ` ${lineNo} `;
+  const numGut = ` ${lineNo} `;
 
   // The underline row carries two trailing spaces, and the label's horizontal
   // line extends two columns past the end of the underline before the text.
@@ -361,7 +361,7 @@ function formatError(input, errorStart, errorEnd, errorMessage, errorLabel, sour
     `Error: ${errorMessage}`,
     `${gutter}╭─[ ${sourceName}:${line}:${column} ]`,
     `${gutter}│`,
-    `${numberedGutter}│ ${contextString}`,
+    `${numGut}│ ${contextString}`,
     `${gutter}│ ${underlineRow}`,
     `${gutter}│ ${labelRow}`,
     `${'─'.repeat(gutter.length)}╯`,
@@ -501,7 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Update the style rule when selection changes
-  fontSelect.addEventListener("change", function () {
+  fontSelect.addEventListener("change", function() {
     const featureSettings = fontFeaturesMap[this.value]
       ? fontFeaturesMap[this.value]
       : "";

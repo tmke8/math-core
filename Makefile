@@ -1,7 +1,7 @@
 WASM_TARGET := web
 PACKAGE := math-core-wasm
 PKG_DIR := playground/pkg
-FLAGS := --no-typescript
+FLAGS :=
 
 WASM_FILE := $(subst -,_,$(PACKAGE)).wasm
 BINDGEN_OUTPUT := $(subst -,_,$(PACKAGE))_bg.wasm
