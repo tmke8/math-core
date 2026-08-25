@@ -3,7 +3,7 @@ use std::fmt;
 
 use memchr::memmem::Finder;
 
-use math_core::{LatexError, MathDisplay};
+use math_core::{LatexError, MathDisplay, Warnings};
 
 use crate::html_entities::replace_html_entities;
 
@@ -64,6 +64,52 @@ impl fmt::Display for ConversionError<'_> {
     }
 }
 impl std::error::Error for ConversionError<'_> {}
+
+/// A warning that the conversion of one snippet of a document produced.
+///
+/// Unlike a [`ConversionError`], a warning does not stop the conversion; it only points out that
+/// the resulting MathML is probably not what the author intended.
+#[derive(Debug)]
+pub struct SnippetWarning<'source>(usize, WarnKind, &'source str);
+
+#[derive(Debug)]
+enum WarnKind {
+    UndefinedReference,
+    UnknownCommand,
+}
+
+impl<'source> SnippetWarning<'source> {
+    /// The warnings that the snippet found at `site` produced, one per kind.
+    pub(crate) fn for_site(
+        input: &'source str,
+        site: &Site,
+        warnings: Warnings,
+    ) -> impl Iterator<Item = Self> {
+        let offset = site.offset;
+        [
+            warnings
+                .has_undefined_references()
+                .then_some(WarnKind::UndefinedReference),
+            warnings
+                .has_unknown_commands()
+                .then_some(WarnKind::UnknownCommand),
+        ]
+        .into_iter()
+        .flatten()
+        .map(move |kind| SnippetWarning(offset, kind, input))
+    }
+}
+
+impl fmt::Display for SnippetWarning<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (line, col) = line_and_col(self.0, self.2);
+        let what = match self.1 {
+            WarnKind::UndefinedReference => "undefined reference",
+            WarnKind::UnknownCommand => "unknown command",
+        };
+        write!(f, "{what} in the formula on line {line}, column {col}.")
+    }
+}
 
 /// Determine line and column numbers of `loc` within the input string.
 fn line_and_col(loc: usize, input: &str) -> (usize, usize) {

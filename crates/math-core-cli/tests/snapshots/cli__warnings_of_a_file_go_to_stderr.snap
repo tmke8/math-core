@@ -1,0 +1,16 @@
+---
+source: crates/math-core-cli/tests/cli.rs
+info:
+  program: mathcore
+  args:
+    - doc.html
+---
+success: true
+exit_code: 0
+----- stdout -----
+<p>See <math><mtext><a href="#nope">(??)</a></mtext></math> and
+later <math><mtext><a href="#alsonope">(??)</a></mtext></math>.</p>
+
+----- stderr -----
+Warning in 'doc.html': undefined reference in the formula on line 1, column 9.
+Warning in 'doc.html': undefined reference in the formula on line 2, column 8.

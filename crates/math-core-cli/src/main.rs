@@ -13,7 +13,7 @@ mod config_file;
 mod html_entities;
 mod replace;
 
-use replace::{ConversionError, Replacer};
+use replace::{ConversionError, Replacer, SnippetWarning};
 
 static DEFAULT_CONFIG_FILE: &str = "mathcore.toml";
 
@@ -172,8 +172,9 @@ fn main() {
         if fpath == &PathBuf::from("-") {
             let input = read_stdin();
             match replace(&replacer, &input, &converter, args.continue_on_error) {
-                Ok(mathml) => {
-                    println!("{mathml}");
+                Ok(converted) => {
+                    print_warnings(&converted.warnings, None);
+                    println!("{}", converted.html);
                 }
                 Err(e) => exit_conversion_error(e, None),
             }
@@ -228,17 +229,21 @@ fn replace<'source>(
     input: &'source str,
     converter: &LatexToMathML,
     continue_on_error: bool,
-) -> Result<String, ConversionError<'source>> {
+) -> Result<Converted<'source>, ConversionError<'source>> {
     let scan = replacer.scan(input)?;
     let converted = converter.convert_all(&scan.snippets);
 
     let mut result = String::with_capacity(input.len());
+    let mut warnings = Vec::new();
     for (((latex, display), site), converted) in
         scan.snippets.into_iter().zip(&scan.sites).zip(converted)
     {
         result += site.preceding_text;
         match converted {
-            Ok(converted) => result += &converted.mathml,
+            Ok(converted) => {
+                result += &converted.mathml;
+                warnings.extend(SnippetWarning::for_site(input, site, converted.warnings));
+            }
             Err(err) if continue_on_error => {
                 result += &err.to_html(&latex, display, None);
             }
@@ -246,7 +251,17 @@ fn replace<'source>(
         }
     }
     result += scan.trailing_text;
-    Ok(result)
+    Ok(Converted {
+        html: result,
+        warnings,
+    })
+}
+
+/// A converted document, together with everything worth telling the user about the conversion.
+struct Converted<'source> {
+    html: String,
+    /// The warnings of all snippets of the document, in document order.
+    warnings: Vec<SnippetWarning<'source>>,
 }
 
 /// Convert all LaTeX equations in all HTML files under a given directory.
@@ -288,17 +303,18 @@ fn convert_html(
     let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(&e));
     let converted = replace(replacer, &original, converter, args.continue_on_error)
         .unwrap_or_else(|e| exit_conversion_error(e, Some(fp)));
+    print_warnings(&converted.warnings, Some(fp));
     if args.dry_run {
         return;
     }
     if write {
-        if original != converted {
+        if original != converted.html {
             let mut fp = fs::File::create(fp).unwrap_or_else(|e| exit_io_error(&e));
-            fp.write_all(converted.as_bytes())
+            fp.write_all(converted.html.as_bytes())
                 .unwrap_or_else(|e| exit_io_error(&e));
         }
     } else {
-        print!("{converted}");
+        print!("{}", converted.html);
     }
 }
 
@@ -356,6 +372,22 @@ fn render_ariadne_report(error: &LatexError, source_name: &str, input: &str) {
     report
         .eprint((source_name, ariadne::Source::from(input)))
         .expect("failed to write report");
+}
+
+/// Report the warnings of a converted document on stderr, one per line.
+///
+/// The whole document is converted before any of it is written out, so every warning is known by
+/// the time the first byte of the result is printed. Emitting them here therefore puts all of them
+/// ahead of the document itself, which keeps them readable when stdout and stderr both go to the
+/// same terminal. Writing the document in pieces would lose that property.
+fn print_warnings(warnings: &[SnippetWarning], fp: Option<&Path>) {
+    for warning in warnings {
+        eprint!("Warning");
+        if let Some(fp) = fp {
+            eprint!(" in '{}'", fp.display());
+        }
+        eprintln!(": {warning}");
+    }
 }
 
 fn exit_conversion_error<E: std::error::Error>(e: E, fp: Option<&Path>) -> ! {
@@ -427,7 +459,7 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
             math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
         let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let mathml = crate::replace(&replacer, text, &converter, false).unwrap();
-        println!("{}", mathml);
+        println!("{}", mathml.html);
     }
 
     /// A reference to an equation that is only defined further down the document has to resolve.
@@ -439,9 +471,9 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
         let converter =
             math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
         let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
-        let mathml = crate::replace(&replacer, text, &converter, false).unwrap();
+        let converted = crate::replace(&replacer, text, &converter, false).unwrap();
         // The `\eqref` has to render as a reference to equation (1), not as an unresolved one.
-        let reference = mathml.split_once("</p>").unwrap().0;
+        let reference = converted.html.split_once("</p>").unwrap().0;
         assert!(
             reference.contains("(1)"),
             "unresolved reference: {reference}"
@@ -457,7 +489,9 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
         // Without `continue_on_error`, the bad snippet aborts the whole conversion.
         assert!(crate::replace(&replacer, text, &converter, false).is_err());
         // With it, the error is rendered inline and the other snippets still convert.
-        let mathml = crate::replace(&replacer, text, &converter, true).unwrap();
+        let mathml = crate::replace(&replacer, text, &converter, true)
+            .unwrap()
+            .html;
         assert!(mathml.starts_with("good <math"));
         assert!(mathml.ends_with("</math>"));
     }

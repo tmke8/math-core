@@ -5,8 +5,9 @@
 //! that cargo builds for this test run, via `CARGO_BIN_EXE_mathcore`.
 
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
 
 // `pass_stdin` resolves through the `SpawnExt` trait that `assert_cmd_snapshot!` brings into
 // scope itself, so the trait does not need to be imported here.
@@ -20,6 +21,12 @@ const FORWARD_REF_DOC: &str = r"<p>See $\eqref{eq:a}$.</p>
 
 /// A document with a single numbered equation and a reference to it.
 const NUMBERED_DOC: &str = r"<p>$$\begin{align} a = 1 \label{eq:x}\end{align}$$ and $\eqref{eq:x}$</p>
+";
+
+/// A document that converts without an error but refers to an equation that is never defined,
+/// which `math-core` reports as a warning.
+const UNDEFINED_REF_DOC: &str = r"<p>See $\eqref{nope}$ and
+later $\eqref{alsonope}$.</p>
 ";
 
 /// Run the `mathcore` binary that cargo built for this test run.
@@ -53,6 +60,24 @@ fn write(dir: &Path, name: &str, content: &str) -> PathBuf {
     }
     fs::write(&path, content).expect("failed to write file");
     path
+}
+
+/// Run a command with `input` on stdin and collect its output.
+///
+/// `insta_cmd`'s `pass_stdin` only leads into a snapshot assertion, so tests that want to look at
+/// the output themselves pipe stdin by hand.
+fn run_with_stdin(mut cmd: Command, input: &str) -> Output {
+    cmd.stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = cmd.spawn().expect("failed to run mathcore");
+    child
+        .stdin
+        .take()
+        .expect("stdin was not piped")
+        .write_all(input.as_bytes())
+        .expect("failed to write to stdin");
+    child.wait_with_output().expect("failed to run mathcore")
 }
 
 fn read(path: &Path) -> String {
@@ -370,6 +395,55 @@ fn dry_run_writes_nothing() {
     assert!(out.status.success());
     assert!(out.stdout.is_empty());
     assert_eq!(read(&file), NUMBERED_DOC, "--dry-run modified the file");
+}
+
+/// Warnings are reported for every snippet of the file that produced one, prefixed with the name
+/// of the file they were found in.
+#[test]
+fn warnings_of_a_file_go_to_stderr() {
+    let dir = empty_dir();
+    write(dir.path(), "doc.html", UNDEFINED_REF_DOC);
+    settings().bind(|| {
+        assert_cmd_snapshot!(mathcore(dir.path()).arg("doc.html"));
+    });
+}
+
+/// In `--write` mode there is no converted document on stdout, but the warnings still show up on
+/// stderr.
+#[test]
+fn warnings_are_printed_when_writing_in_place() {
+    let dir = empty_dir();
+    write(dir.path(), "doc.html", UNDEFINED_REF_DOC);
+    let out = mathcore(dir.path())
+        .args(["--write", "doc.html"])
+        .output()
+        .expect("failed to run mathcore");
+
+    assert!(out.status.success());
+    assert!(out.stdout.is_empty(), "--write should not print the result");
+    assert_eq!(
+        String::from_utf8_lossy(&out.stderr).lines().count(),
+        2,
+        "expected one warning per undefined reference"
+    );
+}
+
+/// A document that came in through stdin has no file name to prefix the warnings with, but the
+/// line and column still locate them in the input that was piped in.
+#[test]
+fn warnings_of_stdin_are_printed_without_a_file_name() {
+    let dir = empty_dir();
+    let mut cmd = mathcore(dir.path());
+    cmd.arg("-");
+    let out = run_with_stdin(cmd, UNDEFINED_REF_DOC);
+
+    assert!(out.status.success());
+    assert!(String::from_utf8_lossy(&out.stdout).contains("<math"));
+    assert_eq!(
+        String::from_utf8_lossy(&out.stderr),
+        "Warning: undefined reference in the formula on line 1, column 9.\n\
+         Warning: undefined reference in the formula on line 2, column 8.\n"
+    );
 }
 
 #[test]
