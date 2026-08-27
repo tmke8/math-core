@@ -227,7 +227,8 @@ pub struct MathCoreConfig {
     /// See [`MaxExpansions`].
     pub max_expansions: MaxExpansions,
     /// Add this string to the start of every generated `id` attribute.
-    /// This is *not* URL escaped. Use the [`percent_encoding`] crate if you need to.
+    /// This is *not* URL escaped. Use the
+    /// [percent-encoding](https://crates.io/crates/percent-encoding) crate if you need to.
     pub id_prefix: String,
 }
 
