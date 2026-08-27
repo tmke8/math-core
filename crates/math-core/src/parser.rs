@@ -1095,20 +1095,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let bounds = bounds_limits.bounds;
 
                 let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
-                let (use_underover, attrs) = match (bounds_limits.limits(), limits_by_default) {
-                    _ if bounds.is_trivial() => (false, OpAttrs::empty()),
-                    (None, true) | (Some(LimitsKind::Display), _) => {
-                        (true, OpAttrs::FORCE_MOVABLE_LIMITS)
-                    }
-                    (None, false) | (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
-                    (Some(LimitsKind::Always), _) => (true, OpAttrs::empty()),
-                };
+                let (use_underover, force_movable_limits) =
+                    match (bounds_limits.limits(), limits_by_default) {
+                        _ if bounds.is_trivial() => (false, false),
+                        (None, true) | (Some(LimitsKind::Display), _) => (true, true),
+                        (None, false) | (Some(LimitsKind::Never), _) => (false, false),
+                        (Some(LimitsKind::Always), _) => (true, false),
+                    };
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let target = self.commit(Node::PseudoOp {
-                    attrs,
+                    force_movable_limits,
                     left,
                     right,
                     name,
@@ -1183,7 +1182,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                     Node::PseudoOp {
                         name,
-                        attrs,
+                        force_movable_limits,
                         left,
                         right,
                     } => {
@@ -1195,7 +1194,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         let name = builder.finish(self.arena);
                         Ok(Node::PseudoOp {
                             name,
-                            attrs,
+                            force_movable_limits,
                             left,
                             right,
                         })
@@ -1568,20 +1567,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let bounds_limits = self.get_bounds(None)?;
                 let bounds = bounds_limits.bounds;
 
-                let (use_underover, attrs) = match (bounds_limits.limits(), with_limits) {
-                    _ if bounds.is_trivial() => (false, OpAttrs::empty()),
-                    (None, true) | (Some(LimitsKind::Display), _) => {
-                        (true, OpAttrs::FORCE_MOVABLE_LIMITS)
-                    }
-                    (None, false) | (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
-                    (Some(LimitsKind::Always), _) => (true, OpAttrs::empty()),
-                };
+                let (use_underover, force_movable_limits) =
+                    match (bounds_limits.limits(), with_limits) {
+                        _ if bounds.is_trivial() => (false, false),
+                        (None, true) | (Some(LimitsKind::Display), _) => (true, true),
+                        (None, false) | (Some(LimitsKind::Never), _) => (false, false),
+                        (Some(LimitsKind::Always), _) => (true, false),
+                    };
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
-                    attrs,
+                    force_movable_limits,
                     left,
                     right,
                     name: letters,
