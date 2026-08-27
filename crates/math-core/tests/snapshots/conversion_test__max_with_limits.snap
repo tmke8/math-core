@@ -4,7 +4,7 @@ expression: "\\max\\limits_x y"
 ---
 <math>
     <munder>
-        <mo lspace="0" rspace="0.1667em">max</mo>
+        <mo>⁢</mo><mi>max</mi><mo rspace="0.1667em">⁡</mo>
         <mi>x</mi>
     </munder>
     <mi>y</mi>

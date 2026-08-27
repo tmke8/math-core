@@ -4,10 +4,10 @@ expression: "\\bigl(\\log\\bigr) + \\big(\\log\\big)"
 ---
 <math>
     <mo minsize="1.2em" maxsize="1.2em">(</mo>
-    <mo lspace="0" rspace="0">log</mo>
+    <mo>⁢</mo><mi>log</mi><mo>⁡</mo>
     <mo minsize="1.2em" maxsize="1.2em">)</mo>
     <mo>+</mo>
     <mo minsize="1.2em" maxsize="1.2em">(</mo>
-    <mo lspace="0.1667em" rspace="0.1667em">log</mo>
+    <mo lspace="0.1667em">⁢</mo><mi>log</mi><mo rspace="0.1667em">⁡</mo>
     <mo minsize="1.2em" maxsize="1.2em">)</mo>
 </math>

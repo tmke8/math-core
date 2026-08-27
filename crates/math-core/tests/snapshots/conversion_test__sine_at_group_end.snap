@@ -5,7 +5,7 @@ expression: "{x\\sin}x"
 <math>
     <mrow>
         <mi>x</mi>
-        <mo lspace="0.1667em" rspace="0">sin</mo>
+        <mo lspace="0.1667em">⁢</mo><mi>sin</mi><mo>⁡</mo>
     </mrow>
     <mi>x</mi>
 </math>

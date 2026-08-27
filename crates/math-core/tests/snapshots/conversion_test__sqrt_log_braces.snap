@@ -4,6 +4,6 @@ expression: "\\sqrt{\\log}"
 ---
 <math>
     <msqrt>
-        <mo lspace="0" rspace="0">log</mo>
+        <mo>⁢</mo><mi>log</mi><mo>⁡</mo>
     </msqrt>
 </math>
