@@ -5,7 +5,9 @@ changelog:
     labels:
       - ignore-for-release
     authors:
-      - dependabot
+      # Must be the exact account login, including the `[bot]` suffix.
+      - dependabot[bot]
+      - github-actions[bot]
   categories:
     - title: Breaking Changes 🛠
       labels:
