@@ -2,6 +2,10 @@
 # https://release-plz.dev/docs/config
 
 [workspace]
+# Drop the `chore:` conventional-commit prefix from the release PR title.
+# `version` is only populated when releasing a single package or several
+# packages sharing a version, so guard it.
+pr_name = "Release{% if version %} v{{ version }}{% endif %}"
 changelog_update = false
 git_release_enable = false
 # Disable git tags for all packages by default
