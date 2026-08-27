@@ -7,7 +7,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
     nodes: [
       IdentifierStr("𝑎𝑏"),
       PseudoOp(
-        attrs: OpAttrs(""),
+        force_movable_limits: false,
         left: Some(ThreeMu),
         right: Some(ThreeMu),
         name: "max",
