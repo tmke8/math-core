@@ -64,4 +64,7 @@ jobs:
         with:
           command: release-pr
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+          # Use the built-in Actions token so the release PR is opened by
+          # github-actions[bot] instead of a personal account.
+          # Note: PRs opened this way don't trigger other workflows.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
