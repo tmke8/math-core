@@ -54,7 +54,13 @@ jobs:
         run: rustup show
 
       - name: Run release-plz
-        uses: release-plz/action@v0.5
+        # Pinned to a `main` commit instead of `v0.5` because every released tag
+        # (up to v0.5.131) still installs cargo-semver-checks 0.48, which cannot
+        # parse rustdoc JSON v60 from current stable Rust. release-plz swallows
+        # that error and reports "API compatible", producing a patch bump where
+        # a minor bump is due. `main` installs cargo-semver-checks 0.50.
+        # TODO: switch back to `@v0.5` once a release >= 2026-08-01 exists.
+        uses: release-plz/action@b262caeb2827b65c0ebf5a202895aba65dd36521 # main
         with:
           command: release-pr
         env:
