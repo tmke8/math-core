@@ -1322,6 +1322,16 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '∃' => Ord(symbol::THERE_EXISTS),
     '∄' => Ord(symbol::THERE_DOES_NOT_EXIST),
     // …
+    '∞' => Letter(SuperChar::from_char(symbol::INFINITY), Mode::Math),
+    // …
+    '⋯' => ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
+    // …
+
+    // `\mathalpha`
+    '∂' => Letter(SuperChar::from_char(symbol::PARTIAL_DIFFERENTIAL), Mode::Math),
+    // …
+    '∇' => UprightLetter(SuperChar::from_char(symbol::NABLA)),
+    // …
 
     // `\mathrel`
     // '⁐'
@@ -1930,4 +1940,22 @@ pub fn get_operator_from_unicode(c: char) -> Option<Token> {
     UNICODE_OPERATORS
         .get(&c)
         .map(|tok| Token::MathOrTextMode(tok, c))
+}
+
+/// Whether `c` is from a Unicode block that is dedicated to mathematical symbols.
+///
+/// Characters from these blocks are only accepted if [`UNICODE_OPERATORS`] knows them;
+/// anything else from these blocks is rejected in math mode. Characters from all other
+/// blocks (letters, punctuation, ...) are passed through as ordinary letters.
+pub fn is_math_symbol_block(c: char) -> bool {
+    matches!(c,
+        '\u{20D0}'..='\u{20FF}' // Combining Diacritical Marks for Symbols
+        | '\u{2190}'..='\u{21FF}' // Arrows
+        | '\u{2200}'..='\u{22FF}' // Mathematical Operators
+        | '\u{27C0}'..='\u{27EF}' // Miscellaneous Mathematical Symbols-A
+        | '\u{27F0}'..='\u{27FF}' // Supplemental Arrows-A
+        | '\u{2900}'..='\u{297F}' // Supplemental Arrows-B
+        | '\u{2980}'..='\u{29FF}' // Miscellaneous Mathematical Symbols-B
+        | '\u{2A00}'..='\u{2AFF}' // Supplemental Mathematical Operators
+    )
 }

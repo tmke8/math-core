@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\sqrt2 + √2"
+---
+Error: Direct Unicode input is not supported for this symbol yet: '√'.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \sqrt2 + √2
+   │          ┬  
+   │          ╰── unsupported math symbol
+───╯

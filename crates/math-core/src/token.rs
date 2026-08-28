@@ -232,6 +232,9 @@ pub enum Token {
     /// A token for commands that can be used in both math mode and text mode, e.g. `\{`. The `char`
     /// is the character that the command produces, e.g. `{` for `\{`.
     MathOrTextMode(&'static Token, char),
+    /// A character from a Unicode block that is dedicated to math symbols, but which we don't
+    /// know how to render as math. It is still allowed in text mode.
+    UnsupportedUnicodeMath(char),
     /// A token which changes the meaning of the character `|` for the rest of the
     /// surrounding sequence. This is how `\set`, `\Set` and `\Braket` "redefine" `|`.
     VerticalLineDef(Option<VerticalLineDef>),
@@ -646,6 +649,7 @@ impl Token {
             | Phantom(_)
             | TextMode(_)
             | MathOrTextMode(_, _)
+            | UnsupportedUnicodeMath(_)
             | UnresolvedCommand(_)
             | InternalStringLiteral(_)
             | ForceOrd(_)

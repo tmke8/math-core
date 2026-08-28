@@ -34,6 +34,7 @@ fn main() {
         ("text_spaces", r"\text{x\;x\:x\,x\>x\ x~x}"),
         ("text_with_escape_brace", r"\text{a\}b}"),
         ("text_with_weird_o", r"\text{x\o y}"),
+        ("text_with_unsupported_math_symbol", r"\text{x ⇦ y}"),
         ("text_with_group", r"\text{x{y}z{}p{}}"),
         (
             "text_with_special_symbols",
@@ -238,6 +239,13 @@ fn main() {
         ("bold_font", r"\bm{x}"),
         ("black_board_font", r"\mathbb{R}"),
         ("sum_with_special_symbol", r"\sum_{i = 0}^∞ i"),
+        (
+            "unicode_partial",
+            r"\frac{∂f}{∂x} = \frac{\partial f}{\partial x}",
+        ),
+        ("unicode_nabla", r"∇^2 f = \nabla^2 f"),
+        ("unicode_nabla_in_mathbf", r"\mathbf{∇}"),
+        ("unicode_cdots", r"x_1 + ⋯ + x_n"),
         ("sum_with_limit", r"\sum\limits_{i=1}^N"),
         ("sum_pointless_limits", r"\sum\limits n"),
         ("integral_with_nolimits", r"\int\nolimits_0^1 dx"),

@@ -1,0 +1,27 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\frac{∂f}{∂x} = \\frac{\\partial f}{\\partial x}"
+---
+<math>
+    <mfrac>
+        <mrow>
+            <mi>∂</mi>
+            <mi>f</mi>
+        </mrow>
+        <mrow>
+            <mi>∂</mi>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+    <mo>=</mo>
+    <mfrac>
+        <mrow>
+            <mi>∂</mi>
+            <mi>f</mi>
+        </mrow>
+        <mrow>
+            <mi>∂</mi>
+            <mi>x</mi>
+        </mrow>
+    </mfrac>
+</math>

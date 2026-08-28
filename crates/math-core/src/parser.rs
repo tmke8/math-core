@@ -2184,6 +2184,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Err(LatexError(span.into(), LatexErrKind::Internal))
             }
             Token::TextMode(_) => Err(LatexError(span.into(), LatexErrKind::NotValidInMathMode)),
+            Token::UnsupportedUnicodeMath(c) => Err(LatexError(
+                span.into(),
+                LatexErrKind::UnsupportedUnicodeMath(c),
+            )),
             Token::XArrow(rel) => {
                 // The leading and trailing 5mu spaces are ignored for character class
                 // considerations; the class of the whole construct is that of a relation.
