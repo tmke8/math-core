@@ -22,6 +22,7 @@ pub(crate) enum LatexErrKind {
     ExpectedArgumentGotEOI,
     ExpectedDelimiter(DelimiterModifier),
     DisallowedChar(char),
+    UnsupportedUnicodeMath(char),
     UnknownEnvironment(KString),
     UnknownCommand(KString),
     UnknownColor(KString),
@@ -185,6 +186,12 @@ impl LatexErrKind {
             }
             LatexErrKind::DisallowedChar(got) => {
                 write!(s, "Disallowed character in text group: '{got}'.")?;
+            }
+            LatexErrKind::UnsupportedUnicodeMath(got) => {
+                write!(
+                    s,
+                    "Direct Unicode input is not supported for this symbol yet: '{got}'."
+                )?;
             }
             LatexErrKind::UnknownEnvironment(environment) => {
                 write!(s, "Unknown environment \"{environment}\".")?;
@@ -405,6 +412,7 @@ impl LatexError {
             }
             LatexErrKind::ExpectedDelimiter(_) => "expected a delimiter here",
             LatexErrKind::DisallowedChar(_) => "disallowed character",
+            LatexErrKind::UnsupportedUnicodeMath(_) => "unsupported math symbol",
             LatexErrKind::UnknownEnvironment(_) => "unknown environment",
             LatexErrKind::UnknownCommand(_) => "unknown command",
             LatexErrKind::UnknownColor(_) => "unknown color",

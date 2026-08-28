@@ -6,7 +6,7 @@ use core::str::CharIndices;
 use kstring::KString;
 use mathml_renderer::symbol;
 
-use crate::commands::get_operator_from_unicode;
+use crate::commands::{get_operator_from_unicode, is_math_symbol_block};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
 use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
@@ -250,6 +250,9 @@ impl<'source> Lexer<'source> {
             // fast path to avoid expensive lookup below
             c if c.is_ascii_alphabetic() => Token::Letter(c.into(), Mode::MathOrText),
             c if let Some(tok) = get_operator_from_unicode(c) => tok,
+            // Characters from the Unicode blocks that are dedicated to math symbols are only
+            // accepted if we know how to handle them; the rest is valid in text mode only.
+            c if is_math_symbol_block(c) => Token::UnsupportedUnicodeMath(c),
             c => Token::Letter(c.into(), Mode::MathOrText),
         };
         Ok(LexerOutput::Token(TokSpan::new(tok, span)))

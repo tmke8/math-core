@@ -62,6 +62,14 @@ impl<'arena> Parser<'_, 'arena> {
                 } else {
                     LatexErrKind::UnexpectedDollar
                 })
+            } else if let Token::UnsupportedUnicodeMath(ch) = token {
+                if text_mode {
+                    // We don't know how to render this character as math, but in text mode
+                    // it's just a character like any other.
+                    Ok(ch.into())
+                } else {
+                    Err(LatexErrKind::UnsupportedUnicodeMath(ch))
+                }
             } else if let Token::TextMode(text_token) = token {
                 if text_mode {
                     match text_token {

@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: x_1 + ⋯ + x_n
+---
+<math>
+    <msub>
+        <mi>x</mi>
+        <mn>1</mn>
+    </msub>
+    <mo>+</mo>
+    <mo lspace="0" rspace="0">⋯</mo>
+    <mo>+</mo>
+    <msub>
+        <mi>x</mi>
+        <mi>n</mi>
+    </msub>
+</math>
