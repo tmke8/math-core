@@ -376,11 +376,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Err(LatexError(
                         span,
                         LatexErrKind::CannotBeUsedHere {
-                            got: if parenthesized {
-                                LimitedUsabilityToken::Tag
-                            } else {
-                                LimitedUsabilityToken::TagStar
-                            },
+                            got: LimitedUsabilityToken::Tag,
                             correct_place: Place::NumberedEnv,
                         },
                     ))

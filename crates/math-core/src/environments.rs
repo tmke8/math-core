@@ -26,6 +26,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "gather*" => Env::GatherStar,
     "gathered" => Env::Gathered,
     "multline" => Env::MultLine,
+    "multline*" => Env::MultLineStar,
     "bmatrix" => Env::BMatrix,
     "Bmatrix" => Env::Bmatrix,
     "cases" => Env::Cases,
@@ -52,6 +53,7 @@ pub enum Env {
     GatherStar,
     Gathered,
     MultLine,
+    MultLineStar,
     Cases,
     RCases,
     DCases,
@@ -95,6 +97,7 @@ impl Env {
                 | Env::GatherStar
                 | Env::Gathered
                 | Env::MultLine
+                | Env::MultLineStar
         )
     }
 
@@ -119,7 +122,7 @@ impl Env {
     /// `true` for environments in which `\shoveleft`/`\shoveright` may appear.
     #[inline]
     pub(super) fn allows_shove(self) -> bool {
-        matches!(self, Env::MultLine)
+        matches!(self, Env::MultLine | Env::MultLineStar)
     }
 
     #[inline]
@@ -133,6 +136,7 @@ impl Env {
                 | Env::Gather
                 | Env::GatherStar
                 | Env::MultLine
+                | Env::MultLineStar
         ) {
             Some(NumberedEnvState {
                 mode: match self {
@@ -140,7 +144,7 @@ impl Env {
                     Env::MultLine => NumberingMode::OnlyLast,
                     _ => NumberingMode::NoneByDefault,
                 },
-                num_rows: if matches!(self, Env::MultLine) {
+                num_rows: if matches!(self, Env::MultLine | Env::MultLineStar) {
                     NonZeroU16::new(1)
                 } else {
                     None
@@ -166,7 +170,7 @@ impl Env {
         use Env::*;
         match self {
             DArray | Align | AlignStar | Aligned | Equation | EquationStar | Gather
-            | GatherStar | Gathered | MultLine | DCases | DRCases => Style::Display,
+            | GatherStar | Gathered | MultLine | MultLineStar | DCases | DRCases => Style::Display,
             Array | Cases | RCases | Matrix | BMatrix | Bmatrix | PMatrix | VMatrix | Vmatrix => {
                 Style::Text
             }
@@ -215,7 +219,7 @@ impl Env {
                 content,
                 border_top,
             },
-            Env::MultLine => {
+            Env::MultLine | Env::MultLineStar => {
                 debug_assert!(num_rows.is_some());
                 Node::MultLine {
                     content,
