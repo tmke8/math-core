@@ -191,7 +191,9 @@ new LatexToMathML(options: MathCoreOptions)
 | `throwOnError` | `boolean` | `true` | Throw `LatexError` on conversion errors. If `false`, returns an HTML error snippet instead. |
 | `ignoreUnknownCommands` | `boolean` | `false` | Render unknown commands as red text instead of erroring. |
 | `annotation` | `boolean` | `false` | Include the original LaTeX as an annotation in the MathML output. |
+| `allowUnreliableRendering` | `boolean` | `false` | Enable commands whose MathML Core output is rendered unreliably across browsers, such as `\widetilde`, `\widecheck` and `\utilde`. If `false`, these commands are treated as unknown. |
 | `globalGroup` | `boolean` | `false` | Run the conversion in the global group, so that commands defined with `\newcommand` stay defined for subsequent calls to `convert_with_global_state`. If `false`, such definitions are local to the snippet which contains them. |
+| `unicodeSubstitution` | `"never" \| "conventional"` | `"conventional"` | Whether commands like `\coloneqq` are rendered with a dedicated Unicode symbol (`≔`) or as a combination of more basic symbols (`:` and `=`). `"conventional"` substitutes wherever the LaTeX package `unicode-math` would, which is a good middle ground between semantics and faithfulness to the LaTeX output; `"never"` disables the substitutions. |
 | `maxExpansions` | `number` | `1000` | How many custom commands may be expanded in one snippet before the conversion gives up. The limit exists because a macro may expand to itself, directly or indirectly. |
 | `idPrefix`      | `string` | `""`   | Added to the beginning of every `id` and anchor reference. Use this to avoid conflicts when embedding the output. |
 

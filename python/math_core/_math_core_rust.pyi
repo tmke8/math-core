@@ -43,6 +43,15 @@ class LatexToMathML:
                 LaTeX commands. If ``True``, unknown commands will be displayed as red
                 text and the conversion will continue, instead of returning an error.
 
+            annotation: A boolean indicating whether to wrap the output in
+                ``<semantics>`` tags with an ``<annotation>`` child containing the
+                original LaTeX source.
+
+            allow_unreliable_rendering: A boolean indicating whether to enable commands
+                whose MathML Core output is rendered unreliably across browsers, such
+                as ``\widetilde``, ``\widecheck`` and ``\utilde``. If ``False`` (the
+                default), these commands are treated as unknown.
+
             global_group: A boolean indicating whether to run the conversion in the
                 global group. If ``True``, commands defined at the top level with
                 ``\newcommand`` (and related commands) stay defined for subsequent
@@ -56,7 +65,15 @@ class LatexToMathML:
                 compact plain-text message is used instead.
 
             unicode_substitution: A string indicating whether to substitute certain
-                character combinations with a single Unicode symbol.
+                character combinations with a single Unicode symbol. For example,
+                ``\coloneqq`` can be rendered either as the dedicated symbol ``≔`` or
+                as a combination of ``:`` and ``=``; the former is preferable in terms
+                of semantics, while the latter is more faithful to the LaTeX output.
+                Allowed values are:
+
+                * "conventional": Substitute whenever the LaTeX package
+                  ``unicode-math`` would substitute (the default).
+                * "never": Never substitute.
 
             max_expansions: The number of custom command expansions allowed in one
                 snippet. This limit exists because a macro may expand to itself,
