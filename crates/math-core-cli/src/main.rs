@@ -13,7 +13,7 @@ mod config_file;
 mod html_entities;
 mod replace;
 
-use replace::{ConversionError, Replacer, SnippetWarning};
+use replace::{ConversionError, LineTracker, Replacer, SnippetWarning};
 
 static DEFAULT_CONFIG_FILE: &str = "mathcore.toml";
 
@@ -229,12 +229,15 @@ fn replace<'source>(
     input: &'source str,
     converter: &LatexToMathML,
     continue_on_error: bool,
-) -> Result<Converted<'source>, ConversionError<'source>> {
+) -> Result<Converted, ConversionError<'source>> {
     let scan = replacer.scan(input)?;
     let converted = converter.convert_all(&scan.snippets);
 
     let mut result = String::with_capacity(input.len());
     let mut warnings = Vec::new();
+    // One tracker for the whole document: the sites are visited in document order, so it never
+    // has to look back at a part of the input it has already passed.
+    let mut tracker = LineTracker::new(input);
     for (((latex, display), site), converted) in
         scan.snippets.into_iter().zip(&scan.sites).zip(converted)
     {
@@ -242,7 +245,11 @@ fn replace<'source>(
         match converted {
             Ok(converted) => {
                 result += &converted.mathml;
-                warnings.extend(SnippetWarning::for_site(input, site, converted.warnings));
+                warnings.extend(SnippetWarning::for_site(
+                    &mut tracker,
+                    site,
+                    converted.warnings,
+                ));
             }
             Err(err) if continue_on_error => {
                 result += &err.to_html(&latex, display, None);
@@ -258,10 +265,10 @@ fn replace<'source>(
 }
 
 /// A converted document, together with everything worth telling the user about the conversion.
-struct Converted<'source> {
+struct Converted {
     html: String,
     /// The warnings of all snippets of the document, in document order.
-    warnings: Vec<SnippetWarning<'source>>,
+    warnings: Vec<SnippetWarning>,
 }
 
 /// Convert all LaTeX equations in all HTML files under a given directory.

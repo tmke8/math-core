@@ -33,7 +33,8 @@ impl<'source> ConversionError<'source> {
 
 impl fmt::Display for ConversionError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (line, col) = line_and_col(self.0, self.2);
+        let mut tracker = LineTracker::new(self.2);
+        let (line, col) = tracker.line_and_col(self.0);
         match &self.1 {
             ConvErrKind::UnclosedDelimiter => {
                 write!(f, "Unclosed delimiter on line {line}, column {col}.")
@@ -45,7 +46,7 @@ impl fmt::Display for ConversionError<'_> {
                 )
             }
             ConvErrKind::MismatchedDelimiters(close) => {
-                let (close_line, close_col) = line_and_col(*close, self.2);
+                let (close_line, close_col) = tracker.line_and_col(*close);
                 write!(
                     f,
                     "Mismatched delimiters: opening at line {line}, column {col}, closing at line {close_line}, column {close_col}."
@@ -70,7 +71,11 @@ impl std::error::Error for ConversionError<'_> {}
 /// Unlike a [`ConversionError`], a warning does not stop the conversion; it only points out that
 /// the resulting MathML is probably not what the author intended.
 #[derive(Debug)]
-pub struct SnippetWarning<'source>(usize, WarnKind, &'source str);
+pub struct SnippetWarning {
+    line: usize,
+    col: usize,
+    kind: WarnKind,
+}
 
 #[derive(Debug)]
 enum WarnKind {
@@ -78,14 +83,18 @@ enum WarnKind {
     UnknownCommand,
 }
 
-impl<'source> SnippetWarning<'source> {
+impl SnippetWarning {
     /// The warnings that the snippet found at `site` produced, one per kind.
+    ///
+    /// The position of the site is resolved right here rather than when the warning is printed,
+    /// so `tracker` has to be the one that the rest of the document is resolved with; see
+    /// [`LineTracker`] for why it cannot look backwards.
     pub(crate) fn for_site(
-        input: &'source str,
+        tracker: &mut LineTracker,
         site: &Site,
         warnings: Warnings,
     ) -> impl Iterator<Item = Self> {
-        let offset = site.offset;
+        let (line, col) = tracker.line_and_col(site.offset);
         [
             warnings
                 .has_undefined_references()
@@ -96,39 +105,77 @@ impl<'source> SnippetWarning<'source> {
         ]
         .into_iter()
         .flatten()
-        .map(move |kind| SnippetWarning(offset, kind, input))
+        .map(move |kind| SnippetWarning { line, col, kind })
     }
 }
 
-impl fmt::Display for SnippetWarning<'_> {
+impl fmt::Display for SnippetWarning {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (line, col) = line_and_col(self.0, self.2);
-        let what = match self.1 {
+        let what = match self.kind {
             WarnKind::UndefinedReference => "undefined reference",
             WarnKind::UnknownCommand => "unknown command",
         };
-        write!(f, "{what} in the formula on line {line}, column {col}.")
+        write!(
+            f,
+            "{what} in the formula on line {}, column {}.",
+            self.line, self.col
+        )
     }
 }
 
-/// Determine line and column numbers of `loc` within the input string.
-fn line_and_col(loc: usize, input: &str) -> (usize, usize) {
-    let mut line = 1;
-    let mut col = 1;
+/// Determines line and column numbers within a document that is scanned from front to back.
+///
+/// Locating every position from the start of the document costs the length of the document per
+/// position, which for a document full of warnings adds up to a quadratic blow up. This resumes
+/// where the previous query stopped instead, so that one pass covers the whole document. Positions
+/// therefore have to be queried in non-decreasing order.
+pub(crate) struct LineTracker<'source> {
+    input: &'source str,
+    /// Every character before this offset has been counted into `line` and `col`.
+    counted: usize,
+    line: usize,
+    col: usize,
+}
 
-    for (i, ch) in input.char_indices() {
-        if i >= loc {
-            break;
-        }
-
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += 1;
+impl<'source> LineTracker<'source> {
+    pub(crate) fn new(input: &'source str) -> Self {
+        LineTracker {
+            input,
+            counted: 0,
+            line: 1,
+            col: 1,
         }
     }
-    (line, col)
+
+    /// Determine line and column numbers of `loc` within the input string.
+    ///
+    /// `loc` must not lie before the location of the previous query.
+    pub(crate) fn line_and_col(&mut self, loc: usize) -> (usize, usize) {
+        debug_assert!(
+            loc >= self.counted,
+            "locations have to be queried in document order"
+        );
+        // Where the scan stopped; if no character is left, everything belongs before `loc`.
+        let mut stop = self.input.len();
+        for (i, ch) in self.input[self.counted..].char_indices() {
+            let i = self.counted + i;
+            if i >= loc {
+                stop = i;
+                break;
+            }
+
+            if ch == '\n' {
+                self.line += 1;
+                self.col = 1;
+            } else {
+                self.col += 1;
+            }
+        }
+        // `stop` is a character boundary even when `loc` is not, which is what keeps the slice
+        // above valid on the next call.
+        self.counted = stop;
+        (self.line, self.col)
+    }
 }
 
 pub struct Replacer<'args> {
@@ -394,6 +441,37 @@ mod tests {
         }
         result.push_str(scan.trailing_text);
         Ok(result)
+    }
+
+    /// Resuming from the previous query has to give the same answer as locating every position
+    /// from the start of the document. The input mixes in a multi-byte character so that a column
+    /// counted in bytes would show up as a wrong number.
+    #[test]
+    fn line_tracker_resumes_where_it_stopped() {
+        let input = "a\u{00e4}b\nsecond line\n\nfourth $x$ line\n";
+        let mut tracker = LineTracker::new(input);
+        for loc in 0..=input.len() {
+            if !input.is_char_boundary(loc) {
+                continue;
+            }
+            let from_scratch = LineTracker::new(input).line_and_col(loc);
+            assert_eq!(
+                tracker.line_and_col(loc),
+                from_scratch,
+                "resuming disagreed at offset {loc}"
+            );
+        }
+    }
+
+    /// The same offset asked for twice must not move the cursor past it.
+    #[test]
+    fn line_tracker_repeats_a_query() {
+        let input = "first\nsecond\n";
+        let mut tracker = LineTracker::new(input);
+        let start_of_second_line = 6;
+        assert_eq!(tracker.line_and_col(start_of_second_line), (2, 1));
+        assert_eq!(tracker.line_and_col(start_of_second_line), (2, 1));
+        assert_eq!(tracker.line_and_col(input.len()), (3, 1));
     }
 
     #[test]
