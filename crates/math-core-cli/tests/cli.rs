@@ -446,6 +446,38 @@ fn warnings_of_stdin_are_printed_without_a_file_name() {
     );
 }
 
+/// `--quiet` takes the warnings off stderr without touching the converted document.
+#[test]
+fn quiet_suppresses_warnings() {
+    let dir = empty_dir();
+    let mut cmd = mathcore(dir.path());
+    cmd.args(["--quiet", "-"]);
+    let out = run_with_stdin(cmd, UNDEFINED_REF_DOC);
+
+    assert!(out.status.success());
+    assert!(String::from_utf8_lossy(&out.stdout).contains("<math"));
+    assert_eq!(
+        String::from_utf8_lossy(&out.stderr),
+        "",
+        "--quiet should suppress the warnings"
+    );
+}
+
+/// `--quiet` is about warnings only: an actual conversion error still gets reported, and still
+/// fails the run.
+#[test]
+fn quiet_does_not_suppress_errors() {
+    let dir = empty_dir();
+    write(dir.path(), "doc.html", "before $x$ and $\\frac$ after\n");
+    let out = mathcore(dir.path())
+        .args(["--quiet", "doc.html"])
+        .output()
+        .expect("failed to run mathcore");
+
+    assert_eq!(out.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("Conversion error in 'doc.html'"));
+}
+
 #[test]
 fn a_failing_file_is_left_untouched() {
     let dir = empty_dir();
