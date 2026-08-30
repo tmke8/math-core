@@ -18,8 +18,8 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::MathMLOperator;
 use crate::table::{
-    Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnGenerator, LineType,
-    RIGHT_ALIGN, RowLabelInfo,
+    Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnAlignment, ColumnGenerator,
+    LineType, RIGHT_ALIGN, RowLabelInfo,
 };
 use crate::{
     attribute::{
@@ -172,6 +172,7 @@ pub enum Node<'arena> {
     /// `<mtable>...</mtable>` for the `multline` environment
     MultLine {
         num_rows: NonZeroU16,
+        initial_shove: Option<ColumnAlignment>,
         last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         content: &'arena [&'arena Node<'arena>],
     },
@@ -187,6 +188,7 @@ pub enum Node<'arena> {
     RowSeparator {
         label_info: Option<&'arena RowLabelInfo<'arena>>,
         border_top: Option<LineType>,
+        shove: Option<ColumnAlignment>,
     },
     /// `<menclose>...</menclose>`
     Enclose {
@@ -667,12 +669,16 @@ impl<'state> Emitter<'state> {
                 content,
                 ..
             }) => {
-                let (mtd_opening, numbering_cols) = match node {
+                let (mtd_opening, numbering_cols) = match *node {
                     Node::EquationArray { align, .. } => {
-                        (ColumnGenerator::new_predefined(*align), NumberColums::Wide)
+                        (ColumnGenerator::new_predefined(align), NumberColums::Wide)
                     }
-                    Node::MultLine { num_rows, .. } => (
-                        ColumnGenerator::new_multline(*num_rows),
+                    Node::MultLine {
+                        num_rows,
+                        initial_shove,
+                        ..
+                    } => (
+                        ColumnGenerator::new_multline(num_rows, initial_shove),
                         NumberColums::Narrow,
                     ),
                     _ => unreachable!(),
@@ -858,6 +864,7 @@ impl<'state> Emitter<'state> {
                 Node::RowSeparator {
                     label_info,
                     border_top,
+                    shove,
                 } => {
                     writeln_indent!(self, child_indent2, "</mtd>");
                     if let Some(numbering_cols) = numbering_cols {
@@ -880,11 +887,7 @@ impl<'state> Emitter<'state> {
                             self.indentation,
                         )?;
                     }
-                    col_gen.reset_to_new_row();
-                    // A `\hline`/`\hdashline` right after this `\\` becomes the top border of the
-                    // row we're about to open. MathML `<mtr>` borders aren't rendered by all
-                    // browsers (notably Firefox), so it's applied per-cell by the column generator.
-                    col_gen.set_row_border_top(border_top);
+                    col_gen.start_new_row(border_top, shove);
                     col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
                 }
                 _ => {
@@ -1568,6 +1571,7 @@ mod tests {
             &Node::RowSeparator {
                 label_info: None,
                 border_top: None,
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,
@@ -1600,6 +1604,7 @@ mod tests {
                     link_target: None,
                 }),
                 border_top: None,
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,
@@ -1647,6 +1652,7 @@ mod tests {
                     link_target: Some("eq:1"),
                 }),
                 border_top: None,
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,
@@ -1688,6 +1694,7 @@ mod tests {
             &Node::RowSeparator {
                 label_info: None,
                 border_top: None,
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,
@@ -1729,6 +1736,7 @@ mod tests {
             &Node::RowSeparator {
                 label_info: None,
                 border_top: Some(LineType::Dashed),
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,
@@ -1770,6 +1778,7 @@ mod tests {
             &Node::RowSeparator {
                 label_info: None,
                 border_top: Some(LineType::Dashed),
+                shove: None,
             },
             &Node::Number("3"),
             &Node::ColumnSeparator,

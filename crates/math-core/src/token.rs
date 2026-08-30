@@ -5,6 +5,7 @@ use strum_macros::IntoStaticStr;
 use mathml_renderer::{
     ast::Node,
     symbol::{self, BMPOperator, Bin, MathMLOperator, Op, OrdLike, Punct, Rel},
+    table::ColumnAlignment,
 };
 use mathml_renderer::{
     attribute::{FracAttr, HtmlTextSize, HtmlTextStyle, Notation, OpAttrs, Size, Style},
@@ -33,11 +34,14 @@ pub enum Token {
     /// A horizontal rule in an array or matrix, i.e. `\hline` (solid) or `\hdashline` (dashed).
     /// Only legal directly after a `\\` or at the very beginning of such an environment.
     HLine(LineType),
+    Shove(ColumnAlignment),
     /// `\nonumber`/`\notag`, suppresses numbering for the current equation.
     NoNumber,
     /// `\tag`/`\tag*`, tag for the current equation.
     /// `parenthesized` is `false` for the starred variant, which omits the parentheses.
-    Tag { parenthesized: bool },
+    Tag {
+        parenthesized: bool,
+    },
     /// `\label`, label for the current equation.
     Label,
     /// `\eqref`, equation reference to a label.
@@ -184,7 +188,9 @@ pub enum Token {
     Enclose(Notation),
     /// `\operatorname` and `\operatorname*`. The `bool` is `true` for `\operatorname*` and `false`
     /// for `\operatorname`.
-    OperatorName { with_limits: bool },
+    OperatorName {
+        with_limits: bool,
+    },
     /// A combining overlay. `\not` uses U+0338, `\vertoverlay` uses U+20D2
     Overlay(OverlayChar),
     /// A token for text, e.g. `\text{...}`, `\textit{...}`.
@@ -609,6 +615,7 @@ impl Token {
             | Label
             | EqRef
             | HLine(_)
+            | Shove(_)
             | NewCommand(_)
             | Let
             | Def(_)

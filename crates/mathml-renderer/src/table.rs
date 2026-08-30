@@ -10,9 +10,9 @@ use crate::fmt::new_line_and_indent;
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ColumnAlignment {
-    LeftJustified = 0,
-    Centered = 1,
-    RightJustified = 2,
+    LeftJustified = 1,
+    Centered,
+    RightJustified,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -110,6 +110,7 @@ pub struct ColumnGenerator<'arena> {
     /// MathML `<mtr>` borders aren't rendered by all browsers (notably Firefox), so the rule is
     /// drawn per-cell instead.
     row_border_top: Option<LineType>,
+    shove: Option<ColumnAlignment>,
 }
 
 impl<'arena> ColumnGenerator<'arena> {
@@ -119,6 +120,7 @@ impl<'arena> ColumnGenerator<'arena> {
             column_idx: 0,
             row_idx: 0,
             row_border_top: None,
+            shove: None,
         }
     }
 
@@ -128,26 +130,27 @@ impl<'arena> ColumnGenerator<'arena> {
             column_idx: 0,
             row_idx: 0,
             row_border_top: None,
+            shove: None,
         }
     }
 
-    pub fn new_multline(num_rows: NonZeroU16) -> Self {
+    pub fn new_multline(num_rows: NonZeroU16, shove: Option<ColumnAlignment>) -> Self {
         ColumnGenerator {
             typ: AlignmentType::MultLine(num_rows),
             column_idx: 0,
             row_idx: 0,
             row_border_top: None,
+            shove,
         }
     }
 
-    pub fn reset_to_new_row(&mut self) {
+    /// Start a new row in the table. This resets the column index to 0, increments the row index,
+    /// and sets the top border and shove for the new row.
+    pub fn start_new_row(&mut self, border_top: Option<LineType>, shove: Option<ColumnAlignment>) {
         self.column_idx = 0;
         self.row_idx += 1;
-    }
-
-    /// Set the top border applied to each cell of the row that is about to be generated.
-    pub fn set_row_border_top(&mut self, border_top: Option<LineType>) {
         self.row_border_top = border_top;
+        self.shove = shove;
     }
 
     pub fn write_next_mtd(
@@ -266,21 +269,28 @@ impl<'arena> ColumnGenerator<'arena> {
                 }
             }
             AlignmentType::MultLine(num_rows) => {
-                let row_idx = self.row_idx;
-                // Multline is left-aligned for the first row, right-aligned for the last row,
-                // and centered for all other rows.
-                if row_idx == 0 {
-                    write!(
-                        s,
-                        "{MTD_OPEN_STYLE}{border_top}{LEFT_ALIGN}{MTD_CLOSE_STYLE}"
-                    )?;
-                } else if row_idx + 1 == (num_rows.get() as usize) {
-                    write!(
-                        s,
-                        "{MTD_OPEN_STYLE}{border_top}{RIGHT_ALIGN}{MTD_CLOSE_STYLE}"
-                    )?;
+                let align = if let Some(shove) = self.shove {
+                    shove
                 } else {
-                    write_simple_mtd(s, border_top)?;
+                    // Multline is left-aligned for the first row, right-aligned for the last row,
+                    // and centered for all other rows.
+                    let row_idx = self.row_idx;
+                    if row_idx == 0 {
+                        ColumnAlignment::LeftJustified
+                    } else if row_idx + 1 == (num_rows.get() as usize) {
+                        ColumnAlignment::RightJustified
+                    } else {
+                        ColumnAlignment::Centered
+                    }
+                };
+                match align {
+                    ColumnAlignment::LeftJustified => {
+                        write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{MTD_CLOSE_STYLE}")?
+                    }
+                    ColumnAlignment::Centered => write_simple_mtd(s, "")?,
+                    ColumnAlignment::RightJustified => {
+                        write!(s, "{MTD_OPEN_STYLE}{RIGHT_ALIGN}{MTD_CLOSE_STYLE}")?
+                    }
                 }
             }
         }

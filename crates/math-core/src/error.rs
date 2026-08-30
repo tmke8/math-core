@@ -110,6 +110,8 @@ pub enum Place {
     NumberedEnv,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
+    #[strum(serialize = r"directly after a `\\` or at the beginning of a multline environment")]
+    MultlineRowStart,
     #[strum(serialize = r"directly before \let or \def")]
     BeforeDefinition,
 }
@@ -118,10 +120,8 @@ pub enum Place {
 pub enum LimitedUsabilityToken {
     #[strum(serialize = "&")]
     Ampersand,
-    #[strum(serialize = r"\tag")]
+    #[strum(serialize = r"\tag[*]")]
     Tag,
-    #[strum(serialize = r"\tag*")]
-    TagStar,
     #[strum(serialize = r"\label")]
     Label,
     #[strum(serialize = r"\limits")]
@@ -130,12 +130,12 @@ pub enum LimitedUsabilityToken {
     NoLimits,
     #[strum(serialize = r"\displaylimits")]
     DisplayLimits,
-    #[strum(serialize = r"\hline")]
+    #[strum(serialize = r"\h[dash]line")]
     HLine,
-    #[strum(serialize = r"\hdashline")]
-    HDashLine,
     #[strum(serialize = r"\global")]
     Global,
+    #[strum(serialize = r"\shove(left|right)")]
+    Shove,
 }
 
 impl From<LimitsKind> for LimitedUsabilityToken {

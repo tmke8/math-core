@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}\\shoveleft 1\\end{align}"
+---
+Error: Found "\shove(left|right)", which may only appear directly after a `\\` or at the beginning of a multline environment.
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ \begin{align}\shoveleft 1\end{align}
+   │              ─────┬────  
+   │                   ╰────── cannot be used here
+───╯

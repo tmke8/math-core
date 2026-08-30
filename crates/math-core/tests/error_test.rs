@@ -205,6 +205,11 @@ fn main() {
             "ampersand_in_multline",
             r#"\begin{multline}1&1\end{multline}"#,
         ),
+        ("shove_in_align", r"\begin{align}\shoveleft 1\end{align}"),
+        (
+            "shove_not_at_beginning",
+            r"\begin{multline}1\shoveleft 2\end{multline}",
+        ),
         ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
         ("left_with_non_delimiter", r"\left x 1 \right)"),
         ("right_with_non_delimiter", r"\left( 1 \right x"),
