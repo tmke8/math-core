@@ -158,10 +158,12 @@ The main converter class.
 - `continue_on_error` (`bool`, optional): A boolean indicating whether to raise an exception for conversion errors. If conversion fails and this is `True`, an HTML snippet describing the error will be returned, instead of raising `LatexError`. Default: `False`.
 - `ignore_unknown_commands` (`bool`, optional): A boolean indicating whether to ignore unknown LaTeX commands. If `True`, unknown commands be rendered as red text and the conversion will continue. Default: `False`.
 - `annotation` (`bool`, optional): A boolean indicating whether to include the original LaTeX as an annotation in the MathML output. Default: `False`.
+- `allow_unreliable_rendering` (`bool`, optional): A boolean indicating whether to enable commands whose MathML Core output is rendered unreliably across browsers, such as `\widetilde`, `\widecheck` and `\utilde`. If `False`, these commands are treated as unknown. Default: `False`.
 - `global_group` (`bool`, optional): A boolean indicating whether to run the conversion in the global group. If `True`, commands defined with `\newcommand` stay defined for subsequent calls to `convert_with_global_state`; if `False`, such definitions are local to the snippet which contains them. Default: `False`.
 - `fancy_error` (`bool`, optional): A boolean indicating whether to render errors as rich Ariadne diagnostic reports. If `True` (the default), the `LatexError` message contains a formatted diagnostic with source spans. Set to `False` to use compact plain-text messages instead.
-- `unicode_substitution`: A string indicating whether to substitute certain character combinations with a single Unicode symbol.
+- `unicode_substitution` (`str`, optional): A string indicating whether to substitute certain character combinations with a single Unicode symbol. Options are “conventional” and “never”. With “conventional”, commands like `\coloneqq` are rendered with a dedicated Unicode symbol (`≔`) wherever the LaTeX package `unicode-math` would substitute; with “never”, they are rendered as a combination of more basic symbols (`:` and `=`), which is more faithful to the LaTeX output. Default: “conventional”.
 - `max_expansions` (`int`, optional): The number of custom command expansions allowed in one snippet, after which the conversion gives up. The limit exists because a macro may expand to itself, directly or indirectly. Default: `1000`.
+- `id_prefix` (`str`, optional): Added to the beginning of every `id` and anchor reference in the output. Use this to avoid conflicts when embedding the output. The prefix is *not* URL escaped. Default: `""`.
 
 **Methods:**
 - `convert_with_global_state(latex: str, displaystyle: bool) -> str`: Convert LaTeX to MathML using global state. May raise `LatexError`.
