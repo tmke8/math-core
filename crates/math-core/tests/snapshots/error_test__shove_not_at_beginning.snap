@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{multline}1\\shoveleft 2\\end{multline}"
+---
+Error: Found "\shove(left|right)", which may only appear directly after a `\\` or at the beginning of a multline environment.
+   ╭─[ <input>:1:18 ]
+   │
+ 1 │ \begin{multline}1\shoveleft 2\end{multline}
+   │                  ─────┬────  
+   │                       ╰────── cannot be used here
+───╯

@@ -4,7 +4,7 @@ use mathml_renderer::{
     },
     super_char::{OverlayChar, SuperChar},
     symbol,
-    table::LineType,
+    table::{ColumnAlignment, LineType},
 };
 
 use crate::token::{
@@ -741,6 +741,8 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "sideset" => Sideset,
     "sixptsize" => TextMode(TextToken::Size(HtmlTextSize::Size60)),
     "sharp" => Letter(SuperChar::from_char(symbol::MUSIC_SHARP_SIGN), Mode::Math),
+    "shoveleft" => Shove(ColumnAlignment::LeftJustified),
+    "shoveright" => Shove(ColumnAlignment::RightJustified),
     "sigma" => Letter(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_SIGMA), Mode::Math),
     "sim" => Relation(symbol::TILDE_OPERATOR),
     "simcolon" => CustomCmd(0, &predefined::SIM_COLON),

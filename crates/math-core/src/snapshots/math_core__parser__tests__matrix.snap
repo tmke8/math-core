@@ -21,6 +21,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
           RowSeparator(
             label_info: None,
             border_top: None,
+            shove: None,
           ),
           IdentifierChar("y", Default),
         ],

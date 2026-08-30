@@ -8,7 +8,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, EquationTag, LineType, RowLabelInfo},
+    table::{Alignment, ArraySpec, ColumnAlignment, EquationTag, LineType, RowLabelInfo},
 };
 
 use crate::character_class::{StretchableOp, fenced};
@@ -116,6 +116,12 @@ impl Env {
         )
     }
 
+    /// `true` for environments in which `\shoveleft`/`\shoveright` may appear.
+    #[inline]
+    pub(super) fn allows_shove(self) -> bool {
+        matches!(self, Env::MultLine)
+    }
+
     #[inline]
     fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
         if matches!(
@@ -151,6 +157,7 @@ impl Env {
             allow_columns: self.allows_columns(),
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
             allow_hlines: self.allows_hlines(),
+            allow_shove: self.allows_shove(),
             numbered: self.get_numbered_env_state(),
         }
     }
@@ -175,6 +182,7 @@ impl Env {
         last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         num_rows: Option<NonZeroU16>,
         border_top: Option<LineType>,
+        initial_shove: Option<ColumnAlignment>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
@@ -213,6 +221,7 @@ impl Env {
                     content,
                     num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
                     last_row_info,
+                    initial_shove,
                 }
             }
             Env::Cases => {
@@ -322,6 +331,9 @@ pub struct EnvState<'arena> {
     /// `true` if we are inside an environment where `\hline` and `\hdashline` are allowed
     /// (directly after `\\` or at the start of the environment).
     pub allow_hlines: bool,
+    /// `true` if we are inside an environment where `\shoveleft` and `\shoveright` are allowed
+    /// (directly after `\\` or at the start of the environment).
+    pub allow_shove: bool,
     pub numbered: Option<NumberedEnvState<'arena>>,
 }
 

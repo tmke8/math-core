@@ -12,7 +12,7 @@ use mathml_renderer::{
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::{EquationTag, LineType, RowLabelInfo},
+    table::{EquationTag, RowLabelInfo},
 };
 
 use crate::{
@@ -1461,15 +1461,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     None
                 };
 
-                // A `\hline`/`\hdashline` directly at the start of the environment (whitespace is
-                // skipped by `peek`) becomes the top border of the whole table.
-                let mut border_top = None;
-                if env.allows_hlines()
+                // A `\hline`/`\hdashline` directly at the start of the environment becomes the top
+                // border of the whole table.
+                let border_top = if env.allows_hlines()
                     && let Token::HLine(line_type) = *self.tokens.peek().token()
                 {
                     self.tokens.next()?;
-                    border_top = Some(line_type);
-                }
+                    Some(line_type)
+                } else {
+                    None
+                };
+                let initial_shove = if env.allows_shove()
+                    && let Token::Shove(shove) = *self.tokens.peek().token()
+                {
+                    self.tokens.next()?;
+                    Some(shove)
+                } else {
+                    None
+                };
+
                 // For arrays, the top border is stored in the array spec, which already carries
                 // the borders coming from the column specification.
                 let array_spec = spec.map(|mut spec| {
@@ -1554,6 +1564,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     last_row_info,
                     num_rows,
                     border_top,
+                    initial_shove,
                 ))
             }
             Token::OperatorName { with_limits } => {
@@ -1698,18 +1709,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ))
                 }
             }
-            Token::HLine(line_type) => {
-                // `\hline`/`\hdashline` reaching here means it wasn't consumed at the start of an
-                // array or directly after a `\\`, so it's in an illegal position.
+            tok @ (Token::HLine(_) | Token::Shove(_) | Token::Limits(_)) => {
+                let (got, correct_place) = match tok {
+                    Token::HLine(_) => (LimitedUsabilityToken::HLine, Place::ArrayRowStart),
+                    Token::Shove(_) => (LimitedUsabilityToken::Shove, Place::MultlineRowStart),
+                    Token::Limits(kind) => (kind.into(), Place::AfterBigOp),
+                    _ => unreachable!(),
+                };
                 Err(LatexError(
                     span.into(),
-                    LatexErrKind::CannotBeUsedHere {
-                        got: match line_type {
-                            LineType::Solid => LimitedUsabilityToken::HLine,
-                            LineType::Dashed => LimitedUsabilityToken::HDashLine,
-                        },
-                        correct_place: Place::ArrayRowStart,
-                    },
+                    LatexErrKind::CannotBeUsedHere { got, correct_place },
                 ))
             }
             Token::NewLine => 'new_line: {
@@ -1722,14 +1731,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
                 // becomes the top border of the row that follows. Only legal inside an array or
                 // matrix; elsewhere it falls through to the `Token::HLine` error arm.
-                let border_top = if self.state.env.allow_hlines {
-                    match *self.tokens.peek().token() {
-                        Token::HLine(line_type) => {
-                            self.tokens.next()?;
-                            Some(line_type)
-                        }
-                        _ => None,
-                    }
+                let border_top = if self.state.env.allow_hlines
+                    && let Token::HLine(line_type) = *self.tokens.peek().token()
+                {
+                    self.tokens.next()?;
+                    Some(line_type)
+                } else {
+                    None
+                };
+                // A `\shoveleft` or `\shoveright` after a `\\` becomes the "shove" of the row that
+                // follows.
+                let shove = if self.state.env.allow_shove
+                    && let Token::Shove(shove) = *self.tokens.peek().token()
+                {
+                    self.tokens.next()?;
+                    Some(shove)
                 } else {
                     None
                 };
@@ -1772,6 +1788,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             Ok(Node::RowSeparator {
                                 label_info,
                                 border_top,
+                                shove,
                             })
                         }
                         Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
@@ -1780,6 +1797,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Ok(Node::RowSeparator {
                         label_info: None,
                         border_top,
+                        shove,
                     })
                 }
             }
@@ -2148,13 +2166,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Ok(sidesetted_with_after_post_bounds_node)
                 }
             }
-            Token::Limits(kind) => Err(LatexError(
-                span.into(),
-                LatexErrKind::CannotBeUsedHere {
-                    got: kind.into(),
-                    correct_place: Place::AfterBigOp,
-                },
-            )),
             Token::Eoi => Err(LatexError(
                 span.into(),
                 LatexErrKind::ExpectedArgumentGotEOI,

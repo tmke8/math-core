@@ -366,6 +366,10 @@ fn main() {
             r#"\begin{multline}x=\tag{4}\\1+\\2\end{multline}"#,
         ),
         (
+            "multline_with_shove",
+            r#"\begin{multline}\shoveright a\\\shoveleft b\\c\end{multline}"#,
+        ),
+        (
             "text_transforms",
             r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
         ),
