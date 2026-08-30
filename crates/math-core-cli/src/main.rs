@@ -100,6 +100,10 @@ struct Args {
     #[arg(long, conflicts_with = "formula")]
     continue_on_error: bool,
 
+    /// Suppress warnings; errors are still reported
+    #[arg(short, long)]
+    quiet: bool,
+
     /// Specifies a single LaTeX formula
     #[arg(short, long, conflicts_with = "file")]
     formula: Option<String>,
@@ -173,7 +177,9 @@ fn main() {
             let input = read_stdin();
             match replace(&replacer, &input, &converter, args.continue_on_error) {
                 Ok(converted) => {
-                    print_warnings(&converted.warnings, None);
+                    if !args.quiet {
+                        print_warnings(&converted.warnings, None);
+                    }
                     println!("{}", converted.html);
                 }
                 Err(e) => exit_conversion_error(e, None),
@@ -310,7 +316,9 @@ fn convert_html(
     let original = fs::read_to_string(fp).unwrap_or_else(|e| exit_io_error(&e));
     let converted = replace(replacer, &original, converter, args.continue_on_error)
         .unwrap_or_else(|e| exit_conversion_error(e, Some(fp)));
-    print_warnings(&converted.warnings, Some(fp));
+    if !args.quiet {
+        print_warnings(&converted.warnings, Some(fp));
+    }
     if args.dry_run {
         return;
     }
