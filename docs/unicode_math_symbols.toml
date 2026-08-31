@@ -116,8 +116,8 @@ Question = '⁇'
 closure = '⁐'
 # TODO: qprime (U+2057 quadruple prime, not superscripted): math-core turns the prime characters into superscripts
 euro = '€'
-leftharpoonaccent = '\overleftharpoon'  # U+20D0
-rightharpoonaccent = '\overrightharpoon'  # U+20D1
+# TODO: leftharpoonaccent (U+20D0)
+# TODO: rightharpoonaccent (U+20D1)
 # TODO: enclosecircle (U+20DD combining enclosing circle): math-core cannot render this character in math mode
 # TODO: enclosesquare (U+20DE combining enclosing square): math-core cannot render this character in math mode
 # TODO: enclosediamond (U+20DF combining enclosing diamond): math-core cannot render this character in math mode
@@ -146,12 +146,12 @@ BbbZ = 'ℤ'
 mfrakZ = 'ℨ'
 turnediota = '℩'
 Angstrom = 'Å'
-mscrB = 'ℬ'
+mscrB = '\mathscr{B}'  # U+212C
 mfrakC = 'ℭ'
 mscre = 'ℯ'
 mscrE = 'ℰ'
-mscrF = 'ℱ'
-mscrM = 'ℳ'
+mscrF = '\mathscr{F}'  # U+2131
+mscrM = '\mathscr{M}'  # U+2133
 mscro = 'ℴ'
 Bbbpi = 'ℼ'
 Bbbgamma = 'ℽ'

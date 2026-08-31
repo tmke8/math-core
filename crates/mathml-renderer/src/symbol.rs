@@ -973,8 +973,8 @@ pub const BOTTOM_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⏡', OrdCatego
 //
 // Unicode Block: Enclosed Alphanumerics
 //
-pub const CIRCLED_LATIN_CAPITAL_LETTER_R: char = 'Ⓡ'; // not treated as operator
-pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as operator
+pub const CIRCLED_LATIN_CAPITAL_LETTER_R: char = 'Ⓡ';
+pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ';
 
 //
 // Unicode Block: Geometric Shapes
@@ -982,14 +982,17 @@ pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as operat
 pub const BLACK_SQUARE: char = '■';
 pub const WHITE_SQUARE: char = '□';
 
-pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
+// pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
 pub const WHITE_UP_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('△');
-
+pub const BLACK_UP_POINTING_SMALL_TRIANGLE: char = '▴';
+pub const WHITE_UP_POINTING_SMALL_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▵');
 pub const BLACK_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▶');
 pub const WHITE_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▷');
 
-pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
+// pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
 pub const WHITE_DOWN_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▽');
+pub const BLACK_DOWN_POINTING_SMALL_TRIANGLE: char = '▾';
+pub const WHITE_DOWN_POINTING_SMALL_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▿');
 
 pub const BLACK_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◀');
 pub const WHITE_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◁');
@@ -1380,7 +1383,6 @@ pub const INTEGRAL_WITH_INTERSECTION: Op = Op::new('⨙', OpCategory::H);
 pub const INTEGRAL_WITH_UNION: Op = Op::new('⨚', OpCategory::H);
 pub const INTEGRAL_WITH_OVERBAR: Op = Op::new('⨛', OpCategory::H);
 pub const INTEGRAL_WITH_UNDERBAR: Op = Op::new('⨜', OpCategory::H);
-
 pub const JOIN: Op = Op::new('⨝', OpCategory::CJ);
 pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op::new('⨞', OpCategory::CJ);
 pub const Z_NOTATION_SCHEMA_COMPOSITION: Bin = Bin::new('⨟', BinCategory::B);
