@@ -34,7 +34,7 @@ fn main() {
         ("text_spaces", r"\text{x\;x\:x\,x\>x\ x~x}"),
         ("text_with_escape_brace", r"\text{a\}b}"),
         ("text_with_weird_o", r"\text{x\o y}"),
-        ("text_with_unsupported_math_symbol", r"\text{x ⇦ y}"),
+        ("text_with_unsupported_math_symbol", r"\text{x ⇫ y}"),
         ("text_with_group", r"\text{x{y}z{}p{}}"),
         (
             "text_with_special_symbols",

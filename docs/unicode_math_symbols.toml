@@ -175,35 +175,35 @@ twoheaddownarrow = '↡'
 mapsfrom = '↤'
 mapsup = '↥'
 mapsdown = '↧'
-# TODO: updownarrowbar (U+21A8 up down arrow with base (perpendicular)): math-core cannot render this character in math mode
+updownarrowbar = '↨'
 downzigzagarrow = '↯'
 Ldsh = '↲'
 Rdsh = '↳'
-# TODO: linefeed (U+21B4 rightwards arrow with corner downwards): math-core cannot render this character in math mode
-# TODO: carriagereturn (U+21B5 downwards arrow with corner leftward = carriage return): math-core cannot render this character in math mode
-# TODO: barovernorthwestarrow (U+21B8 north west arrow to long bar): math-core cannot render this character in math mode
-# TODO: barleftarrowrightarrowbar (U+21B9 leftwards arrow to bar over rightwards arrow to bar): math-core cannot render this character in math mode
-acwopencirclearrow = '\circlearrowleft'  # U+21BA
-cwopencirclearrow = '\circlearrowright'  # U+21BB
+linefeed = '↴'
+carriagereturn = '↵'
+barovernorthwestarrow = '↸'
+barleftarrowrightarrowbar = '↹'
+acwopencirclearrow = '↺'
+cwopencirclearrow = '↻'
 updownarrows = '⇅'
 Nwarrow = '⇖'
 Nearrow = '⇗'
 Searrow = '⇘'
 Swarrow = '⇙'
 leftsquigarrow = '⇜'
-# TODO: nHuparrow (U+21DE upwards arrow with double stroke): math-core cannot render this character in math mode
-# TODO: nHdownarrow (U+21DF downwards arrow with double stroke): math-core cannot render this character in math mode
-leftdasharrow = '\dashleftarrow'  # U+21E0
-# TODO: updasharrow (U+21E1 upwards dashed arrow): math-core cannot render this character in math mode
-rightdasharrow = '\dashrightarrow'  # U+21E2
-# TODO: downdasharrow (U+21E3 downwards dashed arrow): math-core cannot render this character in math mode
+nHuparrow = '⇞'
+nHdownarrow = '⇟'
+leftdasharrow = '⇠'
+updasharrow = '⇡'
+rightdasharrow = '⇢'
+downdasharrow = '⇣'
 barleftarrow = '⇤'
 rightarrowbar = '⇥'
-# TODO: leftwhitearrow (U+21E6 leftwards white arrow): math-core cannot render this character in math mode
-# TODO: upwhitearrow (U+21E7 upwards white arrow): math-core cannot render this character in math mode
-# TODO: rightwhitearrow (U+21E8 rightwards white arrow): math-core cannot render this character in math mode
-# TODO: downwhitearrow (U+21E9 downwards white arrow): math-core cannot render this character in math mode
-# TODO: whitearrowupfrombar (U+21EA upwards white arrow from bar): math-core cannot render this character in math mode
+leftwhitearrow = '⇦'
+upwhitearrow = '⇧'
+rightwhitearrow = '⇨'
+downwhitearrow = '⇩'
+whitearrowupfrombar = '⇪'
 circleonrightarrow = '⇴'
 downuparrows = '⇵'
 rightthreearrows = '⇶'
@@ -216,23 +216,23 @@ nVleftrightarrow = '⇼'
 leftarrowtriangle = '⇽'
 rightarrowtriangle = '⇾'
 leftrightarrowtriangle = '⇿'
-# TODO: increment (U+2206 laplacian (delta; nabla\string^2)): math-core cannot render this character in math mode
+increment = '∆'
 smallin = '∊'
 nni = '∌'
 smallni = '∍'
-# TODO: QED (U+220E end of proof): math-core cannot render this character in math mode
+QED = '∎'
 minus = '−'
 divslash = '∕'
 vysmwhtcircle = '∘'
 vysmblkcircle = '∙'
 # TODO: cuberoot (U+221B cube root): math-core cannot render this character in math mode
 # TODO: fourthroot (U+221C fourth root): math-core cannot render this character in math mode
-# TODO: rightangle (U+221F right (90 degree) angle): math-core cannot render this character in math mode
+rightangle = '∟'
 mathratio = '∶'
 Colon = '∷'
 dotminus = '∸'
 invlazys = '∾'
-# TODO: sinewave (U+223F sine wave): math-core cannot render this character in math mode
+sinewave = '∿'
 nsime = '≄'
 sime = '≃'
 nsimeq = '≄'
@@ -249,10 +249,10 @@ circledequal = '⊜'
 assert = '⊦'
 prurel = '⊰'
 scurel = '⊱'
-# TODO: hermitmatrix (U+22B9 hermitian conjugate matrix): math-core cannot render this character in math mode
+hermitmatrix = '⊹'
 barvee = '⊽'
-# TODO: measuredrightangle (U+22BE right angle-measured [with arc]): math-core cannot render this character in math mode
-# TODO: varlrtriangle (U+22BF right triangle): math-core cannot render this character in math mode
+measuredrightangle = '⊾'
+varlrtriangle = '⊿'
 smwhtdiamond = '⋄'
 equalparallel = '⋕'
 eqless = '⋜'
@@ -784,9 +784,9 @@ intcup = '⨚'
 upint = '⨛'
 lowint = '⨜'
 bigtriangleleft = '⨞'
-# TODO: zcmp (U+2A1F z notation schema composition): math-core cannot render this character in math mode
-# TODO: zpipe (U+2A20 z notation schema piping): math-core cannot render this character in math mode
-# TODO: zproject (U+2A21 z notation schema projection): math-core cannot render this character in math mode
+zcmp = '⨟'
+zpipe = '⨠'
+zproject = '⨡'
 ringplus = '⨢'
 plushat = '⨣'
 simplus = '⨤'
@@ -847,7 +847,7 @@ midbarwedge = '⩜'
 midbarvee = '⩝'
 wedgebar = '⩟'
 wedgedoublebar = '⩠'
-# TODO: varveebar (U+2A61 small vee with underbar): math-core cannot render this character in math mode
+varveebar = '⩡'
 doublebarvee = '⩢'
 veedoublebar = '⩣'
 dsub = '⩤'

@@ -1121,9 +1121,9 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '⨜' => Op(symbol::INTEGRAL_WITH_UNDERBAR),
     '⨝' => ForceLargeOp(symbol::JOIN),
     '⨞' => ForceLargeOp(symbol::LARGE_LEFT_TRIANGLE_OPERATOR),
-    // '⨟' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_COMPOSITION.as_op()),
-    // '⨠' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_PIPING.as_op()),
-    // '⨡' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_PROJECTION.as_op()),
+    '⨟' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_COMPOSITION.as_op()),
+    '⨠' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_PIPING.as_op()),
+    '⨡' => ForceLargeOp(symbol::Z_NOTATION_SCHEMA_PROJECTION.as_op()),
     '⫼' => Op(symbol::LARGE_TRIPLE_VERTICAL_BAR_OPERATOR),
     '⫿' => Op(symbol::N_ARY_WHITE_VERTICAL_BAR),
     // '\u{1EEF0}' => ForceLargeOp(symbol::ARABIC_MATHEMATICAL_OPERATOR_MEEM_WITH_HAH_WITH_TATWEEL),
@@ -1292,7 +1292,7 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '⩞' => BinaryOp(symbol::LOGICAL_AND_WITH_DOUBLE_OVERBAR),
     '⩟' => BinaryOp(symbol::LOGICAL_AND_WITH_UNDERBAR),
     '⩠' => BinaryOp(symbol::LOGICAL_AND_WITH_DOUBLE_UNDERBAR),
-    // '⩡' => BinaryOp(symbol::SMALL_VEE_WITH_UNDERBAR),
+    '⩡' => BinaryOp(symbol::SMALL_VEE_WITH_UNDERBAR),
     '⩢' => BinaryOp(symbol::LOGICAL_OR_WITH_DOUBLE_OVERBAR),
     '⩣' => BinaryOp(symbol::LOGICAL_OR_WITH_DOUBLE_UNDERBAR),
     '⩤' => ForceBinaryOp(symbol::Z_NOTATION_DOMAIN_ANTIRESTRICTION.as_op()),
@@ -1310,6 +1310,25 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     // …
     '¬' => Ord(symbol::NOT_SIGN),
     // …
+    '↨' => Relation(symbol::UP_DOWN_ARROW_WITH_BASE),
+    '↴' => Relation(symbol::RIGHTWARDS_ARROW_WITH_CORNER_DOWNWARDS),
+    '↵' => Relation(symbol::DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS),
+    '↸' => Relation(symbol::NORTH_WEST_ARROW_TO_LONG_BAR),
+    '↹' => Relation(symbol::LEFTWARDS_ARROW_TO_BAR_OVER_RIGHTWARDS_ARROW_TO_BAR),
+    '↺' => Relation(symbol::ANTICLOCKWISE_OPEN_CIRCLE_ARROW),
+    '↻' => Relation(symbol::CLOCKWISE_OPEN_CIRCLE_ARROW),
+    '⇞' => Relation(symbol::UPWARDS_ARROW_WITH_DOUBLE_STROKE),
+    '⇟' => Relation(symbol::DOWNWARDS_ARROW_WITH_DOUBLE_STROKE),
+    '⇠' => Relation(symbol::LEFTWARDS_DASHED_ARROW),
+    '⇡' => Relation(symbol::UPWARDS_DASHED_ARROW),
+    '⇢' => Relation(symbol::RIGHTWARDS_DASHED_ARROW),
+    '⇣' => Relation(symbol::DOWNWARDS_DASHED_ARROW),
+    '⇦' => Relation(symbol::LEFTWARDS_WHITE_ARROW),
+    '⇧' => Relation(symbol::UPWARDS_WHITE_ARROW),
+    '⇨' => Relation(symbol::RIGHTWARDS_WHITE_ARROW),
+    '⇩' => Relation(symbol::DOWNWARDS_WHITE_ARROW),
+    '⇪' => Relation(symbol::UPWARDS_WHITE_ARROW_FROM_BAR),
+    // …
     '′' => Prime(PrimeKind::Single),
     '″' => Prime(PrimeKind::Double),
     '‴' => Prime(PrimeKind::Triple),
@@ -1324,7 +1343,19 @@ static UNICODE_OPERATORS: phf::Map<char, Token> = phf::phf_map! {
     '∃' => Ord(symbol::THERE_EXISTS),
     '∄' => Ord(symbol::THERE_DOES_NOT_EXIST),
     // …
+    '∆' => UprightLetter(SuperChar::from_char(symbol::INCREMENT)),
+    // …
+    '∎' => Letter(SuperChar::from_char(symbol::END_OF_PROOF), Mode::Math),
+    // …
     '∞' => Letter(SuperChar::from_char(symbol::INFINITY), Mode::Math),
+    '∟' => Letter(SuperChar::from_char(symbol::RIGHT_ANGLE), Mode::Math),
+    // …
+    '∿' => Letter(SuperChar::from_char(symbol::SINE_WAVE), Mode::Math),
+    // …
+    '⊹' => Letter(SuperChar::from_char(symbol::HERMITIAN_CONJUGATE_MATRIX), Mode::Math),
+    // …
+    '⊾' => Letter(SuperChar::from_char(symbol::RIGHT_ANGLE_WITH_ARC), Mode::Math),
+    '⊿' => Letter(SuperChar::from_char(symbol::RIGHT_TRIANGLE), Mode::Math),
     // …
     '⋯' => ForceMathInner(symbol::MIDLINE_HORIZONTAL_ELLIPSIS.as_op()),
     // …

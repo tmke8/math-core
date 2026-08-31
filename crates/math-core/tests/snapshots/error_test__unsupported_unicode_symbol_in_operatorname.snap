@@ -1,11 +1,11 @@
 ---
 source: crates/math-core/tests/error_test.rs
-expression: "\\operatorname{⇦}"
+expression: "\\operatorname{⇫}"
 ---
-Error: Direct Unicode input is not supported for this symbol yet: '⇦'.
+Error: Direct Unicode input is not supported for this symbol yet: '⇫'.
    ╭─[ <input>:1:15 ]
    │
- 1 │ \operatorname{⇦}
+ 1 │ \operatorname{⇫}
    │               ┬  
    │               ╰── unsupported math symbol
 ───╯
