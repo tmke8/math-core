@@ -415,11 +415,13 @@ impl TextTransform {
         };
 
         match mapped {
+            // Unicode only defines standardized variation sequences for the *upper case*
+            // script letters, so the lower case ones are left without a variation selector.
             Some(mapped_char) => match tf {
-                TextTransform::ScriptChancery => {
+                TextTransform::ScriptChancery if c.is_ascii_uppercase() => {
                     SuperChar::from_char_with_vs(mapped_char, VariationSelector::Vs1)
                 }
-                TextTransform::ScriptRoundhand => {
+                TextTransform::ScriptRoundhand if c.is_ascii_uppercase() => {
                     SuperChar::from_char_with_vs(mapped_char, VariationSelector::Vs2)
                 }
                 _ => SuperChar::from_char(mapped_char),
@@ -470,6 +472,10 @@ mod tests {
                 TextTransform::ScriptRoundhand,
                 SuperChar::from_char_with_vs('ℳ', VariationSelector::Vs2),
             ),
+            // Lower case script letters have no standardized variation sequences.
+            ('s', TextTransform::ScriptChancery, '𝓈'.into()),
+            ('m', TextTransform::ScriptRoundhand, '𝓂'.into()),
+            ('e', TextTransform::ScriptRoundhand, 'ℯ'.into()),
             ('f', TextTransform::Bold, '𝐟'.into()),
             ('g', TextTransform::Bold, '𝐠'.into()),
             ('o', TextTransform::DoubleStruck, '𝕠'.into()),
