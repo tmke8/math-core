@@ -557,28 +557,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 })
             }
-            Token::ForceLargeOp(op) => {
+            Token::ForceOp(op, large) => {
                 class = Class::Operator;
 
                 let bounds_with_limits = self.get_bounds(None)?;
                 let bounds = bounds_with_limits.bounds;
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                // Only a large operator is grown and centred on the math axis; the limits
+                // are placed the same way either way.
+                let large_attrs = if large {
+                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE
+                } else {
+                    OpAttrs::empty()
+                };
                 let (use_underover, attrs) = match bounds_with_limits.limits() {
-                    _ if bounds.is_trivial() => {
-                        (true, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
+                    _ if bounds.is_trivial() => (true, large_attrs),
+                    None | Some(LimitsKind::Display) => {
+                        (true, large_attrs | OpAttrs::FORCE_MOVABLE_LIMITS)
                     }
-                    None | Some(LimitsKind::Display) => (
-                        true,
-                        OpAttrs::SYMMETRIC_TRUE
-                            | OpAttrs::LARGEOP_TRUE
-                            | OpAttrs::FORCE_MOVABLE_LIMITS,
-                    ),
-                    Some(LimitsKind::Always) => {
-                        (true, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
-                    }
-                    Some(LimitsKind::Never) => {
-                        (false, OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE)
-                    }
+                    Some(LimitsKind::Always) => (true, large_attrs),
+                    Some(LimitsKind::Never) => (false, large_attrs),
                 };
 
                 let target = self.commit(Node::Operator {

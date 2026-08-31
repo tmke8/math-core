@@ -211,6 +211,8 @@ pub enum OpCategory {
     /// Category J: Prefix, op spacing, symmetric, largeop, movablelimits
     /// (e.g. `∑`).
     J,
+    /// Category C and J: an infix form as in C, and a prefix form as in J (e.g. `⨝`).
+    CJ,
 }
 
 make_character_class!(
@@ -569,7 +571,7 @@ pub const LEFTWARDS_ARROW_FROM_BAR: Rel = Rel::new('↤', RelCategory::A);
 pub const UPWARDS_ARROW_FROM_BAR: Rel = Rel::new('↥', RelCategory::A);
 pub const RIGHTWARDS_ARROW_FROM_BAR: Rel = Rel::new('↦', RelCategory::A);
 pub const DOWNWARDS_ARROW_FROM_BAR: Rel = Rel::new('↧', RelCategory::A);
-//pub const UP_DOWN_ARROW_WITH_BASE: Rel = Rel::new('↨', RelCategory::A);
+pub const UP_DOWN_ARROW_WITH_BASE: Rel = Rel::new('↨', RelCategory::A);
 pub const LEFTWARDS_ARROW_WITH_HOOK: Rel = Rel::new('↩', RelCategory::A);
 pub const RIGHTWARDS_ARROW_WITH_HOOK: Rel = Rel::new('↪', RelCategory::A);
 pub const LEFTWARDS_ARROW_WITH_LOOP: Rel = Rel::new('↫', RelCategory::A);
@@ -581,12 +583,12 @@ pub const UPWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = Rel::new('↰', RelCategory::A
 pub const UPWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = Rel::new('↱', RelCategory::A);
 pub const DOWNWARDS_ARROW_WITH_TIP_LEFTWARDS: Rel = Rel::new('↲', RelCategory::A);
 pub const DOWNWARDS_ARROW_WITH_TIP_RIGHTWARDS: Rel = Rel::new('↳', RelCategory::A);
-// pub const RIGHTWARDS_ARROW_WITH_CORNER_DOWNWARDS: Rel = Rel::new('↴', RelCategory::A);
-// pub const DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS: Rel = Rel::new('↵', RelCategory::A);
+pub const RIGHTWARDS_ARROW_WITH_CORNER_DOWNWARDS: Rel = Rel::new('↴', RelCategory::A);
+pub const DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS: Rel = Rel::new('↵', RelCategory::A);
 pub const ANTICLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = Rel::new('↶', RelCategory::Default);
 pub const CLOCKWISE_TOP_SEMICIRCLE_ARROW: Rel = Rel::new('↷', RelCategory::Default);
-// pub const NORTH_WEST_ARROW_TO_LONG_BAR: Rel = Rel::new('↸', RelCategory::Default);
-// pub const LEFTWARDS_ARROW_TO_BAR_OVER_RIGHTWARDS_ARROW_TO_BAR: Rel = Rel::new('↹', RelCategory::Default);
+pub const NORTH_WEST_ARROW_TO_LONG_BAR: Rel = Rel::new('↸', RelCategory::Default);
+pub const LEFTWARDS_ARROW_TO_BAR_OVER_RIGHTWARDS_ARROW_TO_BAR: Rel = Rel::new('↹', RelCategory::A);
 pub const ANTICLOCKWISE_OPEN_CIRCLE_ARROW: Rel = Rel::new('↺', RelCategory::Default);
 pub const CLOCKWISE_OPEN_CIRCLE_ARROW: Rel = Rel::new('↻', RelCategory::Default);
 pub const LEFTWARDS_HARPOON_WITH_BARB_UPWARDS: Rel = Rel::new('↼', RelCategory::A);
@@ -623,19 +625,19 @@ pub const LEFTWARDS_TRIPLE_ARROW: Rel = Rel::new('⇚', RelCategory::A);
 pub const RIGHTWARDS_TRIPLE_ARROW: Rel = Rel::new('⇛', RelCategory::A);
 pub const LEFTWARDS_SQUIGGLE_ARROW: Rel = Rel::new('⇜', RelCategory::A);
 pub const RIGHTWARDS_SQUIGGLE_ARROW: Rel = Rel::new('⇝', RelCategory::A);
-//pub const UPWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel::new('⇞', RelCategory::A);
-// pub const DOWNWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel::new('⇟', RelCategory::A);
+pub const UPWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel::new('⇞', RelCategory::A);
+pub const DOWNWARDS_ARROW_WITH_DOUBLE_STROKE: Rel = Rel::new('⇟', RelCategory::A);
 pub const LEFTWARDS_DASHED_ARROW: Rel = Rel::new('⇠', RelCategory::A);
-// pub const UPWARDS_DASHED_ARROW: Rel = Rel::new('⇡', RelCategory::Default);
+pub const UPWARDS_DASHED_ARROW: Rel = Rel::new('⇡', RelCategory::A);
 pub const RIGHTWARDS_DASHED_ARROW: Rel = Rel::new('⇢', RelCategory::A);
-// pub const DOWNWARDS_DASHED_ARROW: Rel = Rel::new('⇣', RelCategory::Default);
+pub const DOWNWARDS_DASHED_ARROW: Rel = Rel::new('⇣', RelCategory::A);
 pub const LEFTWARDS_ARROW_TO_BAR: Rel = Rel::new('⇤', RelCategory::A);
 pub const RIGHTWARDS_ARROW_TO_BAR: Rel = Rel::new('⇥', RelCategory::A);
-// pub const LEFTWARDS_WHITE_ARROW: Rel = Rel::new('⇦', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW: Rel = Rel::new('⇧', RelCategory::Default);
-// pub const RIGHTWARDS_WHITE_ARROW: Rel = Rel::new('⇨', RelCategory::Default);
-// pub const DOWNWARDS_WHITE_ARROW: Rel = Rel::new('⇩', RelCategory::Default);
-// pub const UPWARDS_WHITE_ARROW_FROM_BAR: Rel = Rel::new('⇪', RelCategory::Default);
+pub const LEFTWARDS_WHITE_ARROW: Rel = Rel::new('⇦', RelCategory::A);
+pub const UPWARDS_WHITE_ARROW: Rel = Rel::new('⇧', RelCategory::A);
+pub const RIGHTWARDS_WHITE_ARROW: Rel = Rel::new('⇨', RelCategory::A);
+pub const DOWNWARDS_WHITE_ARROW: Rel = Rel::new('⇩', RelCategory::A);
+pub const UPWARDS_WHITE_ARROW_FROM_BAR: Rel = Rel::new('⇪', RelCategory::A);
 // pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL: Rel = Rel::new('⇫', RelCategory::Default);
 // pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_HORIZONTAL_BAR: Rel = Rel::new('⇬', RelCategory::Default);
 // pub const UPWARDS_WHITE_ARROW_ON_PEDESTAL_WITH_VERTICAL_BAR: Rel = Rel::new('⇭', RelCategory::Default);
@@ -670,7 +672,7 @@ pub const EMPTY_SET: char = '∅';
 pub const EMPTY_SET_ZERO_WITH_LONG_DIAGONAL_STROKE_OVERLAY_FORM: SuperChar =
     SuperChar::from_char_with_vs(EMPTY_SET, VariationSelector::Vs1);
 
-// pub const INCREMENT: Ord = ord('∆');
+pub const INCREMENT: char = '∆';
 pub const NABLA: char = '∇'; // char so that it can be transformed
 pub const ELEMENT_OF: Rel = Rel::new('∈', RelCategory::Default);
 pub const NOT_AN_ELEMENT_OF: Rel = Rel::new('∉', RelCategory::Default);
@@ -678,7 +680,7 @@ pub const SMALL_ELEMENT_OF: Rel = Rel::new('∊', RelCategory::Default);
 pub const CONTAINS_AS_MEMBER: Rel = Rel::new('∋', RelCategory::Default);
 pub const DOES_NOT_CONTAIN_AS_MEMBER: Rel = Rel::new('∌', RelCategory::Default);
 pub const SMALL_CONTAINS_AS_MEMBER: Rel = Rel::new('∍', RelCategory::Default);
-// pub const END_OF_PROOF: Ord = ord('∎');
+pub const END_OF_PROOF: char = '∎';
 pub const N_ARY_PRODUCT: Op = Op::new('∏', OpCategory::J);
 pub const N_ARY_COPRODUCT: Op = Op::new('∐', OpCategory::J);
 pub const N_ARY_SUMMATION: Op = Op::new('∑', OpCategory::J);
@@ -695,7 +697,7 @@ pub const BULLET_OPERATOR: Op = Op::new('∙', OpCategory::C);
 // pub const FOURTH_ROOT: Op = Op('∜');
 pub const PROPORTIONAL_TO: Rel = Rel::new('∝', RelCategory::Default);
 pub const INFINITY: char = '∞';
-// pub const RIGHT_ANGLE: Op = Op('∟');
+pub const RIGHT_ANGLE: char = '∟';
 pub const ANGLE: char = '∠';
 pub const MEASURED_ANGLE: char = '∡';
 pub const SPHERICAL_ANGLE: char = '∢';
@@ -727,7 +729,7 @@ pub const HOMOTHETIC: Rel = Rel::new('∻', RelCategory::Default);
 pub const TILDE_OPERATOR: Rel = Rel::new('∼', RelCategory::DandForceDefault);
 pub const REVERSED_TILDE: Rel = Rel::new('∽', RelCategory::Default);
 pub const INVERTED_LAZY_S: MathMLOperator = MathMLOperator::from_char('∾');
-// pub const SINE_WAVE: Op = Op('∿');
+pub const SINE_WAVE: char = '∿';
 pub const WREATH_PRODUCT: Op = Op::new('≀', OpCategory::C);
 pub const NOT_TILDE: Rel = Rel::new('≁', RelCategory::Default);
 pub const MINUS_TILDE: Rel = Rel::new('≂', RelCategory::Default);
@@ -859,13 +861,13 @@ pub const CONTAINS_AS_NORMAL_SUBGROUP_OR_EQUAL_TO: Rel = Rel::new('⊵', RelCate
 pub const ORIGINAL_OF: Rel = Rel::new('⊶', RelCategory::Default);
 pub const IMAGE_OF: Rel = Rel::new('⊷', RelCategory::Default);
 pub const MULTIMAP: Rel = Rel::new('⊸', RelCategory::Default);
-// pub const HERMITIAN_CONJUGATE_MATRIX: Op = Op('⊹');
+pub const HERMITIAN_CONJUGATE_MATRIX: char = '⊹';
 pub const INTERCALATE: Op = Op::new('⊺', OpCategory::C);
 pub const XOR: Bin = Bin::new('⊻', BinCategory::B);
 pub const NAND: Bin = Bin::new('⊼', BinCategory::B);
 pub const NOR: Bin = Bin::new('⊽', BinCategory::B);
-// pub const RIGHT_ANGLE_WITH_ARC: Op = Op('⊾');
-// pub const RIGHT_TRIANGLE: Op = Op('⊿');
+pub const RIGHT_ANGLE_WITH_ARC: char = '⊾';
+pub const RIGHT_TRIANGLE: char = '⊿';
 pub const N_ARY_LOGICAL_AND: Op = Op::new('⋀', OpCategory::J);
 pub const N_ARY_LOGICAL_OR: Op = Op::new('⋁', OpCategory::J);
 pub const N_ARY_INTERSECTION: Op = Op::new('⋂', OpCategory::J);
@@ -971,8 +973,8 @@ pub const BOTTOM_TORTOISE_SHELL_BRACKET: OrdLike = OrdLike::new('⏡', OrdCatego
 //
 // Unicode Block: Enclosed Alphanumerics
 //
-pub const CIRCLED_LATIN_CAPITAL_LETTER_R: char = 'Ⓡ'; // not treated as operator
-pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as operator
+pub const CIRCLED_LATIN_CAPITAL_LETTER_R: char = 'Ⓡ';
+pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ';
 
 //
 // Unicode Block: Geometric Shapes
@@ -980,14 +982,17 @@ pub const CIRCLED_LATIN_CAPITAL_LETTER_S: char = 'Ⓢ'; // not treated as operat
 pub const BLACK_SQUARE: char = '■';
 pub const WHITE_SQUARE: char = '□';
 
-pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
+// pub const BLACK_UP_POINTING_TRIANGLE: char = '▲';
 pub const WHITE_UP_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('△');
-
+pub const BLACK_UP_POINTING_SMALL_TRIANGLE: char = '▴';
+pub const WHITE_UP_POINTING_SMALL_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▵');
 pub const BLACK_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▶');
 pub const WHITE_RIGHT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▷');
 
-pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
+// pub const BLACK_DOWN_POINTING_TRIANGLE: char = '▼';
 pub const WHITE_DOWN_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▽');
+pub const BLACK_DOWN_POINTING_SMALL_TRIANGLE: char = '▾';
+pub const WHITE_DOWN_POINTING_SMALL_TRIANGLE: MathMLOperator = MathMLOperator::from_char('▿');
 
 pub const BLACK_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◀');
 pub const WHITE_LEFT_POINTING_TRIANGLE: MathMLOperator = MathMLOperator::from_char('◁');
@@ -1378,12 +1383,11 @@ pub const INTEGRAL_WITH_INTERSECTION: Op = Op::new('⨙', OpCategory::H);
 pub const INTEGRAL_WITH_UNION: Op = Op::new('⨚', OpCategory::H);
 pub const INTEGRAL_WITH_OVERBAR: Op = Op::new('⨛', OpCategory::H);
 pub const INTEGRAL_WITH_UNDERBAR: Op = Op::new('⨜', OpCategory::H);
-
-pub const JOIN: MathMLOperator = MathMLOperator::from_char('⨝'); // actually C or J
-pub const LARGE_LEFT_TRIANGLE_OPERATOR: MathMLOperator = MathMLOperator::from_char('⨞'); // actually C or J
-// pub const Z_NOTATION_SCHEMA_COMPOSITION: Bin = Bin::new('⨟', BinCategory::B);
-// pub const Z_NOTATION_SCHEMA_PIPING: Bin = Bin::new('⨠', BinCategory::B);
-//pub const Z_NOTATION_SCHEMA_PROJECTION: Bin = Bin::new('⨡', BinCategory::B);
+pub const JOIN: Op = Op::new('⨝', OpCategory::CJ);
+pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op::new('⨞', OpCategory::CJ);
+pub const Z_NOTATION_SCHEMA_COMPOSITION: Bin = Bin::new('⨟', BinCategory::B);
+pub const Z_NOTATION_SCHEMA_PIPING: Bin = Bin::new('⨠', BinCategory::B);
+pub const Z_NOTATION_SCHEMA_PROJECTION: Bin = Bin::new('⨡', BinCategory::B);
 
 pub const PLUS_SIGN_WITH_SMALL_CIRCLE_ABOVE: Bin = Bin::new('⨢', BinCategory::B);
 pub const PLUS_SIGN_WITH_CIRCUMFLEX_ACCENT_ABOVE: Bin = Bin::new('⨣', BinCategory::B);
@@ -1450,7 +1454,7 @@ pub const LOGICAL_OR_WITH_HORIZONTAL_DASH: Bin = Bin::new('⩝', BinCategory::B)
 pub const LOGICAL_AND_WITH_DOUBLE_OVERBAR: Bin = Bin::new('⩞', BinCategory::B);
 pub const LOGICAL_AND_WITH_UNDERBAR: Bin = Bin::new('⩟', BinCategory::B);
 pub const LOGICAL_AND_WITH_DOUBLE_UNDERBAR: Bin = Bin::new('⩠', BinCategory::B);
-// pub const SMALL_VEE_WITH_UNDERBAR: Bin = Bin::new('⩡', BinCategory::B);
+pub const SMALL_VEE_WITH_UNDERBAR: Bin = Bin::new('⩡', BinCategory::B);
 pub const LOGICAL_OR_WITH_DOUBLE_OVERBAR: Bin = Bin::new('⩢', BinCategory::B);
 pub const LOGICAL_OR_WITH_DOUBLE_UNDERBAR: Bin = Bin::new('⩣', BinCategory::B);
 

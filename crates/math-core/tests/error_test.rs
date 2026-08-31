@@ -39,10 +39,10 @@ fn main() {
         ("int_double_sub", r"\int__3 x dx"),
         ("unicode_command", r"\éx"),
         ("unsupported_unicode_symbol", r"\sqrt2 + √2"),
-        ("unsupported_unicode_arrow", r"x ⇦ y"),
+        ("unsupported_unicode_arrow", r"x ⇫ y"),
         (
             "unsupported_unicode_symbol_in_operatorname",
-            r"\operatorname{⇦}",
+            r"\operatorname{⇫}",
         ),
         ("wrong_opening_paren", r"\begin[matrix} x \end{matrix}"),
         ("unclosed_brace", r"{"),

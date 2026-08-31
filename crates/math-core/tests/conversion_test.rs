@@ -34,7 +34,7 @@ fn main() {
         ("text_spaces", r"\text{x\;x\:x\,x\>x\ x~x}"),
         ("text_with_escape_brace", r"\text{a\}b}"),
         ("text_with_weird_o", r"\text{x\o y}"),
-        ("text_with_unsupported_math_symbol", r"\text{x ⇦ y}"),
+        ("text_with_unsupported_math_symbol", r"\text{x ⇫ y}"),
         ("text_with_group", r"\text{x{y}z{}p{}}"),
         (
             "text_with_special_symbols",
@@ -709,6 +709,8 @@ fn main() {
             "unicode_largeop_mixed_limits_3",
             r"⅀\displaylimits_0\limits^1\nolimits",
         ),
+        ("unicode_op_not_large", "a ⨟ b"),
+        ("unicode_op_not_large_limits", "⨟_{i=0}^3 a + b"),
         ("unicode_triple_bar", "x⦀x"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
         ("fake_prescript", r"_1^2 \frac{a}{b}"),
