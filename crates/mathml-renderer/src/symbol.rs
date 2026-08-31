@@ -211,6 +211,8 @@ pub enum OpCategory {
     /// Category J: Prefix, op spacing, symmetric, largeop, movablelimits
     /// (e.g. `∑`).
     J,
+    /// Category C and J: an infix form as in C, and a prefix form as in J (e.g. `⨝`).
+    CJ,
 }
 
 make_character_class!(
@@ -1379,8 +1381,8 @@ pub const INTEGRAL_WITH_UNION: Op = Op::new('⨚', OpCategory::H);
 pub const INTEGRAL_WITH_OVERBAR: Op = Op::new('⨛', OpCategory::H);
 pub const INTEGRAL_WITH_UNDERBAR: Op = Op::new('⨜', OpCategory::H);
 
-pub const JOIN: MathMLOperator = MathMLOperator::from_char('⨝'); // actually C or J
-pub const LARGE_LEFT_TRIANGLE_OPERATOR: MathMLOperator = MathMLOperator::from_char('⨞'); // actually C or J
+pub const JOIN: Op = Op::new('⨝', OpCategory::CJ);
+pub const LARGE_LEFT_TRIANGLE_OPERATOR: Op = Op::new('⨞', OpCategory::CJ);
 pub const Z_NOTATION_SCHEMA_COMPOSITION: Bin = Bin::new('⨟', BinCategory::B);
 pub const Z_NOTATION_SCHEMA_PIPING: Bin = Bin::new('⨠', BinCategory::B);
 pub const Z_NOTATION_SCHEMA_PROJECTION: Bin = Bin::new('⨡', BinCategory::B);
