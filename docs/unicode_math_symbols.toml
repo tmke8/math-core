@@ -26,18 +26,18 @@ mathsection = '§'
 mathparagraph = '¶'
 matheth = 'ð'
 Zbar = 'Ƶ'
-overbar = '\overline'  # U+0305
+# TODO: overbar (U+0305), no way to specify a custom accent yet
 wideoverbar = '\overline'  # U+0305
-widebreve = '\breve'  # U+0306
-ovhook = '\overset{̉}{#1}'  # U+0309
+# TODO: widebreve (U+0306), no way to specify a custom accent yet
+# TODO: ovhook (U+0309), no way to specify a custom accent yet
 ocirc = '\mathring'  # U+030A
-candra = '\overset{̐}{#1}'  # U+0310
-oturnedcomma = '\overset{̒}{#1}'  # U+0312
-ocommatopright = '\overset{̕}{#1}'  # U+0315
-droang = '\overset{̚}{#1}'  # U+031A
+# TODO: candra (U+0310), no way to specify a custom accent yet
+# TODO: oturnedcomma (U+0312), no way to specify a custom accent yet
+# TODO: ocommatopright (U+0315), no way to specify a custom accent yet
+# TODO: droang (U+031A), no way to specify a custom accent yet
 wideutilde = '\utilde'  # U+0330
 mathunderbar = '\underline'  # U+0332
-notaccent = '̸'
+# TODO: notaccent (U+0338), no way to specify a custom overlay yet
 mupAlpha = '\mathrm{Α}'  # U+0391
 mupBeta = '\mathrm{Β}'  # U+0392
 mupGamma = '\mathrm{Γ}'  # U+0393
