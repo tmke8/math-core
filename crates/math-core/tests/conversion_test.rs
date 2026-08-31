@@ -709,6 +709,8 @@ fn main() {
             "unicode_largeop_mixed_limits_3",
             r"⅀\displaylimits_0\limits^1\nolimits",
         ),
+        ("unicode_op_not_large", "a ⨟ b"),
+        ("unicode_op_not_large_limits", "⨟_{i=0}^3 a + b"),
         ("unicode_triple_bar", "x⦀x"),
         ("not_multichar_vs", r"\not \mathcal{CHANC}"),
         ("fake_prescript", r"_1^2 \frac{a}{b}"),

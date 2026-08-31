@@ -162,10 +162,13 @@ pub enum Token {
     /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
     /// under conventional Unicode substitution, which needs inner spacing.
     ForceMathInner(MathMLOperator),
-    /// Force an operator to behave like a large binary operator.
+    /// Force an operator to behave like `\mathop`.
     /// This is, for example, needed for `⅀`.
     /// We assume `movablelimitss`.
-    ForceLargeOp(MathMLOperator),
+    /// The flag says whether the operator is also a *large* operator, i.e. whether it is
+    /// rendered with `largeop` and centred on the math axis; `⨟`, for example, takes
+    /// operator spacing but has no large form.
+    ForceOp(MathMLOperator, bool),
     /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
@@ -566,7 +569,7 @@ impl Token {
             Close(_) | SquareBracketClose | ForceClose(..) | Right | Middle => Some(Class::Close),
             BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
             Op(_)
-            | ForceLargeOp(..)
+            | ForceOp(..)
             | PseudoOperator(_)
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
