@@ -9,13 +9,15 @@
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./mathmlfixes.css" />
     <style>
+      /* This page shows essentially all symbols, so the subset font that the
+         rest of the playground uses is not enough; load the full font. */
       @font-face {
-          font-family: "NewCM Book Not Subset";
+          font-family: "NewCM Book Full";
           src: url("./fonts/NewCMMath-Book-prime-roundhand-vec.woff2") format("woff2");
           font-display: swap;
       }
       math {
-        font-family: "NewComputerModernMath Book", math;
+        font-family: "NewCM Book Full", math;
         font-feature-settings: "dtls" 0;
         font-size: 1.0rem;
         mtext {
@@ -26,7 +28,7 @@
         }
       }
       td.char {
-        font-family: "NewCM Book Not Subset", math;
+        font-family: "NewCM Book Full", math;
         font-feature-settings: "dtls" 0;
       }
       .math-core-error > code {
