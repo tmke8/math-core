@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\sin\\left(x\\right)"
 ---
 <math>
-    <mo lspace="0" rspace="0">sin</mo>
+    <mo>⁢</mo><mi>sin</mi><mo>⁡</mo>
     <mrow>
         <mo>(</mo>
         <mi>x</mi>

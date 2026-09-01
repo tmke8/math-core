@@ -4,7 +4,7 @@ expression: "\\operatorname*{max}\\nolimits_x"
 ---
 <math>
     <msub>
-        <mo lspace="0" rspace="0">max</mo>
+        <mo>⁢</mo><mi>max</mi><mo>⁡</mo>
         <mi>x</mi>
     </msub>
 </math>

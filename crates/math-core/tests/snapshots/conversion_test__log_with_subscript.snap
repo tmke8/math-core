@@ -4,7 +4,7 @@ expression: "\\log_x"
 ---
 <math>
     <msub>
-        <mo lspace="0" rspace="0">log</mo>
+        <mo>⁢</mo><mi>log</mi><mo>⁡</mo>
         <mi>x</mi>
     </msub>
 </math>

@@ -4,7 +4,7 @@ expression: "\\max\\displaylimits_0^1"
 ---
 <math>
     <munderover>
-        <mo movablelimits="true" lspace="0" rspace="0">max</mo>
+        <mo>⁢</mo><mi>max</mi><mo>⁡</mo>
         <mn>0</mn>
         <mn>1</mn>
     </munderover>
