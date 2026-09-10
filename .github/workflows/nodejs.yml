@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  BINARYEN_VERSION: "132"
+
 jobs:
   node_test:
     name: "Node.js test"
@@ -34,6 +37,14 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.version }}
+
+      - name: Install wasm-opt
+        uses: jaxxstorm/action-install-gh-release@v3.0.0
+        with:
+          repo: WebAssembly/binaryen
+          tag: version_${{ env.BINARYEN_VERSION }}
+          binaries-location: binaryen-version_${{ env.BINARYEN_VERSION }}/bin
+          chmod: 0755
 
       - name: Build the wasm module
         working-directory: nodejs

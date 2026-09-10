@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+env:
+  BINARYEN_VERSION: "132"
+
 jobs:
   cargo-test-wasm:
     runs-on: ubuntu-latest
@@ -39,11 +42,11 @@ jobs:
         with:
           tool: wasm-bindgen-cli@${{ steps.wasm-bindgen-version.outputs.version }}
       - name: "Install wasm-opt"
-        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        uses: jaxxstorm/action-install-gh-release@v3.0.0
         with:
           repo: WebAssembly/binaryen
-          tag: version_128
-          binaries-location: binaryen-version_128/bin
+          tag: version_${{ env.BINARYEN_VERSION }}
+          binaries-location: binaryen-version_${{ env.BINARYEN_VERSION }}/bin
           chmod: 0755
       - name: "Get wasm size on PR"
         working-directory: ./pr-branch
