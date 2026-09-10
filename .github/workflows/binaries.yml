@@ -24,7 +24,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             arch: aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -53,7 +53,7 @@ jobs:
           cd ../../..
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mathcore-${{ matrix.platform.target }}
           path: mathcore-${{ matrix.platform.target }}.tar.gz
@@ -72,7 +72,7 @@ jobs:
             target: i686-pc-windows-msvc
             arch: x86
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -90,7 +90,7 @@ jobs:
           cd ..\..\..
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mathcore-${{ matrix.platform.target }}
           path: mathcore-${{ matrix.platform.target }}.zip
@@ -109,7 +109,7 @@ jobs:
             target: aarch64-apple-darwin
             arch: aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -126,7 +126,7 @@ jobs:
           cd ../../..
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mathcore-${{ matrix.platform.target }}
           path: mathcore-${{ matrix.platform.target }}.tar.gz
@@ -137,10 +137,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -149,7 +149,7 @@ jobs:
 
       - name: Add binaries to release
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/mathcore-x86_64-unknown-linux-gnu/mathcore-x86_64-unknown-linux-gnu.tar.gz
