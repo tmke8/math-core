@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\sin + \\cos"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">sin</mo>
+    <mo>⁢</mo><mi>sin</mi><mo rspace="0.1667em">⁡</mo>
     <mo lspace="0" rspace="0">+</mo>
-    <mo lspace="0.1667em" rspace="0">cos</mo>
+    <mo lspace="0.1667em">⁢</mo><mi>cos</mi><mo>⁡</mo>
 </math>

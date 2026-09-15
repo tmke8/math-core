@@ -352,18 +352,24 @@ impl<'state> Emitter<'state> {
                 write!(self.s, ">{op}</mo>")?;
             }
             Node::PseudoOp {
-                force_movable_limits,
+                force_movable_limits: _,
                 left,
                 right,
                 name,
             } => {
-                let attrs = if force_movable_limits {
-                    OpAttrs::FORCE_MOVABLE_LIMITS
-                } else {
-                    OpAttrs::empty()
-                };
-                emit_operator_attributes(&mut self.s, attrs, left, right)?;
-                write!(self.s, ">{name}</mo>")?;
+                write!(self.s, "<mo")?;
+                if let Some(left) = left
+                    && !matches!(left, MathSpacing::Zero)
+                {
+                    write!(self.s, " lspace=\"{}\"", <&str>::from(left))?;
+                }
+                write!(self.s, ">\u{2062}</mo><mi>{name}</mi><mo")?;
+                if let Some(right) = right
+                    && !matches!(right, MathSpacing::Zero)
+                {
+                    write!(self.s, " rspace=\"{}\"", <&str>::from(right))?;
+                }
+                write!(self.s, ">\u{2061}</mo>")?;
             }
             Node::IdentifierStr(letters) => {
                 // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding

@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\operatorname{ hel lo }"
 ---
 <math>
-    <mo lspace="0" rspace="0">hello</mo>
+    <mo>⁢</mo><mi>hello</mi><mo>⁡</mo>
 </math>

@@ -4,6 +4,6 @@ expression: "\\sum\\log n"
 ---
 <math>
     <mo lspace="0">∑</mo>
-    <mo lspace="0" rspace="0.1667em">log</mo>
+    <mo>⁢</mo><mi>log</mi><mo rspace="0.1667em">⁡</mo>
     <mi>n</mi>
 </math>

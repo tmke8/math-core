@@ -4,5 +4,5 @@ expression: "x\\operatorname{\\max}"
 ---
 <math>
     <mi>x</mi>
-    <mo lspace="0.1667em" rspace="0">max</mo>
+    <mo lspace="0.1667em">⁢</mo><mi>max</mi><mo>⁡</mo>
 </math>

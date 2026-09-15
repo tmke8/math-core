@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathit{\\operatorname{a}}"
 ---
 <math>
-    <mo lspace="0" rspace="0">a</mo>
+    <mo>⁢</mo><mi>a</mi><mo>⁡</mo>
 </math>

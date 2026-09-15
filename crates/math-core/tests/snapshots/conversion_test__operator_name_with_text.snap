@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\operatorname{\\text{ab}c\\textit{de}f}"
 ---
 <math>
-    <mo lspace="0" rspace="0">abcdef</mo>
+    <mo>⁢</mo><mi>abcdef</mi><mo>⁡</mo>
 </math>

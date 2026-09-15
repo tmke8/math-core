@@ -4,7 +4,7 @@ expression: "\\operatorname{max}\\limits_x"
 ---
 <math>
     <munder>
-        <mo lspace="0" rspace="0">max</mo>
+        <mo>⁢</mo><mi>max</mi><mo>⁡</mo>
         <mi>x</mi>
     </munder>
 </math>

@@ -4,7 +4,7 @@ expression: "\\sin\\displaylimits_0^1"
 ---
 <math>
     <munderover>
-        <mo movablelimits="true" lspace="0" rspace="0">sin</mo>
+        <mo>⁢</mo><mi>sin</mi><mo>⁡</mo>
         <mn>0</mn>
         <mn>1</mn>
     </munderover>

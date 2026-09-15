@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\operatorname{arg\\,max}"
 ---
 <math>
-    <mo lspace="0" rspace="0">arg max</mo>
+    <mo>⁢</mo><mi>arg max</mi><mo>⁡</mo>
 </math>

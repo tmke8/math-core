@@ -4,7 +4,7 @@ expression: "\\sin\\displaylimits_0\\limits^1\\nolimits"
 ---
 <math>
     <msubsup>
-        <mo lspace="0" rspace="0">sin</mo>
+        <mo>⁢</mo><mi>sin</mi><mo>⁡</mo>
         <mn>0</mn>
         <mn>1</mn>
     </msubsup>

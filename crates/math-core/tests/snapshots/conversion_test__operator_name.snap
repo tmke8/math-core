@@ -3,6 +3,6 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\operatorname{sn} x"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">sn</mo>
+    <mo>⁢</mo><mi>sn</mi><mo rspace="0.1667em">⁡</mo>
     <mi>x</mi>
 </math>

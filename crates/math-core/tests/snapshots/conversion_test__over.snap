@@ -5,7 +5,7 @@ expression: "{\\log x + a^n - \\sin(\\theta+\\eta) \\over x}"
 <math>
     <mfrac>
         <mrow>
-            <mo lspace="0" rspace="0.1667em">log</mo>
+            <mo>⁢</mo><mi>log</mi><mo rspace="0.1667em">⁡</mo>
             <mi>x</mi>
             <mo>+</mo>
             <msup>
@@ -13,7 +13,7 @@ expression: "{\\log x + a^n - \\sin(\\theta+\\eta) \\over x}"
                 <mi>n</mi>
             </msup>
             <mo>−</mo>
-            <mo lspace="0" rspace="0">sin</mo>
+            <mo>⁢</mo><mi>sin</mi><mo>⁡</mo>
             <mo stretchy="false">(</mo>
             <mi>θ</mi>
             <mo>+</mo>
