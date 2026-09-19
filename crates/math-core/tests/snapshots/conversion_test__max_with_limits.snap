@@ -8,7 +8,7 @@ expression: "\\max\\limits_x y"
             <mrow><mspace/><mi>max</mi></mrow>
             <mi>x</mi>
         </munder>
-        <mo lspace="0.1667em">⁡</mo>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mi>y</mi>
     </mrow>
 </math>

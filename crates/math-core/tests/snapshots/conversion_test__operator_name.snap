@@ -5,7 +5,7 @@ expression: "\\operatorname{sn} x"
 <math>
     <mrow>
         <mrow><mspace/><mi>sn</mi></mrow>
-        <mo lspace="0.1667em">⁡</mo>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mi>x</mi>
     </mrow>
 </math>

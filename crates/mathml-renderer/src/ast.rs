@@ -16,7 +16,7 @@ use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
-use crate::symbol::MathMLOperator;
+use crate::symbol::{self, MathMLOperator};
 use crate::table::{
     Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnAlignment, ColumnGenerator,
     LineType, RIGHT_ALIGN, RowLabelInfo,
@@ -336,7 +336,13 @@ impl<'state> Emitter<'state> {
                         <&str>::from(size),
                     )?;
                 }
-                write!(self.s, ">{op}</mo>")?;
+                if op == symbol::INVISIBLE_TIMES.as_op() {
+                    write!(self.s, ">&InvisibleTimes;</mo>")?;
+                } else if op == symbol::FUNCTION_APPLICATION.as_op() {
+                    write!(self.s, ">&ApplyFunction;</mo>")?;
+                } else {
+                    write!(self.s, ">{op}</mo>")?;
+                }
             }
             Node::PseudoOp {
                 force_movable_limits,

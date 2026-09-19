@@ -17,8 +17,8 @@ use alloc::{vec, vec::Vec};
 use crate::parser::node_vec_to_node;
 use mathml_renderer::arena::Arena;
 use mathml_renderer::ast::Node;
-use mathml_renderer::attribute::{OpAttrs, OpRoles, RowAttrs};
-use mathml_renderer::symbol::FUNCTION_APPLICATION;
+use mathml_renderer::attribute::{MathSpacing, OpAttrs, OpRoles, RowAttrs};
+use mathml_renderer::symbol::{FUNCTION_APPLICATION, INVISIBLE_TIMES};
 
 pub struct EnrichParseResult<'arena> {
     consumed: usize,
@@ -280,7 +280,7 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
         identifier,
         Node::PseudoOp {
             name: _,
-            left: _,
+            left,
             force_movable_limits: _,
             right,
         },
@@ -301,7 +301,7 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
         if rhs.consumed == 0 {
             return None;
         }
-        lhs.replaced_with = Some(vec![
+        let mut replaced_with: Vec<&Node<'_>> = vec![
             arena.push(Node::Row {
                 nodes: arena.push_slice(&[
                     identifier,
@@ -312,9 +312,6 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
                         // when the pseudo-op is being rewritten as a function, this U+2061
                         // is to the right of the function name, so its right becomes our left
                         left: *right,
-                        // the left spacing needs attached to something, but it's not clear what?
-                        // I'd want to attach it to the INVISIBLE_TIMES, but we don't have one.
-                        // Maybe the row?
                         right: None,
                         size: None,
                     }),
@@ -328,7 +325,23 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
                 ]),
                 attrs: RowAttrs::default(),
             }),
-        ]);
+        ];
+        if *left != Some(MathSpacing::Zero) {
+            // this is a bit of a bold assumption, but we definitely are
+            // placed next to *something*, or we would need no space
+            replaced_with.insert(
+                0,
+                arena.push(Node::Operator {
+                    op: INVISIBLE_TIMES.as_op(),
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
+                    left: *left,
+                    right: None,
+                    size: None,
+                }),
+            );
+        }
+        lhs.replaced_with = Some(replaced_with);
         lhs.consumed += rhs.consumed;
         Some(lhs)
     } else {
@@ -550,7 +563,7 @@ fn enrich_test() {
             &arena,
             &[
                 &Node::PseudoOp {
-                    left: None,
+                    left: Some(MathSpacing::Zero),
                     right: None,
                     name: "sin",
                     force_movable_limits: false,
@@ -590,7 +603,7 @@ fn enrich_test() {
             &arena,
             &[
                 &Node::PseudoOp {
-                    left: None,
+                    left: Some(MathSpacing::Zero),
                     right: None,
                     name: "sin",
                     force_movable_limits: false,

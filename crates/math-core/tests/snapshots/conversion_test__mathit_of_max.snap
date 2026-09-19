@@ -5,9 +5,10 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
 <math>
     <mrow>
         <mrow><mspace/><mi>𝑎𝑏</mi></mrow>
+        <mo lspace="0.1667em">&InvisibleTimes;</mo>
         <mrow>
             <mrow><mspace/><mi>max</mi></mrow>
-            <mo lspace="0.1667em">⁡</mo>
+            <mo lspace="0.1667em">&ApplyFunction;</mo>
             <mrow><mspace/><mi>𝛼𝛽</mi></mrow>
         </mrow>
     </mrow>

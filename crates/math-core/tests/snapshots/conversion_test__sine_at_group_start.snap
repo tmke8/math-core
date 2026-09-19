@@ -6,7 +6,7 @@ expression: "x{\\sin x}"
     <mi>x</mi>
     <mrow>
         <mrow><mspace/><mi>sin</mi></mrow>
-        <mo lspace="0.1667em">⁡</mo>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mi>x</mi>
     </mrow>
 </math>

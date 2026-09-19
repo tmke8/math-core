@@ -5,7 +5,7 @@ expression: "\\sin[x]"
 <math>
     <mrow>
         <mrow><mspace/><mi>sin</mi></mrow>
-        <mo lspace="0">⁡</mo>
+        <mo lspace="0">&ApplyFunction;</mo>
         <mrow>
             <mo stretchy="false">[</mo>
             <mi>x</mi>

@@ -6,7 +6,7 @@ expression: "\\sum\\log n"
     <mo lspace="0">∑</mo>
     <mrow>
         <mrow><mspace/><mi>log</mi></mrow>
-        <mo lspace="0.1667em">⁡</mo>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mi>n</mi>
     </mrow>
 </math>
