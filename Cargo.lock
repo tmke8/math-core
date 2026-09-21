@@ -369,7 +369,6 @@ dependencies = [
  "phf",
  "rustc-hash",
  "serde",
- "serde-tuple-vec-map",
  "similar 3.2.0",
  "static_assertions",
  "strum",
@@ -388,6 +387,7 @@ dependencies = [
  "memchr",
  "phf",
  "serde",
+ "serde-tuple-vec-map",
  "tempfile",
  "toml",
 ]

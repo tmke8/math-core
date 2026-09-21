@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use crate::ast::{IndentKeyword, Indentation};
+use crate::ast::Indentation;
 
 pub fn new_line_and_indent(s: &mut String, indent_num: usize, indentation: Indentation) {
     if indent_num > 0 {
@@ -13,7 +13,7 @@ pub fn new_line_and_indent(s: &mut String, indent_num: usize, indentation: Inden
                     s.push(' ');
                 }
             }
-            Indentation::Keyword(IndentKeyword::Tab) => s.push('\t'),
+            Indentation::Tab => s.push('\t'),
         }
     }
 }

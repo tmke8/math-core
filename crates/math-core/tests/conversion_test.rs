@@ -875,7 +875,7 @@ fn main() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
     for (name, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
@@ -898,7 +898,7 @@ fn forward_references_test() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
     let result = converter.convert_all(&latex_snippets);
     let snippet1 = result[0].as_ref().unwrap();
     let snippet2 = result[1].as_ref().unwrap();

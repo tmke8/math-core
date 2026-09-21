@@ -244,7 +244,7 @@ fn main() {
         pretty_print: PrettyPrint::Never,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
     for (name, problem) in problems.into_iter() {
         let Err(error) = converter
             .convert_with_local_state(problem, MathDisplay::Inline)

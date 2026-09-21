@@ -232,7 +232,6 @@ impl LatexToMathML {
         let id_prefix = js_config.idPrefix();
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
-            macros: macros.unwrap_or_default(),
             xml_namespace,
             ignore_unknown_commands,
             annotation,
@@ -246,7 +245,8 @@ impl LatexToMathML {
                 .map_or_else(MaxExpansions::default, MaxExpansions),
             id_prefix: id_prefix.unwrap_or_default(),
         };
-        let convert = math_core::LatexToMathML::new(config).map_err(|(e, _, context)| {
+        let macros = macros.unwrap_or_default();
+        let inner = math_core::LatexToMathML::new(config, macros).map_err(|(e, _, context)| {
             let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;
             let end = byte_offset_to_utf16_offset(&context, e.0.end) as u32;
             LatexError {
@@ -260,7 +260,7 @@ impl LatexToMathML {
             }
         })?;
         Ok(LatexToMathML {
-            inner: convert,
+            inner,
             throw_on_error: throw_on_error.unwrap_or(true),
         })
     }

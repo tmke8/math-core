@@ -20,12 +20,13 @@ fn convert_all(unicode_substitution: UnicodeSubstitution, suffix: &str) {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
         unicode_substitution,
-        // A macro that expands to one of the substituted commands, to confirm the
-        // `unicode_substitution` flag is applied while tokenizing user-defined macros.
-        macros: vec![(String::from("mycoloneqq"), String::from(r"\coloneqq"))],
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    // A macro that expands to one of the substituted commands, to confirm the
+    // `unicode_substitution` flag is applied while tokenizing user-defined macros.
+    let macros = vec![(String::from("mycoloneqq"), String::from(r"\coloneqq"))];
+
+    let converter = LatexToMathML::new(config, macros).unwrap();
     for (name, problem) in PROBLEMS.iter().chain([&("via_macro", r"a\mycoloneqq b")]) {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)

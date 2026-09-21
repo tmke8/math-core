@@ -79,11 +79,6 @@ impl LatexToMathML {
         };
         let config = MathCoreConfig {
             pretty_print,
-            macros: if let Some(macros_dict) = macros {
-                dict_to_tuple_vec(macros_dict)?
-            } else {
-                Default::default()
-            },
             xml_namespace,
             ignore_unknown_commands,
             annotation,
@@ -96,7 +91,12 @@ impl LatexToMathML {
             id_prefix: String::from(id_prefix),
         };
 
-        let inner = math_core::LatexToMathML::new(config);
+        let macros = if let Some(macros_dict) = macros {
+            dict_to_tuple_vec(macros_dict)?
+        } else {
+            Default::default()
+        };
+        let inner = math_core::LatexToMathML::new(config, macros);
         match inner {
             Ok(inner) => Ok(LatexToMathML {
                 inner: RwLock::new(inner),

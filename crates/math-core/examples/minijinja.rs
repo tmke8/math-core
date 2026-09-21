@@ -25,7 +25,7 @@ struct Converter {
 impl Converter {
     fn load(config: MathCoreConfig) -> Converter {
         eprintln!("[info] loading converter");
-        let converter = LatexToMathML::new(config).unwrap();
+        let converter = LatexToMathML::new(config, vec![]).unwrap();
         eprintln!("[info] converter loaded");
         Converter {
             inner: Mutex::new(converter),

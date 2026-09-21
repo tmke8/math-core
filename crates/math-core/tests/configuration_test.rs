@@ -8,7 +8,7 @@ fn test_indentation_spaces() {
         indentation: Indentation::Spaces(2),
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let mathml = converter
         .convert_with_local_state(r"\frac{1}{2}", MathDisplay::Block)
@@ -25,10 +25,10 @@ fn test_indentation_spaces() {
 fn test_indentation_tab() {
     let config = MathCoreConfig {
         pretty_print: PrettyPrint::Always,
-        indentation: Indentation::tab(),
+        indentation: Indentation::Tab,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let mathml = converter
         .convert_with_local_state(r"\frac{1}{2}", MathDisplay::Block)

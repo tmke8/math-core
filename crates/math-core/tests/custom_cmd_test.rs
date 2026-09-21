@@ -10,12 +10,11 @@ fn test_zero_arg() {
     ];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"x = \half, \withText 3";
     let mathml = converter
@@ -36,12 +35,11 @@ fn test_one_arg() {
     ];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"x = \mycmd{3} + \half";
     let mathml = converter
@@ -59,12 +57,11 @@ fn test_error() {
     ];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let error = LatexToMathML::new(config).unwrap_err();
+    let error = LatexToMathML::new(config, macros).unwrap_err();
 
     assert_eq!(error.1, 1);
     assert_eq!(error.2, r"\sqrt{#}");
@@ -75,12 +72,11 @@ fn test_spacing() {
     let macros = vec![("eq".to_string(), r"=".to_string())];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"x + \eq 3";
     let mathml = converter
@@ -102,12 +98,11 @@ fn test_empty_args() {
     ];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     for (name, latex) in [
         ("empty_first_arg", r"\odv{}{x}"),
@@ -129,12 +124,11 @@ fn test_literal_args() {
     let macros = vec![("hs".to_string(), r"\hspace{#1}".to_string())];
 
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
 
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"x \hs{3em} y";
     let mathml = converter
@@ -150,7 +144,7 @@ fn test_newcommand() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         (
@@ -243,7 +237,7 @@ fn test_providecommand() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         // For a name which isn't taken, `\providecommand` behaves like `\newcommand`.
@@ -287,7 +281,7 @@ fn test_renewcommand() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         (
@@ -353,7 +347,7 @@ fn test_late_resolution() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         // A builtin which is redefined after the body was recorded.
@@ -406,7 +400,7 @@ fn test_late_resolution_across_snippets() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\newcommand{\foo}{\epsilon}", MathDisplay::Inline)
@@ -426,7 +420,7 @@ fn test_forward_reference() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         // The body of a command may name a command which doesn't exist yet; the name is
@@ -471,7 +465,7 @@ fn test_forward_reference_across_snippets() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     // The name which the definition refers to is defined in a later snippet, so the name has
     // to survive the snippet which mentions it.
@@ -501,7 +495,7 @@ fn test_expansion_limit() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for latex in [
         // Two commands which expand to each other.
@@ -527,10 +521,13 @@ fn test_configurable_expansion_limit() {
     // This terminates, but it needs three expansions: `\a`, and then `\b` twice.
     let latex = r"\newcommand{\a}{\b\b}\newcommand{\b}{x}\a";
 
-    let strict = LatexToMathML::new(MathCoreConfig {
-        max_expansions: MaxExpansions(2),
-        ..Default::default()
-    })
+    let strict = LatexToMathML::new(
+        MathCoreConfig {
+            max_expansions: MaxExpansions(2),
+            ..Default::default()
+        },
+        vec![],
+    )
     .unwrap();
     let Err(err) = strict.convert_with_local_state(latex, MathDisplay::Inline) else {
         panic!("`{latex}` should not have converted with a limit of 2 expansions");
@@ -541,10 +538,13 @@ fn test_configurable_expansion_limit() {
     );
 
     // With a higher limit, the same input converts fine.
-    let lenient = LatexToMathML::new(MathCoreConfig {
-        max_expansions: MaxExpansions(100),
-        ..Default::default()
-    })
+    let lenient = LatexToMathML::new(
+        MathCoreConfig {
+            max_expansions: MaxExpansions(100),
+            ..Default::default()
+        },
+        vec![],
+    )
     .unwrap();
     assert!(
         lenient
@@ -561,11 +561,10 @@ fn test_config_macros_referring_to_each_other() {
         ("two".to_string(), r"2".to_string()),
     ];
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"\half";
     let mathml = converter
@@ -585,12 +584,11 @@ fn test_config_macro_with_undefined_command() {
         ("bad".to_string(), r"\frac{1}{\nosuchcommand}".to_string()),
     ];
     let config = MathCoreConfig {
-        macros,
         ..Default::default()
     };
 
     // A name which none of the macros defines is still reported right away.
-    let error = LatexToMathML::new(config).unwrap_err();
+    let error = LatexToMathML::new(config, macros).unwrap_err();
     assert_eq!(error.1, 1);
     assert_eq!(error.2, r"\frac{1}{\nosuchcommand}");
 }
@@ -599,11 +597,10 @@ fn test_config_macro_with_undefined_command() {
 fn test_renewcommand_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     // A macro from the configuration can be redefined, ...
     let latex = r"\renewcommand{\half}{\frac{1}{3}}\half";
@@ -627,7 +624,7 @@ fn test_renewcommand_unreliable_rendering() {
         allow_unreliable_rendering: true,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     // Overwrite a command that is only available when `allow_unreliable_rendering` is set.
     let latex = r"\renewcommand{\widecheck}{x}\widecheck";
@@ -648,7 +645,7 @@ fn test_renewcommand_across_snippets() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}\zz", MathDisplay::Inline)
@@ -675,11 +672,10 @@ fn test_renewcommand_across_snippets() {
 fn test_providecommand_with_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     // A macro from the configuration also counts as already defined.
     let latex = r"\providecommand{\half}{\frac{1}{3}}\half";
@@ -694,11 +690,10 @@ fn test_providecommand_with_config_macro() {
 fn test_newcommand_uses_config_macro() {
     let macros = vec![("half".to_string(), r"\frac{1}{2}".to_string())];
     let config = MathCoreConfig {
-        macros,
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     let latex = r"\newcommand{\halves}[1]{#1\half}\halves{3}";
     let mathml = converter
@@ -715,7 +710,7 @@ fn test_newcommand_across_snippets() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     // The definition in the first snippet is available in the second one.
     converter
@@ -745,7 +740,7 @@ fn test_newcommand_in_convert_all() {
         global_group: true,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let results = converter.convert_all(&[
         (r"\newcommand{\zz}{\mathbb{Z}}", MathDisplay::Inline),
@@ -761,7 +756,7 @@ fn test_newcommand_without_global_group() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     // Outside of the global group, which is the default, a definition is only good for the
     // snippet which contains it, ...
@@ -789,7 +784,7 @@ fn test_renewcommand_without_global_group() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}\zz", MathDisplay::Inline)
@@ -808,7 +803,7 @@ fn test_newcommand_in_convert_all_without_global_group() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let results = converter.convert_all(&[
         (r"\newcommand{\zz}{\mathbb{Z}}", MathDisplay::Inline),
@@ -824,7 +819,7 @@ fn test_newcommand_does_not_leak_into_local_state() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_local_state(r"\newcommand{\zz}{\mathbb{Z}}\zz", MathDisplay::Inline)
@@ -844,7 +839,7 @@ fn test_let() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     for (name, latex) in [
         // The reason `\let` exists: hold on to a definition one is about to replace. Without
@@ -903,7 +898,7 @@ fn test_let_across_snippets() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\newcommand{\zz}{\mathbb{Z}}", MathDisplay::Inline)
@@ -929,7 +924,7 @@ fn test_let_without_global_group() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\let\a\alpha\a", MathDisplay::Inline)
@@ -973,11 +968,11 @@ fn test_global_let() {
         ("global_let_doubled", r"\global\global\let\a\alpha", r"\a"),
     ] {
         let config = MathCoreConfig {
-            macros: vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())],
             pretty_print: PrettyPrint::Always,
             ..Default::default()
         };
-        let mut converter = LatexToMathML::new(config).unwrap();
+        let macros = vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())];
+        let mut converter = LatexToMathML::new(config, macros).unwrap();
         converter
             .convert_with_global_state(definition, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{definition}` with error '{e}'"));
@@ -996,7 +991,7 @@ fn test_global_let_keeps_late_binding() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(
@@ -1027,7 +1022,7 @@ fn test_global_let_beats_local() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let latex = r"\newcommand{\a}{1}\a\global\let\a\alpha\a";
     let mathml = converter
@@ -1051,7 +1046,7 @@ fn test_global_let_in_global_group() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(
@@ -1070,11 +1065,11 @@ fn test_global_let_in_global_group() {
 #[test]
 fn test_def() {
     let config = MathCoreConfig {
-        macros: vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())],
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let macros = vec![("cfgcmd".to_string(), r"\mathbb{C}".to_string())];
+    let converter = LatexToMathML::new(config, macros).unwrap();
 
     for (name, latex) in [
         ("def_zero_args", r"\def\zz{\mathbb{Z}}x \in \zz"),
@@ -1160,7 +1155,7 @@ fn test_gdef() {
             pretty_print: PrettyPrint::Always,
             ..Default::default()
         };
-        let mut converter = LatexToMathML::new(config).unwrap();
+        let mut converter = LatexToMathML::new(config, vec![]).unwrap();
         converter
             .convert_with_global_state(definition, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{definition}` with error '{e}'"));
@@ -1177,7 +1172,7 @@ fn test_def_without_global_group() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\def\a{\alpha}\a", MathDisplay::Inline)
@@ -1198,7 +1193,7 @@ fn test_gdef_keeps_late_binding() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\def\inner{x}\gdef\g{\inner+1}", MathDisplay::Inline)
@@ -1225,7 +1220,7 @@ fn test_gdef_beats_local() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let latex = r"\def\a{1}\a\gdef\a{\alpha}\a";
     let mathml = converter
@@ -1249,7 +1244,7 @@ fn test_def_in_global_group() {
         global_group: true,
         ..Default::default()
     };
-    let mut converter = LatexToMathML::new(config).unwrap();
+    let mut converter = LatexToMathML::new(config, vec![]).unwrap();
 
     converter
         .convert_with_global_state(r"\def\zzz{z}\gdef\zzzz{q}", MathDisplay::Inline)
@@ -1268,7 +1263,7 @@ fn test_def_recursion() {
         pretty_print: PrettyPrint::Always,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     assert!(
         converter
@@ -1284,7 +1279,7 @@ fn test_let_with_ignore_unknown_commands() {
         ignore_unknown_commands: true,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     // A `\let` to a name which is unknown at the time of the `\let` is not an error, and
     // the name can be defined later.

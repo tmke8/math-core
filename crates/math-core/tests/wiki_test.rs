@@ -425,14 +425,16 @@ fn wiki_test() {
         "`HEADINGS` must be sorted by number"
     );
 
-    let converter = LatexToMathML::new(MathCoreConfig {
-        pretty_print: PrettyPrint::Always,
-        macros: vec![
+    let converter = LatexToMathML::new(
+        MathCoreConfig {
+            pretty_print: PrettyPrint::Always,
+            ..Default::default()
+        },
+        vec![
             ("sgn".to_owned(), "\\operatorname{sgn}".to_owned()),
             ("wideparen".to_owned(), "\\overparen".to_owned()),
         ],
-        ..Default::default()
-    })
+    )
     .unwrap();
 
     // The table of contents can only list the sections that actually have rows, so we don't know

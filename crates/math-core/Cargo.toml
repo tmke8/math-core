@@ -21,7 +21,6 @@ exclude = ["/src/snapshots", "/tests/snapshots"]
 [dependencies]
 mathml-renderer = { path = "../mathml-renderer", package = "math-core-renderer-internal", version = "0.8.2", default-features = false }
 serde = { version = "1.0.228", optional = true, default-features = false, features = ["derive", "alloc"] }
-serde-tuple-vec-map = { version = "1.0.1", optional = true, default-features = false }
 phf = { version = "0.14.0", default-features = false, features = ["macros", "ptrhash"] }
 strum = { version = "0.28.0", default-features = false }
 strum_macros = { workspace = true }
@@ -47,9 +46,8 @@ std = [
     "strum/std",
     "mathml-renderer/std",
     "serde?/std",
-    "serde-tuple-vec-map?/std",
 ]
-serde = ["dep:serde", "dep:serde-tuple-vec-map", "mathml-renderer/serde"]
+serde = ["dep:serde", "mathml-renderer/serde"]
 ariadne = ["dep:ariadne"]
 
 [lints]

@@ -3,7 +3,7 @@ use math_core::{LatexToMathML, MathCoreConfig, MathDisplay};
 #[test]
 fn test_undefined_reference_warning() {
     let config = MathCoreConfig::default();
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let latex = r"\eqref{doesnotexist}";
     let result = converter
@@ -23,7 +23,7 @@ fn test_unknown_command_warning() {
         ignore_unknown_commands: true,
         ..Default::default()
     };
-    let converter = LatexToMathML::new(config).unwrap();
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
 
     let latex = r"\thiscommanddoesnotexist";
     let result = converter

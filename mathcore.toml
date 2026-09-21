@@ -1,7 +1,7 @@
 pretty-print = "always"
 xml-namespace = true
 continue-on-error = false
-indentation = 4
+indentation = { spaces = 4 }
 
 [macros]
 d = '\mathrm{d}'
