@@ -244,6 +244,7 @@ impl LatexToMathML {
                 .maxExpansions()
                 .map_or_else(MaxExpansions::default, MaxExpansions),
             id_prefix: id_prefix.unwrap_or_default(),
+            tags: math_core::TaggingStrategy::default(),
         };
         let macros = macros.unwrap_or_default();
         let inner = math_core::LatexToMathML::new(config, macros).map_err(|(e, _, context)| {
