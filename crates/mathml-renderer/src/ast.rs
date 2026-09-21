@@ -244,9 +244,9 @@ impl Default for CssClassNames {
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(untagged))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum Indentation {
-    Keyword(IndentKeyword),
+    Tab,
     Spaces(usize),
 }
 
@@ -254,21 +254,6 @@ impl Default for Indentation {
     fn default() -> Self {
         Indentation::Spaces(4)
     }
-}
-
-impl Indentation {
-    pub fn tab() -> Self {
-        Indentation::Keyword(IndentKeyword::Tab)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
-#[non_exhaustive]
-pub enum IndentKeyword {
-    #[default]
-    Tab,
 }
 
 #[derive(Debug)]

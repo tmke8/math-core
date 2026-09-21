@@ -16,7 +16,7 @@
 //!
 //! let latex = r#"\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt"#;
 //! let config = MathCoreConfig::default();
-//! let converter = LatexToMathML::new(config).unwrap();
+//! let converter = LatexToMathML::new(config, vec![]).unwrap();
 //! let result = converter.convert_with_local_state(latex, MathDisplay::Block).unwrap();
 //! println!("{}", result.mathml);
 //! ```
@@ -70,7 +70,7 @@ use serde::{Deserialize, Serialize};
 /// Hash map with a fast, non-cryptographic hasher, backed by `hashbrown` so it works in `no_std`.
 pub(crate) type FxHashMap<K, V> = hashbrown::HashMap<K, V, FxBuildHasher>;
 
-pub use mathml_renderer::ast::{CssClassNames, IndentKeyword, Indentation, Warnings};
+pub use mathml_renderer::ast::{CssClassNames, Indentation, Warnings};
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
@@ -167,35 +167,20 @@ impl Default for MaxExpansions {
 /// // Default values
 /// let config = MathCoreConfig::default();
 ///
-/// // Specifying pretty-print behavior
+/// // Specifying pretty-print behavior and enabling annotations
 /// let config = MathCoreConfig {
 ///     pretty_print: PrettyPrint::Always,
+///     annotation: true,
 ///     ..Default::default()
 ///  };
-///
-/// // Specifying pretty-print behavior and custom macros
-/// let macros = vec![
-///     ("d".to_string(), r"\mathrm{d}".to_string()),
-///     ("bb".to_string(), r"\mathbb{#1}".to_string()), // with argument
-/// ];
-/// let config = MathCoreConfig {
-///     pretty_print: PrettyPrint::Auto,
-///     macros,
-///     ..Default::default()
-/// };
 /// ```
 ///
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(default, rename_all = "kebab-case"))]
 pub struct MathCoreConfig {
     /// A configuration for pretty-printing the MathML output. See [`PrettyPrint`] for details.
     pub pretty_print: PrettyPrint,
-    /// A list of LaTeX macros; each tuple contains (macro_name, macro_definition).
-    ///
-    /// A macro may use another macro of this list, no matter which of the two comes first.
-    #[cfg_attr(feature = "serde", serde(with = "tuple_vec_map"))]
-    pub macros: Vec<(String, String)>,
     /// If `true`, include `xmlns="http://www.w3.org/1998/Math/MathML"` in the `<math>` tag.
     pub xml_namespace: bool,
     /// If `true`, unknown commands will be rendered as red text in the output, instead of
@@ -285,12 +270,34 @@ pub struct LatexToMathML {
 impl LatexToMathML {
     /// Create a new `LatexToMathML` converter with the given configuration.
     ///
+    /// `macros` is a vector of tuples, where each tuple contains a macro name and its definition.
+    /// A macro may use another macro of this list, no matter which of the two comes first.
+    ///
     /// This function returns an error if the custom macros in the given configuration could not
     /// be parsed. The error contains the parsing error, the macro index and the macro definition
     /// that caused the error.
-    pub fn new(mut config: MathCoreConfig) -> Result<Self, MacroParseError> {
+    ///
+    /// # Example usage
+    ///
+    /// ```rust
+    /// use math_core::{LatexToMathML, MathCoreConfig, PrettyPrint};
+    ///
+    /// let config = MathCoreConfig {
+    ///     pretty_print: PrettyPrint::Auto,
+    ///     ..Default::default()
+    /// };
+    /// let macros = vec![
+    ///     ("d".to_string(), r"\mathrm{d}".to_string()),
+    ///     ("bb".to_string(), r"\mathbb{#1}".to_string()), // with argument
+    /// ];
+    /// let converter = LatexToMathML::new(config, macros).unwrap();
+    /// ```
+    pub fn new(
+        config: MathCoreConfig,
+        macros: Vec<(String, String)>,
+    ) -> Result<Self, MacroParseError> {
         let custom_cmds = parse_custom_commands(
-            core::mem::take(&mut config.macros),
+            macros,
             config.unicode_substitution,
             config.allow_unreliable_rendering,
         )?;
@@ -340,7 +347,7 @@ impl LatexToMathML {
     ///
     /// let latex = r#"(n + 1)! = \Gamma ( n + 1 )"#;
     /// let config = MathCoreConfig::default();
-    /// let converter = LatexToMathML::new(config).unwrap();
+    /// let converter = LatexToMathML::new(config, vec![]).unwrap();
     /// let result = converter.convert_with_local_state(latex, MathDisplay::Inline).unwrap();
     /// println!("{}", result.mathml);
     ///

@@ -21,11 +21,14 @@ fn main() {
         r#"\begin{vmatrix} 1\\ 2 \end{vmatrix}"#,
     ];
 
-    let converter = LatexToMathML::new(MathCoreConfig {
-        pretty_print: PrettyPrint::Always,
-        allow_unreliable_rendering: true,
-        ..Default::default()
-    })
+    let converter = LatexToMathML::new(
+        MathCoreConfig {
+            pretty_print: PrettyPrint::Always,
+            allow_unreliable_rendering: true,
+            ..Default::default()
+        },
+        vec![],
+    )
     .unwrap();
     let outputs = inputs
         .iter()

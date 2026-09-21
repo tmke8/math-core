@@ -23,6 +23,7 @@ memchr = { workspace = true }
 phf = { version = "0.14.0", features = ["macros"] }
 toml = "1.1.2"
 serde = { workspace = true }
+serde-tuple-vec-map = { version = "1.0.1" }
 
 [lints]
 workspace = true

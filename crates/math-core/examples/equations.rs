@@ -63,11 +63,14 @@ fn main() {
         r"\oint_C \vec{B}\circ \mathrm{d}\vec{\ell} = \mu_0 \left( I_{\mathrm{enc}} + \varepsilon_0 \frac{\mathrm{d}}{\mathrm{d}t} \int_S {\vec{E} \circ \hat{n}}\; \mathrm{d}a \right)",
     ];
 
-    let converter = LatexToMathML::new(MathCoreConfig {
-        pretty_print: PrettyPrint::Always,
-        unicode_substitution: UnicodeSubstitution::Never,
-        ..Default::default()
-    })
+    let converter = LatexToMathML::new(
+        MathCoreConfig {
+            pretty_print: PrettyPrint::Always,
+            unicode_substitution: UnicodeSubstitution::Never,
+            ..Default::default()
+        },
+        vec![],
+    )
     .unwrap();
     let outputs = inputs
         .iter()

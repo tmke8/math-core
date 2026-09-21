@@ -156,7 +156,7 @@ fn main() {
         }
     };
 
-    let converter = LatexToMathML::new(config.math_core).unwrap_or_else(|err| {
+    let converter = LatexToMathML::new(config.math_core, config.macros).unwrap_or_else(|err| {
         render_ariadne_report(&err.0, &format!("macro {}", err.1), &err.2);
         std::process::exit(2);
     });
@@ -471,7 +471,7 @@ condition — when considered from the stationary system, the figure of a rotati
 $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
 "#;
         let converter =
-            math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
+            math_core::LatexToMathML::new(math_core::MathCoreConfig::default(), vec![]).unwrap();
         let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let mathml = crate::replace(&replacer, text, &converter, false).unwrap();
         println!("{}", mathml.html);
@@ -484,7 +484,7 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
         let text = r"<p>See $\eqref{eq:a}$.</p>
 <p>$$\begin{align} x = 1 \label{eq:a}\end{align}$$</p>";
         let converter =
-            math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
+            math_core::LatexToMathML::new(math_core::MathCoreConfig::default(), vec![]).unwrap();
         let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         let converted = crate::replace(&replacer, text, &converter, false).unwrap();
         // The `\eqref` has to render as a reference to equation (1), not as an unresolved one.
@@ -499,7 +499,7 @@ $$R {\sqrt{1-{\frac {v^{2}}{c^{2}}}}}, \ R, \ R .$$
     fn continue_on_error() {
         let text = r"good $x$, bad $\frac$, good $y$";
         let converter =
-            math_core::LatexToMathML::new(math_core::MathCoreConfig::default()).unwrap();
+            math_core::LatexToMathML::new(math_core::MathCoreConfig::default(), vec![]).unwrap();
         let replacer = crate::Replacer::new(("$", "$"), ("$$", "$$"), false);
         // Without `continue_on_error`, the bad snippet aborts the whole conversion.
         assert!(crate::replace(&replacer, text, &converter, false).is_err());
