@@ -89,6 +89,7 @@ impl LatexToMathML {
             indentation: math_core::Indentation::default(),
             max_expansions: MaxExpansions(max_expansions),
             id_prefix: String::from(id_prefix),
+            tags: math_core::TaggingStrategy::default(),
         };
 
         let macros = if let Some(macros_dict) = macros {

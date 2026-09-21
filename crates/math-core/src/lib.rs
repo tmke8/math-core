@@ -157,6 +157,18 @@ impl Default for MaxExpansions {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum TaggingStrategy {
+    // None,
+    /// Equations are numbered as the AMSmath package would do.
+    #[default]
+    Ams,
+    // All,
+}
+
 /// Configuration object for the LaTeX to MathML conversion.
 ///
 /// # Example usage
@@ -215,6 +227,8 @@ pub struct MathCoreConfig {
     /// This is *not* URL escaped. Use the
     /// [percent-encoding](https://crates.io/crates/percent-encoding) crate if you need to.
     pub id_prefix: String,
+    /// The strategy used for numbering equations. See [`TaggingStrategy`].
+    pub tags: TaggingStrategy,
 }
 
 /// Subset of `MathCoreConfig` relevant for the parser.
