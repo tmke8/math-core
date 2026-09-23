@@ -12,20 +12,21 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize))]
-    pub struct OpAttrs: u16 {
+    pub struct OpAttrs: u8 {
         const STRETCHY_FALSE = 1;
         const STRETCHY_TRUE = 1 << 1;
         const NO_MOVABLE_LIMITS = 1 << 2;
         const FORCE_MOVABLE_LIMITS = 1 << 3;
         const FORM_PREFIX = 1 << 4;
-        const FORM_INFIX = 1 << 5;
-        const FORM_POSTFIX = 1 << 6;
-        const SYMMETRIC_TRUE = 1 << 7;
-        const LARGEOP_TRUE = 1 << 8;
+        const FORM_POSTFIX = 1 << 5;
+        const SYMMETRIC_TRUE = 1 << 6;
+        const LARGEOP_TRUE = 1 << 7;
     }
 }
 
 impl OpAttrs {
+    pub const FORM_INFIX: OpAttrs = OpAttrs::FORM_PREFIX.union(OpAttrs::FORM_POSTFIX);
+
     pub fn write_to(self, s: &mut String) {
         debug_assert!(
             !(self.contains(OpAttrs::STRETCHY_FALSE) && self.contains(OpAttrs::STRETCHY_TRUE)),
@@ -35,10 +36,6 @@ impl OpAttrs {
             !(self.contains(OpAttrs::NO_MOVABLE_LIMITS)
                 && self.contains(OpAttrs::FORCE_MOVABLE_LIMITS)),
             "NO_MOVABLE_LIMITS and FORCE_MOVABLE_LIMITS cannot both be set"
-        );
-        debug_assert!(
-            !(self.contains(OpAttrs::FORM_PREFIX) && self.contains(OpAttrs::FORM_POSTFIX)),
-            "FORM_PREFIX and FORM_POSTFIX cannot both be set"
         );
         if self.contains(OpAttrs::STRETCHY_FALSE) {
             s.push_str(r#" stretchy="false""#);
@@ -52,14 +49,15 @@ impl OpAttrs {
         if self.contains(OpAttrs::FORCE_MOVABLE_LIMITS) {
             s.push_str(r#" movablelimits="true""#);
         }
-        if self.contains(OpAttrs::FORM_PREFIX) {
-            s.push_str(r#" form="prefix""#);
-        }
         if self.contains(OpAttrs::FORM_INFIX) {
             s.push_str(r#" form="infix""#);
-        }
-        if self.contains(OpAttrs::FORM_POSTFIX) {
-            s.push_str(r#" form="postfix""#);
+        } else {
+            if self.contains(OpAttrs::FORM_PREFIX) {
+                s.push_str(r#" form="prefix""#);
+            }
+            if self.contains(OpAttrs::FORM_POSTFIX) {
+                s.push_str(r#" form="postfix""#);
+            }
         }
         if self.contains(OpAttrs::SYMMETRIC_TRUE) {
             s.push_str(r#" symmetric="true""#);
