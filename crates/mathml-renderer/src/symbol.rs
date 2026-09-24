@@ -199,7 +199,8 @@ pub enum OrdCategory {
 
 make_character_class!(
     /// An operator with zero spacing, categories D, E, F, G, I, K.
-    OrdLike, OrdCategory
+    OrdLike,
+    OrdCategory
 );
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -217,7 +218,8 @@ pub enum OpCategory {
 
 make_character_class!(
     /// An operator with operator spacing (categories C, H, J).
-    Op, OpCategory
+    Op,
+    OpCategory
 );
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -230,7 +232,8 @@ pub enum BinCategory {
 
 make_character_class!(
     /// An operator with binary operator spacing (categories B and D).
-    Bin, BinCategory
+    Bin,
+    BinCategory
 );
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -246,7 +249,8 @@ pub enum RelCategory {
 
 make_character_class!(
     /// An operator with relation spacing.
-    Rel, RelCategory
+    Rel,
+    RelCategory
 );
 
 /// An operator with punctuation spacing (category M).

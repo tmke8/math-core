@@ -18,7 +18,8 @@ use crate::parser::node_vec_to_node;
 use mathml_renderer::arena::Arena;
 use mathml_renderer::ast::Node;
 use mathml_renderer::attribute::{MathSpacing, OpAttrs, OpRoles, RowAttrs};
-use mathml_renderer::symbol::{FUNCTION_APPLICATION, INVISIBLE_TIMES};
+use mathml_renderer::length::Length;
+use mathml_renderer::symbol::FUNCTION_APPLICATION;
 
 pub struct EnrichParseResult<'arena> {
     consumed: usize,
@@ -33,7 +34,9 @@ pub fn enrich_to_node<'arena>(
 ) -> &'arena Node<'arena> {
     if reset_spacing
         && let [single] = input
-        && let Node::Operator { op, attrs, roles, .. } = **single
+        && let Node::Operator {
+            op, attrs, roles, ..
+        } = **single
     {
         return arena.push(Node::Operator {
             op,
@@ -60,7 +63,7 @@ pub fn enrich<'arena>(
         if rhs.consumed == 0 {
             // Failed to parse. Just add it to the end and keep going.
             if let Some(lhs_replaced_with) = lhs.replaced_with.as_mut() {
-                lhs_replaced_with.push(&input[lhs.consumed]);
+                lhs_replaced_with.push(input[lhs.consumed]);
             }
             lhs.consumed += 1;
             continue;
@@ -309,9 +312,8 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
                         op: FUNCTION_APPLICATION.as_op(),
                         attrs: OpAttrs::empty(),
                         roles: OpRoles::ROLE_INFIX,
-                        // when the pseudo-op is being rewritten as a function, this U+2061
-                        // is to the right of the function name, so its right becomes our left
-                        left: *right,
+                        // ApplyFunction has zero spacing by default
+                        left: right.filter(|right| *right != MathSpacing::Zero),
                         right: None,
                         size: None,
                     }),
@@ -326,20 +328,11 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
                 attrs: RowAttrs::default(),
             }),
         ];
-        if *left != Some(MathSpacing::Zero) {
-            // this is a bit of a bold assumption, but we definitely are
-            // placed next to *something*, or we would need no space
-            replaced_with.insert(
-                0,
-                arena.push(Node::Operator {
-                    op: INVISIBLE_TIMES.as_op(),
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
-                    left: *left,
-                    right: None,
-                    size: None,
-                }),
-            );
+        // ApplyFunction has zero spacing by default
+        if let Some(left) = *left
+            && left != MathSpacing::Zero
+        {
+            replaced_with.insert(0, arena.push(Node::Space(Length::from(left))));
         }
         lhs.replaced_with = Some(replaced_with);
         lhs.consumed += rhs.consumed;

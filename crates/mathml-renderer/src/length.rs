@@ -2,6 +2,8 @@
 
 use alloc::string::String;
 
+use crate::attribute::MathSpacing;
+
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use strum_macros::IntoStaticStr;
@@ -78,6 +80,21 @@ impl Length {
 
     pub const fn is_negative(self) -> bool {
         self.value.0 < 0.0
+    }
+}
+
+impl From<MathSpacing> for Length {
+    fn from(spacing: MathSpacing) -> Length {
+        let value = LengthValue(match spacing {
+            MathSpacing::Zero => 0.0,
+            MathSpacing::ThreeMu => 0.1667,
+            MathSpacing::FourMu => 0.2222,
+            MathSpacing::FiveMu => 0.2778,
+        });
+        Length {
+            value,
+            unit: LengthUnit::Em,
+        }
     }
 }
 

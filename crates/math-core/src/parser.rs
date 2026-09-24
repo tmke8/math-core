@@ -1079,12 +1079,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let target = self.commit(Node::Operator {
                     op: op.as_op(),
-                    attrs: attrs,
+                    attrs,
                     roles: match op.category() {
-                            OpCategory::C => OpRoles::ROLE_INFIX,
-                            OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
-                            OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
-                        },
+                        OpCategory::C => OpRoles::ROLE_INFIX,
+                        OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
+                        OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
+                    },
                     left,
                     right,
                     size: None,
@@ -3438,9 +3438,7 @@ fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
         RelCategory::Default => OpAttrs::empty(),
         // To get the right spacing on `DandForceDefault` relations, we have to
         // explicitly set the form to "infix".
-        RelCategory::DandForceDefault => {
-            OpAttrs::FORM_INFIX
-        }
+        RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
     }
 }
 

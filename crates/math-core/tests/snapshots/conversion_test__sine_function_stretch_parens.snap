@@ -5,7 +5,7 @@ expression: "\\sin\\left(x\\right)"
 <math>
     <mrow>
         <mrow><mspace/><mi>sin</mi></mrow>
-        <mo lspace="0">&ApplyFunction;</mo>
+        <mo>&ApplyFunction;</mo>
         <mrow>
             <mo>(</mo>
             <mi>x</mi>

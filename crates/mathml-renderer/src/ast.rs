@@ -1141,7 +1141,6 @@ mod tests {
                 left: Some(MathSpacing::Zero),
                 right: None,
                 size: None,
-
             }),
             "<mo lspace=\"0\">≡</mo>"
         );
