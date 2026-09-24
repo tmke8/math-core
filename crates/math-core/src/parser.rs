@@ -8,7 +8,7 @@ use kstring::KString;
 use mathml_renderer::{
     arena::{Arena, Buffer},
     ast::{MultiscriptPair, Node},
-    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, RowAttrs, Style},
+    attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, OpRoles, RowAttrs, Style},
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
@@ -30,7 +30,7 @@ use crate::{
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     global_state::GlobalState,
     lexer::{Lexer, recover_limited_ascii},
-    predefined,
+    predefined, semantic,
     specifications::{LatexUnit, parse_column_specification, parse_length_specification},
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
@@ -268,8 +268,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Length::zero().into_parts()
             };
             let frac = self.commit(Node::Frac {
-                num: node_vec_to_node(self.arena, &numerator, false),
-                denom: node_vec_to_node(self.arena, &denominator, false),
+                num: semantic::enrich_to_node(self.arena, &numerator, false),
+                denom: semantic::enrich_to_node(self.arena, &denominator, false),
                 lt_value,
                 lt_unit,
                 attr: None,
@@ -530,6 +530,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: relation.as_op(),
                     attrs,
+                    roles: OpRoles::ROLE_INFIX,
                     left,
                     right,
                     size: None,
@@ -541,6 +542,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: punc.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left,
                     right,
                     size: None,
@@ -552,6 +554,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
                     left,
                     right,
                     size: None,
@@ -582,6 +585,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let target = self.commit(Node::Operator {
                     op,
                     attrs,
+                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
                     left,
                     right,
                     size: None,
@@ -618,6 +622,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     break 'ord Ok(Node::Operator {
                         op: ord.as_op(),
                         attrs,
+                        roles: OpRoles::ROLE_INFIX,
                         left: spacing,
                         right: spacing,
                         size: None,
@@ -648,6 +653,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 Ok(Node::Operator {
                     op: ord.as_op(),
+                    roles: OpRoles::ROLE_INFIX,
                     attrs,
                     left,
                     right,
@@ -659,6 +665,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
                     left: Some(MathSpacing::Zero),
                     right: Some(MathSpacing::Zero),
                     size: None,
@@ -681,6 +688,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: binary_op.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
                     left: spacing,
                     right: spacing,
                     size: None,
@@ -700,6 +708,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
                     left: spacing,
                     right: spacing,
                     size: None,
@@ -754,12 +763,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Node::Operator {
                         op,
                         attrs,
+                        roles,
                         size,
                         left: _,
                         right: _,
                     } => Ok(Node::Operator {
                         op,
                         attrs: attrs | OpAttrs::STRETCHY_FALSE,
+                        roles,
                         left,
                         right,
                         size,
@@ -776,6 +787,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         // An empty `<mo></mo>` produces no spacing in Firefox
                         op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                         attrs: OpAttrs::empty(),
+                        roles: OpRoles::empty(),
                         left,
                         right,
                         size: None,
@@ -796,6 +808,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX | OpRoles::ROLE_POSTFIX,
                     left,
                     right,
                     size: None,
@@ -807,6 +820,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left,
                     right,
                     size: None,
@@ -868,7 +882,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     )?;
                     let content = self.parse_next(ParseAs::Arg)?;
                     Ok(Node::Root(
-                        node_vec_to_node(self.arena, &degree, true),
+                        semantic::enrich_to_node(self.arena, &degree, true),
                         content,
                     ))
                 } else {
@@ -1065,7 +1079,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let target = self.commit(Node::Operator {
                     op: op.as_op(),
-                    attrs,
+                    attrs: attrs,
+                    roles: match op.category() {
+                            OpCategory::C => OpRoles::ROLE_INFIX,
+                            OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
+                            OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
+                        },
                     left,
                     right,
                     size: None,
@@ -1158,12 +1177,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Node::Operator {
                         op,
                         attrs,
+                        roles,
                         size,
                         left,
                         right,
                     } => Ok(Node::Operator {
                         op: op.with_overlay(overlay),
                         attrs,
+                        roles,
                         size,
                         left,
                         right,
@@ -1236,6 +1257,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
                     left,
                     right,
                     size: None,
@@ -1246,6 +1268,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_PREFIX,
+                    roles: OpRoles::ROLE_OPEN,
                     left: Some(MathSpacing::Zero),
                     right: Some(MathSpacing::Zero),
                     size: None,
@@ -1256,6 +1279,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op,
                     attrs: OpAttrs::FORM_POSTFIX,
+                    roles: OpRoles::ROLE_CLOSE,
                     left: Some(MathSpacing::Zero),
                     right: Some(MathSpacing::Zero),
                     size: None,
@@ -1273,7 +1297,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 )?;
                 return Ok(Parsed::Node(
                     Class::Default,
-                    node_vec_to_node(self.arena, &content, matches!(parse_as, ParseAs::Arg)),
+                    semantic::enrich_to_node(
+                        self.arena,
+                        &content,
+                        matches!(parse_as, ParseAs::Arg),
+                    ),
                 ));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
@@ -1307,9 +1335,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // so we have to explicitly disable that here.
                     attrs |= OpAttrs::STRETCHY_FALSE;
                 }
+                let roles = if open {
+                    OpRoles::ROLE_OPEN
+                } else {
+                    OpRoles::ROLE_CLOSE
+                };
                 Ok(Node::Operator {
                     op: paren.as_op(),
                     attrs,
+                    roles,
                     left: None,
                     right: None,
                     size: None,
@@ -1320,6 +1354,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: symbol::LEFT_SQUARE_BRACKET.as_op(),
                     attrs: OpAttrs::STRETCHY_FALSE,
+                    roles: OpRoles::ROLE_OPEN,
                     left: None,
                     right: None,
                     size: None,
@@ -1328,6 +1363,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::SquareBracketClose => Ok(Node::Operator {
                 op: symbol::RIGHT_SQUARE_BRACKET.as_op(),
                 attrs: OpAttrs::STRETCHY_FALSE,
+                roles: OpRoles::ROLE_CLOSE,
                 left: None,
                 right: None,
                 size: None,
@@ -1364,6 +1400,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: op.as_op(),
                     attrs: middle_stretch_attrs(op),
+                    roles: OpRoles::empty(),
                     left: spacing,
                     right: spacing,
                     size: None,
@@ -1386,6 +1423,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                     Stretchy::AlwaysAsymmetric => OpAttrs::SYMMETRIC_TRUE,
                     Stretchy::Always => OpAttrs::empty(),
+                };
+                // Semantic role from paren type
+                let roles = match paren_type {
+                    Some(ParenType::Left) => OpRoles::ROLE_OPEN,
+                    Some(ParenType::Right) => OpRoles::ROLE_CLOSE,
+                    Some(ParenType::Middle) | None => OpRoles::ROLE_INFIX,
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
@@ -1432,6 +1475,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: paren.as_op(),
                     attrs,
+                    roles,
                     size: Some(size),
                     left,
                     right,
@@ -1632,7 +1676,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     .collect::<Vec<_>>();
                 return Ok(Parsed::Node(
                     Class::Close,
-                    node_vec_to_node(self.arena, &nodes, false),
+                    node_vec_to_node(self.arena, &nodes),
                 ));
             }
             Token::RaiseBox => {
@@ -1686,7 +1730,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     .collect::<Vec<_>>();
                 return Ok(Parsed::Node(
                     Class::Close,
-                    node_vec_to_node(self.arena, &nodes, false),
+                    semantic::enrich_to_node(self.arena, &nodes, false),
                 ));
             }
             Token::NewColumn => {
@@ -2092,6 +2136,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let op_node = self.arena.push(Node::Operator {
                     op: op.as_op(),
                     attrs,
+                    roles: OpRoles::empty(),
                     size: None,
                     left,
                     right,
@@ -2215,7 +2260,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         Class::Open,
                         false,
                     )?;
-                    let under = node_vec_to_node(self.arena, &nodes, false);
+                    let under = semantic::enrich_to_node(self.arena, &nodes, false);
                     let over = self.parse_next(ParseAs::Arg)?;
                     (Some(under), over)
                 } else {
@@ -2232,7 +2277,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let label_space = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
                 let over_label = self.commit(Node::Over {
                     symbol: label_space,
-                    target: node_vec_to_node(self.arena, &[pad, over_arg, pad], false),
+                    target: semantic::enrich_to_node(self.arena, &[pad, over_arg, pad], false),
                 });
 
                 // Stretchy relation: an arrow from the `A` relation category is stretchy
@@ -2248,6 +2293,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let arrow = self.commit(Node::Operator {
                     op: rel.as_op(),
                     attrs,
+                    roles: OpRoles::empty(),
                     left,
                     right,
                     size: None,
@@ -2256,7 +2302,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let center = if let Some(under_arg) = under_arg {
                     let under_label = self.commit(Node::Under {
                         symbol: label_space,
-                        target: node_vec_to_node(self.arena, &[pad, under_arg, pad], false),
+                        target: semantic::enrich_to_node(self.arena, &[pad, under_arg, pad], false),
                     });
                     self.commit(Node::UnderOver {
                         target: arrow,
@@ -2872,6 +2918,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     nodes.push(self.commit(Node::Operator {
                         op: op.as_op(),
                         attrs: OpAttrs::empty(),
+                        roles: OpRoles::empty(),
                         left: None,
                         right: None,
                         size: None,
@@ -2880,6 +2927,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     nodes.push(self.commit(Node::Operator {
                         op: primes_arr[0].as_op(),
                         attrs: OpAttrs::empty(),
+                        roles: OpRoles::empty(),
                         left: None,
                         right: None,
                         size: None,
@@ -2889,6 +2937,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         nodes.push(self.commit(Node::Operator {
                             op: primes_arr[0].as_op(),
                             attrs: OpAttrs::empty(),
+                            roles: OpRoles::empty(),
                             left: None,
                             right: None,
                             size: None,
@@ -3335,24 +3384,9 @@ impl ParserState<'_> {
 pub(crate) fn node_vec_to_node<'arena>(
     arena: &'arena Arena,
     nodes: &[&'arena Node<'arena>],
-    reset_spacing: bool,
 ) -> &'arena Node<'arena> {
     if let [single] = nodes {
-        if reset_spacing {
-            if let Node::Operator { op, attrs, .. } = **single {
-                arena.push(Node::Operator {
-                    op,
-                    attrs,
-                    left: None,
-                    right: None,
-                    size: None,
-                })
-            } else {
-                single
-            }
-        } else {
-            single
-        }
+        single
     } else {
         let nodes = arena.push_slice(nodes);
         arena.push(Node::Row {
@@ -3404,7 +3438,9 @@ fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
         RelCategory::Default => OpAttrs::empty(),
         // To get the right spacing on `DandForceDefault` relations, we have to
         // explicitly set the form to "infix".
-        RelCategory::DandForceDefault => OpAttrs::FORM_INFIX,
+        RelCategory::DandForceDefault => {
+            OpAttrs::FORM_INFIX
+        }
     }
 }
 

@@ -3,6 +3,9 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\sin x"
 ---
 <math>
-    <mo lspace="0" rspace="0.1667em">sin</mo>
-    <mi>x</mi>
+    <mrow>
+        <mrow><mspace/><mi>sin</mi></mrow>
+        <mo lspace="0.1667em">⁡</mo>
+        <mi>x</mi>
+    </mrow>
 </math>

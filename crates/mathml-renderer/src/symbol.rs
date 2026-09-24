@@ -497,6 +497,8 @@ pub const QUADRUPLE_PRIME: OrdLike = OrdLike::new('⁗', OrdCategory::E);
 
 pub const MEDIUM_MATHEMATICAL_SPACE: char = '\u{205F}';
 
+pub const FUNCTION_APPLICATION: OrdLike = OrdLike::new('\u{2061}', OrdCategory::K);
+pub const INVISIBLE_TIMES: OrdLike = OrdLike::new('\u{2062}', OrdCategory::K);
 pub const INVISIBLE_SEPARATOR: OrdLike = OrdLike::new('\u{2063}', OrdCategory::K);
 
 //

@@ -9,6 +9,7 @@ expression: "{\\int_0^\\infty = 4}"
         target: Operator(
           op: "∫",
           attrs: OpAttrs(""),
+          roles: OpRoles("ROLE_PREFIX"),
           size: None,
           left: Some(Zero),
           right: Some(Zero),
@@ -19,6 +20,7 @@ expression: "{\\int_0^\\infty = 4}"
       Operator(
         op: "=",
         attrs: OpAttrs(""),
+        roles: OpRoles("ROLE_INFIX"),
         size: None,
         left: None,
         right: None,

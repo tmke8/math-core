@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use mathml_renderer::{
     arena::Arena,
     ast::Node,
-    attribute::{MathSpacing, OpAttrs, RowAttrs, Style, TextTransform},
+    attribute::{MathSpacing, OpAttrs, OpRoles, RowAttrs, Style, TextTransform},
     symbol::{self, MathMLOperator, OrdCategory, OrdLike, Rel, RelCategory},
 };
 
@@ -178,6 +178,7 @@ pub fn fenced<'arena>(
             Node::Operator {
                 op: op.as_op(),
                 attrs,
+                roles: OpRoles::empty(),
                 size: None,
                 left,
                 right,
@@ -188,6 +189,7 @@ pub fn fenced<'arena>(
             Node::Operator {
                 op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 size: None,
                 left: None,
                 right: None,

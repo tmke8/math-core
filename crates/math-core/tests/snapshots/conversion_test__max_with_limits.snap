@@ -3,9 +3,12 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\max\\limits_x y"
 ---
 <math>
-    <munder>
-        <mo lspace="0" rspace="0.1667em">max</mo>
-        <mi>x</mi>
-    </munder>
-    <mi>y</mi>
+    <mrow>
+        <munder>
+            <mrow><mspace/><mi>max</mi></mrow>
+            <mi>x</mi>
+        </munder>
+        <mo lspace="0.1667em">⁡</mo>
+        <mi>y</mi>
+    </mrow>
 </math>

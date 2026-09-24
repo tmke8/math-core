@@ -3,8 +3,13 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\sin(x)"
 ---
 <math>
-    <mo lspace="0" rspace="0">sin</mo>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
+    <mrow>
+        <mrow><mspace/><mi>sin</mi></mrow>
+        <mo lspace="0">⁡</mo>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mi>x</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </mrow>
 </math>

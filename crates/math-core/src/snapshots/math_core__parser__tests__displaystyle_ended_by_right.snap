@@ -8,6 +8,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
       Operator(
         op: "(",
         attrs: OpAttrs(""),
+        roles: OpRoles(""),
         size: None,
         left: None,
         right: None,
@@ -17,6 +18,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
           Operator(
             op: "∫",
             attrs: OpAttrs(""),
+            roles: OpRoles("ROLE_PREFIX"),
             size: None,
             left: Some(Zero),
             right: Some(Zero),
@@ -31,6 +33,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
       Operator(
         op: ")",
         attrs: OpAttrs(""),
+        roles: OpRoles(""),
         size: None,
         left: None,
         right: None,
@@ -45,6 +48,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
   Operator(
     op: "∫",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_PREFIX"),
     size: None,
     left: None,
     right: Some(Zero),

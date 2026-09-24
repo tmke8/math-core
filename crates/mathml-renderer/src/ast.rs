@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::FxHashMap;
 
-use crate::attribute::RowAttrs;
+use crate::attribute::{OpRoles, RowAttrs};
 use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
@@ -61,6 +61,7 @@ pub enum Node<'arena> {
     Operator {
         op: MathMLOperator,
         attrs: OpAttrs,
+        roles: OpRoles,
         size: Option<Size>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
@@ -320,6 +321,7 @@ impl<'state> Emitter<'state> {
             }
             Node::Operator {
                 op,
+                roles: _,
                 attrs,
                 left,
                 right,
@@ -1106,6 +1108,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
+                roles: OpRoles::empty(),
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
@@ -1116,6 +1119,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
+                roles: OpRoles::empty(),
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
@@ -1127,9 +1131,11 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::IDENTICAL_TO.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 left: Some(MathSpacing::Zero),
                 right: None,
                 size: None,
+
             }),
             "<mo lspace=\"0\">≡</mo>"
         );
@@ -1137,6 +1143,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::PLUS_SIGN.as_op(),
                 attrs: OpAttrs::FORM_PREFIX,
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1147,6 +1154,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::N_ARY_SUMMATION.as_op(),
                 attrs: OpAttrs::NO_MOVABLE_LIMITS,
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1257,6 +1265,7 @@ mod tests {
                 symbol: &Node::Operator {
                     op: symbol::EXCLAMATION_MARK.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left: None,
                     right: None,
                     size: None,
@@ -1264,6 +1273,7 @@ mod tests {
                 target: &Node::Operator {
                     op: symbol::EQUALS_SIGN.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left: None,
                     right: None,
                     size: None,
@@ -1420,6 +1430,7 @@ mod tests {
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1517,6 +1528,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::LEFT_PARENTHESIS.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 size: Some(Size::Scale1),
                 left: None,
                 right: None,
@@ -1527,6 +1539,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::SOLIDUS.as_op(),
                 attrs: OpAttrs::STRETCHY_TRUE | OpAttrs::SYMMETRIC_TRUE,
+                roles: OpRoles::empty(),
                 size: Some(Size::Scale3),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),

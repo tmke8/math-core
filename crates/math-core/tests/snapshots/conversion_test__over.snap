@@ -5,20 +5,28 @@ expression: "{\\log x + a^n - \\sin(\\theta+\\eta) \\over x}"
 <math>
     <mfrac>
         <mrow>
-            <mo lspace="0" rspace="0.1667em">log</mo>
-            <mi>x</mi>
+            <mrow>
+                <mrow><mspace/><mi>log</mi></mrow>
+                <mo lspace="0.1667em">⁡</mo>
+                <mi>x</mi>
+            </mrow>
             <mo>+</mo>
             <msup>
                 <mi>a</mi>
                 <mi>n</mi>
             </msup>
             <mo>−</mo>
-            <mo lspace="0" rspace="0">sin</mo>
-            <mo stretchy="false">(</mo>
-            <mi>θ</mi>
-            <mo>+</mo>
-            <mi>η</mi>
-            <mo stretchy="false">)</mo>
+            <mrow>
+                <mrow><mspace/><mi>sin</mi></mrow>
+                <mo lspace="0">⁡</mo>
+                <mrow>
+                    <mo stretchy="false">(</mo>
+                    <mi>θ</mi>
+                    <mo>+</mo>
+                    <mi>η</mi>
+                    <mo stretchy="false">)</mo>
+                </mrow>
+            </mrow>
         </mrow>
         <mi>x</mi>
     </mfrac>
