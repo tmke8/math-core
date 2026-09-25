@@ -303,36 +303,45 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
         if rhs.consumed == 0 {
             return None;
         }
-        let mut replaced_with: Vec<&Node<'_>> = vec![
-            arena.push(Node::Row {
-                nodes: arena.push_slice(&[
-                    identifier,
-                    arena.push(Node::Operator {
-                        op: FUNCTION_APPLICATION.as_op(),
-                        attrs: OpAttrs::empty(),
-                        roles: OpRoles::ROLE_INFIX,
-                        // ApplyFunction has zero spacing by default
-                        left: right.filter(|right| *right != MathSpacing::Zero),
-                        right: None,
-                        size: None,
-                    }),
-                    node_vec_to_node(
-                        arena,
-                        rhs.replaced_with
-                            .as_ref()
-                            .map(|r| &r[..])
-                            .unwrap_or_else(|| &input[lhs.consumed..][..rhs.consumed]),
-                    ),
-                ]),
-                attrs: RowAttrs::default(),
+        let nodes = match rhs.replaced_with {
+            Some(nodes) => nodes,
+            None => input[lhs.consumed..][..rhs.consumed].to_vec(),
+        };
+        if nodes.iter().all(|node| matches!(node, Node::Space(..))) {
+            // There is no argument, just spaces.
+            return None;
+        }
+        // Spaces at the start or end of the argument are placed outside of the argument's
+        // `<mrow>`. Firefox ignores negative spaces (implemented as negative margins) at the
+        // start or end of an `<mrow>`, which would break, e.g., `\sin\!x` or `\sin x\!y`.
+        let (leading_spaces, argument, trailing_spaces) = split_off_spaces(&nodes);
+        let argument = node_vec_to_node(arena, argument);
+        let mut function_row = vec![
+            identifier,
+            arena.push(Node::Operator {
+                op: FUNCTION_APPLICATION.as_op(),
+                attrs: OpAttrs::empty(),
+                roles: OpRoles::ROLE_INFIX,
+                // ApplyFunction has zero spacing by default
+                left: right.filter(|right| *right != MathSpacing::Zero),
+                right: None,
+                size: None,
             }),
         ];
+        function_row.extend_from_slice(leading_spaces);
+        function_row.push(argument);
+        let mut replaced_with: Vec<&Node<'_>> = Vec::with_capacity(2 + trailing_spaces.len());
         // ApplyFunction has zero spacing by default
         if let Some(left) = *left
             && left != MathSpacing::Zero
         {
-            replaced_with.insert(0, arena.push(Node::Space(Length::from(left))));
+            replaced_with.push(arena.push(Node::Space(Length::from(left))));
         }
+        replaced_with.push(arena.push(Node::Row {
+            nodes: arena.push_slice(&function_row),
+            attrs: RowAttrs::default(),
+        }));
+        replaced_with.extend_from_slice(trailing_spaces);
         lhs.replaced_with = Some(replaced_with);
         lhs.consumed += rhs.consumed;
         Some(lhs)
@@ -389,6 +398,27 @@ fn infix_binding_power(node: &Node<'_>) -> Option<(u8, u8)> {
         }
         _ => return None,
     })
+}
+
+/// Splits the nodes into leading spaces, the rest, and trailing spaces.
+///
+/// If the nodes consist only of spaces, they are all treated as "the rest".
+fn split_off_spaces<'a, 'arena>(
+    nodes: &'a [&'arena Node<'arena>],
+) -> (
+    &'a [&'arena Node<'arena>],
+    &'a [&'arena Node<'arena>],
+    &'a [&'arena Node<'arena>],
+) {
+    let is_space = |node: &&Node<'_>| matches!(node, Node::Space(..));
+    let Some(start) = nodes.iter().position(|node| !is_space(node)) else {
+        return (&[], nodes, &[]);
+    };
+    let end = nodes
+        .iter()
+        .rposition(|node| !is_space(node))
+        .map_or(start, |end| end + 1);
+    (&nodes[..start], &nodes[start..end], &nodes[end..])
 }
 
 fn rewrite_pseudo_operator<'tmp, 'arena>(

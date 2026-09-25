@@ -110,6 +110,8 @@ fn main() {
         ("sine_at_group_end", r"{x\sin}x"),
         ("sine_at_left", r"x\left(\sin x\right)"),
         ("sine_at_right", r"x\left(x\sin \right)x"),
+        ("sine_negative_space", r"\sin\!x"),
+        ("sine_negative_space_after_argument", r"\sin x\!y"),
         ("lim_displaystyle", r"\displaystyle\lim_{n\to\infty} a_n"),
         (
             "lim_in_underbrace_label",
