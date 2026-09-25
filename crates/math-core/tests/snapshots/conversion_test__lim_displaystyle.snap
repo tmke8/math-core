@@ -4,17 +4,20 @@ expression: "\\displaystyle\\lim_{n\\to\\infty} a_n"
 ---
 <math>
     <mrow displaystyle="true" scriptlevel="0">
-        <munder>
-            <mo lspace="0" rspace="0.1667em">lim</mo>
-            <mrow>
+        <mrow>
+            <munder>
+                <mrow><mspace/><mi>lim</mi></mrow>
+                <mrow>
+                    <mi>n</mi>
+                    <mo stretchy="false" lspace="0" rspace="0">→</mo>
+                    <mi>∞</mi>
+                </mrow>
+            </munder>
+            <mo lspace="0.1667em">&ApplyFunction;</mo>
+            <msub>
+                <mi>a</mi>
                 <mi>n</mi>
-                <mo stretchy="false" lspace="0" rspace="0">→</mo>
-                <mi>∞</mi>
-            </mrow>
-        </munder>
-        <msub>
-            <mi>a</mi>
-            <mi>n</mi>
-        </msub>
+            </msub>
+        </mrow>
     </mrow>
 </math>

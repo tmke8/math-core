@@ -57,6 +57,28 @@ pub fn enrich<'arena>(
     arena: &'arena Arena,
     input: &'_ [&'arena Node<'arena>],
 ) -> Vec<&'arena Node<'arena>> {
+    // Column and row separators (in tables) are hard boundaries between formulas.
+    let mut output = Vec::with_capacity(input.len());
+    let mut rest = input;
+    while let Some(pos) = rest
+        .iter()
+        .position(|node| matches!(node, Node::ColumnSeparator | Node::RowSeparator { .. }))
+    {
+        output.append(&mut enrich_segment(arena, &rest[..pos]));
+        output.push(rest[pos]);
+        rest = &rest[pos + 1..];
+    }
+    if output.is_empty() {
+        return enrich_segment(arena, rest);
+    }
+    output.append(&mut enrich_segment(arena, rest));
+    output
+}
+
+fn enrich_segment<'arena>(
+    arena: &'arena Arena,
+    input: &'_ [&'arena Node<'arena>],
+) -> Vec<&'arena Node<'arena>> {
     let mut lhs: EnrichParseResult<'arena> = enrich_formula(arena, input, 0);
     while lhs.consumed < input.len() {
         let rhs: EnrichParseResult = enrich_formula(arena, &input[lhs.consumed..], 0);
@@ -84,8 +106,11 @@ pub fn enrich<'arena>(
         lhs.consumed += rhs.consumed;
     }
 
-    lhs.replaced_with
-        .unwrap_or_else(|| input[..lhs.consumed].to_vec())
+    let mut output = lhs
+        .replaced_with
+        .unwrap_or_else(|| input[..lhs.consumed].to_vec());
+    convert_remaining_pseudo_operators(arena, &mut output);
+    output
 }
 
 /// Enriches a single formula.
@@ -303,7 +328,7 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
         if rhs.consumed == 0 {
             return None;
         }
-        let nodes = match rhs.replaced_with {
+        let mut nodes = match rhs.replaced_with {
             Some(nodes) => nodes,
             None => input[lhs.consumed..][..rhs.consumed].to_vec(),
         };
@@ -311,6 +336,7 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
             // There is no argument, just spaces.
             return None;
         }
+        convert_remaining_pseudo_operators(arena, &mut nodes);
         // Spaces at the start or end of the argument are placed outside of the argument's
         // `<mrow>`. Firefox ignores negative spaces (implemented as negative margins) at the
         // start or end of an `<mrow>`, which would break, e.g., `\sin\!x` or `\sin x\!y`.
@@ -428,6 +454,32 @@ fn operator_name_identifier(name: &str) -> Node<'_> {
         // Single-letter identifiers are italic by default, but operator names are upright.
         (Some(c), None) => Node::IdentifierChar(c.into(), LetterAttr::ForcedUpright),
         _ => Node::IdentifierStr(name),
+    }
+}
+
+/// Converts pseudo-operators that didn't become function applications (because they have no
+/// argument, as in `(\sin)`) into identifiers, with their spacing as explicit spaces around them.
+fn convert_remaining_pseudo_operators<'arena>(
+    arena: &'arena Arena,
+    nodes: &mut Vec<&'arena Node<'arena>>,
+) {
+    let mut i = 0;
+    while i < nodes.len() {
+        let Some((identifier, &Node::PseudoOp { left, right, .. })) =
+            rewrite_pseudo_operator(nodes[i], arena)
+        else {
+            i += 1;
+            continue;
+        };
+        nodes[i] = identifier;
+        if let Some(right) = right.filter(|right| *right != MathSpacing::Zero) {
+            nodes.insert(i + 1, arena.push(Node::Space(Length::from(right))));
+        }
+        if let Some(left) = left.filter(|left| *left != MathSpacing::Zero) {
+            nodes.insert(i, arena.push(Node::Space(Length::from(left))));
+            i += 1;
+        }
+        i += 1;
     }
 }
 

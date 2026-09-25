@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\operatorname {{\\pi} o \\pounds a}"
 ---
 <math>
-    <mo lspace="0" rspace="0">πo£a</mo>
+    <mrow><mspace/><mi>πo£a</mi></mrow>
 </math>
