@@ -68,7 +68,6 @@ pub enum Node<'arena> {
     },
     /// `<mo>...</mo>` for a string.
     PseudoOp {
-        force_movable_limits: bool,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
         name: &'arena str,
@@ -344,18 +343,8 @@ impl<'state> Emitter<'state> {
                     write!(self.s, ">{op}</mo>")?;
                 }
             }
-            Node::PseudoOp {
-                force_movable_limits,
-                left,
-                right,
-                name,
-            } => {
-                let attrs = if force_movable_limits {
-                    OpAttrs::FORCE_MOVABLE_LIMITS
-                } else {
-                    OpAttrs::empty()
-                };
-                emit_operator_attributes(&mut self.s, attrs, left, right)?;
+            Node::PseudoOp { left, right, name } => {
+                emit_operator_attributes(&mut self.s, OpAttrs::empty(), left, right)?;
                 write!(self.s, ">{name}</mo>")?;
             }
             Node::IdentifierStr(letters) => {
@@ -1172,7 +1161,6 @@ mod tests {
     fn render_pseudo_operator() {
         assert_eq!(
             render(&Node::PseudoOp {
-                force_movable_limits: false,
                 left: Some(MathSpacing::ThreeMu),
                 right: Some(MathSpacing::ThreeMu),
                 name: "sin"
@@ -1294,13 +1282,12 @@ mod tests {
             render(&Node::Under {
                 symbol: &Node::IdentifierChar('θ'.into(), LetterAttr::Default),
                 target: &Node::PseudoOp {
-                    force_movable_limits: true,
                     left: Some(MathSpacing::ThreeMu),
                     right: Some(MathSpacing::ThreeMu),
                     name: "min",
                 },
             }),
-            "<munder><mo movablelimits=\"true\" lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
+            "<munder><mo lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
         );
     }
 

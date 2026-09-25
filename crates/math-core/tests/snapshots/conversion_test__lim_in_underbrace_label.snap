@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\displaystyle\\underbrace{x}_{\\lim_n y}"
+---
+<math>
+    <mrow displaystyle="true" scriptlevel="0">
+        <munder>
+            <munder accentunder="true">
+                <mi>x</mi>
+                <mo>⏟</mo>
+            </munder>
+            <mrow>
+                <msub>
+                    <mrow><mspace/><mi>lim</mi></mrow>
+                    <mi>n</mi>
+                </msub>
+                <mo lspace="0.1667em">&ApplyFunction;</mo>
+                <mi>y</mi>
+            </mrow>
+        </munder>
+    </mrow>
+</math>

@@ -284,7 +284,6 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
         Node::PseudoOp {
             name: _,
             left,
-            force_movable_limits: _,
             right,
         },
     ) = rewrite_pseudo_operator(input.first()?, arena)?
@@ -362,7 +361,6 @@ fn prefix_binding_power(node: &Node<'_>) -> Option<((), u8)> {
             name: _,
             left: _,
             right: _,
-            force_movable_limits: _,
         } => PREFIX_BINDING_POWER_PSEUDO_OPERATOR,
         _ => return None,
     })
@@ -559,7 +557,6 @@ fn enrich_test() {
                     left: Some(MathSpacing::Zero),
                     right: None,
                     name: "sin",
-                    force_movable_limits: false,
                 },
                 &Node::Number("1"),
                 &Node::Operator {
@@ -599,7 +596,6 @@ fn enrich_test() {
                     left: Some(MathSpacing::Zero),
                     right: None,
                     name: "sin",
-                    force_movable_limits: false,
                 },
                 &Node::Number("1"),
                 &Node::IdentifierStr("x"),

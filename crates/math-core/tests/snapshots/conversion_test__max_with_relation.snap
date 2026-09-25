@@ -3,12 +3,12 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\max_{x\\in X}"
 ---
 <math>
-    <munder>
-        <mo movablelimits="true" lspace="0" rspace="0">max</mo>
+    <msub>
+        <mo lspace="0" rspace="0">max</mo>
         <mrow>
             <mi>x</mi>
             <mo lspace="0" rspace="0">∈</mo>
             <mi>X</mi>
         </mrow>
-    </munder>
+    </msub>
 </math>

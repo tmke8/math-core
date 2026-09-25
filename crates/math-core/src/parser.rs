@@ -875,11 +875,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
                     // FIXME: We should perhaps use set `right_boundary_hack` here.
+                    // The index of `<mroot>` is two script levels smaller than the base.
+                    let degree_style = self.state.style.scriptify().scriptify();
+                    let old_style = mem::replace(&mut self.state.style, degree_style);
                     let degree = self.parse_sequence(
                         SequenceEnd::EndToken(EndToken::SquareBracketClose),
                         Class::Open,
                         false,
                     )?;
+                    self.state.style = old_style;
                     let content = self.parse_next(ParseAs::Arg)?;
                     Ok(Node::Root(
                         semantic::enrich_to_node(self.arena, &degree, true),
@@ -980,8 +984,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     None
                 };
+                let inner_style = style.unwrap_or(self.state.style).shrink();
+                let old_style = mem::replace(&mut self.state.style, inner_style);
                 let num = self.parse_next(ParseAs::Arg)?;
                 let denom = self.parse_next(ParseAs::Arg)?;
+                self.state.style = old_style;
                 let attr = None;
                 let (lt_value, lt_unit) = lt.into_parts();
                 Ok(fenced(
@@ -1034,7 +1041,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 {
                     let target = self.commit(base);
                     self.next_token()?; // Discard the circumflex or underscore token.
+                    let label_style = self.state.style.scriptify();
+                    let old_style = mem::replace(&mut self.state.style, label_style);
                     let expl = self.parse_next(ParseAs::Arg)?;
+                    self.state.style = old_style;
                     if is_over {
                         Ok(Node::Over {
                             symbol: expl,
@@ -1108,23 +1118,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let bounds = bounds_limits.bounds;
 
                 let limits_by_default = matches!(tok, Token::PseudoOperatorLimits(_));
-                let (use_underover, force_movable_limits) =
-                    match (bounds_limits.limits(), limits_by_default) {
-                        _ if bounds.is_trivial() => (false, false),
-                        (None, true) | (Some(LimitsKind::Display), _) => (true, true),
-                        (None, false) | (Some(LimitsKind::Never), _) => (false, false),
-                        (Some(LimitsKind::Always), _) => (true, false),
-                    };
+                let use_underover = self.pseudo_op_uses_underover(
+                    bounds,
+                    bounds_limits.limits(),
+                    limits_by_default,
+                );
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                let target = self.commit(Node::PseudoOp {
-                    force_movable_limits,
-                    left,
-                    right,
-                    name,
-                });
+                let target = self.commit(Node::PseudoOp { left, right, name });
 
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
@@ -1195,24 +1198,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         letter_attr,
                     )),
 
-                    Node::PseudoOp {
-                        name,
-                        force_movable_limits,
-                        left,
-                        right,
-                    } => {
+                    Node::PseudoOp { name, left, right } => {
                         let mut builder = self.buffer.get_builder();
                         let insert_idx = after_first_char_and_vs(name);
                         builder.push_str(&name[..insert_idx]);
                         builder.push_char(overlay.into());
                         builder.push_str(&name[insert_idx..]);
                         let name = builder.finish(self.arena);
-                        Ok(Node::PseudoOp {
-                            name,
-                            force_movable_limits,
-                            left,
-                            right,
-                        })
+                        Ok(Node::PseudoOp { name, left, right })
                     }
 
                     Node::IdentifierStr(str) => {
@@ -1616,19 +1609,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let bounds_limits = self.get_bounds(None)?;
                 let bounds = bounds_limits.bounds;
 
-                let (use_underover, force_movable_limits) =
-                    match (bounds_limits.limits(), with_limits) {
-                        _ if bounds.is_trivial() => (false, false),
-                        (None, true) | (Some(LimitsKind::Display), _) => (true, true),
-                        (None, false) | (Some(LimitsKind::Never), _) => (false, false),
-                        (Some(LimitsKind::Always), _) => (true, false),
-                    };
+                let use_underover =
+                    self.pseudo_op_uses_underover(bounds, bounds_limits.limits(), with_limits);
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
                 let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
                 let op = self.commit(Node::PseudoOp {
-                    force_movable_limits,
                     left,
                     right,
                     name: letters,
@@ -2987,6 +2974,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
 
         Ok(ret_node)
+    }
+
+    /// Whether the bounds of a pseudo-operator like `\lim` should be rendered with
+    /// `<munder>`/`<mover>` (as opposed to `<msub>`/`<msup>`).
+    ///
+    /// Instead of relying on `movablelimits`, we decide this based on the current style.
+    /// (The name of the operator is rendered as `<mi>`, which doesn't support `movablelimits`.)
+    fn pseudo_op_uses_underover(
+        &self,
+        bounds: Bounds<'arena>,
+        limits: Option<LimitsKind>,
+        limits_by_default: bool,
+    ) -> bool {
+        match (limits, limits_by_default) {
+            _ if bounds.is_trivial() => false,
+            (None, true) | (Some(LimitsKind::Display), _) => self.state.style == Style::Display,
+            (None, false) | (Some(LimitsKind::Never), _) => false,
+            (Some(LimitsKind::Always), _) => true,
+        }
     }
 
     fn mathop_spacing(
