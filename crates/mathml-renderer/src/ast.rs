@@ -66,7 +66,10 @@ pub enum Node<'arena> {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
-    /// `<mo>...</mo>` for a string.
+    /// The name of a pseudo-operator like `\sin`, rendered as an upright identifier.
+    ///
+    /// The spacing is normally made explicit during semantic enrichment, which replaces this node.
+    /// The emitter ignores `left` and `right`.
     PseudoOp {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
@@ -343,9 +346,20 @@ impl<'state> Emitter<'state> {
                     write!(self.s, ">{op}</mo>")?;
                 }
             }
-            Node::PseudoOp { left, right, name } => {
-                emit_operator_attributes(&mut self.s, OpAttrs::empty(), left, right)?;
-                write!(self.s, ">{name}</mo>")?;
+            Node::PseudoOp { name, .. } => {
+                // A pseudo-operator that is still here is the sole content of an argument
+                // (as in `x_\sin`), where operator spacing doesn't apply.
+                let mut chars = name.chars();
+                let mathvariant = if let (Some(_), None) = (chars.next(), chars.next()) {
+                    " mathvariant=\"normal\""
+                } else {
+                    ""
+                };
+                write!(
+                    self.s,
+                    "<mrow><mspace/><mi{mathvariant}>{}</mi></mrow>",
+                    EscapeHtml(name)
+                )?;
             }
             Node::IdentifierStr(letters) => {
                 // The "<mrow>" with "<mspace/>" is needed to prevent Firefox from adding
@@ -1165,7 +1179,7 @@ mod tests {
                 right: Some(MathSpacing::ThreeMu),
                 name: "sin"
             }),
-            "<mo lspace=\"0.1667em\" rspace=\"0.1667em\">sin</mo>"
+            "<mrow><mspace/><mi>sin</mi></mrow>"
         );
     }
 
@@ -1287,7 +1301,7 @@ mod tests {
                     name: "min",
                 },
             }),
-            "<munder><mo lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
+            "<munder><mrow><mspace/><mi>min</mi></mrow><mi>θ</mi></munder>"
         );
     }
 

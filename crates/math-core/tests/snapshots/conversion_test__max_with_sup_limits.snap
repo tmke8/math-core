@@ -4,7 +4,7 @@ expression: "\\max\\limits^x"
 ---
 <math>
     <mover>
-        <mo lspace="0" rspace="0">max</mo>
+        <mrow><mspace/><mi>max</mi></mrow>
         <mi>x</mi>
     </mover>
 </math>

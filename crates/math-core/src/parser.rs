@@ -1380,6 +1380,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
+                let content = semantic::enrich(self.arena, &content);
                 Ok(fenced(self.arena, content, open_paren, close_paren, None))
             }
             Token::Middle => {
@@ -1522,13 +1523,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
-                let content = self.arena.push_slice(&self.parse_sequence_if_in_sequence(
+                let content = self.parse_sequence_if_in_sequence(
                     parse_as,
                     span,
                     SequenceEnd::EndToken(EndToken::End),
                     Class::Open,
                     true, // keep_end_token
-                )?);
+                )?;
+                let content = self
+                    .arena
+                    .push_slice(&semantic::enrich(self.arena, &content));
 
                 self.state.style = old_style;
                 let env_state = mem::replace(&mut self.state.env, old_env_state);
@@ -2011,7 +2015,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     true,
                 )?;
                 Ok(Node::Row {
-                    nodes: self.arena.push_slice(&content),
+                    nodes: self
+                        .arena
+                        .push_slice(&semantic::enrich(self.arena, &content)),
                     attrs: RowAttrs {
                         color: Some(color),
                         ..RowAttrs::DEFAULT
@@ -2051,7 +2057,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 )?;
                 self.state.style = old_style;
                 Ok(Node::Row {
-                    nodes: self.arena.push_slice(&content),
+                    nodes: self
+                        .arena
+                        .push_slice(&semantic::enrich(self.arena, &content)),
                     attrs: RowAttrs {
                         style: Some(style),
                         ..RowAttrs::DEFAULT

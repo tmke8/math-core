@@ -5,6 +5,6 @@ expression: "\\sqrt[\\log]{x}"
 <math>
     <mroot>
         <mi>x</mi>
-        <mo lspace="0" rspace="0">log</mo>
+        <mrow><mspace/><mi>log</mi></mrow>
     </mroot>
 </math>
