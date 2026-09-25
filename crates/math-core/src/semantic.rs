@@ -17,7 +17,7 @@ use alloc::{vec, vec::Vec};
 use crate::parser::node_vec_to_node;
 use mathml_renderer::arena::Arena;
 use mathml_renderer::ast::Node;
-use mathml_renderer::attribute::{MathSpacing, OpAttrs, OpRoles, RowAttrs};
+use mathml_renderer::attribute::{LetterAttr, MathSpacing, OpAttrs, OpRoles, RowAttrs};
 use mathml_renderer::length::Length;
 use mathml_renderer::symbol::FUNCTION_APPLICATION;
 
@@ -421,6 +421,16 @@ fn split_off_spaces<'a, 'arena>(
     (&nodes[..start], &nodes[start..end], &nodes[end..])
 }
 
+/// The identifier node for the name of a pseudo-operator like `\sin`.
+fn operator_name_identifier(name: &str) -> Node<'_> {
+    let mut chars = name.chars();
+    match (chars.next(), chars.next()) {
+        // Single-letter identifiers are italic by default, but operator names are upright.
+        (Some(c), None) => Node::IdentifierChar(c.into(), LetterAttr::ForcedUpright),
+        _ => Node::IdentifierStr(name),
+    }
+}
+
 fn rewrite_pseudo_operator<'tmp, 'arena>(
     node: &'tmp Node<'arena>,
     arena: &'arena Arena,
@@ -468,7 +478,7 @@ fn rewrite_pseudo_operator<'tmp, 'arena>(
             },
             Node::PseudoOp { name, .. } => {
                 *original = Some(node);
-                Node::IdentifierStr(name)
+                operator_name_identifier(name)
             }
             _ => return None,
         }))

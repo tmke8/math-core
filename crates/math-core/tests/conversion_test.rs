@@ -155,6 +155,10 @@ fn main() {
         ("operator_name", r"\operatorname{sn} x"),
         ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
         ("operator_name_with_single_char", r"\operatorname{a}"),
+        (
+            "operator_name_with_single_char_and_argument",
+            r"\operatorname{a} x",
+        ),
         ("operator_name_with_space_cmd", r"\operatorname{arg\,max}"),
         (
             "operator_name_with_text",
