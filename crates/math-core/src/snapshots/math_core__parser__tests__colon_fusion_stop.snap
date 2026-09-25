@@ -6,6 +6,7 @@ expression: ":2=:="
   Operator(
     op: ":",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: Some(Zero),
     right: Some(FiveMu),
@@ -14,6 +15,7 @@ expression: ":2=:="
   Operator(
     op: "=",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: None,
     right: Some(Zero),
@@ -21,6 +23,7 @@ expression: ":2=:="
   Operator(
     op: ":",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: Some(Zero),
     right: Some(Zero),
@@ -28,6 +31,7 @@ expression: ":2=:="
   Operator(
     op: "=",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: Some(Zero),
     right: Some(Zero),

@@ -8,12 +8,12 @@ expression: "\\genfrac(]{  1pt     }{2}{a+b}{c+d}"
         <mfrac linethickness="0.1rem">
             <mrow>
                 <mi>a</mi>
-                <mo>+</mo>
+                <mo lspace="0" rspace="0">+</mo>
                 <mi>b</mi>
             </mrow>
             <mrow>
                 <mi>c</mi>
-                <mo>+</mo>
+                <mo lspace="0" rspace="0">+</mo>
                 <mi>d</mi>
             </mrow>
         </mfrac>

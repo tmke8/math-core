@@ -6,13 +6,29 @@ expression: "\\mathit{ab \\log cd}"
   Row(
     nodes: [
       IdentifierStr("𝑎𝑏"),
-      PseudoOp(
-        force_movable_limits: false,
-        left: Some(ThreeMu),
-        right: Some(ThreeMu),
-        name: "log",
+      Space(Length(
+        value: 0.1667,
+        unit: Em,
+      )),
+      Row(
+        nodes: [
+          IdentifierStr("log"),
+          Operator(
+            op: "\u{2061}",
+            attrs: OpAttrs(""),
+            roles: OpRoles("ROLE_INFIX"),
+            size: None,
+            left: Some(ThreeMu),
+            right: None,
+          ),
+          IdentifierStr("𝑐𝑑"),
+        ],
+        attrs: RowAttrs(
+          color: None,
+          style: None,
+          math_shift_compact: false,
+        ),
       ),
-      IdentifierStr("𝑐𝑑"),
     ],
     attrs: RowAttrs(
       color: None,

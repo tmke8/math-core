@@ -50,6 +50,7 @@ mod html_utils;
 mod lexer;
 mod parser;
 mod predefined;
+mod semantic;
 mod specifications;
 mod split_on_ascii;
 mod string_pool;
@@ -472,7 +473,7 @@ fn emit(
         let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent, flags.indentation);
         output.push_str("<semantics>");
-        let node = parser::node_vec_to_node(arena, &ast, false);
+        let node = parser::node_vec_to_node(arena, &ast);
         let mut emitter = Emitter::new(
             core::mem::take(&mut output),
             label_map,
@@ -536,7 +537,7 @@ fn parse<'arena>(
     let lexer = Lexer::new(latex);
     let mut p = Parser::new(lexer, arena, parser_cfg, state, style)?;
     let nodes = p.parse()?;
-    Ok(nodes)
+    Ok(semantic::enrich(arena, &nodes))
 }
 
 /// Read the macros of the configuration into a store of custom commands.

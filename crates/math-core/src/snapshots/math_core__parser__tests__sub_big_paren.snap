@@ -8,6 +8,7 @@ expression: "x_\\big("
     symbol: Operator(
       op: "(",
       attrs: OpAttrs(""),
+      roles: OpRoles("ROLE_INFIX"),
       size: Some(Scale1),
       left: None,
       right: None,

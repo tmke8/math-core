@@ -9,7 +9,7 @@
 //!
 //! use math_core_renderer_internal::ast::{CssClassNames, Emitter, Indentation, Node};
 //! use math_core_renderer_internal::symbol;
-//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs, RowAttrs};
+//! use math_core_renderer_internal::attribute::{MathSpacing, LetterAttr, OpAttrs, OpRoles, RowAttrs};
 //!
 //! let ast = Node::Row {
 //!     nodes: &[
@@ -17,6 +17,7 @@
 //!             target: &Node::Operator {
 //!                 op: symbol::N_ARY_SUMMATION.as_op(),
 //!                 attrs: OpAttrs::empty(),
+//!                 roles: OpRoles::empty(),
 //!                 left: Some(MathSpacing::Zero),
 //!                 right: None,
 //!                 size: None,

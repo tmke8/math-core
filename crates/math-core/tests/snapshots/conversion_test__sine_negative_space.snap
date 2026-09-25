@@ -1,11 +1,12 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\operatorname{sn} x"
+expression: "\\sin\\!x"
 ---
 <math>
     <mrow>
-        <mrow><mspace/><mi>sn</mi></mrow>
+        <mrow><mspace/><mi>sin</mi></mrow>
         <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mspace style="margin-left:-0.16666667em;"/>
         <mi>x</mi>
     </mrow>
 </math>

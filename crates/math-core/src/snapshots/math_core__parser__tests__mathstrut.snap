@@ -8,6 +8,7 @@ expression: "\\mathstrut"
       node: Operator(
         op: "(",
         attrs: OpAttrs("STRETCHY_FALSE"),
+        roles: OpRoles("ROLE_OPEN"),
         size: None,
         left: None,
         right: None,

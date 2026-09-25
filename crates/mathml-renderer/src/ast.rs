@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::FxHashMap;
 
-use crate::attribute::RowAttrs;
+use crate::attribute::{OpRoles, RowAttrs};
 use crate::escaping::{EscapeHtml, FRAGMENT_SAFE};
 use crate::fmt::new_line_and_indent;
 use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
-use crate::symbol::MathMLOperator;
+use crate::symbol::{self, MathMLOperator};
 use crate::table::{
     Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnAlignment, ColumnGenerator,
     LineType, RIGHT_ALIGN, RowLabelInfo,
@@ -61,13 +61,13 @@ pub enum Node<'arena> {
     Operator {
         op: MathMLOperator,
         attrs: OpAttrs,
+        roles: OpRoles,
         size: Option<Size>,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
     },
     /// `<mo>...</mo>` for a string.
     PseudoOp {
-        force_movable_limits: bool,
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
         name: &'arena str,
@@ -320,6 +320,7 @@ impl<'state> Emitter<'state> {
             }
             Node::Operator {
                 op,
+                roles: _,
                 attrs,
                 left,
                 right,
@@ -334,20 +335,16 @@ impl<'state> Emitter<'state> {
                         <&str>::from(size),
                     )?;
                 }
-                write!(self.s, ">{op}</mo>")?;
-            }
-            Node::PseudoOp {
-                force_movable_limits,
-                left,
-                right,
-                name,
-            } => {
-                let attrs = if force_movable_limits {
-                    OpAttrs::FORCE_MOVABLE_LIMITS
+                if op == symbol::INVISIBLE_TIMES.as_op() {
+                    write!(self.s, ">&InvisibleTimes;</mo>")?;
+                } else if op == symbol::FUNCTION_APPLICATION.as_op() {
+                    write!(self.s, ">&ApplyFunction;</mo>")?;
                 } else {
-                    OpAttrs::empty()
-                };
-                emit_operator_attributes(&mut self.s, attrs, left, right)?;
+                    write!(self.s, ">{op}</mo>")?;
+                }
+            }
+            Node::PseudoOp { left, right, name } => {
+                emit_operator_attributes(&mut self.s, OpAttrs::empty(), left, right)?;
                 write!(self.s, ">{name}</mo>")?;
             }
             Node::IdentifierStr(letters) => {
@@ -1106,6 +1103,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
+                roles: OpRoles::empty(),
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::FourMu),
@@ -1116,6 +1114,7 @@ mod tests {
         assert_eq!(
             render(&Node::Operator {
                 op: symbol::COLON.as_op(),
+                roles: OpRoles::empty(),
                 attrs: OpAttrs::empty(),
                 left: Some(MathSpacing::FourMu),
                 right: Some(MathSpacing::Zero),
@@ -1127,6 +1126,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::IDENTICAL_TO.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 left: Some(MathSpacing::Zero),
                 right: None,
                 size: None,
@@ -1137,6 +1137,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::PLUS_SIGN.as_op(),
                 attrs: OpAttrs::FORM_PREFIX,
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1147,6 +1148,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::N_ARY_SUMMATION.as_op(),
                 attrs: OpAttrs::NO_MOVABLE_LIMITS,
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1159,7 +1161,6 @@ mod tests {
     fn render_pseudo_operator() {
         assert_eq!(
             render(&Node::PseudoOp {
-                force_movable_limits: false,
                 left: Some(MathSpacing::ThreeMu),
                 right: Some(MathSpacing::ThreeMu),
                 name: "sin"
@@ -1257,6 +1258,7 @@ mod tests {
                 symbol: &Node::Operator {
                     op: symbol::EXCLAMATION_MARK.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left: None,
                     right: None,
                     size: None,
@@ -1264,6 +1266,7 @@ mod tests {
                 target: &Node::Operator {
                     op: symbol::EQUALS_SIGN.as_op(),
                     attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
                     left: None,
                     right: None,
                     size: None,
@@ -1279,13 +1282,12 @@ mod tests {
             render(&Node::Under {
                 symbol: &Node::IdentifierChar('θ'.into(), LetterAttr::Default),
                 target: &Node::PseudoOp {
-                    force_movable_limits: true,
                     left: Some(MathSpacing::ThreeMu),
                     right: Some(MathSpacing::ThreeMu),
                     name: "min",
                 },
             }),
-            "<munder><mo movablelimits=\"true\" lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
+            "<munder><mo lspace=\"0.1667em\" rspace=\"0.1667em\">min</mo><mi>θ</mi></munder>"
         );
     }
 
@@ -1420,6 +1422,7 @@ mod tests {
             &Node::Operator {
                 op: symbol::EQUALS_SIGN.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 left: None,
                 right: None,
                 size: None,
@@ -1517,6 +1520,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::LEFT_PARENTHESIS.as_op(),
                 attrs: OpAttrs::empty(),
+                roles: OpRoles::empty(),
                 size: Some(Size::Scale1),
                 left: None,
                 right: None,
@@ -1527,6 +1531,7 @@ mod tests {
             render(&Node::Operator {
                 op: symbol::SOLIDUS.as_op(),
                 attrs: OpAttrs::STRETCHY_TRUE | OpAttrs::SYMMETRIC_TRUE,
+                roles: OpRoles::empty(),
                 size: Some(Size::Scale3),
                 left: Some(MathSpacing::Zero),
                 right: Some(MathSpacing::Zero),

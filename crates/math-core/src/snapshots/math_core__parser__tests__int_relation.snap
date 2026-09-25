@@ -8,6 +8,7 @@ expression: "{\\int = 4}"
       Operator(
         op: "∫",
         attrs: OpAttrs(""),
+        roles: OpRoles("ROLE_PREFIX"),
         size: None,
         left: Some(Zero),
         right: Some(Zero),
@@ -15,6 +16,7 @@ expression: "{\\int = 4}"
       Operator(
         op: "=",
         attrs: OpAttrs(""),
+        roles: OpRoles("ROLE_INFIX"),
         size: None,
         left: None,
         right: None,

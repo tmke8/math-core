@@ -8,6 +8,7 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ":",
       attrs: OpAttrs(""),
+      roles: OpRoles("ROLE_INFIX"),
       size: None,
       left: None,
       right: None,
@@ -16,6 +17,7 @@ expression: "x_:\\equiv, x_:="
   Operator(
     op: "≡",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: None,
     right: Some(Zero),
@@ -23,6 +25,7 @@ expression: "x_:\\equiv, x_:="
   Operator(
     op: ",",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: None,
     right: None,
@@ -32,6 +35,7 @@ expression: "x_:\\equiv, x_:="
     symbol: Operator(
       op: ":",
       attrs: OpAttrs(""),
+      roles: OpRoles("ROLE_INFIX"),
       size: None,
       left: None,
       right: None,
@@ -40,6 +44,7 @@ expression: "x_:\\equiv, x_:="
   Operator(
     op: "=",
     attrs: OpAttrs(""),
+    roles: OpRoles("ROLE_INFIX"),
     size: None,
     left: None,
     right: Some(Zero),

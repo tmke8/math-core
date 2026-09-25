@@ -110,6 +110,14 @@ fn main() {
         ("sine_at_group_end", r"{x\sin}x"),
         ("sine_at_left", r"x\left(\sin x\right)"),
         ("sine_at_right", r"x\left(x\sin \right)x"),
+        ("sine_followed_by_punctuation", r"\sin ; x, \cos x; y"),
+        ("sine_negative_space", r"\sin\!x"),
+        ("sine_negative_space_after_argument", r"\sin x\!y"),
+        ("lim_displaystyle", r"\displaystyle\lim_{n\to\infty} a_n"),
+        (
+            "lim_in_underbrace_label",
+            r"\displaystyle\underbrace{x}_{\lim_n y}",
+        ),
         ("sine_with_displaylimits", r"\sin\displaylimits_0^1"),
         (
             "sine_mixed_limits",
@@ -147,6 +155,10 @@ fn main() {
         ("operator_name", r"\operatorname{sn} x"),
         ("operator_name_with_spaces", r"\operatorname{ hel lo }"),
         ("operator_name_with_single_char", r"\operatorname{a}"),
+        (
+            "operator_name_with_single_char_and_argument",
+            r"\operatorname{a} x",
+        ),
         ("operator_name_with_space_cmd", r"\operatorname{arg\,max}"),
         (
             "operator_name_with_text",

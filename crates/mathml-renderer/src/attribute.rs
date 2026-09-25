@@ -24,6 +24,20 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[cfg_attr(feature = "serde", derive(Serialize))]
+    pub struct OpRoles: u8 {
+        const ROLE_OPEN = 1;
+        const ROLE_CLOSE = 1 << 1;
+        const ROLE_PREFIX = 1 << 2;
+        const ROLE_INFIX = 1 << 3;
+        const ROLE_POSTFIX = 1 << 4;
+        const ROLE_RELOP = 1 << 5;
+    }
+}
+
 impl OpAttrs {
     pub const FORM_INFIX: OpAttrs = OpAttrs::FORM_PREFIX.union(OpAttrs::FORM_POSTFIX);
 

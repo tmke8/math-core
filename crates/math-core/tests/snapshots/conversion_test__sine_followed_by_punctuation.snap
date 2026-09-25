@@ -1,12 +1,17 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "x{\\sin x}"
+expression: "\\sin ; x, \\cos x; y"
 ---
 <math>
+    <mo lspace="0" rspace="0">sin</mo>
+    <mo>;</mo>
     <mi>x</mi>
+    <mo>,</mo>
     <mrow>
-        <mrow><mspace/><mi>sin</mi></mrow>
+        <mrow><mspace/><mi>cos</mi></mrow>
         <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mi>x</mi>
     </mrow>
+    <mo>;</mo>
+    <mi>y</mi>
 </math>
