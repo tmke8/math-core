@@ -542,7 +542,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Operator {
                     op: punc.as_op(),
                     attrs: OpAttrs::empty(),
-                    roles: OpRoles::empty(),
+                    // Punctuation separates formulas; it can't be, e.g., the argument of `\sin`.
+                    roles: OpRoles::ROLE_INFIX,
                     left,
                     right,
                     size: None,
