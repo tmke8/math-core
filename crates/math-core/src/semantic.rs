@@ -47,7 +47,13 @@ pub fn enrich_to_node<'arena>(
             size: None,
         });
     }
-    node_vec_to_node(arena, &enrich(arena, input))
+    let mut nodes = enrich(arena, input);
+    if let [Node::PseudoOp { .. }] = nodes[..] {
+        // `node_vec_to_node` would unwrap a lone pseudo-operator from its row, and it could then
+        // become a function application in the surrounding formula, as in `{\sin}x`.
+        convert_pseudo_operator(arena, &mut nodes, 0);
+    }
+    node_vec_to_node(arena, &nodes)
 }
 
 /// The base parsing function, which operates on a list of plain LaTeX AST
@@ -457,30 +463,50 @@ fn operator_name_identifier(name: &str) -> Node<'_> {
     }
 }
 
-/// Converts pseudo-operators that didn't become function applications (because they have no
-/// argument, as in `(\sin)`) into identifiers, with their spacing as explicit spaces around them.
+/// Converts pseudo-operators with scripts or limits that didn't become function applications
+/// (because they have no argument, as in `(\max_x)`) into identifiers, with their spacing as
+/// explicit spaces around them.
+///
+/// The spacing has to go outside of the script element (e.g., `<msub>`), which the emitter can't
+/// do on its own. A bare pseudo-operator (as in `(\sin)`) is left alone, because the emitter
+/// takes care of its spacing.
 fn convert_remaining_pseudo_operators<'arena>(
     arena: &'arena Arena,
     nodes: &mut Vec<&'arena Node<'arena>>,
 ) {
     let mut i = 0;
     while i < nodes.len() {
-        let Some((identifier, &Node::PseudoOp { left, right, .. })) =
-            rewrite_pseudo_operator(nodes[i], arena)
-        else {
+        if let Node::PseudoOp { .. } = nodes[i] {
             i += 1;
             continue;
-        };
-        nodes[i] = identifier;
-        if let Some(right) = right.filter(|right| *right != MathSpacing::Zero) {
-            nodes.insert(i + 1, arena.push(Node::Space(Length::from(right))));
         }
-        if let Some(left) = left.filter(|left| *left != MathSpacing::Zero) {
-            nodes.insert(i, arena.push(Node::Space(Length::from(left))));
-            i += 1;
-        }
+        i = convert_pseudo_operator(arena, nodes, i);
+    }
+}
+
+/// Converts the pseudo-operator (possibly with scripts or limits) at index `i` into an
+/// identifier, with its spacing as explicit spaces around it.
+///
+/// Returns the index after the converted node and its spaces.
+fn convert_pseudo_operator<'arena>(
+    arena: &'arena Arena,
+    nodes: &mut Vec<&'arena Node<'arena>>,
+    mut i: usize,
+) -> usize {
+    let Some((identifier, &Node::PseudoOp { left, right, .. })) =
+        rewrite_pseudo_operator(nodes[i], arena)
+    else {
+        return i + 1;
+    };
+    nodes[i] = identifier;
+    if let Some(right) = right.filter(|right| *right != MathSpacing::Zero) {
+        nodes.insert(i + 1, arena.push(Node::Space(Length::from(right))));
+    }
+    if let Some(left) = left.filter(|left| *left != MathSpacing::Zero) {
+        nodes.insert(i, arena.push(Node::Space(Length::from(left))));
         i += 1;
     }
+    i + 1
 }
 
 fn rewrite_pseudo_operator<'tmp, 'arena>(

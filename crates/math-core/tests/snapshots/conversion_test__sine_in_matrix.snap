@@ -1,0 +1,23 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix}x\\sin & \\sin y\\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>x</mi>
+                <mspace width="0.1667em"/>
+                <mrow><mspace/><mi>sin</mi></mrow>
+            </mtd>
+            <mtd>
+                <mspace width="0.1667em"/>
+                <mrow>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                    <mo lspace="0.1667em">&ApplyFunction;</mo>
+                    <mi>y</mi>
+                </mrow>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -1127,7 +1127,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                let (left, right) = self.pseudo_op_spacing(parse_as, prev_class)?;
                 let target = self.commit(Node::PseudoOp { left, right, name });
 
                 if use_underover {
@@ -1619,7 +1619,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                let (left, right) = self.pseudo_op_spacing(parse_as, prev_class)?;
                 let op = self.commit(Node::PseudoOp {
                     left,
                     right,
@@ -3001,6 +3001,22 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             (None, true) | (Some(LimitsKind::Display), _) => self.state.style == Style::Display,
             (None, false) | (Some(LimitsKind::Never), _) => false,
             (Some(LimitsKind::Always), _) => true,
+        }
+    }
+
+    /// The spacing around a pseudo-operator like `\sin`.
+    ///
+    /// Outside of a sequence (as in `x_\sin` or `\mathrm\sin`), the pseudo-operator is on its
+    /// own, so there is nothing to put space between.
+    fn pseudo_op_spacing(
+        &mut self,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
+        if parse_as.in_sequence() {
+            self.mathop_spacing(parse_as, prev_class, true)
+        } else {
+            Ok((None, None))
         }
     }
 

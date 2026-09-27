@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x{\\sin}y"
+---
+<math>
+    <mi>x</mi>
+    <mrow><mspace/><mi>sin</mi></mrow>
+    <mi>y</mi>
+</math>

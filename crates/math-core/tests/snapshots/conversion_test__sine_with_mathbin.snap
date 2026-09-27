@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a\\mathbin\\sin b"
+---
+<math>
+    <mi>a</mi>
+    <mpadded style="padding-left:0.2222em;padding-right:0.2222em;">
+        <mrow><mspace/><mi>sin</mi></mrow>
+    </mpadded>
+    <mi>b</mi>
+</math>

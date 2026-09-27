@@ -502,7 +502,7 @@ fn emit(
             // We ignore the result of `emit` here, because the only possible error is a formatting
             // error when writing to the string, but `String`'s `write_str` implementation never
             // returns an error.
-            let _ = emitter.emit(node, base_indent);
+            let _ = emitter.emit_in_row(node, base_indent);
         }
         warnings = emitter.warnings();
         output = emitter.into_string();

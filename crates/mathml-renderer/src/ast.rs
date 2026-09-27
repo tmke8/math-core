@@ -68,8 +68,8 @@ pub enum Node<'arena> {
     },
     /// The name of a pseudo-operator like `\sin`, rendered as an upright identifier.
     ///
-    /// The spacing is normally made explicit during semantic enrichment, which replaces this node.
-    /// The emitter ignores `left` and `right`.
+    /// If the node is the direct child of a row, the spacing is emitted as `<mspace>` elements
+    /// around the identifier; otherwise, it is ignored.
     PseudoOp {
         left: Option<MathSpacing>,
         right: Option<MathSpacing>,
@@ -287,6 +287,25 @@ impl<'state> Emitter<'state> {
         }
     }
 
+    /// Emits a node that is a direct child of a row (an `<mrow>`, `<mtd>` or `<math>`).
+    ///
+    /// Unlike [`Emitter::emit`], this makes the spacing of a pseudo-operator explicit, by
+    /// emitting `<mspace>` elements next to it. That is only possible in a row, because elsewhere
+    /// (e.g., as the base of an `<msub>`), a node has to be a single element.
+    pub fn emit_in_row(&mut self, node: &Node<'_>, base_indent: usize) -> core::fmt::Result {
+        let Node::PseudoOp { left, right, .. } = *node else {
+            return self.emit(node, base_indent);
+        };
+        if let Some(left) = left.filter(|left| *left != MathSpacing::Zero) {
+            self.emit(&Node::Space(Length::from(left)), base_indent)?;
+        }
+        self.emit(node, base_indent)?;
+        if let Some(right) = right.filter(|right| *right != MathSpacing::Zero) {
+            self.emit(&Node::Space(Length::from(right)), base_indent)?;
+        }
+        Ok(())
+    }
+
     pub fn emit(&mut self, node: &Node<'_>, base_indent: usize) -> core::fmt::Result {
         // Compute the indentation for the children of the node.
         let child_indent = if base_indent > 0 {
@@ -347,8 +366,8 @@ impl<'state> Emitter<'state> {
                 }
             }
             Node::PseudoOp { name, .. } => {
-                // A pseudo-operator that is still here is the sole content of an argument
-                // (as in `x_\sin`), where operator spacing doesn't apply.
+                // The spacing is emitted by `emit_in_row`, because it can only be expressed with
+                // extra `<mspace>` elements, and those need to be in a row.
                 let mut chars = name.chars();
                 let mathvariant = if let (Some(_), None) = (chars.next(), chars.next()) {
                     " mathvariant=\"normal\""
@@ -573,7 +592,7 @@ impl<'state> Emitter<'state> {
                     write!(self.s, "</mrow>")?;
                 } else {
                     for node in nodes {
-                        self.emit(node, child_indent)?;
+                        self.emit_in_row(node, child_indent)?;
                     }
                     writeln_indent!(self, base_indent, "</mrow>");
                 }
@@ -887,7 +906,7 @@ impl<'state> Emitter<'state> {
                     col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
                 }
                 _ => {
-                    self.emit(node, child_indent3)?;
+                    self.emit_in_row(node, child_indent3)?;
                 }
             }
         }
@@ -1180,6 +1199,24 @@ mod tests {
                 name: "sin"
             }),
             "<mrow><mspace/><mi>sin</mi></mrow>"
+        );
+    }
+
+    #[test]
+    fn render_pseudo_operator_in_row() {
+        assert_eq!(
+            render(&Node::Row {
+                nodes: &[
+                    &Node::IdentifierChar('x'.into(), LetterAttr::Default),
+                    &Node::PseudoOp {
+                        left: Some(MathSpacing::ThreeMu),
+                        right: Some(MathSpacing::Zero),
+                        name: "sin"
+                    },
+                ],
+                attrs: RowAttrs::DEFAULT,
+            }),
+            "<mrow><mi>x</mi><mspace width=\"0.1667em\"/><mrow><mspace/><mi>sin</mi></mrow></mrow>"
         );
     }
 
