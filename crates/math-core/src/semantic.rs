@@ -50,6 +50,25 @@ pub fn enrich_to_node<'arena>(
     node_vec_to_node(arena, &enrich(arena, input))
 }
 
+/// Wraps a lone pseudo-operator (possibly with scripts) in a row.
+///
+/// This is used for groups like `{\sin}` or arguments like in `\mathrm\sin`, which in TeX
+/// turn the operator into an ordinary atom. Wrapping the pseudo-operator in a row prevents
+/// it from being applied to whatever follows the group.
+pub fn isolate_pseudo_operator<'arena>(
+    arena: &'arena Arena,
+    node: &'arena Node<'arena>,
+) -> &'arena Node<'arena> {
+    if let Node::PseudoOp { .. } = base(node) {
+        arena.push(Node::Row {
+            nodes: arena.push_slice(&[node]),
+            attrs: RowAttrs::default(),
+        })
+    } else {
+        node
+    }
+}
+
 /// The base parsing function, which operates on a list of plain LaTeX AST
 /// nodes and turns out another list of AST nodes, but enriched with invisible
 /// operators.
@@ -487,7 +506,17 @@ fn rewrite_pseudo_operator<'tmp, 'arena>(
     Some((rewritten, original?))
 }
 
-fn operator<'tmp, 'arena>(mut node: &'tmp Node<'arena>) -> Option<&'tmp Node<'arena>> {
+fn operator<'tmp, 'arena>(node: &'tmp Node<'arena>) -> Option<&'tmp Node<'arena>> {
+    let node = base(node);
+    if let Node::Operator { .. } = node {
+        Some(node)
+    } else {
+        None
+    }
+}
+
+/// Strips away scripts and limits from a node, returning the base node.
+fn base<'tmp, 'arena>(mut node: &'tmp Node<'arena>) -> &'tmp Node<'arena> {
     let mut recursion = 0;
     while recursion < 1000 {
         node = match node {
@@ -501,11 +530,7 @@ fn operator<'tmp, 'arena>(mut node: &'tmp Node<'arena>) -> Option<&'tmp Node<'ar
         };
         recursion += 1;
     }
-    if let Node::Operator { .. } = node {
-        Some(node)
-    } else {
-        None
-    }
+    node
 }
 
 #[test]
