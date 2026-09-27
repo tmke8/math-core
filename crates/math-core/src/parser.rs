@@ -1224,8 +1224,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Transform(tf) => {
                 let old_tf = self.state.transform.replace(tf);
-                let content = self.parse_next(ParseAs::Arg)?;
+                let mut content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
+                if parse_as.in_sequence() {
+                    // `\mathrm\sin` should not be applied to what follows.
+                    content = semantic::isolate_pseudo_operator(self.arena, content);
+                }
                 return Ok(Parsed::Node(Class::Close, content));
             }
             Token::TransformSwitch(_)
@@ -1289,14 +1293,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                     false,
                 )?;
-                return Ok(Parsed::Node(
-                    Class::Default,
-                    semantic::enrich_to_node(
-                        self.arena,
-                        &content,
-                        matches!(parse_as, ParseAs::Arg),
-                    ),
-                ));
+                let mut node = semantic::enrich_to_node(
+                    self.arena,
+                    &content,
+                    matches!(parse_as, ParseAs::Arg),
+                );
+                if parse_as.in_sequence() {
+                    // `{\sin}` should not be applied to what follows the group.
+                    node = semantic::isolate_pseudo_operator(self.arena, node);
+                }
+                return Ok(Parsed::Node(Class::Default, node));
             }
             ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
                 let open = matches!(tok, Token::Open(_));
@@ -3002,6 +3008,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         prev_class: Class,
         explicit: bool,
     ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
+        if matches!(parse_as, ParseAs::Arg) {
+            // A lone argument like in `\mathrm\sin` has no neighbors to be spaced from.
+            let spacing = explicit.then_some(MathSpacing::Zero);
+            return Ok((spacing, spacing));
+        }
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds tokens.
         let next_class = self.peek_class_token(parse_as.in_sequence())?;
