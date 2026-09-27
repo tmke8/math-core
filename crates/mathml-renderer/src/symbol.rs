@@ -360,19 +360,19 @@ pub const SMALL_TILDE: BMPOperator = BMPOperator::new('˜');
 //
 // Unicode Block: Combining Diacritical Marks
 //
-pub const COMBINING_GRAVE_ACCENT: char = '\u{300}';
-pub const COMBINING_ACUTE_ACCENT: char = '\u{301}';
+pub const COMBINING_GRAVE_ACCENT: BMPOperator = BMPOperator::new('\u{300}');
+pub const COMBINING_ACUTE_ACCENT: BMPOperator = BMPOperator::new('\u{301}');
 pub const COMBINING_CIRCUMFLEX_ACCENT: BMPOperator = BMPOperator::new('\u{302}');
-pub const COMBINING_TILDE: char = '\u{303}';
-pub const COMBINING_MACRON: char = '\u{304}';
-// pub const COMBINING_OVERLINE: MathMLOperator = MathMLOperator::from_char('\u{305}');
-pub const COMBINING_BREVE: char = '\u{306}';
-pub const COMBINING_DOT_ABOVE: char = '\u{307}';
-pub const COMBINING_DIAERESIS: char = '\u{308}';
+pub const COMBINING_TILDE: BMPOperator = BMPOperator::new('\u{303}');
+pub const COMBINING_MACRON: BMPOperator = BMPOperator::new('\u{304}');
+pub const COMBINING_OVERLINE: BMPOperator = BMPOperator::new('\u{305}');
+pub const COMBINING_BREVE: BMPOperator = BMPOperator::new('\u{306}');
+pub const COMBINING_DOT_ABOVE: BMPOperator = BMPOperator::new('\u{307}');
+pub const COMBINING_DIAERESIS: BMPOperator = BMPOperator::new('\u{308}');
 // pub const COMBINING_HOOK_ABOVE: char = '\u{309}';
-pub const COMBINING_RING_ABOVE: char = '\u{30A}';
+pub const COMBINING_RING_ABOVE: BMPOperator = BMPOperator::new('\u{30A}');
 pub const COMBINING_DOUBLE_ACUTE_ACCENT: char = '\u{30B}';
-pub const COMBINING_CARON: char = '\u{30C}';
+pub const COMBINING_CARON: BMPOperator = BMPOperator::new('\u{30C}');
 
 pub const COMBINING_CEDILLA: char = '\u{327}';
 
