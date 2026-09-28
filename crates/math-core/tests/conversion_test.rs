@@ -673,6 +673,47 @@ fn main() {
             r"\begin{vmatrix} 1 & 2 \\ \hline 3 & 4 \end{vmatrix}",
         ),
         (
+            "matrix_color_ends_at_column",
+            r"\begin{matrix}\color{red} a & b\end{matrix}",
+        ),
+        (
+            "matrix_color_ends_at_row",
+            r"\begin{matrix}\color{red} a \\ \hline b\end{matrix}",
+        ),
+        (
+            "matrix_style_ends_at_column",
+            r"\begin{matrix}\displaystyle \sum & \sum\end{matrix}",
+        ),
+        ("color_continues_past_newline", r"\color{red}a\\ b"),
+        (
+            "align_color_ends_at_row",
+            r"\begin{align}\color{red} a &= b \\ c &= d\end{align}",
+        ),
+        (
+            "matrix_over_in_cell",
+            r"\begin{matrix} a \over b & c \end{matrix}",
+        ),
+        (
+            "matrix_infix_frac_per_cell",
+            r"\begin{matrix} x & a \choose b \\ c \over d & e \end{matrix}",
+        ),
+        (
+            "matrix_over_style_ends_with_cell",
+            r"\begin{matrix} a \over b & \mathchoice{D}{T}{S}{s} \end{matrix}",
+        ),
+        (
+            "matrix_font_switch_ends_with_cell",
+            r"\begin{matrix} \bf a & b \\ c \end{matrix}",
+        ),
+        (
+            "matrix_font_switch_outside_env",
+            r"\bf \begin{matrix} a & b \end{matrix}",
+        ),
+        (
+            "matrix_script_at_cell_start",
+            r"\begin{matrix} a &^2 b \\ _1 c \end{matrix}",
+        ),
+        (
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),

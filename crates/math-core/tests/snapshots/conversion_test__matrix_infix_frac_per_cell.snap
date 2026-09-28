@@ -1,0 +1,34 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix} x & a \\choose b \\\\ c \\over d & e \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>x</mi>
+            </mtd>
+            <mtd>
+                <mrow>
+                    <mo>(</mo>
+                    <mfrac linethickness="0">
+                        <mi>a</mi>
+                        <mi>b</mi>
+                    </mfrac>
+                    <mo>)</mo>
+                </mrow>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <mfrac>
+                    <mi>c</mi>
+                    <mi>d</mi>
+                </mfrac>
+            </mtd>
+            <mtd>
+                <mi>e</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

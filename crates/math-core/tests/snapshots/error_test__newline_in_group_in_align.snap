@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}{a \\\\ b}\\end{align}"
+---
+Error: Found "\\", which may only appear at the top level of a table-like environment.
+   ╭─[ <input>:1:17 ]
+   │
+ 1 │ \begin{align}{a \\ b}\end{align}
+   │                 ─┬  
+   │                  ╰── cannot be used here
+───╯

@@ -82,13 +82,20 @@ enum SequenceEnd {
 
 impl SequenceEnd {
     #[inline]
-    fn matches(self, other: &Token) -> bool {
+    fn matches(self, other: &Token, meaningful_newlines: bool) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
-            SequenceEnd::AnyEndToken => matches!(
-                other,
-                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right
-            ),
+            SequenceEnd::AnyEndToken => match other {
+                // In a table, each cell is its own group, so a switch like `\color` only
+                // extends to the end of the cell. Outside of a table, `&` is an error anyway.
+                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right | Token::NewColumn => {
+                    true
+                }
+                // Where `\\` is not meaningful, it is ignored, so a switch like `\color`
+                // continues past it.
+                Token::NewLine => meaningful_newlines,
+                _ => false,
+            },
         }
     }
 }
@@ -193,6 +200,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         self.parse_sequence(sequence_end, prev_class, keep_end_token)
     }
 
+    /// Parse a sequence nested in a group (like `{...}`, `\left...\right` or `[...]`) until
+    /// the given end token is encountered.
+    ///
+    /// Inside such a group, the `&` and `\\` of a surrounding table environment cannot be
+    /// used.
+    fn parse_nested_sequence(
+        &mut self,
+        end_token: EndToken,
+        prev_class: Class,
+        keep_end_token: bool,
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
+        let old_nested = mem::replace(&mut self.state.env.nested, true);
+        let nodes =
+            self.parse_sequence(SequenceEnd::EndToken(end_token), prev_class, keep_end_token);
+        self.state.env.nested = old_nested;
+        nodes
+    }
+
     /// Parse a sequence of tokens until the given end token is encountered.
     ///
     /// If `keep_end_token` is set to `true`, this function does not consume the end token.
@@ -206,13 +231,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
         let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)> = None;
+        // Index in `nodes` where the current table cell starts. Outside of tables, this stays 0.
+        let mut cell_start = 0;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
         let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
-        while !sequence_end.matches(self.tokens.peek().token()) {
+        while !sequence_end.matches(
+            self.tokens.peek().token(),
+            self.state.env.meaningful_newlines,
+        ) {
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
@@ -224,6 +254,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         tokloc,
                         sequence_end,
                         &mut nodes,
+                        cell_start,
                         &mut infix_frac,
                     )? {
                         ControlFlow::SkipToken => continue,
@@ -234,6 +265,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
             };
             prev_class = class;
+
+            if matches!(target, Node::ColumnSeparator | Node::RowSeparator { .. }) {
+                // In a table, each cell is its own group, so an infix fraction ends with the cell.
+                if let Some((numerator, with_line, delim)) = infix_frac.take() {
+                    let denominator = nodes.split_off(cell_start);
+                    let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
+                    nodes.push(frac);
+                }
+                // Font switches like `\bf`, and the smaller style for the denominator of an
+                // infix fraction, also end with the cell.
+                self.state.transform = old_tf;
+                self.state.style = old_style;
+                // The separator can't take any sub- or superscripts; these start the next cell.
+                nodes.push(target);
+                cell_start = nodes.len();
+                continue;
+            }
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
@@ -261,36 +309,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // one of the node types for superscripts and subscripts.
         }
         if let Some((numerator, with_line, delim)) = infix_frac {
-            let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
-            let (lt_value, lt_unit) = if with_line {
-                Length::none().into_parts()
-            } else {
-                Length::zero().into_parts()
-            };
-            let frac = self.commit(Node::Frac {
-                num: semantic::enrich_to_node(self.arena, &numerator, false),
-                denom: semantic::enrich_to_node(self.arena, &denominator, false),
-                lt_value,
-                lt_unit,
-                attr: None,
-            });
-            let node = if let Some(delim) = delim {
-                let (open, close) = match delim {
-                    InfixDelim::Paren => (OPEN_PAREN, CLOSE_PAREN),
-                    InfixDelim::Brace => (OPEN_BRACE, CLOSE_BRACE),
-                    InfixDelim::Brack => (OPEN_BRACKET, CLOSE_BRACKET),
-                };
-                self.commit(fenced(
-                    self.arena,
-                    vec![frac],
-                    Some(open),
-                    Some(close),
-                    None,
-                ))
-            } else {
-                frac
-            };
-            nodes.push(node);
+            let denominator = nodes.split_off(cell_start);
+            let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
+            nodes.push(frac);
         }
         if !keep_end_token {
             // Discard the end token.
@@ -301,12 +322,51 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(nodes)
     }
 
+    /// Build the fraction for an infix command like `\over` or `\choose`.
+    fn infix_frac_node(
+        &self,
+        numerator: &[&'arena Node<'arena>],
+        denominator: &[&'arena Node<'arena>],
+        with_line: bool,
+        delim: Option<InfixDelim>,
+    ) -> &'arena Node<'arena> {
+        let (lt_value, lt_unit) = if with_line {
+            Length::none().into_parts()
+        } else {
+            Length::zero().into_parts()
+        };
+        let frac = self.commit(Node::Frac {
+            num: semantic::enrich_to_node(self.arena, numerator, false),
+            denom: semantic::enrich_to_node(self.arena, denominator, false),
+            lt_value,
+            lt_unit,
+            attr: None,
+        });
+        if let Some(delim) = delim {
+            let (open, close) = match delim {
+                InfixDelim::Paren => (OPEN_PAREN, CLOSE_PAREN),
+                InfixDelim::Brace => (OPEN_BRACE, CLOSE_BRACE),
+                InfixDelim::Brack => (OPEN_BRACKET, CLOSE_BRACKET),
+            };
+            self.commit(fenced(
+                self.arena,
+                vec![frac],
+                Some(open),
+                Some(close),
+                None,
+            ))
+        } else {
+            frac
+        }
+    }
+
     #[inline]
     fn handle_tokens_without_output(
         &mut self,
         tokspan: &TokSpan,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
+        cell_start: usize,
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
@@ -321,10 +381,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
+                    // In a table, the numerator only extends to the start of the current cell.
+                    let numerator = collected_nodes.split_off(cell_start);
+                    *infix_frac = Some((numerator, with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
                     // learn it's a fraction here), but we can at least shrink the style
-                    // for the denominator. `parse_sequence` restores the style on exit.
+                    // for the denominator. `parse_sequence` restores the style at the end
+                    // of the cell or on exit.
                     self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {
@@ -879,8 +942,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // The index of `<mroot>` is two script levels smaller than the base.
                     let degree_style = self.state.style.scriptify().scriptify();
                     let old_style = mem::replace(&mut self.state.style, degree_style);
-                    let degree = self.parse_sequence(
-                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
+                    let degree = self.parse_nested_sequence(
+                        EndToken::SquareBracketClose,
                         Class::Open,
                         false,
                     )?;
@@ -1288,8 +1351,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::GroupBegin => {
-                let content = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::GroupClose),
+                let content = self.parse_nested_sequence(
+                    EndToken::GroupClose,
                     if matches!(parse_as, ParseAs::ContinueSequence) {
                         prev_class
                     } else {
@@ -1383,11 +1446,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
-                let content = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::Right),
-                    Class::Open,
-                    false,
-                )?;
+                let content = self.parse_nested_sequence(EndToken::Right, Class::Open, false)?;
                 let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
@@ -1736,10 +1795,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ));
             }
             Token::NewColumn => {
-                if self.state.env.allow_columns {
-                    class = Class::Close;
-                    Ok(Node::ColumnSeparator)
-                } else {
+                if !self.state.env.allow_columns {
                     Err(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
@@ -1747,6 +1803,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             correct_place: Place::TableEnv,
                         },
                     ))
+                } else if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Ampersand,
+                            correct_place: Place::TableEnvTopLevel,
+                        },
+                    ))
+                } else {
+                    class = Class::Close;
+                    Ok(Node::ColumnSeparator)
                 }
             }
             tok @ (Token::HLine(_) | Token::Shove(_) | Token::Limits(_)) => {
@@ -1767,6 +1834,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // FIXME: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
                     break 'new_line Ok(Node::EMPTY_ROW);
+                }
+                if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
+                    break 'new_line Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::NewLine,
+                            correct_place: Place::TableEnvTopLevel,
+                        },
+                    ));
                 }
                 // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
                 // becomes the top border of the row that follows. Only legal inside an array or
@@ -2257,8 +2333,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let (under_arg, over_arg) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
-                    let nodes = self.parse_sequence(
-                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
+                    let nodes = self.parse_nested_sequence(
+                        EndToken::SquareBracketClose,
                         Class::Open,
                         false,
                     )?;
@@ -2840,11 +2916,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.tokens.next()?; // skip over group begin token
 
                 let bounds = self.get_bounds(None)?;
-                let after_bounds = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::GroupClose),
-                    Class::Open,
-                    false,
-                )?;
+                let after_bounds =
+                    self.parse_nested_sequence(EndToken::GroupClose, Class::Open, false)?;
                 Ok((bounds, after_bounds))
             }
             Token::Limits(kind) => {

@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\bf \\begin{matrix} a & b \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>𝐚</mi>
+            </mtd>
+            <mtd>
+                <mi>𝐛</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

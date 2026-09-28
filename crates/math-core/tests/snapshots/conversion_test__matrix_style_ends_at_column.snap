@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix}\\displaystyle \\sum & \\sum\\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mrow displaystyle="true" scriptlevel="0">
+                    <mo lspace="0" rspace="0">∑</mo>
+                </mrow>
+            </mtd>
+            <mtd>
+                <mo rspace="0">∑</mo>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

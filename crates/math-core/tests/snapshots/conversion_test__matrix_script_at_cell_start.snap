@@ -1,0 +1,29 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix} a &^2 b \\\\ _1 c \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+            <mtd>
+                <msup>
+                    <mrow></mrow>
+                    <mn>2</mn>
+                </msup>
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd>
+                <msub>
+                    <mrow></mrow>
+                    <mn>1</mn>
+                </msub>
+                <mi>c</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

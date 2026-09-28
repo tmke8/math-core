@@ -106,6 +106,8 @@ pub enum Place {
     AfterBigOp,
     #[strum(serialize = r"in a table-like environment")]
     TableEnv,
+    #[strum(serialize = r"at the top level of a table-like environment")]
+    TableEnvTopLevel,
     #[strum(serialize = r"in a numbered equation environment")]
     NumberedEnv,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
@@ -120,6 +122,8 @@ pub enum Place {
 pub enum LimitedUsabilityToken {
     #[strum(serialize = "&")]
     Ampersand,
+    #[strum(serialize = r"\\")]
+    NewLine,
     #[strum(serialize = r"\tag[*]")]
     Tag,
     #[strum(serialize = r"\label")]

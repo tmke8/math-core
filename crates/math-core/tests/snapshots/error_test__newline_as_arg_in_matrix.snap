@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{matrix}\\frac\\\\ b\\end{matrix}"
+---
+Error: Found "\\", which may only appear at the top level of a table-like environment.
+   ╭─[ <input>:1:20 ]
+   │
+ 1 │ \begin{matrix}\frac\\ b\end{matrix}
+   │                    ─┬  
+   │                     ╰── cannot be used here
+───╯
