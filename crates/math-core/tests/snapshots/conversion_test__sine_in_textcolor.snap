@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\textcolor{red}{\\sin}x"
+---
+<math>
+    <mrow style="color:#FF0000;">
+        <mrow><mspace/><mi>sin</mi></mrow>
+    </mrow>
+    <mi>x</mi>
+</math>
