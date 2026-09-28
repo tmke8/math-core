@@ -1227,8 +1227,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let mut content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
                 if parse_as.in_sequence() {
-                    // `\mathrm\sin` should not be applied to what follows.
-                    content = semantic::isolate_pseudo_operator(self.arena, content);
+                    // Rewrite the pseudo operator *now* before we see the arguments.
+                    if let Some((identifier, _)) =
+                        semantic::rewrite_pseudo_operator(content, self.arena)
+                    {
+                        content = identifier;
+                    }
                 }
                 return Ok(Parsed::Node(Class::Close, content));
             }
@@ -1299,8 +1303,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     matches!(parse_as, ParseAs::Arg),
                 );
                 if parse_as.in_sequence() {
-                    // `{\sin}` should not be applied to what follows the group.
-                    node = semantic::isolate_pseudo_operator(self.arena, node);
+                    // Rewrite the pseudo operator *now* before we see the arguments.
+                    if let Some((identifier, _)) =
+                        semantic::rewrite_pseudo_operator(node, self.arena)
+                    {
+                        node = identifier;
+                    };
                 }
                 return Ok(Parsed::Node(Class::Default, node));
             }

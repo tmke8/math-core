@@ -4,7 +4,7 @@ expression: "\\operatorname*{max}_x"
 ---
 <math>
     <msub>
-        <mo lspace="0" rspace="0">max</mo>
+        <mrow><mspace/><mi>max</mi></mrow>
         <mi>x</mi>
     </msub>
 </math>

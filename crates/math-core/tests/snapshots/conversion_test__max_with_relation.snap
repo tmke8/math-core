@@ -4,7 +4,7 @@ expression: "\\max_{x\\in X}"
 ---
 <math>
     <msub>
-        <mo lspace="0" rspace="0">max</mo>
+        <mrow><mspace/><mi>max</mi></mrow>
         <mrow>
             <mi>x</mi>
             <mo lspace="0" rspace="0">∈</mo>

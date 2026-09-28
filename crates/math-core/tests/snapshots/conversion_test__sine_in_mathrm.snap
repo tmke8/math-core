@@ -4,8 +4,6 @@ expression: "x\\mathrm{\\sin}y"
 ---
 <math>
     <mi>x</mi>
-    <mrow>
-        <mo lspace="0" rspace="0">sin</mo>
-    </mrow>
+    <mrow><mspace/><mi>sin</mi></mrow>
     <mi>y</mi>
 </math>
