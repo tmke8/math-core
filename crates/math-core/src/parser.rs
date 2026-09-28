@@ -1451,6 +1451,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
                 let content = self.parse_nested_sequence(EndToken::Right, Class::Open, false)?;
+                let content = semantic::enrich(self.arena, &content);
                 let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
@@ -2104,6 +2105,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     prev_class,
                     true,
                 )?;
+                let content = semantic::enrich(self.arena, &content);
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attrs: RowAttrs {
@@ -2144,6 +2146,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     true,
                 )?;
                 self.state.style = old_style;
+                let content = semantic::enrich(self.arena, &content);
                 Ok(Node::Row {
                     nodes: self.arena.push_slice(&content),
                     attrs: RowAttrs {
