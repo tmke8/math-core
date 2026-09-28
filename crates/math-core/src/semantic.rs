@@ -52,8 +52,8 @@ pub fn enrich_to_node<'arena>(
 
 /// Turns a lone pseudo-operator (possibly with scripts) into a plain identifier.
 ///
-/// This is used for groups like `{\sin}` or arguments like in `\mathrm\sin`, which in TeX
-/// turn the operator into an ordinary atom. Rewriting the pseudo-operator prevents it from
+/// This is used for groups like `{\sin}` or arguments like in `\mathrm\sin` or `\frac\sin x`,
+/// which in TeX turn the operator into an ordinary atom. Rewriting the pseudo-operator prevents it from
 /// being applied to whatever follows the group.
 pub fn isolate_pseudo_operator<'arena>(
     arena: &'arena Arena,
@@ -68,7 +68,33 @@ pub fn isolate_pseudo_operator<'arena>(
 /// The base parsing function, which operates on a list of plain LaTeX AST
 /// nodes and turns out another list of AST nodes, but enriched with invisible
 /// operators.
+///
+/// Column and row separators (from table-like environments) are treated as barriers:
+/// the cells between them are enriched independently.
 pub fn enrich<'arena>(
+    arena: &'arena Arena,
+    input: &'_ [&'arena Node<'arena>],
+) -> Vec<&'arena Node<'arena>> {
+    let is_separator =
+        |node: &&Node<'_>| matches!(node, Node::ColumnSeparator | Node::RowSeparator { .. });
+    if !input.iter().any(is_separator) {
+        return enrich_cell(arena, input);
+    }
+    let mut output = Vec::with_capacity(input.len());
+    for segment in input.split_inclusive(is_separator) {
+        match segment.split_last() {
+            Some((last, cell)) if is_separator(last) => {
+                output.append(&mut enrich_cell(arena, cell));
+                output.push(*last);
+            }
+            _ => output.append(&mut enrich_cell(arena, segment)),
+        }
+    }
+    output
+}
+
+/// Enriches a list of nodes that does not contain any column or row separators.
+fn enrich_cell<'arena>(
     arena: &'arena Arena,
     input: &'_ [&'arena Node<'arena>],
 ) -> Vec<&'arena Node<'arena>> {

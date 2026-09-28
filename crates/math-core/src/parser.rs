@@ -1224,12 +1224,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Transform(tf) => {
                 let old_tf = self.state.transform.replace(tf);
-                let mut content = self.parse_next(ParseAs::Arg)?;
+                // `parse_next` makes sure that `\mathrm\sin` is not applied to what follows.
+                let content = self.parse_next(ParseAs::Arg)?;
                 self.state.transform = old_tf;
-                if parse_as.in_sequence() {
-                    // `\mathrm\sin` should not be applied to what follows.
-                    content = semantic::isolate_pseudo_operator(self.arena, content);
-                }
                 return Ok(Parsed::Node(Class::Close, content));
             }
             Token::TransformSwitch(_)
@@ -1386,6 +1383,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
+                let content = semantic::enrich(self.arena, &content);
                 Ok(fenced(self.arena, content, open_paren, close_paren, None))
             }
             Token::Middle => {
@@ -1528,13 +1526,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
-                let content = self.arena.push_slice(&self.parse_sequence_if_in_sequence(
+                let content = self.parse_sequence_if_in_sequence(
                     parse_as,
                     span,
                     SequenceEnd::EndToken(EndToken::End),
                     Class::Open,
                     true, // keep_end_token
-                )?);
+                )?;
+                let content = self
+                    .arena
+                    .push_slice(&semantic::enrich(self.arena, &content));
 
                 self.state.style = old_style;
                 let env_state = mem::replace(&mut self.state.env, old_env_state);
@@ -2017,7 +2018,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     true,
                 )?;
                 Ok(Node::Row {
-                    nodes: self.arena.push_slice(&content),
+                    nodes: self
+                        .arena
+                        .push_slice(&semantic::enrich(self.arena, &content)),
                     attrs: RowAttrs {
                         color: Some(color),
                         ..RowAttrs::DEFAULT
@@ -2057,7 +2060,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 )?;
                 self.state.style = old_style;
                 Ok(Node::Row {
-                    nodes: self.arena.push_slice(&content),
+                    nodes: self
+                        .arena
+                        .push_slice(&semantic::enrich(self.arena, &content)),
                     attrs: RowAttrs {
                         style: Some(style),
                         ..RowAttrs::DEFAULT
@@ -2742,8 +2747,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline]
     fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<&'arena Node<'arena>> {
         let token = self.next_token();
-        self.parse_token(token, parse_as, Class::Default)
-            .map(|(_, node)| node)
+        let (_, node) = self.parse_token(token, parse_as, Class::Default)?;
+        if matches!(parse_as, ParseAs::Arg) {
+            // A lone pseudo-operator argument like in `\frac\sin x` has no argument of its own.
+            // (Its spacing is zero, so nothing is lost by turning it into an identifier.)
+            return Ok(semantic::isolate_pseudo_operator(self.arena, node));
+        }
+        Ok(node)
     }
 
     /// Parse the bounds of an integral, sum, or product.
@@ -2837,7 +2847,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     Class::Open,
                     false,
                 )?;
-                Ok((bounds, after_bounds))
+                Ok((bounds, semantic::enrich(self.arena, &after_bounds)))
             }
             Token::Limits(kind) => {
                 self.tokens.next()?;
