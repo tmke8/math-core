@@ -159,6 +159,7 @@ impl Env {
     pub(super) fn new_state(self) -> EnvState<'static> {
         EnvState {
             allow_columns: self.allows_columns(),
+            nested: false,
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
             allow_hlines: self.allows_hlines(),
             allow_shove: self.allows_shove(),
@@ -330,6 +331,9 @@ impl Env {
 pub struct EnvState<'arena> {
     /// `true` if we are inside an environment that allows columns (`&`).
     pub allow_columns: bool,
+    /// `true` if we are inside a group (like `{...}` or `\left...\right`) within the
+    /// environment, where `&` and `\\` cannot be used.
+    pub nested: bool,
     /// `true` if we should treat newlines as meaningful (i.e., in `align` environments).
     pub meaningful_newlines: bool,
     /// `true` if we are inside an environment where `\hline` and `\hdashline` are allowed

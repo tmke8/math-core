@@ -200,6 +200,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         self.parse_sequence(sequence_end, prev_class, keep_end_token)
     }
 
+    /// Parse a sequence nested in a group (like `{...}`, `\left...\right` or `[...]`) until
+    /// the given end token is encountered.
+    ///
+    /// Inside such a group, the `&` and `\\` of a surrounding table environment cannot be
+    /// used.
+    fn parse_nested_sequence(
+        &mut self,
+        end_token: EndToken,
+        prev_class: Class,
+        keep_end_token: bool,
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
+        let old_nested = mem::replace(&mut self.state.env.nested, true);
+        let nodes =
+            self.parse_sequence(SequenceEnd::EndToken(end_token), prev_class, keep_end_token);
+        self.state.env.nested = old_nested;
+        nodes
+    }
+
     /// Parse a sequence of tokens until the given end token is encountered.
     ///
     /// If `keep_end_token` is set to `true`, this function does not consume the end token.
@@ -889,8 +907,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // The index of `<mroot>` is two script levels smaller than the base.
                     let degree_style = self.state.style.scriptify().scriptify();
                     let old_style = mem::replace(&mut self.state.style, degree_style);
-                    let degree = self.parse_sequence(
-                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
+                    let degree = self.parse_nested_sequence(
+                        EndToken::SquareBracketClose,
                         Class::Open,
                         false,
                     )?;
@@ -1298,8 +1316,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 })
             }
             Token::GroupBegin => {
-                let content = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::GroupClose),
+                let content = self.parse_nested_sequence(
+                    EndToken::GroupClose,
                     if matches!(parse_as, ParseAs::ContinueSequence) {
                         prev_class
                     } else {
@@ -1393,11 +1411,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Left)?)
                 };
-                let content = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::Right),
-                    Class::Open,
-                    false,
-                )?;
+                let content = self.parse_nested_sequence(EndToken::Right, Class::Open, false)?;
                 let tok_loc = self.next_token()?;
                 let close_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
@@ -1746,10 +1760,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ));
             }
             Token::NewColumn => {
-                if self.state.env.allow_columns {
-                    class = Class::Close;
-                    Ok(Node::ColumnSeparator)
-                } else {
+                if !self.state.env.allow_columns {
                     Err(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
@@ -1757,6 +1768,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             correct_place: Place::TableEnv,
                         },
                     ))
+                } else if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
+                    Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::Ampersand,
+                            correct_place: Place::TableEnvTopLevel,
+                        },
+                    ))
+                } else {
+                    class = Class::Close;
+                    Ok(Node::ColumnSeparator)
                 }
             }
             tok @ (Token::HLine(_) | Token::Shove(_) | Token::Limits(_)) => {
@@ -1777,6 +1799,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     // FIXME: Return something other than a row here, so that we can avoid creating
                     //       empty rows in places where they are not needed.
                     break 'new_line Ok(Node::EMPTY_ROW);
+                }
+                if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
+                    break 'new_line Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedHere {
+                            got: LimitedUsabilityToken::NewLine,
+                            correct_place: Place::TableEnvTopLevel,
+                        },
+                    ));
                 }
                 // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
                 // becomes the top border of the row that follows. Only legal inside an array or
@@ -2267,8 +2298,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let (under_arg, over_arg) = if let Ok(tokloc) = &next
                     && matches!(tokloc.token(), Token::SquareBracketOpen)
                 {
-                    let nodes = self.parse_sequence(
-                        SequenceEnd::EndToken(EndToken::SquareBracketClose),
+                    let nodes = self.parse_nested_sequence(
+                        EndToken::SquareBracketClose,
                         Class::Open,
                         false,
                     )?;
@@ -2850,11 +2881,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.tokens.next()?; // skip over group begin token
 
                 let bounds = self.get_bounds(None)?;
-                let after_bounds = self.parse_sequence(
-                    SequenceEnd::EndToken(EndToken::GroupClose),
-                    Class::Open,
-                    false,
-                )?;
+                let after_bounds =
+                    self.parse_nested_sequence(EndToken::GroupClose, Class::Open, false)?;
                 Ok((bounds, after_bounds))
             }
             Token::Limits(kind) => {

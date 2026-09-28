@@ -102,6 +102,34 @@ fn main() {
         ("kern_eoi_in_unit", r"x\kern1e"),
         ("ampersand_outside_array", r"x & y"),
         (
+            "ampersand_in_group_in_matrix",
+            r"\begin{matrix}\color{red} a {&} b\end{matrix}",
+        ),
+        (
+            "newline_in_group_in_matrix",
+            r"\begin{matrix}\color{red} a {\\} b\end{matrix}",
+        ),
+        (
+            "ampersand_in_left_right_in_matrix",
+            r"\begin{matrix}\left( a & b \right)\end{matrix}",
+        ),
+        (
+            "ampersand_in_sqrt_degree_in_matrix",
+            r"\begin{matrix}\sqrt[a & b]{c}\end{matrix}",
+        ),
+        (
+            "ampersand_as_sup_in_matrix",
+            r"\begin{matrix}a^& b\end{matrix}",
+        ),
+        (
+            "newline_as_arg_in_matrix",
+            r"\begin{matrix}\frac\\ b\end{matrix}",
+        ),
+        (
+            "newline_in_group_in_align",
+            r"\begin{align}{a \\ b}\end{align}",
+        ),
+        (
             "hline_in_wrong_position",
             r"\begin{array}{cc} 1 & \hline 2 \end{array}",
         ),
