@@ -1,8 +1,7 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "x\\\\y"
+expression: "{x\\\\}"
 ---
 <math>
     <mi>x</mi>
-    <mi>y</mi>
 </math>

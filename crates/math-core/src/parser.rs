@@ -397,6 +397,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // In a sequence, `\relax` really does produce nothing at all. In an argument it
             // has to produce an empty group instead; see `parse_token`.
             Token::Relax => Ok(()),
+            // Where `\\` is not meaningful (outside of tables, or in `equation`), LaTeX ignores it.
+            // As with `\relax`, it produces nothing in a sequence and an empty group in an
+            // argument.
+            Token::NewLine if !self.state.env.meaningful_newlines => Ok(()),
             Token::TransformSwitch(tf) => {
                 self.state.transform = Some(tf);
                 Ok(())
@@ -1829,12 +1833,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::NewLine => 'new_line: {
-                class = Class::Open;
                 if !self.state.env.meaningful_newlines {
-                    // FIXME: Return something other than a row here, so that we can avoid creating
-                    //       empty rows in places where they are not needed.
+                    // In a sequence, this is already skipped in `handle_tokens_without_output`,
+                    // so we only get here in an argument.
                     break 'new_line Ok(Node::EMPTY_ROW);
                 }
+                class = Class::Open;
                 if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
                     break 'new_line Err(LatexError(
                         span.into(),

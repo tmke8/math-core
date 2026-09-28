@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\frac\\\\ab"
+---
+<math>
+    <mfrac>
+        <mrow></mrow>
+        <mi>a</mi>
+    </mfrac>
+    <mi>b</mi>
+</math>
