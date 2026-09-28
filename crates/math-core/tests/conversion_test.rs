@@ -673,6 +673,23 @@ fn main() {
             r"\begin{vmatrix} 1 & 2 \\ \hline 3 & 4 \end{vmatrix}",
         ),
         (
+            "matrix_color_ends_at_column",
+            r"\begin{matrix}\color{red} a & b\end{matrix}",
+        ),
+        (
+            "matrix_color_ends_at_row",
+            r"\begin{matrix}\color{red} a \\ \hline b\end{matrix}",
+        ),
+        (
+            "matrix_style_ends_at_column",
+            r"\begin{matrix}\displaystyle \sum & \sum\end{matrix}",
+        ),
+        ("color_continues_past_newline", r"\color{red}a\\ b"),
+        (
+            "align_color_ends_at_row",
+            r"\begin{align}\color{red} a &= b \\ c &= d\end{align}",
+        ),
+        (
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),

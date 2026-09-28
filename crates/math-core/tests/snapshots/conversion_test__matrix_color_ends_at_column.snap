@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix}\\color{red} a & b\\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mrow style="color:#FF0000;">
+                    <mi>a</mi>
+                </mrow>
+            </mtd>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

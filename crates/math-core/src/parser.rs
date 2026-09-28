@@ -82,13 +82,20 @@ enum SequenceEnd {
 
 impl SequenceEnd {
     #[inline]
-    fn matches(self, other: &Token) -> bool {
+    fn matches(self, other: &Token, meaningful_newlines: bool) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
-            SequenceEnd::AnyEndToken => matches!(
-                other,
-                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right
-            ),
+            SequenceEnd::AnyEndToken => match other {
+                // In a table, each cell is its own group, so a switch like `\color` only
+                // extends to the end of the cell. Outside of a table, `&` is an error anyway.
+                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right | Token::NewColumn => {
+                    true
+                }
+                // Where `\\` is not meaningful, it is ignored, so a switch like `\color`
+                // continues past it.
+                Token::NewLine => meaningful_newlines,
+                _ => false,
+            },
         }
     }
 }
@@ -212,7 +219,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
-        while !sequence_end.matches(self.tokens.peek().token()) {
+        while !sequence_end.matches(
+            self.tokens.peek().token(),
+            self.state.env.meaningful_newlines,
+        ) {
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
