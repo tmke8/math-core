@@ -9,7 +9,7 @@ expression: "x_{\\ldots\\log}"
             <mo lspace="0" rspace="0">.</mo>
             <mo lspace="0" rspace="0">.</mo>
             <mo lspace="0">.</mo>
-            <mo lspace="0" rspace="0">log</mo>
+            <mrow><mspace/><mi>log</mi></mrow>
         </mrow>
     </msub>
 </math>

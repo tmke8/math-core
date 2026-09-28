@@ -4,5 +4,6 @@ expression: "x\\operatorname{\\max}"
 ---
 <math>
     <mi>x</mi>
-    <mo lspace="0.1667em" rspace="0">max</mo>
+    <mspace width="0.1667em"/>
+    <mrow><mspace/><mi>max</mi></mrow>
 </math>

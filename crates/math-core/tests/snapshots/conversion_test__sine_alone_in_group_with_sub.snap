@@ -5,9 +5,7 @@ expression: "x{\\sin}_1 y"
 <math>
     <mi>x</mi>
     <msub>
-        <mrow>
-            <mo lspace="0" rspace="0">sin</mo>
-        </mrow>
+        <mrow><mspace/><mi>sin</mi></mrow>
         <mn>1</mn>
     </msub>
     <mi>y</mi>
