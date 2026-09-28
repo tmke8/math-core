@@ -272,8 +272,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     let denominator = nodes.split_off(cell_start);
                     let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
                     nodes.push(frac);
-                    self.state.style = old_style;
                 }
+                // Font switches like `\bf`, and the smaller style for the denominator of an
+                // infix fraction, also end with the cell.
+                self.state.transform = old_tf;
+                self.state.style = old_style;
                 // The separator can't take any sub- or superscripts; these start the next cell.
                 nodes.push(target);
                 cell_start = nodes.len();

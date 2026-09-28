@@ -702,6 +702,14 @@ fn main() {
             r"\begin{matrix} a \over b & \mathchoice{D}{T}{S}{s} \end{matrix}",
         ),
         (
+            "matrix_font_switch_ends_with_cell",
+            r"\begin{matrix} \bf a & b \\ c \end{matrix}",
+        ),
+        (
+            "matrix_font_switch_outside_env",
+            r"\bf \begin{matrix} a & b \end{matrix}",
+        ),
+        (
             "matrix_script_at_cell_start",
             r"\begin{matrix} a &^2 b \\ _1 c \end{matrix}",
         ),
