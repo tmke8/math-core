@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix} a \\over b & \\mathchoice{D}{T}{S}{s} \\end{matrix}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mfrac>
+                    <mi>a</mi>
+                    <mi>b</mi>
+                </mfrac>
+            </mtd>
+            <mtd>
+                <mi>T</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -231,6 +231,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
         let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)> = None;
+        // Index in `nodes` where the current table cell starts. Outside of tables, this stays 0.
+        let mut cell_start = 0;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
@@ -252,6 +254,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         tokloc,
                         sequence_end,
                         &mut nodes,
+                        cell_start,
                         &mut infix_frac,
                     )? {
                         ControlFlow::SkipToken => continue,
@@ -262,6 +265,20 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
             };
             prev_class = class;
+
+            if matches!(target, Node::ColumnSeparator | Node::RowSeparator { .. }) {
+                // In a table, each cell is its own group, so an infix fraction ends with the cell.
+                if let Some((numerator, with_line, delim)) = infix_frac.take() {
+                    let denominator = nodes.split_off(cell_start);
+                    let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
+                    nodes.push(frac);
+                    self.state.style = old_style;
+                }
+                // The separator can't take any sub- or superscripts; these start the next cell.
+                nodes.push(target);
+                cell_start = nodes.len();
+                continue;
+            }
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
@@ -289,36 +306,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // one of the node types for superscripts and subscripts.
         }
         if let Some((numerator, with_line, delim)) = infix_frac {
-            let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
-            let (lt_value, lt_unit) = if with_line {
-                Length::none().into_parts()
-            } else {
-                Length::zero().into_parts()
-            };
-            let frac = self.commit(Node::Frac {
-                num: semantic::enrich_to_node(self.arena, &numerator, false),
-                denom: semantic::enrich_to_node(self.arena, &denominator, false),
-                lt_value,
-                lt_unit,
-                attr: None,
-            });
-            let node = if let Some(delim) = delim {
-                let (open, close) = match delim {
-                    InfixDelim::Paren => (OPEN_PAREN, CLOSE_PAREN),
-                    InfixDelim::Brace => (OPEN_BRACE, CLOSE_BRACE),
-                    InfixDelim::Brack => (OPEN_BRACKET, CLOSE_BRACKET),
-                };
-                self.commit(fenced(
-                    self.arena,
-                    vec![frac],
-                    Some(open),
-                    Some(close),
-                    None,
-                ))
-            } else {
-                frac
-            };
-            nodes.push(node);
+            let denominator = nodes.split_off(cell_start);
+            let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
+            nodes.push(frac);
         }
         if !keep_end_token {
             // Discard the end token.
@@ -329,12 +319,51 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(nodes)
     }
 
+    /// Build the fraction for an infix command like `\over` or `\choose`.
+    fn infix_frac_node(
+        &self,
+        numerator: &[&'arena Node<'arena>],
+        denominator: &[&'arena Node<'arena>],
+        with_line: bool,
+        delim: Option<InfixDelim>,
+    ) -> &'arena Node<'arena> {
+        let (lt_value, lt_unit) = if with_line {
+            Length::none().into_parts()
+        } else {
+            Length::zero().into_parts()
+        };
+        let frac = self.commit(Node::Frac {
+            num: semantic::enrich_to_node(self.arena, numerator, false),
+            denom: semantic::enrich_to_node(self.arena, denominator, false),
+            lt_value,
+            lt_unit,
+            attr: None,
+        });
+        if let Some(delim) = delim {
+            let (open, close) = match delim {
+                InfixDelim::Paren => (OPEN_PAREN, CLOSE_PAREN),
+                InfixDelim::Brace => (OPEN_BRACE, CLOSE_BRACE),
+                InfixDelim::Brack => (OPEN_BRACKET, CLOSE_BRACKET),
+            };
+            self.commit(fenced(
+                self.arena,
+                vec![frac],
+                Some(open),
+                Some(close),
+                None,
+            ))
+        } else {
+            frac
+        }
+    }
+
     #[inline]
     fn handle_tokens_without_output(
         &mut self,
         tokspan: &TokSpan,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
+        cell_start: usize,
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
@@ -349,10 +378,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
+                    // In a table, the numerator only extends to the start of the current cell.
+                    let numerator = collected_nodes.split_off(cell_start);
+                    *infix_frac = Some((numerator, with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
                     // learn it's a fraction here), but we can at least shrink the style
-                    // for the denominator. `parse_sequence` restores the style on exit.
+                    // for the denominator. `parse_sequence` restores the style at the end
+                    // of the cell or on exit.
                     self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {

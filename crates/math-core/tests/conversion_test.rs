@@ -690,6 +690,22 @@ fn main() {
             r"\begin{align}\color{red} a &= b \\ c &= d\end{align}",
         ),
         (
+            "matrix_over_in_cell",
+            r"\begin{matrix} a \over b & c \end{matrix}",
+        ),
+        (
+            "matrix_infix_frac_per_cell",
+            r"\begin{matrix} x & a \choose b \\ c \over d & e \end{matrix}",
+        ),
+        (
+            "matrix_over_style_ends_with_cell",
+            r"\begin{matrix} a \over b & \mathchoice{D}{T}{S}{s} \end{matrix}",
+        ),
+        (
+            "matrix_script_at_cell_start",
+            r"\begin{matrix} a &^2 b \\ _1 c \end{matrix}",
+        ),
+        (
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),
