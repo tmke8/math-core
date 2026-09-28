@@ -50,22 +50,18 @@ pub fn enrich_to_node<'arena>(
     node_vec_to_node(arena, &enrich(arena, input))
 }
 
-/// Wraps a lone pseudo-operator (possibly with scripts) in a row.
+/// Turns a lone pseudo-operator (possibly with scripts) into a plain identifier.
 ///
 /// This is used for groups like `{\sin}` or arguments like in `\mathrm\sin`, which in TeX
-/// turn the operator into an ordinary atom. Wrapping the pseudo-operator in a row prevents
-/// it from being applied to whatever follows the group.
+/// turn the operator into an ordinary atom. Rewriting the pseudo-operator prevents it from
+/// being applied to whatever follows the group.
 pub fn isolate_pseudo_operator<'arena>(
     arena: &'arena Arena,
     node: &'arena Node<'arena>,
 ) -> &'arena Node<'arena> {
-    if let Node::PseudoOp { .. } = base(node) {
-        arena.push(Node::Row {
-            nodes: arena.push_slice(&[node]),
-            attrs: RowAttrs::default(),
-        })
-    } else {
-        node
+    match rewrite_pseudo_operator(node, arena) {
+        Some((identifier, _)) => identifier,
+        None => node,
     }
 }
 
@@ -319,16 +315,28 @@ fn enrich_pseudo_operator<'tmp, 'arena>(
             &input[lhs.consumed..],
             PREFIX_BINDING_POWER_PSEUDO_OPERATOR.1,
         );
-        if rhs.consumed == 0 {
-            return None;
-        }
         let nodes = match rhs.replaced_with {
             Some(nodes) => nodes,
             None => input[lhs.consumed..][..rhs.consumed].to_vec(),
         };
         if nodes.iter().all(|node| matches!(node, Node::Space(..))) {
-            // There is no argument, just spaces.
-            return None;
+            // There is no argument (at most some spaces), so the pseudo-operator is rendered
+            // as a plain identifier, with its spacing turned into explicit spaces.
+            // Any spaces that follow are left for the caller.
+            let mut replaced_with: Vec<&Node<'_>> = Vec::with_capacity(3);
+            if let Some(left) = *left
+                && left != MathSpacing::Zero
+            {
+                replaced_with.push(arena.push(Node::Space(Length::from(left))));
+            }
+            replaced_with.push(identifier);
+            if let Some(right) = *right
+                && right != MathSpacing::Zero
+            {
+                replaced_with.push(arena.push(Node::Space(Length::from(right))));
+            }
+            lhs.replaced_with = Some(replaced_with);
+            return Some(lhs);
         }
         // Spaces at the start or end of the argument are placed outside of the argument's
         // `<mrow>`. Firefox ignores negative spaces (implemented as negative margins) at the

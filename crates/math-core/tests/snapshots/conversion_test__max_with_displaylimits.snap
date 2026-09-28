@@ -4,7 +4,7 @@ expression: "\\max\\displaylimits_0^1"
 ---
 <math>
     <msubsup>
-        <mo lspace="0" rspace="0">max</mo>
+        <mrow><mspace/><mi>max</mi></mrow>
         <mn>0</mn>
         <mn>1</mn>
     </msubsup>
