@@ -667,6 +667,15 @@ fn main() {
             r"x\xrightarrow{a}_2)",
         ),
         ("xarrow_subscript_before_letter", r"x\xrightarrow{a}_2 y"),
+        (
+            "overset_plus_subscript_before_closing_paren",
+            r"x\overset{a}+_2)",
+        ),
+        ("overset_plus_subscript_before_letter", r"x\overset{a}+_2 y"),
+        (
+            "underset_equal_subscript_before_closing_paren",
+            r"(x\underset{a}=_2)",
+        ),
         ("comma_subscript_before_eof", r"x,_2"),
         ("many_plus", r"4++++4"),
         ("sin_plus_cos", r"\sin + \cos"),

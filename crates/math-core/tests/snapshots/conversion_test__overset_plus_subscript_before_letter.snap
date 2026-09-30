@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\overset{a}+_2 y"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mover>
+            <mo>+</mo>
+            <mi>a</mi>
+        </mover>
+        <mn>2</mn>
+    </msub>
+    <mi>y</mi>
+</math>
