@@ -1,0 +1,28 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{vmatrix}a\\end{vmatrix}\\begin{vmatrix}b\\end{vmatrix}"
+---
+<math>
+    <mrow>
+        <mo>|</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>a</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo rspace="0.1667em">|</mo>
+    </mrow>
+    <mrow>
+        <mo>|</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>b</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>|</mo>
+    </mrow>
+</math>

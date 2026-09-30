@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\begin{cases}a\\end{cases}"
+---
+<math>
+    <mi>x</mi>
+    <mrow>
+        <mo lspace="0.1667em">{</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mi>a</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>⁣</mo>
+    </mrow>
+</math>

@@ -20,7 +20,7 @@ use crate::{
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
-        spaced_fenced,
+        with_outer_spacing,
     },
     color_defs::get_color,
     custom_cmds::RecordedToken,
@@ -1444,7 +1444,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right: None,
                 size: None,
             }),
-            Token::Left => 'left: {
+            Token::Left => {
                 let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
@@ -1461,64 +1461,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // From the outside, `\left...\right` is a `mathinner` atom.
                 class = Class::Inner;
-                if !parse_as.in_sequence() {
-                    break 'left Ok(fenced(self.arena, content, open_paren, close_paren, None));
-                }
-                // The spacing has to go outside of any sub- or superscripts,
-                // so we collect them here.
-                let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-                // Compute the spacing after getting the bounds, so that we don't
-                // consider tokens that are part of the bounds for spacing calculations.
-                let next_class = self.peek_class_token(true)?;
-                let next_class =
-                    if self.state.right_boundary_hack && matches!(next_class, Class::End) {
-                        Class::Default
-                    } else {
-                        next_class
-                    };
-                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
-                // The delimiters have zero spacing by default, so we only need to set non-zero
-                // spacing explicitly.
-                let left = left.filter(|s| *s != MathSpacing::Zero);
-                let right = right.filter(|s| *s != MathSpacing::Zero);
-                if bounds.is_trivial() {
-                    // Realize the spacing with `lspace`/`rspace` on the delimiters.
-                    break 'left Ok(spaced_fenced(
-                        self.arena,
-                        content,
-                        open_paren,
-                        close_paren,
-                        None,
-                        left,
-                        right,
-                    ));
-                }
-                // With scripts, an `rspace` on the closing delimiter would end up between the
-                // delimiter and the scripts, so we pad the scripted element instead.
-                let fence = self.commit(spaced_fenced(
-                    self.arena,
-                    content,
-                    open_paren,
-                    close_paren,
-                    None,
-                    left,
-                    None,
-                ));
-                let Some(scripted) = bounds.try_wrap_node_subsup(fence) else {
-                    unreachable!("bounds are not trivial");
-                };
-                if right.is_some() {
-                    Ok(Node::Padded {
-                        node: self.commit(scripted),
-                        width_0: false,
-                        height_0: false,
-                        left: None,
-                        right,
-                        voffset: None,
-                    })
-                } else {
-                    Ok(scripted)
-                }
+                let fence = fenced(self.arena, content, open_paren, close_paren, None);
+                Ok(self.finish_inner_fence(fence, parse_as, prev_class)?)
             }
             Token::Middle => {
                 class = Class::Open;
@@ -1725,9 +1669,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     (None, None)
                 };
-                class = Class::Close;
-
-                Ok(env.construct_node(
+                let node = env.construct_node(
                     content,
                     array_spec,
                     self.arena,
@@ -1735,7 +1677,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     num_rows,
                     border_top,
                     initial_shove,
-                ))
+                );
+                if env.is_fenced() {
+                    // Like `\left...\right`, this is a `mathinner` atom.
+                    class = Class::Inner;
+                    Ok(self.finish_inner_fence(node, parse_as, prev_class)?)
+                } else {
+                    class = Class::Close;
+                    Ok(node)
+                }
             }
             Token::OperatorName { with_limits } => {
                 class = Class::Operator;
@@ -3129,6 +3079,58 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
 
         Ok(ret_node)
+    }
+
+    /// Turn a fence created by [`fenced`] into a `mathinner` atom, by collecting any sub- or
+    /// superscripts and adding the spacing that a `mathinner` atom has to its neighbors.
+    fn finish_inner_fence(
+        &mut self,
+        fence: Node<'arena>,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<Node<'arena>> {
+        if !parse_as.in_sequence() {
+            return Ok(fence);
+        }
+        // The spacing has to go outside of any sub- or superscripts,
+        // so we collect them here.
+        let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
+        // Compute the spacing after getting the bounds, so that we don't
+        // consider tokens that are part of the bounds for spacing calculations.
+        let next_class = self.peek_class_token(true)?;
+        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
+            Class::Default
+        } else {
+            next_class
+        };
+        let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
+        // The delimiters have zero spacing by default, so we only need to set non-zero
+        // spacing explicitly.
+        let left = left.filter(|s| *s != MathSpacing::Zero);
+        let right = right.filter(|s| *s != MathSpacing::Zero);
+        if bounds.is_trivial() {
+            // Realize the spacing with `lspace`/`rspace` on the delimiters.
+            return Ok(with_outer_spacing(self.arena, fence, left, right));
+        }
+        // With scripts, an `rspace` on the closing delimiter would end up between the delimiter
+        // and the scripts, so we pad the scripted element instead. We avoid `<mpadded>` where
+        // possible, because it interacts badly with accents in Firefox.
+        let fence = self.commit(with_outer_spacing(self.arena, fence, left, None));
+        let Some(scripted) = bounds.try_wrap_node_subsup(fence) else {
+            unreachable!("bounds are not trivial");
+        };
+        Ok(if right.is_some() {
+            Node::Padded {
+                node: self.commit(scripted),
+                width_0: false,
+                height_0: false,
+                left: None,
+                right,
+                voffset: None,
+            }
+        } else {
+            scripted
+        })
     }
 
     /// Whether the bounds of a pseudo-operator like `\lim` should be rendered with

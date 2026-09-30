@@ -570,6 +570,7 @@ impl Token {
         match self.unwrap_math_ref() {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
+            Begin(env) if env.is_fenced() => Some(Class::Inner),
             Open(_) | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
                 Some(Class::Open)
             }

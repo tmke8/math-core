@@ -605,6 +605,14 @@ fn main() {
         ("left_right_inner_sup", r"\left(x\right)^2y"),
         ("left_right_inner_sup_at_end", r"x\left(y\right)^2"),
         ("left_right_inner_in_script", r"x^{a\left(y\right)b}"),
+        ("pmatrix_inner", r"x\begin{pmatrix}a\end{pmatrix}x"),
+        ("bmatrix_inner_sup", r"\begin{bmatrix}a\end{bmatrix}^T x"),
+        (
+            "vmatrix_inner_adjacent",
+            r"\begin{vmatrix}a\end{vmatrix}\begin{vmatrix}b\end{vmatrix}",
+        ),
+        ("cases_inner", r"x\begin{cases}a\end{cases}"),
+        ("rcases_inner", r"\begin{rcases}a\end{rcases}x"),
         (
             "mathinner_adjacent",
             r"\mathinner{a}\mathinner{b}\cdots\cdots",

@@ -155,32 +155,12 @@ impl StretchableOp {
 /// of the content. If `open` or `close` is `None`, no delimiter will be rendered on that side.
 pub fn fenced<'arena>(
     arena: &'arena Arena,
-    content: Vec<&'arena Node<'arena>>,
-    open: Option<StretchableOp>,
-    close: Option<StretchableOp>,
-    style: Option<Style>,
-) -> Node<'arena> {
-    spaced_fenced(arena, content, open, close, style, None, None)
-}
-
-/// Like [`fenced`], but with additional spacing outside the fence.
-///
-/// The spacing is realized as `lspace` on the opening delimiter and `rspace` on the closing
-/// delimiter. (If a side has no delimiter, the invisible placeholder operator carries it.)
-pub fn spaced_fenced<'arena>(
-    arena: &'arena Arena,
     mut content: Vec<&'arena Node<'arena>>,
     open: Option<StretchableOp>,
     close: Option<StretchableOp>,
     style: Option<Style>,
-    outer_left: Option<MathSpacing>,
-    outer_right: Option<MathSpacing>,
 ) -> Node<'arena> {
-    fn to_operator(
-        delim: Option<StretchableOp>,
-        outer_left: Option<MathSpacing>,
-        outer_right: Option<MathSpacing>,
-    ) -> Node<'static> {
+    fn to_operator(delim: Option<StretchableOp>) -> Node<'static> {
         if let Some(op) = delim {
             let attrs = if matches!(op.stretchy, Stretchy::Never) {
                 OpAttrs::STRETCHY_TRUE
@@ -200,8 +180,8 @@ pub fn spaced_fenced<'arena>(
                 attrs,
                 roles: OpRoles::empty(),
                 size: None,
-                left: outer_left.or(left),
-                right: outer_right.or(right),
+                left,
+                right,
             }
         } else {
             // An empty `<mo></mo>` produces weird spacing in some browsers.
@@ -211,13 +191,13 @@ pub fn spaced_fenced<'arena>(
                 attrs: OpAttrs::empty(),
                 roles: OpRoles::empty(),
                 size: None,
-                left: outer_left,
-                right: outer_right,
+                left: None,
+                right: None,
             }
         }
     }
-    let open = arena.push(to_operator(open, outer_left, None));
-    let close = arena.push(to_operator(close, None, outer_right));
+    let open = arena.push(to_operator(open));
+    let close = arena.push(to_operator(close));
     content.insert(0, open);
     content.push(close);
     let nodes = arena.push_slice(&content);
@@ -227,6 +207,61 @@ pub fn spaced_fenced<'arena>(
             style,
             ..RowAttrs::DEFAULT
         },
+    }
+}
+
+/// Adds spacing outside of a fence that was created with [`fenced`].
+///
+/// The spacing is realized as `lspace` on the opening delimiter and `rspace` on the closing
+/// delimiter. (If a side has no delimiter, the invisible placeholder operator carries it.)
+pub fn with_outer_spacing<'arena>(
+    arena: &'arena Arena,
+    fence: Node<'arena>,
+    outer_left: Option<MathSpacing>,
+    outer_right: Option<MathSpacing>,
+) -> Node<'arena> {
+    let Node::Row { nodes, attrs } = fence else {
+        debug_assert!(false, "expected a fence created by `fenced`");
+        return fence;
+    };
+    let [first, .., last] = nodes else {
+        debug_assert!(false, "expected a fence created by `fenced`");
+        return Node::Row { nodes, attrs };
+    };
+    let with_spacing = |node: &'arena Node<'arena>,
+                        outer_left: Option<MathSpacing>,
+                        outer_right: Option<MathSpacing>| {
+        let Node::Operator {
+            op,
+            attrs,
+            roles,
+            size,
+            left,
+            right,
+        } = *node
+        else {
+            debug_assert!(false, "expected a delimiter");
+            return node;
+        };
+        arena.push(Node::Operator {
+            op,
+            attrs,
+            roles,
+            size,
+            left: outer_left.or(left),
+            right: outer_right.or(right),
+        })
+    };
+    let mut new_nodes = nodes.to_vec();
+    if outer_left.is_some() {
+        new_nodes[0] = with_spacing(first, outer_left, None);
+    }
+    if outer_right.is_some() {
+        new_nodes[nodes.len() - 1] = with_spacing(last, None, outer_right);
+    }
+    Node::Row {
+        nodes: arena.push_slice(&new_nodes),
+        attrs,
     }
 }
 

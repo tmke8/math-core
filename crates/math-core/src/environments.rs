@@ -80,6 +80,23 @@ impl Env {
         ENVIRONMENTS.get(s).copied()
     }
 
+    /// Whether the environment is wrapped in delimiters with `\left...\right`,
+    /// which makes it a `mathinner` atom.
+    pub(super) const fn is_fenced(self) -> bool {
+        matches!(
+            self,
+            Env::Cases
+                | Env::RCases
+                | Env::DCases
+                | Env::DRCases
+                | Env::BMatrix
+                | Env::Bmatrix
+                | Env::PMatrix
+                | Env::VMatrix
+                | Env::Vmatrix
+        )
+    }
+
     pub(super) fn as_str(self) -> &'static str {
         ENVIRONMENTS
             .entries()

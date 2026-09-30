@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{rcases}a\\end{rcases}x"
+---
+<math>
+    <mrow>
+        <mo>⁣</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mi>a</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo rspace="0.1667em">}</mo>
+    </mrow>
+    <mi>x</mi>
+</math>
