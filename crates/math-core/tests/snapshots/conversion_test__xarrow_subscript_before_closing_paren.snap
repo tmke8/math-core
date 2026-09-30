@@ -1,0 +1,26 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\xrightarrow{a}_2)"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mrow>
+            <mspace width="0.2777778em"/>
+            <mover>
+                <mo rspace="0">→</mo>
+                <mover>
+                    <mrow>
+                        <mspace width="0.4286em"/>
+                        <mi>a</mi>
+                        <mspace width="0.4286em"/>
+                    </mrow>
+                    <mspace width="3.5em"/>
+                </mover>
+            </mover>
+            <mspace width="0.2777778em"/>
+        </mrow>
+        <mn>2</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>

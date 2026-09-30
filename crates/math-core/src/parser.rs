@@ -1584,8 +1584,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
+                let mut scripts = Bounds::default();
                 let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
-                    // We need to achieve relation spacing here.
+                    // We need to achieve relation spacing here, so the scripts have to be
+                    // parsed before the look-ahead (see `parse_token_and_scripts`).
+                    if parse_as.in_sequence() {
+                        scripts = self.get_bounds(None)?.ensure_no_explicit_limits()?;
+                    }
                     let next_class = self.peek_class_token(parse_as.in_sequence())?;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
@@ -1624,14 +1629,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         (None, None)
                     }
                 };
-                Ok(Node::Operator {
+                let target = self.commit(Node::Operator {
                     op: paren.as_op(),
                     attrs,
                     roles,
                     size: Some(size),
                     left,
                     right,
-                })
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::Begin(env) => 'begin_env: {
                 let spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
@@ -2441,6 +2447,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 self.state.style = old_style;
                 self.state.right_boundary_hack = old_boundary_hack;
+                // The scripts belong to the whole construct and come after its arguments, so
+                // they are parsed here, before the look-ahead (see `parse_token_and_scripts`).
+                let scripts = if parse_as.in_sequence() {
+                    self.get_bounds(None)?.ensure_no_explicit_limits()?
+                } else {
+                    Bounds::default()
+                };
                 // Re-compute the next class.
                 let next_class = self.peek_class_token(parse_as.in_sequence())?;
 
@@ -2488,10 +2501,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
 
                 let outer_space = &const { Node::Space(LatexUnit::Mu.length_with_unit(5.0)) };
-                Ok(Node::Row {
+                let target = self.commit(Node::Row {
                     nodes: self.arena.push_slice(&[outer_space, center, outer_space]),
                     attrs: RowAttrs::DEFAULT,
-                })
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::CustomCmd(num_args, token_stream) => {
                 self.count_expansion(span)?;
