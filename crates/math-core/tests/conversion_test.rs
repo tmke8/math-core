@@ -655,6 +655,11 @@ fn main() {
             r"\begin{align}a=_2&b\end{align}",
         ),
         ("mathbin_subscript_before_closing_paren", r"x\mathbin{+}_2)"),
+        (
+            "mathbin_bare_subscript_before_closing_paren",
+            r"x\mathbin+_2)",
+        ),
+        ("not_equal_subscript_before_closing_paren", r"(x\not=_2)"),
         ("comma_subscript_before_eof", r"x,_2"),
         ("many_plus", r"4++++4"),
         ("sin_plus_cos", r"\sin + \cos"),
