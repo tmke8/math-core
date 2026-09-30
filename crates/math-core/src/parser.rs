@@ -244,37 +244,29 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             self.tokens.peek().token(),
             self.state.env.meaningful_newlines,
         ) {
-            // The scripts of the token, if they had to be parsed before the token itself.
-            let mut scripts = Bounds::default();
             // Check whether we need to collect letters.
-            let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
-                collected
-            } else {
-                // Get the current token.
-                let cur_tokloc = self.next_token();
-                if let Ok(tokloc) = &cur_tokloc {
-                    match self.handle_tokens_without_output(
-                        tokloc,
-                        sequence_end,
-                        &mut nodes,
-                        cell_start,
-                        &mut infix_frac,
-                    )? {
-                        ControlFlow::SkipToken => continue,
-                        ControlFlow::ProcessToken => {}
+            let (class, target, scripts) =
+                if let Some((class, target)) = self.merge_and_transform_letters()? {
+                    (class, target, Bounds::default())
+                } else {
+                    // Get the current token.
+                    let cur_tokloc = self.next_token();
+                    if let Ok(tokloc) = &cur_tokloc {
+                        match self.handle_tokens_without_output(
+                            tokloc,
+                            sequence_end,
+                            &mut nodes,
+                            cell_start,
+                            &mut infix_frac,
+                        )? {
+                            ControlFlow::SkipToken => continue,
+                            ControlFlow::ProcessToken => {}
+                        }
                     }
-                    // For a token whose spacing depends on the class of what follows it, the
-                    // scripts are parsed first: they belong to the token, and the look-ahead
-                    // has to see what comes after them (in `x+_2)`, the neighbor of `+` is
-                    // `)`). Such a token takes no arguments, so its scripts come right after
-                    // it.
-                    if tokloc.token().spacing_depends_on_next_class() {
-                        scripts = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-                    }
-                }
-                // Parse the token.
-                self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
-            };
+                    // Parse the token. The scripts of a token whose spacing depends on what
+                    // follows it are parsed along with it, so they come back separately here.
+                    self.parse_token_and_scripts(cur_tokloc, ParseAs::Sequence, prev_class)?
+                };
             prev_class = class;
 
             if matches!(target, Node::ColumnSeparator | Node::RowSeparator { .. }) {
@@ -519,12 +511,55 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let (class, node, scripts) =
+            self.parse_token_and_scripts(cur_tokloc, parse_as, prev_class)?;
+        Ok((class, self.wrap_in_scripts(node, scripts)))
+    }
+
+    /// Like [`Self::parse_token`], but the scripts which had to be parsed before the token
+    /// are returned separately instead of being wrapped around the node.
+    ///
+    /// For a token whose spacing depends on the class of what follows it, the scripts are
+    /// parsed before the token itself: they belong to the token, and the look-ahead has to
+    /// see what comes after them (in `x+_2)`, the neighbor of `+` is `)`). Such a token
+    /// takes no arguments, so its scripts come right after it. This is done after any
+    /// expansion, so that it also applies to a macro which expands to such a token.
+    ///
+    /// The scripts are only collected in a fresh sequence. In particular, the target of
+    /// `\overset` keeps its scripts on the outside of the whole construct.
+    fn parse_token_and_scripts(
+        &mut self,
+        cur_tokloc: ParseResult<TokSpan>,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<(Class, &'arena Node<'arena>, Bounds<'arena>)> {
         let mut cur_tokloc = cur_tokloc;
         loop {
+            let scripts = if matches!(parse_as, ParseAs::Sequence)
+                && let Ok(tokloc) = &cur_tokloc
+                && tokloc.token().spacing_depends_on_next_class()
+            {
+                self.get_bounds(None)?.ensure_no_explicit_limits()?
+            } else {
+                Bounds::default()
+            };
             match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
-                Parsed::Node(class, node) => return Ok((class, node)),
+                Parsed::Node(class, node) => return Ok((class, node, scripts)),
+                // A token with scripts never expands, so no scripts are lost here.
                 Parsed::Expansion => cur_tokloc = self.next_token(),
             }
+        }
+    }
+
+    /// Wrap the node in the given scripts, if there are any.
+    fn wrap_in_scripts(
+        &self,
+        node: &'arena Node<'arena>,
+        scripts: Bounds<'arena>,
+    ) -> &'arena Node<'arena> {
+        match scripts.try_wrap_node_subsup(node) {
+            Some(scripted) => self.commit(scripted),
+            None => node,
         }
     }
 
@@ -803,13 +838,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
-                let (_, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
-                // The scripts belong to the whole construct and come after its argument, so
-                // they are parsed here, before the look-ahead (see `parse_sequence`).
-                let scripts = if parse_as.in_sequence() {
+                let (_, node, scripts) =
+                    self.parse_token_and_scripts(Ok(tok_span), parse_as, prev_class)?;
+                // The scripts belong to the whole construct. Unless the argument was a bare
+                // token which already took them, they come after the argument and are parsed
+                // here, before the look-ahead (see `parse_token_and_scripts`).
+                let scripts = if scripts.is_trivial() && parse_as.in_sequence() {
                     self.get_bounds(None)?.ensure_no_explicit_limits()?
                 } else {
-                    Bounds::default()
+                    scripts
                 };
                 // Recompute the next class:
                 let next_class = self.peek_class_token(parse_as.in_sequence())?;
@@ -896,10 +933,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                 };
                 let target = self.commit(spaced);
-                match scripts.try_wrap_node_subsup(target) {
-                    Some(node) => Ok(node),
-                    None => return Ok(Parsed::Node(class, target)),
-                }
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::Inner(op) => {
                 class = Class::Inner;
@@ -1250,7 +1284,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let tok_span = self.next_token()?;
                 let new_span = tok_span.span();
-                let (cls, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
+                // The scripts stay off until the overlay has been applied to the base.
+                let (cls, node, scripts) =
+                    self.parse_token_and_scripts(Ok(tok_span), parse_as, prev_class)?;
                 class = cls;
 
                 /// Helper for `Node::PseudoOp` and `Node::IdentifierStr` below.
@@ -1280,7 +1316,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                 }
 
-                match *node {
+                let overlaid = match *node {
                     Node::Operator {
                         op,
                         attrs,
@@ -1323,6 +1359,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
 
                     _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
+                };
+                if scripts.is_trivial() {
+                    overlaid
+                } else {
+                    let target = self.commit(overlaid?);
+                    return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
                 }
             }
             Token::Transform(tf) => {
