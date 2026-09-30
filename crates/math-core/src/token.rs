@@ -678,6 +678,25 @@ impl Token {
         }
     }
 
+    /// Whether the spacing of this token depends on the class of the token after it, while
+    /// the token itself takes no arguments.
+    ///
+    /// For such a token, the scripts which follow it belong to it, so they have to be parsed
+    /// before the token is, for the look-ahead to see what comes after them.
+    pub(super) fn spacing_depends_on_next_class(&self) -> bool {
+        matches!(
+            self,
+            Token::Relation(_)
+                | Token::ForceRelation(_)
+                | Token::Punctuation(_)
+                | Token::ForcePunctuation(_)
+                | Token::BinaryOp(_)
+                | Token::ForceBinaryOp(_)
+                | Token::Inner(_)
+                | Token::ForceMathInner(_)
+        )
+    }
+
     /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.
     #[inline]
     pub(crate) fn unwrap_math_ref(&self) -> &Self {

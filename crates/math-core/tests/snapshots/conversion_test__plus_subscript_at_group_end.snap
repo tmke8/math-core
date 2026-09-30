@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "{x+_2}y"
+---
+<math>
+    <mrow>
+        <mi>x</mi>
+        <msub>
+            <mo lspace="0" rspace="0">+</mo>
+            <mn>2</mn>
+        </msub>
+    </mrow>
+    <mi>y</mi>
+</math>
