@@ -660,6 +660,13 @@ fn main() {
             r"x\mathbin+_2)",
         ),
         ("not_equal_subscript_before_closing_paren", r"(x\not=_2)"),
+        ("bigm_subscript_before_closing_paren", r"x\bigm|_2)"),
+        ("bigm_subscript_before_letter", r"x\bigm|_2 y"),
+        (
+            "xarrow_subscript_before_closing_paren",
+            r"x\xrightarrow{a}_2)",
+        ),
+        ("xarrow_subscript_before_letter", r"x\xrightarrow{a}_2 y"),
         ("comma_subscript_before_eof", r"x,_2"),
         ("many_plus", r"4++++4"),
         ("sin_plus_cos", r"\sin + \cos"),
