@@ -525,8 +525,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// takes no arguments, so its scripts come right after it. This is done after any
     /// expansion, so that it also applies to a macro which expands to such a token.
     ///
-    /// The scripts are only collected in a fresh sequence. In particular, the target of
-    /// `\overset` keeps its scripts on the outside of the whole construct.
+    /// The scripts are only collected in a sequence, where the spacing matters. A caller
+    /// which builds a bigger construct around the node, like `\overset`, puts them back on
+    /// the outside of that construct.
     fn parse_token_and_scripts(
         &mut self,
         cur_tokloc: ParseResult<TokSpan>,
@@ -535,7 +536,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<(Class, &'arena Node<'arena>, Bounds<'arena>)> {
         let mut cur_tokloc = cur_tokloc;
         loop {
-            let scripts = if matches!(parse_as, ParseAs::Sequence)
+            let scripts = if parse_as.in_sequence()
                 && let Ok(tokloc) = &cur_tokloc
                 && tokloc.token().spacing_depends_on_next_class()
             {
@@ -1157,15 +1158,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.state.style = old_style;
                 let token = self.next_token();
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
-                let (cls, target) =
-                    self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
+                // The target's spacing is determined as if it were in the sequence, so its
+                // scripts are parsed along with it; they go onto the whole construct below.
+                let (cls, target, scripts) =
+                    self.parse_token_and_scripts(token, ParseAs::ContinueSequence, prev_class)?;
                 self.state.right_boundary_hack = old_boundary_hack;
                 class = cls;
-                if matches!(cur_token, Token::Overset) {
-                    Ok(Node::Over { symbol, target })
+                let node = self.commit(if matches!(cur_token, Token::Overset) {
+                    Node::Over { symbol, target }
                 } else {
-                    Ok(Node::Under { symbol, target })
-                }
+                    Node::Under { symbol, target }
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(node, scripts)));
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
