@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{align}a=_2&b\\end{align}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>a</mi>
+                <msub>
+                    <mo rspace="0">=</mo>
+                    <mn>2</mn>
+                </msub>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mi>b</mi>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
