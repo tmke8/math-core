@@ -1383,7 +1383,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         semantic::rewrite_pseudo_operator(node, self.arena)
                     {
                         node = identifier;
-                    };
+                    }
                 }
                 return Ok(Parsed::Node(Class::Default, node));
             }
