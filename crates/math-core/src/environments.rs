@@ -1,5 +1,4 @@
 use alloc::string::String;
-use alloc::vec;
 use core::fmt::Write;
 use core::num::NonZeroU16;
 
@@ -11,7 +10,7 @@ use mathml_renderer::{
     table::{Alignment, ArraySpec, ColumnAlignment, EquationTag, LineType, RowLabelInfo},
 };
 
-use crate::character_class::{StretchableOp, fenced};
+use crate::character_class::StretchableOp;
 
 static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "array" => Env::Array,
@@ -80,21 +79,22 @@ impl Env {
         ENVIRONMENTS.get(s).copied()
     }
 
-    /// Whether the environment is wrapped in delimiters with `\left...\right`,
-    /// which makes it a `mathinner` atom.
-    pub(super) const fn is_fenced(self) -> bool {
-        matches!(
-            self,
-            Env::Cases
-                | Env::RCases
-                | Env::DCases
-                | Env::DRCases
-                | Env::BMatrix
-                | Env::Bmatrix
-                | Env::PMatrix
-                | Env::VMatrix
-                | Env::Vmatrix
-        )
+    /// The delimiters that the environment is wrapped in with `\left...\right`,
+    /// which makes it a `mathinner` atom. A side without a delimiter is `None`.
+    pub(super) const fn delimiters(self) -> Option<(Option<StretchableOp>, Option<StretchableOp>)> {
+        const LINE: StretchableOp = StretchableOp::from_ord(symbol::VERTICAL_LINE).unwrap();
+        const DOUBLE_LINE: StretchableOp =
+            StretchableOp::from_ord(symbol::DOUBLE_VERTICAL_LINE).unwrap();
+        Some(match self {
+            Env::Cases | Env::DCases => (Some(OPEN_BRACE), None),
+            Env::RCases | Env::DRCases => (None, Some(CLOSE_BRACE)),
+            Env::PMatrix => (Some(OPEN_PAREN), Some(CLOSE_PAREN)),
+            Env::BMatrix => (Some(OPEN_BRACKET), Some(CLOSE_BRACKET)),
+            Env::Bmatrix => (Some(OPEN_BRACE), Some(CLOSE_BRACE)),
+            Env::VMatrix => (Some(LINE), Some(LINE)),
+            Env::Vmatrix => (Some(DOUBLE_LINE), Some(DOUBLE_LINE)),
+            _ => return None,
+        })
     }
 
     pub(super) fn as_str(self) -> &'static str {
@@ -200,7 +200,6 @@ impl Env {
         self,
         content: &'arena [&'arena Node<'arena>],
         array_spec: Option<&'arena ArraySpec<'arena>>,
-        arena: &'arena Arena,
         last_row_info: Option<&'arena RowLabelInfo<'arena>>,
         num_rows: Option<NonZeroU16>,
         border_top: Option<LineType>,
@@ -246,46 +245,18 @@ impl Env {
                     initial_shove,
                 }
             }
-            Env::Cases => {
-                let align = Alignment::Cases;
-                let content = arena.push(Node::Table {
-                    content,
-                    align,
-                    style: Some(Style::Text),
-                    border_top: None,
-                });
-                fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
-            }
-            Env::RCases => {
-                let align = Alignment::Cases;
-                let content = arena.push(Node::Table {
-                    content,
-                    align,
-                    style: Some(Style::Text),
-                    border_top: None,
-                });
-                fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
-            }
-            Env::DCases => {
-                let align = Alignment::Cases;
-                let content = arena.push(Node::Table {
-                    content,
-                    align,
-                    style: Some(Style::Display),
-                    border_top: None,
-                });
-                fenced(arena, vec![content], Some(OPEN_BRACE), None, None)
-            }
-            Env::DRCases => {
-                let align = Alignment::Cases;
-                let content = arena.push(Node::Table {
-                    content,
-                    align,
-                    style: Some(Style::Display),
-                    border_top: None,
-                });
-                fenced(arena, vec![content], None, Some(CLOSE_BRACE), None)
-            }
+            Env::Cases | Env::RCases => Node::Table {
+                content,
+                align: Alignment::Cases,
+                style: Some(Style::Text),
+                border_top: None,
+            },
+            Env::DCases | Env::DRCases => Node::Table {
+                content,
+                align: Alignment::Cases,
+                style: Some(Style::Display),
+                border_top: None,
+            },
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
                 // `Env::Array`, `Env:DArray` and `Env::Subarray` in the caller.
@@ -304,41 +275,13 @@ impl Env {
                     array_spec,
                 }
             }
-            matrix_variant @ (Env::PMatrix
-            | Env::BMatrix
-            | Env::Bmatrix
-            | Env::VMatrix
-            | Env::Vmatrix) => {
-                let align = Alignment::Centered;
-                let (open, close) = match matrix_variant {
-                    Env::PMatrix => (OPEN_PAREN, CLOSE_PAREN),
-                    Env::BMatrix => (OPEN_BRACKET, CLOSE_BRACKET),
-                    Env::Bmatrix => (OPEN_BRACE, CLOSE_BRACE),
-                    Env::VMatrix => {
-                        const LINE: StretchableOp =
-                            StretchableOp::from_ord(symbol::VERTICAL_LINE).unwrap();
-                        (LINE, LINE)
-                    }
-                    Env::Vmatrix => {
-                        const DOUBLE_LINE: StretchableOp =
-                            StretchableOp::from_ord(symbol::DOUBLE_VERTICAL_LINE).unwrap();
-                        (DOUBLE_LINE, DOUBLE_LINE)
-                    }
-                    _ => unreachable!(),
-                };
-                let style = Some(Style::Text);
-                fenced(
-                    arena,
-                    vec![arena.push(Node::Table {
-                        content,
-                        align,
-                        style,
-                        border_top,
-                    })],
-                    Some(open),
-                    Some(close),
-                    None,
-                )
+            Env::PMatrix | Env::BMatrix | Env::Bmatrix | Env::VMatrix | Env::Vmatrix => {
+                Node::Table {
+                    content,
+                    align: Alignment::Centered,
+                    style: Some(Style::Text),
+                    border_top,
+                }
             }
         }
     }

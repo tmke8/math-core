@@ -19,8 +19,8 @@ use crate::{
     ParserConfig,
     atof::limited_float_parse,
     character_class::{
-        Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
-        with_outer_spacing,
+        Class, DelimiterSpacing, FenceOptions, MathVariant, ParenType, StretchableOp, Stretchy,
+        fenced,
     },
     color_defs::get_color,
     custom_cmds::RecordedToken,
@@ -352,9 +352,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             self.commit(fenced(
                 self.arena,
                 vec![frac],
-                Some(open),
-                Some(close),
-                None,
+                FenceOptions {
+                    open: Some(open),
+                    close: Some(close),
+                    ..FenceOptions::default()
+                },
             ))
         } else {
             frac
@@ -985,9 +987,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             lt_unit,
                             attr,
                         })],
-                        Some(OPEN_PAREN),
-                        Some(CLOSE_PAREN),
-                        None,
+                        FenceOptions {
+                            open: Some(OPEN_PAREN),
+                            close: Some(CLOSE_PAREN),
+                            ..FenceOptions::default()
+                        },
                     ))
                 } else {
                     let (lt_value, lt_unit) = Length::none().into_parts();
@@ -1069,9 +1073,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         lt_unit,
                         attr,
                     })],
-                    open,
-                    close,
-                    style,
+                    FenceOptions {
+                        open,
+                        close,
+                        style,
+                        ..FenceOptions::default()
+                    },
                 ))
             }
             Token::Accent(op, is_over, attr) => {
@@ -1461,8 +1468,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // From the outside, `\left...\right` is a `mathinner` atom.
                 class = Class::Inner;
-                let fence = fenced(self.arena, content, open_paren, close_paren, None);
-                Ok(self.finish_inner_fence(fence, parse_as, prev_class)?)
+                Ok(self.inner_fence(content, open_paren, close_paren, parse_as, prev_class)?)
             }
             Token::Middle => {
                 class = Class::Open;
@@ -1672,16 +1678,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let node = env.construct_node(
                     content,
                     array_spec,
-                    self.arena,
                     last_row_info,
                     num_rows,
                     border_top,
                     initial_shove,
                 );
-                if env.is_fenced() {
+                if let Some((open, close)) = env.delimiters() {
                     // Like `\left...\right`, this is a `mathinner` atom.
                     class = Class::Inner;
-                    Ok(self.finish_inner_fence(node, parse_as, prev_class)?)
+                    let content = vec![self.commit(node)];
+                    Ok(self.inner_fence(content, open, close, parse_as, prev_class)?)
                 } else {
                     class = Class::Close;
                     Ok(node)
@@ -3081,16 +3087,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(ret_node)
     }
 
-    /// Turn a fence created by [`fenced`] into a `mathinner` atom, by collecting any sub- or
-    /// superscripts and adding the spacing that a `mathinner` atom has to its neighbors.
-    fn finish_inner_fence(
+    /// Wrap `content` in stretchy delimiters as a `mathinner` atom, like `\left...\right` does.
+    ///
+    /// This collects any sub- or superscripts and adds the spacing that a `mathinner` atom has
+    /// to its neighbors.
+    fn inner_fence(
         &mut self,
-        fence: Node<'arena>,
+        content: Vec<&'arena Node<'arena>>,
+        open: Option<StretchableOp>,
+        close: Option<StretchableOp>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<Node<'arena>> {
+        let options = FenceOptions {
+            open,
+            close,
+            ..FenceOptions::default()
+        };
         if !parse_as.in_sequence() {
-            return Ok(fence);
+            return Ok(fenced(self.arena, content, options));
         }
         // The spacing has to go outside of any sub- or superscripts,
         // so we collect them here.
@@ -3110,12 +3125,27 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let right = right.filter(|s| *s != MathSpacing::Zero);
         if bounds.is_trivial() {
             // Realize the spacing with `lspace`/`rspace` on the delimiters.
-            return Ok(with_outer_spacing(self.arena, fence, left, right));
+            return Ok(fenced(
+                self.arena,
+                content,
+                FenceOptions {
+                    outer_left: left,
+                    outer_right: right,
+                    ..options
+                },
+            ));
         }
         // With scripts, an `rspace` on the closing delimiter would end up between the delimiter
         // and the scripts, so we pad the scripted element instead. We avoid `<mpadded>` where
         // possible, because it interacts badly with accents in Firefox.
-        let fence = self.commit(with_outer_spacing(self.arena, fence, left, None));
+        let fence = self.commit(fenced(
+            self.arena,
+            content,
+            FenceOptions {
+                outer_left: left,
+                ..options
+            },
+        ));
         let Some(scripted) = bounds.try_wrap_node_subsup(fence) else {
             unreachable!("bounds are not trivial");
         };
