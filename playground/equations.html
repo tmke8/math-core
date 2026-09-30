@@ -79,17 +79,23 @@
 </p></div>
 <div><code>\cos^2 \theta + \sin^2 \theta = 1</code><p>
 <math display="block">
-    <msup>
-        <mo lspace="0" rspace="0.1667em">cos</mo>
-        <mn>2</mn>
-    </msup>
-    <mi>θ</mi>
+    <mrow>
+        <msup>
+            <mrow><mspace/><mi>cos</mi></mrow>
+            <mn>2</mn>
+        </msup>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>θ</mi>
+    </mrow>
     <mo>+</mo>
-    <msup>
-        <mo lspace="0" rspace="0.1667em">sin</mo>
-        <mn>2</mn>
-    </msup>
-    <mi>θ</mi>
+    <mrow>
+        <msup>
+            <mrow><mspace/><mi>sin</mi></mrow>
+            <mn>2</mn>
+        </msup>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>θ</mi>
+    </mrow>
     <mo>=</mo>
     <mn>1</mn>
 </math>
@@ -103,16 +109,21 @@
             <mi>x</mi>
         </mrow>
     </mfrac>
-    <mo lspace="0.1667em" rspace="0.1667em">tan</mo>
-    <mi>x</mi>
+    <mspace width="0.1667em"/>
+    <mrow>
+        <mrow><mspace/><mi>tan</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>x</mi>
+    </mrow>
     <mo>=</mo>
     <mfrac>
         <mn>1</mn>
         <mrow>
             <msup>
-                <mo lspace="0" rspace="0.1667em">cos</mo>
+                <mrow><mspace/><mi>cos</mi></mrow>
                 <mn>2</mn>
             </msup>
+            <mo lspace="0.1667em">&ApplyFunction;</mo>
             <mi>x</mi>
         </mrow>
     </mfrac>
@@ -123,19 +134,22 @@
     <mi>∠</mi>
     <mrow><mspace/><mi>OAB</mi></mrow>
     <mo>=</mo>
-    <mo lspace="0" rspace="0">arccos</mo>
     <mrow>
-        <mo>{</mo>
-        <mover accent="true">
-            <mrow><mspace/><mi>OA</mi></mrow>
-            <mo>→</mo>
-        </mover>
-        <mo lspace="0.2222em" rspace="0.2222em">⋅</mo>
-        <mover accent="true">
-            <mrow><mspace/><mi>OB</mi></mrow>
-            <mo>→</mo>
-        </mover>
-        <mo>}</mo>
+        <mrow><mspace/><mi>arccos</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mrow>
+            <mo>{</mo>
+            <mover accent="true">
+                <mrow><mspace/><mi>OA</mi></mrow>
+                <mo>→</mo>
+            </mover>
+            <mo lspace="0.2222em" rspace="0.2222em">⋅</mo>
+            <mover accent="true">
+                <mrow><mspace/><mi>OB</mi></mrow>
+                <mo>→</mo>
+            </mover>
+            <mo>}</mo>
+        </mrow>
     </mrow>
 </math>
 </p></div>
@@ -168,38 +182,46 @@
     <mi>x</mi>
     <mo stretchy="false">)</mo>
     <mo>=</mo>
-    <munder>
-        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
-        <mrow>
+    <mrow>
+        <munder>
+            <mrow><mspace/><mi>lim</mi></mrow>
+            <mrow>
+                <mi>h</mi>
+                <mo stretchy="false" lspace="0" rspace="0">→</mo>
+                <mn>0</mn>
+            </mrow>
+        </munder>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mfrac>
+            <mrow>
+                <mi>f</mi>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo>+</mo>
+                <mi>h</mi>
+                <mo stretchy="false">)</mo>
+                <mo>−</mo>
+                <mi>f</mi>
+                <mo stretchy="false">(</mo>
+                <mi>x</mi>
+                <mo stretchy="false">)</mo>
+            </mrow>
             <mi>h</mi>
-            <mo stretchy="false" lspace="0" rspace="0">→</mo>
-            <mn>0</mn>
-        </mrow>
-    </munder>
-    <mfrac>
-        <mrow>
-            <mi>f</mi>
-            <mo stretchy="false">(</mo>
-            <mi>x</mi>
-            <mo>+</mo>
-            <mi>h</mi>
-            <mo stretchy="false">)</mo>
-            <mo>−</mo>
-            <mi>f</mi>
-            <mo stretchy="false">(</mo>
-            <mi>x</mi>
-            <mo stretchy="false">)</mo>
-        </mrow>
-        <mi>h</mi>
-    </mfrac>
+        </mfrac>
+    </mrow>
 </math>
 </p></div>
 <div><code>\erf ( x ) = \frac{ 2 }{ \sqrt{ \pi } } \int_0^x e^{- t^2} \, dt</code><p>
 <math display="block">
-    <mo lspace="0" rspace="0">erf</mo>
-    <mo stretchy="false">(</mo>
-    <mi>x</mi>
-    <mo stretchy="false">)</mo>
+    <mrow>
+        <mrow><mspace/><mi>erf</mi></mrow>
+        <mo>&ApplyFunction;</mo>
+        <mrow>
+            <mo stretchy="false">(</mo>
+            <mi>x</mi>
+            <mo stretchy="false">)</mo>
+        </mrow>
+    </mrow>
     <mo>=</mo>
     <mfrac>
         <mn>2</mn>
@@ -572,13 +594,13 @@
             <mi>π</mi>
             <mn>2</mn>
         </mfrac>
-        <mo>}</mo>
+        <mo rspace="0.1667em">}</mo>
     </mrow>
     <mspace width="0.16666667em"/>
     <mrow>
         <mo>(</mo>
         <mi>x</mi>
-        <mo>)</mo>
+        <mo rspace="0.1667em">)</mo>
     </mrow>
     <mspace width="0.16666667em"/>
     <mrow>
@@ -609,7 +631,7 @@
 <math display="block">
     <mi>μ</mi>
     <mrow>
-        <mo>(</mo>
+        <mo lspace="0.1667em">(</mo>
         <munder>
             <mo lspace="0">⋃</mo>
             <mi>i</mi>
@@ -699,7 +721,7 @@
     <mo>∀</mo>
     <mi>y</mi>
     <mrow>
-        <mo>[</mo>
+        <mo lspace="0.1667em">[</mo>
         <mo stretchy="false" lspace="0" rspace="0">|</mo>
         <mi>y</mi>
         <mo>−</mo>
@@ -755,8 +777,12 @@
 <math display="block">
     <mi>G</mi>
     <mo lspace="0" rspace="0">/</mo>
-    <mo lspace="0.1667em" rspace="0.1667em">ker</mo>
-    <mi>f</mi>
+    <mspace width="0.1667em"/>
+    <mrow>
+        <mrow><mspace/><mi>ker</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>f</mi>
+    </mrow>
     <mo>≅</mo>
     <mrow><mspace/><mi>im</mi></mrow>
     <mspace width="0.16666667em"/>
@@ -794,36 +820,41 @@
     <mrow><mspace/><mi>𝒟︁</mi></mrow>
     <mi>x</mi>
     <mo>=</mo>
-    <munder>
-        <mo movablelimits="true" lspace="0" rspace="0">lim</mo>
-        <mrow>
-            <mi>N</mi>
-            <mo stretchy="false" lspace="0" rspace="0">→</mo>
-            <mi>∞</mi>
-        </mrow>
-    </munder>
-    <msup>
-        <mrow>
-            <mo>(</mo>
-            <mfrac>
-                <mi>m</mi>
+    <mrow>
+        <munder>
+            <mrow><mspace/><mi>lim</mi></mrow>
+            <mrow>
+                <mi>N</mi>
+                <mo stretchy="false" lspace="0" rspace="0">→</mo>
+                <mi>∞</mi>
+            </mrow>
+        </munder>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mpadded style="padding-right:0.1667em;">
+            <msup>
                 <mrow>
-                    <mn>2</mn>
-                    <mi>π</mi>
-                    <mi>i</mi>
-                    <mi>ℏ</mi>
-                    <mrow><mspace/><mi mathvariant="normal">Δ</mi></mrow>
-                    <mi>t</mi>
+                    <mo>(</mo>
+                    <mfrac>
+                        <mi>m</mi>
+                        <mrow>
+                            <mn>2</mn>
+                            <mi>π</mi>
+                            <mi>i</mi>
+                            <mi>ℏ</mi>
+                            <mrow><mspace/><mi mathvariant="normal">Δ</mi></mrow>
+                            <mi>t</mi>
+                        </mrow>
+                    </mfrac>
+                    <mo>)</mo>
                 </mrow>
-            </mfrac>
-            <mo>)</mo>
-        </mrow>
-        <mfrac>
-            <mi>N</mi>
-            <mn>2</mn>
-        </mfrac>
-    </msup>
-    <mo>∫</mo>
+                <mfrac>
+                    <mi>N</mi>
+                    <mn>2</mn>
+                </mfrac>
+            </msup>
+        </mpadded>
+    </mrow>
+    <mo lspace="0">∫</mo>
     <mo lspace="0">·</mo>
     <mo lspace="0" rspace="0.1667em">·</mo>
     <mo lspace="0">·</mo>
@@ -859,22 +890,27 @@
     <mi>d</mi>
     <mi>μ</mi>
     <mo>≤</mo>
-    <munder>
-        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim inf</mo>
+    <mrow>
+        <munder>
+            <mrow><mspace/><mi>lim inf</mi></mrow>
+            <mrow>
+                <mi>n</mi>
+                <mo stretchy="false" lspace="0" rspace="0">→</mo>
+                <mi>∞</mi>
+            </mrow>
+        </munder>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
         <mrow>
-            <mi>n</mi>
-            <mo stretchy="false" lspace="0" rspace="0">→</mo>
-            <mi>∞</mi>
+            <msub>
+                <mo lspace="0">∫</mo>
+                <mi>S</mi>
+            </msub>
+            <msub>
+                <mi>f</mi>
+                <mi>n</mi>
+            </msub>
         </mrow>
-    </munder>
-    <msub>
-        <mo lspace="0">∫</mo>
-        <mi>S</mi>
-    </msub>
-    <msub>
-        <mi>f</mi>
-        <mi>n</mi>
-    </msub>
+    </mrow>
     <mspace width="0.16666667em"/>
     <mi>d</mi>
     <mi>μ</mi>
@@ -882,17 +918,20 @@
 </p></div>
 <div><code>\lim_{n \to \infty} P \left( \frac{ S_n - n \mu }{ \sqrt{ n } \sigma } \leq \alpha \right) = \frac{ 1 }{ \sqrt{ 2 \pi } } \int_{- \infty}^\alpha \exp \left( - \frac{ x^2 }{ 2 } \right) \, dx</code><p>
 <math display="block">
-    <munder>
-        <mo movablelimits="true" lspace="0" rspace="0.1667em">lim</mo>
-        <mrow>
-            <mi>n</mi>
-            <mo stretchy="false" lspace="0" rspace="0">→</mo>
-            <mi>∞</mi>
-        </mrow>
-    </munder>
-    <mi>P</mi>
     <mrow>
-        <mo>(</mo>
+        <munder>
+            <mrow><mspace/><mi>lim</mi></mrow>
+            <mrow>
+                <mi>n</mi>
+                <mo stretchy="false" lspace="0" rspace="0">→</mo>
+                <mi>∞</mi>
+            </mrow>
+        </munder>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>P</mi>
+    </mrow>
+    <mrow>
+        <mo lspace="0.1667em">(</mo>
         <mfrac>
             <mrow>
                 <msub>
@@ -932,18 +971,21 @@
         </mrow>
         <mi>α</mi>
     </msubsup>
-    <mo lspace="0" rspace="0">exp</mo>
     <mrow>
-        <mo>(</mo>
-        <mo lspace="0" rspace="0">−</mo>
-        <mfrac>
-            <msup>
-                <mi>x</mi>
+        <mrow><mspace/><mi>exp</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mrow>
+            <mo>(</mo>
+            <mo lspace="0" rspace="0">−</mo>
+            <mfrac>
+                <msup>
+                    <mi>x</mi>
+                    <mn>2</mn>
+                </msup>
                 <mn>2</mn>
-            </msup>
-            <mn>2</mn>
-        </mfrac>
-        <mo>)</mo>
+            </mfrac>
+            <mo rspace="0.1667em">)</mo>
+        </mrow>
     </mrow>
     <mspace width="0.16666667em"/>
     <mi>d</mi>
@@ -1015,7 +1057,7 @@
         <mspace width="0.2777778em"/>
         <mi>ζ</mi>
         <mrow>
-            <mo>(</mo>
+            <mo lspace="0.1667em">(</mo>
             <mi>z</mi>
             <mo>)</mo>
         </mrow>
@@ -1102,8 +1144,11 @@
 </p></div>
 <div><code>\operatorname{sn} x , \ \vartheta ( z, \tau ) , \ \wp ( z ; \omega_1, \omega_2 )</code><p>
 <math display="block">
-    <mo lspace="0" rspace="0.1667em">sn</mo>
-    <mi>x</mi>
+    <mrow>
+        <mrow><mspace/><mi>sn</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>x</mi>
+    </mrow>
     <mo>,</mo>
     <mtext> </mtext>
     <mi>ϑ</mi>
@@ -1155,24 +1200,27 @@
         <mo lspace="0">∑</mo>
         <mi>𝐧</mi>
     </munder>
-    <mo lspace="0" rspace="0">exp</mo>
     <mrow>
-        <mo>{</mo>
-        <mo lspace="0" rspace="0">−</mo>
-        <mi>β</mi>
-        <mo stretchy="false">(</mo>
-        <msub>
-            <mi>E</mi>
-            <mi>𝐧</mi>
-        </msub>
-        <mo>−</mo>
-        <mi>μ</mi>
-        <msub>
-            <mi>N</mi>
-            <mi>𝐧</mi>
-        </msub>
-        <mo stretchy="false">)</mo>
-        <mo>}</mo>
+        <mrow><mspace/><mi>exp</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mrow>
+            <mo>{</mo>
+            <mo lspace="0" rspace="0">−</mo>
+            <mi>β</mi>
+            <mo stretchy="false">(</mo>
+            <msub>
+                <mi>E</mi>
+                <mi>𝐧</mi>
+            </msub>
+            <mo>−</mo>
+            <mi>μ</mi>
+            <msub>
+                <mi>N</mi>
+                <mi>𝐧</mi>
+            </msub>
+            <mo stretchy="false">)</mo>
+            <mo>}</mo>
+        </mrow>
     </mrow>
 </math>
 </p></div>
@@ -1306,8 +1354,12 @@
     <mrow><mspace/><mi>𝒪︁</mi></mrow>
     <mo stretchy="false">(</mo>
     <mi>N</mi>
-    <mo lspace="0.1667em" rspace="0.1667em">ln</mo>
-    <mi>N</mi>
+    <mspace width="0.1667em"/>
+    <mrow>
+        <mrow><mspace/><mi>ln</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>N</mi>
+    </mrow>
     <mo stretchy="false">)</mo>
 </math>
 </p></div>
@@ -1417,7 +1469,7 @@
                 </mtd>
             </mtr>
         </mtable>
-        <mo>)</mo>
+        <mo rspace="0.1667em">)</mo>
     </mrow>
     <mo>,</mo>
     <mtable displaystyle="false" scriptlevel="0">
@@ -1459,7 +1511,7 @@
                 </mtd>
             </mtr>
         </mtable>
-        <mo>]</mo>
+        <mo rspace="0.1667em">]</mo>
     </mrow>
     <mo>,</mo>
     <mrow>
@@ -1747,7 +1799,7 @@
         <mn>0</mn>
     </msub>
     <mrow>
-        <mo>(</mo>
+        <mo lspace="0.1667em">(</mo>
         <msub>
             <mi>I</mi>
             <mrow><mspace/><mi>enc</mi></mrow>

@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\begin{pmatrix}a\\end{pmatrix}x"
+---
+<math>
+    <mi>x</mi>
+    <mrow>
+        <mo lspace="0.1667em">(</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mi>a</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo rspace="0.1667em">)</mo>
+    </mrow>
+    <mi>x</mi>
+</math>

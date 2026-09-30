@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\left(y\\right)^2"
+---
+<math>
+    <mi>x</mi>
+    <msup>
+        <mrow>
+            <mo lspace="0.1667em">(</mo>
+            <mi>y</mi>
+            <mo>)</mo>
+        </mrow>
+        <mn>2</mn>
+    </msup>
+</math>

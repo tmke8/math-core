@@ -151,16 +151,42 @@ impl StretchableOp {
     }
 }
 
+/// Options for [`fenced`].
+#[derive(Default)]
+pub struct FenceOptions {
+    /// The opening delimiter. If `None`, no delimiter will be rendered on that side.
+    pub open: Option<StretchableOp>,
+    /// The closing delimiter. If `None`, no delimiter will be rendered on that side.
+    pub close: Option<StretchableOp>,
+    /// The style of the `<mrow>` that wraps the fence.
+    pub style: Option<Style>,
+    /// Spacing outside the fence, realized as `lspace` on the opening delimiter.
+    pub outer_left: Option<MathSpacing>,
+    /// Spacing outside the fence, realized as `rspace` on the closing delimiter.
+    pub outer_right: Option<MathSpacing>,
+}
+
 /// Creates a fenced expression where opening and closing delimiters are stretched to fit the height
-/// of the content. If `open` or `close` is `None`, no delimiter will be rendered on that side.
+/// of the content.
+///
+/// If a side has no delimiter, an invisible placeholder operator is used, which also carries
+/// the outer spacing for that side, if any.
 pub fn fenced<'arena>(
     arena: &'arena Arena,
     mut content: Vec<&'arena Node<'arena>>,
-    open: Option<StretchableOp>,
-    close: Option<StretchableOp>,
-    style: Option<Style>,
+    FenceOptions {
+        open,
+        close,
+        style,
+        outer_left,
+        outer_right,
+    }: FenceOptions,
 ) -> Node<'arena> {
-    fn to_operator(delim: Option<StretchableOp>) -> Node<'static> {
+    fn to_operator(
+        delim: Option<StretchableOp>,
+        outer_left: Option<MathSpacing>,
+        outer_right: Option<MathSpacing>,
+    ) -> Node<'static> {
         if let Some(op) = delim {
             let attrs = if matches!(op.stretchy, Stretchy::Never) {
                 OpAttrs::STRETCHY_TRUE
@@ -180,8 +206,8 @@ pub fn fenced<'arena>(
                 attrs,
                 roles: OpRoles::empty(),
                 size: None,
-                left,
-                right,
+                left: outer_left.or(left),
+                right: outer_right.or(right),
             }
         } else {
             // An empty `<mo></mo>` produces weird spacing in some browsers.
@@ -191,13 +217,13 @@ pub fn fenced<'arena>(
                 attrs: OpAttrs::empty(),
                 roles: OpRoles::empty(),
                 size: None,
-                left: None,
-                right: None,
+                left: outer_left,
+                right: outer_right,
             }
         }
     }
-    let open = arena.push(to_operator(open));
-    let close = arena.push(to_operator(close));
+    let open = arena.push(to_operator(open, outer_left, None));
+    let close = arena.push(to_operator(close, None, outer_right));
     content.insert(0, open);
     content.push(close);
     let nodes = arena.push_slice(&content);

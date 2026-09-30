@@ -8,7 +8,7 @@ expression: "\\overset{!}{\\left(x+\\right)}"
             <mo>(</mo>
             <mi>x</mi>
             <mo lspace="0" rspace="0">+</mo>
-            <mo>)</mo>
+            <mo rspace="0.1667em">)</mo>
         </mrow>
         <mo form="postfix">!</mo>
     </mover>

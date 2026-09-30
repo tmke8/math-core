@@ -1,0 +1,23 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{bmatrix}a\\end{bmatrix}^T x"
+---
+<math>
+    <mpadded style="padding-right:0.1667em;">
+        <msup>
+            <mrow>
+                <mo>[</mo>
+                <mtable displaystyle="false" scriptlevel="0">
+                    <mtr>
+                        <mtd>
+                            <mi>a</mi>
+                        </mtd>
+                    </mtr>
+                </mtable>
+                <mo>]</mo>
+            </mrow>
+            <mi>T</mi>
+        </msup>
+    </mpadded>
+    <mi>x</mi>
+</math>
