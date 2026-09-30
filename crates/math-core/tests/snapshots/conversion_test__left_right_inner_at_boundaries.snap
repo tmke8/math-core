@@ -1,13 +1,11 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "\\left(x=\\right)x"
+expression: "\\left(x\\right)"
 ---
 <math>
     <mrow>
         <mo>(</mo>
         <mi>x</mi>
-        <mo rspace="0">=</mo>
-        <mo rspace="0.1667em">)</mo>
+        <mo>)</mo>
     </mrow>
-    <mi>x</mi>
 </math>

@@ -20,6 +20,7 @@ use crate::{
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, MathVariant, ParenType, StretchableOp, Stretchy, fenced,
+        spaced_fenced,
     },
     color_defs::get_color,
     custom_cmds::RecordedToken,
@@ -1443,7 +1444,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right: None,
                 size: None,
             }),
-            Token::Left => {
+            Token::Left => 'left: {
                 let tok_loc = self.next_token()?;
                 let open_paren = if matches!(tok_loc.token(), &FULL_STOP_TOKEN) {
                     None
@@ -1458,7 +1459,66 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Some(extract_delimiter(tok_loc, DelimiterModifier::Right)?)
                 };
-                Ok(fenced(self.arena, content, open_paren, close_paren, None))
+                // From the outside, `\left...\right` is a `mathinner` atom.
+                class = Class::Inner;
+                if !parse_as.in_sequence() {
+                    break 'left Ok(fenced(self.arena, content, open_paren, close_paren, None));
+                }
+                // The spacing has to go outside of any sub- or superscripts,
+                // so we collect them here.
+                let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
+                // Compute the spacing after getting the bounds, so that we don't
+                // consider tokens that are part of the bounds for spacing calculations.
+                let next_class = self.peek_class_token(true)?;
+                let next_class =
+                    if self.state.right_boundary_hack && matches!(next_class, Class::End) {
+                        Class::Default
+                    } else {
+                        next_class
+                    };
+                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
+                // The delimiters have zero spacing by default, so we only need to set non-zero
+                // spacing explicitly.
+                let left = left.filter(|s| *s != MathSpacing::Zero);
+                let right = right.filter(|s| *s != MathSpacing::Zero);
+                if bounds.is_trivial() {
+                    // Realize the spacing with `lspace`/`rspace` on the delimiters.
+                    break 'left Ok(spaced_fenced(
+                        self.arena,
+                        content,
+                        open_paren,
+                        close_paren,
+                        None,
+                        left,
+                        right,
+                    ));
+                }
+                // With scripts, an `rspace` on the closing delimiter would end up between the
+                // delimiter and the scripts, so we pad the scripted element instead.
+                let fence = self.commit(spaced_fenced(
+                    self.arena,
+                    content,
+                    open_paren,
+                    close_paren,
+                    None,
+                    left,
+                    None,
+                ));
+                let Some(scripted) = bounds.try_wrap_node_subsup(fence) else {
+                    unreachable!("bounds are not trivial");
+                };
+                if right.is_some() {
+                    Ok(Node::Padded {
+                        node: self.commit(scripted),
+                        width_0: false,
+                        height_0: false,
+                        left: None,
+                        right,
+                        voffset: None,
+                    })
+                } else {
+                    Ok(scripted)
+                }
             }
             Token::Middle => {
                 class = Class::Open;
@@ -3456,9 +3516,15 @@ impl ParserState<'_> {
         next_class: Class,
         force: bool,
     ) -> (Option<MathSpacing>, Option<MathSpacing>) {
+        // For `Class::Inner`, the spacing is already provided by the previous atom's right side.
         let left = if matches!(
             prev_class,
-            Class::Relation | Class::Punctuation | Class::Operator | Class::BinaryOp | Class::Open
+            Class::Relation
+                | Class::Punctuation
+                | Class::Operator
+                | Class::BinaryOp
+                | Class::Open
+                | Class::Inner
         ) || matches!(self.style, Style::Script | Style::ScriptScript)
         {
             Some(MathSpacing::Zero)

@@ -1,14 +1,15 @@
 ---
 source: crates/math-core/tests/conversion_test.rs
-expression: "x\\left(x\\sin \\right)x"
+expression: "x\\left(\\frac12\\right)x"
 ---
 <math>
     <mi>x</mi>
     <mrow>
         <mo lspace="0.1667em">(</mo>
-        <mi>x</mi>
-        <mspace width="0.1667em"/>
-        <mrow><mspace/><mi>sin</mi></mrow>
+        <mfrac>
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
         <mo rspace="0.1667em">)</mo>
     </mrow>
     <mi>x</mi>

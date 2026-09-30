@@ -36,7 +36,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
         roles: OpRoles(""),
         size: None,
         left: None,
-        right: None,
+        right: Some(ThreeMu),
       ),
     ],
     attrs: RowAttrs(
@@ -50,7 +50,7 @@ expression: "\\left(\\displaystyle \\int\\right)\\int"
     attrs: OpAttrs(""),
     roles: OpRoles("ROLE_PREFIX"),
     size: None,
-    left: None,
+    left: Some(Zero),
     right: Some(Zero),
   ),
 ]

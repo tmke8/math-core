@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathinner{a}\\mathinner{b}\\cdots\\cdots"
+---
+<math>
+    <mpadded style="padding-left:0;padding-right:0.1667em;">
+        <mi>a</mi>
+    </mpadded>
+    <mpadded style="padding-left:0;padding-right:0.1667em;">
+        <mi>b</mi>
+    </mpadded>
+    <mo lspace="0" rspace="0.1667em">⋯</mo>
+    <mo lspace="0" rspace="0">⋯</mo>
+</math>

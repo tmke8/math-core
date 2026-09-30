@@ -570,7 +570,7 @@ impl Token {
         match self.unwrap_math_ref() {
             Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
             Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
-            Open(_) | Left | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
+            Open(_) | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
                 Some(Class::Open)
             }
             Close(_) | SquareBracketClose | ForceClose(..) | Right | Middle => Some(Class::Close),
@@ -581,7 +581,7 @@ impl Token {
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
-            Inner(_) | ForceMathInner(_) | Dots => Some(Class::Inner),
+            Inner(_) | ForceMathInner(_) | Dots | Left => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,

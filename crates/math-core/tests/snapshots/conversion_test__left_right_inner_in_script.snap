@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x^{a\\left(y\\right)b}"
+---
+<math>
+    <msup>
+        <mi>x</mi>
+        <mrow>
+            <mi>a</mi>
+            <mrow>
+                <mo>(</mo>
+                <mi>y</mi>
+                <mo>)</mo>
+            </mrow>
+            <mi>b</mi>
+        </mrow>
+    </msup>
+</math>
