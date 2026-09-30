@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/custom_cmd_test.rs
+expression: "x\\plus_2)"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mo lspace="0" rspace="0">+</mo>
+        <mn>2</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>

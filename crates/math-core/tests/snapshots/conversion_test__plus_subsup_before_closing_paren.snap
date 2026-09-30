@@ -1,0 +1,13 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x+_{2}^{3})"
+---
+<math>
+    <mi>x</mi>
+    <msubsup>
+        <mo lspace="0" rspace="0">+</mo>
+        <mn>2</mn>
+        <mn>3</mn>
+    </msubsup>
+    <mo stretchy="false">)</mo>
+</math>

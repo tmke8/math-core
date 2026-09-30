@@ -86,6 +86,42 @@ fn test_spacing() {
     assert_snapshot!("custom_cmd_spacing", mathml.mathml, latex);
 }
 
+/// The scripts of an operator which comes out of a macro are parsed before its spacing is
+/// decided, as for a literal operator.
+#[test]
+fn test_spacing_with_scripts() {
+    let macros = vec![
+        ("plus".to_string(), r"+".to_string()),
+        ("xplus".to_string(), r"x+".to_string()),
+        ("plusx".to_string(), r"+x".to_string()),
+        ("id".to_string(), r"#1".to_string()),
+    ];
+    let problems = [
+        (
+            "custom_cmd_plus_subscript_before_closing_paren",
+            r"x\plus_2)",
+        ),
+        ("custom_cmd_plus_subscript_before_letter", r"x\plus_2 y"),
+        ("custom_cmd_trailing_plus_subscript", r"\xplus_2)"),
+        ("custom_cmd_leading_plus_subscript", r"y\plusx_2)"),
+        ("custom_cmd_arg_plus_subscript", r"x\id+_2)"),
+    ];
+
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+
+    let converter = LatexToMathML::new(config, macros).unwrap();
+
+    for (name, latex) in problems {
+        let mathml = converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap();
+        assert_snapshot!(name, mathml.mathml, latex);
+    }
+}
+
 #[test]
 fn test_empty_args() {
     let macros = vec![

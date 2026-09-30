@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x+_\\frac12)"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mo lspace="0" rspace="0">+</mo>
+        <mfrac>
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>

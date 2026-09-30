@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x+_\\mathrm{a})"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mo lspace="0" rspace="0">+</mo>
+        <mrow><mspace/><mi mathvariant="normal">a</mi></mrow>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>
