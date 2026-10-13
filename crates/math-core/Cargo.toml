@@ -49,6 +49,7 @@ std = [
 ]
 serde = ["dep:serde", "mathml-renderer/serde"]
 ariadne = ["dep:ariadne"]
+ptrhash = ["phf/ptrhash"]
 
 [lints]
 workspace = true
