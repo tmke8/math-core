@@ -1,7 +1,5 @@
-use std::sync::Mutex;
-
 use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
-use minijinja::value::{Object, Value};
+use minijinja::value::{Serde, Value};
 use minijinja::{Environment, State, context};
 use serde::Deserialize;
 
@@ -17,9 +15,8 @@ y
 \\end{align}') }}
 "#;
 
-#[derive(Debug)]
 struct Converter {
-    inner: Mutex<LatexToMathML>,
+    inner: LatexToMathML,
 }
 
 impl Converter {
@@ -27,32 +24,22 @@ impl Converter {
         eprintln!("[info] loading converter");
         let converter = LatexToMathML::new(config, vec![]).unwrap();
         eprintln!("[info] converter loaded");
-        Converter {
-            inner: Mutex::new(converter),
-        }
+        Converter { inner: converter }
     }
 }
 
-impl Object for Converter {}
-
-fn mathml(state: &State, latex: &str) -> Option<Value> {
-    let cache_key = "latex_to_mathml_converter";
-    let converter = state.get_or_set_temp_object(cache_key, || {
-        let config = state.lookup("mathcore_config").unwrap();
-        let config = MathCoreConfig::deserialize(config).unwrap();
+fn mathml(state: &mut State, latex: &str) -> Option<Value> {
+    let config = state.lookup("mathcore_config");
+    let converter = state.get_or_insert_extension_with(|| {
+        let config = MathCoreConfig::deserialize(config.unwrap()).unwrap();
         eprintln!("[info] Config: {:?}", config);
         Converter::load(config)
     });
     converter
         .inner
-        .lock()
-        .map_err(|_| eprintln!("[error] couldn't get lock for converter"))
+        .convert_with_global_state(latex, MathDisplay::Block)
+        .map(|r| Value::from(r.mathml))
         .ok()
-        .and_then(|mut c| {
-            c.convert_with_global_state(latex, MathDisplay::Block)
-                .map(|r| Value::from(r.mathml))
-                .ok()
-        })
 }
 
 fn main() {
@@ -61,10 +48,10 @@ fn main() {
     let template = env.template_from_str(TEMPLATE).unwrap();
     let rv = template
         .render(context! {
-            mathcore_config => MathCoreConfig {
+            mathcore_config => Serde(MathCoreConfig {
                 pretty_print: PrettyPrint::Always,
                 ..Default::default()
-            },
+            }),
         })
         .unwrap();
     println!("{}", rv);
