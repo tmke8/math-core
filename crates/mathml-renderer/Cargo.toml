@@ -18,7 +18,7 @@ repository = { workspace = true }
 stable-arena = { version = "0.3.0", default-features = false }
 serde = { version = "1.0.228", optional = true, default-features = false, features = ["derive", "alloc"] }
 dtoa = { version = "1.0" }
-strum = { version = "0.28.0", default-features = false }
+strum = { workspace = true }
 strum_macros = { workspace = true }
 static_assertions = { workspace = true }
 bitflags = "2.13.0"
