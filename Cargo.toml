@@ -16,7 +16,7 @@ rustc-hash = { version = "2.1.2", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 memchr = "2.8.1"
 kstring = { version = "2.0.4", default-features = false, features = ["unsafe", "max_inline"] }
-strum = "0.28.0"
+strum = { version = "0.28.0", default-features = false }
 strum_macros = "0.28.0"
 static_assertions = "1.1.0"
 ariadne = "0.6.0"
