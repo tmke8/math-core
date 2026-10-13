@@ -12,7 +12,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-math-core = { path = "../math-core", default-features = false }
+math-core = { path = "../math-core", default-features = false, features = ["ptrhash"] }
 ariadne = { workspace = true, optional = true }
 lol_alloc = "0.4.1"
 wasm-bindgen = "0.2"
