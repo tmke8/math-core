@@ -118,57 +118,11 @@ pub enum Token {
     /// Stretchy and non-stretchy accents, e.g. `\hat`, `\widehat`, `\bar`, `\overline`, etc.
     /// The `bool` is `true` for over-accents and `false` for under-accents.
     Accent(BMPOperator, bool, OpAttrs),
-    /// A token corresponding to LaTeX's "mathord" character class (class 0).
-    Ord(OrdLike),
-    /// A token corresponding to LaTeX's "mathop" character class (class 1).
-    Op(Op),
-    /// A token corresponding to LaTeX's "mathbin" character class (class 2).
-    BinaryOp(Bin),
-    /// A token corresponding to LaTeX's "mathrel" character class (class 3).
-    Relation(Rel),
-    /// A token corresponding to LaTeX's "mathopen" character class (class 4).
-    Open(OrdLike),
-    /// A token corresponding to LaTeX's "mathclose" character class (class 5).
-    Close(OrdLike),
-    /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
-    Punctuation(Punct),
-    /// A token corresponding to LaTeX's "mathinner" character class (class I).
-    Inner(Op),
     /// ', ′, ″, ‴, ‵, ‶, ‷, or ⁗ (in math mode)
     Prime(PrimeKind),
     /// `\dots` (in math mode) dynamically switches between … and ⋯
     Dots,
-    /// A token to force an operator to have `\mathord` spacing (all spacing forced to zero).
-    /// This is, for example, needed for `⟋` and `⟍` produced by `\diagup` and `\diagdown`,
-    /// which in MathML Core would otherwise have operator spacing.
-    ForceOrd(MathMLOperator),
-    /// A token to force an operator to behave like a binary operator (mathbin).
-    /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
-    /// but in MathML Core is a "big operator" (mathop).
-    ForceBinaryOp(MathMLOperator),
-    /// A token to force an operator to behave like a relation (mathrel).
-    /// This is, for example, needed for `:`, which in LaTeX is a relation,
-    /// but in MathML Core is a separator (punctuation).
-    ForceRelation(MathMLOperator),
-    /// A token to force an operator to behave like an opening symbol (mathopen).
-    ForceOpen(MathMLOperator, ForceStretchy),
-    /// A token to force an operator to behave like a closing symbol (mathclose).
-    /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
-    /// but in MathML Core is an ordinary operator.
-    ForceClose(MathMLOperator, ForceStretchy),
-    /// A token to force an operator to behave like punctuation (mathpunct).
-    ForcePunctuation(MathMLOperator),
-    /// A token to force an operator to behave like an inner atom (mathinner).
-    /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
-    /// under conventional Unicode substitution, which needs inner spacing.
-    ForceMathInner(MathMLOperator),
-    /// Force an operator to behave like `\mathop`.
-    /// This is, for example, needed for `⅀`.
-    /// We assume `movablelimitss`.
-    /// The flag says whether the operator is also a *large* operator, i.e. whether it is
-    /// rendered with `largeop` and centred on the math axis; `⨟`, for example, takes
-    /// operator spacing but has no large form.
-    ForceOp(MathMLOperator, bool),
+    Operator(Operator),
     /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
@@ -275,6 +229,92 @@ pub enum Token {
     /// be known before the style is (see [`Token::class`]). That class is stored alongside;
     /// a debug assertion checks that it agrees with the alternatives.
     MathChoiceInternal(Option<Class>, &'static MathChoice),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Operator {
+    /// A token corresponding to LaTeX's "mathord" character class (class 0).
+    Ord(OrdLike),
+    /// A token corresponding to LaTeX's "mathop" character class (class 1).
+    Op(Op),
+    /// A token corresponding to LaTeX's "mathbin" character class (class 2).
+    BinaryOp(Bin),
+    /// A token corresponding to LaTeX's "mathrel" character class (class 3).
+    Relation(Rel),
+    /// A token corresponding to LaTeX's "mathopen" character class (class 4).
+    Open(OrdLike),
+    /// A token corresponding to LaTeX's "mathclose" character class (class 5).
+    Close(OrdLike),
+    /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
+    Punctuation(Punct),
+    /// A token corresponding to LaTeX's "mathinner" character class (class I).
+    Inner(Op),
+    /// A token to force an operator to have `\mathord` spacing (all spacing forced to zero).
+    /// This is, for example, needed for `⟋` and `⟍` produced by `\diagup` and `\diagdown`,
+    /// which in MathML Core would otherwise have operator spacing.
+    ForceOrd(MathMLOperator),
+    /// A token to force an operator to behave like a binary operator (mathbin).
+    /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
+    /// but in MathML Core is a "big operator" (mathop).
+    ForceBinaryOp(MathMLOperator),
+    /// A token to force an operator to behave like a relation (mathrel).
+    /// This is, for example, needed for `:`, which in LaTeX is a relation,
+    /// but in MathML Core is a separator (punctuation).
+    ForceRelation(MathMLOperator),
+    /// A token to force an operator to behave like an opening symbol (mathopen).
+    ForceOpen(MathMLOperator, ForceStretchy),
+    /// A token to force an operator to behave like a closing symbol (mathclose).
+    /// This is, for example, needed for `!`, which in LaTeX is a closing symbol,
+    /// but in MathML Core is an ordinary operator.
+    ForceClose(MathMLOperator, ForceStretchy),
+    /// A token to force an operator to behave like punctuation (mathpunct).
+    ForcePunctuation(MathMLOperator),
+    /// A token to force an operator to behave like an inner atom (mathinner).
+    /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
+    /// under conventional Unicode substitution, which needs inner spacing.
+    ForceMathInner(MathMLOperator),
+    /// Force an operator to behave like `\mathop`.
+    /// This is, for example, needed for `⅀`.
+    /// We assume `movablelimitss`.
+    /// The flag says whether the operator is also a *large* operator, i.e. whether it is
+    /// rendered with `largeop` and centred on the math axis; `⨟`, for example, takes
+    /// operator spacing but has no large form.
+    ForceOp(MathMLOperator, bool),
+}
+
+impl Operator {
+    pub const fn class(self) -> Class {
+        use Operator::*;
+        match self {
+            Ord(_) | ForceOrd(_) => Class::Default,
+            Op(_) | ForceOp(_, _) => Class::Operator,
+            BinaryOp(_) | ForceBinaryOp(_) => Class::BinaryOp,
+            Relation(_) | ForceRelation(_) => Class::Relation,
+            Open(_) | ForceOpen(_, _) => Class::Open,
+            Close(_) | ForceClose(_, _) => Class::Close,
+            Punctuation(_) | ForcePunctuation(_) => Class::Punctuation,
+            Inner(_) | ForceMathInner(_) => Class::Inner,
+        }
+    }
+
+    pub const fn as_superchar(self) -> SuperChar {
+        use Operator::*;
+        match self {
+            Open(op) | Close(op) | Ord(op) => op.as_op().as_superchar(),
+            Op(op) | Inner(op) => op.as_op().as_superchar(),
+            BinaryOp(op) => op.as_op().as_superchar(),
+            Relation(op) => op.as_op().as_superchar(),
+            Punctuation(op) => op.as_op().as_superchar(),
+            ForceOrd(op)
+            | ForceBinaryOp(op)
+            | ForceRelation(op)
+            | ForceOpen(op, _)
+            | ForceClose(op, _)
+            | ForcePunctuation(op)
+            | ForceMathInner(op)
+            | ForceOp(op, _) => op.as_superchar(),
+        }
+    }
 }
 
 /// The four alternatives of a [`Token::MathChoiceInternal`], one for each style.
@@ -568,21 +608,18 @@ impl Token {
     pub(super) fn class(&self) -> Option<Class> {
         use Token::*;
         match self.unwrap_math_ref() {
-            Relation(_) | ForceRelation(_) | XArrow(_) => Some(Class::Relation),
-            Punctuation(_) | ForcePunctuation(_) => Some(Class::Punctuation),
+            Operator(classed) => Some(classed.class()),
+              XArrow(_) => Some(Class::Relation),
             Begin(env) if env.delimiters().is_some() => Some(Class::Inner),
-            Open(_) | SquareBracketOpen | ForceOpen(..) | Begin(_) | GroupBegin => {
+            SquareBracketOpen | Begin(_) | GroupBegin => {
                 Some(Class::Open)
             }
-            Close(_) | SquareBracketClose | ForceClose(..) | Right | Middle => Some(Class::Close),
-            BinaryOp(_) | ForceBinaryOp(_) => Some(Class::BinaryOp),
-            Op(_)
-            | ForceOp(..)
-            | PseudoOperator(_)
+            SquareBracketClose | Right | Middle => Some(Class::Close),
+            PseudoOperator(_)
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
-            Inner(_) | ForceMathInner(_) | Dots | Left => Some(Class::Inner),
+            Dots | Left => Some(Class::Inner),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,
@@ -656,7 +693,6 @@ impl Token {
             | OverUnderBrace(_, _)
             | Sqrt
             | Transform(_)
-            | Ord(_)
             | Prime(_)
             | Enclose(_)
             | Text(_)
@@ -670,31 +706,11 @@ impl Token {
             | UnsupportedUnicodeMath(_)
             | UnresolvedCommand(_)
             | InternalStringLiteral(_)
-            | ForceOrd(_)
             // `Dollar` is always an error, so its class is never really used; a dollar sign
             // would be an ordinary atom if we did support it.
             | Dollar
             | Accent(_, _, _) => Some(Class::Default),
         }
-    }
-
-    /// Whether the spacing of this token depends on the class of the token after it, while
-    /// the token itself takes no arguments.
-    ///
-    /// For such a token, the scripts which follow it belong to it, so they have to be parsed
-    /// before the token is, for the look-ahead to see what comes after them.
-    pub(super) fn spacing_depends_on_next_class(&self) -> bool {
-        matches!(
-            self,
-            Token::Relation(_)
-                | Token::ForceRelation(_)
-                | Token::Punctuation(_)
-                | Token::ForcePunctuation(_)
-                | Token::BinaryOp(_)
-                | Token::ForceBinaryOp(_)
-                | Token::Inner(_)
-                | Token::ForceMathInner(_)
-        )
     }
 
     /// If this token is `MathOrTextMode`, returns the inner token. Otherwise, returns `self`.

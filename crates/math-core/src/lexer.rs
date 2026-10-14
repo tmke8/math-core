@@ -9,7 +9,7 @@ use mathml_renderer::symbol;
 use crate::commands::{get_operator_from_unicode, is_math_symbol_block};
 use crate::environments::Env;
 use crate::error::{GetUnwrap, LatexErrKind, LatexError};
-use crate::token::{EndToken, Mode, PrimeKind, Span, TokSpan, Token};
+use crate::token::{EndToken, Mode, Operator, PrimeKind, Span, TokSpan, Token};
 
 /// Lexer
 ///
@@ -212,8 +212,14 @@ impl<'source> Lexer<'source> {
             '$' => Token::Dollar,
             '&' => Token::NewColumn,
             '\'' => Token::MathOrTextMode(&Token::Prime(PrimeKind::Single), '’'),
-            '<' => Token::MathOrTextMode(&Token::Relation(symbol::LESS_THAN_SIGN), '<'),
-            '>' => Token::MathOrTextMode(&Token::Relation(symbol::GREATER_THAN_SIGN), '>'),
+            '<' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Relation(symbol::LESS_THAN_SIGN)),
+                '<',
+            ),
+            '>' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Relation(symbol::GREATER_THAN_SIGN)),
+                '>',
+            ),
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
@@ -222,23 +228,48 @@ impl<'source> Lexer<'source> {
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
-            '!' => Token::MathOrTextMode(&Token::Close(symbol::EXCLAMATION_MARK), '!'),
-            '(' => Token::MathOrTextMode(&Token::Open(symbol::LEFT_PARENTHESIS), '('),
-            ')' => Token::MathOrTextMode(&Token::Close(symbol::RIGHT_PARENTHESIS), ')'),
+            '!' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Close(symbol::EXCLAMATION_MARK)),
+                '!',
+            ),
+            '(' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Open(symbol::LEFT_PARENTHESIS)),
+                '(',
+            ),
+            ')' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Close(symbol::RIGHT_PARENTHESIS)),
+                ')',
+            ),
             '*' => Token::MathOrTextMode(
-                &const { Token::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op()) },
+                &const { Token::Operator(Operator::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op())) },
                 '*',
             ),
-            '+' => Token::MathOrTextMode(&Token::BinaryOp(symbol::PLUS_SIGN), '+'),
-            ',' => Token::MathOrTextMode(&Token::Punctuation(symbol::COMMA), ','),
-            '-' => Token::MathOrTextMode(&Token::BinaryOp(symbol::MINUS_SIGN), '-'),
-            '/' => Token::MathOrTextMode(&Token::Ord(symbol::SOLIDUS), '/'),
-            ':' => {
-                Token::MathOrTextMode(&const { Token::ForceRelation(symbol::COLON.as_op()) }, ':')
+            '+' => {
+                Token::MathOrTextMode(&Token::Operator(Operator::BinaryOp(symbol::PLUS_SIGN)), '+')
             }
-            ';' => Token::MathOrTextMode(&Token::Punctuation(symbol::SEMICOLON), ';'),
-            '=' => Token::MathOrTextMode(&Token::Relation(symbol::EQUALS_SIGN), '='),
-            '|' => Token::MathOrTextMode(&Token::Ord(symbol::VERTICAL_LINE), '|'),
+            ',' => {
+                Token::MathOrTextMode(&Token::Operator(Operator::Punctuation(symbol::COMMA)), ',')
+            }
+            '-' => Token::MathOrTextMode(
+                &Token::Operator(Operator::BinaryOp(symbol::MINUS_SIGN)),
+                '-',
+            ),
+            '/' => Token::MathOrTextMode(&Token::Operator(Operator::Ord(symbol::SOLIDUS)), '/'),
+            ':' => Token::MathOrTextMode(
+                &const { Token::Operator(Operator::ForceRelation(symbol::COLON.as_op())) },
+                ':',
+            ),
+            ';' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Punctuation(symbol::SEMICOLON)),
+                ';',
+            ),
+            '=' => Token::MathOrTextMode(
+                &Token::Operator(Operator::Relation(symbol::EQUALS_SIGN)),
+                '=',
+            ),
+            '|' => {
+                Token::MathOrTextMode(&Token::Operator(Operator::Ord(symbol::VERTICAL_LINE)), '|')
+            }
             '\\' => {
                 let (cmd_string, end) = self.read_command();
                 let span = Span::new(loc, end);

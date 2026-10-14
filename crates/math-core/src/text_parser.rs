@@ -337,13 +337,7 @@ impl<'arena> Parser<'_, 'arena> {
                 // These tokens are only valid in math mode.
                 match token {
                     Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c),
-                    Token::Open(op) | Token::Close(op) | Token::Ord(op) => {
-                        Ok(op.as_op().as_superchar())
-                    }
-                    Token::BinaryOp(op) => Ok(op.as_op().as_superchar()),
-                    Token::Relation(op) => Ok(op.as_op().as_superchar()),
-                    Token::ForceRelation(op) => Ok(op.as_superchar()),
-                    Token::Punctuation(op) => Ok(op.as_op().as_superchar()),
+                    Token::Operator(classed) => Ok(classed.as_superchar()),
 
                     Token::PseudoOperator(output) | Token::PseudoOperatorLimits(output) => {
                         if let Some(str_builder) = &mut str_builder {

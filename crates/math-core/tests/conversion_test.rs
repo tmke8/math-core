@@ -145,6 +145,7 @@ fn main() {
         ("square_root", r"\sqrt 2"),
         ("square_root_without_space", r"\sqrt12"),
         ("square_root_with_space", r"\sqrt 12"),
+        ("square_root_subscript", r"\sqrt x_1"),
         ("complex_square_root", r"\sqrt{x+2}"),
         ("cube_root", r"\sqrt[3]{x}"),
         ("simple_fraction", r"\frac{1}{2}"),
