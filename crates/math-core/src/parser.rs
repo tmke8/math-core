@@ -131,6 +131,9 @@ enum ControlFlow {
 /// What one token turned into.
 enum Parsed<'arena> {
     Node(Class, &'arena Node<'arena>),
+    /// A node whose scripts were parsed along with it but not yet wrapped around it
+    /// (see [`Parser::parse_token_and_scripts`]).
+    NodeAndScripts(Class, &'arena Node<'arena>, Bounds<'arena>),
     /// We performed an expansion and the next token is the first token of the expansion.
     Expansion,
 }
@@ -493,20 +496,45 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     /// Parse the given token into a node.
-    ///
-    /// A token which expands to other tokens is not a node of its own, so we go around again
-    /// with the first token of the expansion. This is a loop rather than a tail call, because
-    /// one expansion can lead to the next without limit.
     fn parse_token(
         &mut self,
         cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let (class, node, scripts) =
+            self.parse_token_and_scripts(cur_tokloc, parse_as, prev_class)?;
+        Ok((class, self.wrap_in_scripts(node, scripts)))
+    }
+
+    /// Like [`Self::parse_token`], but the scripts which had to be parsed before the token
+    /// are returned separately instead of being wrapped around the node.
+    ///
+    /// For a token whose spacing depends on the class of what follows it, the scripts are
+    /// parsed before the token itself: they belong to the token, and the look-ahead has to
+    /// see what comes after them (in `x+_2)`, the neighbor of `+` is `)`). Such a token
+    /// takes no arguments, so its scripts come right after it. This is done after any
+    /// expansion, so that it also applies to a macro which expands to such a token.
+    ///
+    /// The scripts are only collected in a sequence, where the spacing matters. A caller
+    /// which builds a bigger construct around the node, like `\overset`, puts them back on
+    /// the outside of that construct.
+    ///
+    /// A token which expands to other tokens is not a node of its own, so we go around again
+    /// with the first token of the expansion. This is a loop rather than a tail call, because
+    /// one expansion can lead to the next without limit.
+    fn parse_token_and_scripts(
+        &mut self,
+        cur_tokloc: ParseResult<TokSpan>,
+        parse_as: ParseAs,
+        prev_class: Class,
+    ) -> ParseResult<(Class, &'arena Node<'arena>, Bounds<'arena>)> {
         let mut cur_tokloc = cur_tokloc;
         loop {
             match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
-                Parsed::Node(class, node) => return Ok((class, node)),
+                Parsed::Node(class, node) => return Ok((class, node, Bounds::default())),
+                Parsed::NodeAndScripts(class, node, scripts) => return Ok((class, node, scripts)),
+                // A token with scripts never expands, so no scripts are lost here.
                 Parsed::Expansion => cur_tokloc = self.next_token(),
             }
         }
@@ -600,11 +628,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::Operator(operator) => {
-                let (next_class, bounds) = self.get_next_class(parse_as)?;
+                let (next_class, scripts) = if operator.spacing_depends_on_next_class() {
+                    // The scripts come before the look-ahead (see `parse_token_and_scripts`).
+                    self.get_next_class(parse_as)?
+                } else {
+                    // The other operators don't look at the next class. They take care of
+                    // their own scripts (like `\sum`), or leave them to the caller.
+                    (Class::Default, Bounds::default())
+                };
                 let (new_class, node) =
                     self.handle_operator(operator, parse_as, prev_class, next_class)?;
-                let node = self.wrap_in_scripts(node, bounds);
-                return Ok(Parsed::Node(new_class, node));
+                return Ok(Parsed::NodeAndScripts(new_class, node, scripts));
             }
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
@@ -1199,7 +1233,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // and delimiter spacing.
                 let scripts;
                 let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
-                    let (next_class, script) = self.get_next_class(parse_as)?;
+                    let (next_class, new_scripts) = self.get_next_class(parse_as)?;
+                    scripts = new_scripts;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
                     }
@@ -1870,6 +1905,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::Dots => {
+                let next_class = self.peek_class_token(parse_as.in_sequence())?;
                 let next_token_is_mathbin_or_mathrel =
                     matches!(next_class, Class::BinaryOp | Class::Relation);
                 self.tokens
@@ -2201,10 +2237,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// Get the class of the next token while skipping bounds.
     ///
     /// If a bounds token is found, it is consumed and returned as part of the result.
-    fn get_next_class(
-        &mut self,
-        parse_as: ParseAs,
-    ) -> Result<(Class, Bounds<'_>), Box<LatexError>> {
+    /// The bounds are only collected in a sequence, where the spacing matters.
+    fn get_next_class(&mut self, parse_as: ParseAs) -> ParseResult<(Class, Bounds<'arena>)> {
         let bounds = if parse_as.in_sequence() {
             self.get_bounds(None)?.ensure_no_explicit_limits()?
         } else {
@@ -2225,7 +2259,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         parse_as: ParseAs,
         prev_class: Class,
         next_class: Class,
-    ) -> Result<(Class, &'arena Node<'arena>), Box<LatexError>> {
+    ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let class;
         let node: Node = match operator {
             Operator::Relation(relation) => {

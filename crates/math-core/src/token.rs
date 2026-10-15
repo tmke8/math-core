@@ -283,6 +283,25 @@ pub enum Operator {
 }
 
 impl Operator {
+    /// Whether the spacing of this operator depends on the class of the token after it.
+    ///
+    /// The scripts of such an operator are parsed before the operator itself, so that the
+    /// look-ahead can see past them (see `Parser::parse_token_and_scripts`).
+    pub const fn spacing_depends_on_next_class(self) -> bool {
+        use Operator::*;
+        matches!(
+            self,
+            Relation(_)
+                | ForceRelation(_)
+                | Punctuation(_)
+                | ForcePunctuation(_)
+                | BinaryOp(_)
+                | ForceBinaryOp(_)
+                | Inner(_)
+                | ForceMathInner(_)
+        )
+    }
+
     pub const fn class(self) -> Class {
         use Operator::*;
         match self {
