@@ -673,6 +673,8 @@ fn main() {
             r"x\overset{a}+_2)",
         ),
         ("overset_plus_subscript_before_letter", r"x\overset{a}+_2 y"),
+        ("overset_mathrel_target", r"x \overset{a}{\mathrel{x}} x"),
+        ("overset_xarrow_target", r"x \overset{a}{\xrightarrow{b}} x"),
         (
             "underset_equal_subscript_before_closing_paren",
             r"(x\underset{a}=_2)",

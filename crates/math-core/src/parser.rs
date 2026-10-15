@@ -735,13 +735,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 // The scripts belong to the whole construct. Unless the argument was a bare
                 // token which already took them, they come after the argument and are parsed
                 // here, before the look-ahead (see `parse_token_and_scripts`).
-                let scripts = if scripts.is_trivial() && parse_as.in_sequence() {
-                    self.get_bounds(None)?.ensure_no_explicit_limits()?
+                let (next_class, trailing_scripts) = self.get_next_class(parse_as)?;
+                let scripts = if scripts.is_trivial() {
+                    trailing_scripts
                 } else {
                     scripts
                 };
-                // Recompute the next class:
-                let next_class = self.peek_class_token(parse_as.in_sequence())?;
                 let (left, right) = match kind {
                     MathClassKind::Ord => {
                         class = Class::Default;
@@ -1319,27 +1318,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
-                let scripts;
-                let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
-                    let (next_class, new_scripts) = self.get_next_class(parse_as)?;
-                    scripts = new_scripts;
+                let (left, right, scripts) = if matches!(paren_type, Some(ParenType::Middle)) {
+                    let (next_class, scripts) = self.get_next_class(parse_as)?;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
                     }
-                    self.state.relation_spacing(
+                    let (left, right) = self.state.relation_spacing(
                         prev_class,
                         next_class,
                         !matches!(
                             paren.spacing,
                             DelimiterSpacing::InfixRelation | DelimiterSpacing::Relation
                         ),
-                    )
+                    );
+                    (left, right, scripts)
                 } else {
-                    scripts = Bounds::default();
                     // We need to achieve open/close spacing here (i.e., zero spacing)
                     // If the delimiter has relation spacing only in infix positions, then we can
                     // get spacing to zero by setting the form attributes.
-                    if let Some(paren_type) = paren_type
+                    let (left, right) = if let Some(paren_type) = paren_type
                         && matches!(paren.spacing, DelimiterSpacing::InfixRelation)
                     {
                         // We already handled the spacing for middle delimiters above, so we only
@@ -1359,7 +1356,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
                     } else {
                         (None, None)
-                    }
+                    };
+                    (left, right, Bounds::default())
                 };
                 let target = self.commit(Node::Operator {
                     op: paren.as_op(),
@@ -2186,13 +2184,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.state.right_boundary_hack = old_boundary_hack;
                 // The scripts belong to the whole construct and come after its arguments, so
                 // they are parsed here, before the look-ahead (see `parse_token_and_scripts`).
-                let scripts = if parse_as.in_sequence() {
-                    self.get_bounds(None)?.ensure_no_explicit_limits()?
-                } else {
-                    Bounds::default()
-                };
-                // Re-compute the next class.
-                let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                let (next_class, scripts) = self.get_next_class(parse_as)?;
 
                 let pad = &const { Node::Space(LatexUnit::Em.length_with_unit(0.4286)) };
                 let label_space = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
@@ -3221,17 +3213,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         if !parse_as.in_sequence() {
             return Ok(fenced(self.arena, content, options));
         }
-        // The spacing has to go outside of any sub- or superscripts,
-        // so we collect them here.
-        let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-        // Compute the spacing after getting the bounds, so that we don't
-        // consider tokens that are part of the bounds for spacing calculations.
-        let next_class = self.peek_class_token(true)?;
-        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
-            Class::Default
-        } else {
-            next_class
-        };
+        // The spacing has to go outside of any sub- or superscripts, so we collect them
+        // before looking at the next class.
+        let (next_class, bounds) = self.get_next_class(parse_as)?;
         let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
         // The delimiters have zero spacing by default, so we only need to set non-zero
         // spacing explicitly.
