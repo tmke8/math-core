@@ -122,7 +122,19 @@ pub enum Token {
     Prime(PrimeKind),
     /// `\dots` (in math mode) dynamically switches between … and ⋯
     Dots,
+    /// An operator which takes no limits: a symbol rendered as a single `<mo>`, grouped by its
+    /// LaTeX character class. Its scripts may be parsed before it, for the spacing look-ahead.
     Operator(Operator),
+    /// A token corresponding to LaTeX's "mathop" character class (class 1), e.g. `\sum`.
+    /// Unlike the classes in [`Operator`], it takes limits, so it parses its own scripts.
+    OperatorWithLimits(Op),
+    /// Force an operator to behave like `\mathop`.
+    /// This is, for example, needed for `⅀`.
+    /// We assume `movablelimitss`.
+    /// The flag says whether the operator is also a *large* operator, i.e. whether it is
+    /// rendered with `largeop` and centred on the math axis; `⨟`, for example, takes
+    /// operator spacing but has no large form.
+    ForceOperatorWithLimits(MathMLOperator, bool),
     /// Math atom class-changing commands like`\mathord` and `\mathbin`.
     MathClass(MathClassKind),
     /// A token for the extensible arrow commands `\xrightarrow`, `\xleftarrow`, etc.
@@ -235,8 +247,6 @@ pub enum Token {
 pub enum Operator {
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
-    /// A token corresponding to LaTeX's "mathop" character class (class 1).
-    Op(Op),
     /// A token corresponding to LaTeX's "mathbin" character class (class 2).
     BinaryOp(Bin),
     /// A token corresponding to LaTeX's "mathrel" character class (class 3).
@@ -273,40 +283,13 @@ pub enum Operator {
     /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
     /// under conventional Unicode substitution, which needs inner spacing.
     ForceMathInner(MathMLOperator),
-    /// Force an operator to behave like `\mathop`.
-    /// This is, for example, needed for `⅀`.
-    /// We assume `movablelimitss`.
-    /// The flag says whether the operator is also a *large* operator, i.e. whether it is
-    /// rendered with `largeop` and centred on the math axis; `⨟`, for example, takes
-    /// operator spacing but has no large form.
-    ForceOp(MathMLOperator, bool),
 }
 
 impl Operator {
-    /// Whether the spacing of this operator depends on the class of the token after it.
-    ///
-    /// The scripts of such an operator are parsed before the operator itself, so that the
-    /// look-ahead can see past them (see `Parser::parse_token_and_scripts`).
-    pub const fn spacing_depends_on_next_class(self) -> bool {
-        use Operator::*;
-        matches!(
-            self,
-            Relation(_)
-                | ForceRelation(_)
-                | Punctuation(_)
-                | ForcePunctuation(_)
-                | BinaryOp(_)
-                | ForceBinaryOp(_)
-                | Inner(_)
-                | ForceMathInner(_)
-        )
-    }
-
     pub const fn class(self) -> Class {
         use Operator::*;
         match self {
             Ord(_) | ForceOrd(_) => Class::Default,
-            Op(_) | ForceOp(_, _) => Class::Operator,
             BinaryOp(_) | ForceBinaryOp(_) => Class::BinaryOp,
             Relation(_) | ForceRelation(_) => Class::Relation,
             Open(_) | ForceOpen(_, _) => Class::Open,
@@ -320,7 +303,7 @@ impl Operator {
         use Operator::*;
         match self {
             Open(op) | Close(op) | Ord(op) => op.as_op().as_superchar(),
-            Op(op) | Inner(op) => op.as_op().as_superchar(),
+            Inner(op) => op.as_op().as_superchar(),
             BinaryOp(op) => op.as_op().as_superchar(),
             Relation(op) => op.as_op().as_superchar(),
             Punctuation(op) => op.as_op().as_superchar(),
@@ -330,8 +313,7 @@ impl Operator {
             | ForceOpen(op, _)
             | ForceClose(op, _)
             | ForcePunctuation(op)
-            | ForceMathInner(op)
-            | ForceOp(op, _) => op.as_superchar(),
+            | ForceMathInner(op) => op.as_superchar(),
         }
     }
 }
@@ -634,7 +616,9 @@ impl Token {
                 Some(Class::Open)
             }
             SquareBracketClose | Right | Middle => Some(Class::Close),
-            PseudoOperator(_)
+            OperatorWithLimits(_)
+            | ForceOperatorWithLimits(_, _)
+            | PseudoOperator(_)
             | PseudoOperatorLimits(_)
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),

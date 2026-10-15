@@ -628,17 +628,105 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::Operator(operator) => {
-                let (next_class, scripts) = if operator.spacing_depends_on_next_class() {
-                    // The scripts come before the look-ahead (see `parse_token_and_scripts`).
-                    self.get_next_class(parse_as)?
-                } else {
-                    // The other operators don't look at the next class. They take care of
-                    // their own scripts (like `\sum`), or leave them to the caller.
-                    (Class::Default, Bounds::default())
-                };
+                // The scripts come before the look-ahead (see `parse_token_and_scripts`).
+                let (next_class, scripts) = self.get_next_class(parse_as)?;
                 let (new_class, node) =
                     self.handle_operator(operator, parse_as, prev_class, next_class)?;
                 return Ok(Parsed::NodeAndScripts(new_class, node, scripts));
+            }
+            Token::OperatorWithLimits(op) => {
+                class = Class::Operator;
+                let has_movable_limits = matches!(op.category(), OpCategory::J);
+                let has_bounds = !matches!(op.category(), OpCategory::C);
+
+                let bounds_limits = if has_bounds {
+                    self.get_bounds(None)?
+                } else {
+                    BoundsWithLimits::default()
+                };
+
+                let bounds = bounds_limits.bounds;
+
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
+
+                let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
+                    (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
+                    (None, has_movable_limits)
+                    | (Some(LimitsKind::Display), has_movable_limits @ true) => {
+                        (has_movable_limits, OpAttrs::empty())
+                    }
+                    (Some(LimitsKind::Display), false) => (true, OpAttrs::FORCE_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Always), false) => (true, OpAttrs::empty()),
+                    (Some(LimitsKind::Always), true) => (true, OpAttrs::NO_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
+                };
+
+                let target = self.commit(Node::Operator {
+                    op: op.as_op(),
+                    attrs,
+                    roles: match op.category() {
+                        OpCategory::C => OpRoles::ROLE_INFIX,
+                        OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
+                        OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
+                    },
+                    left,
+                    right,
+                    size: None,
+                });
+
+                if use_underover {
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, target)),
+                    }
+                } else {
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, target)),
+                    }
+                }
+            }
+            Token::ForceOperatorWithLimits(op, large) => {
+                class = Class::Operator;
+
+                let bounds_with_limits = self.get_bounds(None)?;
+                let bounds = bounds_with_limits.bounds;
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                // Only a large operator is grown and centred on the math axis; the limits
+                // are placed the same way either way.
+                let large_attrs = if large {
+                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE
+                } else {
+                    OpAttrs::empty()
+                };
+                let (use_underover, attrs) = match bounds_with_limits.limits() {
+                    _ if bounds.is_trivial() => (true, large_attrs),
+                    None | Some(LimitsKind::Display) => {
+                        (true, large_attrs | OpAttrs::FORCE_MOVABLE_LIMITS)
+                    }
+                    Some(LimitsKind::Always) => (true, large_attrs),
+                    Some(LimitsKind::Never) => (false, large_attrs),
+                };
+
+                let target = self.commit(Node::Operator {
+                    op,
+                    attrs,
+                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
+                    left,
+                    right,
+                    size: None,
+                });
+                if use_underover {
+                    if let Some(node) = bounds.try_wrap_node_underover(target) {
+                        Ok(node)
+                    } else {
+                        return Ok(Parsed::Node(class, target));
+                    }
+                } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
+                    Ok(node)
+                } else {
+                    return Ok(Parsed::Node(class, target));
+                }
             }
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
@@ -1940,7 +2028,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Construct node for base op
                 let op = match *base.token() {
-                    Token::Operator(Operator::Op(op))
+                    Token::OperatorWithLimits(op)
                         if matches!(op.category(), OpCategory::H | OpCategory::J) =>
                     {
                         op
@@ -2300,48 +2388,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::ForceOp(op, large) => {
-                class = Class::Operator;
-
-                let bounds_with_limits = self.get_bounds(None)?;
-                let bounds = bounds_with_limits.bounds;
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                // Only a large operator is grown and centred on the math axis; the limits
-                // are placed the same way either way.
-                let large_attrs = if large {
-                    OpAttrs::SYMMETRIC_TRUE | OpAttrs::LARGEOP_TRUE
-                } else {
-                    OpAttrs::empty()
-                };
-                let (use_underover, attrs) = match bounds_with_limits.limits() {
-                    _ if bounds.is_trivial() => (true, large_attrs),
-                    None | Some(LimitsKind::Display) => {
-                        (true, large_attrs | OpAttrs::FORCE_MOVABLE_LIMITS)
-                    }
-                    Some(LimitsKind::Always) => (true, large_attrs),
-                    Some(LimitsKind::Never) => (false, large_attrs),
-                };
-
-                let target = self.commit(Node::Operator {
-                    op,
-                    attrs,
-                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
-                    left,
-                    right,
-                    size: None,
-                });
-                if use_underover {
-                    if let Some(node) = bounds.try_wrap_node_underover(target) {
-                        node
-                    } else {
-                        return Ok((class, target));
-                    }
-                } else if let Some(node) = bounds.try_wrap_node_subsup(target) {
-                    node
-                } else {
-                    return Ok((class, target));
-                }
-            }
             Operator::Ord(ord) => 'ord: {
                 class = Class::Default;
                 if matches!(ord, symbol::VERTICAL_LINE)
@@ -2477,58 +2523,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     left,
                     right,
                     size: None,
-                }
-            }
-            Operator::Op(op) => {
-                class = Class::Operator;
-                let has_movable_limits = matches!(op.category(), OpCategory::J);
-                let has_bounds = !matches!(op.category(), OpCategory::C);
-
-                let bounds_limits = if has_bounds {
-                    self.get_bounds(None)?
-                } else {
-                    BoundsWithLimits::default()
-                };
-
-                let bounds = bounds_limits.bounds;
-
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
-
-                let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
-                    (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
-                    (None, has_movable_limits)
-                    | (Some(LimitsKind::Display), has_movable_limits @ true) => {
-                        (has_movable_limits, OpAttrs::empty())
-                    }
-                    (Some(LimitsKind::Display), false) => (true, OpAttrs::FORCE_MOVABLE_LIMITS),
-                    (Some(LimitsKind::Always), false) => (true, OpAttrs::empty()),
-                    (Some(LimitsKind::Always), true) => (true, OpAttrs::NO_MOVABLE_LIMITS),
-                    (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
-                };
-
-                let target = self.commit(Node::Operator {
-                    op: op.as_op(),
-                    attrs,
-                    roles: match op.category() {
-                        OpCategory::C => OpRoles::ROLE_INFIX,
-                        OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
-                        OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
-                    },
-                    left,
-                    right,
-                    size: None,
-                });
-
-                if use_underover {
-                    match bounds.try_wrap_node_underover(target) {
-                        Some(node) => node,
-                        None => return Ok((class, target)),
-                    }
-                } else {
-                    match bounds.try_wrap_node_subsup(target) {
-                        Some(node) => node,
-                        None => return Ok((class, target)),
-                    }
                 }
             }
             Operator::ForceRelation(op) => {

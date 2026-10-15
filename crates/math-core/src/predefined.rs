@@ -19,9 +19,9 @@ pub static CDOTS: [Token; 3] = [
 ];
 
 pub static IDOTSINT: [Token; 3] = [
-    Operator(Op(symbol::INTEGRAL)),
+    OperatorWithLimits(symbol::INTEGRAL),
     CustomCmd(0, &CDOTS),
-    Operator(Op(symbol::INTEGRAL)),
+    OperatorWithLimits(symbol::INTEGRAL),
 ];
 
 pub static MATHSTRUT: [Token; 2] = [
