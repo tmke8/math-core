@@ -600,13 +600,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ))
             }
             Token::Operator(operator) => {
-                let (new_class, node) = self.handle_operator(operator, parse_as, prev_class)?;
+                let (next_class, bounds) = self.get_next_class(parse_as)?;
+                let (new_class, node) =
+                    self.handle_operator(operator, parse_as, prev_class, next_class)?;
+                let node = self.wrap_in_scripts(node, bounds);
                 return Ok(Parsed::Node(new_class, node));
             }
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
                 let (_, node, scripts) =
-                    self.parse_token_with_script(Ok(tok_span), parse_as, prev_class)?;
+                    self.parse_token_and_scripts(Ok(tok_span), parse_as, prev_class)?;
                 // The scripts belong to the whole construct. Unless the argument was a bare
                 // token which already took them, they come after the argument and are parsed
                 // here, before the look-ahead (see `parse_token_and_scripts`).
@@ -902,10 +905,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
                 // The target's spacing is determined as if it were in the sequence, so its
                 // scripts are parsed along with it; they go onto the whole construct below.
-                let (cls, target, scripts) =
-                    self.parse_token_with_script(token, ParseAs::ContinueSequence, prev_class)?;
+                let (new_class, target, scripts) =
+                    self.parse_token_and_scripts(token, ParseAs::ContinueSequence, prev_class)?;
                 self.state.right_boundary_hack = old_boundary_hack;
-                class = cls;
+                class = new_class;
                 let node = self.commit(if matches!(cur_token, Token::Overset) {
                     Node::Over { symbol, target }
                 } else {
@@ -979,9 +982,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let tok_span = self.next_token()?;
                 let new_span = tok_span.span();
                 // The scripts stay off until the overlay has been applied to the base.
-                let (cls, node, scripts) =
+                let (new_class, node, scripts) =
                     self.parse_token_and_scripts(Ok(tok_span), parse_as, prev_class)?;
-                class = cls;
+                class = new_class;
 
                 /// Helper for `Node::PseudoOp` and `Node::IdentifierStr` below.
                 /// Finds the byte offset of the location immediately after the
@@ -1194,14 +1197,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
-                let mut scripts = Bounds::default();
+                let scripts;
                 let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
-                    // We need to achieve relation spacing here, so the scripts have to be
-                    // parsed before the look-ahead (see `parse_token_and_scripts`).
-                    if parse_as.in_sequence() {
-                        scripts = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-                    }
-                    let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                    let (next_class, script) = self.get_next_class(parse_as)?;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
                     }
@@ -1214,6 +1212,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         ),
                     )
                 } else {
+                    scripts = Bounds::default();
                     // We need to achieve open/close spacing here (i.e., zero spacing)
                     // If the delimiter has relation spacing only in infix positions, then we can
                     // get spacing to zero by setting the form attributes.
@@ -2199,18 +2198,34 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
     }
 
-    fn handle_operator(
+    /// Get the class of the next token while skipping bounds.
+    ///
+    /// If a bounds token is found, it is consumed and returned as part of the result.
+    fn get_next_class(
         &mut self,
-        operator: Operator,
         parse_as: ParseAs,
-        prev_class: Class,
-    ) -> Result<(Class, &'arena Node<'arena>), Box<LatexError>> {
+    ) -> Result<(Class, Bounds<'_>), Box<LatexError>> {
+        let bounds = if parse_as.in_sequence() {
+            self.get_bounds(None)?.ensure_no_explicit_limits()?
+        } else {
+            Bounds::default()
+        };
         let next_class = self.peek_class_token(parse_as.in_sequence())?;
         let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
             Class::Default
         } else {
             next_class
         };
+        Ok((next_class, bounds))
+    }
+
+    fn handle_operator(
+        &mut self,
+        operator: Operator,
+        parse_as: ParseAs,
+        prev_class: Class,
+        next_class: Class,
+    ) -> Result<(Class, &'arena Node<'arena>), Box<LatexError>> {
         let class;
         let node: Node = match operator {
             Operator::Relation(relation) => {
