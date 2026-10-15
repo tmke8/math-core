@@ -36,7 +36,7 @@ use crate::{
     split_on_ascii::split_on_ascii,
     text_parser::TextSnippet,
     token::{
-        DefineMode, EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, PhantomKind,
+        DefineMode, EndToken, InfixDelim, LimitsKind, MathClassKind, Mode, Operator, PhantomKind,
         PrimeDirection, PrimeKind, Span, TokSpan, Token, UnitKind, VerticalLineDef,
     },
     token_queue::{CmdArgs, MacroArgument, OneOrNone, TokenQueue},
@@ -512,6 +512,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         }
     }
 
+    /// Wrap the node in the given scripts, if there are any.
+    fn wrap_in_scripts(
+        &self,
+        node: &'arena Node<'arena>,
+        scripts: Bounds<'arena>,
+    ) -> &'arena Node<'arena> {
+        match scripts.try_wrap_node_subsup(node) {
+            Some(scripted) => self.commit(scripted),
+            None => node,
+        }
+    }
+
     /// Parse one token into a node, or into the first token of its expansion.
     fn parse_one_token(
         &mut self,
@@ -521,12 +533,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<Parsed<'arena>> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
-        let next_class = self.peek_class_token(parse_as.in_sequence())?;
-        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
-            Class::Default
-        } else {
-            next_class
-        };
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
                 if let Some(MathVariant::Transform(tf)) = self.state.transform {
@@ -593,45 +599,67 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                 ))
             }
-            Token::Relation(relation) => {
-                class = Class::Relation;
-                let attrs = relation_attrs(relation.category());
-                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
-                Ok(Node::Operator {
-                    op: relation.as_op(),
+            Token::Operator(operator) => {
+                // The scripts come before the look-ahead (see `parse_token_and_scripts`).
+                let (next_class, scripts) = self.get_next_class(parse_as)?;
+                let (new_class, node) =
+                    self.handle_operator(operator, parse_as, prev_class, next_class)?;
+                let node = self.wrap_in_scripts(node, scripts);
+                return Ok(Parsed::Node(new_class, node));
+            }
+            Token::OperatorWithLimits(op) => {
+                class = Class::Operator;
+                let has_movable_limits = matches!(op.category(), OpCategory::J);
+                let has_bounds = !matches!(op.category(), OpCategory::C);
+
+                let bounds_limits = if has_bounds {
+                    self.get_bounds(None)?
+                } else {
+                    BoundsWithLimits::default()
+                };
+
+                let bounds = bounds_limits.bounds;
+
+                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
+
+                let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
+                    (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
+                    (None, has_movable_limits)
+                    | (Some(LimitsKind::Display), has_movable_limits @ true) => {
+                        (has_movable_limits, OpAttrs::empty())
+                    }
+                    (Some(LimitsKind::Display), false) => (true, OpAttrs::FORCE_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Always), false) => (true, OpAttrs::empty()),
+                    (Some(LimitsKind::Always), true) => (true, OpAttrs::NO_MOVABLE_LIMITS),
+                    (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
+                };
+
+                let target = self.commit(Node::Operator {
+                    op: op.as_op(),
                     attrs,
-                    roles: OpRoles::ROLE_INFIX,
+                    roles: match op.category() {
+                        OpCategory::C => OpRoles::ROLE_INFIX,
+                        OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
+                        OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
+                    },
                     left,
                     right,
                     size: None,
-                })
+                });
+
+                if use_underover {
+                    match bounds.try_wrap_node_underover(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, target)),
+                    }
+                } else {
+                    match bounds.try_wrap_node_subsup(target) {
+                        Some(node) => Ok(node),
+                        None => return Ok(Parsed::Node(class, target)),
+                    }
+                }
             }
-            Token::Punctuation(punc) => {
-                class = Class::Punctuation;
-                let (left, right) = self.state.punctuation_spacing(next_class, false);
-                Ok(Node::Operator {
-                    op: punc.as_op(),
-                    attrs: OpAttrs::empty(),
-                    // Punctuation separates formulas; it can't be, e.g., the argument of `\sin`.
-                    roles: OpRoles::ROLE_INFIX,
-                    left,
-                    right,
-                    size: None,
-                })
-            }
-            Token::ForcePunctuation(op) => {
-                class = Class::Punctuation;
-                let (left, right) = self.state.punctuation_spacing(next_class, true);
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
-                    left,
-                    right,
-                    size: None,
-                })
-            }
-            Token::ForceOp(op, large) => {
+            Token::ForceOperatorWithLimits(op, large) => {
                 class = Class::Operator;
 
                 let bounds_with_limits = self.get_bounds(None)?;
@@ -673,123 +701,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     return Ok(Parsed::Node(class, target));
                 }
             }
-            Token::Ord(ord) => 'ord: {
-                if matches!(ord, symbol::VERTICAL_LINE)
-                    && let Some(vld) = self.state.vertical_line_def
-                {
-                    let mut attrs = OpAttrs::FORM_INFIX;
-                    // For vertical line, `form="infix"` implies relation spacing, so we can set
-                    // spacing to `None` in order to get relation spacing.
-                    let (stretchy, spacing) = match vld {
-                        VerticalLineDef::OpSpacingStretchy => (true, Some(MathSpacing::ThreeMu)),
-                        VerticalLineDef::RelSpacingStretchy => (true, None),
-                        VerticalLineDef::RelSpacing => (false, None),
-                    };
-                    // `form="infix"` also implies `stretchy="false"`, so we have to explicitly set
-                    // `stretchy="true"` if the vertical line is stretchy.
-                    if stretchy {
-                        attrs |= OpAttrs::STRETCHY_TRUE;
-                    }
-                    break 'ord Ok(Node::Operator {
-                        op: ord.as_op(),
-                        attrs,
-                        roles: OpRoles::ROLE_INFIX,
-                        left: spacing,
-                        right: spacing,
-                        size: None,
-                    });
-                }
-                let attrs = if matches!(
-                    ord.category(),
-                    OrdCategory::F
-                        | OrdCategory::G
-                        | OrdCategory::FG
-                        | OrdCategory::FGandForceDefault
-                ) {
-                    // Category F+G operators will stretch in pre- and postfix positions,
-                    // so we explicitly set the stretchy attribute to false to prevent that.
-                    OpAttrs::STRETCHY_FALSE
-                } else {
-                    OpAttrs::empty()
-                };
-                let (left, right) = if matches!(
-                    ord.category(),
-                    OrdCategory::KButUsedToBeB | OrdCategory::FGandForceDefault
-                ) {
-                    // Category B and ForceDefault have non-zero spacing.
-                    // We suppress this by setting the spacing to zero.
-                    (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
-                } else {
-                    (None, None)
-                };
-                Ok(Node::Operator {
-                    op: ord.as_op(),
-                    roles: OpRoles::ROLE_INFIX,
-                    attrs,
-                    left,
-                    right,
-                    size: None,
-                })
-            }
-            Token::ForceOrd(op) => {
-                class = Class::Default;
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
-                    left: Some(MathSpacing::Zero),
-                    right: Some(MathSpacing::Zero),
-                    size: None,
-                })
-            }
-            Token::BinaryOp(binary_op) => {
-                let spacing = self.state.bin_op_spacing(
-                    parse_as.in_sequence(),
-                    prev_class,
-                    next_class,
-                    false,
-                );
-                class = if matches!(spacing, Some(MathSpacing::Zero)) {
-                    // If the spacing is zero, this operator behaves like an ordinary symbol in
-                    // terms of spacing.
-                    Class::Default
-                } else {
-                    Class::BinaryOp
-                };
-                Ok(Node::Operator {
-                    op: binary_op.as_op(),
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
-                    left: spacing,
-                    right: spacing,
-                    size: None,
-                })
-            }
-            Token::ForceBinaryOp(op) => {
-                let spacing =
-                    self.state
-                        .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
-                class = if matches!(spacing, Some(MathSpacing::Zero)) {
-                    // If the spacing is zero, this operator behaves like an ordinary symbol in
-                    // terms of spacing.
-                    Class::Default
-                } else {
-                    Class::BinaryOp
-                };
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
-                    left: spacing,
-                    right: spacing,
-                    size: None,
-                })
-            }
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
-                let (_, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
-                // Recompute the next class:
-                let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                let (_, node) = self.parse_token(Ok(tok_span), ParseAs::Arg, prev_class)?;
+                let (next_class, scripts) = self.get_next_class(parse_as)?;
                 let (left, right) = match kind {
                     MathClassKind::Ord => {
                         class = Class::Default;
@@ -830,7 +745,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         self.state.mathinner_spacing(prev_class, next_class, true)
                     }
                 };
-                match *node {
+                let spaced = match *node {
                     Node::Operator {
                         op,
                         attrs,
@@ -838,14 +753,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         size,
                         left: _,
                         right: _,
-                    } => Ok(Node::Operator {
+                    } => Node::Operator {
                         op,
                         attrs: attrs | OpAttrs::STRETCHY_FALSE,
                         roles,
                         left,
                         right,
                         size,
-                    }),
+                    },
                     Node::Row {
                         nodes: [],
                         attrs:
@@ -854,7 +769,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                                 style: None,
                                 math_shift_compact: false,
                             },
-                    } => Ok(Node::Operator {
+                    } => Node::Operator {
                         // An empty `<mo></mo>` produces no spacing in Firefox
                         op: const { symbol::INVISIBLE_SEPARATOR.as_op() },
                         attrs: OpAttrs::empty(),
@@ -862,40 +777,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         left,
                         right,
                         size: None,
-                    }),
-                    _ => Ok(Node::Padded {
+                    },
+                    _ => Node::Padded {
                         node,
                         width_0: false,
                         height_0: false,
                         left,
                         right,
                         voffset: None,
-                    }),
-                }
-            }
-            Token::Inner(op) => {
-                class = Class::Inner;
-                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, false);
-                Ok(Node::Operator {
-                    op: op.as_op(),
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX | OpRoles::ROLE_POSTFIX,
-                    left,
-                    right,
-                    size: None,
-                })
-            }
-            Token::ForceMathInner(op) => {
-                class = Class::Inner;
-                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::empty(),
-                    left,
-                    right,
-                    size: None,
-                })
+                    },
+                };
+                let target = self.commit(spaced);
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::Enclose(notation) => {
                 let content = self.parse_next(ParseAs::ArgWithSpace)?;
@@ -1093,17 +986,33 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_style = mem::replace(&mut self.state.style, Style::Script);
                 let symbol = self.parse_next(ParseAs::Arg)?;
                 self.state.style = old_style;
-                let token = self.next_token();
+                let token = self.next_token()?;
                 let old_boundary_hack = mem::replace(&mut self.state.right_boundary_hack, true);
-                let (cls, target) =
-                    self.parse_token(token, ParseAs::ContinueSequence, prev_class)?;
-                self.state.right_boundary_hack = old_boundary_hack;
-                class = cls;
-                if matches!(cur_token, Token::Overset) {
-                    Ok(Node::Over { symbol, target })
+                // The target's spacing is determined as if it were in the sequence, so its
+                // scripts are parsed along with it; they go onto the whole construct below.
+                let (new_class, target, scripts) = if let Token::Operator(operator) = token.token()
+                {
+                    let (next_class, scripts) = self.get_next_class(parse_as)?;
+                    let (new_class, node) = self.handle_operator(
+                        *operator,
+                        ParseAs::ContinueSequence,
+                        prev_class,
+                        next_class,
+                    )?;
+                    (new_class, node, scripts)
                 } else {
-                    Ok(Node::Under { symbol, target })
-                }
+                    let (new_class, target) =
+                        self.parse_token(Ok(token), ParseAs::ContinueSequence, prev_class)?;
+                    (new_class, target, Bounds::default())
+                };
+                self.state.right_boundary_hack = old_boundary_hack;
+                class = new_class;
+                let node = self.commit(if matches!(cur_token, Token::Overset) {
+                    Node::Over { symbol, target }
+                } else {
+                    Node::Under { symbol, target }
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(node, scripts)));
             }
             Token::OverUnderBrace(x, is_over) => {
                 let target = self.parse_next(ParseAs::ArgWithSpace)?;
@@ -1134,58 +1043,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                 } else {
                     Ok(base)
-                }
-            }
-            Token::Op(op) => {
-                class = Class::Operator;
-                let has_movable_limits = matches!(op.category(), OpCategory::J);
-                let has_bounds = !matches!(op.category(), OpCategory::C);
-
-                let bounds_limits = if has_bounds {
-                    self.get_bounds(None)?
-                } else {
-                    BoundsWithLimits::default()
-                };
-
-                let bounds = bounds_limits.bounds;
-
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, false)?;
-
-                let (use_underover, attrs) = match (bounds_limits.limits(), has_movable_limits) {
-                    (_, _) if bounds.is_trivial() => (false, OpAttrs::empty()),
-                    (None, has_movable_limits)
-                    | (Some(LimitsKind::Display), has_movable_limits @ true) => {
-                        (has_movable_limits, OpAttrs::empty())
-                    }
-                    (Some(LimitsKind::Display), false) => (true, OpAttrs::FORCE_MOVABLE_LIMITS),
-                    (Some(LimitsKind::Always), false) => (true, OpAttrs::empty()),
-                    (Some(LimitsKind::Always), true) => (true, OpAttrs::NO_MOVABLE_LIMITS),
-                    (Some(LimitsKind::Never), _) => (false, OpAttrs::empty()),
-                };
-
-                let target = self.commit(Node::Operator {
-                    op: op.as_op(),
-                    attrs,
-                    roles: match op.category() {
-                        OpCategory::C => OpRoles::ROLE_INFIX,
-                        OpCategory::H | OpCategory::J => OpRoles::ROLE_PREFIX,
-                        OpCategory::CJ => OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX,
-                    },
-                    left,
-                    right,
-                    size: None,
-                });
-
-                if use_underover {
-                    match bounds.try_wrap_node_underover(target) {
-                        Some(node) => Ok(node),
-                        None => return Ok(Parsed::Node(class, target)),
-                    }
-                } else {
-                    match bounds.try_wrap_node_subsup(target) {
-                        Some(node) => Ok(node),
-                        None => return Ok(Parsed::Node(class, target)),
-                    }
                 }
             }
             ref tok @ (Token::PseudoOperator(name) | Token::PseudoOperatorLimits(name)) => {
@@ -1222,8 +1079,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let tok_span = self.next_token()?;
                 let new_span = tok_span.span();
-                let (cls, node) = self.parse_token(Ok(tok_span), parse_as, prev_class)?;
-                class = cls;
+                // Operators need to know the next class for spacing, so we retrieve that here.
+                // This also means we have to handle the sub-/superscripts later.
+                let (new_class, node, scripts) = if let Token::Operator(operator) = tok_span.token()
+                {
+                    let (next_class, scripts) = self.get_next_class(parse_as)?;
+                    let (new_class, node) = self.handle_operator(
+                        *operator,
+                        ParseAs::ContinueSequence,
+                        prev_class,
+                        next_class,
+                    )?;
+                    (new_class, node, scripts)
+                } else {
+                    let (new_class, target) =
+                        self.parse_token(Ok(tok_span), ParseAs::ContinueSequence, prev_class)?;
+                    (new_class, target, Bounds::default())
+                };
+                class = new_class;
 
                 /// Helper for `Node::PseudoOp` and `Node::IdentifierStr` below.
                 /// Finds the byte offset of the location immediately after the
@@ -1252,7 +1125,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                 }
 
-                match *node {
+                let overlaid = match *node {
                     Node::Operator {
                         op,
                         attrs,
@@ -1295,6 +1168,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
 
                     _ => Err(LatexError(new_span.into(), LatexErrKind::ExpectedRelation)),
+                };
+                if scripts.is_trivial() {
+                    overlaid
+                } else {
+                    let target = self.commit(overlaid?);
+                    return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
                 }
             }
             Token::Transform(tf) => {
@@ -1323,45 +1202,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 span.into(),
                 LatexErrKind::CannotBeUsedAsArgument,
             )),
-            Token::ForceRelation(op) => {
-                class = Class::Relation;
-                let (left, right) = if parse_as.in_sequence() {
-                    self.state.relation_spacing(prev_class, next_class, true)
-                } else {
-                    // Don't add spacing if we are in an argument.
-                    (None, None)
-                };
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
-                    left,
-                    right,
-                    size: None,
-                })
-            }
-            Token::ForceOpen(op, _) => {
-                class = Class::Open;
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::FORM_PREFIX,
-                    roles: OpRoles::ROLE_OPEN,
-                    left: Some(MathSpacing::Zero),
-                    right: Some(MathSpacing::Zero),
-                    size: None,
-                })
-            }
-            Token::ForceClose(op, _) => {
-                class = Class::Close;
-                Ok(Node::Operator {
-                    op,
-                    attrs: OpAttrs::FORM_POSTFIX,
-                    roles: OpRoles::ROLE_CLOSE,
-                    left: Some(MathSpacing::Zero),
-                    right: Some(MathSpacing::Zero),
-                    size: None,
-                })
-            }
             Token::GroupBegin => {
                 let content = self.parse_nested_sequence(
                     EndToken::GroupClose,
@@ -1386,51 +1226,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     }
                 }
                 return Ok(Parsed::Node(Class::Default, node));
-            }
-            ref tok @ (Token::Open(paren) | Token::Close(paren)) => {
-                let open = matches!(tok, Token::Open(_));
-                if open {
-                    class = Class::Open;
-                }
-                let mut attrs = if matches!(
-                    paren.category(),
-                    OrdCategory::FG | OrdCategory::FGandForceDefault | OrdCategory::DE
-                ) {
-                    // For these categories of symbol, both prefix and postfix forms exist, so we
-                    // explicitly set the form attributes based on the token type (Open vs Close).
-                    // For `FGandForceDefault`, the form attribute also affects spacing.
-                    if open {
-                        OpAttrs::FORM_PREFIX
-                    } else {
-                        OpAttrs::FORM_POSTFIX
-                    }
-                } else {
-                    OpAttrs::empty()
-                };
-                if matches!(
-                    paren.category(),
-                    OrdCategory::F
-                        | OrdCategory::G
-                        | OrdCategory::FG
-                        | OrdCategory::FGandForceDefault
-                ) {
-                    // Symbols from these categories are automatically stretchy,
-                    // so we have to explicitly disable that here.
-                    attrs |= OpAttrs::STRETCHY_FALSE;
-                }
-                let roles = if open {
-                    OpRoles::ROLE_OPEN
-                } else {
-                    OpRoles::ROLE_CLOSE
-                };
-                Ok(Node::Operator {
-                    op: paren.as_op(),
-                    attrs,
-                    roles,
-                    left: None,
-                    right: None,
-                    size: None,
-                })
             }
             Token::SquareBracketOpen => {
                 class = Class::Open;
@@ -1514,25 +1309,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 // Determine form and spacing attributes based on paren_type
                 // and delimiter spacing.
-                let (left, right) = if matches!(paren_type, Some(ParenType::Middle)) {
-                    // We need to achieve relation spacing here.
-                    let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                let (left, right, scripts) = if matches!(paren_type, Some(ParenType::Middle)) {
+                    let (next_class, scripts) = self.get_next_class(parse_as)?;
                     if matches!(paren.spacing, DelimiterSpacing::InfixRelation) {
                         attrs |= OpAttrs::FORM_INFIX;
                     }
-                    self.state.relation_spacing(
+                    let (left, right) = self.state.relation_spacing(
                         prev_class,
                         next_class,
                         !matches!(
                             paren.spacing,
                             DelimiterSpacing::InfixRelation | DelimiterSpacing::Relation
                         ),
-                    )
+                    );
+                    (left, right, scripts)
                 } else {
                     // We need to achieve open/close spacing here (i.e., zero spacing)
                     // If the delimiter has relation spacing only in infix positions, then we can
                     // get spacing to zero by setting the form attributes.
-                    if let Some(paren_type) = paren_type
+                    let (left, right) = if let Some(paren_type) = paren_type
                         && matches!(paren.spacing, DelimiterSpacing::InfixRelation)
                     {
                         // We already handled the spacing for middle delimiters above, so we only
@@ -1552,16 +1347,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
                     } else {
                         (None, None)
-                    }
+                    };
+                    (left, right, Bounds::default())
                 };
-                Ok(Node::Operator {
+                let target = self.commit(Node::Operator {
                     op: paren.as_op(),
                     attrs,
                     roles,
                     size: Some(size),
                     left,
                     right,
-                })
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::Begin(env) => 'begin_env: {
                 let spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
@@ -2185,6 +1982,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::Dots => {
+                let next_class = self.peek_class_token(parse_as.in_sequence())?;
                 let next_token_is_mathbin_or_mathrel =
                     matches!(next_class, Class::BinaryOp | Class::Relation);
                 self.tokens
@@ -2219,7 +2017,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Construct node for base op
                 let op = match *base.token() {
-                    Token::Op(op) if matches!(op.category(), OpCategory::H | OpCategory::J) => op,
+                    Token::OperatorWithLimits(op)
+                        if matches!(op.category(), OpCategory::H | OpCategory::J) =>
+                    {
+                        op
+                    }
                     _ => {
                         return Err(Box::new(LatexError(
                             base.span().into(),
@@ -2371,8 +2173,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 self.state.style = old_style;
                 self.state.right_boundary_hack = old_boundary_hack;
-                // Re-compute the next class.
-                let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                // The scripts belong to the whole construct and come after its arguments, so
+                // they are parsed here, before the look-ahead (see `parse_token_and_scripts`).
+                let (next_class, scripts) = self.get_next_class(parse_as)?;
 
                 let pad = &const { Node::Space(LatexUnit::Em.length_with_unit(0.4286)) };
                 let label_space = &const { Node::Space(LatexUnit::Em.length_with_unit(3.5)) };
@@ -2418,10 +2221,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
 
                 let outer_space = &const { Node::Space(LatexUnit::Mu.length_with_unit(5.0)) };
-                Ok(Node::Row {
+                let target = self.commit(Node::Row {
                     nodes: self.arena.push_slice(&[outer_space, center, outer_space]),
                     attrs: RowAttrs::DEFAULT,
-                })
+                });
+                return Ok(Parsed::Node(class, self.wrap_in_scripts(target, scripts)));
             }
             Token::CustomCmd(num_args, token_stream) => {
                 self.count_expansion(span)?;
@@ -2499,6 +2303,299 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Ok(n) => Ok(Parsed::Node(class, self.commit(n))),
             Err(e) => Err(Box::new(e)),
         }
+    }
+
+    /// Get the class of the next token while skipping bounds.
+    ///
+    /// If a bounds token is found, it is consumed and returned as part of the result.
+    /// The bounds are only collected in a sequence, where the spacing matters.
+    fn get_next_class(&mut self, parse_as: ParseAs) -> ParseResult<(Class, Bounds<'arena>)> {
+        let bounds = if parse_as.in_sequence() {
+            self.get_bounds(None)?.ensure_no_explicit_limits()?
+        } else {
+            Bounds::default()
+        };
+        let next_class = self.peek_class_token(parse_as.in_sequence())?;
+        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
+            Class::Default
+        } else {
+            next_class
+        };
+        Ok((next_class, bounds))
+    }
+
+    fn handle_operator(
+        &mut self,
+        operator: Operator,
+        parse_as: ParseAs,
+        prev_class: Class,
+        next_class: Class,
+    ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let class;
+        let node: Node = match operator {
+            Operator::Rel(relation) => {
+                class = Class::Relation;
+                let attrs = relation_attrs(relation.category());
+                let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
+                Node::Operator {
+                    op: relation.as_op(),
+                    attrs,
+                    roles: OpRoles::ROLE_INFIX,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::Punct(punc) => {
+                class = Class::Punctuation;
+                let (left, right) = self.state.punctuation_spacing(next_class, false);
+                Node::Operator {
+                    op: punc.as_op(),
+                    attrs: OpAttrs::empty(),
+                    // Punctuation separates formulas; it can't be, e.g., the argument of `\sin`.
+                    roles: OpRoles::ROLE_INFIX,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::ForcePunct(op) => {
+                class = Class::Punctuation;
+                let (left, right) = self.state.punctuation_spacing(next_class, true);
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_PREFIX | OpRoles::ROLE_INFIX | OpRoles::ROLE_POSTFIX,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::Ord(ord) => 'ord: {
+                class = Class::Default;
+                if matches!(ord, symbol::VERTICAL_LINE)
+                    && let Some(vld) = self.state.vertical_line_def
+                {
+                    let mut attrs = OpAttrs::FORM_INFIX;
+                    // For vertical line, `form="infix"` implies relation spacing, so we can set
+                    // spacing to `None` in order to get relation spacing.
+                    let (stretchy, spacing) = match vld {
+                        VerticalLineDef::OpSpacingStretchy => (true, Some(MathSpacing::ThreeMu)),
+                        VerticalLineDef::RelSpacingStretchy => (true, None),
+                        VerticalLineDef::RelSpacing => (false, None),
+                    };
+                    // `form="infix"` also implies `stretchy="false"`, so we have to explicitly set
+                    // `stretchy="true"` if the vertical line is stretchy.
+                    if stretchy {
+                        attrs |= OpAttrs::STRETCHY_TRUE;
+                    }
+                    break 'ord Node::Operator {
+                        op: ord.as_op(),
+                        attrs,
+                        roles: OpRoles::ROLE_INFIX,
+                        left: spacing,
+                        right: spacing,
+                        size: None,
+                    };
+                }
+                let attrs = if matches!(
+                    ord.category(),
+                    OrdCategory::F
+                        | OrdCategory::G
+                        | OrdCategory::FG
+                        | OrdCategory::FGandForceDefault
+                ) {
+                    // Category F+G operators will stretch in pre- and postfix positions,
+                    // so we explicitly set the stretchy attribute to false to prevent that.
+                    OpAttrs::STRETCHY_FALSE
+                } else {
+                    OpAttrs::empty()
+                };
+                let (left, right) = if matches!(
+                    ord.category(),
+                    OrdCategory::KButUsedToBeB | OrdCategory::FGandForceDefault
+                ) {
+                    // Category B and ForceDefault have non-zero spacing.
+                    // We suppress this by setting the spacing to zero.
+                    (Some(MathSpacing::Zero), Some(MathSpacing::Zero))
+                } else {
+                    (None, None)
+                };
+                Node::Operator {
+                    op: ord.as_op(),
+                    roles: OpRoles::ROLE_INFIX,
+                    attrs,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::ForceOrd(op) => {
+                class = Class::Default;
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
+                    size: None,
+                }
+            }
+            Operator::Bin(binary_op) => {
+                let spacing = self.state.bin_op_spacing(
+                    parse_as.in_sequence(),
+                    prev_class,
+                    next_class,
+                    false,
+                );
+                class = if matches!(spacing, Some(MathSpacing::Zero)) {
+                    // If the spacing is zero, this operator behaves like an ordinary symbol in
+                    // terms of spacing.
+                    Class::Default
+                } else {
+                    Class::BinaryOp
+                };
+                Node::Operator {
+                    op: binary_op.as_op(),
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
+                    left: spacing,
+                    right: spacing,
+                    size: None,
+                }
+            }
+            Operator::ForceBin(op) => {
+                let spacing =
+                    self.state
+                        .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                class = if matches!(spacing, Some(MathSpacing::Zero)) {
+                    // If the spacing is zero, this operator behaves like an ordinary symbol in
+                    // terms of spacing.
+                    Class::Default
+                } else {
+                    Class::BinaryOp
+                };
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
+                    left: spacing,
+                    right: spacing,
+                    size: None,
+                }
+            }
+            Operator::Inner(op) => {
+                class = Class::Inner;
+                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, false);
+                Node::Operator {
+                    op: op.as_op(),
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX | OpRoles::ROLE_PREFIX | OpRoles::ROLE_POSTFIX,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::ForceInner(op) => {
+                class = Class::Inner;
+                let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::empty(),
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::ForceRel(op) => {
+                class = Class::Relation;
+                let (left, right) = if parse_as.in_sequence() {
+                    self.state.relation_spacing(prev_class, next_class, true)
+                } else {
+                    // Don't add spacing if we are in an argument.
+                    (None, None)
+                };
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::empty(),
+                    roles: OpRoles::ROLE_INFIX,
+                    left,
+                    right,
+                    size: None,
+                }
+            }
+            Operator::ForceOpen(op, _) => {
+                class = Class::Open;
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::FORM_PREFIX,
+                    roles: OpRoles::ROLE_OPEN,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
+                    size: None,
+                }
+            }
+            Operator::ForceClose(op, _) => {
+                class = Class::Close;
+                Node::Operator {
+                    op,
+                    attrs: OpAttrs::FORM_POSTFIX,
+                    roles: OpRoles::ROLE_CLOSE,
+                    left: Some(MathSpacing::Zero),
+                    right: Some(MathSpacing::Zero),
+                    size: None,
+                }
+            }
+            ref tok @ (Operator::Open(paren) | Operator::Close(paren)) => {
+                let open = matches!(tok, Operator::Open(_));
+                if open {
+                    class = Class::Open;
+                } else {
+                    class = Class::Default;
+                }
+                let mut attrs = if matches!(
+                    paren.category(),
+                    OrdCategory::FG | OrdCategory::FGandForceDefault | OrdCategory::DE
+                ) {
+                    // For these categories of symbol, both prefix and postfix forms exist, so we
+                    // explicitly set the form attributes based on the token type (Open vs Close).
+                    // For `FGandForceDefault`, the form attribute also affects spacing.
+                    if open {
+                        OpAttrs::FORM_PREFIX
+                    } else {
+                        OpAttrs::FORM_POSTFIX
+                    }
+                } else {
+                    OpAttrs::empty()
+                };
+                if matches!(
+                    paren.category(),
+                    OrdCategory::F
+                        | OrdCategory::G
+                        | OrdCategory::FG
+                        | OrdCategory::FGandForceDefault
+                ) {
+                    // Symbols from these categories are automatically stretchy,
+                    // so we have to explicitly disable that here.
+                    attrs |= OpAttrs::STRETCHY_FALSE;
+                }
+                let roles = if open {
+                    OpRoles::ROLE_OPEN
+                } else {
+                    OpRoles::ROLE_CLOSE
+                };
+                Node::Operator {
+                    op: paren.as_op(),
+                    attrs,
+                    roles,
+                    left: None,
+                    right: None,
+                    size: None,
+                }
+            }
+        };
+        Ok((class, self.commit(node)))
     }
 
     /// Parse a `\newcommand` definition and register the new command.
@@ -2766,7 +2863,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // lexer, whereas it arrives bare from the body of a custom command.
         if matches!(
             self.tokens.peek().token().unwrap_math_ref(),
-            Token::Relation(symbol::EQUALS_SIGN)
+            Token::Operator(Operator::Rel(symbol::EQUALS_SIGN))
         ) {
             self.next_token()?;
         }
@@ -3107,17 +3204,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         if !parse_as.in_sequence() {
             return Ok(fenced(self.arena, content, options));
         }
-        // The spacing has to go outside of any sub- or superscripts,
-        // so we collect them here.
-        let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
-        // Compute the spacing after getting the bounds, so that we don't
-        // consider tokens that are part of the bounds for spacing calculations.
-        let next_class = self.peek_class_token(true)?;
-        let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
-            Class::Default
-        } else {
-            next_class
-        };
+        // The spacing has to go outside of any sub- or superscripts, so we collect them
+        // before looking at the next class.
+        let (next_class, bounds) = self.get_next_class(parse_as)?;
         let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
         // The delimiters have zero spacing by default, so we only need to set non-zero
         // spacing explicitly.
@@ -3446,7 +3535,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     .get_token_by_index(token_idx)
                     .map(TokSpan::token),
                 Some(Token::MathOrTextMode(
-                    Token::Ord(symbol::VERTICAL_LINE),
+                    Token::Operator(Operator::Ord(symbol::VERTICAL_LINE)),
                     '|'
                 ))
             )
@@ -3616,11 +3705,16 @@ fn extract_delimiter(tok: TokSpan, location: DelimiterModifier) -> ParseResult<S
     const SQ_R_BRACKET: StretchableOp =
         StretchableOp::from_ord(symbol::RIGHT_SQUARE_BRACKET).unwrap();
     let delim = match tok {
-        Token::Ord(op) | Token::Open(op) | Token::Close(op) => StretchableOp::from_ord(op),
-        Token::Relation(rel) => StretchableOp::from_rel(rel),
-        Token::ForceOpen(op, stretch) | Token::ForceClose(op, stretch) => {
-            StretchableOp::from_force_stretchy(op, stretch)
-        }
+        Token::Operator(operator) => match operator {
+            Operator::Ord(op) | Operator::Open(op) | Operator::Close(op) => {
+                StretchableOp::from_ord(op)
+            }
+            Operator::Rel(rel) => StretchableOp::from_rel(rel),
+            Operator::ForceOpen(op, stretch) | Operator::ForceClose(op, stretch) => {
+                StretchableOp::from_force_stretchy(op, stretch)
+            }
+            _ => None,
+        },
         Token::SquareBracketOpen => Some(SQ_L_BRACKET),
         Token::SquareBracketClose => Some(SQ_R_BRACKET),
         _ => None,

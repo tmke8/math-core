@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x\\bigm|_2)"
+---
+<math>
+    <mi>x</mi>
+    <msub>
+        <mo stretchy="true" form="infix" symmetric="true" rspace="0" minsize="1.2em" maxsize="1.2em">|</mo>
+        <mn>2</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>

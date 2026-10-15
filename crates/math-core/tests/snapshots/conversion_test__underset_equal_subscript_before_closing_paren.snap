@@ -1,0 +1,16 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "(x\\underset{a}=_2)"
+---
+<math>
+    <mo stretchy="false">(</mo>
+    <mi>x</mi>
+    <msub>
+        <munder>
+            <mo rspace="0">=</mo>
+            <mi>a</mi>
+        </munder>
+        <mn>2</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+</math>

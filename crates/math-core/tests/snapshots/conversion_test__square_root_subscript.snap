@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sqrt x_1"
+---
+<math>
+    <msub>
+        <msqrt>
+            <mi>x</mi>
+        </msqrt>
+        <mn>1</mn>
+    </msub>
+</math>
