@@ -493,6 +493,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     /// Parse the given token into a node.
+    ///
+    /// A token which expands to other tokens is not a node of its own, so we go around again
+    /// with the first token of the expansion. This is a loop rather than a tail call, because
+    /// one expansion can lead to the next without limit.
     fn parse_token(
         &mut self,
         cur_tokloc: ParseResult<TokSpan>,
@@ -700,9 +704,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::MathClass(kind) => {
                 let tok_span = self.next_token()?;
                 let (_, node) = self.parse_token(Ok(tok_span), ParseAs::Arg, prev_class)?;
-                // The scripts belong to the whole construct. Unless the argument was a bare
-                // token which already took them, they come after the argument and are parsed
-                // here, before the look-ahead (see `parse_token_and_scripts`).
                 let (next_class, scripts) = self.get_next_class(parse_as)?;
                 let (left, right) = match kind {
                     MathClassKind::Ord => {
@@ -1078,7 +1079,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 let tok_span = self.next_token()?;
                 let new_span = tok_span.span();
-                // The scripts stay off until the overlay has been applied to the base.
+                // Operators need to know the next class for spacing, so we retrieve that here.
+                // This also means we have to handle the sub-/superscripts later.
                 let (new_class, node, scripts) = if let Token::Operator(operator) = tok_span.token()
                 {
                     let (next_class, scripts) = self.get_next_class(parse_as)?;
@@ -2331,7 +2333,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
         let class;
         let node: Node = match operator {
-            Operator::Relation(relation) => {
+            Operator::Rel(relation) => {
                 class = Class::Relation;
                 let attrs = relation_attrs(relation.category());
                 let (left, right) = self.state.relation_spacing(prev_class, next_class, false);
@@ -2344,7 +2346,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::Punctuation(punc) => {
+            Operator::Punct(punc) => {
                 class = Class::Punctuation;
                 let (left, right) = self.state.punctuation_spacing(next_class, false);
                 Node::Operator {
@@ -2357,7 +2359,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::ForcePunctuation(op) => {
+            Operator::ForcePunct(op) => {
                 class = Class::Punctuation;
                 let (left, right) = self.state.punctuation_spacing(next_class, true);
                 Node::Operator {
@@ -2439,7 +2441,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::BinaryOp(binary_op) => {
+            Operator::Bin(binary_op) => {
                 let spacing = self.state.bin_op_spacing(
                     parse_as.in_sequence(),
                     prev_class,
@@ -2462,7 +2464,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::ForceBinaryOp(op) => {
+            Operator::ForceBin(op) => {
                 let spacing =
                     self.state
                         .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
@@ -2494,7 +2496,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::ForceMathInner(op) => {
+            Operator::ForceInner(op) => {
                 class = Class::Inner;
                 let (left, right) = self.state.mathinner_spacing(prev_class, next_class, true);
                 Node::Operator {
@@ -2506,7 +2508,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     size: None,
                 }
             }
-            Operator::ForceRelation(op) => {
+            Operator::ForceRel(op) => {
                 class = Class::Relation;
                 let (left, right) = if parse_as.in_sequence() {
                     self.state.relation_spacing(prev_class, next_class, true)
@@ -2861,7 +2863,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // lexer, whereas it arrives bare from the body of a custom command.
         if matches!(
             self.tokens.peek().token().unwrap_math_ref(),
-            Token::Operator(Operator::Relation(symbol::EQUALS_SIGN))
+            Token::Operator(Operator::Rel(symbol::EQUALS_SIGN))
         ) {
             self.next_token()?;
         }
@@ -3707,7 +3709,7 @@ fn extract_delimiter(tok: TokSpan, location: DelimiterModifier) -> ParseResult<S
             Operator::Ord(op) | Operator::Open(op) | Operator::Close(op) => {
                 StretchableOp::from_ord(op)
             }
-            Operator::Relation(rel) => StretchableOp::from_rel(rel),
+            Operator::Rel(rel) => StretchableOp::from_rel(rel),
             Operator::ForceOpen(op, stretch) | Operator::ForceClose(op, stretch) => {
                 StretchableOp::from_force_stretchy(op, stretch)
             }

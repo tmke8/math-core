@@ -212,12 +212,11 @@ impl<'source> Lexer<'source> {
             '$' => Token::Dollar,
             '&' => Token::NewColumn,
             '\'' => Token::MathOrTextMode(&Token::Prime(PrimeKind::Single), '’'),
-            '<' => Token::MathOrTextMode(
-                &Token::Operator(Operator::Relation(symbol::LESS_THAN_SIGN)),
-                '<',
-            ),
+            '<' => {
+                Token::MathOrTextMode(&Token::Operator(Operator::Rel(symbol::LESS_THAN_SIGN)), '<')
+            }
             '>' => Token::MathOrTextMode(
-                &Token::Operator(Operator::Relation(symbol::GREATER_THAN_SIGN)),
+                &Token::Operator(Operator::Rel(symbol::GREATER_THAN_SIGN)),
                 '>',
             ),
             '[' => Token::SquareBracketOpen,
@@ -241,32 +240,19 @@ impl<'source> Lexer<'source> {
                 ')',
             ),
             '*' => Token::MathOrTextMode(
-                &const { Token::Operator(Operator::ForceBinaryOp(symbol::ASTERISK_OPERATOR.as_op())) },
+                &const { Token::Operator(Operator::ForceBin(symbol::ASTERISK_OPERATOR.as_op())) },
                 '*',
             ),
-            '+' => {
-                Token::MathOrTextMode(&Token::Operator(Operator::BinaryOp(symbol::PLUS_SIGN)), '+')
-            }
-            ',' => {
-                Token::MathOrTextMode(&Token::Operator(Operator::Punctuation(symbol::COMMA)), ',')
-            }
-            '-' => Token::MathOrTextMode(
-                &Token::Operator(Operator::BinaryOp(symbol::MINUS_SIGN)),
-                '-',
-            ),
+            '+' => Token::MathOrTextMode(&Token::Operator(Operator::Bin(symbol::PLUS_SIGN)), '+'),
+            ',' => Token::MathOrTextMode(&Token::Operator(Operator::Punct(symbol::COMMA)), ','),
+            '-' => Token::MathOrTextMode(&Token::Operator(Operator::Bin(symbol::MINUS_SIGN)), '-'),
             '/' => Token::MathOrTextMode(&Token::Operator(Operator::Ord(symbol::SOLIDUS)), '/'),
             ':' => Token::MathOrTextMode(
-                &const { Token::Operator(Operator::ForceRelation(symbol::COLON.as_op())) },
+                &const { Token::Operator(Operator::ForceRel(symbol::COLON.as_op())) },
                 ':',
             ),
-            ';' => Token::MathOrTextMode(
-                &Token::Operator(Operator::Punctuation(symbol::SEMICOLON)),
-                ';',
-            ),
-            '=' => Token::MathOrTextMode(
-                &Token::Operator(Operator::Relation(symbol::EQUALS_SIGN)),
-                '=',
-            ),
+            ';' => Token::MathOrTextMode(&Token::Operator(Operator::Punct(symbol::SEMICOLON)), ';'),
+            '=' => Token::MathOrTextMode(&Token::Operator(Operator::Rel(symbol::EQUALS_SIGN)), '='),
             '|' => {
                 Token::MathOrTextMode(&Token::Operator(Operator::Ord(symbol::VERTICAL_LINE)), '|')
             }

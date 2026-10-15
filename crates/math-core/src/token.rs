@@ -248,15 +248,15 @@ pub enum Operator {
     /// A token corresponding to LaTeX's "mathord" character class (class 0).
     Ord(OrdLike),
     /// A token corresponding to LaTeX's "mathbin" character class (class 2).
-    BinaryOp(Bin),
+    Bin(Bin),
     /// A token corresponding to LaTeX's "mathrel" character class (class 3).
-    Relation(Rel),
+    Rel(Rel),
     /// A token corresponding to LaTeX's "mathopen" character class (class 4).
     Open(OrdLike),
     /// A token corresponding to LaTeX's "mathclose" character class (class 5).
     Close(OrdLike),
     /// A token corresponding to LaTeX's "mathpunct" character class (class 6).
-    Punctuation(Punct),
+    Punct(Punct),
     /// A token corresponding to LaTeX's "mathinner" character class (class I).
     Inner(Op),
     /// A token to force an operator to have `\mathord` spacing (all spacing forced to zero).
@@ -266,11 +266,11 @@ pub enum Operator {
     /// A token to force an operator to behave like a binary operator (mathbin).
     /// This is, for example, needed for `×`, which in LaTeX is a binary operator,
     /// but in MathML Core is a "big operator" (mathop).
-    ForceBinaryOp(MathMLOperator),
+    ForceBin(MathMLOperator),
     /// A token to force an operator to behave like a relation (mathrel).
     /// This is, for example, needed for `:`, which in LaTeX is a relation,
     /// but in MathML Core is a separator (punctuation).
-    ForceRelation(MathMLOperator),
+    ForceRel(MathMLOperator),
     /// A token to force an operator to behave like an opening symbol (mathopen).
     ForceOpen(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like a closing symbol (mathclose).
@@ -278,11 +278,11 @@ pub enum Operator {
     /// but in MathML Core is an ordinary operator.
     ForceClose(MathMLOperator, ForceStretchy),
     /// A token to force an operator to behave like punctuation (mathpunct).
-    ForcePunctuation(MathMLOperator),
+    ForcePunct(MathMLOperator),
     /// A token to force an operator to behave like an inner atom (mathinner).
     /// This is, for example, needed for the midline horizontal ellipsis `⋯` produced by `\cdots`
     /// under conventional Unicode substitution, which needs inner spacing.
-    ForceMathInner(MathMLOperator),
+    ForceInner(MathMLOperator),
 }
 
 impl Operator {
@@ -290,12 +290,12 @@ impl Operator {
         use Operator::*;
         match self {
             Ord(_) | ForceOrd(_) => Class::Default,
-            BinaryOp(_) | ForceBinaryOp(_) => Class::BinaryOp,
-            Relation(_) | ForceRelation(_) => Class::Relation,
+            Bin(_) | ForceBin(_) => Class::BinaryOp,
+            Rel(_) | ForceRel(_) => Class::Relation,
             Open(_) | ForceOpen(_, _) => Class::Open,
             Close(_) | ForceClose(_, _) => Class::Close,
-            Punctuation(_) | ForcePunctuation(_) => Class::Punctuation,
-            Inner(_) | ForceMathInner(_) => Class::Inner,
+            Punct(_) | ForcePunct(_) => Class::Punctuation,
+            Inner(_) | ForceInner(_) => Class::Inner,
         }
     }
 
@@ -304,16 +304,16 @@ impl Operator {
         match self {
             Open(op) | Close(op) | Ord(op) => op.as_op().as_superchar(),
             Inner(op) => op.as_op().as_superchar(),
-            BinaryOp(op) => op.as_op().as_superchar(),
-            Relation(op) => op.as_op().as_superchar(),
-            Punctuation(op) => op.as_op().as_superchar(),
+            Bin(op) => op.as_op().as_superchar(),
+            Rel(op) => op.as_op().as_superchar(),
+            Punct(op) => op.as_op().as_superchar(),
             ForceOrd(op)
-            | ForceBinaryOp(op)
-            | ForceRelation(op)
+            | ForceBin(op)
+            | ForceRel(op)
             | ForceOpen(op, _)
             | ForceClose(op, _)
-            | ForcePunctuation(op)
-            | ForceMathInner(op) => op.as_superchar(),
+            | ForcePunct(op)
+            | ForceInner(op) => op.as_superchar(),
         }
     }
 }
