@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathbf{\\Gamma\\gamma\\varGamma}"
+---
+<math>
+    <mrow>
+        <mi>𝚪</mi>
+        <mi>γ</mi>
+        <mi>Γ</mi>
+    </mrow>
+</math>

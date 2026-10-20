@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathbf{a\\alpha b}"
+---
+<math>
+    <mrow>
+        <mi>𝐚</mi>
+        <mi>α</mi>
+        <mi>𝐛</mi>
+    </mrow>
+</math>

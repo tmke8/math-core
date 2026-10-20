@@ -9,7 +9,8 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
         <mrow>
             <mrow><mspace/><mi>max</mi></mrow>
             <mo lspace="0.1667em">&ApplyFunction;</mo>
-            <mrow><mspace/><mi>𝛼𝛽</mi></mrow>
+            <mi>α</mi>
         </mrow>
+        <mi>β</mi>
     </mrow>
 </math>

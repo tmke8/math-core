@@ -9,11 +9,11 @@ expression: "\\Braket{\\phi|\\dfrac{\\partial^2}{\\partial t^2}|\\psi}"
         <mo stretchy="true" form="infix" lspace="0.1667em" rspace="0.1667em">|</mo>
         <mfrac displaystyle="true">
             <msup>
-                <mi>∂</mi>
+                <mo lspace="0" rspace="0">𝜕</mo>
                 <mn>2</mn>
             </msup>
             <mrow>
-                <mi>∂</mi>
+                <mo lspace="0" rspace="0">𝜕</mo>
                 <msup>
                     <mi>t</mi>
                     <mn>2</mn>

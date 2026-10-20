@@ -3,7 +3,7 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathbf{\\nabla} + \\nabla"
 ---
 <math>
-    <mi>𝛁</mi>
+    <mo>∇</mo>
     <mo>+</mo>
-    <mrow><mspace/><mi mathvariant="normal">∇</mi></mrow>
+    <mo>∇</mo>
 </math>

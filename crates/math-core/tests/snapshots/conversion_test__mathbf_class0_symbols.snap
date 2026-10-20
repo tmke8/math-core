@@ -1,0 +1,12 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathbf{\\partial\\nabla\\infty\\ell}"
+---
+<math>
+    <mrow>
+        <mo lspace="0" rspace="0">𝜕</mo>
+        <mo>∇</mo>
+        <mi>∞</mi>
+        <mi>ℓ</mi>
+    </mrow>
+</math>

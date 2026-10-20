@@ -3,5 +3,5 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\mathbf{∇}"
 ---
 <math>
-    <mi>𝛁</mi>
+    <mo>∇</mo>
 </math>

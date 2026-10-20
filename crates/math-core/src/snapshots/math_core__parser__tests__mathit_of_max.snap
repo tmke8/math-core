@@ -21,7 +21,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
             left: Some(ThreeMu),
             right: None,
           ),
-          IdentifierStr("𝛼𝛽"),
+          IdentifierChar("α", Default),
         ],
         attrs: RowAttrs(
           color: None,
@@ -29,6 +29,7 @@ expression: "\\mathit{ab \\max \\alpha\\beta}"
           math_shift_compact: false,
         ),
       ),
+      IdentifierChar("β", Default),
     ],
     attrs: RowAttrs(
       color: None,

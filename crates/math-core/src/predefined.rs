@@ -1,4 +1,4 @@
-use mathml_renderer::{attribute::Notation, super_char::SuperChar, symbol};
+use mathml_renderer::{attribute::Notation, symbol};
 
 use crate::token::Operator::*;
 use crate::token::Token::{self, *};
@@ -32,7 +32,7 @@ pub static MATHSTRUT: [Token; 2] = [
 pub static SURD: [Token; 3] = [
     Sqrt,
     Phantom(PhantomKind::V),
-    Letter(symbol::VERTICAL_LINE.as_op().as_superchar(), Mode::Math),
+    Letter(symbol::VERTICAL_LINE.as_bmp_op().as_char(), Mode::Math),
 ];
 
 pub static AND: [Token; 3] = [
@@ -285,10 +285,7 @@ pub static SIM_DOUBLE_COLON: [Token; 3] = [
     Operator(ForceRel(symbol::RATIO.as_op())),
 ];
 
-pub static ANGLN: [Token; 2] = [
-    Enclose(Notation::ACTUARIAL),
-    Letter(SuperChar::from_char('n'), Mode::Math),
-];
+pub static ANGLN: [Token; 2] = [Enclose(Notation::ACTUARIAL), Letter('n', Mode::Math)];
 
 pub static APPROX_COLON: [Token; 2] = [
     Operator(Rel(symbol::ALMOST_EQUAL_TO)),

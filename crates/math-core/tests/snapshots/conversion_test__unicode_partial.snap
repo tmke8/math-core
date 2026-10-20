@@ -5,22 +5,22 @@ expression: "\\frac{∂f}{∂x} = \\frac{\\partial f}{\\partial x}"
 <math>
     <mfrac>
         <mrow>
-            <mi>∂</mi>
+            <mo lspace="0" rspace="0">𝜕</mo>
             <mi>f</mi>
         </mrow>
         <mrow>
-            <mi>∂</mi>
+            <mo lspace="0" rspace="0">𝜕</mo>
             <mi>x</mi>
         </mrow>
     </mfrac>
     <mo>=</mo>
     <mfrac>
         <mrow>
-            <mi>∂</mi>
+            <mo lspace="0" rspace="0">𝜕</mo>
             <mi>f</mi>
         </mrow>
         <mrow>
-            <mi>∂</mi>
+            <mo lspace="0" rspace="0">𝜕</mo>
             <mi>x</mi>
         </mrow>
     </mfrac>
