@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathrm{\\mu\\Gamma}"
+---
+<math>
+    <mrow>
+        <mi>μ</mi>
+        <mrow><mspace/><mi mathvariant="normal">Γ</mi></mrow>
+    </mrow>
+</math>

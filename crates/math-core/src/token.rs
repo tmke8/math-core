@@ -141,10 +141,20 @@ pub enum Token {
     /// The `Rel` is the stretchy arrow operator to render.
     XArrow(Rel),
     /// An ordinary letter, e.g. `a`, `b`, `c`.
-    Letter(SuperChar, Mode),
+    ///
+    /// Letters are affected by math alphabet commands like `\mathbf`. In LaTeX, these are the
+    /// symbols whose math code has class 7 ("variable family").
+    Letter(char, Mode),
     /// A letter for which we need `mathvariant="normal"`.
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
-    UprightLetter(SuperChar),
+    ///
+    /// Like [`Token::Letter`], these are affected by math alphabet commands like `\mathbf`.
+    UprightLetter(char),
+    /// A symbol which is rendered like a [`Token::Letter`], but which is not affected by math
+    /// alphabet commands like `\mathbf`; only `\boldsymbol` changes it. In LaTeX, these are
+    /// the symbols whose math code has class 0 rather than 7, e.g. `\alpha`, `\varGamma`,
+    /// or `\infty`.
+    Symbol(SuperChar, Mode),
     /// A digit, e.g. `0`, `1`, `2`.
     Digit(char),
     /// Text-based operators without limits.
@@ -681,6 +691,7 @@ impl Token {
             }
             Letter(_, _)
             | UprightLetter(_)
+            | Symbol(_, _)
             | Digit(_)
             | Big(_, None)
             | Frac(_)

@@ -42,7 +42,7 @@ use crate::{
     token_queue::{CmdArgs, MacroArgument, OneOrNone, TokenQueue},
 };
 
-const FULL_STOP_TOKEN: Token = Token::Letter(SuperChar::from_char('.'), Mode::MathOrText);
+const FULL_STOP_TOKEN: Token = Token::Letter('.', Mode::MathOrText);
 
 pub(crate) struct Parser<'state, 'arena> {
     pub(super) tokens: TokenQueue<'state, 'arena>,
@@ -535,7 +535,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let mut class = Class::default();
         let node: Result<Node, LatexError> = match cur_token {
             Token::Digit(number) => 'digit: {
-                if let Some(MathVariant::Transform(tf)) = self.state.transform {
+                if let Some(tf) = self.state.transform.and_then(MathVariant::text_transform) {
                     break 'digit Ok(Node::IdentifierChar(
                         tf.transform(number.into(), false),
                         LetterAttr::Default,
@@ -572,16 +572,25 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            tok @ (Token::Letter(c, _) | Token::UprightLetter(c)) => {
+            tok @ (Token::Letter(_, _) | Token::UprightLetter(_) | Token::Symbol(_, _)) => {
+                let c: SuperChar = match tok {
+                    Token::Letter(c, _) | Token::UprightLetter(c) => c.into(),
+                    Token::Symbol(c, _) => c,
+                    _ => unreachable!(),
+                };
                 let mut is_upright = matches!(tok, Token::UprightLetter(_));
                 let mut with_tf = false;
-                let ch = if let Some(tf) = self.state.transform {
-                    match tf {
-                        MathVariant::Transform(tf) => {
+                // Symbols like `\alpha` are only affected by some variants.
+                let variant = self.state.transform.filter(|variant| {
+                    !matches!(tok, Token::Symbol(_, _)) || variant.applies_to_all_symbols()
+                });
+                let ch = if let Some(variant) = variant {
+                    match variant.text_transform() {
+                        Some(tf) => {
                             with_tf = true;
                             tf.transform(c, is_upright)
                         }
-                        MathVariant::Normal => {
+                        None => {
                             is_upright = true;
                             c
                         }
@@ -1178,7 +1187,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::Transform(tf) => {
                 let old_tf = self.state.transform.replace(tf);
-                let mut content = self.parse_next(ParseAs::Arg)?;
+                let mut content = self.parse_next(ParseAs::ArgWithSpace)?;
                 self.state.transform = old_tf;
                 if parse_as.in_sequence() {
                     // Rewrite the pseudo operator *now* before we see the arguments.
@@ -1792,7 +1801,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         let next = self.tokens.next();
                         match next.as_ref().map(TokSpan::token) {
                             Ok(Token::Letter(c, _)) => {
-                                type_name_builder.push_superchar(*c);
+                                type_name_builder.push_char(*c);
                             }
                             Ok(Token::SquareBracketClose) => break,
                             _ => {
@@ -2288,7 +2297,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 return Ok(Parsed::Expansion);
             }
             Token::InternalStringLiteral(content) => {
-                if let Some(MathVariant::Transform(tf)) = self.state.transform {
+                if let Some(tf) = self.state.transform.and_then(MathVariant::text_transform) {
                     let mut builder = self.buffer.get_builder();
                     for c in content.chars() {
                         builder.push_superchar(tf.transform_char(c, false));
@@ -2331,6 +2340,26 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         prev_class: Class,
         next_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        let operator = if matches!(self.state.transform, Some(MathVariant::BoldSymbol)) {
+            bold_operator(operator)
+        } else {
+            operator
+        };
+        // In LaTeX, `\nabla` and `\partial` are ordinary symbols, but semantically, they are
+        // applied to whatever follows them.
+        let ord_roles = if matches!(
+            operator,
+            Operator::Ord(symbol::NABLA)
+                | Operator::ForceOrd(
+                    symbol::MATHEMATICAL_ITALIC_PARTIAL_DIFFERENTIAL
+                        | symbol::MATHEMATICAL_BOLD_NABLA
+                        | symbol::MATHEMATICAL_BOLD_ITALIC_PARTIAL_DIFFERENTIAL
+                )
+        ) {
+            OpRoles::ROLE_PREFIX
+        } else {
+            OpRoles::ROLE_INFIX
+        };
         let class;
         let node: Node = match operator {
             Operator::Rel(relation) => {
@@ -2423,7 +2452,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 Node::Operator {
                     op: ord.as_op(),
-                    roles: OpRoles::ROLE_INFIX,
+                    roles: ord_roles,
                     attrs,
                     left,
                     right,
@@ -2435,7 +2464,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
+                    roles: ord_roles,
                     left: Some(MathSpacing::Zero),
                     right: Some(MathSpacing::Zero),
                     size: None,
@@ -3331,22 +3360,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
         // Loop until we find a non-letter token.
         while let tok = self.tokens.peek().token()
-            && matches!(
-                tok,
-                Token::Letter(_, _) | Token::UprightLetter(_) | Token::Digit(_)
-            )
-        {
-            if matches!(tok, Token::Digit(_)) && matches!(tf, MathVariant::Normal) {
+            && match tok {
+                Token::Letter(_, _) | Token::UprightLetter(_) => true,
+                // Symbols like `\alpha` are only affected by some variants. If they are not
+                // affected, they have to be in their own `<mi>`, so that they're still italic.
+                Token::Symbol(_, _) => tf.applies_to_all_symbols(),
                 // Don't collect digits in normal math variant.
-                break;
+                Token::Digit(_) => !matches!(tf, MathVariant::Normal),
+                _ => false,
             }
+        {
             let ch: SuperChar = match *tok {
-                Token::Letter(ch, _) | Token::UprightLetter(ch) => ch,
-                Token::Digit(ch) => ch.into(),
+                Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch) => ch.into(),
+                Token::Symbol(ch, _) => ch,
                 _ => unreachable!(),
             };
             let is_upright = matches!(tok, Token::UprightLetter(_));
-            let c = if let MathVariant::Transform(tf) = tf {
+            let c = if let Some(tf) = tf.text_transform() {
                 tf.transform(ch, is_upright)
             } else {
                 ch
@@ -3440,8 +3470,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.tokens.peek_any_token()
             };
             let peek_span = tokloc.span();
-            let unit_char = if let Token::Letter(ch, _) = tokloc.token()
-                && let Some(c) = ch.try_as_char()
+            let unit_char = if let &Token::Letter(c, _) = tokloc.token()
                 && c.is_ascii_alphabetic()
             {
                 Some(c)
@@ -3728,6 +3757,19 @@ fn extract_delimiter(tok: TokSpan, location: DelimiterModifier) -> ParseResult<S
     Ok(delim)
 }
 
+/// The bold form which `\boldsymbol` gives to an operator, if Unicode has one.
+///
+/// The bold forms aren't in the operator dictionary, so they are forced to have no spacing.
+const fn bold_operator(operator: Operator) -> Operator {
+    match operator {
+        Operator::Ord(symbol::NABLA) => Operator::ForceOrd(symbol::MATHEMATICAL_BOLD_NABLA),
+        Operator::ForceOrd(symbol::MATHEMATICAL_ITALIC_PARTIAL_DIFFERENTIAL) => {
+            Operator::ForceOrd(symbol::MATHEMATICAL_BOLD_ITALIC_PARTIAL_DIFFERENTIAL)
+        }
+        _ => operator,
+    }
+}
+
 fn relation_attrs(rel_category: symbol::RelCategory) -> OpAttrs {
     match rel_category {
         // Category A relations are stretchy by default; we explicitly
@@ -3927,7 +3969,7 @@ mod tests {
                 &[
                     Text(None),
                     GroupBegin,
-                    const { Letter(SuperChar::from_char('a'), Mode::MathOrText) },
+                    const { Letter('a', Mode::MathOrText) },
                     InternalStringLiteral("hi"),
                     GroupEnd,
                 ],

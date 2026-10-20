@@ -171,8 +171,8 @@ impl<'source> Lexer<'source> {
                     LatexErrKind::DisallowedChar(ch),
                 )));
             }
-            ' ' => Token::Letter(symbol::NO_BREAK_SPACE.into(), Mode::MathOrText),
-            '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK.into(), Mode::MathOrText),
+            ' ' => Token::Letter(symbol::NO_BREAK_SPACE, Mode::MathOrText),
+            '"' => Token::Letter(symbol::RIGHT_DOUBLE_QUOTATION_MARK, Mode::MathOrText),
             // In a custom command, `#` is used to denote a parameter. We always lex it as such
             // and leave it to the consumer of the tokens to decide whether a parameter is
             // allowed in that position.
@@ -223,7 +223,7 @@ impl<'source> Lexer<'source> {
             ']' => Token::SquareBracketClose,
             '^' => Token::Circumflex,
             '_' => Token::Underscore,
-            '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK.into(), Mode::MathOrText),
+            '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK, Mode::MathOrText),
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
             '~' => Token::NonBreakingSpace,
@@ -265,12 +265,15 @@ impl<'source> Lexer<'source> {
             }
             c if c.is_ascii_digit() => Token::Digit(c),
             // fast path to avoid expensive lookup below
-            c if c.is_ascii_alphabetic() => Token::Letter(c.into(), Mode::MathOrText),
+            c if c.is_ascii_alphabetic() => Token::Letter(c, Mode::MathOrText),
             c if let Some(tok) = get_operator_from_unicode(c) => tok,
             // Characters from the Unicode blocks that are dedicated to math symbols are only
             // accepted if we know how to handle them; the rest is valid in text mode only.
             c if is_math_symbol_block(c) => Token::UnsupportedUnicodeMath(c),
-            c => Token::Letter(c.into(), Mode::MathOrText),
+            // Greek letters typed directly behave like the commands for them, e.g. `\alpha`,
+            // which aren't affected by math alphabets like `\mathbf`.
+            c @ '\u{0370}'..='\u{03FF}' => Token::Symbol(c.into(), Mode::MathOrText),
+            c => Token::Letter(c, Mode::MathOrText),
         };
         Ok(LexerOutput::Token(TokSpan::new(tok, span)))
     }
@@ -345,12 +348,7 @@ enum EnvMarker {
 
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
-        Token::Letter(ch, _)
-            if let Some(c) = ch.try_as_char()
-                && (c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@')) =>
-        {
-            Some(c)
-        }
+        Token::Letter(c, _) if c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@') => Some(c),
         Token::Digit(ch) | Token::MathOrTextMode(_, ch)
             if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') =>
         {

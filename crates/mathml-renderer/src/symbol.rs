@@ -671,7 +671,6 @@ pub const LEFT_RIGHT_OPEN_HEADED_ARROW: Rel = Rel::new('⇿', RelCategory::A);
 //
 pub const FOR_ALL: OrdLike = OrdLike::new('∀', OrdCategory::D);
 pub const COMPLEMENT: OrdLike = OrdLike::new('∁', OrdCategory::D);
-pub const PARTIAL_DIFFERENTIAL: char = '∂'; // char so that it can be transformed
 pub const THERE_EXISTS: OrdLike = OrdLike::new('∃', OrdCategory::D);
 pub const THERE_DOES_NOT_EXIST: OrdLike = OrdLike::new('∄', OrdCategory::D);
 pub const EMPTY_SET: char = '∅';
@@ -679,7 +678,7 @@ pub const EMPTY_SET_ZERO_WITH_LONG_DIAGONAL_STROKE_OVERLAY_FORM: SuperChar =
     SuperChar::from_char_with_vs(EMPTY_SET, VariationSelector::Vs1);
 
 pub const INCREMENT: char = '∆';
-pub const NABLA: char = '∇'; // char so that it can be transformed
+pub const NABLA: OrdLike = OrdLike::new('∇', OrdCategory::D);
 pub const ELEMENT_OF: Rel = Rel::new('∈', RelCategory::Default);
 pub const NOT_AN_ELEMENT_OF: Rel = Rel::new('∉', RelCategory::Default);
 pub const SMALL_ELEMENT_OF: Rel = Rel::new('∊', RelCategory::Default);
@@ -1676,6 +1675,15 @@ pub const RIGHTWARDS_ARROW_ABOVE_REVERSE_TILDE_OPERATOR: Rel = Rel::new('⭌', R
 // Unicode Block: Small Form Variants
 //
 // pub const SMALL_REVERSE_SOLIDUS: Rel = Rel::new('﹨', RelCategory::Default);
+
+//
+// Unicode Block: Mathematical Alphanumeric Symbols
+//
+// These are not in the operator dictionary, so they need explicit spacing.
+pub const MATHEMATICAL_BOLD_NABLA: MathMLOperator = MathMLOperator::from_char('𝛁');
+pub const MATHEMATICAL_ITALIC_PARTIAL_DIFFERENTIAL: MathMLOperator = MathMLOperator::from_char('𝜕');
+pub const MATHEMATICAL_BOLD_ITALIC_PARTIAL_DIFFERENTIAL: MathMLOperator =
+    MathMLOperator::from_char('𝝏');
 
 //
 // Unicode Block: Arabic Mathematical Alphabetic Symbols

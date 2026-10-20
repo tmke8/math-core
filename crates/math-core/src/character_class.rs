@@ -46,6 +46,30 @@ pub enum MathVariant {
     Normal,
     /// This is enforced by transforming the characters themselves.
     Transform(TextTransform),
+    /// `\boldsymbol`, `\bm` and `\symbf`: bold italic, enforced by transforming the characters.
+    ///
+    /// Unlike the other variants, this applies to all symbols, not just letters and digits.
+    /// For example, it also affects `\alpha` and `\nabla`.
+    BoldSymbol,
+}
+
+impl MathVariant {
+    /// The transform which this variant applies to the characters, if any.
+    #[inline]
+    pub const fn text_transform(self) -> Option<TextTransform> {
+        match self {
+            MathVariant::Normal => None,
+            MathVariant::Transform(tf) => Some(tf),
+            MathVariant::BoldSymbol => Some(TextTransform::BoldItalic),
+        }
+    }
+
+    /// Whether this variant also applies to symbols like `\alpha`, which, in LaTeX, aren't
+    /// affected by math alphabets like `\mathbf`.
+    #[inline]
+    pub const fn applies_to_all_symbols(self) -> bool {
+        matches!(self, MathVariant::BoldSymbol)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
