@@ -1,0 +1,17 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\max\\partial_x f"
+---
+<math>
+    <mrow>
+        <mrow><mspace/><mi>max</mi></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mrow>
+            <msub>
+                <mo lspace="0" rspace="0">𝜕</mo>
+                <mi>x</mi>
+            </msub>
+            <mi>f</mi>
+        </mrow>
+    </mrow>
+</math>

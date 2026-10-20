@@ -554,6 +554,13 @@ fn main() {
             r"\boldsymbol{\slashed\partial}",
         ),
         ("unicode_greek_in_mathbf", r"\mathbf{αΓ}"),
+        ("pseudo_operator_nabla", r"\sin\nabla f"),
+        ("pseudo_operator_partial_sub", r"\max\partial_x f"),
+        (
+            "pseudo_operator_boldsymbol_nabla",
+            r"\sin\boldsymbol{\nabla} f",
+        ),
+        ("pseudo_operator_nabla_after_arg", r"\sin x\nabla y"),
         ("mathcal_vs_mathscr", r"\mathcal{A}, \mathscr{A}"),
         ("mathcal_vs_mathscr_single", r"\mathcal A, \mathscr A"),
         ("mathcal_vs_mathscr_multi", r"\mathcal{AB}, \mathscr{AB}"),

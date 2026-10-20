@@ -2345,6 +2345,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         } else {
             operator
         };
+        // In LaTeX, `\nabla` and `\partial` are ordinary symbols, but semantically, they are
+        // applied to whatever follows them.
+        let ord_roles = if matches!(
+            operator,
+            Operator::Ord(symbol::NABLA)
+                | Operator::ForceOrd(
+                    symbol::MATHEMATICAL_ITALIC_PARTIAL_DIFFERENTIAL
+                        | symbol::MATHEMATICAL_BOLD_NABLA
+                        | symbol::MATHEMATICAL_BOLD_ITALIC_PARTIAL_DIFFERENTIAL
+                )
+        ) {
+            OpRoles::ROLE_PREFIX
+        } else {
+            OpRoles::ROLE_INFIX
+        };
         let class;
         let node: Node = match operator {
             Operator::Rel(relation) => {
@@ -2437,7 +2452,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 Node::Operator {
                     op: ord.as_op(),
-                    roles: OpRoles::ROLE_INFIX,
+                    roles: ord_roles,
                     attrs,
                     left,
                     right,
@@ -2449,7 +2464,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Node::Operator {
                     op,
                     attrs: OpAttrs::empty(),
-                    roles: OpRoles::ROLE_INFIX,
+                    roles: ord_roles,
                     left: Some(MathSpacing::Zero),
                     right: Some(MathSpacing::Zero),
                     size: None,
