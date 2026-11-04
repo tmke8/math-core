@@ -155,7 +155,6 @@ pub fn parse_column_specification<'arena>(
 
     Some(ArraySpec {
         border_left,
-        border_top: None,
         is_sub: false,
         column_spec: arena.alloc_column_spec(column_spec.as_slice()),
     })

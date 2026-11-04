@@ -6,32 +6,40 @@ expression: "\\begin{matrix}\\sum\\displaystyle\\sum\\end{matrix}"
   Table(
     align: Centered,
     style: Some(Text),
-    border_top: None,
-    content: [
-      Operator(
-        op: "∑",
-        attrs: OpAttrs(""),
-        roles: OpRoles("ROLE_PREFIX"),
-        size: None,
-        left: Some(Zero),
-        right: None,
-      ),
-      Row(
-        nodes: [
-          Operator(
-            op: "∑",
-            attrs: OpAttrs(""),
-            roles: OpRoles("ROLE_PREFIX"),
-            size: None,
-            left: Some(Zero),
-            right: Some(Zero),
-          ),
+    rows: [
+      TableRow(
+        label_info: None,
+        border_top: None,
+        shove: None,
+        cells: [
+          [
+            Operator(
+              op: "∑",
+              attrs: OpAttrs(""),
+              roles: OpRoles("ROLE_PREFIX"),
+              size: None,
+              left: Some(Zero),
+              right: None,
+            ),
+            Row(
+              nodes: [
+                Operator(
+                  op: "∑",
+                  attrs: OpAttrs(""),
+                  roles: OpRoles("ROLE_PREFIX"),
+                  size: None,
+                  left: Some(Zero),
+                  right: Some(Zero),
+                ),
+              ],
+              attrs: RowAttrs(
+                color: None,
+                style: Some(Display),
+                math_shift_compact: false,
+              ),
+            ),
+          ],
         ],
-        attrs: RowAttrs(
-          color: None,
-          style: Some(Display),
-          math_shift_compact: false,
-        ),
       ),
     ],
   ),

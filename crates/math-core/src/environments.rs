@@ -1,13 +1,12 @@
 use alloc::string::String;
 use core::fmt::Write;
-use core::num::NonZeroU16;
 
 use mathml_renderer::{
     arena::Arena,
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, ColumnAlignment, EquationTag, LineType, RowLabelInfo},
+    table::{Alignment, ArraySpec, EquationTag, TableRow},
 };
 
 use crate::character_class::StretchableOp;
@@ -161,11 +160,6 @@ impl Env {
                     Env::MultLine => NumberingMode::OnlyLast,
                     _ => NumberingMode::NoneByDefault,
                 },
-                num_rows: if matches!(self, Env::MultLine | Env::MultLineStar) {
-                    NonZeroU16::new(1)
-                } else {
-                    None
-                },
                 ..Default::default()
             })
         } else {
@@ -198,64 +192,45 @@ impl Env {
 
     pub(super) fn construct_node<'arena>(
         self,
-        content: &'arena [&'arena Node<'arena>],
+        rows: &'arena [TableRow<'arena>],
         array_spec: Option<&'arena ArraySpec<'arena>>,
-        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
-        num_rows: Option<NonZeroU16>,
-        border_top: Option<LineType>,
-        initial_shove: Option<ColumnAlignment>,
     ) -> Node<'arena> {
         match self {
             Env::Align | Env::AlignStar => Node::EquationArray {
                 align: Alignment::Alternating,
-                last_row_info,
-                content,
+                rows,
             },
             Env::Aligned => Node::Table {
                 align: Alignment::Alternating,
                 style: Some(Style::Display),
-                content,
-                border_top: None,
+                rows,
             },
             Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
                 Node::EquationArray {
                     align: Alignment::Centered,
-                    last_row_info,
-                    content,
+                    rows,
                 }
             }
             Env::Gathered => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Display),
-                content,
-                border_top: None,
+                rows,
             },
             Env::Matrix => Node::Table {
                 align: Alignment::Centered,
                 style: Some(Style::Text),
-                content,
-                border_top,
+                rows,
             },
-            Env::MultLine | Env::MultLineStar => {
-                debug_assert!(num_rows.is_some());
-                Node::MultLine {
-                    content,
-                    num_rows: num_rows.unwrap_or(NonZeroU16::new(1).unwrap()),
-                    last_row_info,
-                    initial_shove,
-                }
-            }
+            Env::MultLine | Env::MultLineStar => Node::MultLine { rows },
             Env::Cases | Env::RCases => Node::Table {
-                content,
+                rows,
                 align: Alignment::Cases,
                 style: Some(Style::Text),
-                border_top: None,
             },
             Env::DCases | Env::DRCases => Node::Table {
-                content,
+                rows,
                 align: Alignment::Cases,
                 style: Some(Style::Display),
-                border_top: None,
             },
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -271,16 +246,15 @@ impl Env {
                 };
                 Node::Array {
                     style,
-                    content,
+                    rows,
                     array_spec,
                 }
             }
             Env::PMatrix | Env::BMatrix | Env::Bmatrix | Env::VMatrix | Env::Vmatrix => {
                 Node::Table {
-                    content,
+                    rows,
                     align: Alignment::Centered,
                     style: Some(Style::Text),
-                    border_top,
                 }
             }
         }
@@ -320,7 +294,6 @@ pub(super) struct NumberedEnvState<'arena> {
     pub(super) suppress_next_number: bool,
     pub(super) custom_next_tag: Option<EquationTag<'arena>>,
     pub(super) label: Option<&'arena str>,
-    pub(super) num_rows: Option<NonZeroU16>,
 }
 
 impl<'arena> NumberedEnvState<'arena> {

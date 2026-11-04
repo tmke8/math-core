@@ -16,15 +16,27 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
       Table(
         align: Centered,
         style: Some(Text),
-        border_top: None,
-        content: [
-          IdentifierChar("x", Default),
-          RowSeparator(
+        rows: [
+          TableRow(
             label_info: None,
             border_top: None,
             shove: None,
+            cells: [
+              [
+                IdentifierChar("x", Default),
+              ],
+            ],
           ),
-          IdentifierChar("y", Default),
+          TableRow(
+            label_info: None,
+            border_top: None,
+            shove: None,
+            cells: [
+              [
+                IdentifierChar("y", Default),
+              ],
+            ],
+          ),
         ],
       ),
       Operator(
