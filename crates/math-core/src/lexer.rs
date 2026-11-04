@@ -270,8 +270,14 @@ impl<'source> Lexer<'source> {
             // Characters from the Unicode blocks that are dedicated to math symbols are only
             // accepted if we know how to handle them; the rest is valid in text mode only.
             c if is_math_symbol_block(c) => Token::UnsupportedUnicodeMath(c),
-            // Greek letters typed directly behave like the commands for them, e.g. `\alpha`,
-            // which aren't affected by math alphabets like `\mathbf`.
+            // Upper-case Greek letters typed directly behave like the commands for them, e.g.
+            // `\Gamma`: they are upright, and they are affected by math alphabets like `\mathbf`.
+            // (U+03A2 is unassigned, so it's excluded.)
+            c @ ('\u{0391}'..='\u{03A1}' | '\u{03A3}'..='\u{03A9}') => {
+                Token::UprightLetter(c, Mode::MathOrText)
+            }
+            // The rest of the Greek block behaves like the commands for those letters, e.g.
+            // `\alpha` or `\varGamma`, which aren't affected by math alphabets like `\mathbf`.
             c @ '\u{0370}'..='\u{03FF}' => Token::Symbol(c.into(), Mode::MathOrText),
             c => Token::Letter(c, Mode::MathOrText),
         };

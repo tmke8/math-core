@@ -149,7 +149,10 @@ pub enum Token {
     /// For example, upper-case greek letter like `\Gamma`, which should be rendered upright.
     ///
     /// Like [`Token::Letter`], these are affected by math alphabet commands like `\mathbf`.
-    UprightLetter(char),
+    ///
+    /// The [`Mode`] is [`Mode::Math`] for the commands (`\Gamma` is not valid in text mode),
+    /// and [`Mode::MathOrText`] for directly typed characters like `Γ`.
+    UprightLetter(char, Mode),
     /// A symbol which is rendered like a [`Token::Letter`], but which is not affected by math
     /// alphabet commands like `\mathbf`; only `\boldsymbol` changes it. In LaTeX, these are
     /// the symbols whose math code has class 0 rather than 7, e.g. `\alpha`, `\varGamma`,
@@ -690,7 +693,7 @@ impl Token {
                 None
             }
             Letter(_, _)
-            | UprightLetter(_)
+            | UprightLetter(_, _)
             | Symbol(_, _)
             | Digit(_)
             | Big(_, None)

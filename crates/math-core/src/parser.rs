@@ -572,13 +572,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 Ok(Node::Number(builder.finish(self.arena)))
             }
-            tok @ (Token::Letter(_, _) | Token::UprightLetter(_) | Token::Symbol(_, _)) => {
+            tok @ (Token::Letter(_, _) | Token::UprightLetter(_, _) | Token::Symbol(_, _)) => {
                 let c: SuperChar = match tok {
-                    Token::Letter(c, _) | Token::UprightLetter(c) => c.into(),
+                    Token::Letter(c, _) | Token::UprightLetter(c, _) => c.into(),
                     Token::Symbol(c, _) => c,
                     _ => unreachable!(),
                 };
-                let mut is_upright = matches!(tok, Token::UprightLetter(_));
+                let mut is_upright = matches!(tok, Token::UprightLetter(_, _));
                 let mut with_tf = false;
                 // Symbols like `\alpha` are only affected by some variants.
                 let variant = self.state.transform.filter(|variant| {
@@ -3361,7 +3361,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // Loop until we find a non-letter token.
         while let tok = self.tokens.peek().token()
             && match tok {
-                Token::Letter(_, _) | Token::UprightLetter(_) => true,
+                Token::Letter(_, _) | Token::UprightLetter(_, _) => true,
                 // Symbols like `\alpha` are only affected by some variants. If they are not
                 // affected, they have to be in their own `<mi>`, so that they're still italic.
                 Token::Symbol(_, _) => tf.applies_to_all_symbols(),
@@ -3371,11 +3371,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
         {
             let ch: SuperChar = match *tok {
-                Token::Letter(ch, _) | Token::UprightLetter(ch) | Token::Digit(ch) => ch.into(),
+                Token::Letter(ch, _) | Token::UprightLetter(ch, _) | Token::Digit(ch) => ch.into(),
                 Token::Symbol(ch, _) => ch,
                 _ => unreachable!(),
             };
-            let is_upright = matches!(tok, Token::UprightLetter(_));
+            let is_upright = matches!(tok, Token::UprightLetter(_, _));
             let c = if let Some(tf) = tf.text_transform() {
                 tf.transform(ch, is_upright)
             } else {

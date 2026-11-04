@@ -554,6 +554,12 @@ fn main() {
             r"\boldsymbol{\slashed\partial}",
         ),
         ("unicode_greek_in_mathbf", r"\mathbf{αΓ}"),
+        ("unicode_greek_capital", r"Α"),
+        ("unicode_greek_capital_in_mathrm", r"\mathrm{Α}"),
+        ("unicode_greek_capital_run_in_mathrm", r"\mathrm{ΑΒx}"),
+        ("unicode_greek_capital_in_boldsymbol", r"\boldsymbol{Α}"),
+        ("unicode_greek_small_in_mathrm", r"\mathrm{α}"),
+        ("unicode_greek_variants_in_mathrm", r"\mathrm{ϴϵϒ}"),
         ("pseudo_operator_nabla", r"\sin\nabla f"),
         ("pseudo_operator_partial_sub", r"\max\partial_x f"),
         (
@@ -1037,6 +1043,155 @@ fn main() {
             .convert_with_local_state(problem, MathDisplay::Inline)
             .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
         assert_snapshot!(name, &mathml.mathml, problem);
+    }
+}
+
+/// The upper-case Greek letters, paired with the commands that produce them.
+///
+/// U+03A2 is unassigned, so the range has a hole between `Ρ` and `Σ`.
+const GREEK_CAPITALS: [(char, &str); 24] = [
+    ('Α', r"\Alpha"),
+    ('Β', r"\Beta"),
+    ('Γ', r"\Gamma"),
+    ('Δ', r"\Delta"),
+    ('Ε', r"\Epsilon"),
+    ('Ζ', r"\Zeta"),
+    ('Η', r"\Eta"),
+    ('Θ', r"\Theta"),
+    ('Ι', r"\Iota"),
+    ('Κ', r"\Kappa"),
+    ('Λ', r"\Lambda"),
+    ('Μ', r"\Mu"),
+    ('Ν', r"\Nu"),
+    ('Ξ', r"\Xi"),
+    ('Ο', r"\Omicron"),
+    ('Π', r"\Pi"),
+    ('Ρ', r"\Rho"),
+    ('Σ', r"\Sigma"),
+    ('Τ', r"\Tau"),
+    ('Υ', r"\Upsilon"),
+    ('Φ', r"\Phi"),
+    ('Χ', r"\Chi"),
+    ('Ψ', r"\Psi"),
+    ('Ω', r"\Omega"),
+];
+
+/// A directly typed upper-case Greek letter must behave exactly like the command for it.
+///
+/// In `unicode-math`'s default `math-style=TeX`, upper-case Greek is upright, so `Α` is the
+/// `\Alpha` case (upright, and affected by math alphabets), not the `\varAlpha` case (italic,
+/// and immune to them).
+///
+/// The templates deliberately avoid a space after the command, because `\Alpha x` and `Αx`
+/// are not the same input.
+#[test]
+fn unicode_greek_capitals_match_commands() {
+    let templates = [
+        "@",
+        r"\mathrm{@}",
+        r"\mathbf{@}",
+        r"\mathit{@}",
+        r"\mathsf{@}",
+        r"\boldsymbol{@}",
+        r"\symbf{@}",
+        // A letter run: the directly typed letter has to join the surrounding `<mi>`.
+        r"\mathrm{x@}",
+        r"\mathrm{@@}",
+        r"@_2",
+    ];
+
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
+    let convert = |latex: &str| {
+        converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"))
+            .mathml
+    };
+
+    for (letter, command) in GREEK_CAPITALS {
+        for template in templates {
+            let direct = template.replace('@', letter.encode_utf8(&mut [0u8; 4]));
+            let via_command = template.replace('@', command);
+            assert_eq!(
+                convert(&direct),
+                convert(&via_command),
+                "`{direct}` and `{via_command}` must produce the same MathML",
+            );
+        }
+    }
+}
+
+/// A directly typed upper-case Greek letter is rendered upright.
+///
+/// A single-character `<mi>` is italicized by MathML Core's `math-auto` text transform, and
+/// that transform covers U+0391–U+03A9, so upright has to be spelled out with
+/// `mathvariant="normal"`.
+#[test]
+fn unicode_greek_capitals_are_upright() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
+    let convert = |latex: &str| {
+        converter
+            .convert_with_local_state(latex, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{latex}` with error '{e}'"))
+            .mathml
+    };
+
+    for (letter, _) in GREEK_CAPITALS {
+        for latex in [letter.to_string(), format!(r"\mathrm{{{letter}}}")] {
+            let mathml = convert(&latex);
+            assert!(
+                mathml.contains(r#"<mi mathvariant="normal">"#),
+                "`{latex}` must be upright, but produced:\n{mathml}",
+            );
+        }
+    }
+
+    // Lower-case Greek, and the variant letters, stay italic and are not affected by
+    // math alphabets, just like `\alpha` and `\varGamma`.
+    for latex in ["α", r"\mathrm{α}", "ϑ", r"\mathrm{ϵ}", r"\mathrm{ϴ}"] {
+        let mathml = convert(latex);
+        assert!(
+            !mathml.contains("mathvariant"),
+            "`{latex}` must stay italic, but produced:\n{mathml}",
+        );
+    }
+}
+
+/// A directly typed Greek letter is valid in text mode, where the commands are not.
+#[test]
+fn unicode_greek_in_text_mode() {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
+
+    for (letter, command) in GREEK_CAPITALS {
+        let direct = format!(r"\text{{{letter}}}");
+        let mathml = converter
+            .convert_with_local_state(&direct, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{direct}` with error '{e}'"));
+        assert!(
+            mathml.mathml.contains(&format!("<mtext>{letter}</mtext>")),
+            "`{direct}` must produce the letter in an `<mtext>`, but produced:\n{}",
+            mathml.mathml,
+        );
+
+        let via_command = format!(r"\text{{{command}}}");
+        assert!(
+            converter
+                .convert_with_local_state(&via_command, MathDisplay::Inline)
+                .is_err(),
+            "`{via_command}` must be rejected in text mode",
+        );
     }
 }
 
