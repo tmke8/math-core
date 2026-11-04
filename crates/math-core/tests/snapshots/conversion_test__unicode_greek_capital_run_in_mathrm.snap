@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathrm{ΑΒx}"
+---
+<math>
+    <mrow><mspace/><mi>ΑΒx</mi></mrow>
+</math>

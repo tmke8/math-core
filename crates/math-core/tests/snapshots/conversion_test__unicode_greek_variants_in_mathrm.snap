@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\mathrm{ϴϵϒ}"
+---
+<math>
+    <mrow>
+        <mi>ϴ</mi>
+        <mi>ϵ</mi>
+        <mi>ϒ</mi>
+    </mrow>
+</math>

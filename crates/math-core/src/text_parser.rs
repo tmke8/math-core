@@ -138,6 +138,7 @@ impl<'arena> Parser<'_, 'arena> {
             } else if matches!(
                 token,
                 Token::Letter(_, Mode::MathOrText)
+                    | Token::UprightLetter(_, Mode::MathOrText)
                     | Token::Symbol(_, Mode::MathOrText)
                     | Token::SquareBracketOpen
                     | Token::SquareBracketClose
@@ -156,7 +157,8 @@ impl<'arena> Parser<'_, 'arena> {
             ) {
                 // These tokens are valid in both math and text mode.
                 match token {
-                    Token::Letter(c, Mode::MathOrText) => Ok(c.into()),
+                    Token::Letter(c, Mode::MathOrText)
+                    | Token::UprightLetter(c, Mode::MathOrText) => Ok(c.into()),
                     Token::Symbol(c, Mode::MathOrText) => Ok(c),
                     Token::SquareBracketOpen => {
                         Ok(symbol::LEFT_SQUARE_BRACKET.as_op().as_superchar())
@@ -338,7 +340,7 @@ impl<'arena> Parser<'_, 'arena> {
             } else if !text_mode {
                 // These tokens are only valid in math mode.
                 match token {
-                    Token::Letter(c, _) | Token::UprightLetter(c) => Ok(c.into()),
+                    Token::Letter(c, _) | Token::UprightLetter(c, _) => Ok(c.into()),
                     Token::Symbol(c, _) => Ok(c),
                     Token::Operator(classed) => Ok(classed.as_superchar()),
 
