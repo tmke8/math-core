@@ -17,8 +17,7 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnGenerator, LineType,
-    RIGHT_ALIGN, RowLabelInfo, TableRow,
+    Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo, TableRow,
 };
 use crate::{
     attribute::{
@@ -606,18 +605,11 @@ impl<'state> Emitter<'state> {
                 let mtd_opening = ColumnGenerator::new_predefined(align);
 
                 write!(self.s, "<mtable")?;
-                // A `\hline`/`\hdashline` above the first row becomes a border on the table
-                // itself.
-                match first_row_border_top(rows) {
-                    Some(LineType::Solid) => write!(self.s, " style=\"{BORDER_TOP_SOLID}\"")?,
-                    Some(LineType::Dashed) => write!(self.s, " style=\"{BORDER_TOP_DASHED}\"")?,
-                    None => (),
-                }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, rows, mtd_opening, None, true)?;
+                self.emit_table(base_indent, child_indent, rows, mtd_opening, None)?;
             }
             ref node @ (Node::EquationArray { rows, .. } | Node::MultLine { rows }) => {
                 let (mtd_opening, numbering_cols) = match *node {
@@ -641,7 +633,6 @@ impl<'state> Emitter<'state> {
                     rows,
                     mtd_opening,
                     Some(numbering_cols),
-                    false,
                 )?;
             }
             Node::Array {
@@ -651,33 +642,24 @@ impl<'state> Emitter<'state> {
             } => {
                 let mtd_opening = ColumnGenerator::new_custom(array_spec);
                 write!(self.s, "<mtable")?;
-                // `border_left` (from a leading `|`/`:`) and the border above the first row (from
-                // a leading `\hline`/`\hdashline`) both go into a single `style` attribute on the
-                // table.
-                let border_top = first_row_border_top(rows);
-                if array_spec.border_left.is_some() || border_top.is_some() {
-                    write!(self.s, " style=\"")?;
-                    match array_spec.border_left {
-                        Some(LineType::Solid) => {
-                            write!(self.s, "border-left: 0.05em solid currentcolor;")?;
-                        }
-                        Some(LineType::Dashed) => {
-                            write!(self.s, "border-left: 0.05em dashed currentcolor;")?;
-                        }
-                        None => (),
+                // `border_left` comes from a leading `|`/`:` in the column specification.
+                match array_spec.border_left {
+                    Some(LineType::Solid) => {
+                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor;\"")?;
                     }
-                    match border_top {
-                        Some(LineType::Solid) => write!(self.s, "{BORDER_TOP_SOLID}")?,
-                        Some(LineType::Dashed) => write!(self.s, "{BORDER_TOP_DASHED}")?,
-                        None => (),
+                    Some(LineType::Dashed) => {
+                        write!(
+                            self.s,
+                            " style=\"border-left: 0.05em dashed currentcolor;\""
+                        )?;
                     }
-                    write!(self.s, "\"")?;
+                    None => (),
                 }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, rows, mtd_opening, None, true)?;
+                self.emit_table(base_indent, child_indent, rows, mtd_opening, None)?;
             }
             Node::Enclose { content, notation } => {
                 write!(self.s, "<menclose notation=\"")?;
@@ -775,9 +757,6 @@ impl<'state> Emitter<'state> {
     }
 
     /// Emit the rows of a table (`<mtr>` and `<mtd>` elements) and the closing `</mtable>`.
-    ///
-    /// If `first_border_on_table` is set, the top border of the first row has already been
-    /// drawn on the `<mtable>` element by the caller, so it is not drawn on the cells again.
     fn emit_table(
         &mut self,
         base_indent: usize,
@@ -785,7 +764,6 @@ impl<'state> Emitter<'state> {
         rows: &[TableRow<'_>],
         mut col_gen: ColumnGenerator,
         numbering_cols: Option<NumberColums>,
-        first_border_on_table: bool,
     ) -> Result<(), core::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
@@ -806,12 +784,7 @@ impl<'state> Emitter<'state> {
                     self.indentation,
                 )?;
             }
-            let border_top = if row_idx == 0 && first_border_on_table {
-                None
-            } else {
-                row.border_top
-            };
-            col_gen.start_row(row_idx, border_top, row.shove);
+            col_gen.start_row(row_idx, row.border_top, row.shove);
             for cell in row.cells {
                 col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
                 for node in *cell {
@@ -845,13 +818,6 @@ impl<'state> Emitter<'state> {
     pub fn warnings(&self) -> Warnings {
         self.warnings
     }
-}
-
-/// The top border of the first row of a table, which is drawn on the `<mtable>` element rather
-/// than on the cells of the row.
-#[inline]
-fn first_row_border_top(rows: &[TableRow<'_>]) -> Option<LineType> {
-    rows.first().and_then(|row| row.border_top)
 }
 
 fn emit_operator_attributes(
@@ -1741,8 +1707,7 @@ mod tests {
 
     #[test]
     fn render_array_with_hlines() {
-        // The `\hline` above the first row is drawn on the table itself, while the `\hline`
-        // above the second row is drawn on the cells of that row.
+        // The border of each row is drawn on the cells of that row.
         assert_eq!(
             render(&Node::Array {
                 style: None,
@@ -1762,7 +1727,7 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
@@ -1775,7 +1740,7 @@ mod tests {
                 align: Alignment::Centered,
                 style: None,
             }),
-            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 

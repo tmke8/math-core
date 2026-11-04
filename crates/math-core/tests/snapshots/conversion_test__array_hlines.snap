@@ -3,12 +3,12 @@ source: crates/math-core/tests/conversion_test.rs
 expression: "\\begin{array}{cc} \\hline 1 & 2 \\\\ \\hline 3 & 4 \\\\ \\hdashline 5 & 6 \\\\ \\hline \\end{array}"
 ---
 <math>
-    <mtable style="border-top: 0.05em solid currentcolor;" displaystyle="false" scriptlevel="0">
+    <mtable displaystyle="false" scriptlevel="0">
         <mtr>
-            <mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;">
                 <mn>1</mn>
             </mtd>
-            <mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;">
                 <mn>2</mn>
             </mtd>
         </mtr>

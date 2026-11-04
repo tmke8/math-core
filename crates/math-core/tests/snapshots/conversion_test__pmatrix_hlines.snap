@@ -5,12 +5,12 @@ expression: "\\begin{pmatrix} \\hdashline 1 & 2 \\\\ \\hline 3 & 4 \\end{pmatrix
 <math>
     <mrow>
         <mo>(</mo>
-        <mtable style="border-top: 0.05em dashed currentcolor;" displaystyle="false" scriptlevel="0">
+        <mtable displaystyle="false" scriptlevel="0">
             <mtr>
-                <mtd>
+                <mtd style="border-top: 0.05em dashed currentcolor;">
                     <mn>1</mn>
                 </mtd>
-                <mtd>
+                <mtd style="border-top: 0.05em dashed currentcolor;">
                     <mn>2</mn>
                 </mtd>
             </mtr>

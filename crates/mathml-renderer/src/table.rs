@@ -113,8 +113,8 @@ const PADDING_LEFT_ZERO: &str = "padding-left: 0;";
 const PADDING_TOP_BOTTOM_ZERO: &str = "padding-top: 0;padding-bottom: 0;";
 const BORDER_RIGHT_SOLID: &str = "border-right: 0.05em solid currentcolor;";
 const BORDER_RIGHT_DASHED: &str = "border-right: 0.05em dashed currentcolor;";
-pub const BORDER_TOP_SOLID: &str = "border-top: 0.05em solid currentcolor;";
-pub const BORDER_TOP_DASHED: &str = "border-top: 0.05em dashed currentcolor;";
+const BORDER_TOP_SOLID: &str = "border-top: 0.05em solid currentcolor;";
+const BORDER_TOP_DASHED: &str = "border-top: 0.05em dashed currentcolor;";
 const SIMPLE_CENTERED: &str = "<mtd>";
 
 pub struct ColumnGenerator<'arena> {
