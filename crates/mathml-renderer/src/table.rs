@@ -71,9 +71,6 @@ pub type TableCell<'arena> = &'arena [&'arena Node<'arena>];
 
 /// One row of a table-like environment: the cells between two `\\`, plus the metadata that is
 /// attached to the row as a whole.
-///
-/// Rows are allowed to have different numbers of cells; a row with fewer cells than the others
-/// is rendered as an incomplete row.
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TableRow<'arena> {
@@ -97,11 +94,24 @@ pub struct EquationTag<'arena> {
     pub parenthesized: bool,
 }
 
-enum AlignmentType<'arena> {
+#[derive(Debug)]
+pub enum AlignmentType<'arena> {
     Predefined(Alignment),
     Custom(&'arena ArraySpec<'arena>),
     /// `multline`, with the total number of rows (which determines the alignment of each row).
     MultLine(usize),
+}
+
+impl<'arena> AlignmentType<'arena> {
+    pub fn into_generator(self) -> ColumnGenerator<'arena> {
+        ColumnGenerator {
+            typ: self,
+            column_idx: 0,
+            row_idx: 0,
+            row_border_top: None,
+            shove: None,
+        }
+    }
 }
 
 const MTD_OPEN_STYLE: &str = "<mtd style=\"";
@@ -117,40 +127,19 @@ const BORDER_TOP_SOLID: &str = "border-top: 0.05em solid currentcolor;";
 const BORDER_TOP_DASHED: &str = "border-top: 0.05em dashed currentcolor;";
 const SIMPLE_CENTERED: &str = "<mtd>";
 
+#[derive(Debug)]
 pub struct ColumnGenerator<'arena> {
     typ: AlignmentType<'arena>,
     column_idx: usize,
     row_idx: usize,
     /// The top border (from `\hline`/`\hdashline`) applied to every cell of the current row.
-    /// MathML `<mtr>` borders aren't rendered by all browsers (notably Firefox), so the rule is
+    /// MathML `<mtr>` borders aren't rendered by all browsers (notably Firefox), so the line is
     /// drawn per-cell instead.
     row_border_top: Option<LineType>,
     shove: Option<ColumnAlignment>,
 }
 
-impl<'arena> ColumnGenerator<'arena> {
-    pub fn new_predefined(align: Alignment) -> Self {
-        Self::new(AlignmentType::Predefined(align))
-    }
-
-    pub fn new_custom(array_spec: &'arena ArraySpec<'arena>) -> Self {
-        Self::new(AlignmentType::Custom(array_spec))
-    }
-
-    pub fn new_multline(num_rows: usize) -> Self {
-        Self::new(AlignmentType::MultLine(num_rows))
-    }
-
-    fn new(typ: AlignmentType<'arena>) -> Self {
-        ColumnGenerator {
-            typ,
-            column_idx: 0,
-            row_idx: 0,
-            row_border_top: None,
-            shove: None,
-        }
-    }
-
+impl ColumnGenerator<'_> {
     /// Start a row in the table. This must be called before the first cell of every row
     /// (including the first one). It resets the column index to 0, and sets the row index, the top
     /// border and the shove for the row.

@@ -88,22 +88,20 @@ impl SequenceEnd {
     fn matches(self, other: &Token, env: &EnvState) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
-            SequenceEnd::AnyEndToken => match other {
-                // In a table, each cell is its own group, so a switch like `\color` only
-                // extends to the end of the cell. Outside of a table, `&` is an error anyway.
-                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right | Token::NewColumn => {
-                    true
-                }
-                // Where `\\` is not meaningful, it is ignored, so a switch like `\color`
-                // continues past it.
-                Token::NewLine => env.meaningful_newlines,
-                _ => false,
-            },
             SequenceEnd::TableCell => match other {
                 Token::End(_) => true,
                 // Where `&` is not allowed, it is left to `parse_token`, which reports the error.
                 Token::NewColumn => env.allow_columns,
                 // Where `\\` is not meaningful, it is ignored.
+                Token::NewLine => env.meaningful_newlines,
+                _ => false,
+            },
+            SequenceEnd::AnyEndToken => match other {
+                Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right | Token::NewColumn => {
+                    true
+                }
+                // Where `\\` is not meaningful, it is ignored, so a switch like `\color`
+                // continues past it.
                 Token::NewLine => env.meaningful_newlines,
                 _ => false,
             },
@@ -303,11 +301,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     nodes.push(node)
                 }
             }
-            // If there are superscripts or subscripts, we need to wrap the node we just got into
-            // one of the node types for superscripts and subscripts.
         }
         if let Some((numerator, with_line, delim)) = infix_frac {
-            let denominator = mem::take(&mut nodes);
+            let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
             let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
             nodes.push(frac);
         }
@@ -328,30 +324,30 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     fn parse_table_rows(&mut self, env_span: Span) -> ParseResult<&'arena [TableRow<'arena>]> {
         let mut rows: Vec<TableRow<'arena>> = Vec::new();
         let mut cells: Vec<TableCell<'arena>> = Vec::new();
+        // Loop over the rows of the table, until we reach a `\end{...}` or the end of input.
         loop {
             // A `\hline`/`\hdashline` at the start of a row (whitespace is skipped by `peek`)
-            // becomes the top border of that row. Only legal inside an array or matrix; elsewhere
-            // it falls through to the `Token::HLine` error arm of `parse_token`.
+            // becomes the top border of that row.
             let border_top = if self.state.env.allow_hlines
                 && let Token::HLine(line_type) = *self.tokens.peek().token()
             {
-                self.tokens.next()?;
+                self.tokens.next()?; // Consume the token.
                 Some(line_type)
             } else {
                 None
             };
-            // A `\shoveleft` or `\shoveright` at the start of a row becomes the "shove" of that
-            // row.
+            // `\shoveleft` or `\shoveright` at the start of a row becomes the "shove" of that row.
             let shove = if self.state.env.allow_shove
                 && let Token::Shove(shove) = *self.tokens.peek().token()
             {
-                self.tokens.next()?;
+                self.tokens.next()?; // Consume the token.
                 Some(shove)
             } else {
                 None
             };
 
-            let is_last_row = loop {
+            // Loop over the cells of the row, until we reach a `\\`, `\end{...}` or the end of input.
+            let is_last_row = 'cells: loop {
                 // The spacing in a cell is computed as if the cell were preceded by a closing
                 // delimiter, except for the first cell in a row, which starts afresh.
                 let prev_class = if cells.is_empty() {
@@ -361,16 +357,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 };
                 let cell = self.parse_sequence(SequenceEnd::TableCell, prev_class, true)?;
                 cells.push(self.arena.push_slice(&cell));
-                // `parse_sequence` only stops at `&`, `\\` or `\end{...}`.
+                // We don't know *why* the sequence ended, so we have to peek at the next token to
+                // find out.
                 match self.tokens.peek().token() {
                     Token::NewColumn => {
                         self.next_token()?;
                     }
                     Token::NewLine => {
                         self.next_token()?;
-                        break false;
+                        break 'cells false; // The row ended, but there are more rows to come.
                     }
-                    _ => break true,
+                    // The sequence ended because the environment ended, so this is the last row.
+                    _ => break 'cells true,
                 }
             };
 
@@ -391,7 +389,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     }
 
     /// Determine the equation number and link target of the row that has just ended, if the
-    /// current environment is a numbered one.
+    /// current environment is numbered.
     fn finish_numbered_row(
         &mut self,
         is_last_row: bool,
@@ -400,11 +398,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let Some(numbered_state) = &mut self.state.env.numbered else {
             return Ok(None);
         };
-        match numbered_state.next_equation_tag(
-            &mut self.tokens.stores.global_state.equation_count,
-            is_last_row,
-            self.arena,
-        ) {
+        let equation_counter = &mut self.tokens.stores.global_state.equation_count;
+        match numbered_state.next_equation_tag(equation_counter, is_last_row, self.arena) {
             Ok(tag) => {
                 let link_target = numbered_state.label.take();
                 // If we don't have a tag, we're not setting a link target either.
@@ -486,14 +481,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    // In a table, each cell is its own sequence, so the numerator only extends
-                    // to the start of the current cell.
-                    let numerator = mem::take(collected_nodes);
-                    *infix_frac = Some((numerator, with_line, delim));
+                    *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
                     // learn it's a fraction here), but we can at least shrink the style
-                    // for the denominator. `parse_sequence` restores the style at the end
-                    // of the cell or on exit.
+                    // for the denominator. `parse_sequence` restores the style on exit.
                     self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {

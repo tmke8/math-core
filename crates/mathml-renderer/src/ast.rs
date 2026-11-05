@@ -17,7 +17,8 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    Alignment, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo, TableRow,
+    Alignment, AlignmentType, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo,
+    TableRow,
 };
 use crate::{
     attribute::{
@@ -602,7 +603,7 @@ impl<'state> Emitter<'state> {
                 writeln_indent!(self, base_indent, "</mphantom>");
             }
             Node::Table { rows, align, style } => {
-                let mtd_opening = ColumnGenerator::new_predefined(align);
+                let mtd_opening = AlignmentType::Predefined(align).into_generator();
 
                 write!(self.s, "<mtable")?;
                 if let Some(style) = style {
@@ -613,11 +614,12 @@ impl<'state> Emitter<'state> {
             }
             ref node @ (Node::EquationArray { rows, .. } | Node::MultLine { rows }) => {
                 let (mtd_opening, numbering_cols) = match *node {
-                    Node::EquationArray { align, .. } => {
-                        (ColumnGenerator::new_predefined(align), NumberColums::Wide)
-                    }
+                    Node::EquationArray { align, .. } => (
+                        AlignmentType::Predefined(align).into_generator(),
+                        NumberColums::Wide,
+                    ),
                     Node::MultLine { .. } => (
-                        ColumnGenerator::new_multline(rows.len()),
+                        AlignmentType::MultLine(rows.len()).into_generator(),
                         NumberColums::Narrow,
                     ),
                     _ => unreachable!(),
@@ -640,7 +642,7 @@ impl<'state> Emitter<'state> {
                 rows,
                 array_spec,
             } => {
-                let mtd_opening = ColumnGenerator::new_custom(array_spec);
+                let mtd_opening = AlignmentType::Custom(array_spec).into_generator();
                 write!(self.s, "<mtable")?;
                 // `border_left` comes from a leading `|`/`:` in the column specification.
                 match array_spec.border_left {
