@@ -3,8 +3,8 @@ source: crates/math-core/src/parser.rs
 expression: "\\begin{align} a \\\\ b \\tag{x} \\end{align}"
 ---
 [
-  EquationArray(
-    align: Alternating,
+  Table(
+    kind: EquationArray(Alternating),
     rows: [
       TableRow(
         label_info: Some(RowLabelInfo(

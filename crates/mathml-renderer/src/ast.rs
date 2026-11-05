@@ -17,7 +17,7 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    Alignment, AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowLabelInfo, TableRow,
+    AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowLabelInfo, TableKind, TableRow,
 };
 use crate::{
     attribute::{
@@ -152,20 +152,12 @@ pub enum Node<'arena> {
     /// `<mtext><a href="...">...</a></mtext>`.
     /// The link and text get HTML-escaped.
     EqRef(&'arena str),
-    /// `<mtable>...</mtable>` for matrices and similar constructs
+    /// `<mtable>...</mtable>` for matrices, equation arrays and similar constructs
     Table {
-        align: Alignment,
-        style: Option<Style>,
+        kind: TableKind,
         rows: &'arena [TableRow<'arena>],
     },
-    /// `<mtable>...</mtable>` for equation arrays like the `align` environment
-    EquationArray {
-        align: Alignment,
-        rows: &'arena [TableRow<'arena>],
-    },
-    /// `<mtable>...</mtable>` for the `multline` environment
-    MultLine { rows: &'arena [TableRow<'arena>] },
-    /// `<mtable>...</mtable>` for arrays
+    /// `<mtable>...</mtable>` for arrays, which have a custom column specification
     Array {
         style: Option<Style>,
         array_spec: &'arena ArraySpec<'arena>,
@@ -601,36 +593,31 @@ impl<'state> Emitter<'state> {
                 self.emit(node, child_indent)?;
                 writeln_indent!(self, base_indent, "</mphantom>");
             }
-            Node::Table { rows, align, style } => {
-                write!(self.s, "<mtable")?;
-                if let Some(style) = style {
-                    write!(self.s, "{}", <&str>::from(style))?;
-                }
-                write!(self.s, ">")?;
-                self.emit_table(
-                    base_indent,
-                    child_indent,
-                    rows,
-                    AlignmentType::Predefined(align),
-                    None,
-                )?;
-            }
-            ref node @ (Node::EquationArray { rows, .. } | Node::MultLine { rows }) => {
-                let (align, numbering_cols) = match *node {
-                    Node::EquationArray { align, .. } => {
-                        (AlignmentType::Predefined(align), NumberColums::Wide)
+            Node::Table { kind, rows } => {
+                const FULL_WIDTH_MTABLE: &str =
+                    r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#;
+                let (align, numbering_cols) = match kind {
+                    TableKind::Inline { align, style } => {
+                        write!(self.s, "<mtable")?;
+                        if let Some(style) = style {
+                            write!(self.s, "{}", <&str>::from(style))?;
+                        }
+                        write!(self.s, ">")?;
+                        (AlignmentType::Predefined(align), None)
                     }
-                    Node::MultLine { .. } => {
-                        (AlignmentType::MultLine(rows.len()), NumberColums::Narrow)
+                    TableKind::EquationArray(align) => {
+                        write!(self.s, "{FULL_WIDTH_MTABLE}")?;
+                        (AlignmentType::Predefined(align), Some(NumberColums::Wide))
                     }
-                    _ => unreachable!(),
+                    TableKind::MultLine => {
+                        write!(self.s, "{FULL_WIDTH_MTABLE}")?;
+                        (
+                            AlignmentType::MultLine(rows.len()),
+                            Some(NumberColums::Narrow),
+                        )
+                    }
                 };
-
-                write!(
-                    &mut self.s,
-                    r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#
-                )?;
-                self.emit_table(base_indent, child_indent, rows, align, Some(numbering_cols))?;
+                self.emit_table(base_indent, child_indent, rows, align, numbering_cols)?;
             }
             Node::Array {
                 style,
@@ -978,7 +965,7 @@ bitflags! {
 #[cfg(test)]
 mod tests {
     use super::super::symbol;
-    use super::super::table::{ColumnAlignment, ColumnSpecEntry, EquationTag};
+    use super::super::table::{Alignment, ColumnAlignment, ColumnSpecEntry, EquationTag};
     use super::*;
 
     /// A row of a table without any label, border or shove.
@@ -1501,9 +1488,11 @@ mod tests {
 
         assert_eq!(
             render(&Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: None,
+                },
                 rows: &rows,
-                align: Alignment::Centered,
-                style: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );
@@ -1524,9 +1513,11 @@ mod tests {
 
         assert_eq!(
             render(&Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: None,
+                },
                 rows: &rows,
-                align: Alignment::Centered,
-                style: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn><mn>3</mn></mtd></mtr><mtr><mtd><mn>4</mn></mtd><mtd></mtd></mtr><mtr><mtd></mtd><mtd></mtd></mtr></mtable>"
         );
@@ -1573,9 +1564,11 @@ mod tests {
     fn render_empty_table() {
         assert_eq!(
             render(&Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: None,
+                },
                 rows: &[],
-                align: Alignment::Centered,
-                style: None,
             }),
             "<mtable></mtable>"
         );
@@ -1615,18 +1608,18 @@ mod tests {
             },
         ];
         assert_eq!(
-            render(&Node::EquationArray {
+            render(&Node::Table {
+                kind: TableKind::EquationArray(Alignment::Centered),
                 rows: &rows_with_tag,
-                align: Alignment::Centered,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
 
         let rows_without_tag = [first_row, plain_row(last_cells)];
         assert_eq!(
-            render(&Node::EquationArray {
+            render(&Node::Table {
+                kind: TableKind::EquationArray(Alignment::Centered),
                 rows: &rows_without_tag,
-                align: Alignment::Centered,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
@@ -1666,18 +1659,18 @@ mod tests {
             },
         ];
         assert_eq!(
-            render(&Node::EquationArray {
+            render(&Node::Table {
+                kind: TableKind::EquationArray(Alignment::Centered),
                 rows: &rows_with_tag,
-                align: Alignment::Centered,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:2\"><mtext>(2)</mtext></mtd></mtr></mtable>"
         );
 
         let rows_without_tag = [first_row, plain_row(last_cells)];
         assert_eq!(
-            render(&Node::EquationArray {
+            render(&Node::Table {
+                kind: TableKind::EquationArray(Alignment::Centered),
                 rows: &rows_without_tag,
-                align: Alignment::Centered,
             }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
         );
@@ -1713,7 +1706,10 @@ mod tests {
         ];
 
         assert_eq!(
-            render(&Node::MultLine { rows: &rows }),
+            render(&Node::Table {
+                kind: TableKind::MultLine,
+                rows: &rows,
+            }),
             "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: left;justify-items: start;\"><mn>1</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: right;justify-items: end;\"><mn>2</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd><mn>3</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: right;justify-items: end;\"><mn>4</mn></mtd><mtd style=\"width: 7.5%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr></mtable>"
         );
     }
@@ -1804,9 +1800,11 @@ mod tests {
         }];
         assert_eq!(
             render(&Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: None,
+                },
                 rows: &rows,
-                align: Alignment::Centered,
-                style: None,
             }),
             "<mtable><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr></mtable>"
         );
@@ -1817,9 +1815,11 @@ mod tests {
         // Same as `render_array_with_hlines`, but for a matrix.
         assert_eq!(
             render(&Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: None,
+                },
                 rows: &ROWS_WITH_HLINES,
-                align: Alignment::Centered,
-                style: None,
             }),
             "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );

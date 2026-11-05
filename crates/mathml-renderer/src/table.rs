@@ -5,6 +5,7 @@ use core::fmt::Write;
 use serde::Serialize;
 
 use crate::ast::{Indentation, Node};
+use crate::attribute::Style;
 use crate::fmt::new_line_and_indent;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,6 +56,22 @@ pub enum Alignment {
     Centered,
     Cases,
     Alternating,
+}
+
+/// The kind of a [`Node::Table`], which determines how the table is rendered.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub enum TableKind {
+    /// A table inside a formula, like a matrix or the `aligned` and `cases` environments.
+    Inline {
+        align: Alignment,
+        style: Option<Style>,
+    },
+    /// An equation array like the `align` environment, which spans the full width and has
+    /// room for equation numbers.
+    EquationArray(Alignment),
+    /// The `multline` environment.
+    MultLine,
 }
 
 /// Equation-number / label metadata for a row of a numbered environment

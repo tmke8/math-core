@@ -14,8 +14,10 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
         right: None,
       ),
       Table(
-        align: Centered,
-        style: Some(Text),
+        kind: Inline(
+          align: Centered,
+          style: Some(Text),
+        ),
         rows: [
           TableRow(
             label_info: None,

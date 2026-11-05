@@ -4,8 +4,10 @@ expression: "\\begin{matrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{matrix}"
 ---
 [
   Table(
-    align: Centered,
-    style: Some(Text),
+    kind: Inline(
+      align: Centered,
+      style: Some(Text),
+    ),
     rows: [
       TableRow(
         label_info: None,

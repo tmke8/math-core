@@ -6,7 +6,7 @@ use mathml_renderer::{
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, EquationTag, TableRow},
+    table::{Alignment, ArraySpec, EquationTag, TableKind, TableRow},
 };
 
 use crate::character_class::StretchableOp;
@@ -225,41 +225,52 @@ impl Env {
         array_spec: Option<&'arena ArraySpec<'arena>>,
     ) -> Node<'arena> {
         match self {
-            Env::Align | Env::AlignStar => Node::EquationArray {
-                align: Alignment::Alternating,
+            Env::Align | Env::AlignStar => Node::Table {
+                kind: TableKind::EquationArray(Alignment::Alternating),
                 rows,
             },
             Env::Aligned => Node::Table {
-                align: Alignment::Alternating,
-                style: Some(Style::Display),
+                kind: TableKind::Inline {
+                    align: Alignment::Alternating,
+                    style: Some(Style::Display),
+                },
                 rows,
             },
-            Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => {
-                Node::EquationArray {
-                    align: Alignment::Centered,
-                    rows,
-                }
-            }
+            Env::Equation | Env::EquationStar | Env::Gather | Env::GatherStar => Node::Table {
+                kind: TableKind::EquationArray(Alignment::Centered),
+                rows,
+            },
             Env::Gathered => Node::Table {
-                align: Alignment::Centered,
-                style: Some(Style::Display),
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: Some(Style::Display),
+                },
                 rows,
             },
             Env::Matrix => Node::Table {
-                align: Alignment::Centered,
-                style: Some(Style::Text),
+                kind: TableKind::Inline {
+                    align: Alignment::Centered,
+                    style: Some(Style::Text),
+                },
                 rows,
             },
-            Env::MultLine | Env::MultLineStar => Node::MultLine { rows },
-            Env::Cases | Env::RCases => Node::Table {
+            Env::MultLine | Env::MultLineStar => Node::Table {
+                kind: TableKind::MultLine,
                 rows,
-                align: Alignment::Cases,
-                style: Some(Style::Text),
+            },
+            Env::Cases | Env::RCases => Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Cases,
+                    style: Some(Style::Text),
+                },
+                rows,
             },
             Env::DCases | Env::DRCases => Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Cases,
+                    style: Some(Style::Display),
+                },
                 rows,
-                align: Alignment::Cases,
-                style: Some(Style::Display),
             },
             array_variant @ (Env::Array | Env::DArray | Env::Subarray) => {
                 // SAFETY: `array_spec` is guaranteed to be Some because we checked for
@@ -281,9 +292,11 @@ impl Env {
             }
             Env::PMatrix | Env::BMatrix | Env::Bmatrix | Env::VMatrix | Env::Vmatrix => {
                 Node::Table {
+                    kind: TableKind::Inline {
+                        align: Alignment::Centered,
+                        style: Some(Style::Text),
+                    },
                     rows,
-                    align: Alignment::Centered,
-                    style: Some(Style::Text),
                 }
             }
         }
