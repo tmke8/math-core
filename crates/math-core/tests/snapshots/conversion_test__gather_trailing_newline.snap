@@ -1,0 +1,34 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{gather} a\\\\ b\\\\ \\end{gather}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>b</mi>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(2)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(3)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

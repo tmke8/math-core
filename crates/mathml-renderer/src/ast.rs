@@ -777,6 +777,9 @@ impl<'state> Emitter<'state> {
         } else {
             0
         };
+        // Rows can have fewer cells than others. Fill them up with empty cells, so that row
+        // borders and equation numbers span the whole table.
+        let num_columns = rows.iter().map(|row| row.cells.len()).max().unwrap_or(0);
         for (row_idx, row) in rows.iter().enumerate() {
             writeln_indent!(self, child_indent, "<mtr>");
             if let Some(numbering_cols) = numbering_cols {
@@ -787,7 +790,8 @@ impl<'state> Emitter<'state> {
                 )?;
             }
             let mut column_idx = 0;
-            for cell in row.cells {
+            let padding = core::iter::repeat_n(&[][..], num_columns - row.cells.len());
+            for cell in row.cells.iter().copied().chain(padding) {
                 new_line_and_indent(&mut self.s, child_indent2, self.indentation);
                 column_idx = align.write_mtd(
                     &mut self.s,
@@ -797,7 +801,7 @@ impl<'state> Emitter<'state> {
                     child_indent2,
                     self.indentation,
                 )?;
-                for node in *cell {
+                for node in cell {
                     self.emit(node, child_indent3)?;
                 }
                 writeln_indent!(self, child_indent2, "</mtd>");
@@ -982,6 +986,7 @@ mod tests {
         TableRow {
             label_info: None,
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells,
         }
@@ -1506,7 +1511,8 @@ mod tests {
 
     #[test]
     fn render_table_with_incomplete_row() {
-        // Rows may have different numbers of cells. A cell may also hold several nodes.
+        // Rows may have different numbers of cells. Shorter rows are filled up with empty cells.
+        // A cell may also hold several nodes.
         let rows = [
             plain_row(&[
                 &[&Node::Number("1")],
@@ -1522,7 +1528,44 @@ mod tests {
                 align: Alignment::Centered,
                 style: None,
             }),
-            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn><mn>3</mn></mtd></mtr><mtr><mtd><mn>4</mn></mtd></mtr><mtr><mtd></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn><mn>3</mn></mtd></mtr><mtr><mtd><mn>4</mn></mtd><mtd></mtd></mtr><mtr><mtd></mtd><mtd></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_array_with_incomplete_row() {
+        // The cells that fill up a short row get the row's top border and the column lines.
+        let rows = [
+            plain_row(&[&[&Node::Number("1")], &[&Node::Number("2")]]),
+            TableRow {
+                label_info: None,
+                border_top: Some(LineType::Solid),
+                border_bottom: None,
+                shove: None,
+                cells: &[&[&Node::Number("3")]],
+            },
+        ];
+        assert_eq!(
+            render(&Node::Array {
+                style: None,
+                rows: &rows,
+                array_spec: &ArraySpec {
+                    border_left: None,
+                    is_sub: false,
+                    column_spec: &[
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::Centered,
+                            border_right: None
+                        },
+                        ColumnSpecEntry::OnlyLine(LineType::Solid),
+                        ColumnSpecEntry::WithContent {
+                            alignment: ColumnAlignment::Centered,
+                            border_right: Some(LineType::Dashed)
+                        },
+                    ],
+                },
+            }),
+            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd style=\"border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-right: 0.05em dashed currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em dashed currentcolor;\"></mtd></mtr></mtable>"
         );
     }
 
@@ -1549,6 +1592,7 @@ mod tests {
                 link_target: None,
             }),
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         };
@@ -1565,6 +1609,7 @@ mod tests {
                     link_target: None,
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: last_cells,
             },
@@ -1598,6 +1643,7 @@ mod tests {
                 link_target: Some("eq:1"),
             }),
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         };
@@ -1614,6 +1660,7 @@ mod tests {
                     link_target: Some("eq:2"),
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: last_cells,
             },
@@ -1645,6 +1692,7 @@ mod tests {
             TableRow {
                 label_info: None,
                 border_top: None,
+                border_bottom: None,
                 shove: Some(ColumnAlignment::RightJustified),
                 cells: &[&[&Node::Number("2")]],
             },
@@ -1658,6 +1706,7 @@ mod tests {
                     link_target: None,
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: &[&[&Node::Number("4")]],
             },
@@ -1704,12 +1753,14 @@ mod tests {
         TableRow {
             label_info: None,
             border_top: Some(LineType::Solid),
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         },
         TableRow {
             label_info: None,
             border_top: Some(LineType::Dashed),
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("3")], &[&Node::Number("4")]],
         },
@@ -1738,6 +1789,26 @@ mod tests {
                 },
             }),
             "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_table_with_bottom_border() {
+        // A row can have a line both above and below it.
+        let rows = [TableRow {
+            label_info: None,
+            border_top: Some(LineType::Dashed),
+            border_bottom: Some(LineType::Solid),
+            shove: None,
+            cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
+        }];
+        assert_eq!(
+            render(&Node::Table {
+                rows: &rows,
+                align: Alignment::Centered,
+                style: None,
+            }),
+            "<mtable><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr></mtable>"
         );
     }
 

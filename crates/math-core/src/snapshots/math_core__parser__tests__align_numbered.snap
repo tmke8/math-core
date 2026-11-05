@@ -15,6 +15,7 @@ expression: "\\begin{align} a \\\\ b \\tag{x} \\end{align}"
           link_target: None,
         )),
         border_top: None,
+        border_bottom: None,
         shove: None,
         cells: [
           [
@@ -31,6 +32,7 @@ expression: "\\begin{align} a \\\\ b \\tag{x} \\end{align}"
           link_target: None,
         )),
         border_top: None,
+        border_bottom: None,
         shove: None,
         cells: [
           [

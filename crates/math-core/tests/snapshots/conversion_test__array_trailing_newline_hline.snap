@@ -1,0 +1,18 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{array}{c} a\\\\ b\\\\ \\hline \\end{array}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd>
+                <mi>a</mi>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-bottom: 0.05em solid currentcolor;">
+                <mi>b</mi>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -78,6 +78,9 @@ pub struct TableRow<'arena> {
     pub label_info: Option<RowLabelInfo<'arena>>,
     /// A line above this row, from a `\hline`/`\hdashline` at the start of the row.
     pub border_top: Option<LineType>,
+    /// A line below this row. Only set on the last row, for an `\hline`/`\hdashline` right
+    /// before the end of the environment; all other lines are the top border of the row below.
+    pub border_bottom: Option<LineType>,
     /// The alignment forced by a `\shoveleft`/`\shoveright` at the start of the row (`multline`
     /// only).
     pub shove: Option<ColumnAlignment>,
@@ -114,19 +117,47 @@ const BORDER_RIGHT_SOLID: &str = "border-right: 0.05em solid currentcolor;";
 const BORDER_RIGHT_DASHED: &str = "border-right: 0.05em dashed currentcolor;";
 const BORDER_TOP_SOLID: &str = "border-top: 0.05em solid currentcolor;";
 const BORDER_TOP_DASHED: &str = "border-top: 0.05em dashed currentcolor;";
+const BORDER_BOTTOM_SOLID: &str = "border-bottom: 0.05em solid currentcolor;";
+const BORDER_BOTTOM_DASHED: &str = "border-bottom: 0.05em dashed currentcolor;";
 const SIMPLE_CENTERED: &str = "<mtd>";
 
-/// The style for the top border (from `\hline`/`\hdashline`) of a row.
+/// The style for the top and bottom borders (from `\hline`/`\hdashline`) of a row.
 ///
-/// MathML `<mtr>` borders aren't rendered by all browsers (notably Firefox), so the line is
+/// MathML `<mtr>` borders aren't rendered by all browsers (notably Firefox), so the lines are
 /// drawn on every cell of the row instead. When non-empty, the plain `<mtd>` fast paths are
-/// replaced by a styled cell, and the border is injected at the start of every other cell's
+/// replaced by a styled cell, and the borders are injected at the start of every other cell's
 /// style.
-fn border_top_style(border_top: Option<LineType>) -> &'static str {
-    match border_top {
-        None => "",
-        Some(LineType::Solid) => BORDER_TOP_SOLID,
-        Some(LineType::Dashed) => BORDER_TOP_DASHED,
+#[derive(Clone, Copy)]
+struct RowBorders {
+    top: &'static str,
+    bottom: &'static str,
+}
+
+impl RowBorders {
+    fn new(row: &TableRow<'_>) -> Self {
+        Self {
+            top: match row.border_top {
+                None => "",
+                Some(LineType::Solid) => BORDER_TOP_SOLID,
+                Some(LineType::Dashed) => BORDER_TOP_DASHED,
+            },
+            bottom: match row.border_bottom {
+                None => "",
+                Some(LineType::Solid) => BORDER_BOTTOM_SOLID,
+                Some(LineType::Dashed) => BORDER_BOTTOM_DASHED,
+            },
+        }
+    }
+
+    fn is_empty(self) -> bool {
+        self.top.is_empty() && self.bottom.is_empty()
+    }
+}
+
+impl core::fmt::Display for RowBorders {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.top)?;
+        f.write_str(self.bottom)
     }
 }
 
@@ -147,7 +178,7 @@ impl AlignmentType<'_> {
         indent_num: usize,
         indentation: Indentation,
     ) -> Result<usize, core::fmt::Error> {
-        let border_top = border_top_style(row.border_top);
+        let borders = RowBorders::new(row);
         match self {
             AlignmentType::Predefined(align) => {
                 let is_even = column_idx.is_multiple_of(2);
@@ -155,16 +186,16 @@ impl AlignmentType<'_> {
                     Alignment::Cases => {
                         write!(
                             s,
-                            "{MTD_OPEN_STYLE}{border_top}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}"
+                            "{MTD_OPEN_STYLE}{borders}{LEFT_ALIGN}{PADDING_RIGHT_ZERO}"
                         )?;
                         if !is_even {
                             write!(s, "padding-left:1em;")?;
                         }
                         write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
-                    Alignment::Centered => write_simple_mtd(s, border_top)?,
+                    Alignment::Centered => write_simple_mtd(s, borders)?,
                     Alignment::Alternating => {
-                        write!(s, "{MTD_OPEN_STYLE}{border_top}")?;
+                        write!(s, "{MTD_OPEN_STYLE}{borders}")?;
                         if is_even {
                             write!(s, "{RIGHT_ALIGN}{PADDING_RIGHT_ZERO}")?;
                         } else {
@@ -193,7 +224,7 @@ impl AlignmentType<'_> {
                             border_right,
                         } => break (alignment, border_right),
                         ColumnSpecEntry::OnlyLine(line_type) => {
-                            write!(s, "{MTD_OPEN_STYLE}{border_top}")?;
+                            write!(s, "{MTD_OPEN_STYLE}{borders}")?;
                             match line_type {
                                 LineType::Solid => write!(s, "{BORDER_RIGHT_SOLID}")?,
                                 LineType::Dashed => write!(s, "{BORDER_RIGHT_DASHED}")?,
@@ -211,10 +242,10 @@ impl AlignmentType<'_> {
                     && border_right.is_none()
                     && !array_spec.is_sub
                 {
-                    write_simple_mtd(s, border_top)?;
+                    write_simple_mtd(s, borders)?;
                     return Ok(column_idx);
                 }
-                write!(s, "{MTD_OPEN_STYLE}{border_top}")?;
+                write!(s, "{MTD_OPEN_STYLE}{borders}")?;
                 match alignment {
                     ColumnAlignment::LeftJustified => write!(s, "{LEFT_ALIGN}")?,
                     ColumnAlignment::Centered => {}
@@ -245,7 +276,7 @@ impl AlignmentType<'_> {
                     ColumnAlignment::LeftJustified => {
                         write!(s, "{MTD_OPEN_STYLE}{LEFT_ALIGN}{MTD_CLOSE_STYLE}")?;
                     }
-                    ColumnAlignment::Centered => write_simple_mtd(s, "")?,
+                    ColumnAlignment::Centered => write!(s, "{SIMPLE_CENTERED}")?,
                     ColumnAlignment::RightJustified => {
                         write!(s, "{MTD_OPEN_STYLE}{RIGHT_ALIGN}{MTD_CLOSE_STYLE}")?;
                     }
@@ -257,12 +288,12 @@ impl AlignmentType<'_> {
     }
 }
 
-/// Write a centered cell (`<mtd>`) with no other styling, adding a top border if one is set
-/// for the current row.
-fn write_simple_mtd(s: &mut String, border_top: &str) -> core::fmt::Result {
-    if border_top.is_empty() {
+/// Write a centered cell (`<mtd>`) with no other styling, adding the borders of the current row
+/// if it has any.
+fn write_simple_mtd(s: &mut String, borders: RowBorders) -> core::fmt::Result {
+    if borders.is_empty() {
         write!(s, "{SIMPLE_CENTERED}")
     } else {
-        write!(s, "{MTD_OPEN_STYLE}{border_top}{MTD_CLOSE_STYLE}")
+        write!(s, "{MTD_OPEN_STYLE}{borders}{MTD_CLOSE_STYLE}")
     }
 }

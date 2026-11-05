@@ -10,6 +10,7 @@ expression: "\\begin{matrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{matrix}"
       TableRow(
         label_info: None,
         border_top: None,
+        border_bottom: None,
         shove: None,
         cells: [
           [
@@ -23,19 +24,12 @@ expression: "\\begin{matrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{matrix}"
       TableRow(
         label_info: None,
         border_top: Some(Solid),
+        border_bottom: None,
         shove: None,
         cells: [
           [
             Number("3"),
           ],
-        ],
-      ),
-      TableRow(
-        label_info: None,
-        border_top: None,
-        shove: None,
-        cells: [
-          [],
         ],
       ),
     ],

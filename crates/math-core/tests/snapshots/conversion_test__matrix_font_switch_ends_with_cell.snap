@@ -16,6 +16,8 @@ expression: "\\begin{matrix} \\bf a & b \\\\ c \\end{matrix}"
             <mtd>
                 <mi>c</mi>
             </mtd>
+            <mtd>
+            </mtd>
         </mtr>
     </mtable>
 </math>

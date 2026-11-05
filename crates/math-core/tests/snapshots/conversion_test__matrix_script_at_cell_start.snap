@@ -24,6 +24,8 @@ expression: "\\begin{matrix} a &^2 b \\\\ _1 c \\end{matrix}"
                 </msub>
                 <mi>c</mi>
             </mtd>
+            <mtd>
+            </mtd>
         </mtr>
     </mtable>
 </math>

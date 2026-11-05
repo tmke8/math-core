@@ -1,0 +1,28 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{cases} a & b\\\\ c & d\\\\ \\end{cases}"
+---
+<math>
+    <mrow>
+        <mo>{</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mi>a</mi>
+                </mtd>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;padding-left:1em;">
+                    <mi>b</mi>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                    <mi>c</mi>
+                </mtd>
+                <mtd style="text-align: left;justify-items: start;padding-right: 0;padding-left:1em;">
+                    <mi>d</mi>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>⁣</mo>
+    </mrow>
+</math>

@@ -20,6 +20,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
           TableRow(
             label_info: None,
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: [
               [
@@ -30,6 +31,7 @@ expression: "\\begin{pmatrix} x \\\\ y \\end{pmatrix}"
           TableRow(
             label_info: None,
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: [
               [

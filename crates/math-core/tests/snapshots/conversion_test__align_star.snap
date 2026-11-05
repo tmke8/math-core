@@ -22,6 +22,8 @@ expression: "\\begin{align*}x&=1\\\\y=2\\end{align*}"
                 <mo>=</mo>
                 <mn>2</mn>
             </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+            </mtd>
             <mtd style="width: 50%"></mtd>
         </mtr>
     </mtable>

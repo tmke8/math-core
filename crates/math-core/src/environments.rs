@@ -141,6 +141,34 @@ impl Env {
         matches!(self, Env::MultLine | Env::MultLineStar)
     }
 
+    /// `true` for environments in which a `\\` right before `\end{...}` doesn't start a new row.
+    ///
+    /// This is the case for all environments that are used inside a formula (those based on
+    /// LaTeX's `array`). The display environments of amsmath (`align`, `gather`, `multline`)
+    /// start a new, empty row instead, which in numbered environments even gets its own equation
+    /// number.
+    #[inline]
+    fn ignores_trailing_newline(self) -> bool {
+        matches!(
+            self,
+            Env::Array
+                | Env::DArray
+                | Env::Subarray
+                | Env::Aligned
+                | Env::Gathered
+                | Env::Matrix
+                | Env::PMatrix
+                | Env::BMatrix
+                | Env::Bmatrix
+                | Env::VMatrix
+                | Env::Vmatrix
+                | Env::Cases
+                | Env::RCases
+                | Env::DCases
+                | Env::DRCases
+        )
+    }
+
     #[inline]
     fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
         if matches!(
@@ -174,6 +202,7 @@ impl Env {
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
             allow_hlines: self.allows_hlines(),
             allow_shove: self.allows_shove(),
+            ignore_trailing_newline: self.ignores_trailing_newline(),
             numbered: self.get_numbered_env_state(),
         }
     }
@@ -276,6 +305,8 @@ pub struct EnvState<'arena> {
     /// `true` if we are inside an environment where `\shoveleft` and `\shoveright` are allowed
     /// (directly after `\\` or at the start of the environment).
     pub allow_shove: bool,
+    /// `true` if a `\\` right before the end of the environment doesn't start a new row.
+    pub ignore_trailing_newline: bool,
     pub numbered: Option<NumberedEnvState<'arena>>,
 }
 
