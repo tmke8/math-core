@@ -30,14 +30,6 @@ expression: "\\begin{matrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{matrix}"
           ],
         ],
       ),
-      TableRow(
-        label_info: None,
-        border_top: None,
-        shove: None,
-        cells: [
-          [],
-        ],
-      ),
     ],
   ),
 ]

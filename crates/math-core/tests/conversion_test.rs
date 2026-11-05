@@ -771,6 +771,26 @@ fn main() {
             r"\begin{array}{cc}1 & 2\\\hline 3\end{array}",
         ),
         (
+            "matrix_trailing_newline",
+            r"\begin{matrix} a\\ b\\ \end{matrix}",
+        ),
+        (
+            "matrix_trailing_double_newline",
+            r"\begin{matrix} a\\ b\\ \\ \end{matrix}",
+        ),
+        (
+            "array_trailing_newline_hline",
+            r"\begin{array}{c} a\\ b\\ \hline \end{array}",
+        ),
+        (
+            "cases_trailing_newline",
+            r"\begin{cases} a & b\\ c & d\\ \end{cases}",
+        ),
+        (
+            "gather_trailing_newline",
+            r"\begin{gather} a\\ b\\ \end{gather}",
+        ),
+        (
             "matrix_hlines",
             r"\begin{matrix} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{matrix}",
         ),

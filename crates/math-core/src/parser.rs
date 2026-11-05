@@ -372,6 +372,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             };
 
+            // In some environments, a `\\` right before `\end{...}` doesn't start a new row, so
+            // we drop the empty row that follows it. A row with an `\hline` is kept, because the
+            // line still has to be drawn.
+            if is_last_row
+                && self.state.env.ignore_trailing_newline
+                && !rows.is_empty()
+                && border_top.is_none()
+                && shove.is_none()
+                && matches!(cells.as_slice(), [cell] if cell.is_empty())
+            {
+                break;
+            }
+
             let label_info = self.finish_numbered_row(is_last_row, env_span)?;
             rows.push(TableRow {
                 label_info,
