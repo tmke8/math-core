@@ -1,0 +1,43 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\begin{matrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{matrix}"
+---
+[
+  Table(
+    align: Centered,
+    style: Some(Text),
+    rows: [
+      TableRow(
+        label_info: None,
+        border_top: None,
+        shove: None,
+        cells: [
+          [
+            Number("1"),
+          ],
+          [
+            Number("2"),
+          ],
+        ],
+      ),
+      TableRow(
+        label_info: None,
+        border_top: Some(Solid),
+        shove: None,
+        cells: [
+          [
+            Number("3"),
+          ],
+        ],
+      ),
+      TableRow(
+        label_info: None,
+        border_top: None,
+        shove: None,
+        cells: [
+          [],
+        ],
+      ),
+    ],
+  ),
+]

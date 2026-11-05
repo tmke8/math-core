@@ -1,0 +1,43 @@
+---
+source: crates/math-core/src/parser.rs
+expression: "\\begin{align} a \\\\ b \\tag{x} \\end{align}"
+---
+[
+  EquationArray(
+    align: Alternating,
+    rows: [
+      TableRow(
+        label_info: Some(RowLabelInfo(
+          tag: EquationTag(
+            text: "1",
+            parenthesized: true,
+          ),
+          link_target: None,
+        )),
+        border_top: None,
+        shove: None,
+        cells: [
+          [
+            IdentifierChar("a", Default),
+          ],
+        ],
+      ),
+      TableRow(
+        label_info: Some(RowLabelInfo(
+          tag: EquationTag(
+            text: "x",
+            parenthesized: true,
+          ),
+          link_target: None,
+        )),
+        border_top: None,
+        shove: None,
+        cells: [
+          [
+            IdentifierChar("b", Default),
+          ],
+        ],
+      ),
+    ],
+  ),
+]

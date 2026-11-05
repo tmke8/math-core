@@ -7,7 +7,7 @@ use crate::{
     ast::{AHref, MultiscriptPair, Node},
     length::LengthSet,
     super_char::SuperChar,
-    table::{ArraySpec, ColumnSpec, RowLabelInfo},
+    table::{ArraySpec, ColumnSpec, TableCell, TableRow},
 };
 
 pub struct Arena {
@@ -62,11 +62,28 @@ impl Arena {
         self.inner.alloc(array_spec)
     }
 
-    pub fn alloc_row_label_info<'arena>(
+    pub fn alloc_table_cells<'arena>(
         &'arena self,
-        info: RowLabelInfo<'arena>,
-    ) -> &'arena RowLabelInfo<'arena> {
-        self.inner.alloc(info)
+        cells: &[TableCell<'arena>],
+    ) -> &'arena [TableCell<'arena>] {
+        // `DroplessArena::alloc_slice()` panics on empty slices.
+        if cells.is_empty() {
+            &[]
+        } else {
+            self.inner.alloc_slice(cells)
+        }
+    }
+
+    pub fn alloc_table_rows<'arena>(
+        &'arena self,
+        rows: &[TableRow<'arena>],
+    ) -> &'arena [TableRow<'arena>] {
+        // `DroplessArena::alloc_slice()` panics on empty slices.
+        if rows.is_empty() {
+            &[]
+        } else {
+            self.inner.alloc_slice(rows)
+        }
     }
 
     pub fn alloc_ahref<'arena, 'attrs>(

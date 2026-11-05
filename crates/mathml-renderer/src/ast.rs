@@ -1,7 +1,6 @@
 use alloc::borrow::Cow;
 use alloc::string::String;
 use core::fmt::Write;
-use core::num::NonZeroU16;
 
 use bitflags::bitflags;
 use kstring::KString;
@@ -18,8 +17,7 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    Alignment, ArraySpec, BORDER_TOP_DASHED, BORDER_TOP_SOLID, ColumnAlignment, ColumnGenerator,
-    LineType, RIGHT_ALIGN, RowLabelInfo,
+    Alignment, AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowLabelInfo, TableRow,
 };
 use crate::{
     attribute::{
@@ -158,37 +156,20 @@ pub enum Node<'arena> {
     Table {
         align: Alignment,
         style: Option<Style>,
-        /// A line above the first row, from a `\hline`/`\hdashline` at the start of the
-        /// environment.
-        border_top: Option<LineType>,
-        content: &'arena [&'arena Node<'arena>],
+        rows: &'arena [TableRow<'arena>],
     },
     /// `<mtable>...</mtable>` for equation arrays like the `align` environment
     EquationArray {
         align: Alignment,
-        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
-        content: &'arena [&'arena Node<'arena>],
+        rows: &'arena [TableRow<'arena>],
     },
     /// `<mtable>...</mtable>` for the `multline` environment
-    MultLine {
-        num_rows: NonZeroU16,
-        initial_shove: Option<ColumnAlignment>,
-        last_row_info: Option<&'arena RowLabelInfo<'arena>>,
-        content: &'arena [&'arena Node<'arena>],
-    },
+    MultLine { rows: &'arena [TableRow<'arena>] },
     /// `<mtable>...</mtable>` for arrays
     Array {
         style: Option<Style>,
         array_spec: &'arena ArraySpec<'arena>,
-        content: &'arena [&'arena Node<'arena>],
-    },
-    /// `<mtd>...</mtd>`
-    ColumnSeparator,
-    /// `<mtr>...</mtr>`
-    RowSeparator {
-        label_info: Option<&'arena RowLabelInfo<'arena>>,
-        border_top: Option<LineType>,
-        shove: Option<ColumnAlignment>,
+        rows: &'arena [TableRow<'arena>],
     },
     /// `<menclose>...</menclose>`
     Enclose {
@@ -620,49 +601,28 @@ impl<'state> Emitter<'state> {
                 self.emit(node, child_indent)?;
                 writeln_indent!(self, base_indent, "</mphantom>");
             }
-            Node::Table {
-                content,
-                align,
-                style,
-                border_top,
-            } => {
-                let mtd_opening = ColumnGenerator::new_predefined(align);
-
+            Node::Table { rows, align, style } => {
                 write!(self.s, "<mtable")?;
-                // A leading `\hline`/`\hdashline` becomes a border on the table itself.
-                match border_top {
-                    Some(LineType::Solid) => write!(self.s, " style=\"{BORDER_TOP_SOLID}\"")?,
-                    Some(LineType::Dashed) => write!(self.s, " style=\"{BORDER_TOP_DASHED}\"")?,
-                    None => (),
-                }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening, None, None)?;
+                self.emit_table(
+                    base_indent,
+                    child_indent,
+                    rows,
+                    AlignmentType::Predefined(align),
+                    None,
+                )?;
             }
-            ref node @ (Node::EquationArray {
-                last_row_info,
-                content,
-                ..
-            }
-            | Node::MultLine {
-                last_row_info,
-                content,
-                ..
-            }) => {
-                let (mtd_opening, numbering_cols) = match *node {
+            ref node @ (Node::EquationArray { rows, .. } | Node::MultLine { rows }) => {
+                let (align, numbering_cols) = match *node {
                     Node::EquationArray { align, .. } => {
-                        (ColumnGenerator::new_predefined(align), NumberColums::Wide)
+                        (AlignmentType::Predefined(align), NumberColums::Wide)
                     }
-                    Node::MultLine {
-                        num_rows,
-                        initial_shove,
-                        ..
-                    } => (
-                        ColumnGenerator::new_multline(num_rows, initial_shove),
-                        NumberColums::Narrow,
-                    ),
+                    Node::MultLine { .. } => {
+                        (AlignmentType::MultLine(rows.len()), NumberColums::Narrow)
+                    }
                     _ => unreachable!(),
                 };
 
@@ -670,53 +630,38 @@ impl<'state> Emitter<'state> {
                     &mut self.s,
                     r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#
                 )?;
-                self.emit_table(
-                    base_indent,
-                    child_indent,
-                    content,
-                    mtd_opening,
-                    Some(numbering_cols),
-                    last_row_info,
-                )?;
+                self.emit_table(base_indent, child_indent, rows, align, Some(numbering_cols))?;
             }
             Node::Array {
                 style,
-                content,
+                rows,
                 array_spec,
             } => {
-                let mtd_opening = ColumnGenerator::new_custom(array_spec);
                 write!(self.s, "<mtable")?;
-                // `border_left` (from a leading `|`/`:`) and `border_top` (from a leading
-                // `\hline`/`\hdashline`) both go into a single `style` attribute on the table.
-                if array_spec.border_left.is_some() || array_spec.border_top.is_some() {
-                    write!(self.s, " style=\"")?;
-                    match array_spec.border_left {
-                        Some(LineType::Solid) => {
-                            write!(self.s, "border-left: 0.05em solid currentcolor;")?;
-                        }
-                        Some(LineType::Dashed) => {
-                            write!(self.s, "border-left: 0.05em dashed currentcolor;")?;
-                        }
-                        None => (),
+                // `border_left` comes from a leading `|`/`:` in the column specification.
+                match array_spec.border_left {
+                    Some(LineType::Solid) => {
+                        write!(self.s, " style=\"border-left: 0.05em solid currentcolor;\"")?;
                     }
-                    match array_spec.border_top {
-                        Some(LineType::Solid) => write!(self.s, "{BORDER_TOP_SOLID}")?,
-                        Some(LineType::Dashed) => write!(self.s, "{BORDER_TOP_DASHED}")?,
-                        None => (),
+                    Some(LineType::Dashed) => {
+                        write!(
+                            self.s,
+                            " style=\"border-left: 0.05em dashed currentcolor;\""
+                        )?;
                     }
-                    write!(self.s, "\"")?;
+                    None => (),
                 }
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, content, mtd_opening, None, None)?;
-            }
-            Node::RowSeparator { .. } | Node::ColumnSeparator => {
-                // This should only appear in tables where it is handled in `emit_table`.
-                if cfg!(debug_assertions) {
-                    panic!("ColumnSeparator node should be handled in emit_table");
-                }
+                self.emit_table(
+                    base_indent,
+                    child_indent,
+                    rows,
+                    AlignmentType::Custom(array_spec),
+                    None,
+                )?;
             }
             Node::Enclose { content, notation } => {
                 write!(self.s, "<menclose notation=\"")?;
@@ -813,14 +758,14 @@ impl<'state> Emitter<'state> {
         Ok(())
     }
 
+    /// Emit the rows of a table (`<mtr>` and `<mtd>` elements) and the closing `</mtable>`.
     fn emit_table(
         &mut self,
         base_indent: usize,
         child_indent: usize,
-        content: &[&Node<'_>],
-        mut col_gen: ColumnGenerator,
+        rows: &[TableRow<'_>],
+        align: AlignmentType<'_>,
         numbering_cols: Option<NumberColums>,
-        last_row_info: Option<&RowLabelInfo>,
     ) -> Result<(), core::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
             child_indent.saturating_add(1)
@@ -832,64 +777,44 @@ impl<'state> Emitter<'state> {
         } else {
             0
         };
-        writeln_indent!(self, child_indent, "<mtr>");
-        if let Some(numbering_cols) = numbering_cols {
-            numbering_cols.initial_dummy_column(&mut self.s, child_indent2, self.indentation)?;
-        }
-        col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
-        for node in content {
-            match **node {
-                Node::ColumnSeparator => {
-                    writeln_indent!(self, child_indent2, "</mtd>");
-                    col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
-                }
-                Node::RowSeparator {
-                    label_info,
-                    border_top,
-                    shove,
-                } => {
-                    writeln_indent!(self, child_indent2, "</mtd>");
-                    if let Some(numbering_cols) = numbering_cols {
-                        write_equation_num(
-                            &mut self.s,
-                            child_indent2,
-                            child_indent3,
-                            label_info,
-                            numbering_cols,
-                            self.indentation,
-                            self.id_prefix,
-                        )?;
-                    }
-                    writeln_indent!(self, child_indent, "</mtr>");
-                    writeln_indent!(self, child_indent, "<mtr>");
-                    if let Some(numbering_cols) = numbering_cols {
-                        numbering_cols.initial_dummy_column(
-                            &mut self.s,
-                            child_indent2,
-                            self.indentation,
-                        )?;
-                    }
-                    col_gen.start_new_row(border_top, shove);
-                    col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
-                }
-                _ => {
+        for (row_idx, row) in rows.iter().enumerate() {
+            writeln_indent!(self, child_indent, "<mtr>");
+            if let Some(numbering_cols) = numbering_cols {
+                numbering_cols.initial_dummy_column(
+                    &mut self.s,
+                    child_indent2,
+                    self.indentation,
+                )?;
+            }
+            let mut column_idx = 0;
+            for cell in row.cells {
+                new_line_and_indent(&mut self.s, child_indent2, self.indentation);
+                column_idx = align.write_mtd(
+                    &mut self.s,
+                    row_idx,
+                    row,
+                    column_idx,
+                    child_indent2,
+                    self.indentation,
+                )?;
+                for node in *cell {
                     self.emit(node, child_indent3)?;
                 }
+                writeln_indent!(self, child_indent2, "</mtd>");
             }
+            if let Some(numbering_cols) = numbering_cols {
+                write_equation_num(
+                    &mut self.s,
+                    child_indent2,
+                    child_indent3,
+                    row.label_info.as_ref(),
+                    numbering_cols,
+                    self.indentation,
+                    self.id_prefix,
+                )?;
+            }
+            writeln_indent!(self, child_indent, "</mtr>");
         }
-        writeln_indent!(self, child_indent2, "</mtd>");
-        if let Some(numbering_cols) = numbering_cols {
-            write_equation_num(
-                &mut self.s,
-                child_indent2,
-                child_indent3,
-                last_row_info,
-                numbering_cols,
-                self.indentation,
-                self.id_prefix,
-            )?;
-        }
-        writeln_indent!(self, child_indent, "</mtr>");
         writeln_indent!(self, base_indent, "</mtable>");
         Ok(())
     }
@@ -1051,6 +976,16 @@ mod tests {
     use super::super::symbol;
     use super::super::table::{ColumnAlignment, ColumnSpecEntry, EquationTag};
     use super::*;
+
+    /// A row of a table without any label, border or shove.
+    const fn plain_row<'a>(cells: &'a [&'a [&'a Node<'a>]]) -> TableRow<'a> {
+        TableRow {
+            label_info: None,
+            border_top: None,
+            shove: None,
+            cells,
+        }
+    }
 
     const WORD: usize = std::mem::size_of::<usize>();
 
@@ -1554,39 +1489,168 @@ mod tests {
 
     #[test]
     fn render_table() {
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: None,
-                border_top: None,
-                shove: None,
-            },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
+        let rows = [
+            plain_row(&[&[&Node::Number("1")], &[&Node::Number("2")]]),
+            plain_row(&[&[&Node::Number("3")], &[&Node::Number("4")]]),
         ];
 
         assert_eq!(
             render(&Node::Table {
-                content: &nodes,
+                rows: &rows,
                 align: Alignment::Centered,
                 style: None,
-                border_top: None,
             }),
             "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
     #[test]
+    fn render_table_with_incomplete_row() {
+        // Rows may have different numbers of cells. A cell may also hold several nodes.
+        let rows = [
+            plain_row(&[
+                &[&Node::Number("1")],
+                &[&Node::Number("2"), &Node::Number("3")],
+            ]),
+            plain_row(&[&[&Node::Number("4")]]),
+            plain_row(&[&[]]),
+        ];
+
+        assert_eq!(
+            render(&Node::Table {
+                rows: &rows,
+                align: Alignment::Centered,
+                style: None,
+            }),
+            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn><mn>3</mn></mtd></mtr><mtr><mtd><mn>4</mn></mtd></mtr><mtr><mtd></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_empty_table() {
+        assert_eq!(
+            render(&Node::Table {
+                rows: &[],
+                align: Alignment::Centered,
+                style: None,
+            }),
+            "<mtable></mtable>"
+        );
+    }
+
+    #[test]
     fn render_equation_array() {
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: Some(&RowLabelInfo {
+        let first_row = TableRow {
+            label_info: Some(RowLabelInfo {
+                tag: EquationTag {
+                    text: "1",
+                    parenthesized: true,
+                },
+                link_target: None,
+            }),
+            border_top: None,
+            shove: None,
+            cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
+        };
+        let last_cells: &[&[&Node]] = &[&[&Node::Number("3")], &[&Node::Number("4")]];
+
+        let rows_with_tag = [
+            first_row,
+            TableRow {
+                label_info: Some(RowLabelInfo {
+                    tag: EquationTag {
+                        text: "2",
+                        parenthesized: true,
+                    },
+                    link_target: None,
+                }),
+                border_top: None,
+                shove: None,
+                cells: last_cells,
+            },
+        ];
+        assert_eq!(
+            render(&Node::EquationArray {
+                rows: &rows_with_tag,
+                align: Alignment::Centered,
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
+        );
+
+        let rows_without_tag = [first_row, plain_row(last_cells)];
+        assert_eq!(
+            render(&Node::EquationArray {
+                rows: &rows_without_tag,
+                align: Alignment::Centered,
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_equation_array_with_link_target() {
+        let first_row = TableRow {
+            label_info: Some(RowLabelInfo {
+                tag: EquationTag {
+                    text: "1",
+                    parenthesized: true,
+                },
+                link_target: Some("eq:1"),
+            }),
+            border_top: None,
+            shove: None,
+            cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
+        };
+        let last_cells: &[&[&Node]] = &[&[&Node::Number("3")], &[&Node::Number("4")]];
+
+        let rows_with_tag = [
+            first_row,
+            TableRow {
+                label_info: Some(RowLabelInfo {
+                    tag: EquationTag {
+                        text: "2",
+                        parenthesized: true,
+                    },
+                    link_target: Some("eq:2"),
+                }),
+                border_top: None,
+                shove: None,
+                cells: last_cells,
+            },
+        ];
+        assert_eq!(
+            render(&Node::EquationArray {
+                rows: &rows_with_tag,
+                align: Alignment::Centered,
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:2\"><mtext>(2)</mtext></mtd></mtr></mtable>"
+        );
+
+        let rows_without_tag = [first_row, plain_row(last_cells)];
+        assert_eq!(
+            render(&Node::EquationArray {
+                rows: &rows_without_tag,
+                align: Alignment::Centered,
+            }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_multline() {
+        // The first row is left-aligned, the last row right-aligned, and the rows in between are
+        // centered, unless a row has a `\shoveleft`/`\shoveright`.
+        let rows = [
+            plain_row(&[&[&Node::Number("1")]]),
+            TableRow {
+                label_info: None,
+                border_top: None,
+                shove: Some(ColumnAlignment::RightJustified),
+                cells: &[&[&Node::Number("2")]],
+            },
+            plain_row(&[&[&Node::Number("3")]]),
+            TableRow {
+                label_info: Some(RowLabelInfo {
                     tag: EquationTag {
                         text: "1",
                         parenthesized: true,
@@ -1595,109 +1659,29 @@ mod tests {
                 }),
                 border_top: None,
                 shove: None,
+                cells: &[&[&Node::Number("4")]],
             },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
         ];
 
-        let info_with_tag = RowLabelInfo {
-            tag: EquationTag {
-                text: "2",
-                parenthesized: true,
-            },
-            link_target: None,
-        };
         assert_eq!(
-            render(&Node::EquationArray {
-                content: &nodes,
-                align: Alignment::Centered,
-                last_row_info: Some(&info_with_tag),
-            }),
-            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(2)</mtext></mtd></mtr></mtable>"
-        );
-
-        assert_eq!(
-            render(&Node::EquationArray {
-                content: &nodes,
-                align: Alignment::Centered,
-                last_row_info: None,
-            }),
-            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
-        );
-    }
-
-    #[test]
-    fn render_equation_array_with_link_target() {
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: Some(&RowLabelInfo {
-                    tag: EquationTag {
-                        text: "1",
-                        parenthesized: true,
-                    },
-                    link_target: Some("eq:1"),
-                }),
-                border_top: None,
-                shove: None,
-            },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
-        ];
-
-        let info_with_tag = RowLabelInfo {
-            tag: EquationTag {
-                text: "2",
-                parenthesized: true,
-            },
-            link_target: Some("eq:2"),
-        };
-        assert_eq!(
-            render(&Node::EquationArray {
-                content: &nodes,
-                align: Alignment::Centered,
-                last_row_info: Some(&info_with_tag),
-            }),
-            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:2\"><mtext>(2)</mtext></mtd></mtr></mtable>"
-        );
-
-        assert_eq!(
-            render(&Node::EquationArray {
-                content: &nodes,
-                align: Alignment::Centered,
-                last_row_info: None,
-            }),
-            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd style=\"width: 50%;text-align: right;justify-items: end;\" id=\"test-id-prefix-eq:1\"><mtext>(1)</mtext></mtd></mtr><mtr><mtd style=\"width: 50%\"></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd style=\"width: 50%\"></mtd></mtr></mtable>"
+            render(&Node::MultLine { rows: &rows }),
+            "<mtable displaystyle=\"true\" scriptlevel=\"0\" style=\"width: 100%\"><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: left;justify-items: start;\"><mn>1</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: right;justify-items: end;\"><mn>2</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd><mn>3</mn></mtd><mtd style=\"width: 7.5%\"></mtd></mtr><mtr><mtd style=\"width: 7.5%\"></mtd><mtd style=\"text-align: right;justify-items: end;\"><mn>4</mn></mtd><mtd style=\"width: 7.5%;text-align: right;justify-items: end;\"><mtext>(1)</mtext></mtd></mtr></mtable>"
         );
     }
 
     #[test]
     fn render_array() {
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: None,
-                border_top: None,
-                shove: None,
-            },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
+        let rows = [
+            plain_row(&[&[&Node::Number("1")], &[&Node::Number("2")]]),
+            plain_row(&[&[&Node::Number("3")], &[&Node::Number("4")]]),
         ];
 
         assert_eq!(
             render(&Node::Array {
                 style: None,
-                content: &nodes,
+                rows: &rows,
                 array_spec: &ArraySpec {
                     border_left: None,
-                    border_top: None,
                     is_sub: false,
                     column_spec: &[
                         ColumnSpecEntry::WithContent {
@@ -1715,31 +1699,31 @@ mod tests {
         );
     }
 
+    /// Two rows with a solid line above the first one and a dashed line above the second one.
+    const ROWS_WITH_HLINES: [TableRow<'static>; 2] = [
+        TableRow {
+            label_info: None,
+            border_top: Some(LineType::Solid),
+            shove: None,
+            cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
+        },
+        TableRow {
+            label_info: None,
+            border_top: Some(LineType::Dashed),
+            shove: None,
+            cells: &[&[&Node::Number("3")], &[&Node::Number("4")]],
+        },
+    ];
+
     #[test]
     fn render_array_with_hlines() {
-        // A leading `\hline` (solid) sets `border_top` on the array spec, and an `\hline`
-        // after the `\\` sets `border_top` on the corresponding `RowSeparator`.
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: None,
-                border_top: Some(LineType::Dashed),
-                shove: None,
-            },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
-        ];
-
+        // The border of each row is drawn on the cells of that row.
         assert_eq!(
             render(&Node::Array {
                 style: None,
-                content: &nodes,
+                rows: &ROWS_WITH_HLINES,
                 array_spec: &ArraySpec {
                     border_left: None,
-                    border_top: Some(LineType::Solid),
                     is_sub: false,
                     column_spec: &[
                         ColumnSpecEntry::WithContent {
@@ -1753,36 +1737,20 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
     #[test]
     fn render_table_with_hlines() {
-        // Same as `render_array_with_hlines`, but for a matrix: the leading `\hline` sets
-        // `border_top` on the table itself.
-        let nodes = [
-            &Node::Number("1"),
-            &Node::ColumnSeparator,
-            &Node::Number("2"),
-            &Node::RowSeparator {
-                label_info: None,
-                border_top: Some(LineType::Dashed),
-                shove: None,
-            },
-            &Node::Number("3"),
-            &Node::ColumnSeparator,
-            &Node::Number("4"),
-        ];
-
+        // Same as `render_array_with_hlines`, but for a matrix.
         assert_eq!(
             render(&Node::Table {
-                content: &nodes,
+                rows: &ROWS_WITH_HLINES,
                 align: Alignment::Centered,
                 style: None,
-                border_top: Some(LineType::Solid),
             }),
-            "<mtable style=\"border-top: 0.05em solid currentcolor;\"><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 

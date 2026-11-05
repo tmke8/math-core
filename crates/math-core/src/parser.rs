@@ -12,7 +12,7 @@ use mathml_renderer::{
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::{EquationTag, RowLabelInfo},
+    table::{EquationTag, RowLabelInfo, TableCell, TableRow},
 };
 
 use crate::{
@@ -79,24 +79,42 @@ struct ParserState<'arena> {
 enum SequenceEnd {
     EndToken(EndToken),
     AnyEndToken,
+    /// A cell of a table-like environment, which ends at the next `&`, `\\` or `\end{...}`.
+    TableCell,
 }
 
 impl SequenceEnd {
     #[inline]
-    fn matches(self, other: &Token, meaningful_newlines: bool) -> bool {
+    fn matches(self, other: &Token, env: &EnvState) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
+            SequenceEnd::TableCell => match other {
+                Token::End(_) => true,
+                // Where `&` is not allowed, it is left to `parse_token`, which reports the error.
+                Token::NewColumn => env.allow_columns,
+                // Where `\\` is not meaningful, it is ignored.
+                Token::NewLine => env.meaningful_newlines,
+                _ => false,
+            },
             SequenceEnd::AnyEndToken => match other {
-                // In a table, each cell is its own group, so a switch like `\color` only
-                // extends to the end of the cell. Outside of a table, `&` is an error anyway.
                 Token::Eoi | Token::GroupEnd | Token::End(_) | Token::Right | Token::NewColumn => {
                     true
                 }
                 // Where `\\` is not meaningful, it is ignored, so a switch like `\color`
                 // continues past it.
-                Token::NewLine => meaningful_newlines,
+                Token::NewLine => env.meaningful_newlines,
                 _ => false,
             },
+        }
+    }
+
+    /// The end token which is reported if the input ends before this sequence does.
+    #[inline]
+    fn end_token(self) -> Option<EndToken> {
+        match self {
+            SequenceEnd::EndToken(token) => Some(token),
+            SequenceEnd::AnyEndToken => None,
+            SequenceEnd::TableCell => Some(EndToken::End),
         }
     }
 }
@@ -232,18 +250,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<Vec<&'arena Node<'arena>>> {
         let mut nodes = Vec::new();
         let mut infix_frac: Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)> = None;
-        // Index in `nodes` where the current table cell starts. Outside of tables, this stays 0.
-        let mut cell_start = 0;
 
         let mut prev_class = prev_class;
         let old_tf = self.state.transform;
         let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
-        while !sequence_end.matches(
-            self.tokens.peek().token(),
-            self.state.env.meaningful_newlines,
-        ) {
+        while !sequence_end.matches(self.tokens.peek().token(), &self.state.env) {
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
@@ -255,7 +268,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         tokloc,
                         sequence_end,
                         &mut nodes,
-                        cell_start,
                         &mut infix_frac,
                     )? {
                         ControlFlow::SkipToken => continue,
@@ -266,23 +278,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 self.parse_token(cur_tokloc, ParseAs::Sequence, prev_class)?
             };
             prev_class = class;
-
-            if matches!(target, Node::ColumnSeparator | Node::RowSeparator { .. }) {
-                // In a table, each cell is its own group, so an infix fraction ends with the cell.
-                if let Some((numerator, with_line, delim)) = infix_frac.take() {
-                    let denominator = nodes.split_off(cell_start);
-                    let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
-                    nodes.push(frac);
-                }
-                // Font switches like `\bf`, and the smaller style for the denominator of an
-                // infix fraction, also end with the cell.
-                self.state.transform = old_tf;
-                self.state.style = old_style;
-                // The separator can't take any sub- or superscripts; these start the next cell.
-                nodes.push(target);
-                cell_start = nodes.len();
-                continue;
-            }
 
             // Check if there are any superscripts or subscripts following the parsed node.
             let bounds = self.get_bounds(None)?.ensure_no_explicit_limits()?;
@@ -306,11 +301,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     nodes.push(node)
                 }
             }
-            // If there are superscripts or subscripts, we need to wrap the node we just got into
-            // one of the node types for superscripts and subscripts.
         }
         if let Some((numerator, with_line, delim)) = infix_frac {
-            let denominator = nodes.split_off(cell_start);
+            let denominator = mem::replace(&mut nodes, Vec::with_capacity(1));
             let frac = self.infix_frac_node(&numerator, &denominator, with_line, delim);
             nodes.push(frac);
         }
@@ -321,6 +314,111 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         self.state.transform = old_tf;
         self.state.style = old_style;
         Ok(nodes)
+    }
+
+    /// Parse the content of a table-like environment (the parser state must already have been
+    /// set up for the environment) into its rows and cells.
+    ///
+    /// The rows are separated by `\\` and the cells within a row by `&`. The `\end{...}` token
+    /// that ends the environment is not consumed. Rows may have different numbers of cells.
+    fn parse_table_rows(&mut self, env_span: Span) -> ParseResult<&'arena [TableRow<'arena>]> {
+        let mut rows: Vec<TableRow<'arena>> = Vec::new();
+        let mut cells: Vec<TableCell<'arena>> = Vec::new();
+        // Loop over the rows of the table, until we reach a `\end{...}` or the end of input.
+        loop {
+            // A `\hline`/`\hdashline` at the start of a row (whitespace is skipped by `peek`)
+            // becomes the top border of that row.
+            let border_top = if self.state.env.allow_hlines
+                && let Token::HLine(line_type) = *self.tokens.peek().token()
+            {
+                self.tokens.next()?; // Consume the token.
+                Some(line_type)
+            } else {
+                None
+            };
+            // `\shoveleft` or `\shoveright` at the start of a row becomes the "shove" of that row.
+            let shove = if self.state.env.allow_shove
+                && let Token::Shove(shove) = *self.tokens.peek().token()
+            {
+                self.tokens.next()?; // Consume the token.
+                Some(shove)
+            } else {
+                None
+            };
+
+            // Loop over the cells of the row, until we reach a `\\`, `\end{...}` or the end of input.
+            let is_last_row = 'cells: loop {
+                // The spacing in a cell is computed as if the cell were preceded by a closing
+                // delimiter, except for the first cell in a row, which starts afresh.
+                let prev_class = if cells.is_empty() {
+                    Class::Open
+                } else {
+                    Class::Close
+                };
+                let cell = self.parse_sequence(SequenceEnd::TableCell, prev_class, true)?;
+                cells.push(self.arena.push_slice(&cell));
+                // We don't know *why* the sequence ended, so we have to peek at the next token to
+                // find out.
+                match self.tokens.peek().token() {
+                    Token::NewColumn => {
+                        self.next_token()?;
+                    }
+                    Token::NewLine => {
+                        self.next_token()?;
+                        break 'cells false; // The row ended, but there are more rows to come.
+                    }
+                    // The sequence ended because the environment ended, so this is the last row.
+                    _ => break 'cells true,
+                }
+            };
+
+            let label_info = self.finish_numbered_row(is_last_row, env_span)?;
+            rows.push(TableRow {
+                label_info,
+                border_top,
+                shove,
+                cells: self.arena.alloc_table_cells(&cells),
+            });
+            cells.clear();
+
+            if is_last_row {
+                break;
+            }
+        }
+        Ok(self.arena.alloc_table_rows(&rows))
+    }
+
+    /// Determine the equation number and link target of the row that has just ended, if the
+    /// current environment is numbered.
+    fn finish_numbered_row(
+        &mut self,
+        is_last_row: bool,
+        env_span: Span,
+    ) -> ParseResult<Option<RowLabelInfo<'arena>>> {
+        let Some(numbered_state) = &mut self.state.env.numbered else {
+            return Ok(None);
+        };
+        let equation_counter = &mut self.tokens.stores.global_state.equation_count;
+        match numbered_state.next_equation_tag(equation_counter, is_last_row, self.arena) {
+            Ok(tag) => {
+                let link_target = numbered_state.label.take();
+                // If we don't have a tag, we're not setting a link target either.
+                Ok(tag.map(|tag| {
+                    if let Some(label) = link_target {
+                        self.tokens
+                            .stores
+                            .global_state
+                            .label_map
+                            .insert(KString::from_ref(label), KString::from_ref(tag.text));
+                    }
+                    RowLabelInfo { tag, link_target }
+                }))
+            }
+            Err(()) => Err(Box::new(LatexError(
+                env_span.into(),
+                LatexErrKind::HardLimitExceeded,
+            ))),
+        }
     }
 
     /// Build the fraction for an infix command like `\over` or `\choose`.
@@ -369,13 +467,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         tokspan: &TokSpan,
         sequence_end: SequenceEnd,
         collected_nodes: &mut Vec<&'arena Node<'arena>>,
-        cell_start: usize,
         infix_frac: &mut Option<(Vec<&'arena Node<'arena>>, bool, Option<InfixDelim>)>,
     ) -> ParseResult<ControlFlow> {
         let span = tokspan.span().into();
         let result: Result<(), LatexError> = match *tokspan.token() {
             Token::Eoi => {
-                if let SequenceEnd::EndToken(end_token) = sequence_end {
+                if let Some(end_token) = sequence_end.end_token() {
                     // The input has ended without the closing token.
                     Err(LatexError(span, LatexErrKind::UnclosedGroup(end_token)))
                 } else {
@@ -384,13 +481,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Token::InfixGenFrac { with_line, delim } => {
                 if infix_frac.is_none() {
-                    // In a table, the numerator only extends to the start of the current cell.
-                    let numerator = collected_nodes.split_off(cell_start);
-                    *infix_frac = Some((numerator, with_line, delim));
+                    *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
                     // learn it's a fraction here), but we can at least shrink the style
-                    // for the denominator. `parse_sequence` restores the style at the end
-                    // of the cell or on exit.
+                    // for the denominator. `parse_sequence` restores the style on exit.
                     self.state.style = self.state.style.shrink();
                     Ok(())
                 } else {
@@ -1387,51 +1481,28 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     None
                 };
 
-                // A `\hline`/`\hdashline` directly at the start of the environment becomes the top
-                // border of the whole table.
-                let border_top = if env.allows_hlines()
-                    && let Token::HLine(line_type) = *self.tokens.peek().token()
-                {
-                    self.tokens.next()?;
-                    Some(line_type)
-                } else {
-                    None
-                };
-                let initial_shove = if env.allows_shove()
-                    && let Token::Shove(shove) = *self.tokens.peek().token()
-                {
-                    self.tokens.next()?;
-                    Some(shove)
-                } else {
-                    None
-                };
+                let array_spec = spec.map(|spec| self.arena.alloc_array_spec(spec));
 
-                // For arrays, the top border is stored in the array spec, which already carries
-                // the borders coming from the column specification.
-                let array_spec = spec.map(|mut spec| {
-                    spec.border_top = border_top;
-                    self.arena.alloc_array_spec(spec)
-                });
+                // Like switch-like commands, an environment can only be used in a sequence.
+                if !parse_as.in_sequence() {
+                    break 'begin_env Err(LatexError(
+                        span.into(),
+                        LatexErrKind::CannotBeUsedAsArgument,
+                    ));
+                }
 
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
-                let content = self.arena.push_slice(&self.parse_sequence_if_in_sequence(
-                    parse_as,
-                    span,
-                    SequenceEnd::EndToken(EndToken::End),
-                    Class::Open,
-                    true, // keep_end_token
-                )?);
+                let rows = self.parse_table_rows(span)?;
 
                 self.state.style = old_style;
-                let env_state = mem::replace(&mut self.state.env, old_env_state);
-                let numbered_state = env_state.numbered;
+                self.state.env = old_env_state;
 
                 // Get the \end{env} token in order to verify that it matches the \begin{env}.
                 let (end_env, end_span) = self.next_token()?.into_parts();
                 let Token::End(end_env) = end_env else {
-                    // This should never happen because `parse_sequence` should have
+                    // This should never happen because `parse_table_rows` should have
                     // stopped at the `\end` token.
                     // We report an internal error here.
                     break 'begin_env Err(LatexError(end_span.into(), LatexErrKind::Internal));
@@ -1447,48 +1518,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ));
                 }
 
-                let (last_row_info, num_rows) = if let Some(mut n) = numbered_state {
-                    match n.next_equation_tag(
-                        &mut self.tokens.stores.global_state.equation_count,
-                        true,
-                        self.arena,
-                    ) {
-                        Ok(tag) => {
-                            let link_target = n.label.take();
-                            let info = if let Some(tag) = tag {
-                                if let Some(label) = link_target {
-                                    self.tokens.stores.global_state.label_map.insert(
-                                        KString::from_ref(label),
-                                        KString::from_ref(tag.text),
-                                    );
-                                }
-                                Some(
-                                    self.arena
-                                        .alloc_row_label_info(RowLabelInfo { tag, link_target }),
-                                )
-                            } else {
-                                None
-                            };
-                            (info, n.num_rows)
-                        }
-                        Err(()) => {
-                            break 'begin_env Err(LatexError(
-                                span.into(),
-                                LatexErrKind::HardLimitExceeded,
-                            ));
-                        }
-                    }
-                } else {
-                    (None, None)
-                };
-                let node = env.construct_node(
-                    content,
-                    array_spec,
-                    last_row_info,
-                    num_rows,
-                    border_top,
-                    initial_shove,
-                );
+                let node = env.construct_node(rows, array_spec);
                 if let Some((open, close)) = env.delimiters() {
                     // Like `\left...\right`, this is a `mathinner` atom.
                     class = Class::Inner;
@@ -1622,26 +1652,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ));
             }
             Token::NewColumn => {
-                if !self.state.env.allow_columns {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Ampersand,
-                            correct_place: Place::TableEnv,
-                        },
-                    ))
-                } else if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
-                    Err(LatexError(
-                        span.into(),
-                        LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Ampersand,
-                            correct_place: Place::TableEnvTopLevel,
-                        },
-                    ))
+                // At the top level of a table cell, `&` ends the cell (see `parse_table_rows`)
+                // before it can reach this point, so here it is always misplaced: either in an
+                // environment without columns, or in a group or an argument within a cell.
+                let correct_place = if self.state.env.allow_columns {
+                    Place::TableEnvTopLevel
                 } else {
-                    class = Class::Close;
-                    Ok(Node::ColumnSeparator)
-                }
+                    Place::TableEnv
+                };
+                Err(LatexError(
+                    span.into(),
+                    LatexErrKind::CannotBeUsedHere {
+                        got: LimitedUsabilityToken::Ampersand,
+                        correct_place,
+                    },
+                ))
             }
             tok @ (Token::HLine(_) | Token::Shove(_) | Token::Limits(_)) => {
                 let (got, correct_place) = match tok {
@@ -1655,93 +1680,22 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     LatexErrKind::CannotBeUsedHere { got, correct_place },
                 ))
             }
-            Token::NewLine => 'new_line: {
+            Token::NewLine => {
                 if !self.state.env.meaningful_newlines {
                     // In a sequence, this is already skipped in `handle_tokens_without_output`,
                     // so we only get here in an argument.
-                    break 'new_line Ok(Node::EMPTY_ROW);
-                }
-                class = Class::Open;
-                if self.state.env.nested || !matches!(parse_as, ParseAs::Sequence) {
-                    break 'new_line Err(LatexError(
+                    Ok(Node::EMPTY_ROW)
+                } else {
+                    // At the top level of a table cell, `\\` ends the cell (see
+                    // `parse_table_rows`) before it can reach this point, so here it is always
+                    // misplaced: in a group or an argument within a cell.
+                    Err(LatexError(
                         span.into(),
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::NewLine,
                             correct_place: Place::TableEnvTopLevel,
                         },
-                    ));
-                }
-                // A `\hline`/`\hdashline` directly after the `\\` (whitespace is skipped by `peek`)
-                // becomes the top border of the row that follows. Only legal inside an array or
-                // matrix; elsewhere it falls through to the `Token::HLine` error arm.
-                let border_top = if self.state.env.allow_hlines
-                    && let Token::HLine(line_type) = *self.tokens.peek().token()
-                {
-                    self.tokens.next()?;
-                    Some(line_type)
-                } else {
-                    None
-                };
-                // A `\shoveleft` or `\shoveright` after a `\\` becomes the "shove" of the row that
-                // follows.
-                let shove = if self.state.env.allow_shove
-                    && let Token::Shove(shove) = *self.tokens.peek().token()
-                {
-                    self.tokens.next()?;
-                    Some(shove)
-                } else {
-                    None
-                };
-                if let Some(numbered_state) = &mut self.state.env.numbered {
-                    if let Some(row_counter) = &mut numbered_state.num_rows {
-                        match row_counter.checked_add(1) {
-                            Some(new_counter) => {
-                                *row_counter = new_counter;
-                            }
-                            None => {
-                                break 'new_line Err(LatexError(
-                                    span.into(),
-                                    LatexErrKind::HardLimitExceeded,
-                                ));
-                            }
-                        }
-                    }
-                    match numbered_state.next_equation_tag(
-                        &mut self.tokens.stores.global_state.equation_count,
-                        false,
-                        self.arena,
-                    ) {
-                        Ok(tag) => {
-                            let link_target = numbered_state.label.take();
-                            let label_info = if let Some(tag) = tag {
-                                if let Some(label) = link_target {
-                                    self.tokens.stores.global_state.label_map.insert(
-                                        KString::from_ref(label),
-                                        KString::from_ref(tag.text),
-                                    );
-                                }
-                                Some(
-                                    self.arena
-                                        .alloc_row_label_info(RowLabelInfo { tag, link_target }),
-                                )
-                            } else {
-                                // If we don't have a tag, we're not setting a link target either
-                                None
-                            };
-                            Ok(Node::RowSeparator {
-                                label_info,
-                                border_top,
-                                shove,
-                            })
-                        }
-                        Err(()) => Err(LatexError(span.into(), LatexErrKind::HardLimitExceeded)),
-                    }
-                } else {
-                    Ok(Node::RowSeparator {
-                        label_info: None,
-                        border_top,
-                        shove,
-                    })
+                    ))
                 }
             }
             Token::EqRef => {
@@ -3889,6 +3843,14 @@ mod tests {
             ("frac_with_subscript", r"\frac12_x"),
             ("integral_with_reversed_limits", r"\int\limits^1_0 dx"),
             ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
+            (
+                "matrix_incomplete_row",
+                r"\begin{matrix} 1 & 2 \\ \hline 3 \\ \end{matrix}",
+            ),
+            (
+                "align_numbered",
+                r"\begin{align} a \\ b \tag{x} \end{align}",
+            ),
             ("number_with_dot", r"3.14"),
             ("number_with_dot_at_end", r"3.14."),
             ("number_with_two_inner_dots", r"3..14"),
