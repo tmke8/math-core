@@ -17,8 +17,7 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    Alignment, AlignmentType, ArraySpec, ColumnGenerator, LineType, RIGHT_ALIGN, RowLabelInfo,
-    TableRow,
+    Alignment, AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowLabelInfo, TableRow,
 };
 use crate::{
     attribute::{
@@ -603,25 +602,27 @@ impl<'state> Emitter<'state> {
                 writeln_indent!(self, base_indent, "</mphantom>");
             }
             Node::Table { rows, align, style } => {
-                let mtd_opening = AlignmentType::Predefined(align).into_generator();
-
                 write!(self.s, "<mtable")?;
                 if let Some(style) = style {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, rows, mtd_opening, None)?;
+                self.emit_table(
+                    base_indent,
+                    child_indent,
+                    rows,
+                    AlignmentType::Predefined(align),
+                    None,
+                )?;
             }
             ref node @ (Node::EquationArray { rows, .. } | Node::MultLine { rows }) => {
-                let (mtd_opening, numbering_cols) = match *node {
-                    Node::EquationArray { align, .. } => (
-                        AlignmentType::Predefined(align).into_generator(),
-                        NumberColums::Wide,
-                    ),
-                    Node::MultLine { .. } => (
-                        AlignmentType::MultLine(rows.len()).into_generator(),
-                        NumberColums::Narrow,
-                    ),
+                let (align, numbering_cols) = match *node {
+                    Node::EquationArray { align, .. } => {
+                        (AlignmentType::Predefined(align), NumberColums::Wide)
+                    }
+                    Node::MultLine { .. } => {
+                        (AlignmentType::MultLine(rows.len()), NumberColums::Narrow)
+                    }
                     _ => unreachable!(),
                 };
 
@@ -629,20 +630,13 @@ impl<'state> Emitter<'state> {
                     &mut self.s,
                     r#"<mtable displaystyle="true" scriptlevel="0" style="width: 100%">"#
                 )?;
-                self.emit_table(
-                    base_indent,
-                    child_indent,
-                    rows,
-                    mtd_opening,
-                    Some(numbering_cols),
-                )?;
+                self.emit_table(base_indent, child_indent, rows, align, Some(numbering_cols))?;
             }
             Node::Array {
                 style,
                 rows,
                 array_spec,
             } => {
-                let mtd_opening = AlignmentType::Custom(array_spec).into_generator();
                 write!(self.s, "<mtable")?;
                 // `border_left` comes from a leading `|`/`:` in the column specification.
                 match array_spec.border_left {
@@ -661,7 +655,13 @@ impl<'state> Emitter<'state> {
                     write!(self.s, "{}", <&str>::from(style))?;
                 }
                 write!(self.s, ">")?;
-                self.emit_table(base_indent, child_indent, rows, mtd_opening, None)?;
+                self.emit_table(
+                    base_indent,
+                    child_indent,
+                    rows,
+                    AlignmentType::Custom(array_spec),
+                    None,
+                )?;
             }
             Node::Enclose { content, notation } => {
                 write!(self.s, "<menclose notation=\"")?;
@@ -764,7 +764,7 @@ impl<'state> Emitter<'state> {
         base_indent: usize,
         child_indent: usize,
         rows: &[TableRow<'_>],
-        mut col_gen: ColumnGenerator,
+        align: AlignmentType<'_>,
         numbering_cols: Option<NumberColums>,
     ) -> Result<(), core::fmt::Error> {
         let child_indent2 = if base_indent > 0 {
@@ -786,9 +786,17 @@ impl<'state> Emitter<'state> {
                     self.indentation,
                 )?;
             }
-            col_gen.start_row(row_idx, row.border_top, row.shove);
+            let mut column_idx = 0;
             for cell in row.cells {
-                col_gen.write_next_mtd(&mut self.s, child_indent2, self.indentation)?;
+                new_line_and_indent(&mut self.s, child_indent2, self.indentation);
+                column_idx = align.write_mtd(
+                    &mut self.s,
+                    row_idx,
+                    row,
+                    column_idx,
+                    child_indent2,
+                    self.indentation,
+                )?;
                 for node in *cell {
                     self.emit(node, child_indent3)?;
                 }
