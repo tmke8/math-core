@@ -21,17 +21,11 @@ expression: "\\begin{matrix} \\hline 1 & 2 \\\\ \\hline 3 & 4 \\\\ \\hdashline 5
             </mtd>
         </mtr>
         <mtr>
-            <mtd style="border-top: 0.05em dashed currentcolor;">
+            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;">
                 <mn>5</mn>
             </mtd>
-            <mtd style="border-top: 0.05em dashed currentcolor;">
+            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;">
                 <mn>6</mn>
-            </mtd>
-        </mtr>
-        <mtr>
-            <mtd style="border-top: 0.05em solid currentcolor;">
-            </mtd>
-            <mtd style="border-top: 0.05em solid currentcolor;">
             </mtd>
         </mtr>
     </mtable>

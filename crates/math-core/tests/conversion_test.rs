@@ -783,6 +783,10 @@ fn main() {
             r"\begin{array}{c} a\\ b\\ \hline \end{array}",
         ),
         (
+            "array_hline_then_trailing_newline",
+            r"\begin{array}{c} a\\ \hline \\ \end{array}",
+        ),
+        (
             "cases_trailing_newline",
             r"\begin{cases} a & b\\ c & d\\ \end{cases}",
         ),

@@ -373,15 +373,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             };
 
             // In some environments, a `\\` right before `\end{...}` doesn't start a new row, so
-            // we drop the empty row that follows it. A row with an `\hline` is kept, because the
-            // line still has to be drawn.
+            // we drop the empty row that follows it. An `\hline` in that row is a line below the
+            // previous row instead.
             if is_last_row
                 && self.state.env.ignore_trailing_newline
-                && !rows.is_empty()
-                && border_top.is_none()
                 && shove.is_none()
                 && matches!(cells.as_slice(), [cell] if cell.is_empty())
+                && let Some(prev_row) = rows.last_mut()
             {
+                prev_row.border_bottom = border_top;
                 break;
             }
 
@@ -389,6 +389,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             rows.push(TableRow {
                 label_info,
                 border_top,
+                border_bottom: None,
                 shove,
                 cells: self.arena.alloc_table_cells(&cells),
             });

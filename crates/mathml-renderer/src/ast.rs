@@ -986,6 +986,7 @@ mod tests {
         TableRow {
             label_info: None,
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells,
         }
@@ -1539,6 +1540,7 @@ mod tests {
             TableRow {
                 label_info: None,
                 border_top: Some(LineType::Solid),
+                border_bottom: None,
                 shove: None,
                 cells: &[&[&Node::Number("3")]],
             },
@@ -1590,6 +1592,7 @@ mod tests {
                 link_target: None,
             }),
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         };
@@ -1606,6 +1609,7 @@ mod tests {
                     link_target: None,
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: last_cells,
             },
@@ -1639,6 +1643,7 @@ mod tests {
                 link_target: Some("eq:1"),
             }),
             border_top: None,
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         };
@@ -1655,6 +1660,7 @@ mod tests {
                     link_target: Some("eq:2"),
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: last_cells,
             },
@@ -1686,6 +1692,7 @@ mod tests {
             TableRow {
                 label_info: None,
                 border_top: None,
+                border_bottom: None,
                 shove: Some(ColumnAlignment::RightJustified),
                 cells: &[&[&Node::Number("2")]],
             },
@@ -1699,6 +1706,7 @@ mod tests {
                     link_target: None,
                 }),
                 border_top: None,
+                border_bottom: None,
                 shove: None,
                 cells: &[&[&Node::Number("4")]],
             },
@@ -1745,12 +1753,14 @@ mod tests {
         TableRow {
             label_info: None,
             border_top: Some(LineType::Solid),
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
         },
         TableRow {
             label_info: None,
             border_top: Some(LineType::Dashed),
+            border_bottom: None,
             shove: None,
             cells: &[&[&Node::Number("3")], &[&Node::Number("4")]],
         },
@@ -1779,6 +1789,26 @@ mod tests {
                 },
             }),
             "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+        );
+    }
+
+    #[test]
+    fn render_table_with_bottom_border() {
+        // A row can have a line both above and below it.
+        let rows = [TableRow {
+            label_info: None,
+            border_top: Some(LineType::Dashed),
+            border_bottom: Some(LineType::Solid),
+            shove: None,
+            cells: &[&[&Node::Number("1")], &[&Node::Number("2")]],
+        }];
+        assert_eq!(
+            render(&Node::Table {
+                rows: &rows,
+                align: Alignment::Centered,
+                style: None,
+            }),
+            "<mtable><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr></mtable>"
         );
     }
 

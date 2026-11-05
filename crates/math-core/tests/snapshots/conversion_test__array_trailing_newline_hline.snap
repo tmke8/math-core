@@ -10,12 +10,8 @@ expression: "\\begin{array}{c} a\\\\ b\\\\ \\hline \\end{array}"
             </mtd>
         </mtr>
         <mtr>
-            <mtd>
+            <mtd style="border-bottom: 0.05em solid currentcolor;">
                 <mi>b</mi>
-            </mtd>
-        </mtr>
-        <mtr>
-            <mtd style="border-top: 0.05em solid currentcolor;">
             </mtd>
         </mtr>
     </mtable>
