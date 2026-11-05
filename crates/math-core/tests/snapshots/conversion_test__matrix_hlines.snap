@@ -31,6 +31,8 @@ expression: "\\begin{matrix} \\hline 1 & 2 \\\\ \\hline 3 & 4 \\\\ \\hdashline 5
         <mtr>
             <mtd style="border-top: 0.05em solid currentcolor;">
             </mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;">
+            </mtd>
         </mtr>
     </mtable>
 </math>

@@ -31,6 +31,8 @@ expression: "\\begin{array}{cc} \\hline 1 & 2 \\\\ \\hline 3 & 4 \\\\ \\hdashlin
         <mtr>
             <mtd style="border-top: 0.05em solid currentcolor;">
             </mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;">
+            </mtd>
         </mtr>
     </mtable>
 </math>

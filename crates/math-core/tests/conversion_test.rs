@@ -301,6 +301,7 @@ fn main() {
             r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
         ),
         ("align_rel_then_amp", r#"\begin{align}&x\\=\;&2\end{align}"#),
+        ("align_incomplete_row", r"\begin{align}1 & 2\\3\end{align}"),
         ("notag", r#"\begin{align} 1\notag\\2\end{align}"#),
         ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
         ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
@@ -764,6 +765,10 @@ fn main() {
         (
             "array_hlines",
             r"\begin{array}{cc} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{array}",
+        ),
+        (
+            "array_incomplete_row_hline",
+            r"\begin{array}{cc}1 & 2\\\hline 3\end{array}",
         ),
         (
             "matrix_hlines",
