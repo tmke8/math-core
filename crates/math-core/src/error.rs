@@ -34,6 +34,13 @@ pub(crate) enum LatexErrKind {
         got: LimitedUsabilityToken,
         correct_place: Place,
     },
+    /// A display environment like `align` in inline math.
+    DisplayEnvInInlineMath(Env),
+    /// A display environment like `align` which is nested in something, or which has
+    /// something in front of it.
+    DisplayEnvNotAtStart(Env),
+    /// Something after the `\end{...}` of a display environment like `align`.
+    ContentAfterDisplayEnv(Env),
     ExpectedRelation,
     ExpectedLargeOp,
     ExpectedAtMostOneToken,
@@ -220,6 +227,27 @@ impl LatexErrKind {
                     "Found \"{}\", which may only appear {}.",
                     <&str>::from(got),
                     <&str>::from(correct_place)
+                )?;
+            }
+            LatexErrKind::DisplayEnvInInlineMath(env) => {
+                write!(
+                    s,
+                    "Environment \"{}\" cannot be used in inline math.",
+                    env.as_str()
+                )?;
+            }
+            LatexErrKind::DisplayEnvNotAtStart(env) => {
+                write!(
+                    s,
+                    "Environment \"{}\" may only appear at the top level of a block equation, with nothing before it.",
+                    env.as_str()
+                )?;
+            }
+            LatexErrKind::ContentAfterDisplayEnv(env) => {
+                write!(
+                    s,
+                    "Nothing may follow \"\\end{{{}}}\" in a block equation.",
+                    env.as_str()
                 )?;
             }
             LatexErrKind::ExpectedRelation => {
@@ -423,7 +451,11 @@ impl LatexError {
             LatexErrKind::MismatchedEnvironment { .. } => {
                 "expected a different environment name here"
             }
-            LatexErrKind::CannotBeUsedHere { .. } => "cannot be used here",
+            LatexErrKind::CannotBeUsedHere { .. } | LatexErrKind::DisplayEnvNotAtStart(_) => {
+                "cannot be used here"
+            }
+            LatexErrKind::DisplayEnvInInlineMath(_) => "not allowed in inline math",
+            LatexErrKind::ContentAfterDisplayEnv(_) => "unexpected content after the environment",
             LatexErrKind::ExpectedRelation => "expected a relation",
             LatexErrKind::ExpectedLargeOp => "expected a large operator",
             LatexErrKind::ExpectedStyle => "expected a style",

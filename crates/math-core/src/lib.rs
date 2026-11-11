@@ -75,7 +75,6 @@ pub use mathml_renderer::ast::{CssClassNames, Indentation, Warnings};
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
-    attribute::Style,
     fmt::new_line_and_indent,
 };
 
@@ -530,12 +529,8 @@ fn parse<'arena>(
     state: &mut GlobalState,
     display: MathDisplay,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>> {
-    let style = match display {
-        MathDisplay::Inline => Style::Text,
-        MathDisplay::Block => Style::Display,
-    };
     let lexer = Lexer::new(latex);
-    let mut p = Parser::new(lexer, arena, parser_cfg, state, style)?;
+    let mut p = Parser::new(lexer, arena, parser_cfg, state, display)?;
     let nodes = p.parse()?;
     Ok(semantic::enrich(arena, &nodes))
 }

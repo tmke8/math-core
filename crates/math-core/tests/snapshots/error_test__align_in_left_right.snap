@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\left(\\begin{align}x\\end{align}\\right)"
+---
+Error: Environment "align" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:7 ]
+   │
+ 1 │ \left(\begin{align}x\end{align}\right)
+   │       ──────┬──────  
+   │             ╰──────── cannot be used here
+───╯

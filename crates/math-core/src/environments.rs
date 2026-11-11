@@ -169,9 +169,16 @@ impl Env {
         )
     }
 
+    /// `true` for the display environments of amsmath (`align`, `equation`, `gather`, `multline`
+    /// and their starred forms).
+    ///
+    /// Such an environment is a whole equation rather than a part of one: it spans the full
+    /// width of the line and carries the equation numbers. It therefore has to be the only
+    /// content of a block equation, and has no place in inline math, where `aligned` and
+    /// `gathered` are the alternatives.
     #[inline]
-    fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
-        if matches!(
+    pub(super) fn is_display_env(self) -> bool {
+        matches!(
             self,
             Env::Align
                 | Env::AlignStar
@@ -181,7 +188,12 @@ impl Env {
                 | Env::GatherStar
                 | Env::MultLine
                 | Env::MultLineStar
-        ) {
+        )
+    }
+
+    #[inline]
+    fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
+        if self.is_display_env() {
             Some(NumberedEnvState {
                 mode: match self {
                     Env::Align | Env::Equation | Env::Gather => NumberingMode::AllByDefault,

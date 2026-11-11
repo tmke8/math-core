@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{multline}x\\end{multline}"
+---
+Error: Environment "multline" cannot be used in inline math.
+   ╭─[ <input>:1:1 ]
+   │
+ 1 │ \begin{multline}x\end{multline}
+   │ ────────┬───────  
+   │         ╰───────── not allowed in inline math
+───╯

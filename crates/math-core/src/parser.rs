@@ -16,7 +16,7 @@ use mathml_renderer::{
 };
 
 use crate::{
-    ParserConfig,
+    MathDisplay, ParserConfig,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, FenceOptions, MathVariant, ParenType, StretchableOp, Stretchy,
@@ -64,6 +64,8 @@ struct ParserState<'arena> {
     env: EnvState<'arena>,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
+    /// Whether a display environment like `align` may begin at the current position.
+    display_env: DisplayEnvPermission,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
     vertical_line_def: Option<VerticalLineDef>,
     /// How many more custom commands may be expanded before we give up.
@@ -73,6 +75,35 @@ struct ParserState<'arena> {
     /// detecting that, we simply stop after a while, as LaTeX and KaTeX do. How long that
     /// takes is configurable; see [`crate::MaxExpansions`].
     expansions_left: u32,
+}
+
+/// Whether a display environment (see [`Env::is_display_env`]) may begin at the current
+/// position.
+///
+/// Such an environment has to be the only content of a block equation. Nothing but
+/// definitions (`\newcommand`, `\def`, `\let`) and other tokens without any effect on what
+/// follows may come before it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DisplayEnvPermission {
+    /// We are at the very start of a block equation.
+    Allowed,
+    /// We are in a block equation, but its start lies behind us.
+    NotAtStart,
+    /// We are in an inline equation, which cannot contain display environments at all.
+    InlineMath,
+}
+
+impl DisplayEnvPermission {
+    /// Record that the start of the equation lies behind us, and return the permission as it
+    /// was up to now.
+    #[inline]
+    fn pass_start(&mut self) -> Self {
+        let old = *self;
+        if old == DisplayEnvPermission::Allowed {
+            *self = DisplayEnvPermission::NotAtStart;
+        }
+        old
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -171,8 +202,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         arena: &'arena Arena,
         parser_cfg: &'arena ParserConfig,
         global_state: &'state mut GlobalState,
-        style: Style,
+        display: MathDisplay,
     ) -> ParseResult<Self> {
+        let (style, display_env) = match display {
+            MathDisplay::Inline => (Style::Text, DisplayEnvPermission::InlineMath),
+            MathDisplay::Block => (Style::Display, DisplayEnvPermission::Allowed),
+        };
         let input_length = lexer.input_length();
         let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
         Ok(Parser {
@@ -185,6 +220,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 right_boundary_hack: false,
                 env: EnvState::default(),
                 style,
+                display_env,
                 vertical_line_def: None,
                 expansions_left: parser_cfg.max_expansions.0,
             },
@@ -494,6 +530,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::InfixGenFrac { with_line, delim } => {
+                // What follows is the denominator of a fraction, so it is not at the start of
+                // the equation anymore, even if the numerator is empty.
+                self.state.display_env.pass_start();
                 if infix_frac.is_none() {
                     *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
@@ -513,6 +552,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // argument.
             Token::NewLine if !self.state.env.meaningful_newlines => Ok(()),
             Token::TransformSwitch(tf) => {
+                // A display environment is not something that a switch can apply to.
+                self.state.display_env.pass_start();
                 self.state.transform = Some(tf);
                 Ok(())
             }
@@ -611,9 +652,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        // Whatever this token is, the start of the equation lies behind us once we are done
+        // with it, and already while we parse what it contains. The permission which held up
+        // to here is thus only valid for this token itself, or for the first token of its
+        // expansion, which takes its place.
+        let display_env = self.state.display_env.pass_start();
         let mut cur_tokloc = cur_tokloc;
         loop {
-            match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
+            match self.parse_one_token(cur_tokloc, parse_as, prev_class, display_env)? {
                 Parsed::Node(class, node) => return Ok((class, node)),
                 Parsed::Expansion => cur_tokloc = self.next_token(),
             }
@@ -638,6 +684,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
+        display_env: DisplayEnvPermission,
     ) -> ParseResult<Parsed<'arena>> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
@@ -1505,6 +1552,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ));
                 }
 
+                // A display environment is a whole equation, so it can only be the first
+                // thing in a block equation, which also rules out any kind of nesting.
+                if env.is_display_env() {
+                    let err_kind = match display_env {
+                        DisplayEnvPermission::Allowed => None,
+                        DisplayEnvPermission::NotAtStart => {
+                            Some(LatexErrKind::DisplayEnvNotAtStart(env))
+                        }
+                        DisplayEnvPermission::InlineMath => {
+                            Some(LatexErrKind::DisplayEnvInInlineMath(env))
+                        }
+                    };
+                    if let Some(err_kind) = err_kind {
+                        break 'begin_env Err(LatexError(span.into(), err_kind));
+                    }
+                }
+
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env.new_state());
 
@@ -1530,6 +1594,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             got: end_env,
                         },
                     ));
+                }
+
+                // A display environment also has to be the last thing in the equation. It began
+                // at the start of the top-level sequence, so only the end of the input may follow.
+                if env.is_display_env() {
+                    let next = self.tokens.peek();
+                    if !matches!(next.token(), Token::Eoi) {
+                        break 'begin_env Err(LatexError(
+                            next.span().into(),
+                            LatexErrKind::ContentAfterDisplayEnv(env),
+                        ));
+                    }
                 }
 
                 let node = env.construct_node(rows, array_spec);
@@ -3861,10 +3937,6 @@ mod tests {
                 "matrix_incomplete_row",
                 r"\begin{matrix} 1 & 2 \\ \hline 3 \\ \end{matrix}",
             ),
-            (
-                "align_numbered",
-                r"\begin{align} a \\ b \tag{x} \end{align}",
-            ),
             ("number_with_dot", r"3.14"),
             ("number_with_dot_at_end", r"3.14."),
             ("number_with_two_inner_dots", r"3..14"),
@@ -3919,12 +3991,26 @@ mod tests {
             ("phantom_full", r"\phantom{a}"),
             ("mathstrut", r"\mathstrut"),
         ];
+        // The display environments make up a whole equation, so they are only allowed in
+        // block equations.
+        let block_problems = [(
+            "align_numbered",
+            r"\begin{align} a \\ b \tag{x} \end{align}",
+        )];
+        let problems = problems
+            .into_iter()
+            .map(|problem| (problem, MathDisplay::Inline))
+            .chain(
+                block_problems
+                    .into_iter()
+                    .map(|problem| (problem, MathDisplay::Block)),
+            );
         let parser_cfg = crate::ParserConfig::default();
-        for (name, problem) in problems.into_iter() {
+        for ((name, problem), display) in problems {
             let arena = Arena::new();
             let mut state = GlobalState::default();
             let l = Lexer::new(problem);
-            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, display).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -3963,7 +4049,8 @@ mod tests {
             let arena = Arena::new();
             let mut state = GlobalState::default();
             let l = Lexer::new("");
-            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+            let mut p =
+                Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -3980,7 +4067,7 @@ mod tests {
         let parser_cfg = crate::ParserConfig::default();
         let mut state = GlobalState::default();
         let l = Lexer::new(&input);
-        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));

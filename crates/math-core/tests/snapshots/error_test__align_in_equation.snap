@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{equation}\\begin{align}x\\end{align}\\end{equation}"
+---
+Error: Environment "align" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:17 ]
+   │
+ 1 │ \begin{equation}\begin{align}x\end{align}\end{equation}
+   │                 ──────┬──────  
+   │                       ╰──────── cannot be used here
+───╯

@@ -2,7 +2,7 @@
 source: crates/math-core/tests/conversion_test.rs
 expression: "\\begin{align}\\color{red} a &= b \\\\ c &= d\\end{align}"
 ---
-<math>
+<math display="block">
     <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>

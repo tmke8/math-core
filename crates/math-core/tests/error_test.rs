@@ -1,8 +1,33 @@
 use insta::assert_snapshot;
 use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
+/// Check that each of the problems is rejected, and compare the error reports with the
+/// snapshots.
+fn assert_error_reports(problems: &[(&str, &str)], display: MathDisplay) {
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Never,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
+    for &(name, problem) in problems {
+        let Err(error) = converter
+            .convert_with_local_state(problem, display)
+            .map_err(|e| *e)
+        else {
+            panic!("problem `{}` did not return an error", problem);
+        };
+        let report = error.to_report("<input>", false);
+        let mut buf = Vec::new();
+        report
+            .write(("<input>", ariadne::Source::from(problem)), &mut buf)
+            .expect("failed to write report");
+        let output = String::from_utf8(buf).expect("report should be valid UTF-8");
+        assert_snapshot!(name, &output, problem);
+    }
+}
+
 #[test]
-fn main() {
+fn inline_equations() {
     let problems = [
         ("end_without_open", r"\end{matrix}"),
         ("curly_close_without_open", r"}"),
@@ -126,10 +151,6 @@ fn main() {
             r"\begin{matrix}\frac\\ b\end{matrix}",
         ),
         (
-            "newline_in_group_in_align",
-            r"\begin{align}{a \\ b}\end{align}",
-        ),
-        (
             "hline_in_wrong_position",
             r"\begin{array}{cc} 1 & \hline 2 \end{array}",
         ),
@@ -219,26 +240,11 @@ fn main() {
         ("sqrt_unknown_cmd", r"\sqrt[3]\asdf 3"),
         ("mathrm_unknown_cmd", r"\mathrm{ab\asdf}"),
         ("digits_unknown_cmd", r"1.1\asdf"),
-        ("tag_with_underscore", r"\begin{align}\tag{a_b}1\end{align}"),
         ("tag_in_aligned", r#"\begin{aligned}\tag{32}1\end{aligned}"#),
         (
             "tag_star_in_aligned",
             r#"\begin{aligned}\tag*{32}1\end{aligned}"#,
         ),
-        (
-            "duplicate_label",
-            r#"\begin{align}\label{a}1\label{b}\end{align}"#,
-        ),
-        (
-            "ampersand_in_multline",
-            r#"\begin{multline}1&1\end{multline}"#,
-        ),
-        ("shove_in_align", r"\begin{align}\shoveleft 1\end{align}"),
-        (
-            "shove_not_at_beginning",
-            r"\begin{multline}1\shoveleft 2\end{multline}",
-        ),
-        ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
         ("left_with_non_delimiter", r"\left x 1 \right)"),
         ("right_with_non_delimiter", r"\left( 1 \right x"),
         ("middle_with_non_delimiter", r"\left( 1 \middle x \right)"),
@@ -266,26 +272,87 @@ fn main() {
         ("unknown_color", r"{\color{foobar} x}"),
         ("unknown_color_no_braces", r"{\color - x}"),
         ("unsupported_color_html_short", r"{\color[HTML]{f0a}x^2}"),
+        ("align_in_inline_math", r"\begin{align}x\end{align}"),
+        (
+            "equation_star_in_inline_math",
+            r"x = \begin{equation*}y\end{equation*}",
+        ),
+        ("gather_in_inline_math", r"\begin{gather}x\end{gather}"),
+        (
+            "multline_in_inline_math",
+            r"\begin{multline}x\end{multline}",
+        ),
     ];
 
-    let config = MathCoreConfig {
-        pretty_print: PrettyPrint::Never,
-        ..Default::default()
-    };
-    let converter = LatexToMathML::new(config, vec![]).unwrap();
-    for (name, problem) in problems.into_iter() {
-        let Err(error) = converter
-            .convert_with_local_state(problem, MathDisplay::Inline)
-            .map_err(|e| *e)
-        else {
-            panic!("problem `{}` did not return an error", problem);
-        };
-        let report = error.to_report("<input>", false);
-        let mut buf = Vec::new();
-        report
-            .write(("<input>", ariadne::Source::from(problem)), &mut buf)
-            .expect("failed to write report");
-        let output = String::from_utf8(buf).expect("report should be valid UTF-8");
-        assert_snapshot!(name, &output, problem);
-    }
+    assert_error_reports(&problems, MathDisplay::Inline);
+}
+
+/// The display environments make up a whole equation, so they are only allowed in block
+/// equations.
+#[test]
+fn block_equations() {
+    let problems = [
+        (
+            "newline_in_group_in_align",
+            r"\begin{align}{a \\ b}\end{align}",
+        ),
+        ("tag_with_underscore", r"\begin{align}\tag{a_b}1\end{align}"),
+        (
+            "duplicate_label",
+            r#"\begin{align}\label{a}1\label{b}\end{align}"#,
+        ),
+        (
+            "ampersand_in_multline",
+            r#"\begin{multline}1&1\end{multline}"#,
+        ),
+        ("shove_in_align", r"\begin{align}\shoveleft 1\end{align}"),
+        (
+            "shove_not_at_beginning",
+            r"\begin{multline}1\shoveleft 2\end{multline}",
+        ),
+        ("ampersand_in_gather", r#"\begin{gather}1&1\\1\end{gather}"#),
+        ("align_not_at_start", r"x = 2y.\begin{align}x\end{align}"),
+        ("align_in_group", r"{\begin{align}x\end{align}}"),
+        (
+            "align_in_left_right",
+            r"\left(\begin{align}x\end{align}\right)",
+        ),
+        (
+            "align_in_equation",
+            r"\begin{equation}\begin{align}x\end{align}\end{equation}",
+        ),
+        (
+            "align_in_gather",
+            r"\begin{gather}\begin{align}x\end{align}\end{gather}",
+        ),
+        (
+            "gather_in_aligned",
+            r"\begin{aligned}\begin{gather}x\end{gather}\end{aligned}",
+        ),
+        (
+            "multline_after_style_switch",
+            r"\displaystyle\begin{multline}x\end{multline}",
+        ),
+        (
+            "align_after_transform_switch",
+            r"\bf\begin{align}x\end{align}",
+        ),
+        ("align_after_infix_frac", r"\over\begin{align}x\end{align}"),
+        (
+            "align_not_at_start_in_custom_command",
+            r"\newcommand{\x}{a\begin{align}}\x y\end{align}",
+        ),
+        ("content_after_align", r"\begin{align}x\end{align} y"),
+        (
+            "align_after_align",
+            r"\begin{align}x\end{align}\begin{align}y\end{align}",
+        ),
+        ("superscript_after_gather", r"\begin{gather}x\end{gather}^2"),
+        (
+            "eqref_after_align",
+            r"\begin{align} 1\label{a}\\2\label{b}\end{align}\eqref{b}",
+        ),
+    ];
+
+    assert_error_reports(&problems, MathDisplay::Block);
 }
