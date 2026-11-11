@@ -430,14 +430,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
             // Loop over the cells of the row, until we reach a `\\`, `\end{...}` or the end of input.
             let is_last_row = 'cells: loop {
-                // The spacing in a cell is computed as if the cell were preceded by a closing
-                // delimiter, except for the first cell in a row, which starts afresh.
-                let prev_class = if cells.is_empty() {
-                    Class::Open
-                } else {
+                // A cell behaves like its own formula (i.e., begins with Open), except for the
+                // left-aligned columns (the 2nd, 4th, ...) of `align`-like environments: amsmath
+                // starts those with an empty atom (`{}`), so the spacing is computed as if the cell
+                // were preceded by a closing delimiter.
+                let prev_class = if self.state.env.alternating_columns && cells.len() % 2 == 1 {
                     Class::Close
+                } else {
+                    Class::Open
                 };
                 let cell = self.parse_sequence(SequenceEnd::TableCell, prev_class, true)?;
+                let cell = semantic::enrich(self.arena, &cell);
                 cells.push(self.arena.push_slice(&cell));
                 // We don't know *why* the sequence ended, so we have to peek at the next token to
                 // find out.

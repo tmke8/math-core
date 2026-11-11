@@ -117,6 +117,13 @@ impl Env {
         )
     }
 
+    /// `true` for environments whose columns come in pairs of a right-aligned and a left-aligned
+    /// column (the `align` family).
+    #[inline]
+    fn has_alternating_columns(self) -> bool {
+        matches!(self, Env::Align | Env::AlignStar | Env::Aligned)
+    }
+
     /// `true` for environments in which `\hline`/`\hdashline` may appear (the `array` family and
     /// the `matrix` family).
     #[inline]
@@ -207,6 +214,7 @@ impl Env {
     pub(super) fn new_state(self) -> EnvState {
         EnvState {
             allow_columns: self.allows_columns(),
+            alternating_columns: self.has_alternating_columns(),
             nested: false,
             meaningful_newlines: !matches!(self, Env::Equation | Env::EquationStar),
             allow_hlines: self.allows_hlines(),
@@ -316,6 +324,9 @@ impl Env {
 pub struct EnvState {
     /// `true` if we are inside an environment that allows columns (`&`).
     pub allow_columns: bool,
+    /// `true` if the columns of the environment come in pairs of a right-aligned and a
+    /// left-aligned column (as in `align` environments).
+    pub alternating_columns: bool,
     /// `true` if we are inside a group (like `{...}` or `\left...\right`) within the
     /// environment, where `&` and `\\` cannot be used.
     pub nested: bool,

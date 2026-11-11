@@ -1,0 +1,40 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{aligned}\\sin a & \\sin b & \\sin c & \\sin d\\end{aligned}"
+---
+<math>
+    <mtable displaystyle="true" scriptlevel="0">
+        <mtr>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mrow>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                    <mo lspace="0.1667em">&ApplyFunction;</mo>
+                    <mi>a</mi>
+                </mrow>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mspace width="0.1667em"/>
+                <mrow>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                    <mo lspace="0.1667em">&ApplyFunction;</mo>
+                    <mi>b</mi>
+                </mrow>
+            </mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mrow>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                    <mo lspace="0.1667em">&ApplyFunction;</mo>
+                    <mi>c</mi>
+                </mrow>
+            </mtd>
+            <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                <mspace width="0.1667em"/>
+                <mrow>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                    <mo lspace="0.1667em">&ApplyFunction;</mo>
+                    <mi>d</mi>
+                </mrow>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

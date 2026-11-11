@@ -472,6 +472,14 @@ fn inline_equations() {
             r"\sin\boldsymbol{\nabla} f",
         ),
         ("pseudo_operator_nabla_after_arg", r"\sin x\nabla y"),
+        (
+            "pseudo_operator_in_table_cells",
+            r"\begin{pmatrix}\sin & \sin x \\ \lim_n a_n & \max\end{pmatrix}",
+        ),
+        (
+            "pseudo_operator_in_aligned_cells",
+            r"\begin{aligned}\sin a & \sin b & \sin c & \sin d\end{aligned}",
+        ),
         ("mathcal_vs_mathscr", r"\mathcal{A}, \mathscr{A}"),
         ("mathcal_vs_mathscr_single", r"\mathcal A, \mathscr A"),
         ("mathcal_vs_mathscr_multi", r"\mathcal{AB}, \mathscr{AB}"),
