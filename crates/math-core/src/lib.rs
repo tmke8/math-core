@@ -163,7 +163,9 @@ impl Default for MaxExpansions {
 /// except that the default here is `Ams`, whereas MathJax defaults to `"none"`.
 ///
 /// The strategy only decides which equations are numbered *automatically*. A number which is
-/// set by hand with `\tag` or `\tag*` is shown with every strategy.
+/// set by hand with `\tag` or `\tag*` is shown with every strategy, and it can be set for every
+/// block equation ([`MathDisplay::Block`]), whether it uses one of the environments below or
+/// not. Inline equations cannot have a number.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
@@ -176,10 +178,10 @@ pub enum TaggingStrategy {
     /// `align`, `gather` and `multline` are numbered, their starred variants are not.
     #[default]
     Ams,
-    /// Like `Ams`, but in addition every block equation ([`MathDisplay::Block`]) is numbered
-    /// which isn't one of the environments above (starred or not), as if it had been wrapped
-    /// in `\begin{equation}...\end{equation}`. As in that environment, `\tag`, `\label` and
-    /// `\notag` can be used in such an equation. Inline equations are never numbered.
+    /// Like `Ams`, but in addition every block equation is numbered which isn't one of the
+    /// environments above (starred or not), as if it had been wrapped in
+    /// `\begin{equation}...\end{equation}`. As in that environment, `\notag` suppresses the
+    /// number.
     All,
 }
 

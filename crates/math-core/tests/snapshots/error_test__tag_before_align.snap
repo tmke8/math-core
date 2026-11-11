@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\tag{A}\\begin{align}x\\end{align}"
+---
+Error: Environment "align" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \tag{A}\begin{align}x\end{align}
+   │        ──────┬──────  
+   │              ╰──────── cannot be used here
+───╯

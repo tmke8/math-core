@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{equation}\\begin{aligned}x\\label{a}\\end{aligned}\\end{equation}"
+---
+Error: Found "\label", which may only appear outside of nested environments (aligned, matrix, ...).
+   ╭─[ <input>:1:33 ]
+   │
+ 1 │ \begin{equation}\begin{aligned}x\label{a}\end{aligned}\end{equation}
+   │                                 ───┬──  
+   │                                    ╰──── cannot be used here
+───╯

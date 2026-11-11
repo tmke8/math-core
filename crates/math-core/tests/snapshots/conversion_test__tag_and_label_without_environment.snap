@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x \\label{eq:x} \\tag{3} \\quad \\eqref{eq:x}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+                <mspace width="1em"/>
+                <mtext><a href="#eq:x">(3)</a></mtext>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;" id="eq:x">
+                <mtext>(3)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

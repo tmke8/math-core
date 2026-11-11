@@ -968,10 +968,23 @@ fn inline_equations() {
 }
 
 /// The display environments make up a whole equation, so they are only allowed in block
-/// equations.
+/// equations, and so are `\tag` and `\label`.
 #[test]
 fn block_equations() {
     let problems = [
+        ("tag_without_environment", r"x = 1 \tag{A}"),
+        ("tag_star_without_environment", r"x = 1 \tag*{A}"),
+        ("tag_in_group_without_environment", r"\frac{x \tag{3}}{2}"),
+        (
+            "tag_and_label_without_environment",
+            r"x \label{eq:x} \tag{3} \quad \eqref{eq:x}",
+        ),
+        ("label_without_tag_or_environment", r"x \label{eq:x}"),
+        ("notag_without_environment", r"x \notag"),
+        (
+            "tag_after_aligned",
+            r"a = \begin{aligned}x\\y\end{aligned} \tag{A}",
+        ),
         (
             "align",
             r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,

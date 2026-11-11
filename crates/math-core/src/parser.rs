@@ -16,7 +16,7 @@ use mathml_renderer::{
 };
 
 use crate::{
-    MathDisplay, ParserConfig, TaggingStrategy,
+    MathDisplay, ParserConfig,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, FenceOptions, MathVariant, ParenType, StretchableOp, Stretchy,
@@ -210,9 +210,6 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         };
         let input_length = lexer.input_length();
         let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
-        // With `TaggingStrategy::All`, a block equation is numbered as a whole.
-        let number_equation = matches!(parser_cfg.tags, TaggingStrategy::All)
-            && matches!(display, MathDisplay::Block);
         Ok(Parser {
             tokens,
             buffer: Buffer::new(input_length),
@@ -221,7 +218,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 cmd_args: CmdArgs::default(),
                 transform: None,
                 right_boundary_hack: false,
-                env: EnvState::top_level(number_equation),
+                env: EnvState::top_level(display, parser_cfg.tags),
                 style,
                 display_env,
                 vertical_line_def: None,
@@ -244,9 +241,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// only row of a numbered equation array, as if it were the content of an `equation`
     /// environment. Otherwise, the nodes are returned as they are.
     ///
-    /// This is to be called with the result of [`Self::parse`]. The top level is only ever
-    /// numbered with [`TaggingStrategy::All`], and only if the equation isn't a display
-    /// environment, which takes care of the numbering itself.
+    /// This is to be called with the result of [`Self::parse`]. Only a block equation can have
+    /// a number, and only if it isn't a display environment, which takes care of the numbering
+    /// itself. The number is either set with `\tag`, or, with [`crate::TaggingStrategy::All`],
+    /// assigned automatically.
     pub(crate) fn number_top_level(
         &mut self,
         nodes: Vec<&'arena Node<'arena>>,
@@ -619,20 +617,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::Tag { parenthesized } => {
                 let (tag_name, _) = self.parse_string_literal()?;
                 if let Some(numbered_state) = &mut self.state.env.numbered {
-                    numbered_state.custom_next_tag = Some(EquationTag {
-                        text: tag_name,
-                        parenthesized,
-                    });
-                    // The tag belongs to the equation which we are in, so a display
-                    // environment cannot begin after it.
-                    self.state.display_env.pass_start();
-                    Ok(())
+                    if numbered_state.custom_next_tag.is_some() {
+                        Err(LatexError(span, LatexErrKind::MoreThanOneTag))
+                    } else {
+                        numbered_state.custom_next_tag = Some(EquationTag {
+                            text: tag_name,
+                            parenthesized,
+                        });
+                        // The tag belongs to the equation which we are in, so a display
+                        // environment cannot begin after it.
+                        self.state.display_env.pass_start();
+                        Ok(())
+                    }
                 } else {
                     Err(LatexError(
                         span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Tag,
-                            correct_place: Place::NumberedEnv,
+                            correct_place: self.place_for_tag(),
                         },
                     ))
                 }
@@ -653,7 +655,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Label,
-                            correct_place: Place::NumberedEnv,
+                            correct_place: self.place_for_tag(),
                         },
                     ))
                 }
@@ -665,6 +667,19 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         match result {
             Ok(()) => Ok(ControlFlow::SkipToken),
             Err(e) => Err(Box::new(e)),
+        }
+    }
+
+    /// Where a `\tag` or `\label` would have to be, given that it cannot be used where we are.
+    ///
+    /// The two set the number of the equation which they are in, and that is either a block
+    /// equation as a whole or a row of a display environment. Other environments are only a
+    /// part of an equation.
+    fn place_for_tag(&self) -> Place {
+        if self.state.display_env == DisplayEnvPermission::InlineMath {
+            Place::BlockEquation
+        } else {
+            Place::OutsideNestedEnv
         }
     }
 

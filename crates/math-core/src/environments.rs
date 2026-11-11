@@ -9,7 +9,7 @@ use mathml_renderer::{
     table::{Alignment, ArraySpec, EquationTag, TableKind, TableRow},
 };
 
-use crate::{TaggingStrategy, character_class::StretchableOp};
+use crate::{MathDisplay, TaggingStrategy, character_class::StretchableOp};
 
 static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "array" => Env::Array,
@@ -339,14 +339,24 @@ pub struct EnvState<'arena> {
 impl EnvState<'_> {
     /// The state outside of all environments.
     ///
-    /// With `number_equation`, the snippet as a whole is an equation which gets a number, as if
-    /// it were the content of an `equation` environment (see [`TaggingStrategy::All`]).
-    pub(super) fn top_level(number_equation: bool) -> Self {
+    /// A block equation as a whole can carry an equation number, as if it were the content of
+    /// an `equation*` environment: it has no number unless one is set with `\tag`. With
+    /// [`TaggingStrategy::All`], it is the content of an `equation` environment instead, and
+    /// is numbered automatically. An inline equation cannot carry a number.
+    pub(super) fn top_level(display: MathDisplay, tags: TaggingStrategy) -> Self {
+        let numbered = match display {
+            MathDisplay::Inline => None,
+            MathDisplay::Block => {
+                let env = if matches!(tags, TaggingStrategy::All) {
+                    Env::Equation
+                } else {
+                    Env::EquationStar
+                };
+                env.get_numbered_env_state(tags)
+            }
+        };
         EnvState {
-            numbered: number_equation.then(|| NumberedEnvState {
-                mode: NumberingMode::AllByDefault,
-                ..Default::default()
-            }),
+            numbered,
             ..Default::default()
         }
     }

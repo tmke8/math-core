@@ -2,7 +2,7 @@
 source: crates/math-core/tests/error_test.rs
 expression: "\\begin{align}\\label{a}1\\label{b}\\end{align}"
 ---
-Error: Found more than one label in a row.
+Error: Found more than one label for the same equation.
    ╭─[ <input>:1:24 ]
    │
  1 │ \begin{align}\label{a}1\label{b}\end{align}

@@ -85,16 +85,16 @@ class LatexToMathML:
 
             tags: A string indicating which equations get an equation number
                 automatically, like the ``tags`` option of MathJax. A number set with
-                ``\tag`` is always shown. Allowed values are:
+                ``\tag`` is always shown, and can be set in any block equation.
+                Allowed values are:
 
                 * "none": No equation is numbered automatically.
                 * "ams": Number equations as AMSmath does: the environments
                   ``equation``, ``align``, ``gather`` and ``multline`` are numbered,
                   their starred variants are not (the default).
                 * "all": Like "ams", but also number every block equation which
-                  isn't one of these environments (starred or not). In such an
-                  equation, ``\tag``, ``\label`` and ``\notag`` can be used as in
-                  ``equation``.
+                  isn't one of these environments (starred or not), unless it
+                  contains ``\notag``.
         """
     def convert_with_global_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a global counter for equation numbering."""

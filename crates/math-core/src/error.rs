@@ -65,6 +65,7 @@ pub(crate) enum LatexErrKind {
     UnexpectedDollar,
     CouldNotExtractText,
     MoreThanOneLabel,
+    MoreThanOneTag,
     MoreThanOneInfixCmd,
     InvalidMacroName(String),
     /// `\newcommand` was given something which is not a command name.
@@ -115,8 +116,10 @@ pub enum Place {
     TableEnv,
     #[strum(serialize = r"at the top level of a table-like environment")]
     TableEnvTopLevel,
-    #[strum(serialize = r"in a numbered equation environment")]
-    NumberedEnv,
+    #[strum(serialize = r"in a block equation")]
+    BlockEquation,
+    #[strum(serialize = r"outside of nested environments (aligned, matrix, ...)")]
+    OutsideNestedEnv,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
     #[strum(serialize = r"directly after a `\\` or at the beginning of a multline environment")]
@@ -318,7 +321,10 @@ impl LatexErrKind {
                 write!(s, "Could not extract text from the given macro.")?;
             }
             LatexErrKind::MoreThanOneLabel => {
-                write!(s, "Found more than one label in a row.")?;
+                write!(s, "Found more than one label for the same equation.")?;
+            }
+            LatexErrKind::MoreThanOneTag => {
+                write!(s, "Found more than one tag for the same equation.")?;
             }
             LatexErrKind::MoreThanOneInfixCmd => {
                 write!(s, "Found more than one infix fraction in a group.")?;
@@ -475,6 +481,7 @@ impl LatexError {
             LatexErrKind::UnexpectedDollar => "unexpected dollar sign",
             LatexErrKind::CouldNotExtractText => "could not extract text from this",
             LatexErrKind::MoreThanOneLabel => "duplicate label",
+            LatexErrKind::MoreThanOneTag => "duplicate tag",
             LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac",
             LatexErrKind::InvalidMacroName(_) => "invalid name here",
             LatexErrKind::ExpectedCommandName => "expected a command name here",

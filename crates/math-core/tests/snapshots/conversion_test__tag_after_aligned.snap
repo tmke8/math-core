@@ -1,0 +1,30 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a = \\begin{aligned}x\\\\y\\end{aligned} \\tag{A}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>a</mi>
+                <mo>=</mo>
+                <mtable displaystyle="true" scriptlevel="0">
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>x</mi>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>y</mi>
+                        </mtd>
+                    </mtr>
+                </mtable>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(A)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

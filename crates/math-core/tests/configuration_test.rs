@@ -76,6 +76,8 @@ fn test_tags_none() {
             r"\begin{multline} a \tag{x} \\ b \end{multline}",
         ),
         ("tags_none_plain", r"x = 1"),
+        // A block equation can be given a number with every strategy.
+        ("tags_none_plain_tag", r"x = 1 \tag{A}"),
     ];
 
     let converter = converter_with_tags(TaggingStrategy::None);
@@ -206,4 +208,5 @@ fn test_tags_default() {
     };
     assert!(convert(r"\begin{equation} x \end{equation}").contains("<mtext>(1)</mtext>"));
     assert!(!convert(r"x = 1").contains("<mtext>(1)</mtext>"));
+    assert!(convert(r"x = 1 \tag{A}").contains("<mtext>(A)</mtext>"));
 }

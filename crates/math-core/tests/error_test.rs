@@ -272,6 +272,8 @@ fn inline_equations() {
         ("unknown_color", r"{\color{foobar} x}"),
         ("unknown_color_no_braces", r"{\color - x}"),
         ("unsupported_color_html_short", r"{\color[HTML]{f0a}x^2}"),
+        ("tag_in_inline_math", r"x \tag{1}"),
+        ("label_in_inline_math", r"x \label{a}"),
         ("align_in_inline_math", r"\begin{align}x\end{align}"),
         (
             "equation_star_in_inline_math",
@@ -288,10 +290,25 @@ fn inline_equations() {
 }
 
 /// The display environments make up a whole equation, so they are only allowed in block
-/// equations.
+/// equations, and so are `\tag` and `\label`.
 #[test]
 fn block_equations() {
     let problems = [
+        ("duplicate_tag", r"\begin{align}x\tag{A}\tag{B}\end{align}"),
+        ("duplicate_tag_without_environment", r"x\tag{A}\tag{B}"),
+        (
+            "duplicate_tag_in_multline",
+            r"\begin{multline}a\tag{A}\\b\tag{B}\end{multline}",
+        ),
+        (
+            "tag_in_matrix_in_block_equation",
+            r"\begin{matrix}a\tag{A}\end{matrix}",
+        ),
+        (
+            "label_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\label{a}\end{aligned}\end{equation}",
+        ),
+        ("tag_before_align", r"\tag{A}\begin{align}x\end{align}"),
         (
             "newline_in_group_in_align",
             r"\begin{align}{a \\ b}\end{align}",

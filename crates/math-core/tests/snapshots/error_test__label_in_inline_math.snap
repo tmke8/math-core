@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x \\label{a}"
+---
+Error: Found "\label", which may only appear in a block equation.
+   ╭─[ <input>:1:3 ]
+   │
+ 1 │ x \label{a}
+   │   ───┬──  
+   │      ╰──── cannot be used here
+───╯

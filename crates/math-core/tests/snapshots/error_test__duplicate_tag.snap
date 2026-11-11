@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}x\\tag{A}\\tag{B}\\end{align}"
+---
+Error: Found more than one tag for the same equation.
+   ╭─[ <input>:1:22 ]
+   │
+ 1 │ \begin{align}x\tag{A}\tag{B}\end{align}
+   │                      ──┬─  
+   │                        ╰─── duplicate tag
+───╯
