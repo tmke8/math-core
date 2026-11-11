@@ -87,7 +87,7 @@ fn parse_config(s: &str) -> Result<Config, ConfigError> {
 
 #[cfg(test)]
 mod tests {
-    use math_core::{MaxExpansions, PrettyPrint};
+    use math_core::{MaxExpansions, PrettyPrint, TaggingStrategy};
 
     use super::*;
 
@@ -128,6 +128,21 @@ indentation = "tab"
         "#;
         let config = parse_config(toml_content).unwrap();
         std::assert_matches!(config.math_core.indentation, math_core::Indentation::Tab);
+    }
+
+    #[test]
+    fn test_tags() {
+        for (value, expected) in [
+            ("none", TaggingStrategy::None),
+            ("ams", TaggingStrategy::Ams),
+            ("all", TaggingStrategy::All),
+        ] {
+            let config = parse_config(&format!("tags = \"{value}\"")).unwrap();
+            assert_eq!(config.math_core.tags, expected);
+        }
+        // AMSmath-style numbering is the default.
+        let config = parse_config("").unwrap();
+        assert_eq!(config.math_core.tags, TaggingStrategy::Ams);
     }
 
     #[test]

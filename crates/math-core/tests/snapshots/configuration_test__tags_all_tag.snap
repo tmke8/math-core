@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/configuration_test.rs
+expression: "x = 1 \\tag{A}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+                <mo>=</mo>
+                <mn>1</mn>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(A)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
