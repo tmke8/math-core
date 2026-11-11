@@ -301,12 +301,20 @@ fn block_equations() {
             r"\begin{multline}a\tag{A}\\b\tag{B}\end{multline}",
         ),
         (
-            "tag_in_matrix_in_block_equation",
-            r"\begin{matrix}a\tag{A}\end{matrix}",
+            "duplicate_tag_in_matrix",
+            r"\begin{equation}\begin{pmatrix}a\tag{A}\end{pmatrix}\tag{B}\end{equation}",
         ),
         (
-            "label_in_aligned_in_equation",
-            r"\begin{equation}\begin{aligned}x\label{a}\end{aligned}\end{equation}",
+            "tag_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\tag{A}\end{aligned}\end{equation}",
+        ),
+        (
+            "tag_in_gathered_in_block_equation",
+            r"\begin{gathered}x\tag{A}\end{gathered}",
+        ),
+        (
+            "tag_in_matrix_in_aligned",
+            r"\begin{aligned}\begin{pmatrix}a\tag{A}\end{pmatrix}\end{aligned}",
         ),
         ("tag_before_align", r"\tag{A}\begin{align}x\end{align}"),
         (

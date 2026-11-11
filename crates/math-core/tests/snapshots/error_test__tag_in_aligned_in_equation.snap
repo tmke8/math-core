@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{equation}\\begin{aligned}x\\tag{A}\\end{aligned}\\end{equation}"
+---
+Error: Found "\tag[*]", which may only appear outside of the aligned and gathered environments.
+   ╭─[ <input>:1:33 ]
+   │
+ 1 │ \begin{equation}\begin{aligned}x\tag{A}\end{aligned}\end{equation}
+   │                                 ──┬─  
+   │                                   ╰─── cannot be used here
+───╯

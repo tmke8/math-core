@@ -1,0 +1,28 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{matrix}a\\tag{A}\\\\b\\end{matrix}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mtable displaystyle="false" scriptlevel="0">
+                    <mtr>
+                        <mtd>
+                            <mi>a</mi>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mi>b</mi>
+                        </mtd>
+                    </mtr>
+                </mtable>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(A)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -118,8 +118,8 @@ pub enum Place {
     TableEnvTopLevel,
     #[strum(serialize = r"in a block equation")]
     BlockEquation,
-    #[strum(serialize = r"outside of nested environments (aligned, matrix, ...)")]
-    OutsideNestedEnv,
+    #[strum(serialize = r"outside of the aligned and gathered environments")]
+    OutsideAligned,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
     #[strum(serialize = r"directly after a `\\` or at the beginning of a multline environment")]

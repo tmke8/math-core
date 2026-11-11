@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{equation}\\begin{pmatrix}a\\tag{A}\\end{pmatrix}\\tag{B}\\end{equation}"
+---
+Error: Found more than one tag for the same equation.
+   ╭─[ <input>:1:53 ]
+   │
+ 1 │ \begin{equation}\begin{pmatrix}a\tag{A}\end{pmatrix}\tag{B}\end{equation}
+   │                                                     ──┬─  
+   │                                                       ╰─── duplicate tag
+───╯

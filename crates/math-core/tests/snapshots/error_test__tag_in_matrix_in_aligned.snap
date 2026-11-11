@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{aligned}\\begin{pmatrix}a\\tag{A}\\end{pmatrix}\\end{aligned}"
+---
+Error: Found "\tag[*]", which may only appear outside of the aligned and gathered environments.
+   ╭─[ <input>:1:32 ]
+   │
+ 1 │ \begin{aligned}\begin{pmatrix}a\tag{A}\end{pmatrix}\end{aligned}
+   │                                ──┬─  
+   │                                  ╰─── cannot be used here
+───╯

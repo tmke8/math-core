@@ -985,6 +985,43 @@ fn block_equations() {
             "tag_after_aligned",
             r"a = \begin{aligned}x\\y\end{aligned} \tag{A}",
         ),
+        // In environments which are only a part of the equation, `\tag`, `\label` and
+        // `\notag` apply to the equation (or the row of it) which they are in.
+        ("tag_in_matrix", r"\begin{matrix}a\tag{A}\\b\end{matrix}"),
+        (
+            "tag_in_cases_in_align",
+            r"\begin{align}a\\\begin{cases}b\\c\tag{C}\end{cases}\end{align}",
+        ),
+        (
+            "label_in_matrix_in_equation",
+            r"\begin{equation}\begin{pmatrix}a\label{a}\end{pmatrix}\quad\eqref{a}\end{equation}",
+        ),
+        (
+            "notag_in_matrix_in_equation",
+            r"\begin{equation}\begin{pmatrix}a\notag\end{pmatrix}\end{equation}",
+        ),
+        // `aligned` and `gathered` are cut off from the numbering, except for `\label`.
+        (
+            "label_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\label{a}\end{aligned}\quad\eqref{a}\end{equation}",
+        ),
+        (
+            "notag_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\notag\end{aligned}\end{equation}",
+        ),
+        // `multline` is a single equation, whose number is shown in the last row.
+        (
+            "multline_star_tag_in_first_row",
+            r"\begin{multline*}a\tag{A}\\b\end{multline*}",
+        ),
+        (
+            "multline_label_in_first_row",
+            r"\begin{multline}a\label{x}\\b\end{multline}",
+        ),
+        (
+            "tag_and_notag_in_same_row",
+            r"\begin{align}a\tag{A}\notag\\b\end{align}",
+        ),
         (
             "align",
             r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,

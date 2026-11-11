@@ -1,0 +1,29 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{equation}\\begin{pmatrix}a\\label{a}\\end{pmatrix}\\quad\\eqref{a}\\end{equation}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mrow>
+                    <mo>(</mo>
+                    <mtable displaystyle="false" scriptlevel="0">
+                        <mtr>
+                            <mtd>
+                                <mi>a</mi>
+                            </mtd>
+                        </mtr>
+                    </mtable>
+                    <mo rspace="0.1667em">)</mo>
+                </mrow>
+                <mspace width="1em"/>
+                <mtext><a href="#a">(1)</a></mtext>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;" id="a">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>
