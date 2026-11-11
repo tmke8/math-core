@@ -171,13 +171,13 @@ impl Default for MaxExpansions {
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
 pub enum TaggingStrategy {
-    /// No equation is numbered automatically; environments like `equation` and `align` behave
-    /// like their starred variants.
-    None,
     /// Equations are numbered as the AMSmath package would do: the environments `equation`,
     /// `align`, `gather` and `multline` are numbered, their starred variants are not.
     #[default]
     Ams,
+    /// No equation is numbered automatically; environments like `equation` and `align` behave
+    /// like their starred variants.
+    None,
     /// Like `Ams`, but in addition every block equation is numbered which isn't one of the
     /// environments above (starred or not), as if it had been wrapped in
     /// `\begin{equation}...\end{equation}`. As in that environment, `\notag` suppresses the
