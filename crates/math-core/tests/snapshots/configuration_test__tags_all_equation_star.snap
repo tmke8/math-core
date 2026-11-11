@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/configuration_test.rs
+expression: "\\begin{equation*} x \\end{equation*}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+            </mtd>
+            <mtd style="width: 50%"></mtd>
+        </mtr>
+    </mtable>
+</math>

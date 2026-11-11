@@ -152,6 +152,35 @@ def test_unreliable_rendering():
     )
 
 
+def test_tags():
+    equation = r"\begin{equation} x \end{equation}"
+    plain = "x"
+
+    converter = LatexToMathML()
+    assert "<mtext>(1)</mtext>" in converter.convert_with_local_state(
+        equation, displaystyle=True
+    )
+    assert converter.convert_with_local_state(plain, displaystyle=True) == (
+        '<math display="block"><mi>x</mi></math>'
+    )
+
+    converter = LatexToMathML(tags="none")
+    assert "<mtext>" not in converter.convert_with_local_state(
+        equation, displaystyle=True
+    )
+
+    converter = LatexToMathML(tags="all")
+    assert "<mtext>(1)</mtext>" in converter.convert_with_local_state(
+        plain, displaystyle=True
+    )
+    assert converter.convert_with_local_state(plain, displaystyle=False) == (
+        "<math><mi>x</mi></math>"
+    )
+
+    with raises(ValueError):
+        _ = LatexToMathML(tags="some")  # pyright: ignore[reportArgumentType]
+
+
 def test_unicode_substitution():
     converter = LatexToMathML(unicode_substitution="never")
     latex = r"y \coloneqq x"

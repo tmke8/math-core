@@ -41,7 +41,8 @@ impl LatexToMathML {
         fancy_error=true,
         unicode_substitution="conventional",
         max_expansions=MaxExpansions::default().0,
-        id_prefix=""))]
+        id_prefix="",
+        tags="ams"))]
     fn new(
         pretty_print: &str,
         macros: Option<&Bound<'_, PyDict>>,
@@ -55,6 +56,7 @@ impl LatexToMathML {
         unicode_substitution: &str,
         max_expansions: u32,
         id_prefix: &str,
+        tags: &str,
     ) -> PyResult<Self> {
         let pretty_print = match pretty_print {
             "never" => PrettyPrint::Never,
@@ -77,6 +79,17 @@ impl LatexToMathML {
                 )));
             }
         };
+        let tags = match tags {
+            "none" => math_core::TaggingStrategy::None,
+            "ams" => math_core::TaggingStrategy::Ams,
+            "all" => math_core::TaggingStrategy::All,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid tags value: '{}'. Must be 'none', 'ams', or 'all'.",
+                    tags
+                )));
+            }
+        };
         let config = MathCoreConfig {
             pretty_print,
             xml_namespace,
@@ -89,7 +102,7 @@ impl LatexToMathML {
             indentation: math_core::Indentation::default(),
             max_expansions: MaxExpansions(max_expansions),
             id_prefix: String::from(id_prefix),
-            tags: math_core::TaggingStrategy::default(),
+            tags,
         };
 
         let macros = if let Some(macros_dict) = macros {

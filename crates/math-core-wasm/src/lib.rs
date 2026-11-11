@@ -100,6 +100,7 @@ interface MathCoreOptions {
     unicodeSubstitution?: "never" | "conventional";
     maxExpansions?: number;
     idPrefix?: string;
+    tags?: "none" | "ams" | "all";
 }
 
 interface MathSnippet {
@@ -154,6 +155,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn idPrefix(this: &MathCoreOptions) -> Option<String>;
+
+    #[wasm_bindgen(method, getter)]
+    fn tags(this: &MathCoreOptions) -> Option<String>;
 }
 
 #[wasm_bindgen]
@@ -230,6 +234,21 @@ impl LatexToMathML {
             math_core::UnicodeSubstitution::default()
         };
         let id_prefix = js_config.idPrefix();
+        let tags = if let Some(tags) = js_config.tags() {
+            match tags.as_str() {
+                "none" => math_core::TaggingStrategy::None,
+                "ams" => math_core::TaggingStrategy::Ams,
+                "all" => math_core::TaggingStrategy::All,
+                _ => {
+                    return Err(ConfigParseError {
+                        message: "Invalid value for tags",
+                    }
+                    .into());
+                }
+            }
+        } else {
+            math_core::TaggingStrategy::default()
+        };
         let config = math_core::MathCoreConfig {
             pretty_print: pretty_print.unwrap_or_default(),
             xml_namespace,
@@ -244,7 +263,7 @@ impl LatexToMathML {
                 .maxExpansions()
                 .map_or_else(MaxExpansions::default, MaxExpansions),
             id_prefix: id_prefix.unwrap_or_default(),
-            tags: math_core::TaggingStrategy::default(),
+            tags,
         };
         let macros = macros.unwrap_or_default();
         let inner = math_core::LatexToMathML::new(config, macros).map_err(|(e, _, context)| {

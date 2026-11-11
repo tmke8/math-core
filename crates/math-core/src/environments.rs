@@ -9,7 +9,7 @@ use mathml_renderer::{
     table::{Alignment, ArraySpec, EquationTag, TableKind, TableRow},
 };
 
-use crate::character_class::StretchableOp;
+use crate::{TaggingStrategy, character_class::StretchableOp};
 
 static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "array" => Env::Array,
@@ -170,7 +170,7 @@ impl Env {
     }
 
     #[inline]
-    fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
+    fn get_numbered_env_state(self, tags: TaggingStrategy) -> Option<NumberedEnvState<'static>> {
         if matches!(
             self,
             Env::Align
@@ -188,6 +188,7 @@ impl Env {
                     Env::MultLine => NumberingMode::OnlyLast,
                     _ => NumberingMode::NoneByDefault,
                 },
+                explicit_only: matches!(tags, TaggingStrategy::None),
                 ..Default::default()
             })
         } else {
@@ -195,7 +196,7 @@ impl Env {
         }
     }
 
-    pub(super) fn new_state(self) -> EnvState<'static> {
+    pub(super) fn new_state(self, tags: TaggingStrategy) -> EnvState<'static> {
         EnvState {
             allow_columns: self.allows_columns(),
             nested: false,
@@ -203,7 +204,7 @@ impl Env {
             allow_hlines: self.allows_hlines(),
             allow_shove: self.allows_shove(),
             ignore_trailing_newline: self.ignores_trailing_newline(),
-            numbered: self.get_numbered_env_state(),
+            numbered: self.get_numbered_env_state(tags),
         }
     }
 
@@ -323,6 +324,22 @@ pub struct EnvState<'arena> {
     pub numbered: Option<NumberedEnvState<'arena>>,
 }
 
+impl EnvState<'_> {
+    /// The state outside of all environments.
+    ///
+    /// With `number_equation`, the snippet as a whole is an equation which gets a number, as if
+    /// it were the content of an `equation` environment (see [`TaggingStrategy::All`]).
+    pub(super) fn top_level(number_equation: bool) -> Self {
+        EnvState {
+            numbered: number_equation.then(|| NumberedEnvState {
+                mode: NumberingMode::AllByDefault,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(super) enum NumberingMode {
     #[default]
@@ -335,6 +352,9 @@ pub(super) enum NumberingMode {
 #[derive(Debug, Default)]
 pub(super) struct NumberedEnvState<'arena> {
     pub(super) mode: NumberingMode,
+    /// `true` if only the numbers which are set with `\tag` are shown, whatever the mode says
+    /// (see [`TaggingStrategy::None`]). The mode still decides which row a `\tag` belongs to.
+    pub(super) explicit_only: bool,
     pub(super) suppress_next_number: bool,
     pub(super) custom_next_tag: Option<EquationTag<'arena>>,
     pub(super) label: Option<&'arena str>,
@@ -355,7 +375,10 @@ impl<'arena> NumberedEnvState<'arena> {
         if let Some(custom_tag) = self.custom_next_tag.take() {
             // The state has already been cleared here through `take()`.
             Ok(Some(custom_tag))
-        } else if self.suppress_next_number || matches!(self.mode, NumberingMode::NoneByDefault) {
+        } else if self.suppress_next_number
+            || self.explicit_only
+            || matches!(self.mode, NumberingMode::NoneByDefault)
+        {
             // Clear the flag.
             self.suppress_next_number = false;
             Ok(None)

@@ -17,6 +17,7 @@ class LatexToMathML:
         unicode_substitution: Literal["never", "conventional"] = "conventional",
         max_expansions: int = 1000,
         id_prefix: str = "",
+        tags: Literal["none", "ams", "all"] = "ams",
     ) -> None:
         r"""Create a LatexToMathML converter with the specified configuration.
 
@@ -81,6 +82,18 @@ class LatexToMathML:
 
             id_prefix: Added to the beginning of every ``id`` and anchor reference.
                 Use this to avoid conflicts when embedding the output.
+
+            tags: A string indicating which equations get an equation number
+                automatically, like the ``tags`` option of MathJax. A number set with
+                ``\tag`` is always shown. Allowed values are:
+
+                * "none": No equation is numbered automatically.
+                * "ams": Number equations as AMSmath does: the environments
+                  ``equation``, ``align``, ``gather`` and ``multline`` are numbered,
+                  their starred variants are not (the default).
+                * "all": Like "ams", but also number every block equation which
+                  doesn't contain one of these environments. In such an equation,
+                  ``\tag``, ``\label`` and ``\notag`` can be used as in ``equation``.
         """
     def convert_with_global_state(self, latex: str, *, displaystyle: bool) -> str:
         """Convert LaTeX to MathML with a global counter for equation numbering."""

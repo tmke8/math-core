@@ -12,11 +12,11 @@ use mathml_renderer::{
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::{EquationTag, RowLabelInfo, TableCell, TableRow},
+    table::{Alignment, EquationTag, RowLabelInfo, TableCell, TableKind, TableRow},
 };
 
 use crate::{
-    ParserConfig,
+    ParserConfig, TaggingStrategy,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, FenceOptions, MathVariant, ParenType, StretchableOp, Stretchy,
@@ -62,6 +62,10 @@ struct ParserState<'arena> {
     /// This is currently a hack, which should be replaced by a more robust solution later.
     right_boundary_hack: bool,
     env: EnvState<'arena>,
+    /// `true` once the snippet has used an environment which can carry equation numbers (like
+    /// `align` or `equation*`). Such a snippet is not numbered as a whole; see
+    /// [`Parser::number_top_level`].
+    numbered_env_seen: bool,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
@@ -175,6 +179,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<Self> {
         let input_length = lexer.input_length();
         let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
+        // With `TaggingStrategy::All`, a block equation is numbered as a whole.
+        let number_equation =
+            matches!(parser_cfg.tags, TaggingStrategy::All) && matches!(style, Style::Display);
         Ok(Parser {
             tokens,
             buffer: Buffer::new(input_length),
@@ -183,7 +190,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 cmd_args: CmdArgs::default(),
                 transform: None,
                 right_boundary_hack: false,
-                env: EnvState::default(),
+                env: EnvState::top_level(number_equation),
+                numbered_env_seen: false,
                 style,
                 vertical_line_def: None,
                 expansions_left: parser_cfg.max_expansions.0,
@@ -199,6 +207,39 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline]
     pub(crate) fn parse(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
         self.parse_sequence(SequenceEnd::EndToken(EndToken::Eoi), Class::Open, true)
+    }
+
+    /// Give the snippet as a whole an equation number, if it is to have one, by making it the
+    /// only row of a numbered equation array, as if it were the content of an `equation`
+    /// environment. Otherwise, the nodes are returned as they are.
+    ///
+    /// This is to be called with the result of [`Self::parse`]. The top level is only ever
+    /// numbered with [`TaggingStrategy::All`], and only if the snippet doesn't contain an
+    /// environment which takes care of the numbering itself.
+    pub(crate) fn number_top_level(
+        &mut self,
+        nodes: Vec<&'arena Node<'arena>>,
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
+        if self.state.numbered_env_seen {
+            return Ok(nodes);
+        }
+        let span = self.tokens.peek().span();
+        let Some(label_info) = self.finish_numbered_row(true, span)? else {
+            return Ok(nodes);
+        };
+        let row = TableRow {
+            label_info: Some(label_info),
+            border_top: None,
+            border_bottom: None,
+            shove: None,
+            cells: self
+                .arena
+                .alloc_table_cells(&[self.arena.push_slice(&nodes)]),
+        };
+        Ok(vec![self.commit(Node::Table {
+            kind: TableKind::EquationArray(Alignment::Centered),
+            rows: self.arena.alloc_table_rows(&[row]),
+        })])
     }
 
     /// Parse a sequence of tokens, if the parser is not in an argument.
@@ -1505,8 +1546,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ));
                 }
 
+                let env_state = env.new_state(self.tokens.stores.parser_cfg.tags);
+                self.state.numbered_env_seen |= env_state.numbered.is_some();
                 let old_style = mem::replace(&mut self.state.style, env.style());
-                let old_env_state = mem::replace(&mut self.state.env, env.new_state());
+                let old_env_state = mem::replace(&mut self.state.env, env_state);
 
                 let rows = self.parse_table_rows(span)?;
 
