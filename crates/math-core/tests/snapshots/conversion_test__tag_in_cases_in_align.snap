@@ -1,0 +1,41 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{align}a\\\\\\begin{cases}b\\\\c\\tag{C}\\end{cases}\\end{align}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mi>a</mi>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                <mrow>
+                    <mo>{</mo>
+                    <mtable displaystyle="false" scriptlevel="0">
+                        <mtr>
+                            <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                                <mi>b</mi>
+                            </mtd>
+                        </mtr>
+                        <mtr>
+                            <mtd style="text-align: left;justify-items: start;padding-right: 0;">
+                                <mi>c</mi>
+                            </mtd>
+                        </mtr>
+                    </mtable>
+                    <mo>⁣</mo>
+                </mrow>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(C)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

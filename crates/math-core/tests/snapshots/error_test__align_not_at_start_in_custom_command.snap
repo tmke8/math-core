@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\x}{a\\begin{align}}\\x y\\end{align}"
+---
+Error: Environment "align" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:1 ]
+   │
+ 1 │ \newcommand{\x}{a\begin{align}}\x y\end{align}
+   │ │ 
+   │ ╰─ cannot be used here
+───╯

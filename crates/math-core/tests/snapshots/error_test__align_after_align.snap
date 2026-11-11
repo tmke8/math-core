@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}x\\end{align}\\begin{align}y\\end{align}"
+---
+Error: Nothing may follow "\end{align}" in a block equation.
+   ╭─[ <input>:1:26 ]
+   │
+ 1 │ \begin{align}x\end{align}\begin{align}y\end{align}
+   │                          ──────┬──────  
+   │                                ╰──────── unexpected content after the environment
+───╯

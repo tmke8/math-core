@@ -1,0 +1,24 @@
+---
+source: crates/math-core/tests/configuration_test.rs
+expression: "\\begin{multline} a \\tag{x} \\\\ b \\end{multline}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: left;justify-items: start;">
+                <mi>a</mi>
+            </mtd>
+            <mtd style="width: 7.5%"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="width: 7.5%"></mtd>
+            <mtd style="text-align: right;justify-items: end;">
+                <mi>b</mi>
+            </mtd>
+            <mtd style="width: 7.5%;text-align: right;justify-items: end;">
+                <mtext>(x)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

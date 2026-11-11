@@ -1,0 +1,25 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{equation}\\begin{pmatrix}a\\notag\\end{pmatrix}\\end{equation}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mrow>
+                    <mo>(</mo>
+                    <mtable displaystyle="false" scriptlevel="0">
+                        <mtr>
+                            <mtd>
+                                <mi>a</mi>
+                            </mtd>
+                        </mtr>
+                    </mtable>
+                    <mo>)</mo>
+                </mrow>
+            </mtd>
+            <mtd style="width: 50%"></mtd>
+        </mtr>
+    </mtable>
+</math>

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x = \\begin{equation*}y\\end{equation*}"
+---
+Error: Environment "equation*" cannot be used in inline math.
+   ╭─[ <input>:1:5 ]
+   │
+ 1 │ x = \begin{equation*}y\end{equation*}
+   │     ────────┬────────  
+   │             ╰────────── not allowed in inline math
+───╯

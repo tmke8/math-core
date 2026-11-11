@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x \\notag"
+---
+<math display="block">
+    <mi>x</mi>
+</math>

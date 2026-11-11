@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\displaystyle\\begin{multline}x\\end{multline}"
+---
+Error: Environment "multline" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:14 ]
+   │
+ 1 │ \displaystyle\begin{multline}x\end{multline}
+   │              ────────┬───────  
+   │                      ╰───────── cannot be used here
+───╯

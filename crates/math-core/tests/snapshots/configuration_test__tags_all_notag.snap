@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/configuration_test.rs
+expression: "x = 1 \\notag"
+---
+<math display="block">
+    <mi>x</mi>
+    <mo>=</mo>
+    <mn>1</mn>
+</math>

@@ -34,6 +34,13 @@ pub(crate) enum LatexErrKind {
         got: LimitedUsabilityToken,
         correct_place: Place,
     },
+    /// A display environment like `align` in inline math.
+    DisplayEnvInInlineMath(Env),
+    /// A display environment like `align` which is nested in something, or which has
+    /// something in front of it.
+    DisplayEnvNotAtStart(Env),
+    /// Something after the `\end{...}` of a display environment like `align`.
+    ContentAfterDisplayEnv(Env),
     ExpectedRelation,
     ExpectedLargeOp,
     ExpectedAtMostOneToken,
@@ -58,6 +65,7 @@ pub(crate) enum LatexErrKind {
     UnexpectedDollar,
     CouldNotExtractText,
     MoreThanOneLabel,
+    MoreThanOneTag,
     MoreThanOneInfixCmd,
     InvalidMacroName(String),
     /// `\newcommand` was given something which is not a command name.
@@ -108,8 +116,10 @@ pub enum Place {
     TableEnv,
     #[strum(serialize = r"at the top level of a table-like environment")]
     TableEnvTopLevel,
-    #[strum(serialize = r"in a numbered equation environment")]
-    NumberedEnv,
+    #[strum(serialize = r"in a block equation")]
+    BlockEquation,
+    #[strum(serialize = r"outside of the aligned and gathered environments")]
+    OutsideAligned,
     #[strum(serialize = r"directly after a `\\` or at the beginning of an array or matrix")]
     ArrayRowStart,
     #[strum(serialize = r"directly after a `\\` or at the beginning of a multline environment")]
@@ -222,6 +232,27 @@ impl LatexErrKind {
                     <&str>::from(correct_place)
                 )?;
             }
+            LatexErrKind::DisplayEnvInInlineMath(env) => {
+                write!(
+                    s,
+                    "Environment \"{}\" cannot be used in inline math.",
+                    env.as_str()
+                )?;
+            }
+            LatexErrKind::DisplayEnvNotAtStart(env) => {
+                write!(
+                    s,
+                    "Environment \"{}\" may only appear at the top level of a block equation, with nothing before it.",
+                    env.as_str()
+                )?;
+            }
+            LatexErrKind::ContentAfterDisplayEnv(env) => {
+                write!(
+                    s,
+                    "Nothing may follow \"\\end{{{}}}\" in a block equation.",
+                    env.as_str()
+                )?;
+            }
             LatexErrKind::ExpectedRelation => {
                 write!(s, "Expected a relation after \\not.")?;
             }
@@ -290,7 +321,10 @@ impl LatexErrKind {
                 write!(s, "Could not extract text from the given macro.")?;
             }
             LatexErrKind::MoreThanOneLabel => {
-                write!(s, "Found more than one label in a row.")?;
+                write!(s, "Found more than one label for the same equation.")?;
+            }
+            LatexErrKind::MoreThanOneTag => {
+                write!(s, "Found more than one tag for the same equation.")?;
             }
             LatexErrKind::MoreThanOneInfixCmd => {
                 write!(s, "Found more than one infix fraction in a group.")?;
@@ -423,7 +457,11 @@ impl LatexError {
             LatexErrKind::MismatchedEnvironment { .. } => {
                 "expected a different environment name here"
             }
-            LatexErrKind::CannotBeUsedHere { .. } => "cannot be used here",
+            LatexErrKind::CannotBeUsedHere { .. } | LatexErrKind::DisplayEnvNotAtStart(_) => {
+                "cannot be used here"
+            }
+            LatexErrKind::DisplayEnvInInlineMath(_) => "not allowed in inline math",
+            LatexErrKind::ContentAfterDisplayEnv(_) => "unexpected content after the environment",
             LatexErrKind::ExpectedRelation => "expected a relation",
             LatexErrKind::ExpectedLargeOp => "expected a large operator",
             LatexErrKind::ExpectedStyle => "expected a style",
@@ -443,6 +481,7 @@ impl LatexError {
             LatexErrKind::UnexpectedDollar => "unexpected dollar sign",
             LatexErrKind::CouldNotExtractText => "could not extract text from this",
             LatexErrKind::MoreThanOneLabel => "duplicate label",
+            LatexErrKind::MoreThanOneTag => "duplicate tag",
             LatexErrKind::MoreThanOneInfixCmd => "duplicate infix frac",
             LatexErrKind::InvalidMacroName(_) => "invalid name here",
             LatexErrKind::ExpectedCommandName => "expected a command name here",

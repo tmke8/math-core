@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align} 1\\label{a}\\\\2\\label{b}\\end{align}\\eqref{b}"
+---
+Error: Nothing may follow "\end{align}" in a block equation.
+   ╭─[ <input>:1:48 ]
+   │
+ 1 │ \begin{align} 1\label{a}\\2\label{b}\end{align}\eqref{b}
+   │                                                ───┬──  
+   │                                                   ╰──── unexpected content after the environment
+───╯

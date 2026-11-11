@@ -1,0 +1,36 @@
+---
+source: crates/math-core/tests/configuration_test.rs
+expression: "\\begin{aligned} a &= b \\\\ c &= d \\end{aligned}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mtable displaystyle="true" scriptlevel="0">
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>a</mi>
+                        </mtd>
+                        <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                            <mo>=</mo>
+                            <mi>b</mi>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>c</mi>
+                        </mtd>
+                        <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                            <mo>=</mo>
+                            <mi>d</mi>
+                        </mtd>
+                    </mtr>
+                </mtable>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

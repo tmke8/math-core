@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{aligned}\\begin{gather}x\\end{gather}\\end{aligned}"
+---
+Error: Environment "gather" may only appear at the top level of a block equation, with nothing before it.
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \begin{aligned}\begin{gather}x\end{gather}\end{aligned}
+   │                ───────┬──────  
+   │                       ╰──────── cannot be used here
+───╯

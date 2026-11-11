@@ -36,6 +36,35 @@ describe("Convert Tests", function () {
       assert.include(output2, "(2)");
     });
   });
+  context("Tagging strategy", function () {
+    const equation = "\\begin{equation}x\\end{equation}";
+    it("should number as AMSmath does by default", function () {
+      const converter = new LatexToMathML({});
+      assert.include(converter.convert_with_local_state(equation, true), "(1)");
+      assert.equal(
+        converter.convert_with_local_state("x", true),
+        '<math display="block"><mi>x</mi></math>',
+      );
+    });
+    it("should not number anything with 'none'", function () {
+      const converter = new LatexToMathML({ tags: "none" });
+      assert.notInclude(
+        converter.convert_with_local_state(equation, true),
+        "<mtext>",
+      );
+    });
+    it("should number plain block equations with 'all'", function () {
+      const converter = new LatexToMathML({ tags: "all" });
+      assert.include(converter.convert_with_local_state("x", true), "(1)");
+      assert.equal(
+        converter.convert_with_local_state("x", false),
+        "<math><mi>x</mi></math>",
+      );
+    });
+    it("should reject an unknown value", function () {
+      assert.throws(() => new LatexToMathML({ tags: "some" }));
+    });
+  });
   context("Global equation numbering", function () {
     const converter = new LatexToMathML({
       prettyPrint: "auto",

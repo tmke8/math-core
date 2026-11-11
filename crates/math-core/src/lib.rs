@@ -75,7 +75,6 @@ pub use mathml_renderer::ast::{CssClassNames, Indentation, Warnings};
 use mathml_renderer::{
     arena::Arena,
     ast::{Emitter, Node},
-    attribute::Style,
     fmt::new_line_and_indent,
 };
 
@@ -158,16 +157,32 @@ impl Default for MaxExpansions {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+/// Which equations get an equation number.
+///
+/// This mirrors the [`tags` option of MathJax](https://docs.mathjax.org/en/latest/options/input/tex.html),
+/// except that the default here is `Ams`, whereas MathJax defaults to `"none"`.
+///
+/// The strategy only decides which equations are numbered *automatically*. A number which is
+/// set by hand with `\tag` or `\tag*` is shown with every strategy, and it can be set for every
+/// block equation ([`MathDisplay::Block`]), whether it uses one of the environments below or
+/// not. Inline equations cannot have a number.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
 pub enum TaggingStrategy {
-    // None,
-    /// Equations are numbered as the AMSmath package would do.
+    /// No equation is numbered automatically; environments like `equation` and `align` behave
+    /// like their starred variants.
+    None,
+    /// Equations are numbered as the AMSmath package would do: the environments `equation`,
+    /// `align`, `gather` and `multline` are numbered, their starred variants are not.
     #[default]
     Ams,
-    // All,
+    /// Like `Ams`, but in addition every block equation is numbered which isn't one of the
+    /// environments above (starred or not), as if it had been wrapped in
+    /// `\begin{equation}...\end{equation}`. As in that environment, `\notag` suppresses the
+    /// number.
+    All,
 }
 
 /// Configuration object for the LaTeX to MathML conversion.
@@ -228,7 +243,7 @@ pub struct MathCoreConfig {
     /// This is *not* URL escaped. Use the
     /// [percent-encoding](https://crates.io/crates/percent-encoding) crate if you need to.
     pub id_prefix: String,
-    /// The strategy used for numbering equations. See [`TaggingStrategy`].
+    /// Which equations get an equation number. See [`TaggingStrategy`].
     pub tags: TaggingStrategy,
 }
 
@@ -241,6 +256,7 @@ struct ParserConfig {
     global_group: bool,
     unicode_substitution: UnicodeSubstitution,
     max_expansions: MaxExpansions,
+    tags: TaggingStrategy,
 }
 
 /// Subset of `MathCoreConfig` relevant for the emitter.
@@ -323,6 +339,7 @@ impl LatexToMathML {
             global_group: config.global_group,
             unicode_substitution: config.unicode_substitution,
             max_expansions: config.max_expansions,
+            tags: config.tags,
         };
         Ok(Self {
             emitter_cfg: EmitterConfig::from(config),
@@ -530,14 +547,11 @@ fn parse<'arena>(
     state: &mut GlobalState,
     display: MathDisplay,
 ) -> Result<Vec<&'arena Node<'arena>>, Box<LatexError>> {
-    let style = match display {
-        MathDisplay::Inline => Style::Text,
-        MathDisplay::Block => Style::Display,
-    };
     let lexer = Lexer::new(latex);
-    let mut p = Parser::new(lexer, arena, parser_cfg, state, style)?;
+    let mut p = Parser::new(lexer, arena, parser_cfg, state, display)?;
     let nodes = p.parse()?;
-    Ok(semantic::enrich(arena, &nodes))
+    let nodes = semantic::enrich(arena, &nodes);
+    p.number_top_level(nodes)
 }
 
 /// Read the macros of the configuration into a store of custom commands.

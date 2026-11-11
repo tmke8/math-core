@@ -2,7 +2,7 @@
 source: crates/math-core/tests/conversion_test.rs
 expression: "\\begin{gather*}x=1\\\\y=2\\tag{1}\\end{gather*}"
 ---
-<math>
+<math display="block">
     <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
         <mtr>
             <mtd style="width: 50%"></mtd>

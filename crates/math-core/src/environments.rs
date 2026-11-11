@@ -1,15 +1,15 @@
 use alloc::string::String;
-use core::fmt::Write;
+use core::{fmt::Write, mem};
 
 use mathml_renderer::{
     arena::Arena,
     ast::Node,
     attribute::Style,
     symbol,
-    table::{Alignment, ArraySpec, EquationTag, TableKind, TableRow},
+    table::{Alignment, ArraySpec, EquationTag, RowLabelInfo, TableKind, TableRow},
 };
 
-use crate::character_class::StretchableOp;
+use crate::{TaggingStrategy, character_class::StretchableOp};
 
 static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "array" => Env::Array,
@@ -169,9 +169,16 @@ impl Env {
         )
     }
 
+    /// `true` for the display environments of amsmath (`align`, `equation`, `gather`, `multline`
+    /// and their starred forms).
+    ///
+    /// Such an environment is a whole equation rather than a part of one: it spans the full
+    /// width of the line and carries the equation numbers. It therefore has to be the only
+    /// content of a block equation, and has no place in inline math, where `aligned` and
+    /// `gathered` are the alternatives.
     #[inline]
-    fn get_numbered_env_state(self) -> Option<NumberedEnvState<'static>> {
-        if matches!(
+    pub(super) fn is_display_env(self) -> bool {
+        matches!(
             self,
             Env::Align
                 | Env::AlignStar
@@ -181,21 +188,23 @@ impl Env {
                 | Env::GatherStar
                 | Env::MultLine
                 | Env::MultLineStar
-        ) {
-            Some(NumberedEnvState {
-                mode: match self {
-                    Env::Align | Env::Equation | Env::Gather => NumberingMode::AllByDefault,
-                    Env::MultLine => NumberingMode::OnlyLast,
-                    _ => NumberingMode::NoneByDefault,
-                },
-                ..Default::default()
-            })
-        } else {
-            None
-        }
+        )
     }
 
-    pub(super) fn new_state(self) -> EnvState<'static> {
+    /// How the rows of a display environment are numbered.
+    #[inline]
+    pub(super) fn numbering(self, tags: TaggingStrategy) -> EquationNumbering<'static> {
+        // The starred forms are not numbered, and with `TaggingStrategy::None`, nothing is.
+        let automatic = matches!(
+            self,
+            Env::Align | Env::Equation | Env::Gather | Env::MultLine
+        ) && !matches!(tags, TaggingStrategy::None);
+        // `multline` is a single equation which is spread over several rows.
+        let single_number = matches!(self, Env::MultLine | Env::MultLineStar);
+        EquationNumbering::new(automatic, single_number)
+    }
+
+    pub(super) fn new_state(self) -> EnvState {
         EnvState {
             allow_columns: self.allows_columns(),
             nested: false,
@@ -203,7 +212,7 @@ impl Env {
             allow_hlines: self.allows_hlines(),
             allow_shove: self.allows_shove(),
             ignore_trailing_newline: self.ignores_trailing_newline(),
-            numbered: self.get_numbered_env_state(),
+            forbid_tag: matches!(self, Env::Aligned | Env::Gathered),
         }
     }
 
@@ -303,8 +312,8 @@ impl Env {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct EnvState<'arena> {
+#[derive(Clone, Copy, Debug, Default)]
+pub struct EnvState {
     /// `true` if we are inside an environment that allows columns (`&`).
     pub allow_columns: bool,
     /// `true` if we are inside a group (like `{...}` or `\left...\right`) within the
@@ -320,55 +329,69 @@ pub struct EnvState<'arena> {
     pub allow_shove: bool,
     /// `true` if a `\\` right before the end of the environment doesn't start a new row.
     pub ignore_trailing_newline: bool,
-    pub numbered: Option<NumberedEnvState<'arena>>,
+    /// `true` if we are inside `aligned` or `gathered`, however deeply. These environments
+    /// cut their content off from the numbering of the equation: `\tag` is not allowed in
+    /// them, and `\notag` has no effect.
+    pub forbid_tag: bool,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(super) enum NumberingMode {
-    #[default]
-    NoneByDefault,
-    AllByDefault,
-    OnlyLast,
-}
-
-/// State for environments that number equations.
-#[derive(Debug, Default)]
-pub(super) struct NumberedEnvState<'arena> {
-    pub(super) mode: NumberingMode,
+/// The numbering of the equation which is being parsed.
+///
+/// A block equation has exactly one of these, because a display environment is always the
+/// whole equation. What is numbered are the rows of that environment, or, if there is none,
+/// the equation as a whole, which then counts as a single row.
+#[derive(Debug)]
+pub(super) struct EquationNumbering<'arena> {
+    /// `true` if a row gets a number without one having been set with `\tag`.
+    automatic: bool,
+    /// `true` if all rows share one number, which is shown in the last row.
+    single_number: bool,
     pub(super) suppress_next_number: bool,
     pub(super) custom_next_tag: Option<EquationTag<'arena>>,
     pub(super) label: Option<&'arena str>,
 }
 
-impl<'arena> NumberedEnvState<'arena> {
-    pub(super) fn next_equation_tag(
+impl<'arena> EquationNumbering<'arena> {
+    pub(super) fn new(automatic: bool, single_number: bool) -> Self {
+        EquationNumbering {
+            automatic,
+            single_number,
+            suppress_next_number: false,
+            custom_next_tag: None,
+            label: None,
+        }
+    }
+
+    /// Determine the number and the link target of the row which has just ended, and get
+    /// ready for the next row.
+    pub(super) fn finish_row(
         &mut self,
         equation_counter: &mut usize,
         is_last: bool,
         arena: &'arena Arena,
-    ) -> Result<Option<EquationTag<'arena>>, ()> {
-        if matches!(self.mode, NumberingMode::OnlyLast) && !is_last {
-            // Not the last row; do nothing for now.
+    ) -> Result<Option<RowLabelInfo<'arena>>, ()> {
+        if self.single_number && !is_last {
+            // The number is shown in the last row, so everything is kept until then.
             return Ok(None);
         }
+        let suppressed = mem::take(&mut self.suppress_next_number);
+        // A row without a number cannot be referred to, so its label is dropped.
+        let link_target = self.label.take();
         // A custom number takes precedence over suppression.
-        if let Some(custom_tag) = self.custom_next_tag.take() {
-            // The state has already been cleared here through `take()`.
-            Ok(Some(custom_tag))
-        } else if self.suppress_next_number || matches!(self.mode, NumberingMode::NoneByDefault) {
-            // Clear the flag.
-            self.suppress_next_number = false;
-            Ok(None)
+        let tag = if let Some(custom_tag) = self.custom_next_tag.take() {
+            custom_tag
+        } else if suppressed || !self.automatic {
+            return Ok(None);
         } else {
             *equation_counter = equation_counter.checked_add(1).ok_or(())?;
             // FIXME: Use the `int_format_into` feature once it's stabilized.
             let mut buffer = String::new();
             write!(buffer, "{}", equation_counter).map_err(|_| ())?;
-            let tag = arena.alloc_str(&buffer);
-            Ok(Some(EquationTag {
-                text: tag,
+            EquationTag {
+                text: arena.alloc_str(&buffer),
                 parenthesized: true,
-            }))
-        }
+            }
+        };
+        Ok(Some(RowLabelInfo { tag, link_target }))
     }
 }

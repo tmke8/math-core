@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\tag{A}\\tag{B}"
+---
+Error: Found more than one tag for the same equation.
+   ╭─[ <input>:1:9 ]
+   │
+ 1 │ x\tag{A}\tag{B}
+   │         ──┬─  
+   │           ╰─── duplicate tag
+───╯

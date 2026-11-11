@@ -2,7 +2,7 @@ use insta::assert_snapshot;
 use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 
 #[test]
-fn main() {
+fn inline_equations() {
     let problems = [
         ("empty", r""),
         ("only_whitespace", r"  "),
@@ -296,104 +296,8 @@ fn main() {
             r"\left\ulcorner \frac{x}{y} \right\lrcorner",
         ),
         ("matrix", r"\begin{pmatrix} x \\ y \end{pmatrix}"),
-        (
-            "align",
-            r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
-        ),
-        ("align_rel_then_amp", r#"\begin{align}&x\\=\;&2\end{align}"#),
-        ("align_incomplete_row", r"\begin{align}1 & 2\\3\end{align}"),
-        ("notag", r#"\begin{align} 1\notag\\2\end{align}"#),
-        ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
-        ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
-        ("notag4", r#"\begin{align} 1\\\notag2\end{align}"#),
         ("notag_in_the_wild", r#"(\notag + 1)"#),
-        ("tag", r#"\begin{align} 1\nonumber\tag{32}\\2\end{align}"#),
-        (
-            "tag2",
-            r#"\begin{align} 1\mathbf{\tag{32}}\\2\tag{64}\end{align}"#,
-        ),
-        ("tag3", r#"\begin{align} 1\\2\nonumber\tag{32}\end{align}"#),
-        ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
-        ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
-        ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
-        ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
-        ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
-        (
-            "tag_html_escape",
-            r"\begin{align} x \tag{<b>} \\ y \end{align}",
-        ),
-        (
-            "tag_star",
-            r"\begin{align} 1\nonumber\tag*{32}\\2\end{align}",
-        ),
-        (
-            "tag_star_in_align_star",
-            r"\begin{align*} 1\tag*{A1}\\2\end{align*}",
-        ),
-        (
-            "tag_star_with_label",
-            r"\begin{align*} 1\label{eq:1}\tag*{32}\\2\eqref{eq:1}\end{align*}",
-        ),
-        ("label", r#"\begin{align} 1\label{eq:1}\\2\end{align}"#),
-        (
-            "label_and_tag",
-            r#"\begin{align*} 1\label{eq:1}\tag{32}\\2\end{align*}"#,
-        ),
-        (
-            "label_in_subscript",
-            r#"\begin{align} 1_{x\label{eq:1}}\\2\end{align}"#,
-        ),
-        (
-            "eqref",
-            r#"\begin{align} 1\label{eq:1}\\\eqref{eq:1}\end{align}"#,
-        ),
-        (
-            "label_on_last_row",
-            r#"\begin{align} 1\label{eq:1}\\2\label{eq:2}\end{align}"#,
-        ),
-        (
-            "label_on_only_equation_row",
-            r#"\begin{equation} x\label{eq:1}\end{equation}"#,
-        ),
-        (
-            "eqref_to_last_row_label",
-            r#"\begin{align} 1\label{a}\\2\label{b}\end{align}\eqref{b}"#,
-        ),
         ("undefined_label", r#"\eqref{a}"#),
-        (
-            "simple_forward_ref",
-            r#"\begin{align}\eqref{a}\\x\label{a}\end{align}"#,
-        ),
-        (
-            "label_url_escape",
-            r#"\begin{align} 1\label{ !()*+,-./0:;<=>?@|}\\\eqref{ !()*+,-./0:;<=>?@|}\end{align}"#,
-        ),
-        (
-            "label_on_multline_last_row",
-            r#"\begin{multline} a\\b\\c\label{eq:m}\end{multline}"#,
-        ),
-        ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
-        ("align_with_frac", r#"\begin{align}\frac1{2+3}\end{align}"#),
-        ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
-        ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),
-        ("gather", r#"\begin{gather}x=1\\y=2\end{gather}"#),
-        (
-            "gather_nonumber_tag",
-            r#"\begin{gather}x=1\nonumber\\\tag{32}y=2\end{gather}"#,
-        ),
-        (
-            "gather_star",
-            r#"\begin{gather*}x=1\\y=2\tag{1}\end{gather*}"#,
-        ),
-        ("multline", r#"\begin{multline}x=\\1+\\2\end{multline}"#),
-        (
-            "multline_tag",
-            r#"\begin{multline}x=\tag{4}\\1+\\2\end{multline}"#,
-        ),
-        (
-            "multline_with_shove",
-            r#"\begin{multline}\shoveright a\\\shoveleft b\\c\end{multline}"#,
-        ),
         (
             "text_transforms",
             r#"{fi}\ \mathit{fi}\ \mathrm{fi}\ \texttt{fi}"#,
@@ -680,10 +584,6 @@ fn main() {
         ("plus_subscript_before_eof", r"x+_2"),
         ("plus_subscript_at_group_end", r"{x+_2}y"),
         ("equal_subscript_before_closing_paren", r"(x=_2)"),
-        (
-            "equal_subscript_before_ampersand",
-            r"\begin{align}a=_2&b\end{align}",
-        ),
         ("mathbin_subscript_before_closing_paren", r"x\mathbin{+}_2)"),
         (
             "mathbin_bare_subscript_before_closing_paren",
@@ -791,10 +691,6 @@ fn main() {
             r"\begin{cases} a & b\\ c & d\\ \end{cases}",
         ),
         (
-            "gather_trailing_newline",
-            r"\begin{gather} a\\ b\\ \end{gather}",
-        ),
-        (
             "matrix_hlines",
             r"\begin{matrix} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{matrix}",
         ),
@@ -819,10 +715,6 @@ fn main() {
             r"\begin{matrix}\displaystyle \sum & \sum\end{matrix}",
         ),
         ("color_continues_past_newline", r"\color{red}a\\ b"),
-        (
-            "align_color_ends_at_row",
-            r"\begin{align}\color{red} a &= b \\ c &= d\end{align}",
-        ),
         (
             "matrix_over_in_cell",
             r"\begin{matrix} a \over b & c \end{matrix}",
@@ -1070,6 +962,196 @@ fn main() {
     for (name, problem) in problems.into_iter() {
         let mathml = converter
             .convert_with_local_state(problem, MathDisplay::Inline)
+            .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
+        assert_snapshot!(name, &mathml.mathml, problem);
+    }
+}
+
+/// The display environments make up a whole equation, so they are only allowed in block
+/// equations, and so are `\tag` and `\label`.
+#[test]
+fn block_equations() {
+    let problems = [
+        ("tag_without_environment", r"x = 1 \tag{A}"),
+        ("tag_star_without_environment", r"x = 1 \tag*{A}"),
+        ("tag_in_group_without_environment", r"\frac{x \tag{3}}{2}"),
+        (
+            "tag_and_label_without_environment",
+            r"x \label{eq:x} \tag{3} \quad \eqref{eq:x}",
+        ),
+        ("label_without_tag_or_environment", r"x \label{eq:x}"),
+        ("notag_without_environment", r"x \notag"),
+        (
+            "tag_after_aligned",
+            r"a = \begin{aligned}x\\y\end{aligned} \tag{A}",
+        ),
+        // In environments which are only a part of the equation, `\tag`, `\label` and
+        // `\notag` apply to the equation (or the row of it) which they are in.
+        ("tag_in_matrix", r"\begin{matrix}a\tag{A}\\b\end{matrix}"),
+        (
+            "tag_in_cases_in_align",
+            r"\begin{align}a\\\begin{cases}b\\c\tag{C}\end{cases}\end{align}",
+        ),
+        (
+            "label_in_matrix_in_equation",
+            r"\begin{equation}\begin{pmatrix}a\label{a}\end{pmatrix}\quad\eqref{a}\end{equation}",
+        ),
+        (
+            "notag_in_matrix_in_equation",
+            r"\begin{equation}\begin{pmatrix}a\notag\end{pmatrix}\end{equation}",
+        ),
+        // `aligned` and `gathered` are cut off from the numbering, except for `\label`.
+        (
+            "label_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\label{a}\end{aligned}\quad\eqref{a}\end{equation}",
+        ),
+        (
+            "notag_in_aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x\notag\end{aligned}\end{equation}",
+        ),
+        // `multline` is a single equation, whose number is shown in the last row.
+        (
+            "multline_star_tag_in_first_row",
+            r"\begin{multline*}a\tag{A}\\b\end{multline*}",
+        ),
+        (
+            "multline_label_in_first_row",
+            r"\begin{multline}a\label{x}\\b\end{multline}",
+        ),
+        (
+            "tag_and_notag_in_same_row",
+            r"\begin{align}a\tag{A}\notag\\b\end{align}",
+        ),
+        (
+            "align",
+            r#"\begin{align} f ( x ) &= x^2 + 2 x + 1 \\ &= ( x + 1 )^2\end{align}"#,
+        ),
+        ("align_rel_then_amp", r#"\begin{align}&x\\=\;&2\end{align}"#),
+        ("align_incomplete_row", r"\begin{align}1 & 2\\3\end{align}"),
+        ("notag", r#"\begin{align} 1\notag\\2\end{align}"#),
+        ("notag2", r#"\begin{align} 1\mathbf{\notag}\\2\end{align}"#),
+        ("notag3", r#"\begin{align} \notag1\\2\end{align}"#),
+        ("notag4", r#"\begin{align} 1\\\notag2\end{align}"#),
+        ("tag", r#"\begin{align} 1\nonumber\tag{32}\\2\end{align}"#),
+        (
+            "tag2",
+            r#"\begin{align} 1\mathbf{\tag{32}}\\2\tag{64}\end{align}"#,
+        ),
+        ("tag3", r#"\begin{align} 1\\2\nonumber\tag{32}\end{align}"#),
+        ("tag4", r#"\begin{align*} 1\\2\tag{32}\end{align*}"#),
+        ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
+        ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
+        ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
+        ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
+        (
+            "tag_html_escape",
+            r"\begin{align} x \tag{<b>} \\ y \end{align}",
+        ),
+        (
+            "tag_star",
+            r"\begin{align} 1\nonumber\tag*{32}\\2\end{align}",
+        ),
+        (
+            "tag_star_in_align_star",
+            r"\begin{align*} 1\tag*{A1}\\2\end{align*}",
+        ),
+        (
+            "tag_star_with_label",
+            r"\begin{align*} 1\label{eq:1}\tag*{32}\\2\eqref{eq:1}\end{align*}",
+        ),
+        ("label", r#"\begin{align} 1\label{eq:1}\\2\end{align}"#),
+        (
+            "label_and_tag",
+            r#"\begin{align*} 1\label{eq:1}\tag{32}\\2\end{align*}"#,
+        ),
+        (
+            "label_in_subscript",
+            r#"\begin{align} 1_{x\label{eq:1}}\\2\end{align}"#,
+        ),
+        (
+            "eqref",
+            r#"\begin{align} 1\label{eq:1}\\\eqref{eq:1}\end{align}"#,
+        ),
+        (
+            "label_on_last_row",
+            r#"\begin{align} 1\label{eq:1}\\2\label{eq:2}\end{align}"#,
+        ),
+        (
+            "label_on_only_equation_row",
+            r#"\begin{equation} x\label{eq:1}\end{equation}"#,
+        ),
+        (
+            "simple_forward_ref",
+            r#"\begin{align}\eqref{a}\\x\label{a}\end{align}"#,
+        ),
+        (
+            "label_url_escape",
+            r#"\begin{align} 1\label{ !()*+,-./0:;<=>?@|}\\\eqref{ !()*+,-./0:;<=>?@|}\end{align}"#,
+        ),
+        (
+            "label_on_multline_last_row",
+            r#"\begin{multline} a\\b\\c\label{eq:m}\end{multline}"#,
+        ),
+        ("align_star", r#"\begin{align*}x&=1\\y=2\end{align*}"#),
+        ("align_with_frac", r#"\begin{align}\frac1{2+3}\end{align}"#),
+        ("equation", r#"\begin{equation}x\\=1\end{equation}"#),
+        ("equation_star", r#"\begin{equation*}x\\=1\end{equation*}"#),
+        ("gather", r#"\begin{gather}x=1\\y=2\end{gather}"#),
+        (
+            "gather_nonumber_tag",
+            r#"\begin{gather}x=1\nonumber\\\tag{32}y=2\end{gather}"#,
+        ),
+        (
+            "gather_star",
+            r#"\begin{gather*}x=1\\y=2\tag{1}\end{gather*}"#,
+        ),
+        ("multline", r#"\begin{multline}x=\\1+\\2\end{multline}"#),
+        (
+            "multline_tag",
+            r#"\begin{multline}x=\tag{4}\\1+\\2\end{multline}"#,
+        ),
+        (
+            "multline_with_shove",
+            r#"\begin{multline}\shoveright a\\\shoveleft b\\c\end{multline}"#,
+        ),
+        (
+            "equal_subscript_before_ampersand",
+            r"\begin{align}a=_2&b\end{align}",
+        ),
+        (
+            "gather_trailing_newline",
+            r"\begin{gather} a\\ b\\ \end{gather}",
+        ),
+        (
+            "align_color_ends_at_row",
+            r"\begin{align}\color{red} a &= b \\ c &= d\end{align}",
+        ),
+        (
+            "align_surrounded_by_whitespace",
+            "  \\begin{align}x\\end{align}\n ",
+        ),
+        (
+            "align_after_definition",
+            r"\newcommand{\x}{y}\begin{align}\x\end{align}",
+        ),
+        (
+            "align_from_custom_command",
+            r"\newcommand{\x}{\begin{align}}\x y\end{align}",
+        ),
+        (
+            "aligned_in_equation",
+            r"\begin{equation}\begin{aligned}x&=1\\y&=2\end{aligned}\end{equation}",
+        ),
+    ];
+
+    let config = MathCoreConfig {
+        pretty_print: PrettyPrint::Always,
+        ..Default::default()
+    };
+    let converter = LatexToMathML::new(config, vec![]).unwrap();
+    for (name, problem) in problems.into_iter() {
+        let mathml = converter
+            .convert_with_local_state(problem, MathDisplay::Block)
             .unwrap_or_else(|e| panic!("failed to convert `{}` with error '{}'", problem, e));
         assert_snapshot!(name, &mathml.mathml, problem);
     }

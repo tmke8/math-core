@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{gathered}x\\tag{A}\\end{gathered}"
+---
+Error: Found "\tag[*]", which may only appear outside of the aligned and gathered environments.
+   ╭─[ <input>:1:18 ]
+   │
+ 1 │ \begin{gathered}x\tag{A}\end{gathered}
+   │                  ──┬─  
+   │                    ╰─── cannot be used here
+───╯

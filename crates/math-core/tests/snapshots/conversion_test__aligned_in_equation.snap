@@ -1,0 +1,36 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{equation}\\begin{aligned}x&=1\\\\y&=2\\end{aligned}\\end{equation}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mtable displaystyle="true" scriptlevel="0">
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>x</mi>
+                        </mtd>
+                        <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                            <mo>=</mo>
+                            <mn>1</mn>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd style="text-align: right;justify-items: end;padding-right: 0;">
+                            <mi>y</mi>
+                        </mtd>
+                        <mtd style="text-align: left;justify-items: start;padding-left: 0;">
+                            <mo>=</mo>
+                            <mn>2</mn>
+                        </mtd>
+                    </mtr>
+                </mtable>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

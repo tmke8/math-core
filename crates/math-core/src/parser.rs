@@ -12,11 +12,11 @@ use mathml_renderer::{
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
     symbol::{self, OpCategory, OrdCategory, OrdLike, RelCategory},
-    table::{EquationTag, RowLabelInfo, TableCell, TableRow},
+    table::{Alignment, EquationTag, RowLabelInfo, TableCell, TableKind, TableRow},
 };
 
 use crate::{
-    ParserConfig,
+    MathDisplay, ParserConfig, TaggingStrategy,
     atof::limited_float_parse,
     character_class::{
         Class, DelimiterSpacing, FenceOptions, MathVariant, ParenType, StretchableOp, Stretchy,
@@ -25,8 +25,8 @@ use crate::{
     color_defs::get_color,
     custom_cmds::RecordedToken,
     environments::{
-        CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, OPEN_BRACE, OPEN_BRACKET,
-        OPEN_PAREN,
+        CLOSE_BRACE, CLOSE_BRACKET, CLOSE_PAREN, Env, EnvState, EquationNumbering, OPEN_BRACE,
+        OPEN_BRACKET, OPEN_PAREN,
     },
     error::{DelimiterModifier, LatexErrKind, LatexError, LimitedUsabilityToken, Place},
     global_state::GlobalState,
@@ -61,9 +61,13 @@ struct ParserState<'arena> {
     /// this is not the case for style-only rows.
     /// This is currently a hack, which should be replaced by a more robust solution later.
     right_boundary_hack: bool,
-    env: EnvState<'arena>,
+    env: EnvState,
+    /// The numbering of the equation, which only a block equation has.
+    numbering: Option<EquationNumbering<'arena>>,
     /// The current style (display/text/script/scriptscript) for the surrounding group.
     style: Style,
+    /// Whether a display environment like `align` may begin at the current position.
+    display_env: DisplayEnvPermission,
     /// The current meaning of the character `|`, which `\set`, `\Set` and `\Braket` change.
     vertical_line_def: Option<VerticalLineDef>,
     /// How many more custom commands may be expanded before we give up.
@@ -73,6 +77,35 @@ struct ParserState<'arena> {
     /// detecting that, we simply stop after a while, as LaTeX and KaTeX do. How long that
     /// takes is configurable; see [`crate::MaxExpansions`].
     expansions_left: u32,
+}
+
+/// Whether a display environment (see [`Env::is_display_env`]) may begin at the current
+/// position.
+///
+/// Such an environment has to be the only content of a block equation. Nothing but
+/// definitions (`\newcommand`, `\def`, `\let`) and other tokens without any effect on what
+/// follows may come before it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DisplayEnvPermission {
+    /// We are at the very start of a block equation.
+    Allowed,
+    /// We are in a block equation, but its start lies behind us.
+    NotAtStart,
+    /// We are in an inline equation, which cannot contain display environments at all.
+    InlineMath,
+}
+
+impl DisplayEnvPermission {
+    /// Record that the start of the equation lies behind us, and return the permission as it
+    /// was up to now.
+    #[inline]
+    fn pass_start(&mut self) -> Self {
+        let old = *self;
+        if old == DisplayEnvPermission::Allowed {
+            *self = DisplayEnvPermission::NotAtStart;
+        }
+        old
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -85,7 +118,7 @@ enum SequenceEnd {
 
 impl SequenceEnd {
     #[inline]
-    fn matches(self, other: &Token, env: &EnvState) -> bool {
+    fn matches(self, other: &Token, env: EnvState) -> bool {
         match self {
             SequenceEnd::EndToken(token) => token.matches(other),
             SequenceEnd::TableCell => match other {
@@ -171,8 +204,18 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         arena: &'arena Arena,
         parser_cfg: &'arena ParserConfig,
         global_state: &'state mut GlobalState,
-        style: Style,
+        display: MathDisplay,
     ) -> ParseResult<Self> {
+        let (style, display_env) = match display {
+            MathDisplay::Inline => (Style::Text, DisplayEnvPermission::InlineMath),
+            MathDisplay::Block => (Style::Display, DisplayEnvPermission::Allowed),
+        };
+        // A block equation as a whole can carry an equation number. It only gets one
+        // automatically with `TaggingStrategy::All`; otherwise it has to be set with `\tag`.
+        let numbering = matches!(display, MathDisplay::Block).then(|| {
+            let automatic = matches!(parser_cfg.tags, TaggingStrategy::All);
+            EquationNumbering::new(automatic, false)
+        });
         let input_length = lexer.input_length();
         let tokens = TokenQueue::new(lexer, parser_cfg, global_state)?;
         Ok(Parser {
@@ -184,7 +227,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 transform: None,
                 right_boundary_hack: false,
                 env: EnvState::default(),
+                numbering,
                 style,
+                display_env,
                 vertical_line_def: None,
                 expansions_left: parser_cfg.max_expansions.0,
             },
@@ -199,6 +244,37 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline]
     pub(crate) fn parse(&mut self) -> ParseResult<Vec<&'arena Node<'arena>>> {
         self.parse_sequence(SequenceEnd::EndToken(EndToken::Eoi), Class::Open, true)
+    }
+
+    /// Give the snippet as a whole an equation number, if it is to have one, by making it the
+    /// only row of a numbered equation array, as if it were the content of an `equation`
+    /// environment. Otherwise, the nodes are returned as they are.
+    ///
+    /// This is to be called with the result of [`Self::parse`]. Only a block equation can have
+    /// a number, and only if it isn't a display environment, which takes care of the numbering
+    /// itself. The number is either set with `\tag`, or, with [`TaggingStrategy::All`],
+    /// assigned automatically.
+    pub(crate) fn number_top_level(
+        &mut self,
+        nodes: Vec<&'arena Node<'arena>>,
+    ) -> ParseResult<Vec<&'arena Node<'arena>>> {
+        let span = self.tokens.peek().span();
+        let Some(label_info) = self.finish_numbered_row(true, span)? else {
+            return Ok(nodes);
+        };
+        let row = TableRow {
+            label_info: Some(label_info),
+            border_top: None,
+            border_bottom: None,
+            shove: None,
+            cells: self
+                .arena
+                .alloc_table_cells(&[self.arena.push_slice(&nodes)]),
+        };
+        Ok(vec![self.commit(Node::Table {
+            kind: TableKind::EquationArray(Alignment::Centered),
+            rows: self.arena.alloc_table_rows(&[row]),
+        })])
     }
 
     /// Parse a sequence of tokens, if the parser is not in an argument.
@@ -256,7 +332,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         let old_style = self.state.style;
 
         // Because we don't want to consume the end token, we just peek here.
-        while !sequence_end.matches(self.tokens.peek().token(), &self.state.env) {
+        while !sequence_end.matches(self.tokens.peek().token(), self.state.env) {
             // Check whether we need to collect letters.
             let (class, target) = if let Some(collected) = self.merge_and_transform_letters()? {
                 collected
@@ -321,7 +397,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ///
     /// The rows are separated by `\\` and the cells within a row by `&`. The `\end{...}` token
     /// that ends the environment is not consumed. Rows may have different numbers of cells.
-    fn parse_table_rows(&mut self, env_span: Span) -> ParseResult<&'arena [TableRow<'arena>]> {
+    ///
+    /// With `numbered`, the rows are the rows of the equation, which carry the equation numbers.
+    fn parse_table_rows(
+        &mut self,
+        env_span: Span,
+        numbered: bool,
+    ) -> ParseResult<&'arena [TableRow<'arena>]> {
         let mut rows: Vec<TableRow<'arena>> = Vec::new();
         let mut cells: Vec<TableCell<'arena>> = Vec::new();
         // Loop over the rows of the table, until we reach a `\end{...}` or the end of input.
@@ -385,7 +467,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 break;
             }
 
-            let label_info = self.finish_numbered_row(is_last_row, env_span)?;
+            let label_info = if numbered {
+                self.finish_numbered_row(is_last_row, env_span)?
+            } else {
+                None
+            };
             rows.push(TableRow {
                 label_info,
                 border_top,
@@ -402,37 +488,32 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(self.arena.alloc_table_rows(&rows))
     }
 
-    /// Determine the equation number and link target of the row that has just ended, if the
-    /// current environment is numbered.
+    /// Determine the equation number and link target of the row of the equation that has just
+    /// ended. Without a display environment, the equation as a whole is its only row.
     fn finish_numbered_row(
         &mut self,
         is_last_row: bool,
         env_span: Span,
     ) -> ParseResult<Option<RowLabelInfo<'arena>>> {
-        let Some(numbered_state) = &mut self.state.env.numbered else {
+        let Some(numbering) = &mut self.state.numbering else {
             return Ok(None);
         };
         let equation_counter = &mut self.tokens.stores.global_state.equation_count;
-        match numbered_state.next_equation_tag(equation_counter, is_last_row, self.arena) {
-            Ok(tag) => {
-                let link_target = numbered_state.label.take();
-                // If we don't have a tag, we're not setting a link target either.
-                Ok(tag.map(|tag| {
-                    if let Some(label) = link_target {
-                        self.tokens
-                            .stores
-                            .global_state
-                            .label_map
-                            .insert(KString::from_ref(label), KString::from_ref(tag.text));
-                    }
-                    RowLabelInfo { tag, link_target }
-                }))
-            }
-            Err(()) => Err(Box::new(LatexError(
-                env_span.into(),
-                LatexErrKind::HardLimitExceeded,
-            ))),
+        let label_info = numbering
+            .finish_row(equation_counter, is_last_row, self.arena)
+            .map_err(|()| LatexError(env_span.into(), LatexErrKind::HardLimitExceeded))?;
+        if let Some(RowLabelInfo {
+            tag,
+            link_target: Some(label),
+        }) = label_info
+        {
+            self.tokens
+                .stores
+                .global_state
+                .label_map
+                .insert(KString::from_ref(label), KString::from_ref(tag.text));
         }
+        Ok(label_info)
     }
 
     /// Build the fraction for an infix command like `\over` or `\choose`.
@@ -494,6 +575,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::InfixGenFrac { with_line, delim } => {
+                // What follows is the denominator of a fraction, so it is not at the start of
+                // the equation anymore, even if the numerator is empty.
+                self.state.display_env.pass_start();
                 if infix_frac.is_none() {
                     *infix_frac = Some((mem::take(collected_nodes), with_line, delim));
                     // The numerator was already parsed in the surrounding style (we only
@@ -513,6 +597,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             // argument.
             Token::NewLine if !self.state.env.meaningful_newlines => Ok(()),
             Token::TransformSwitch(tf) => {
+                // A display environment is not something that a switch can apply to.
+                self.state.display_env.pass_start();
                 self.state.transform = Some(tf);
                 Ok(())
             }
@@ -537,46 +623,58 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(())
             }
             Token::NoNumber => {
-                if let Some(numbered_state) = &mut self.state.env.numbered {
-                    numbered_state.suppress_next_number = true;
+                if !self.state.env.forbid_tag
+                    && let Some(numbering) = &mut self.state.numbering
+                {
+                    numbering.suppress_next_number = true;
                 }
                 Ok(())
             }
             Token::Tag { parenthesized } => {
                 let (tag_name, _) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.env.numbered {
-                    numbered_state.custom_next_tag = Some(EquationTag {
-                        text: tag_name,
-                        parenthesized,
-                    });
-                    Ok(())
-                } else {
-                    Err(LatexError(
-                        span,
-                        LatexErrKind::CannotBeUsedHere {
-                            got: LimitedUsabilityToken::Tag,
-                            correct_place: Place::NumberedEnv,
-                        },
-                    ))
+                let misplaced = |correct_place| LatexErrKind::CannotBeUsedHere {
+                    got: LimitedUsabilityToken::Tag,
+                    correct_place,
+                };
+                match &mut self.state.numbering {
+                    None => Err(LatexError(span, misplaced(Place::BlockEquation))),
+                    Some(_) if self.state.env.forbid_tag => {
+                        Err(LatexError(span, misplaced(Place::OutsideAligned)))
+                    }
+                    Some(numbering) if numbering.custom_next_tag.is_some() => {
+                        Err(LatexError(span, LatexErrKind::MoreThanOneTag))
+                    }
+                    Some(numbering) => {
+                        numbering.custom_next_tag = Some(EquationTag {
+                            text: tag_name,
+                            parenthesized,
+                        });
+                        // The tag belongs to the equation which we are in, so a display
+                        // environment cannot begin after it.
+                        self.state.display_env.pass_start();
+                        Ok(())
+                    }
                 }
             }
             Token::Label => {
                 let (label_name, _) = self.parse_string_literal()?;
-                if let Some(numbered_state) = &mut self.state.env.numbered {
-                    if numbered_state.label.is_some() {
-                        Err(LatexError(span, LatexErrKind::MoreThanOneLabel))
-                    } else {
-                        numbered_state.label = Some(label_name);
-                        Ok(())
-                    }
-                } else {
-                    Err(LatexError(
+                match &mut self.state.numbering {
+                    None => Err(LatexError(
                         span,
                         LatexErrKind::CannotBeUsedHere {
                             got: LimitedUsabilityToken::Label,
-                            correct_place: Place::NumberedEnv,
+                            correct_place: Place::BlockEquation,
                         },
-                    ))
+                    )),
+                    Some(numbering) if numbering.label.is_some() => {
+                        Err(LatexError(span, LatexErrKind::MoreThanOneLabel))
+                    }
+                    Some(numbering) => {
+                        numbering.label = Some(label_name);
+                        // As with `\tag`, a display environment cannot begin after this.
+                        self.state.display_env.pass_start();
+                        Ok(())
+                    }
                 }
             }
             _ => {
@@ -611,9 +709,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         parse_as: ParseAs,
         prev_class: Class,
     ) -> ParseResult<(Class, &'arena Node<'arena>)> {
+        // Whatever this token is, the start of the equation lies behind us once we are done
+        // with it, and already while we parse what it contains. The permission which held up
+        // to here is thus only valid for this token itself, or for the first token of its
+        // expansion, which takes its place.
+        let display_env = self.state.display_env.pass_start();
         let mut cur_tokloc = cur_tokloc;
         loop {
-            match self.parse_one_token(cur_tokloc, parse_as, prev_class)? {
+            match self.parse_one_token(cur_tokloc, parse_as, prev_class, display_env)? {
                 Parsed::Node(class, node) => return Ok((class, node)),
                 Parsed::Expansion => cur_tokloc = self.next_token(),
             }
@@ -638,6 +741,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         cur_tokloc: ParseResult<TokSpan>,
         parse_as: ParseAs,
         prev_class: Class,
+        display_env: DisplayEnvPermission,
     ) -> ParseResult<Parsed<'arena>> {
         let (cur_token, span) = cur_tokloc?.into_parts();
         let mut class = Class::default();
@@ -1505,10 +1609,32 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ));
                 }
 
-                let old_style = mem::replace(&mut self.state.style, env.style());
-                let old_env_state = mem::replace(&mut self.state.env, env.new_state());
+                // A display environment is a whole equation, so it can only be the first
+                // thing in a block equation, which also rules out any kind of nesting.
+                if env.is_display_env() {
+                    let err_kind = match display_env {
+                        DisplayEnvPermission::Allowed => None,
+                        DisplayEnvPermission::NotAtStart => {
+                            Some(LatexErrKind::DisplayEnvNotAtStart(env))
+                        }
+                        DisplayEnvPermission::InlineMath => {
+                            Some(LatexErrKind::DisplayEnvInInlineMath(env))
+                        }
+                    };
+                    if let Some(err_kind) = err_kind {
+                        break 'begin_env Err(LatexError(span.into(), err_kind));
+                    }
+                    // From here on, it is the rows of the environment which are numbered.
+                    let tags = self.tokens.stores.parser_cfg.tags;
+                    self.state.numbering = Some(env.numbering(tags));
+                }
 
-                let rows = self.parse_table_rows(span)?;
+                let mut env_state = env.new_state();
+                env_state.forbid_tag |= self.state.env.forbid_tag;
+                let old_style = mem::replace(&mut self.state.style, env.style());
+                let old_env_state = mem::replace(&mut self.state.env, env_state);
+
+                let rows = self.parse_table_rows(span, env.is_display_env())?;
 
                 self.state.style = old_style;
                 self.state.env = old_env_state;
@@ -1530,6 +1656,21 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             got: end_env,
                         },
                     ));
+                }
+
+                // A display environment also has to be the last thing in the equation. It began
+                // at the start of the top-level sequence, so only the end of the input may follow.
+                if env.is_display_env() {
+                    let next = self.tokens.peek();
+                    if !matches!(next.token(), Token::Eoi) {
+                        break 'begin_env Err(LatexError(
+                            next.span().into(),
+                            LatexErrKind::ContentAfterDisplayEnv(env),
+                        ));
+                    }
+                    // The environment is the whole equation and has done the numbering, so
+                    // the equation doesn't get a number of its own (see `number_top_level`).
+                    self.state.numbering = None;
                 }
 
                 let node = env.construct_node(rows, array_spec);
@@ -3861,10 +4002,6 @@ mod tests {
                 "matrix_incomplete_row",
                 r"\begin{matrix} 1 & 2 \\ \hline 3 \\ \end{matrix}",
             ),
-            (
-                "align_numbered",
-                r"\begin{align} a \\ b \tag{x} \end{align}",
-            ),
             ("number_with_dot", r"3.14"),
             ("number_with_dot_at_end", r"3.14."),
             ("number_with_two_inner_dots", r"3..14"),
@@ -3919,12 +4056,26 @@ mod tests {
             ("phantom_full", r"\phantom{a}"),
             ("mathstrut", r"\mathstrut"),
         ];
+        // The display environments make up a whole equation, so they are only allowed in
+        // block equations.
+        let block_problems = [(
+            "align_numbered",
+            r"\begin{align} a \\ b \tag{x} \end{align}",
+        )];
+        let problems = problems
+            .into_iter()
+            .map(|problem| (problem, MathDisplay::Inline))
+            .chain(
+                block_problems
+                    .into_iter()
+                    .map(|problem| (problem, MathDisplay::Block)),
+            );
         let parser_cfg = crate::ParserConfig::default();
-        for (name, problem) in problems.into_iter() {
+        for ((name, problem), display) in problems {
             let arena = Arena::new();
             let mut state = GlobalState::default();
             let l = Lexer::new(problem);
-            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, display).unwrap();
             let ast = p.parse().expect("Parsing failed");
             assert_ron_snapshot!(name, &ast, problem);
         }
@@ -3963,7 +4114,8 @@ mod tests {
             let arena = Arena::new();
             let mut state = GlobalState::default();
             let l = Lexer::new("");
-            let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+            let mut p =
+                Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
             p.tokens.queue_in_front(problem);
             let ast = p.parse().expect("Parsing failed");
             let problem = format!("{:?}", problem);
@@ -3980,7 +4132,7 @@ mod tests {
         let parser_cfg = crate::ParserConfig::default();
         let mut state = GlobalState::default();
         let l = Lexer::new(&input);
-        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, Style::Text).unwrap();
+        let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
         let parsed = p
             .parse_string_literal()
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));
