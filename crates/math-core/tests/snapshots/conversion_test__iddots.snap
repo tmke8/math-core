@@ -9,7 +9,7 @@ expression: "\\begin{matrix} a & \\iddots \\\\ \\ddots & b \\end{matrix}"
                 <mi>a</mi>
             </mtd>
             <mtd>
-                <mo rspace="0">⋰</mo>
+                <mo lspace="0" rspace="0">⋰</mo>
             </mtd>
         </mtr>
         <mtr>

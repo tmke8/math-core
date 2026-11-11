@@ -1,0 +1,42 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{pmatrix}\\sin & \\sin x \\\\ \\lim_n a_n & \\max\\end{pmatrix}"
+---
+<math>
+    <mrow>
+        <mo>(</mo>
+        <mtable displaystyle="false" scriptlevel="0">
+            <mtr>
+                <mtd>
+                    <mrow><mspace/><mi>sin</mi></mrow>
+                </mtd>
+                <mtd>
+                    <mrow>
+                        <mrow><mspace/><mi>sin</mi></mrow>
+                        <mo lspace="0.1667em">&ApplyFunction;</mo>
+                        <mi>x</mi>
+                    </mrow>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd>
+                    <mrow>
+                        <msub>
+                            <mrow><mspace/><mi>lim</mi></mrow>
+                            <mi>n</mi>
+                        </msub>
+                        <mo lspace="0.1667em">&ApplyFunction;</mo>
+                        <msub>
+                            <mi>a</mi>
+                            <mi>n</mi>
+                        </msub>
+                    </mrow>
+                </mtd>
+                <mtd>
+                    <mrow><mspace/><mi>max</mi></mrow>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mo>)</mo>
+    </mrow>
+</math>
