@@ -13,7 +13,7 @@ use crate::token::Token;
 /// follows a later redefinition of that name, the way it does in LaTeX; see
 /// [`TokenQueue::map_recorded_tokens`](crate::token_queue::TokenQueue::map_recorded_tokens).
 /// The name is owned, so a body outlives whatever it was read from.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum RecordedToken {
     Token(Token),
     CommandName(KString),
@@ -44,7 +44,7 @@ pub enum CmdSource {
 ///
 /// The token stream which makes up the body is stored separately, in [`CustomCmds::tokens`];
 /// `start` and `end` delimit the slice belonging to this command.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct CmdDef {
     num_args: u8,
     /// The character class of the body, which we have to remember because
@@ -65,10 +65,22 @@ struct CmdDef {
 /// The bodies of all commands are stored in one flat vector, and the map only holds indices
 /// into it. Indices rather than references, because a store which referred to itself would be
 /// self-referential; this way, the body of one command can mention another command.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct CustomCmds {
     tokens: Vec<RecordedToken>,
     map: FxHashMap<KString, CmdDef>,
+    /// Whether a definition has been added, replaced or removed since the last call to
+    /// [`Self::take_changed`].
+    changed: bool,
+}
+
+/// Two stores are equal if they hold the same definitions in the same layout, which is the
+/// case whenever they were filled by the same sequence of definitions. Whether one of them
+/// has been [changed](CustomCmds::take_changed) recently plays no role.
+impl PartialEq for CustomCmds {
+    fn eq(&self, other: &Self) -> bool {
+        self.tokens == other.tokens && self.map == other.map
+    }
 }
 
 impl CustomCmds {
@@ -76,7 +88,17 @@ impl CustomCmds {
         CustomCmds {
             tokens: Vec::new(),
             map: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
+            changed: false,
         }
+    }
+
+    /// Report whether the definitions have changed since this was last called.
+    ///
+    /// This is how [`InteractiveDocument`](crate::InteractiveDocument) finds out that a snippet has
+    /// defined a command that lives longer than the snippet. Without this function, we'd have to
+    /// compare the store before and after every snippet.
+    pub(crate) fn take_changed(&mut self) -> bool {
+        core::mem::take(&mut self.changed)
     }
 
     /// Look up a command by name, returning the token which refers to its body.
@@ -176,6 +198,7 @@ impl CustomCmds {
                 end,
             },
         );
+        self.changed = true;
     }
 
     /// Copy a body into this store, translating every `local` reference as it goes.
@@ -232,12 +255,15 @@ impl CustomCmds {
     /// Only the name is forgotten; the body stays in the store, because other definitions may
     /// contain references into it, just as with [`Self::insert_or_replace`].
     pub(crate) fn remove(&mut self, name: &str) {
-        self.map.remove(name);
+        if self.map.remove(name).is_some() {
+            self.changed = true;
+        }
     }
 
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
         self.map.clear();
+        self.changed = true;
     }
 }
 

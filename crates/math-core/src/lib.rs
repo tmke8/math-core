@@ -47,6 +47,7 @@ mod environments;
 mod error;
 mod global_state;
 mod html_utils;
+mod interactive;
 mod lexer;
 mod parser;
 mod predefined;
@@ -79,6 +80,7 @@ use mathml_renderer::{
 };
 
 pub use self::error::LatexError;
+pub use self::interactive::InteractiveDocument;
 use self::{
     commands::resolve_builtin_cmd,
     custom_cmds::{CmdSource, CustomCmds, RecordedToken, is_valid_macro_name},
@@ -445,6 +447,7 @@ impl LatexToMathML {
                         &arena,
                         &self.emitter_cfg,
                     )
+                    .0
                 })
             })
             .collect()
@@ -460,9 +463,13 @@ fn convert(
 ) -> Result<ConvertResult, Box<LatexError>> {
     let arena = Arena::new();
     let ast = parse(latex, &arena, parser_cfg, state, display)?;
-    Ok(emit(ast, latex, display, &state.label_map, &arena, flags))
+    Ok(emit(ast, latex, display, &state.label_map, &arena, flags).0)
 }
 
+/// Emit the MathML for a parsed snippet.
+///
+/// The second return value says whether the output contains a reference to an equation, in
+/// which case it depends on `label_map` and not just on the snippet itself.
 fn emit(
     ast: Vec<&Node>,
     latex: &str,
@@ -470,7 +477,7 @@ fn emit(
     label_map: &FxHashMap<KString, KString>,
     arena: &Arena,
     flags: &EmitterConfig,
-) -> ConvertResult {
+) -> (ConvertResult, bool) {
     let mut output = String::new();
     output.push_str("<math");
     if flags.xml_namespace {
@@ -486,6 +493,7 @@ fn emit(
 
     let base_indent = if pretty_print { 1 } else { 0 };
     let warnings: Warnings;
+    let has_references: bool;
     if flags.annotation {
         let children_indent = if pretty_print { 2 } else { 0 };
         new_line_and_indent(&mut output, base_indent, flags.indentation);
@@ -500,6 +508,7 @@ fn emit(
         );
         let _ = emitter.emit(node, children_indent);
         warnings = emitter.warnings();
+        has_references = emitter.has_references();
         output = emitter.into_string();
         new_line_and_indent(&mut output, children_indent, flags.indentation);
         output.push_str("<annotation encoding=\"application/x-tex\">");
@@ -522,19 +531,22 @@ fn emit(
             let _ = emitter.emit(node, base_indent);
         }
         warnings = emitter.warnings();
+        has_references = emitter.has_references();
         output = emitter.into_string();
     }
     if pretty_print {
         output.push('\n');
     }
     output.push_str("</math>");
-    ConvertResult {
+    let result = ConvertResult {
         mathml: output,
         warnings,
-    }
+    };
+    (result, has_references)
 }
 
 /// The result of a LaTeX to MathML conversion.
+#[derive(Debug)]
 pub struct ConvertResult {
     pub mathml: String,
     pub warnings: Warnings,

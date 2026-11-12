@@ -60,6 +60,9 @@ jobs:
       - name: "Generate playground"
         run: |
           make playground
+      - name: "Generate playground for interactive documents"
+        run: |
+          make interactive
       - name: "Generate comparison page"
         run: |
           make comparison

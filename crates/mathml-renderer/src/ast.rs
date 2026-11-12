@@ -236,6 +236,8 @@ pub struct Emitter<'state> {
     css_classes: &'state CssClassNames,
     indentation: Indentation,
     warnings: Warnings,
+    /// Whether an equation reference has been emitted (even if unresolved).
+    has_references: bool,
     id_prefix: &'state str,
 }
 
@@ -253,6 +255,7 @@ impl<'state> Emitter<'state> {
             css_classes,
             indentation,
             warnings: Warnings::new(),
+            has_references: false,
             id_prefix,
         }
     }
@@ -718,6 +721,7 @@ impl<'state> Emitter<'state> {
                 )?;
             }
             Node::EqRef(label) => {
+                self.has_references = true;
                 let tag: &str = match self.label_map.get(label) {
                     Some(tag) => tag,
                     None => {
@@ -818,6 +822,13 @@ impl<'state> Emitter<'state> {
     #[must_use]
     pub fn warnings(&self) -> Warnings {
         self.warnings
+    }
+
+    /// Whether the output emitted so far contains a reference to an equation, which means that
+    /// it depends on the label map and has to be emitted again when that map changes.
+    #[must_use]
+    pub fn has_references(&self) -> bool {
+        self.has_references
     }
 }
 
@@ -928,6 +939,13 @@ fn write_equation_num(
 #[derive(Debug, Clone, Copy)]
 pub struct Warnings {
     inner: InnerWarnings,
+}
+
+impl Default for Warnings {
+    /// No warnings.
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Warnings {

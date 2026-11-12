@@ -34,7 +34,8 @@ pub struct LatexError {
     label: JsValue,
     pub start: u32,
     pub end: u32,
-    /// The index of the snippet that caused the error; only set by `convert_all`.
+    /// The index of the snippet that caused the error; only set by `convert_all` and by
+    /// `InteractiveDocument`.
     pub index: Option<u32>,
     context: Option<JsValue>,
     report: Option<JsValue>,
@@ -160,10 +161,15 @@ extern "C" {
     fn tags(this: &MathCoreOptions) -> Option<String>;
 }
 
-#[wasm_bindgen]
-impl LatexToMathML {
-    #[wasm_bindgen(constructor)]
-    pub fn new(js_config: &MathCoreOptions) -> Result<Self, JsValue> {
+/// The options of a `MathCoreOptions` object, in the form the core library wants them.
+struct ParsedOptions {
+    config: math_core::MathCoreConfig,
+    macros: Vec<(String, String)>,
+    throw_on_error: bool,
+}
+
+impl ParsedOptions {
+    fn parse(js_config: &MathCoreOptions) -> Result<Self, JsValue> {
         // This is the poor man's `serde_wasm_bindgen::from_value`.
         let macros = match js_config.macros() {
             Some(macro_map) => {
@@ -265,23 +271,43 @@ impl LatexToMathML {
             id_prefix: id_prefix.unwrap_or_default(),
             tags,
         };
-        let macros = macros.unwrap_or_default();
-        let inner = math_core::LatexToMathML::new(config, macros).map_err(|(e, _, context)| {
-            let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;
-            let end = byte_offset_to_utf16_offset(&context, e.0.end) as u32;
-            LatexError {
-                message: JsValue::from_str(&e.error_message()),
-                label: JsValue::from_str(e.label()),
-                start,
-                end,
-                index: None,
-                context: Some(JsValue::from_str(&context)),
-                report: error_report(&e, "macro", &context),
-            }
-        })?;
+        Ok(ParsedOptions {
+            config,
+            macros: macros.unwrap_or_default(),
+            throw_on_error: throw_on_error.unwrap_or(true),
+        })
+    }
+}
+
+/// Build the error which is thrown on the JavaScript side for a macro from the options which
+/// could not be parsed.
+fn macro_error((e, _, context): math_core::MacroParseError) -> LatexError {
+    let start = byte_offset_to_utf16_offset(&context, e.0.start) as u32;
+    let end = byte_offset_to_utf16_offset(&context, e.0.end) as u32;
+    LatexError {
+        message: JsValue::from_str(&e.error_message()),
+        label: JsValue::from_str(e.label()),
+        start,
+        end,
+        index: None,
+        context: Some(JsValue::from_str(&context)),
+        report: error_report(&e, "macro", &context),
+    }
+}
+
+#[wasm_bindgen]
+impl LatexToMathML {
+    #[wasm_bindgen(constructor)]
+    pub fn new(js_config: &MathCoreOptions) -> Result<Self, JsValue> {
+        let ParsedOptions {
+            config,
+            macros,
+            throw_on_error,
+        } = ParsedOptions::parse(js_config)?;
+        let inner = math_core::LatexToMathML::new(config, macros).map_err(macro_error)?;
         Ok(LatexToMathML {
             inner,
-            throw_on_error: throw_on_error.unwrap_or(true),
+            throw_on_error,
         })
     }
 
@@ -344,16 +370,7 @@ impl LatexToMathML {
     pub fn convert_all(&self, snippets: Vec<MathSnippet>) -> Result<JsValue, LatexError> {
         let inputs: Vec<(String, MathDisplay)> = snippets
             .into_iter()
-            .map(|s| {
-                (
-                    s.latex(),
-                    if s.displayStyle() {
-                        MathDisplay::Block
-                    } else {
-                        MathDisplay::Inline
-                    },
-                )
-            })
+            .map(|snippet| snippet_input(&snippet))
             .collect();
 
         let output = self
@@ -383,11 +400,185 @@ impl LatexToMathML {
     }
 }
 
+/// Interface for rendering the math in a document which changes over time.
+///
+/// The challenge is that the snippets in a document depend on each other: an equation number
+/// depends on the numbered equations in front of it, a reference depends on the equation it refers
+/// to, and a command defined with `\gdef` is available in the snippets after its definition. The
+/// object behind this interace therefore keeps all math snippets, in the order in which they
+/// appear, together with their output. Whenever a snippet is edited, `InteractiveDocument converts
+/// the snippets which are affected by the edit and returns the indices of those whose output has
+/// changed; `get` then returns that output.
+///
+/// References to equations in later snippets are resolved, as with `convert_all`.
+#[cfg(feature = "interactive")]
+#[wasm_bindgen]
+pub struct InteractiveDocument {
+    inner: math_core::InteractiveDocument,
+    throw_on_error: bool,
+}
+
+#[cfg(feature = "interactive")]
+#[wasm_bindgen]
+impl InteractiveDocument {
+    /// Create an empty document.
+    ///
+    /// The option `throwOnError` decides what `get` does for a snippet which could not be
+    /// converted; editing the document never throws because of such a snippet.
+    #[wasm_bindgen(constructor)]
+    pub fn new(js_config: &MathCoreOptions) -> Result<Self, JsValue> {
+        let ParsedOptions {
+            config,
+            macros,
+            throw_on_error,
+        } = ParsedOptions::parse(js_config)?;
+        let inner = math_core::InteractiveDocument::new(config, macros).map_err(macro_error)?;
+        Ok(InteractiveDocument {
+            inner,
+            throw_on_error,
+        })
+    }
+
+    /// The number of snippets in the document.
+    #[wasm_bindgen(getter)]
+    pub fn length(&self) -> u32 {
+        self.inner.len() as u32
+    }
+
+    /// Add a snippet in front of the one which is currently at `index`, or at the end of the
+    /// document if `index` is the number of snippets.
+    ///
+    /// Returns the indices of the snippets whose output has changed; see `splice`.
+    pub fn insert(
+        &mut self,
+        index: u32,
+        content: String,
+        displaystyle: bool,
+    ) -> Result<Vec<u32>, JsValue> {
+        self.splice_inner(index, 0, vec![(content, display(displaystyle))])
+    }
+
+    /// Replace the snippet at `index` with another one.
+    ///
+    /// Returns the indices of the snippets whose output has changed; see `splice`.
+    pub fn replace(
+        &mut self,
+        index: u32,
+        content: String,
+        displaystyle: bool,
+    ) -> Result<Vec<u32>, JsValue> {
+        self.check_index(index)?;
+        self.splice_inner(index, 1, vec![(content, display(displaystyle))])
+    }
+
+    /// Remove the snippet at `index`.
+    ///
+    /// Returns the indices of the snippets whose output has changed; see `splice`.
+    pub fn remove(&mut self, index: u32) -> Result<Vec<u32>, JsValue> {
+        self.check_index(index)?;
+        self.splice_inner(index, 1, Vec::new())
+    }
+
+    /// Remove `delete_count` snippets, starting with the one at `start`, and put `snippets` in
+    /// their place, as `Array.prototype.splice` does.
+    ///
+    /// When several snippets change at once, a single call is better than a sequence of calls,
+    /// because the snippets which depend on the changed ones are then converted only once.
+    ///
+    /// Returns the indices of the snippets whose output has changed, in ascending order. The
+    /// indices are the ones the snippets have *after* the call. The indices always include the new
+    /// snippets, and also include those snippets whose output is a different one than before, which
+    /// can be snippets on either side of the edit.
+    pub fn splice(
+        &mut self,
+        start: u32,
+        delete_count: u32,
+        snippets: Vec<MathSnippet>,
+    ) -> Result<Vec<u32>, JsValue> {
+        let snippets = snippets
+            .into_iter()
+            .map(|snippet| snippet_input(&snippet))
+            .collect();
+        self.splice_inner(start, delete_count, snippets)
+    }
+
+    /// Remove all snippets.
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+
+    /// The current output of the snippet at `index`.
+    ///
+    /// For a snippet which could not be converted, this throws a `LatexError`, or, if
+    /// `throwOnError` is `false`, returns the error as HTML.
+    #[wasm_bindgen(unchecked_return_type = "string")]
+    pub fn get(&self, index: u32) -> Result<JsValue, JsValue> {
+        let position = index as usize;
+        let (Some(output), Some((latex, display))) =
+            (self.inner.get(position), self.inner.source(position))
+        else {
+            return Err(index_error());
+        };
+        match output {
+            Ok(result) => Ok(JsValue::from_str(&result.mathml)),
+            Err(e) => {
+                if self.throw_on_error {
+                    Err(conversion_error(e, latex, Some(index)).into())
+                } else {
+                    Ok(JsValue::from_str(&e.to_html(latex, display, None)))
+                }
+            }
+        }
+    }
+
+    fn check_index(&self, index: u32) -> Result<(), JsValue> {
+        if (index as usize) < self.inner.len() {
+            Ok(())
+        } else {
+            Err(index_error())
+        }
+    }
+
+    fn splice_inner(
+        &mut self,
+        start: u32,
+        delete_count: u32,
+        snippets: Vec<(String, MathDisplay)>,
+    ) -> Result<Vec<u32>, JsValue> {
+        let start = start as usize;
+        let end = start.saturating_add(delete_count as usize);
+        if end > self.inner.len() {
+            return Err(index_error());
+        }
+        let changed = self.inner.splice(start..end, snippets);
+        Ok(changed.into_iter().map(|index| index as u32).collect())
+    }
+}
+
+#[cfg(feature = "interactive")]
+fn index_error() -> JsValue {
+    js_sys::RangeError::new("snippet index out of range").into()
+}
+
+#[cfg(any(feature = "all-conversions", feature = "interactive"))]
+fn display(displaystyle: bool) -> MathDisplay {
+    if displaystyle {
+        MathDisplay::Block
+    } else {
+        MathDisplay::Inline
+    }
+}
+
+/// Read a snippet which was passed in from JavaScript.
+#[cfg(any(feature = "all-conversions", feature = "interactive"))]
+fn snippet_input(snippet: &MathSnippet) -> (String, MathDisplay) {
+    (snippet.latex(), display(snippet.displayStyle()))
+}
+
 /// Build the error which is thrown on the JavaScript side for a failed conversion.
 ///
 /// `index` is the position of the failing snippet within a batch, if there is a batch.
 fn conversion_error(e: &CoreLatexError, content: &str, index: Option<u32>) -> LatexError {
-    // Convert the byte offsets to UTF-16 code unit offsets for JavaScript.
     let start = byte_offset_to_utf16_offset(content, e.0.start) as u32;
     let end = byte_offset_to_utf16_offset(content, e.0.end) as u32;
     LatexError {
@@ -401,12 +592,10 @@ fn conversion_error(e: &CoreLatexError, content: &str, index: Option<u32>) -> La
     }
 }
 
-/// Converts a byte offset in a UTF-8 string to a UTF-16 code unit offset.
-/// This is useful for mapping error locations from Rust (which uses UTF-8) to
-/// JavaScript (which uses UTF-16).
+/// Converts a byte offset in a UTF-8 string to a UTF-16 code unit offset. This is used for mapping
+/// error locations from Rust (which uses UTF-8) to JavaScript (which uses UTF-16).
 ///
-/// If the byte offset is not a valid character boundary, the original byte
-/// offset is returned.
+/// If the byte offset is not a valid character boundary, the original byte offset is returned.
 fn byte_offset_to_utf16_offset(s: &str, byte_offset: usize) -> usize {
     s.get(..byte_offset)
         .map(|s| s.chars().map(char::len_utf16).sum())

@@ -1,0 +1,371 @@
+:root {
+    --background-color: #f4f4f4;
+    --text-color: #333;
+    --muted-color: #777;
+    --container-background: #fff;
+    --border-color: #ddd;
+    --input-background: #fff;
+    --hover-background: #f3f6fa;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --link-color: #007bff;
+    --flash-color: #ffe27a;
+    --error-color: #c00;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #1a1a1a;
+        --text-color: #e0e0e0;
+        --muted-color: #999;
+        --container-background: #2a2a2a;
+        --border-color: #444;
+        --input-background: #333;
+        --hover-background: #323840;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --link-color: #488cd6;
+        --flash-color: #7a6200;
+        --error-color: #ff6b6b;
+    }
+}
+
+/* The fonts are shared with the playground. */
+
+@font-face {
+    font-family: "NewComputerModernMath Book";
+    src: url("../fonts/NewCMMath-Book-prime-roundhand-vec-subset.woff2")
+        format("woff2");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("../fonts/NewCM10-Book.woff2") format("woff2");
+    font-display: swap;
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("../fonts/NewCM10-Bold.woff2") format("woff2");
+    font-display: swap;
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "NewComputerModern Book";
+    src: url("../fonts/NewCM10-BookItalic.woff2") format("woff2");
+    font-display: swap;
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "NewComputerModern Mono";
+    src: url("../fonts/NewCMMono10-Book.woff2") format("woff2");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "NewComputerModern Sans";
+    src: url("../fonts/NewCMSans10-Book.woff2") format("woff2");
+    font-display: swap;
+}
+
+body {
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
+        Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+a {
+    color: var(--link-color);
+}
+
+.container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
+    /* Some empty space below the document, about two lines of text. */
+    padding: 20px 20px calc(20px + 2lh);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.explanation-link {
+    text-align: center;
+    margin-top: 0;
+}
+
+.explanation {
+    margin-bottom: 1rem;
+}
+
+.explanation summary {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.explanation li {
+    margin-bottom: 0.3rem;
+}
+
+.explanation .plus {
+    font-weight: bold;
+}
+
+code,
+kbd {
+    font-size: 0.9em;
+}
+
+.options {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+select {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-background);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.status {
+    margin: 0 0 0.75rem;
+    min-height: 1.6em;
+    color: var(--muted-color);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.status.error {
+    color: var(--error-color);
+}
+
+/* The document */
+
+.document {
+    background-color: var(--container-background);
+    border-radius: 5px;
+    padding: 12px 20px 20px;
+    box-shadow: 0 0 10px var(--shadow-color);
+    font-family: "NewComputerModern Book", serif;
+    font-size: 1.2rem;
+    line-height: 1.5;
+}
+
+.paragraph {
+    position: relative;
+}
+
+/* The button which adds a paragraph in front of this one: a thin strip between two
+   paragraphs, which only shows its plus sign when it is pointed at or focused. */
+.insert {
+    display: block;
+    width: 100%;
+    height: 14px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--link-color);
+    font: bold 14px/14px sans-serif;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.insert::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 7px;
+    border-top: 1px dashed var(--link-color);
+}
+
+.insert span {
+    position: relative;
+    padding: 0 6px;
+    background-color: var(--container-background);
+}
+
+.insert:hover,
+.insert:focus-visible {
+    opacity: 1;
+    outline: none;
+}
+
+@media (hover: none) {
+    .insert {
+        opacity: 0.5;
+    }
+}
+
+.view {
+    min-height: 1.5em;
+    padding: 2px 6px;
+    margin: 0 -6px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    cursor: text;
+}
+
+.view:hover,
+.view:focus-visible {
+    background-color: var(--hover-background);
+    outline: none;
+}
+
+.paragraph textarea {
+    display: block;
+    box-sizing: border-box;
+    width: calc(100% + 12px);
+    margin: 0 -6px;
+    padding: 6px;
+    border: 1px solid var(--link-color);
+    border-radius: 4px;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    background-color: var(--input-background);
+    color: var(--text-color);
+    font-family: "NewComputerModern Mono", ui-monospace, monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.delete {
+    position: absolute;
+    top: 16px;
+    right: -18px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--muted-color);
+    font: 16px/20px sans-serif;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.paragraph:hover .delete,
+.delete:focus-visible {
+    opacity: 1;
+}
+
+.delete:hover {
+    color: var(--error-color);
+}
+
+@media (hover: none) {
+    .delete {
+        opacity: 0.6;
+    }
+}
+
+.add {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 6px;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    background: none;
+    color: var(--link-color);
+    font: inherit;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.add:hover,
+.add:focus-visible {
+    border-color: var(--link-color);
+    background-color: var(--hover-background);
+    outline: none;
+}
+
+/* The math */
+
+math {
+    font-family: "NewComputerModernMath Book", math;
+    font-feature-settings: "dtls" 0;
+}
+
+math mtext {
+    font-family: "NewComputerModern Book", serif;
+}
+
+math mtext code {
+    font-family: "NewComputerModern Mono", monospace;
+}
+
+math mtext span.math-core-serif-font {
+    font-family: "NewComputerModern Book", serif;
+}
+
+math mtext span.math-core-sans-serif-font {
+    font-family: "NewComputerModern Sans", sans-serif;
+}
+
+math a {
+    color: var(--link-color);
+}
+
+.math {
+    border-radius: 3px;
+}
+
+.math.block {
+    display: block;
+    margin: 0.3em 0;
+    padding: 0.2em 0;
+    /* A wide equation scrolls sideways; `hidden` keeps that from adding a vertical scroll bar. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* The paragraph keeps its line breaks, but they must not show up around an equation. */
+    white-space: normal;
+}
+
+/* What the converter returns for a snippet with an error. */
+.math-core-error {
+    color: var(--error-color);
+    cursor: help;
+}
+
+p.math-core-error {
+    margin: 0;
+    text-align: center;
+}
+
+.math-core-error code {
+    font-family: "NewComputerModern Mono", ui-monospace, monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+}
+
+.flash-sample {
+    padding: 0 3px;
+    border-radius: 3px;
+    background-color: var(--flash-color);
+    color: inherit;
+}
