@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\boxed\\sin"
+---
+<math>
+    <menclose notation="box">
+        <mo lspace="0" rspace="0">sin</mo>
+    </menclose>
+</math>

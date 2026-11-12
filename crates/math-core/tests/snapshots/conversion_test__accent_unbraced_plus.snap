@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\hat+"
+---
+<math>
+    <mover accent="true">
+        <mo lspace="0" rspace="0">+</mo>
+        <mo stretchy="false">ˆ</mo>
+    </mover>
+</math>
