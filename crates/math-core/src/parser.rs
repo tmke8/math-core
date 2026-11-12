@@ -2096,6 +2096,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     None => unreachable!(),
                 }
             }
+            // amsmath defines `\colon` as
+            // `\nobreak\mskip2mu\mathpunct{}\nonscript\mkern-\thinmuskip{:}\mskip6muplus1mu\relax`,
+            // which amounts to 2mu before and 6mu after an ordinary `:`, in all styles.
+            Token::Colon => Ok(Node::Operator {
+                op: symbol::COLON.as_op(),
+                attrs: OpAttrs::empty(),
+                roles: OpRoles::ROLE_INFIX,
+                left: Some(MathSpacing::TwoMu),
+                right: Some(MathSpacing::SixMu),
+                size: None,
+            }),
             Token::Dots => {
                 let next_class = self.peek_class_token(parse_as.in_sequence())?;
                 let next_token_is_mathbin_or_mathrel =

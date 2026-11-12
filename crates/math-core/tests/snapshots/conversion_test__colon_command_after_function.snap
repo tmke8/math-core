@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\sin\\colon x"
+---
+<math>
+    <mrow><mspace/><mi>sin</mi></mrow>
+    <mo lspace="0.1111em" rspace="0.3333em">:</mo>
+    <mi>x</mi>
+</math>
