@@ -3,8 +3,8 @@ use math_core::{LatexToMathML, MathCoreConfig, MathDisplay, PrettyPrint};
 fn main() {
     let inputs = vec![
         // Safari bugs:
-        r#"\bar x, \hat x, \check x, \grave x, \breve x, \acute x"#,
-        r#"\vec x, \mathring x, \tilde x, \dot x, \ddot x, \dddot x, \ddddot x"#,
+        r#"\hat x, \vec x, \dddot x, \ddddot x"#,
+        r#"\bar x, \check x, \grave x, \breve x, \acute x, \mathring x, \tilde x, \dot x, \ddot x"#,
         r#"x^*"#,
         // Chrome bugs:
         r#"\widehat x, \widehat{xxxx}"#,
