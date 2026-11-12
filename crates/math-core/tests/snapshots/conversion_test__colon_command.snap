@@ -1,0 +1,27 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "f\\colon A \\to B,\\quad a = \\colon b,\\quad x_{f\\colon A}"
+---
+<math>
+    <mi>f</mi>
+    <mo lspace="0.1111em" rspace="0.3333em">:</mo>
+    <mi>A</mi>
+    <mo stretchy="false">→</mo>
+    <mi>B</mi>
+    <mo>,</mo>
+    <mspace width="1em"/>
+    <mi>a</mi>
+    <mo rspace="0">=</mo>
+    <mo lspace="0.1111em" rspace="0.3333em">:</mo>
+    <mi>b</mi>
+    <mo>,</mo>
+    <mspace width="1em"/>
+    <msub>
+        <mi>x</mi>
+        <mrow>
+            <mi>f</mi>
+            <mo lspace="0.1111em" rspace="0.3333em">:</mo>
+            <mi>A</mi>
+        </mrow>
+    </msub>
+</math>

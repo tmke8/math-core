@@ -87,9 +87,11 @@ impl From<MathSpacing> for Length {
     fn from(spacing: MathSpacing) -> Length {
         let value = LengthValue(match spacing {
             MathSpacing::Zero => 0.0,
+            MathSpacing::TwoMu => 0.1111,
             MathSpacing::ThreeMu => 0.1667,
             MathSpacing::FourMu => 0.2222,
             MathSpacing::FiveMu => 0.2778,
+            MathSpacing::SixMu => 0.3333,
         });
         Length {
             value,

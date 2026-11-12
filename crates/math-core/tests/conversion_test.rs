@@ -312,6 +312,11 @@ fn inline_equations() {
         ("colon_sqrt", r"\sqrt :"),
         ("colon_subscript", r"x_{x:x}"),
         (
+            "colon_command",
+            r"f\colon A \to B,\quad a = \colon b,\quad x_{f\colon A}",
+        ),
+        ("colon_command_after_function", r"\sin\colon x"),
+        (
             "cases",
             r"f(x):=\begin{cases}0 &\text{if } x \geq 0 \\ \frac{1 + 1}{2} &\text{otherwise.}\end{cases}",
         ),

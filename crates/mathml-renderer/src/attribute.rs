@@ -151,6 +151,9 @@ impl Style {
 pub enum MathSpacing {
     #[strum(serialize = "0")]
     Zero = 1,
+    /// 2/18 of an em/\quad
+    #[strum(serialize = "0.1111em")]
+    TwoMu,
     /// 3/18 of an em/\quad
     #[strum(serialize = "0.1667em")]
     ThreeMu,
@@ -160,6 +163,9 @@ pub enum MathSpacing {
     /// 5/18 of an em/\quad
     #[strum(serialize = "0.2778em")]
     FiveMu,
+    /// 6/18 of an em/\quad
+    #[strum(serialize = "0.3333em")]
+    SixMu,
 }
 
 bitflags! {

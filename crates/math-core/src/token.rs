@@ -122,6 +122,8 @@ pub enum Token {
     Prime(PrimeKind),
     /// `\dots` (in math mode) dynamically switches between … and ⋯
     Dots,
+    /// `\colon`, which amsmath defines as a colon with 2mu of space before and 6mu after.
+    Colon,
     /// An operator which takes no limits: a symbol rendered as a single `<mo>`, grouped by its
     /// LaTeX character class. Its scripts may be parsed before it, for the spacing look-ahead.
     Operator(Operator),
@@ -636,6 +638,9 @@ impl Token {
             | OperatorName { .. } => Some(Class::Operator),
             End(_) | NewLine | NewColumn | GroupEnd | Eoi => Some(Class::End),
             Dots | Left => Some(Class::Inner),
+            // amsmath's `\colon` begins with an empty `\mathpunct`, so that is what the
+            // preceding atom sees. (The following atom sees an ordinary `:`.)
+            Colon => Some(Class::Punctuation),
             Big(_, Some(paren_type)) => Some(match paren_type {
                 ParenType::Left => Class::Open,
                 ParenType::Right => Class::Close,
