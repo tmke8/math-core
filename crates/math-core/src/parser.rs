@@ -159,15 +159,14 @@ enum ParseAs {
     /// A continued sequence keeps the previous sequence state even if a new group is
     /// started.
     ContinueSequence,
-    /// For an `Arg`, all spacing is ignored, so we may as well strip it away.
+    /// For an `Arg`, all spacing is ignored, so we may as well leave it with default spacing.
     Arg,
-    /// For an `ArgWithSpace`, operator spacing is significant, so we have to be
-    /// careful to set it correctly.
+    /// For an `ArgWithSpace`, spacing is not ignored.
     ///
-    /// Such an argument is a math list of its own, like the content of a group: an
-    /// unbraced `\boxed=` is spaced like `\boxed{=}`. So the single token is treated as
-    /// if it were preceded by an opening brace and followed by a closing one, which
-    /// leaves it without spacing on either side.
+    /// In practice the spacing of such an argument needs to be zero. Such an argument is a math
+    /// list of its own, like the content of a group: an unbraced `\boxed=` is spaced like
+    /// `\boxed{=}`. So the single token is treated as if it were preceded by an opening brace and
+    /// followed by a closing one, which leaves it without spacing on either side.
     ArgWithSpace,
 }
 
@@ -180,7 +179,7 @@ impl ParseAs {
     /// Whether the spacing around the parsed token ends up being visible, which it is
     /// everywhere except in a plain `Arg`.
     #[inline]
-    fn has_spacing(self) -> bool {
+    fn requires_spacing(self) -> bool {
         !matches!(self, ParseAs::Arg)
     }
 
@@ -965,7 +964,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
                         let spacing = self.state.bin_op_spacing(
-                            parse_as.has_spacing(),
+                            parse_as.requires_spacing(),
                             prev_class,
                             next_class,
                             true,
@@ -1249,8 +1248,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     )?;
                     (new_class, node, scripts)
                 } else {
+                    // As an argument, the whole construct has no neighbors, so neither does
+                    // the target.
+                    let target_parse_as = if parse_as.in_sequence() {
+                        ParseAs::ContinueSequence
+                    } else {
+                        parse_as
+                    };
                     let (new_class, target) =
-                        self.parse_token(Ok(token), ParseAs::ContinueSequence, prev_class)?;
+                        self.parse_token(Ok(token), target_parse_as, prev_class)?;
                     (new_class, target, Bounds::default())
                 };
                 self.state.right_boundary_hack = old_boundary_hack;
@@ -1307,8 +1313,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                let target = self.commit(Node::PseudoOp { left, right, name });
+                let target = if parse_as.in_sequence() {
+                    let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                    self.commit(Node::PseudoOp { left, right, name })
+                } else {
+                    // A lone argument has no neighbors to be spaced from and nothing that
+                    // it could be applied to, so it is just the name of the operator.
+                    self.commit(semantic::operator_name_identifier(name))
+                };
 
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
@@ -1340,8 +1352,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     )?;
                     (new_class, node, scripts)
                 } else {
+                    // As an argument, the whole construct has no neighbors, so neither does
+                    // the target.
+                    let target_parse_as = if parse_as.in_sequence() {
+                        ParseAs::ContinueSequence
+                    } else {
+                        parse_as
+                    };
                     let (new_class, target) =
-                        self.parse_token(Ok(tok_span), ParseAs::ContinueSequence, prev_class)?;
+                        self.parse_token(Ok(tok_span), target_parse_as, prev_class)?;
                     (new_class, target, Bounds::default())
                 };
                 class = new_class;
@@ -1720,12 +1739,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                let op = self.commit(Node::PseudoOp {
-                    left,
-                    right,
-                    name: letters,
-                });
+                let op = if parse_as.in_sequence() {
+                    let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                    self.commit(Node::PseudoOp {
+                        left,
+                        right,
+                        name: letters,
+                    })
+                } else {
+                    // See `Token::PseudoOperator` above.
+                    self.commit(semantic::operator_name_identifier(letters))
+                };
 
                 if use_underover {
                     match bounds.try_wrap_node_underover(op) {
@@ -2612,7 +2636,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Operator::Bin(binary_op) => {
                 let spacing = self.state.bin_op_spacing(
-                    parse_as.has_spacing(),
+                    parse_as.requires_spacing(),
                     prev_class,
                     next_class,
                     false,
@@ -2634,9 +2658,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Operator::ForceBin(op) => {
-                let spacing =
-                    self.state
-                        .bin_op_spacing(parse_as.has_spacing(), prev_class, next_class, true);
+                let spacing = self.state.bin_op_spacing(
+                    parse_as.requires_spacing(),
+                    prev_class,
+                    next_class,
+                    true,
+                );
                 class = if matches!(spacing, Some(MathSpacing::Zero)) {
                     // If the spacing is zero, this operator behaves like an ordinary symbol in
                     // terms of spacing.
@@ -2679,7 +2706,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Operator::ForceRel(op) => {
                 class = Class::Relation;
-                let (left, right) = if parse_as.has_spacing() {
+                let (left, right) = if parse_as.requires_spacing() {
                     self.state.relation_spacing(prev_class, next_class, true)
                 } else {
                     // Don't add spacing if it is ignored anyway.
@@ -3762,13 +3789,12 @@ impl ParserState<'_> {
 
     fn bin_op_spacing(
         &self,
-        has_spacing: bool,
+        requires_spacing: bool,
         prev_class: Class,
         next_class: Class,
         force: bool,
     ) -> Option<MathSpacing> {
-        if !has_spacing {
-            // Don't add spacing if it is ignored anyway.
+        if !requires_spacing {
             None
         } else if matches!(
             prev_class,

@@ -4,6 +4,6 @@ expression: "\\boxed\\sin"
 ---
 <math>
     <menclose notation="box">
-        <mo lspace="0" rspace="0">sin</mo>
+        <mrow><mspace/><mi>sin</mi></mrow>
     </menclose>
 </math>
