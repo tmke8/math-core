@@ -403,11 +403,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         &mut self,
         env_span: Span,
         numbered: bool,
-    ) -> ParseResult<&'arena [TableRow<'arena>]> {
+    ) -> ParseResult<(&'arena [TableRow<'arena>], Env, Span)> {
         let mut rows: Vec<TableRow<'arena>> = Vec::new();
         let mut cells: Vec<TableCell<'arena>> = Vec::new();
         // Loop over the rows of the table, until we reach a `\end{...}` or the end of input.
-        loop {
+        let end_token = loop {
             // A `\hline`/`\hdashline` at the start of a row (whitespace is skipped by `peek`)
             // becomes the top border of that row.
             let border_top = if self.state.env.allow_hlines
@@ -429,7 +429,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             };
 
             // Loop over the cells of the row, until we reach a `\\`, `\end{...}` or the end of input.
-            let is_last_row = 'cells: loop {
+            let end_token: Option<(Env, Span)> = 'cells: loop {
                 // A cell behaves like its own formula (i.e., begins with Open), except for the
                 // left-aligned columns (the 2nd, 4th, ...) of `align`-like environments: amsmath
                 // starts those with an empty atom (`{}`), so the spacing is computed as if the cell
@@ -442,36 +442,37 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let cell = self.parse_sequence(SequenceEnd::TableCell, prev_class, true)?;
                 let cell = semantic::enrich(self.arena, &cell);
                 cells.push(self.arena.push_slice(&cell));
-                // We don't know *why* the sequence ended, so we have to peek at the next token to
+                // We don't know *why* the sequence ended, so we have to look at the next token to
                 // find out.
-                match self.tokens.peek().token() {
-                    Token::NewColumn => {
-                        self.next_token()?;
-                    }
+                let (token, span) = self.next_token()?.into_parts();
+                match token {
+                    Token::NewColumn => {}
                     Token::NewLine => {
-                        self.next_token()?;
-                        break 'cells false; // The row ended, but there are more rows to come.
+                        break 'cells None;
                     }
-                    // The sequence ended because the environment ended, so this is the last row.
-                    _ => break 'cells true,
+                    Token::End(env) => break 'cells Some((env, span)),
+                    _ => {
+                        // There should be no other way to end a cell.
+                        return Err(Box::new(LatexError(span.into(), LatexErrKind::Internal)));
+                    }
                 }
             };
 
             // In some environments, a `\\` right before `\end{...}` doesn't start a new row, so
             // we drop the empty row that follows it. An `\hline` in that row is a line below the
             // previous row instead.
-            if is_last_row
+            if let Some(end_token) = end_token
                 && self.state.env.ignore_trailing_newline
                 && shove.is_none()
                 && matches!(cells.as_slice(), [cell] if cell.is_empty())
                 && let Some(prev_row) = rows.last_mut()
             {
                 prev_row.border_bottom = border_top;
-                break;
+                break end_token;
             }
 
             let label_info = if numbered {
-                self.finish_numbered_row(is_last_row, env_span)?
+                self.finish_numbered_row(end_token.is_some(), env_span)?
             } else {
                 None
             };
@@ -484,11 +485,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             });
             cells.clear();
 
-            if is_last_row {
-                break;
+            if let Some(end_token) = end_token {
+                break end_token;
             }
-        }
-        Ok(self.arena.alloc_table_rows(&rows))
+        };
+        Ok((self.arena.alloc_table_rows(&rows), end_token.0, end_token.1))
     }
 
     /// Determine the equation number and link target of the row of the equation that has just
@@ -1637,20 +1638,13 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let old_style = mem::replace(&mut self.state.style, env.style());
                 let old_env_state = mem::replace(&mut self.state.env, env_state);
 
-                let rows = self.parse_table_rows(span, env.is_display_env())?;
+                let (rows, end_env, end_span) =
+                    self.parse_table_rows(span, env.is_display_env())?;
 
                 self.state.style = old_style;
                 self.state.env = old_env_state;
 
-                // Get the \end{env} token in order to verify that it matches the \begin{env}.
-                let (end_env, end_span) = self.next_token()?.into_parts();
-                let Token::End(end_env) = end_env else {
-                    // This should never happen because `parse_table_rows` should have
-                    // stopped at the `\end` token.
-                    // We report an internal error here.
-                    break 'begin_env Err(LatexError(end_span.into(), LatexErrKind::Internal));
-                };
-
+                // Verity that the \end{env} token matches the \begin{env}.
                 if end_env != env {
                     break 'begin_env Err(LatexError(
                         end_span.into(),
