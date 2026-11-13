@@ -130,6 +130,14 @@ pub const RIGHT_ALIGN: &str = "text-align: right;justify-items: end;";
 const PADDING_RIGHT_ZERO: &str = "padding-right: 0;";
 const PADDING_LEFT_ZERO: &str = "padding-left: 0;";
 const PADDING_TOP_BOTTOM_ZERO: &str = "padding-top: 0;padding-bottom: 0;";
+/// The padding at the left and right edges of an `array`.
+///
+/// LaTeX puts `\arraycolsep` (5pt, which is 0.5em at a font size of 10pt) on both sides of every
+/// column of an `array`, including the outermost ones. The style sheet removes the padding at
+/// the edges of all tables, which is right for `matrix`, `aligned` etc., so arrays have to put
+/// it back.
+const ARRAY_PADDING_LEFT: &str = "padding-left: 0.5em;";
+const ARRAY_PADDING_RIGHT: &str = "padding-right: 0.5em;";
 const BORDER_RIGHT_SOLID: &str = "border-right: 0.05em solid currentcolor;";
 const BORDER_RIGHT_DASHED: &str = "border-right: 0.05em dashed currentcolor;";
 const BORDER_TOP_SOLID: &str = "border-top: 0.05em solid currentcolor;";
@@ -178,24 +186,55 @@ impl core::fmt::Display for RowBorders {
     }
 }
 
+/// What [`AlignmentType::write_mtd`] needs to know about the row that a cell is in.
+///
+/// This is the same for all cells of a row, so it is built once per row.
+pub(crate) struct RowContext {
+    /// The row index.
+    idx: usize,
+    borders: RowBorders,
+    /// See [`TableRow::shove`].
+    shove: Option<ColumnAlignment>,
+    /// The indentation of the `<mtd>` elements of the row.
+    indent_num: usize,
+    indentation: Indentation,
+}
+
+impl RowContext {
+    pub(crate) fn new(
+        idx: usize,
+        row: &TableRow<'_>,
+        indent_num: usize,
+        indentation: Indentation,
+    ) -> Self {
+        Self {
+            idx,
+            borders: RowBorders::new(row),
+            shove: row.shove,
+            indent_num,
+            indentation,
+        }
+    }
+}
+
 impl AlignmentType<'_> {
-    /// Write the opening `<mtd>` tag of the cell at `column_idx` in row `row_idx`, and return
-    /// the column index of the next cell in the row.
+    /// Write the opening `<mtd>` tag of the cell at `column_idx` in the row described by `row`,
+    /// and return the column index of the next cell in the row.
     ///
     /// The returned index is usually `column_idx + 1`, but for arrays it is an index into the
     /// column spec, which can be different from the cell index: entries that are only a line (like
     /// the second `|` in `{c||c}`) don't correspond to a cell of the input, so for each of those,
     /// an empty `<mtd>` that draws the line is written first.
+    ///
+    /// `is_last_cell` says whether this is the last cell of the row.
     pub(crate) fn write_mtd(
         self,
         s: &mut String,
-        row_idx: usize,
-        row: &TableRow<'_>,
+        row: &RowContext,
         mut column_idx: usize,
-        indent_num: usize,
-        indentation: Indentation,
+        is_last_cell: bool,
     ) -> Result<usize, core::fmt::Error> {
-        let borders = RowBorders::new(row);
+        let borders = row.borders;
         match self {
             AlignmentType::Predefined(align) => {
                 let is_even = column_idx.is_multiple_of(2);
@@ -228,6 +267,11 @@ impl AlignmentType<'_> {
                     alignment: ColumnAlignment::Centered,
                     border_right: None,
                 };
+                // Subarrays have no padding at the edges. In other arrays, the cell needs it if
+                // it is the first `<mtd>` of the row; a line-only `<mtd>` in front of it brings
+                // its own padding and leaves this cell with the default one.
+                let mut pad_left = column_idx == 0 && !array_spec.is_sub;
+                let pad_right = is_last_cell && !array_spec.is_sub;
                 let (alignment, border_right) = loop {
                     let entry = array_spec
                         .column_spec
@@ -251,13 +295,16 @@ impl AlignmentType<'_> {
                             }
                             write!(s, "padding-left: 0.1em;padding-right: 0.1em;")?;
                             write!(s, "\"></mtd>")?;
-                            new_line_and_indent(s, indent_num, indentation);
+                            new_line_and_indent(s, row.indent_num, row.indentation);
+                            pad_left = false;
                         }
                     }
                 };
                 if matches!(alignment, ColumnAlignment::Centered)
                     && border_right.is_none()
                     && !array_spec.is_sub
+                    && !pad_left
+                    && !pad_right
                 {
                     write_simple_mtd(s, borders)?;
                     return Ok(column_idx);
@@ -276,15 +323,21 @@ impl AlignmentType<'_> {
                 if array_spec.is_sub {
                     write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
                 }
+                if pad_left {
+                    write!(s, "{ARRAY_PADDING_LEFT}")?;
+                }
+                if pad_right {
+                    write!(s, "{ARRAY_PADDING_RIGHT}")?;
+                }
                 write!(s, "{MTD_CLOSE_STYLE}")?;
             }
             AlignmentType::MultLine(num_rows) => {
                 // Multline is left-aligned for the first row, right-aligned for the last row,
                 // and centered for all other rows, unless overridden by
                 // `\shoveleft`/`\shoveright`.
-                let align = row.shove.unwrap_or(if row_idx == 0 {
+                let align = row.shove.unwrap_or(if row.idx == 0 {
                     ColumnAlignment::LeftJustified
-                } else if row_idx + 1 == num_rows {
+                } else if row.idx + 1 == num_rows {
                     ColumnAlignment::RightJustified
                 } else {
                     ColumnAlignment::Centered

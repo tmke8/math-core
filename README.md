@@ -166,7 +166,7 @@ or, if you use a sans-serif math font, you should set a font for `\textrm`. Othe
 
 The MathML produced by this library relies on the style sheet [`css/mathmlfixes.css`](css/mathmlfixes.css) for proper rendering. **Include its contents on any page that displays math-core output.** It covers:
 
-1. Reset `<mtd>` padding to what the spec says (this affects Firefox’s rendering) and make edge cells unpadded, so matrices and arrays render correctly.
+1. Set the `<mtd>` padding so that the gap between columns is 1em as in LaTeX and make edge cells unpadded, so matrices and arrays render correctly.
 2. A polyfill for `<menclose>` on Chromium, which does not implement the element natively. Without this, `\sout{...}`, `\cancel{...}`, and related commands will not render.
 3. A small `margin-bottom` on accents in Chromium and Safari to match the accent gap Firefox produces. The risk is that if Chromium or Safari ever match Firefox, the gap will become too large — but the present-day benefit outweighs the future risk.
 

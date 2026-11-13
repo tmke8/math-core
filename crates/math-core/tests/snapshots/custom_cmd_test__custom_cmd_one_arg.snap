@@ -7,10 +7,10 @@ expression: "x = \\mycmd{3} + \\half"
     <mo>=</mo>
     <mtable displaystyle="false" scriptlevel="0">
         <mtr>
-            <mtd style="border-right: 0.05em solid currentcolor;">
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.5em;">
                 <mn>3</mn>
             </mtd>
-            <mtd>
+            <mtd style="padding-right: 0.5em;">
                 <mn>0</mn>
             </mtd>
         </mtr>
