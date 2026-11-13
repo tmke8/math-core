@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{smallmatrix}\\displaystyle \\sum & \\sum\\end{smallmatrix}"
+---
+<math>
+    <mrow>
+        <mspace width="0.16666667em"/>
+        <mtable displaystyle="false" scriptlevel="1">
+            <mtr>
+                <mtd style="padding: 0.1em 0;">
+                    <mrow displaystyle="true" scriptlevel="0">
+                        <mo lspace="0" rspace="0">∑</mo>
+                    </mrow>
+                </mtd>
+                <mtd style="padding: 0.1em 0 0 0.4em;">
+                    <mo lspace="0" rspace="0">∑</mo>
+                </mtd>
+            </mtr>
+        </mtable>
+        <mspace width="0.16666667em"/>
+    </mrow>
+</math>

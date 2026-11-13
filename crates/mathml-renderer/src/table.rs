@@ -56,6 +56,9 @@ pub enum Alignment {
     Centered,
     Cases,
     Alternating,
+    /// Centered columns which are set closer together than usual, both horizontally and
+    /// vertically, as in the `smallmatrix` environment.
+    Small,
 }
 
 /// The kind of a [`Node::Table`], which determines how the table is rendered.
@@ -130,6 +133,23 @@ pub const RIGHT_ALIGN: &str = "text-align: right;justify-items: end;";
 const PADDING_RIGHT_ZERO: &str = "padding-right: 0;";
 const PADDING_LEFT_ZERO: &str = "padding-left: 0;";
 const PADDING_TOP_BOTTOM_ZERO: &str = "padding-top: 0;padding-bottom: 0;";
+/// The padding of the first column of an [`Alignment::Small`] table.
+///
+/// The baselines of the rows of amsmath's `smallmatrix` are 6pt apart (at a font size of 10pt),
+/// unless the content is too tall for that, in which case the rows are `\lineskip` (1.5pt) apart.
+/// A row in MathML is as tall as its content, so only the second case can be reproduced; it is
+/// the common one, since digits and letters with ascenders are already too tall. Rows with only
+/// short content (like `a`, `c` or `x`) end up closer together than in LaTeX. See
+/// <https://github.com/tmke8/math-core/issues/1282>.
+///
+/// The cells are in script size, which is 0.7 times the text size, so the 1.5pt are 0.2em there,
+/// split between the top and the bottom.
+const SMALL_PADDING_FIRST: &str = "padding: 0.1em 0;";
+/// The padding of all other columns of an [`Alignment::Small`] table.
+///
+/// amsmath separates the columns of `smallmatrix` by a `\thickspace` (0.2777em) of the text font,
+/// which is 0.4em in script size. The space is put to the left of each column, as in amsmath.
+const SMALL_PADDING_OTHER: &str = "padding: 0.1em 0 0 0.4em;";
 /// The padding at the left and right edges of an `array`.
 ///
 /// LaTeX puts `\arraycolsep` (5pt, which is 0.5em at a font size of 10pt) on both sides of every
@@ -250,6 +270,14 @@ impl AlignmentType<'_> {
                         write!(s, "{MTD_CLOSE_STYLE}")?;
                     }
                     Alignment::Centered => write_simple_mtd(s, borders)?,
+                    Alignment::Small => {
+                        let padding = if column_idx == 0 {
+                            SMALL_PADDING_FIRST
+                        } else {
+                            SMALL_PADDING_OTHER
+                        };
+                        write!(s, "{MTD_OPEN_STYLE}{borders}{padding}{MTD_CLOSE_STYLE}")?;
+                    }
                     Alignment::Alternating => {
                         write!(s, "{MTD_OPEN_STYLE}{borders}")?;
                         if is_even {

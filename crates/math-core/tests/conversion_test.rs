@@ -771,6 +771,22 @@ fn inline_equations() {
             "subarray",
             r"\sum_{\begin{subarray}{c} 0 \le i \le m\\ 0 < j < n \end{subarray}}",
         ),
+        (
+            "smallmatrix",
+            r"x = \left(\begin{smallmatrix} a & b \\ c & d \end{smallmatrix}\right) + y",
+        ),
+        (
+            "smallmatrix_in_script",
+            r"x_{\begin{smallmatrix} 1 & 2 \\ 3 & 4 \end{smallmatrix}}",
+        ),
+        (
+            "smallmatrix_incomplete_row_hline",
+            r"\begin{smallmatrix} 1 & 2 \\ \hline 3 \\ \end{smallmatrix}",
+        ),
+        (
+            "smallmatrix_style_ends_at_column",
+            r"\begin{smallmatrix}\displaystyle \sum & \sum\end{smallmatrix}",
+        ),
         ("mod", r"a \equiv r \mod n"),
         ("mod_display_style", r"\displaystyle a \equiv r \mod n"),
         ("nested_custom_cmd", r"\ket{x\ket f} x"),

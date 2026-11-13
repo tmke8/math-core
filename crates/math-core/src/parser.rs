@@ -1718,6 +1718,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     class = Class::Inner;
                     let content = vec![self.commit(node)];
                     Ok(self.inner_fence(content, open, close, parse_as, prev_class)?)
+                } else if matches!(env, Env::SmallMatrix) {
+                    // amsmath puts a `\,` on both sides of a `smallmatrix`. Unlike the
+                    // content of the matrix, the spaces scale with the style outside of it.
+                    class = Class::Close;
+                    let thin_space = self.commit(Node::Space(LatexUnit::Mu.length_with_unit(3.0)));
+                    let table = self.commit(node);
+                    Ok(Node::Row {
+                        nodes: self.arena.push_slice(&[thin_space, table, thin_space]),
+                        attrs: RowAttrs::DEFAULT,
+                    })
                 } else {
                     class = Class::Close;
                     Ok(node)

@@ -1,0 +1,27 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{smallmatrix} 1 & 2 \\\\ \\hline 3 \\\\ \\end{smallmatrix}"
+---
+<math>
+    <mrow>
+        <mspace width="0.16666667em"/>
+        <mtable displaystyle="false" scriptlevel="1">
+            <mtr>
+                <mtd style="padding: 0.1em 0;">
+                    <mn>1</mn>
+                </mtd>
+                <mtd style="padding: 0.1em 0 0 0.4em;">
+                    <mn>2</mn>
+                </mtd>
+            </mtr>
+            <mtr>
+                <mtd style="border-top: 0.05em solid currentcolor;padding: 0.1em 0;">
+                    <mn>3</mn>
+                </mtd>
+                <mtd style="border-top: 0.05em solid currentcolor;padding: 0.1em 0 0 0.4em;">
+                </mtd>
+            </mtr>
+        </mtable>
+        <mspace width="0.16666667em"/>
+    </mrow>
+</math>

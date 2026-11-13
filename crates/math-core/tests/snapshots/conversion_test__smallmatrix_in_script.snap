@@ -1,0 +1,31 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x_{\\begin{smallmatrix} 1 & 2 \\\\ 3 & 4 \\end{smallmatrix}}"
+---
+<math>
+    <msub>
+        <mi>x</mi>
+        <mrow>
+            <mspace width="0.16666667em"/>
+            <mtable displaystyle="false" scriptlevel="1">
+                <mtr>
+                    <mtd style="padding: 0.1em 0;">
+                        <mn>1</mn>
+                    </mtd>
+                    <mtd style="padding: 0.1em 0 0 0.4em;">
+                        <mn>2</mn>
+                    </mtd>
+                </mtr>
+                <mtr>
+                    <mtd style="padding: 0.1em 0;">
+                        <mn>3</mn>
+                    </mtd>
+                    <mtd style="padding: 0.1em 0 0 0.4em;">
+                        <mn>4</mn>
+                    </mtd>
+                </mtr>
+            </mtable>
+            <mspace width="0.16666667em"/>
+        </mrow>
+    </msub>
+</math>
