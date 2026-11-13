@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\boxed\\mathop{x}"
+---
+<math>
+    <menclose notation="box">
+        <mpadded style="padding-left:0;padding-right:0;">
+            <mi>x</mi>
+        </mpadded>
+    </menclose>
+</math>

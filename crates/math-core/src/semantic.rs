@@ -434,9 +434,14 @@ fn split_off_spaces<'a, 'arena>(
 }
 
 /// The identifier node for the name of a pseudo-operator like `\sin`.
-fn operator_name_identifier(name: &str) -> Node<'_> {
+pub(crate) fn operator_name_identifier(name: &str) -> Node<'_> {
     let mut chars = name.chars();
     match (chars.next(), chars.next()) {
+        // An empty name, as in `\operatorname{}`, has nothing to show.
+        (None, _) => Node::Row {
+            nodes: &[],
+            attrs: RowAttrs::DEFAULT,
+        },
         // Single-letter identifiers are italic by default, but operator names are upright.
         (Some(c), None) => Node::IdentifierChar(c.into(), LetterAttr::ForcedUpright),
         _ => Node::IdentifierStr(name),

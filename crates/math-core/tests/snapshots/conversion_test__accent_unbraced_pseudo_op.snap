@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\hat\\sin"
+---
+<math>
+    <mover accent="true">
+        <mrow><mspace/><mi>sin</mi></mrow>
+        <mo stretchy="false">ˆ</mo>
+    </mover>
+</math>

@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\operatorname{}x"
+---
+<math>
+    <mrow>
+        <mrow></mrow>
+        <mo lspace="0.1667em">&ApplyFunction;</mo>
+        <mi>x</mi>
+    </mrow>
+</math>

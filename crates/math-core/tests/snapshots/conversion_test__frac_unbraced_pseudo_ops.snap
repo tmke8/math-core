@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\frac\\sin\\cos"
+---
+<math>
+    <mfrac>
+        <mrow><mspace/><mi>sin</mi></mrow>
+        <mrow><mspace/><mi>cos</mi></mrow>
+    </mfrac>
+</math>

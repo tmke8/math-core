@@ -159,10 +159,14 @@ enum ParseAs {
     /// A continued sequence keeps the previous sequence state even if a new group is
     /// started.
     ContinueSequence,
-    /// For an `Arg`, all spacing is ignored, so we may as well strip it away.
+    /// For an `Arg`, all spacing is ignored, so we may as well leave it with default spacing.
     Arg,
-    /// For an `ArgWithSpace`, operator spacing is significant, so we have to be
-    /// careful to set it correctly.
+    /// For an `ArgWithSpace`, spacing is not ignored.
+    ///
+    /// In practice the spacing of such an argument needs to be zero. Such an argument is a math
+    /// list of its own, like the content of a group: an unbraced `\boxed=` is spaced like
+    /// `\boxed{=}`. So the single token is treated as if it were preceded by an opening brace and
+    /// followed by a closing one, which leaves it without spacing on either side.
     ArgWithSpace,
 }
 
@@ -170,6 +174,24 @@ impl ParseAs {
     #[inline]
     fn in_sequence(self) -> bool {
         matches!(self, ParseAs::Sequence | ParseAs::ContinueSequence)
+    }
+
+    /// Whether the spacing around the parsed token ends up being visible, which it is
+    /// everywhere except in a plain `Arg`.
+    #[inline]
+    fn requires_spacing(self) -> bool {
+        !matches!(self, ParseAs::Arg)
+    }
+
+    /// The class which a token parsed this way sees to its left when nothing else is known
+    /// about what precedes it.
+    #[inline]
+    fn initial_prev_class(self) -> Class {
+        match self {
+            // The argument starts a math list of its own.
+            ParseAs::ArgWithSpace => Class::Open,
+            ParseAs::Sequence | ParseAs::ContinueSequence | ParseAs::Arg => Class::Default,
+        }
     }
 }
 
@@ -942,7 +964,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     MathClassKind::Bin => {
                         class = Class::BinaryOp;
                         let spacing = self.state.bin_op_spacing(
-                            parse_as.in_sequence(),
+                            parse_as.requires_spacing(),
                             prev_class,
                             next_class,
                             true,
@@ -1226,8 +1248,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     )?;
                     (new_class, node, scripts)
                 } else {
+                    // As an argument, the whole construct has no neighbors, so neither does
+                    // the target.
+                    let target_parse_as = if parse_as.in_sequence() {
+                        ParseAs::ContinueSequence
+                    } else {
+                        parse_as
+                    };
                     let (new_class, target) =
-                        self.parse_token(Ok(token), ParseAs::ContinueSequence, prev_class)?;
+                        self.parse_token(Ok(token), target_parse_as, prev_class)?;
                     (new_class, target, Bounds::default())
                 };
                 self.state.right_boundary_hack = old_boundary_hack;
@@ -1284,8 +1313,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                let target = self.commit(Node::PseudoOp { left, right, name });
+                let target = if parse_as.in_sequence() {
+                    let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                    self.commit(Node::PseudoOp { left, right, name })
+                } else {
+                    // A lone argument has no neighbors to be spaced from and nothing that
+                    // it could be applied to, so it is just the name of the operator.
+                    self.commit(semantic::operator_name_identifier(name))
+                };
 
                 if use_underover {
                     match bounds.try_wrap_node_underover(target) {
@@ -1317,8 +1352,15 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     )?;
                     (new_class, node, scripts)
                 } else {
+                    // As an argument, the whole construct has no neighbors, so neither does
+                    // the target.
+                    let target_parse_as = if parse_as.in_sequence() {
+                        ParseAs::ContinueSequence
+                    } else {
+                        parse_as
+                    };
                     let (new_class, target) =
-                        self.parse_token(Ok(tok_span), ParseAs::ContinueSequence, prev_class)?;
+                        self.parse_token(Ok(tok_span), target_parse_as, prev_class)?;
                     (new_class, target, Bounds::default())
                 };
                 class = new_class;
@@ -1697,12 +1739,17 @@ impl<'state, 'arena> Parser<'state, 'arena> {
 
                 // Compute spacing after getting the bounds, so that we don't
                 // consider tokens that are part of the bounds for spacing calculations.
-                let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
-                let op = self.commit(Node::PseudoOp {
-                    left,
-                    right,
-                    name: letters,
-                });
+                let op = if parse_as.in_sequence() {
+                    let (left, right) = self.mathop_spacing(parse_as, prev_class, true)?;
+                    self.commit(Node::PseudoOp {
+                        left,
+                        right,
+                        name: letters,
+                    })
+                } else {
+                    // See `Token::PseudoOperator` above.
+                    self.commit(semantic::operator_name_identifier(letters))
+                };
 
                 if use_underover {
                     match bounds.try_wrap_node_underover(op) {
@@ -2108,7 +2155,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 size: None,
             }),
             Token::Dots => {
-                let next_class = self.peek_class_token(parse_as.in_sequence())?;
+                let next_class = self.peek_class_token(parse_as)?;
                 let next_token_is_mathbin_or_mathrel =
                     matches!(next_class, Class::BinaryOp | Class::Relation);
                 self.tokens
@@ -2441,7 +2488,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         } else {
             Bounds::default()
         };
-        let next_class = self.peek_class_token(parse_as.in_sequence())?;
+        let next_class = self.peek_class_token(parse_as)?;
         let next_class = if self.state.right_boundary_hack && matches!(next_class, Class::End) {
             Class::Default
         } else {
@@ -2589,7 +2636,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Operator::Bin(binary_op) => {
                 let spacing = self.state.bin_op_spacing(
-                    parse_as.in_sequence(),
+                    parse_as.requires_spacing(),
                     prev_class,
                     next_class,
                     false,
@@ -2611,9 +2658,12 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Operator::ForceBin(op) => {
-                let spacing =
-                    self.state
-                        .bin_op_spacing(parse_as.in_sequence(), prev_class, next_class, true);
+                let spacing = self.state.bin_op_spacing(
+                    parse_as.requires_spacing(),
+                    prev_class,
+                    next_class,
+                    true,
+                );
                 class = if matches!(spacing, Some(MathSpacing::Zero)) {
                     // If the spacing is zero, this operator behaves like an ordinary symbol in
                     // terms of spacing.
@@ -2656,10 +2706,10 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             }
             Operator::ForceRel(op) => {
                 class = Class::Relation;
-                let (left, right) = if parse_as.in_sequence() {
+                let (left, right) = if parse_as.requires_spacing() {
                     self.state.relation_spacing(prev_class, next_class, true)
                 } else {
-                    // Don't add spacing if we are in an argument.
+                    // Don't add spacing if it is ignored anyway.
                     (None, None)
                 };
                 Node::Operator {
@@ -3092,7 +3142,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     #[inline]
     fn parse_next(&mut self, parse_as: ParseAs) -> ParseResult<&'arena Node<'arena>> {
         let token = self.next_token();
-        self.parse_token(token, parse_as, Class::Default)
+        self.parse_token(token, parse_as, parse_as.initial_prev_class())
             .map(|(_, node)| node)
     }
 
@@ -3424,13 +3474,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         explicit: bool,
     ) -> ParseResult<(Option<MathSpacing>, Option<MathSpacing>)> {
         if matches!(parse_as, ParseAs::Arg) {
-            // A lone argument like in `\mathrm\sin` has no neighbors to be spaced from.
+            // A lone argument like in `\frac\sin2` has no neighbors to be spaced from.
+            // (An `ArgWithSpace` gets its zero spacing from the classes below instead.)
             let spacing = explicit.then_some(MathSpacing::Zero);
             return Ok((spacing, spacing));
         }
         // We re-determine the next class here, because the next token may have changed
         // because we discarded bounds tokens.
-        let next_class = self.peek_class_token(parse_as.in_sequence())?;
+        let next_class = self.peek_class_token(parse_as)?;
         Ok((
             if matches!(
                 prev_class,
@@ -3670,9 +3721,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok((builder.finish(self.arena), span))
     }
 
-    fn peek_class_token(&mut self, in_sequence: bool) -> ParseResult<Class> {
-        if !in_sequence {
-            return Ok(Class::Default);
+    fn peek_class_token(&mut self, parse_as: ParseAs) -> ParseResult<Class> {
+        match parse_as {
+            ParseAs::Sequence | ParseAs::ContinueSequence => {}
+            // The spacing is ignored anyway.
+            ParseAs::Arg => return Ok(Class::Default),
+            // The argument is a math list of its own, which ends after this one token,
+            // no matter what follows the argument.
+            ParseAs::ArgWithSpace => return Ok(Class::End),
         }
         let (token_idx, class) = self.tokens.peek_class_token()?;
         if let Some(vld) = self.state.vertical_line_def
@@ -3733,13 +3789,12 @@ impl ParserState<'_> {
 
     fn bin_op_spacing(
         &self,
-        in_sequence: bool,
+        requires_spacing: bool,
         prev_class: Class,
         next_class: Class,
         force: bool,
     ) -> Option<MathSpacing> {
-        if !in_sequence {
-            // Don't add spacing if we are in an argument.
+        if !requires_spacing {
             None
         } else if matches!(
             prev_class,
