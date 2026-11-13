@@ -5,26 +5,26 @@ expression: "\\begin{array}{cc} \\hline 1 & 2 \\\\ \\hline 3 & 4 \\\\ \\hdashlin
 <math>
     <mtable displaystyle="false" scriptlevel="0">
         <mtr>
-            <mtd style="border-top: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em solid currentcolor;padding-left: 0.5em;">
                 <mn>1</mn>
             </mtd>
-            <mtd style="border-top: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em solid currentcolor;padding-right: 0.5em;">
                 <mn>2</mn>
             </mtd>
         </mtr>
         <mtr>
-            <mtd style="border-top: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em solid currentcolor;padding-left: 0.5em;">
                 <mn>3</mn>
             </mtd>
-            <mtd style="border-top: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em solid currentcolor;padding-right: 0.5em;">
                 <mn>4</mn>
             </mtd>
         </mtr>
         <mtr>
-            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;padding-left: 0.5em;">
                 <mn>5</mn>
             </mtd>
-            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;">
+            <mtd style="border-top: 0.05em dashed currentcolor;border-bottom: 0.05em solid currentcolor;padding-right: 0.5em;">
                 <mn>6</mn>
             </mtd>
         </mtr>

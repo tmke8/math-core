@@ -9,8 +9,10 @@ merror.math-core-unknown-cmd {
 /* Styles for all browsers */
 
 mtd {
-    /* This is the default padding for mtd elements as defined in the MathML Core specification. */
-    padding: 0.5ex 0.4em;
+    /* The vertical padding is the default for mtd elements as defined in the MathML Core
+       specification. The horizontal padding is LaTeX's `\arraycolsep` (5pt at a font size of
+       10pt), which gives a gap of 1em between columns; the specification says 0.4em. */
+    padding: 0.5ex 0.5em;
 }
 
 mtr > mtd:first-child {

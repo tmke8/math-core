@@ -17,7 +17,7 @@ use crate::itoa::append_u8_as_hex;
 use crate::length::{Length, LengthSet, LengthUnit, LengthValue};
 use crate::symbol::{self, MathMLOperator};
 use crate::table::{
-    AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowLabelInfo, TableKind, TableRow,
+    AlignmentType, ArraySpec, LineType, RIGHT_ALIGN, RowContext, RowLabelInfo, TableKind, TableRow,
 };
 use crate::{
     attribute::{
@@ -780,17 +780,16 @@ impl<'state> Emitter<'state> {
                     self.indentation,
                 )?;
             }
+            let row_context = RowContext::new(row_idx, row, child_indent2, self.indentation);
             let mut column_idx = 0;
             let padding = core::iter::repeat_n(&[][..], num_columns - row.cells.len());
-            for cell in row.cells.iter().copied().chain(padding) {
+            for (cell_idx, cell) in row.cells.iter().copied().chain(padding).enumerate() {
                 new_line_and_indent(&mut self.s, child_indent2, self.indentation);
                 column_idx = align.write_mtd(
                     &mut self.s,
-                    row_idx,
-                    row,
+                    &row_context,
                     column_idx,
-                    child_indent2,
-                    self.indentation,
+                    cell_idx + 1 == num_columns,
                 )?;
                 for node in cell {
                     self.emit(node, child_indent3)?;
@@ -1574,7 +1573,7 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable><mtr><mtd><mn>1</mn></mtd><mtd style=\"border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-right: 0.05em dashed currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em dashed currentcolor;\"></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"padding-left: 0.5em;\"><mn>1</mn></mtd><mtd style=\"border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-right: 0.05em dashed currentcolor;padding-right: 0.5em;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em solid currentcolor;padding-left: 0.5em;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;\"></mtd><mtd style=\"border-top: 0.05em solid currentcolor;border-right: 0.05em dashed currentcolor;padding-right: 0.5em;\"></mtd></mtr></mtable>"
         );
     }
 
@@ -1758,7 +1757,7 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: left;justify-items: start;\"><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"text-align: left;justify-items: start;padding-left: 0.5em;\"><mn>1</mn></mtd><mtd style=\"padding-right: 0.5em;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"text-align: left;justify-items: start;padding-left: 0.5em;\"><mn>3</mn></mtd><mtd style=\"padding-right: 0.5em;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
@@ -1802,7 +1801,7 @@ mod tests {
                     ],
                 },
             }),
-            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;\"><mn>4</mn></mtd></mtr></mtable>"
+            "<mtable><mtr><mtd style=\"border-top: 0.05em solid currentcolor;padding-left: 0.5em;\"><mn>1</mn></mtd><mtd style=\"border-top: 0.05em solid currentcolor;padding-right: 0.5em;\"><mn>2</mn></mtd></mtr><mtr><mtd style=\"border-top: 0.05em dashed currentcolor;padding-left: 0.5em;\"><mn>3</mn></mtd><mtd style=\"border-top: 0.05em dashed currentcolor;padding-right: 0.5em;\"><mn>4</mn></mtd></mtr></mtable>"
         );
     }
 
