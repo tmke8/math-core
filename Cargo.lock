@@ -414,7 +414,6 @@ dependencies = [
  "serde",
  "stable-arena",
  "static_assertions",
- "strum",
  "strum_macros",
 ]
 
