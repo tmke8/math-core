@@ -21,9 +21,11 @@ js-sys = "0.3.82"
 lol_alloc = "0.4.1"
 
 [features]
-default = ["all-conversions"]
+default = ["all-conversions", "interactive"]
 ariadne = ["dep:ariadne", "math-core/ariadne"]
 all-conversions = []
+# Adds the `InteractiveDocument` class, for documents whose math changes over time.
+interactive = []
 
 [lints]
 workspace = true

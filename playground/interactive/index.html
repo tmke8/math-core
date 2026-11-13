@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Math Core: interactive documents</title>
+        <link rel="stylesheet" href="./style.css" />
+        <link rel="stylesheet" href="../mathmlfixes.css" />
+        <script type="module" src="./main.js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>MathCore: interactive documents</h1>
+            <p class="explanation-link">
+                <a href="../">Playground</a> /
+                <a href="https://github.com/tmke8/math-core">GitHub</a>
+            </p>
+
+            <details class="explanation" open>
+                <summary>What is this?</summary>
+                <p>
+                    The math in the document below is converted by a single
+                    <code>InteractiveDocument</code>, which knows all math snippets of the
+                    document and the order they are in. When a paragraph is edited, the
+                    converter is told which snippets were replaced, and it answers with the
+                    snippets whose output is now a different one. Only those are updated on the
+                    page; they are <mark class="flash-sample">highlighted</mark> for a moment.
+                </p>
+                <p>
+                    Click on a paragraph to edit it, and click somewhere else (or press
+                    <kbd>Esc</kbd> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) to render it. Write inline math as <code>$…$</code> and
+                    block math as <code>$$…$$</code>. The <span class="plus">+</span> buttons add
+                    a paragraph. Some things to try:
+                </p>
+                <ul>
+                    <li>
+                        Add a paragraph with a numbered equation, like
+                        <code>$$\begin{equation} a = b \end{equation}$$</code>, somewhere in
+                        the middle: the equations after it get new numbers, and so do the
+                        references to them, wherever they are.
+                    </li>
+                    <li>
+                        Change the definition of <code>\RR</code> in the first paragraph, or
+                        remove it.
+                    </li>
+                    <li>
+                        Rename a <code>\label</code>, or move a labelled equation to the other
+                        side of a reference to it.
+                    </li>
+                    <li>
+                        Edit a formula which has no number, no label and no definition:
+                        nothing else is converted.
+                    </li>
+                </ul>
+            </details>
+
+            <form class="options" id="optionsForm">
+                <label>
+                    Numbered equations (<code>tags</code>):
+                    <select name="tags" id="tags">
+                        <option value="ams" selected>ams</option>
+                        <option value="all">all</option>
+                        <option value="none">none</option>
+                    </select>
+                </label>
+                <label>
+                    <input type="checkbox" name="globalGroup" id="globalGroup" />
+                    <code>globalGroup</code> (every <code>\newcommand</code> is global)
+                </label>
+            </form>
+
+            <p class="status" id="status" role="status">Loading the converter…</p>
+
+            <main class="document" id="document"></main>
+        </div>
+    </body>
+</html>

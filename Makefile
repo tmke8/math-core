@@ -1,6 +1,7 @@
 WASM_TARGET := web
 PACKAGE := math-core-wasm
 PKG_DIR := playground/pkg
+INTERACTIVE_PKG_DIR := playground/interactive/pkg
 FLAGS :=
 
 WASM_FILE := $(subst -,_,$(PACKAGE)).wasm
@@ -10,12 +11,24 @@ SUBSET_OTF := playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.otf
 SUBSET_WOFF2 := playground/fonts/NewCMMath-Book-prime-roundhand-vec-subset.woff2
 SOURCE_OTF := playground/fonts/NewCMMath-Book-prime-roundhand-vec.otf
 
-.PHONY: playground wasm bindgen optimize clean equationpage testpage comparison subset allsymbols
+.PHONY: playground interactive wasm bindgen optimize clean equationpage testpage comparison subset allsymbols
 
 playground: wasm bindgen optimize playground/mathmlfixes.css $(SUBSET_WOFF2)
 
 playground/mathmlfixes.css: css/mathmlfixes.css
 	cp $< $@
+
+# The playground for interactive documents, in `playground/interactive`, has its own WASM
+# binary, which includes the `InteractiveDocument` class; the binary for `playground` is built
+# without it, to keep it small. The page shares the fonts and the CSS of the playground.
+interactive: playground/mathmlfixes.css $(SUBSET_WOFF2)
+	cargo build --release --no-default-features --features interactive --target wasm32-unknown-unknown --package $(PACKAGE)
+	wasm-bindgen target/wasm32-unknown-unknown/release/$(WASM_FILE) \
+		--out-dir $(INTERACTIVE_PKG_DIR) \
+		--target $(WASM_TARGET) \
+		$(FLAGS)
+	wasm-opt $(INTERACTIVE_PKG_DIR)/$(BINDGEN_OUTPUT) -Os -o $(INTERACTIVE_PKG_DIR)/$(BINDGEN_OUTPUT).tmp
+	mv $(INTERACTIVE_PKG_DIR)/$(BINDGEN_OUTPUT).tmp $(INTERACTIVE_PKG_DIR)/$(BINDGEN_OUTPUT)
 
 wasm:
 	cargo build --release --no-default-features --target wasm32-unknown-unknown --package $(PACKAGE)
@@ -32,6 +45,7 @@ optimize: bindgen
 
 clean:
 	rm -rf $(PKG_DIR)/*.wasm $(PKG_DIR)/*.js
+	rm -rf $(INTERACTIVE_PKG_DIR)/*.wasm $(INTERACTIVE_PKG_DIR)/*.js
 
 equationpage: $(SUBSET_WOFF2)
 	cargo run --example equations --package math-core > playground/equations.html
