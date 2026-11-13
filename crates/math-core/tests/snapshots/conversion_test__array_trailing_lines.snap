@@ -1,0 +1,22 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\begin{array}{ c||: } 1\\\\ \\hline 2 \\end{array}"
+---
+<math>
+    <mtable displaystyle="false" scriptlevel="0">
+        <mtr>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.5em;">
+                <mn>1</mn>
+            </mtd>
+            <mtd style="border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+        </mtr>
+        <mtr>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;padding-left: 0.5em;">
+                <mn>2</mn>
+            </mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em solid currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+            <mtd style="border-top: 0.05em solid currentcolor;border-right: 0.05em dashed currentcolor;padding-left: 0.1em;padding-right: 0.1em;"></mtd>
+        </mtr>
+    </mtable>
+</math>

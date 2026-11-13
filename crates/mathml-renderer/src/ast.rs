@@ -796,6 +796,7 @@ impl<'state> Emitter<'state> {
                 }
                 writeln_indent!(self, child_indent2, "</mtd>");
             }
+            align.write_trailing_lines(&mut self.s, &row_context, column_idx)?;
             if let Some(numbering_cols) = numbering_cols {
                 write_equation_num(
                     &mut self.s,

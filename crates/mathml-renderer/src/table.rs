@@ -268,10 +268,9 @@ impl AlignmentType<'_> {
                     border_right: None,
                 };
                 // Subarrays have no padding at the edges. In other arrays, the cell needs it if
-                // it is the first `<mtd>` of the row; a line-only `<mtd>` in front of it brings
-                // its own padding and leaves this cell with the default one.
+                // it is the first or the last `<mtd>` of the row; a line-only `<mtd>` next to it
+                // brings its own padding and leaves this cell with the default one.
                 let mut pad_left = column_idx == 0 && !array_spec.is_sub;
-                let pad_right = is_last_cell && !array_spec.is_sub;
                 let (alignment, border_right) = loop {
                     let entry = array_spec
                         .column_spec
@@ -285,21 +284,20 @@ impl AlignmentType<'_> {
                             border_right,
                         } => break (alignment, border_right),
                         ColumnSpecEntry::OnlyLine(line_type) => {
-                            write!(s, "{MTD_OPEN_STYLE}{borders}")?;
-                            match line_type {
-                                LineType::Solid => write!(s, "{BORDER_RIGHT_SOLID}")?,
-                                LineType::Dashed => write!(s, "{BORDER_RIGHT_DASHED}")?,
-                            }
-                            if array_spec.is_sub {
-                                write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
-                            }
-                            write!(s, "padding-left: 0.1em;padding-right: 0.1em;")?;
-                            write!(s, "\"></mtd>")?;
+                            write_line_mtd(s, borders, line_type, array_spec.is_sub)?;
                             new_line_and_indent(s, row.indent_num, row.indentation);
                             pad_left = false;
                         }
                     }
                 };
+                // If this is the last cell, the line-only entries that follow it are written by
+                // `write_trailing_lines`.
+                let pad_right = is_last_cell
+                    && !array_spec.is_sub
+                    && !matches!(
+                        array_spec.column_spec.get(column_idx),
+                        Some(ColumnSpecEntry::OnlyLine(_))
+                    );
                 if matches!(alignment, ColumnAlignment::Centered)
                     && border_right.is_none()
                     && !array_spec.is_sub
@@ -356,6 +354,51 @@ impl AlignmentType<'_> {
         }
         Ok(column_idx)
     }
+
+    /// Write the line-only columns that directly follow the last cell of a row, like the second
+    /// `|` in `{c||}`. There is no cell after them whose `<mtd>` could bring them along, so they
+    /// have to be written after the last cell has been closed.
+    ///
+    /// `column_idx` is the index that [`AlignmentType::write_mtd`] returned for the last cell.
+    pub(crate) fn write_trailing_lines(
+        self,
+        s: &mut String,
+        row: &RowContext,
+        column_idx: usize,
+    ) -> core::fmt::Result {
+        let AlignmentType::Custom(array_spec) = self else {
+            return Ok(());
+        };
+        // `column_idx` is past the end if the row has more cells than the column spec.
+        let remaining = array_spec.column_spec.get(column_idx..).unwrap_or_default();
+        for entry in remaining {
+            let ColumnSpecEntry::OnlyLine(line_type) = *entry else {
+                break;
+            };
+            new_line_and_indent(s, row.indent_num, row.indentation);
+            write_line_mtd(s, row.borders, line_type, array_spec.is_sub)?;
+        }
+        Ok(())
+    }
+}
+
+/// Write an empty cell (`<mtd>`) that only draws a vertical line, for a
+/// [`ColumnSpecEntry::OnlyLine`].
+fn write_line_mtd(
+    s: &mut String,
+    borders: RowBorders,
+    line_type: LineType,
+    is_sub: bool,
+) -> core::fmt::Result {
+    write!(s, "{MTD_OPEN_STYLE}{borders}")?;
+    match line_type {
+        LineType::Solid => write!(s, "{BORDER_RIGHT_SOLID}")?,
+        LineType::Dashed => write!(s, "{BORDER_RIGHT_DASHED}")?,
+    }
+    if is_sub {
+        write!(s, "{PADDING_TOP_BOTTOM_ZERO}")?;
+    }
+    write!(s, "padding-left: 0.1em;padding-right: 0.1em;\"></mtd>")
 }
 
 /// Write a centered cell (`<mtd>`) with no other styling, adding the borders of the current row
