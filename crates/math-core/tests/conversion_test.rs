@@ -687,6 +687,10 @@ fn inline_equations() {
             r"\begin{array}{ ||::|l } 10\\ 2 \end{array}",
         ),
         (
+            "array_trailing_lines",
+            r"\begin{array}{ c||: } 1\\ \hline 2 \end{array}",
+        ),
+        (
             "array_hlines",
             r"\begin{array}{cc} \hline 1 & 2 \\ \hline 3 & 4 \\ \hdashline 5 & 6 \\ \hline \end{array}",
         ),
