@@ -1,0 +1,36 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "x = \\left(\\begin{smallmatrix} a & b \\\\ c & d \\end{smallmatrix}\\right) + y"
+---
+<math>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mrow>
+        <mo>(</mo>
+        <mrow>
+            <mspace width="0.16666667em"/>
+            <mtable displaystyle="false" scriptlevel="1">
+                <mtr>
+                    <mtd style="padding: 0.1em 0;">
+                        <mi>a</mi>
+                    </mtd>
+                    <mtd style="padding: 0.1em 0 0 0.4em;">
+                        <mi>b</mi>
+                    </mtd>
+                </mtr>
+                <mtr>
+                    <mtd style="padding: 0.1em 0;">
+                        <mi>c</mi>
+                    </mtd>
+                    <mtd style="padding: 0.1em 0 0 0.4em;">
+                        <mi>d</mi>
+                    </mtd>
+                </mtr>
+            </mtable>
+            <mspace width="0.16666667em"/>
+        </mrow>
+        <mo>)</mo>
+    </mrow>
+    <mo>+</mo>
+    <mi>y</mi>
+</math>

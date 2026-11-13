@@ -33,6 +33,7 @@ static ENVIRONMENTS: phf::Map<&'static str, Env> = phf::phf_map! {
     "drcases" => Env::DRCases,
     "matrix" => Env::Matrix,
     "pmatrix" => Env::PMatrix,
+    "smallmatrix" => Env::SmallMatrix,
     "vmatrix" => Env::VMatrix,
     "Vmatrix" => Env::Vmatrix,
 };
@@ -62,6 +63,7 @@ pub enum Env {
     PMatrix,
     VMatrix,
     Vmatrix,
+    SmallMatrix,
 }
 pub const OPEN_PAREN: StretchableOp = StretchableOp::from_ord(symbol::LEFT_PARENTHESIS).unwrap();
 pub const CLOSE_PAREN: StretchableOp = StretchableOp::from_ord(symbol::RIGHT_PARENTHESIS).unwrap();
@@ -139,6 +141,7 @@ impl Env {
                 | Env::Bmatrix
                 | Env::VMatrix
                 | Env::Vmatrix
+                | Env::SmallMatrix
         )
     }
 
@@ -169,6 +172,7 @@ impl Env {
                 | Env::Bmatrix
                 | Env::VMatrix
                 | Env::Vmatrix
+                | Env::SmallMatrix
                 | Env::Cases
                 | Env::RCases
                 | Env::DCases
@@ -232,7 +236,9 @@ impl Env {
             Array | Cases | RCases | Matrix | BMatrix | Bmatrix | PMatrix | VMatrix | Vmatrix => {
                 Style::Text
             }
-            Subarray => Style::Script,
+            // amsmath sets each cell of `smallmatrix` in `\scriptstyle`, whatever the style
+            // outside of it.
+            Subarray | SmallMatrix => Style::Script,
         }
     }
 
@@ -316,6 +322,13 @@ impl Env {
                     rows,
                 }
             }
+            Env::SmallMatrix => Node::Table {
+                kind: TableKind::Inline {
+                    align: Alignment::Small,
+                    style: Some(Style::Script),
+                },
+                rows,
+            },
         }
     }
 }
