@@ -513,7 +513,8 @@ mod tests {
 
     #[test]
     fn test_recover_limited_ascii() {
-        let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-*:| ";
+        let input =
+            " !()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz|";
         let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
