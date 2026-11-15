@@ -1,0 +1,10 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\href{https://ex.org}{the \\textbf{docs}}}"
+---
+<math>
+    <mrow>
+        <mtext><a href="https://ex.org">the </a></mtext>
+        <mtext><a href="https://ex.org"><b>docs</b></a></mtext>
+    </mrow>
+</math>

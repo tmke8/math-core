@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text\\url{x.org}y"
+---
+Error: A command with arguments must be enclosed in braces when it is the argument of a text command.
+   ╭─[ <input>:1:6 ]
+   │
+ 1 │ \text\url{x.org}y
+   │      ──┬─  
+   │        ╰─── missing braces around this
+───╯

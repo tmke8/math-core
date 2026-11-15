@@ -979,6 +979,36 @@ fn inline_equations() {
         ("set_class_lookahead", r"\set{ = | x }"),
         ("big_braket_class_lookahead", r"\Braket{=|x}"),
         ("raisebox_basic", r"\raisebox{1em}{foobar}"),
+        (
+            "url_in_text",
+            r"\text{see \url{https://example.com/a\%20b\#frag} now}",
+        ),
+        (
+            "url_with_size",
+            r"\text{\large \url{http://ex.org/~u/a_b?c=1&d=2}}",
+        ),
+        ("url_in_textbf", r"\textbf{a \url{x.org} b}"),
+        ("url_in_raisebox", r"\raisebox{2pt}{\url{x.org}}"),
+        ("url_spaces", r"\text{a \url{ https://ex.org/ a b/ c } b}"),
+        (
+            "href_in_text",
+            r"\text{see \href{https://ex.org/a\%20b}{the docs} now}",
+        ),
+        (
+            "href_mixed_styles",
+            r"\text{\href{https://ex.org}{the \textbf{docs}}}",
+        ),
+        ("href_in_textbf", r"\textbf{\href{x.org}{a}}"),
+        ("href_with_size", r"\text{\large\href{x.org}{a}}"),
+        ("href_unbraced_link_text", r"\text{\href{x.org}y z}"),
+        ("href_in_raisebox", r"\raisebox{2pt}{\href{x.org}{a}}"),
+        (
+            "raisebox_in_href",
+            r"\text{\href{x.org}{a\raisebox{1pt}{b}}}",
+        ),
+        ("url_in_href", r"\text{\href{x.org}{a \url{y.org} b}}"),
+        ("href_mailto", r"\text{\href{mailto:a@b.org}{mail}}"),
+        ("url_fragment_with_colon", r"\text{\url{\#sec:intro}}"),
         ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
         (
             "raisebox_stack_same",
@@ -1090,6 +1120,14 @@ fn block_equations() {
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
         ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
         ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
+        (
+            "tag_text_mode",
+            r#"\begin{align} x \tag{a~b\"a} \\ y \tag*{\textbf{A} 1} \end{align}"#,
+        ),
+        (
+            "tag_text_mode_eqref",
+            r"\begin{align} x \label{l} \tag{\emph{x}y} \\ \eqref{l} \end{align}",
+        ),
         ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
         (
             "tag_html_escape",

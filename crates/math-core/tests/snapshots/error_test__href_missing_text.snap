@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{\\href{x.org}}"
+---
+Error: Expected argument but got closing token (`}`, `\end`, `\right`).
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \text{\href{x.org}}
+   │                   ┬  
+   │                   ╰── expected an argument here
+───╯

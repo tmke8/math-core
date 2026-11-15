@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{\\url{x.org/#a}}"
+---
+Error: Invalid parameter number. Must be 1-9.
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \text{\url{x.org/#a}}
+   │                   ┬  
+   │                   ╰── must be 1-9
+───╯

@@ -7,7 +7,7 @@ use core::{mem, ops::Range};
 use kstring::KString;
 use mathml_renderer::{
     arena::{Arena, Buffer},
-    ast::{MultiscriptPair, Node},
+    ast::{AHref, MultiscriptPair, Node},
     attribute::{FracAttr, LetterAttr, MathSpacing, OpAttrs, OpRoles, RowAttrs, Style},
     length::{Length, LengthSet, LengthUnit},
     super_char::SuperChar,
@@ -657,7 +657,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(())
             }
             Token::Tag { parenthesized } => {
-                let (tag_name, _) = self.parse_string_literal()?;
+                // The argument of `\tag` is in text mode. For now, we only keep the text
+                // itself and discard all style information.
+                let snippets = self.extract_text(None, None, true)?;
+                let mut builder = self.buffer.get_builder();
+                for TextSnippet(_style, _size, _voffset, text, _href) in snippets {
+                    builder.push_str(text);
+                }
+                let tag_name = builder.finish(self.arena);
                 let misplaced = |correct_place| LatexErrKind::CannotBeUsedHere {
                     got: LimitedUsabilityToken::Tag,
                     correct_place,
@@ -683,7 +690,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::Label => {
-                let (label_name, _) = self.parse_string_literal()?;
+                let (label_name, _) = self.parse_string_literal(false)?;
                 match &mut self.state.numbering {
                     None => Err(LatexError(
                         span,
@@ -1047,7 +1054,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(Node::Space(space))
             }
             Token::CustomSpace(kind) => {
-                let (length, span) = self.parse_string_literal()?;
+                let (length, span) = self.parse_string_literal(false)?;
                 let trimmed = length.trim_ascii();
                 match parse_length_specification(trimmed) {
                     Some((space, unit, is_math_unit)) => {
@@ -1158,7 +1165,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 let open = get_delimiter(self)?;
                 let close = get_delimiter(self)?;
-                let (length, span) = self.parse_string_literal()?;
+                let (length, span) = self.parse_string_literal(false)?;
                 let lt = match length.trim_ascii() {
                     "" => Length::none(),
                     decimal => {
@@ -1630,7 +1637,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             Token::Begin(env) => 'begin_env: {
                 let spec = if matches!(env, Env::Array | Env::DArray | Env::Subarray) {
                     // Parse the array options.
-                    let (options, span) = self.parse_string_literal()?;
+                    let (options, span) = self.parse_string_literal(false)?;
                     let Some(mut spec) = parse_column_specification(options, self.arena) else {
                         break 'begin_env Err(LatexError(
                             span,
@@ -1737,7 +1744,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 class = Class::Operator;
                 let snippets = self.extract_text(None, None, false)?;
                 let mut builder = self.buffer.get_builder();
-                for TextSnippet(_style, _size, _voffset, text) in snippets {
+                for TextSnippet(_style, _size, _voffset, text, _href) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
@@ -1777,29 +1784,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let snippets = self.extract_text(transform, None, true)?;
                 let nodes = snippets
                     .into_iter()
-                    .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
-                        let text_node = Node::Text {
-                            text_style,
-                            text_size,
-                            text,
-                        };
-                        let voffset = text_voffset
-                            .as_ref()
-                            .filter(|voffset| **voffset != LengthSet::zero())
-                            .map(|tv| self.arena.alloc_length_set(*tv));
-                        self.commit(if voffset.is_some() {
-                            Node::Padded {
-                                node: self.commit(text_node),
-                                width_0: false,
-                                height_0: false,
-                                left: None,
-                                right: None,
-                                voffset,
-                            }
-                        } else {
-                            text_node
-                        })
-                    })
+                    .map(|snippet| self.text_snippet_to_node(snippet))
                     .collect::<Vec<_>>();
                 return Ok(Parsed::Node(
                     Class::Close,
@@ -1807,7 +1792,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 ));
             }
             Token::RaiseBox => {
-                let (initial_voffset_str, span) = self.parse_string_literal()?;
+                let (initial_voffset_str, span) = self.parse_string_literal(false)?;
                 let initial_voffset = match parse_length_specification(initial_voffset_str) {
                     Some((voffset, unit, is_math_unit)) => {
                         if is_math_unit {
@@ -1831,29 +1816,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 let snippets = self.extract_text(None, Some(initial_voffset), true)?;
                 let nodes = snippets
                     .into_iter()
-                    .map(|TextSnippet(text_style, text_size, text_voffset, text)| {
-                        let voffset = text_voffset
-                            .filter(|voffset| *voffset != LengthSet::zero())
-                            .as_ref()
-                            .map(|tv| self.arena.alloc_length_set(*tv));
-                        let text_node = Node::Text {
-                            text_style,
-                            text_size,
-                            text,
-                        };
-                        self.commit(if voffset.is_some() {
-                            Node::Padded {
-                                node: self.commit(text_node),
-                                width_0: false,
-                                height_0: false,
-                                left: None,
-                                right: None,
-                                voffset,
-                            }
-                        } else {
-                            text_node
-                        })
-                    })
+                    .map(|snippet| self.text_snippet_to_node(snippet))
                     .collect::<Vec<_>>();
                 return Ok(Parsed::Node(
                     Class::Close,
@@ -1908,7 +1871,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
             }
             Token::EqRef => {
-                let (label_name, _) = self.parse_string_literal()?;
+                let (label_name, _) = self.parse_string_literal(false)?;
                 Ok(Node::EqRef(label_name))
             }
             Token::Cramped => {
@@ -1978,7 +1941,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                     let type_name = type_name_builder.finish(self.arena);
-                    let Ok((color_description, span)) = self.parse_string_literal() else {
+                    let Ok((color_description, span)) = self.parse_string_literal(false) else {
                         break 'color Err(LatexError(
                             span.into(),
                             LatexErrKind::ExpectedArgumentGotEOI,
@@ -2074,7 +2037,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         }
                     }
                 } else {
-                    let (color_name, span) = self.parse_string_literal()?;
+                    let (color_name, span) = self.parse_string_literal(false)?;
                     let Some(color) = get_color(color_name) else {
                         break 'color Err(LatexError(
                             span,
@@ -3703,8 +3666,51 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(Node::Space(latex_unit.length_with_unit(value)))
     }
 
+    /// Turn a snippet from [`Self::extract_text`] into a text node (or a hyperlink, for `\url`
+    /// and `\href`),
+    /// shifted vertically if the snippet has a vertical offset.
+    fn text_snippet_to_node(
+        &mut self,
+        TextSnippet(text_style, text_size, text_voffset, text, href): TextSnippet<'arena>,
+    ) -> &'arena Node<'arena> {
+        let text_node = if let Some(href) = href {
+            Node::AHref(self.arena.alloc_ahref(AHref {
+                href,
+                text,
+                text_style,
+                text_size,
+            }))
+        } else {
+            Node::Text {
+                text_style,
+                text_size,
+                text,
+            }
+        };
+        let voffset = text_voffset
+            .filter(|voffset| *voffset != LengthSet::zero())
+            .map(|tv| self.arena.alloc_length_set(tv));
+        self.commit(if voffset.is_some() {
+            Node::Padded {
+                node: self.commit(text_node),
+                width_0: false,
+                height_0: false,
+                left: None,
+                right: None,
+                voffset,
+            }
+        } else {
+            text_node
+        })
+    }
+
+    /// Parse an argument consisting only of (limited) ASCII characters into a string.
+    ///
+    /// If `url` is `true`, the escaped characters `\%` and `\#` are also accepted and
+    /// turned into `%` and `#`, and spaces are ignored, as in the argument of `\url`.
     pub(super) fn parse_string_literal(
         &mut self,
+        url: bool,
     ) -> Result<(&'arena str, Range<usize>), Box<LatexError>> {
         let (tokens, span) = match self.tokens.read_argument(true)? {
             MacroArgument::Group(tokens, span) => (tokens, span),
@@ -3722,7 +3728,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         // been expanded, arguments and all.
         for tokspan in tokens {
             let (tok, span) = tokspan.into_parts();
-            let Some(ch) = recover_limited_ascii(tok) else {
+            let ch = match tok {
+                Token::Letter(
+                    ch @ (symbol::PERCENT_SIGN | symbol::NUMBER_SIGN),
+                    Mode::MathOrText,
+                ) if url => Some(ch),
+                // Like the `url` package, we ignore spaces in URLs.
+                Token::Whitespace if url => continue,
+                tok => recover_limited_ascii(tok),
+            };
+            let Some(ch) = ch else {
                 return Err(Box::new(LatexError(
                     span.into(),
                     LatexErrKind::ExpectedAscii,
@@ -4209,8 +4224,27 @@ mod tests {
         let l = Lexer::new(&input);
         let mut p = Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
         let parsed = p
-            .parse_string_literal()
+            .parse_string_literal(false)
             .unwrap_or_else(|e| panic!("failed with error '{}'", e));
         assert_eq!(parsed.0, literal);
+    }
+
+    #[test]
+    fn url_string_literal_test() {
+        let parse = |input: &str, url: bool| {
+            let arena = Arena::new();
+            let parser_cfg = crate::ParserConfig::default();
+            let mut state = GlobalState::default();
+            let l = Lexer::new(input);
+            let mut p =
+                Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
+            p.parse_string_literal(url).map(|(s, _)| s.to_owned()).ok()
+        };
+        let input = r"{https://example.com/a\%20b ?c=d&e_f~g\#frag }";
+        assert_eq!(
+            parse(input, true).as_deref(),
+            Some("https://example.com/a%20b?c=d&e_f~g#frag")
+        );
+        assert_eq!(parse(input, false), None);
     }
 }

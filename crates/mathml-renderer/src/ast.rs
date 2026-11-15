@@ -35,6 +35,8 @@ use crate::{
 pub struct AHref<'arena> {
     pub href: &'arena str,
     pub text: &'arena str,
+    pub text_style: Option<HtmlTextStyle>,
+    pub text_size: Option<HtmlTextSize>,
 }
 
 /// A single sub/sup pair in [`Node::Multiscripts`].
@@ -341,30 +343,9 @@ impl<'state> Emitter<'state> {
                 text_size,
                 text: letters,
             } => {
-                write!(self.s, "<mtext")?;
-                if let Some(size) = text_size {
-                    write!(self.s, " style=\"font-size:{}\"", <&str>::from(size))?;
-                }
-                let (open, close) = match text_style {
-                    None => ("", ""),
-                    Some(HtmlTextStyle::Bold) => ("<b>", "</b>"),
-                    Some(HtmlTextStyle::Italic) => ("<i>", "</i>"),
-                    Some(HtmlTextStyle::BoldItalic) => ("<b><i>", "</i></b>"),
-                    Some(HtmlTextStyle::Emphasis) => ("<em>", "</em>"),
-                    Some(HtmlTextStyle::Typewriter) => ("<code>", "</code>"),
-                    Some(HtmlTextStyle::SmallCaps) => {
-                        ("<span style=\"font-variant-caps: small-caps\">", "</span>")
-                    }
-                    Some(HtmlTextStyle::SansSerif) => {
-                        ("<span class=\"math-core-sans-serif-font\">", "</span>")
-                    }
-                    Some(HtmlTextStyle::Serif) => {
-                        ("<span class=\"math-core-serif-font\">", "</span>")
-                    }
-                    Some(HtmlTextStyle::Strikethrough) => ("<s>", "</s>"),
-                    Some(HtmlTextStyle::Underline) => ("<u>", "</u>"),
-                };
-                write!(self.s, ">{open}{}{close}</mtext>", EscapeHtml(letters))?;
+                self.write_mtext_open(text_size)?;
+                let (open, close) = html_text_style_tags(text_style);
+                write!(self.s, "{open}{}{close}</mtext>", EscapeHtml(letters))?;
             }
             Node::Space(space) => {
                 write!(self.s, "<mspace ")?;
@@ -712,10 +693,17 @@ impl<'state> Emitter<'state> {
                 }
                 writeln_indent!(self, base_indent, "</menclose>");
             }
-            Node::AHref(&AHref { href, text }) => {
+            Node::AHref(&AHref {
+                href,
+                text,
+                text_style,
+                text_size,
+            }) => {
+                self.write_mtext_open(text_size)?;
+                let (open, close) = html_text_style_tags(text_style);
                 write!(
                     self.s,
-                    r#"<mtext><a href="{}">{}</a></mtext>"#,
+                    r#"<a href="{}">{open}{}{close}</a></mtext>"#,
                     EscapeHtml(href),
                     EscapeHtml(text)
                 )?;
@@ -829,6 +817,34 @@ impl<'state> Emitter<'state> {
     #[must_use]
     pub fn has_references(&self) -> bool {
         self.has_references
+    }
+
+    /// Write the opening `<mtext>` tag, including the font size if there is one.
+    fn write_mtext_open(&mut self, text_size: Option<HtmlTextSize>) -> core::fmt::Result {
+        write!(self.s, "<mtext")?;
+        if let Some(size) = text_size {
+            write!(self.s, " style=\"font-size:{}\"", <&str>::from(size))?;
+        }
+        write!(self.s, ">")
+    }
+}
+
+/// The HTML tags that open and close a run of text in the given style.
+fn html_text_style_tags(text_style: Option<HtmlTextStyle>) -> (&'static str, &'static str) {
+    match text_style {
+        None => ("", ""),
+        Some(HtmlTextStyle::Bold) => ("<b>", "</b>"),
+        Some(HtmlTextStyle::Italic) => ("<i>", "</i>"),
+        Some(HtmlTextStyle::BoldItalic) => ("<b><i>", "</i></b>"),
+        Some(HtmlTextStyle::Emphasis) => ("<em>", "</em>"),
+        Some(HtmlTextStyle::Typewriter) => ("<code>", "</code>"),
+        Some(HtmlTextStyle::SmallCaps) => {
+            ("<span style=\"font-variant-caps: small-caps\">", "</span>")
+        }
+        Some(HtmlTextStyle::SansSerif) => ("<span class=\"math-core-sans-serif-font\">", "</span>"),
+        Some(HtmlTextStyle::Serif) => ("<span class=\"math-core-serif-font\">", "</span>"),
+        Some(HtmlTextStyle::Strikethrough) => ("<s>", "</s>"),
+        Some(HtmlTextStyle::Underline) => ("<u>", "</u>"),
     }
 }
 
@@ -1482,6 +1498,19 @@ mod tests {
                 right: Some(MathSpacing::Zero),
             }),
             "<mo stretchy=\"true\" symmetric=\"true\" lspace=\"0\" rspace=\"0\" minsize=\"2.047em\" maxsize=\"2.047em\">/</mo>"
+        );
+    }
+
+    #[test]
+    fn render_ahref() {
+        assert_eq!(
+            render(&Node::AHref(&AHref {
+                href: "https://example.com/?a=1&b=2",
+                text: "https://example.com/?a=1&b=2",
+                text_style: Some(HtmlTextStyle::Typewriter),
+                text_size: Some(HtmlTextSize::Size120),
+            })),
+            "<mtext style=\"font-size:120%\"><a href=\"https://example.com/?a=1&amp;b=2\"><code>https://example.com/?a=1&amp;b=2</code></a></mtext>"
         );
     }
 

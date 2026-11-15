@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{a \\url{ https://ex.org/ a b/ c } b}"
+---
+<math>
+    <mrow>
+        <mtext>a </mtext>
+        <mtext><a href="https://ex.org/ab/c"><code>https://ex.org/ab/c</code></a></mtext>
+        <mtext> b</mtext>
+    </mrow>
+</math>

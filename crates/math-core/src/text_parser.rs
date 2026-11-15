@@ -19,21 +19,37 @@ use crate::{
 };
 
 /// A run of text with uniform style and size.
+/// The last field is the link target if the text is part of a hyperlink (from `\url` or `\href`).
 pub(super) struct TextSnippet<'arena>(
     pub Option<HtmlTextStyle>,
     pub Option<HtmlTextSize>,
     pub Option<LengthSet>,
     pub &'arena str,
+    pub Option<&'arena str>,
 );
 
 impl<'arena> Parser<'_, 'arena> {
+    /// Parse the URL argument of `\url` or `\href`, rejecting URLs whose scheme
+    /// could be dangerous, like `javascript:`.
+    fn parse_link_target(&mut self) -> ParseResult<&'arena str> {
+        let (url, span) = self.parse_string_literal(true)?;
+        if is_allowed_url(url) {
+            Ok(url)
+        } else {
+            Err(Box::new(LatexError(
+                span,
+                LatexErrKind::DisallowedUrlScheme,
+            )))
+        }
+    }
+
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
         initial_voffset: Option<LengthSet>,
         text_mode: bool,
     ) -> ParseResult<Vec<TextSnippet<'arena>>> {
-        let mut style_stack = vec![(0usize, initial_style, initial_voffset)];
+        let mut style_stack = vec![(0usize, initial_style, initial_voffset, None)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<TextSnippet<'arena>> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
@@ -44,7 +60,7 @@ impl<'arena> Parser<'_, 'arena> {
         // reset on every style push, so the nesting level alone would be ambiguous.)
         let mut size_stack: Vec<(usize, usize, HtmlTextSize)> = Vec::new();
 
-        while let Some((previous_nesting, current_style, current_voffset)) =
+        while let Some((previous_nesting, current_style, current_voffset, current_href)) =
             style_stack.last().copied()
         {
             let current_size = size_stack.last().map(|&(_, _, size)| size);
@@ -54,7 +70,18 @@ impl<'arena> Parser<'_, 'arena> {
                 self.tokens.next()
             };
             let (token, span) = tokloc?.into_parts();
-            let c: Result<SuperChar, LatexErrKind> = if matches!(token, Token::Dollar) {
+            let c: Result<SuperChar, LatexErrKind> = if str_builder.is_none()
+                && matches!(
+                    token,
+                    Token::Text(_)
+                        | Token::RaiseBox
+                        | Token::TextMode(TextToken::Style(_) | TextToken::Href | TextToken::Url)
+                ) {
+                // Without a string builder, we're expecting the argument of a text command,
+                // and it isn't enclosed in braces, e.g. `\text\textbf{x}`. As in LaTeX, a
+                // command that itself takes arguments cannot be such an argument.
+                Err(LatexErrKind::UnbracedCommandWithArgs)
+            } else if matches!(token, Token::Dollar) {
                 // In text mode, a `$` would switch to math mode, which is the feature we
                 // don't have yet. Anywhere else there is no mode for it to switch to.
                 Err(if text_mode {
@@ -92,9 +119,15 @@ impl<'arena> Parser<'_, 'arena> {
                                     current_size,
                                     current_voffset,
                                     text,
+                                    current_href,
                                 ));
                             }
-                            style_stack.push((brace_nesting, Some(style), current_voffset));
+                            style_stack.push((
+                                brace_nesting,
+                                Some(style),
+                                current_voffset,
+                                current_href,
+                            ));
                             brace_nesting = 0;
                             continue;
                         }
@@ -109,6 +142,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
+                                        current_href,
                                     ));
                                     str_builder = Some(self.buffer.get_builder());
                                 }
@@ -129,6 +163,62 @@ impl<'arena> Parser<'_, 'arena> {
                                     str_builder = Some(self.buffer.get_builder());
                                 }
                             }
+                            continue;
+                        }
+                        TextToken::Url => {
+                            // Flush the pending text first; the string builder borrows
+                            // the buffer, which we need for parsing the URL.
+                            // (We are always within a group here; see `UnbracedCommandWithArgs`.)
+                            if let Some(builder) = str_builder
+                                && !builder.is_empty()
+                            {
+                                let text = builder.finish(self.arena);
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size,
+                                    current_voffset,
+                                    text,
+                                    current_href,
+                                ));
+                            }
+                            let url = self.parse_link_target()?;
+                            // As in LaTeX, URLs are always set in typewriter font.
+                            snippets.push(TextSnippet(
+                                Some(HtmlTextStyle::Typewriter),
+                                current_size,
+                                current_voffset,
+                                url,
+                                Some(url),
+                            ));
+                            str_builder = Some(self.buffer.get_builder());
+                            continue;
+                        }
+                        TextToken::Href => {
+                            // Flush the pending text first; the string builder borrows
+                            // the buffer, which we need for parsing the URL.
+                            if let Some(builder) = str_builder
+                                && !builder.is_empty()
+                            {
+                                let text = builder.finish(self.arena);
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size,
+                                    current_voffset,
+                                    text,
+                                    current_href,
+                                ));
+                            }
+                            let href = self.parse_link_target()?;
+                            // The link text is the argument of a new scope, just like the
+                            // argument of `\textbf`. All text in it links to `href`.
+                            style_stack.push((
+                                brace_nesting,
+                                current_style,
+                                current_voffset,
+                                Some(href),
+                            ));
+                            brace_nesting = 0;
+                            str_builder = None;
                             continue;
                         }
                     }
@@ -180,6 +270,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 output,
+                                current_href,
                             ));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
@@ -218,6 +309,7 @@ impl<'arena> Parser<'_, 'arena> {
                                             current_size,
                                             current_voffset,
                                             text,
+                                            current_href,
                                         ));
                                     }
                                     discard_dead_sizes(
@@ -239,6 +331,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
+                                        current_href,
                                     ));
                                 }
                                 style_stack.pop();
@@ -268,6 +361,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
+                                current_href,
                             ));
                         }
                         let new_style = match (current_style, style) {
@@ -278,7 +372,7 @@ impl<'arena> Parser<'_, 'arena> {
                             }
                             _ => style,
                         };
-                        style_stack.push((brace_nesting, new_style, current_voffset));
+                        style_stack.push((brace_nesting, new_style, current_voffset, current_href));
                         brace_nesting = 0;
                         continue;
                     }
@@ -292,10 +386,11 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
+                                current_href,
                             ));
                         }
 
-                        let (voffset_str, span) = self.parse_string_literal()?;
+                        let (voffset_str, span) = self.parse_string_literal(false)?;
                         let new_voffset = match parse_length_specification(voffset_str) {
                             Some((voffset, unit, is_math_unit)) => {
                                 if is_math_unit {
@@ -322,7 +417,12 @@ impl<'arena> Parser<'_, 'arena> {
                             None => new_voffset,
                         };
 
-                        style_stack.push((brace_nesting, current_style, Some(voffset)));
+                        style_stack.push((
+                            brace_nesting,
+                            current_style,
+                            Some(voffset),
+                            current_href,
+                        ));
                         brace_nesting = 0;
                         str_builder = None;
                         continue;
@@ -354,6 +454,7 @@ impl<'arena> Parser<'_, 'arena> {
                             current_size,
                             current_voffset,
                             output,
+                            current_href,
                         ));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
@@ -397,6 +498,8 @@ impl<'arena> Parser<'_, 'arena> {
 
                     _ => Err(LatexErrKind::CouldNotExtractText),
                 }
+            } else if let Token::CustomCmdArgInput(_) = token {
+                Err(LatexErrKind::MacroParameterOutsideCustomCommand)
             } else {
                 Err(LatexErrKind::NotValidInTextMode)
             };
@@ -414,6 +517,7 @@ impl<'arena> Parser<'_, 'arena> {
                     current_size,
                     current_voffset,
                     text,
+                    current_href,
                 ));
                 style_stack.pop();
                 brace_nesting = previous_nesting;
@@ -428,6 +532,29 @@ impl<'arena> Parser<'_, 'arena> {
     }
 }
 
+/// Whether `url` may be used as a link target: it must either have one of the schemes
+/// `http`, `https` or `mailto`, or no scheme at all (i.e., be a relative URL).
+/// Other schemes, like `javascript:` or `data:`, could run code when the link is clicked.
+fn is_allowed_url(url: &str) -> bool {
+    let Some((scheme, _)) = url.split_once(':') else {
+        return true;
+    };
+    // As in the URL standard, the part before the first `:` is only a scheme if it consists
+    // of an ASCII letter followed by ASCII alphanumerics, `+`, `-` or `.`. Otherwise, the URL
+    // is relative, e.g. `/a:b` or `#a:b`.
+    let is_scheme = scheme
+        .bytes()
+        .next()
+        .is_some_and(|b| b.is_ascii_alphabetic())
+        && scheme
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'-' | b'.'));
+    !is_scheme
+        || ["http", "https", "mailto"]
+            .iter()
+            .any(|allowed| scheme.eq_ignore_ascii_case(allowed))
+}
+
 /// Remove all size declarations that have gone out of scope, i.e. those declared in a style
 /// scope or brace group that has been closed.
 fn discard_dead_sizes(
@@ -440,6 +567,41 @@ fn discard_dead_sizes(
             size_stack.pop();
         } else {
             break;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_allowed_url;
+
+    #[test]
+    fn allowed_urls() {
+        for url in [
+            "https://example.com/a?b=c#d",
+            "HTTP://example.com",
+            "mailto:someone@example.com",
+            "example.com",
+            "/a/b:c",
+            "#sec:intro",
+            "?q=a:b",
+            "",
+        ] {
+            assert!(is_allowed_url(url), "{url} should be allowed");
+        }
+    }
+
+    #[test]
+    fn disallowed_urls() {
+        for url in [
+            "javascript:alert(1)",
+            "JavaScript:alert(1)",
+            "data:text/html,x",
+            "vbscript:x",
+            "file:///etc/passwd",
+            "example.com:8080/a",
+        ] {
+            assert!(!is_allowed_url(url), "{url} should be disallowed");
         }
     }
 }

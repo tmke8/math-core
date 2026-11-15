@@ -48,6 +48,11 @@ pub(crate) enum LatexErrKind {
     BoundFollowedByBound,
     DuplicateSubOrSup,
     CannotBeUsedAsArgument,
+    /// A command that takes arguments is the unbraced argument of a text command,
+    /// e.g. `\text\textbf{x}`.
+    UnbracedCommandWithArgs,
+    /// A link target in `\href` or `\url` with a scheme other than `http`, `https` or `mailto`.
+    DisallowedUrlScheme,
     ExpectedAscii,
     ExpectedLength(KString),
     IllegalUnit {
@@ -274,6 +279,18 @@ impl LatexErrKind {
             LatexErrKind::CannotBeUsedAsArgument => {
                 write!(s, "Switch-like commands cannot be used as arguments.")?;
             }
+            LatexErrKind::DisallowedUrlScheme => {
+                write!(
+                    s,
+                    "Only http, https and mailto URLs (or relative URLs) are allowed as links."
+                )?;
+            }
+            LatexErrKind::UnbracedCommandWithArgs => {
+                write!(
+                    s,
+                    "A command with arguments must be enclosed in braces when it is the argument of a text command."
+                )?;
+            }
             LatexErrKind::ExpectedAscii => {
                 write!(
                     s,
@@ -470,6 +487,8 @@ impl LatexError {
             LatexErrKind::BoundFollowedByBound => "unexpected bound",
             LatexErrKind::DuplicateSubOrSup => "duplicate",
             LatexErrKind::CannotBeUsedAsArgument => "used as argument",
+            LatexErrKind::UnbracedCommandWithArgs => "missing braces around this",
+            LatexErrKind::DisallowedUrlScheme => "disallowed URL scheme",
             LatexErrKind::ExpectedAscii => "special or not ASCII",
             LatexErrKind::ExpectedLength(_) => "expected length here",
             LatexErrKind::IllegalUnit { .. } => "illegal unit here",

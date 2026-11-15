@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\begin{align}\\tag{$x$}1\\end{align}"
+---
+Error: Math mode within text mode is not implemented yet.
+   ╭─[ <input>:1:19 ]
+   │
+ 1 │ \begin{align}\tag{$x$}1\end{align}
+   │                   ┬  
+   │                   ╰── cannot switch to math mode here
+───╯
