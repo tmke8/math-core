@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\url{x.org}"
+---
+Error: Not valid in math mode.
+   ╭─[ <input>:1:1 ]
+   │
+ 1 │ \url{x.org}
+   │ ──┬─  
+   │   ╰─── this is not valid in math mode
+───╯

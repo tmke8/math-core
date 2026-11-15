@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\large \\url{http://ex.org/~u/a_b?c=1&d=2}}"
+---
+<math>
+    <mtext style="font-size:120%"><a href="http://ex.org/~u/a_b?c=1&amp;d=2"><code>http://ex.org/~u/a_b?c=1&amp;d=2</code></a></mtext>
+</math>

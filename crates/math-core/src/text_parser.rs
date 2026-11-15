@@ -19,11 +19,13 @@ use crate::{
 };
 
 /// A run of text with uniform style and size.
+/// The last field is `true` if the text is a URL from `\url`, which should become a hyperlink.
 pub(super) struct TextSnippet<'arena>(
     pub Option<HtmlTextStyle>,
     pub Option<HtmlTextSize>,
     pub Option<LengthSet>,
     pub &'arena str,
+    pub bool,
 );
 
 impl<'arena> Parser<'_, 'arena> {
@@ -92,6 +94,7 @@ impl<'arena> Parser<'_, 'arena> {
                                     current_size,
                                     current_voffset,
                                     text,
+                                    false,
                                 ));
                             }
                             style_stack.push((brace_nesting, Some(style), current_voffset));
@@ -109,6 +112,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
+                                        false,
                                     ));
                                     str_builder = Some(self.buffer.get_builder());
                                 }
@@ -128,6 +132,54 @@ impl<'arena> Parser<'_, 'arena> {
                                     // If there are still styles to process, we must have been within a group.
                                     str_builder = Some(self.buffer.get_builder());
                                 }
+                            }
+                            continue;
+                        }
+                        TextToken::Url => {
+                            // Flush the pending text first; the string builder borrows
+                            // the buffer, which we need for parsing the URL.
+                            let in_group = if let Some(builder) = str_builder {
+                                if !builder.is_empty() {
+                                    let text = builder.finish(self.arena);
+                                    snippets.push(TextSnippet(
+                                        current_style,
+                                        current_size,
+                                        current_voffset,
+                                        text,
+                                        false,
+                                    ));
+                                }
+                                true
+                            } else {
+                                false
+                            };
+                            let (url, _) = self.parse_string_literal(true)?;
+                            // As in LaTeX, URLs are always set in typewriter font.
+                            snippets.push(TextSnippet(
+                                Some(HtmlTextStyle::Typewriter),
+                                current_size,
+                                current_voffset,
+                                url,
+                                true,
+                            ));
+                            if in_group {
+                                str_builder = Some(self.buffer.get_builder());
+                            } else {
+                                // The `\url` was the entire argument of the style command,
+                                // e.g. `\text\url{...}`.
+                                style_stack.pop();
+                                brace_nesting = previous_nesting;
+                                discard_dead_sizes(
+                                    &mut size_stack,
+                                    style_stack.len(),
+                                    brace_nesting,
+                                );
+                                // If there are still styles to process, we must have been within a group.
+                                str_builder = if style_stack.is_empty() {
+                                    None
+                                } else {
+                                    Some(self.buffer.get_builder())
+                                };
                             }
                             continue;
                         }
@@ -180,6 +232,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 output,
+                                false,
                             ));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
@@ -218,6 +271,7 @@ impl<'arena> Parser<'_, 'arena> {
                                             current_size,
                                             current_voffset,
                                             text,
+                                            false,
                                         ));
                                     }
                                     discard_dead_sizes(
@@ -239,6 +293,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
+                                        false,
                                     ));
                                 }
                                 style_stack.pop();
@@ -268,6 +323,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
+                                false,
                             ));
                         }
                         let new_style = match (current_style, style) {
@@ -292,10 +348,11 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
+                                false,
                             ));
                         }
 
-                        let (voffset_str, span) = self.parse_string_literal()?;
+                        let (voffset_str, span) = self.parse_string_literal(false)?;
                         let new_voffset = match parse_length_specification(voffset_str) {
                             Some((voffset, unit, is_math_unit)) => {
                                 if is_math_unit {
@@ -354,6 +411,7 @@ impl<'arena> Parser<'_, 'arena> {
                             current_size,
                             current_voffset,
                             output,
+                            false,
                         ));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
@@ -414,6 +472,7 @@ impl<'arena> Parser<'_, 'arena> {
                     current_size,
                     current_voffset,
                     text,
+                    false,
                 ));
                 style_stack.pop();
                 brace_nesting = previous_nesting;

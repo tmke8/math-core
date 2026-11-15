@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{see \\url{https://example.com/a\\%20b\\#frag} now}"
+---
+<math>
+    <mrow>
+        <mtext>see </mtext>
+        <mtext><a href="https://example.com/a%20b#frag"><code>https://example.com/a%20b#frag</code></a></mtext>
+        <mtext> now</mtext>
+    </mrow>
+</math>

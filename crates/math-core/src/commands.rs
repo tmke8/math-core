@@ -879,6 +879,7 @@ static COMMANDS: phf::Map<&'static str, Token> = phf::phf_map! {
     "upsilon" => Symbol(SuperChar::from_char(symbol::GREEK_SMALL_LETTER_UPSILON), Mode::Math),
     "upuparrows" => Operator(Rel(symbol::UPWARDS_PAIRED_ARROWS)),
     "urcorner" => Operator(ForceClose(symbol::TOP_RIGHT_CORNER, ForceStretchy::Pretend)),
+    "url" => TextMode(TextToken::Url),
     "v" => TextMode(TextToken::Accent(symbol::COMBINING_CARON)),
     "vDash" => Operator(Rel(symbol::TRUE)),
     "varDelta" => Symbol(SuperChar::from_char(symbol::GREEK_CAPITAL_LETTER_DELTA), Mode::Math), // italicized

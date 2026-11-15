@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\hspace{1\\%}"
+---
+Error: Expected non-special ASCII characters in string literal.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ \hspace{1\%}
+   │          ─┬  
+   │           ╰── special or not ASCII
+───╯

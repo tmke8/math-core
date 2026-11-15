@@ -979,6 +979,17 @@ fn inline_equations() {
         ("set_class_lookahead", r"\set{ = | x }"),
         ("big_braket_class_lookahead", r"\Braket{=|x}"),
         ("raisebox_basic", r"\raisebox{1em}{foobar}"),
+        (
+            "url_in_text",
+            r"\text{see \url{https://example.com/a\%20b\#frag} now}",
+        ),
+        (
+            "url_with_size",
+            r"\text{\large \url{http://ex.org/~u/a_b?c=1&d=2}}",
+        ),
+        ("url_in_textbf", r"\textbf{a \url{x.org} b}"),
+        ("url_unbraced_text_arg", r"\text\url{x.org}y"),
+        ("url_in_raisebox", r"\raisebox{2pt}{\url{x.org}}"),
         ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
         (
             "raisebox_stack_same",

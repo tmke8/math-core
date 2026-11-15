@@ -414,6 +414,8 @@ pub enum TextToken {
     Letter(char),
     Style(HtmlTextStyle),
     Size(HtmlTextSize),
+    /// `\url`, a hyperlink whose text is the URL.
+    Url,
 }
 
 /// The delimiter pair that surrounds the result of an infix fraction-like command.
