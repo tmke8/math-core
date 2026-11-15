@@ -211,7 +211,10 @@ impl<'source> Lexer<'source> {
             }
             '$' => Token::Dollar,
             '&' => Token::NewColumn,
-            '\'' => Token::MathOrTextMode(&Token::Prime(PrimeKind::Single), '’'),
+            '\'' => Token::MathOrTextMode(
+                &Token::Prime(PrimeKind::Single),
+                symbol::RIGHT_SINGLE_QUOTATION_MARK,
+            ),
             '<' => {
                 Token::MathOrTextMode(&Token::Operator(Operator::Rel(symbol::LESS_THAN_SIGN)), '<')
             }
@@ -357,6 +360,10 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
         Token::Letter(c, _) if c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@') => Some(c),
         Token::Digit(ch) => Some(ch),
         Token::MathOrTextMode(_, ch) if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') => Some(ch),
+        Token::MathOrTextMode(
+            Token::Prime(PrimeKind::Single),
+            symbol::RIGHT_SINGLE_QUOTATION_MARK,
+        ) => Some('\''),
         Token::Whitespace => Some(' '),
         Token::Dollar => Some('$'),
         Token::NewColumn => Some('&'),
@@ -516,7 +523,7 @@ mod tests {
 
     #[test]
     fn test_recover_limited_ascii() {
-        let input = " !$&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz|";
+        let input = " !$&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz|";
         let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
@@ -544,6 +551,7 @@ mod tests {
             "{", "}", "#1", "%", // reserved characters
             r"\&", r"\{", r"\}", r"\>", r"\^", r"\_", r"\$", r"\%", r"\!",
             r"\|", // escaped ASCII characters
+            "′",   // Unicode characters that resembles `'`
         ];
 
         let parser_cfg = crate::ParserConfig::default();
