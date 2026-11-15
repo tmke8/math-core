@@ -1,0 +1,19 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\newcommand{\\lab}[1]{x\\label{#1}}\\begin{equation}\\lab~\\quad\\eqref{~}\\end{equation}"
+---
+<math display="block">
+    <mtable displaystyle="true" scriptlevel="0" style="width: 100%">
+        <mtr>
+            <mtd style="width: 50%"></mtd>
+            <mtd>
+                <mi>x</mi>
+                <mspace width="1em"/>
+                <mtext><a href="#~">(1)</a></mtext>
+            </mtd>
+            <mtd style="width: 50%;text-align: right;justify-items: end;" id="~">
+                <mtext>(1)</mtext>
+            </mtd>
+        </mtr>
+    </mtable>
+</math>

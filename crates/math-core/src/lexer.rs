@@ -365,6 +365,9 @@ pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
             symbol::RIGHT_SINGLE_QUOTATION_MARK,
         ) => Some('\''),
         Token::Whitespace => Some(' '),
+        // Only `~` produces a bare `NonBreakingSpace`; commands like `\nobreakspace` wrap it
+        // in `MathOrTextMode` with a non-ASCII character, so they are not recovered here.
+        Token::NonBreakingSpace => Some('~'),
         Token::Dollar => Some('$'),
         Token::NewColumn => Some('&'),
         Token::SquareBracketOpen => Some('['),
@@ -523,7 +526,7 @@ mod tests {
 
     #[test]
     fn test_recover_limited_ascii() {
-        let input = " !$&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz|";
+        let input = " !$&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz|~";
         let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
@@ -546,12 +549,34 @@ mod tests {
     fn test_rejected_limited_ascii() {
         // verify that these characters are not recovered by `recover_limited_ascii`
         let test_cases = [
-            "\u{007F}", // control character
-            "\u{0080}", "\u{00A0}", "\u{00FF}", // non-ASCII characters
-            "{", "}", "#1", "%", // reserved characters
-            r"\&", r"\{", r"\}", r"\>", r"\^", r"\_", r"\$", r"\%", r"\!",
-            r"\|", // escaped ASCII characters
-            "′",   // Unicode characters that resembles `'`
+            // control character
+            "\u{007F}",
+            // non-ASCII characters
+            "\u{0080}",
+            "\u{00A0}",
+            "\u{00FF}",
+            // reserved characters
+            "{",
+            "}",
+            "#1",
+            "%",
+            // escaped ASCII characters
+            r"\&",
+            r"\{",
+            r"\}",
+            r"\>",
+            r"\^",
+            r"\_",
+            r"\$",
+            r"\%",
+            r"\!",
+            r"\|",
+            // Unicode characters that resembles `'`
+            "′",
+            // commands for non-breaking spaces, which must not be recovered as `~`
+            r"\ ",
+            r"\nobreakspace",
+            r"\space",
         ];
 
         let parser_cfg = crate::ParserConfig::default();

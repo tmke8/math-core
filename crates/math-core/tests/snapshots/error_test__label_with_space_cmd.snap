@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "x\\label{a\\space b}"
+---
+Error: Expected non-special ASCII characters in string literal.
+   ╭─[ <input>:1:10 ]
+   │
+ 1 │ x\label{a\space b}
+   │          ───┬──  
+   │             ╰──── special or not ASCII
+───╯

@@ -322,6 +322,17 @@ fn block_equations() {
             r"\begin{align}{a \\ b}\end{align}",
         ),
         ("tag_with_hash", r"\begin{align}\tag{a#1}1\end{align}"),
+        ("label_with_nobreakspace", r"x\label{a\nobreakspace b}"),
+        ("label_with_space_cmd", r"x\label{a\space b}"),
+        ("label_with_control_space", r"x\label{a\ b}"),
+        (
+            "label_with_nobreakspace_from_custom_cmd_arg",
+            r"\newcommand{\lab}[1]{x\label{#1}}\lab\nobreakspace",
+        ),
+        (
+            "label_with_control_space_from_custom_cmd_arg",
+            r"\newcommand{\lab}[1]{x\label{#1}}\lab\ ",
+        ),
         (
             "duplicate_label",
             r#"\begin{align}\label{a}1\label{b}\end{align}"#,

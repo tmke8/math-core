@@ -1,0 +1,8 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\newcommand{\\t}[1]{\\text{#1}}\\t+\\t'"
+---
+<math>
+    <mtext>+</mtext>
+    <mtext>’</mtext>
+</math>

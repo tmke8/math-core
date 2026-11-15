@@ -105,7 +105,9 @@ pub enum Token {
     CustomSpace(UnitKind),
     /// `\kern`, `\mkern`, `\hskip`, and `\mskip`, e.g. `\kern1em`.
     KernOrSkip(UnitKind),
-    /// A non-breaking space, e.g. `~`.
+    /// A non-breaking space. Only `~` produces this token directly; commands like
+    /// `\nobreakspace` wrap it in [`Token::MathOrTextMode`], so that `~` can be told apart
+    /// from them when recovering ASCII text.
     NonBreakingSpace,
     /// A whitespace character, e.g. ` `.
     Whitespace,

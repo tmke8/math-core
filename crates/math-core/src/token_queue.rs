@@ -434,6 +434,32 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     pub(super) fn next_allowing_unresolved_command(
         &mut self,
     ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
+        let ret = self
+            .next_non_whitespace_allowing_unresolved_command()?
+            .unwrap_math();
+        debug_assert!(!matches!(
+            ret.token(),
+            Token::Whitespace | Token::MathOrTextMode(_, _)
+        ));
+        Ok(ret)
+    }
+
+    /// Get the next token, skipping whitespace, but without unwrapping
+    /// [`Token::MathOrTextMode`], and keeping the name the command came from.
+    ///
+    /// This is for reading tokens whose mode is not known yet, like the arguments of
+    /// macros, which may end up in text mode or in a string literal.
+    pub(super) fn next_non_whitespace_keeping_name(
+        &mut self,
+    ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
+        let ret = self.next_non_whitespace_allowing_unresolved_command()?;
+        self.reject_unknown_command(ret.tokspan())?;
+        Ok(ret)
+    }
+
+    fn next_non_whitespace_allowing_unresolved_command(
+        &mut self,
+    ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
         // Pop elements until we reach `next_non_whitespace`.
         for _ in 0..self.next_non_whitespace {
             let _ = self.queue.pop_front();
@@ -442,11 +468,7 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
         // Now pop the next token.
         if let Some(ret) = self.queue.pop_front() {
             self.ensure_next_non_whitespace()?;
-            let ret = ret.unwrap_math();
-            debug_assert!(!matches!(
-                ret.token(),
-                Token::Whitespace | Token::MathOrTextMode(_, _)
-            ));
+            debug_assert!(!matches!(ret.token(), Token::Whitespace));
             Ok(ret)
         } else {
             // We must have reached EOI previously.
@@ -904,11 +926,8 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     pub fn read_argument(&mut self, preserve_all: bool) -> Result<MacroArgument, Box<LatexError>> {
         let first = if preserve_all {
             // For `preserve_all`, we still want to skip leading whitespace, but we don't want to
-            // perform the unwrapping that `next()` does. So we use this hack here of copying the
-            // peek token and then discarding it with `next()`.
-            let tok = *self.peek();
-            self.next()?;
-            tok
+            // perform the unwrapping that `next()` does.
+            self.next_non_whitespace_keeping_name()?.into_tokspan()
         } else {
             self.next()?
         };

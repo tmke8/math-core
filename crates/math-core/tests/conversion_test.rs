@@ -960,6 +960,10 @@ fn inline_equations() {
             r"a\nobreakspace b + \text{c\nobreakspace d}",
         ),
         (
+            "text_from_custom_cmd_arg_without_braces",
+            r"\newcommand{\t}[1]{\text{#1}}\t+\t'",
+        ),
+        (
             "big_braket",
             r"\Braket{\phi|\dfrac{\partial^2}{\partial t^2}|\psi}",
         ),
@@ -1185,6 +1189,18 @@ fn block_equations() {
         (
             "aligned_in_equation",
             r"\begin{equation}\begin{aligned}x&=1\\y&=2\end{aligned}\end{equation}",
+        ),
+        (
+            "label_with_tilde",
+            r"\begin{equation}x\label{a~b}\quad\eqref{a~b}\end{equation}",
+        ),
+        (
+            "label_with_tilde_from_custom_cmd_arg",
+            r"\newcommand{\lab}[1]{x\label{#1}}\begin{equation}\lab~\quad\eqref{~}\end{equation}",
+        ),
+        (
+            "label_with_plus_from_custom_cmd_arg",
+            r"\newcommand{\lab}[1]{x\label{#1}}\begin{equation}\lab+\quad\eqref{+}\end{equation}",
         ),
     ];
 
