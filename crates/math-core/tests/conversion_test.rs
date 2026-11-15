@@ -1007,6 +1007,8 @@ fn inline_equations() {
             r"\text{\href{x.org}{a\raisebox{1pt}{b}}}",
         ),
         ("url_in_href", r"\text{\href{x.org}{a \url{y.org} b}}"),
+        ("href_mailto", r"\text{\href{mailto:a@b.org}{mail}}"),
+        ("url_fragment_with_colon", r"\text{\url{\#sec:intro}}"),
         ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
         (
             "raisebox_stack_same",

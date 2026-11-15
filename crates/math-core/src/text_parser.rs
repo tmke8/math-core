@@ -29,6 +29,20 @@ pub(super) struct TextSnippet<'arena>(
 );
 
 impl<'arena> Parser<'_, 'arena> {
+    /// Parse the URL argument of `\url` or `\href`, rejecting URLs whose scheme
+    /// could be dangerous, like `javascript:`.
+    fn parse_link_target(&mut self) -> ParseResult<&'arena str> {
+        let (url, span) = self.parse_string_literal(true)?;
+        if is_allowed_url(url) {
+            Ok(url)
+        } else {
+            Err(Box::new(LatexError(
+                span,
+                LatexErrKind::DisallowedUrlScheme,
+            )))
+        }
+    }
+
     pub(super) fn extract_text(
         &mut self,
         initial_style: Option<HtmlTextStyle>,
@@ -167,7 +181,7 @@ impl<'arena> Parser<'_, 'arena> {
                                     current_href,
                                 ));
                             }
-                            let (url, _) = self.parse_string_literal(true)?;
+                            let url = self.parse_link_target()?;
                             // As in LaTeX, URLs are always set in typewriter font.
                             snippets.push(TextSnippet(
                                 Some(HtmlTextStyle::Typewriter),
@@ -194,7 +208,7 @@ impl<'arena> Parser<'_, 'arena> {
                                     current_href,
                                 ));
                             }
-                            let (href, _) = self.parse_string_literal(true)?;
+                            let href = self.parse_link_target()?;
                             // The link text is the argument of a new scope, just like the
                             // argument of `\textbf`. All text in it links to `href`.
                             style_stack.push((
@@ -518,6 +532,29 @@ impl<'arena> Parser<'_, 'arena> {
     }
 }
 
+/// Whether `url` may be used as a link target: it must either have one of the schemes
+/// `http`, `https` or `mailto`, or no scheme at all (i.e., be a relative URL).
+/// Other schemes, like `javascript:` or `data:`, could run code when the link is clicked.
+fn is_allowed_url(url: &str) -> bool {
+    let Some((scheme, _)) = url.split_once(':') else {
+        return true;
+    };
+    // As in the URL standard, the part before the first `:` is only a scheme if it consists
+    // of an ASCII letter followed by ASCII alphanumerics, `+`, `-` or `.`. Otherwise, the URL
+    // is relative, e.g. `/a:b` or `#a:b`.
+    let is_scheme = scheme
+        .bytes()
+        .next()
+        .is_some_and(|b| b.is_ascii_alphabetic())
+        && scheme
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'-' | b'.'));
+    !is_scheme
+        || ["http", "https", "mailto"]
+            .iter()
+            .any(|allowed| scheme.eq_ignore_ascii_case(allowed))
+}
+
 /// Remove all size declarations that have gone out of scope, i.e. those declared in a style
 /// scope or brace group that has been closed.
 fn discard_dead_sizes(
@@ -530,6 +567,41 @@ fn discard_dead_sizes(
             size_stack.pop();
         } else {
             break;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_allowed_url;
+
+    #[test]
+    fn allowed_urls() {
+        for url in [
+            "https://example.com/a?b=c#d",
+            "HTTP://example.com",
+            "mailto:someone@example.com",
+            "example.com",
+            "/a/b:c",
+            "#sec:intro",
+            "?q=a:b",
+            "",
+        ] {
+            assert!(is_allowed_url(url), "{url} should be allowed");
+        }
+    }
+
+    #[test]
+    fn disallowed_urls() {
+        for url in [
+            "javascript:alert(1)",
+            "JavaScript:alert(1)",
+            "data:text/html,x",
+            "vbscript:x",
+            "file:///etc/passwd",
+            "example.com:8080/a",
+        ] {
+            assert!(!is_allowed_url(url), "{url} should be disallowed");
         }
     }
 }

@@ -120,6 +120,15 @@ fn inline_equations() {
         ("url_unescaped_hash", r"\text{\url{x.org/#a}}"),
         ("href_in_math_mode", r"\href{x.org}{a}"),
         ("href_missing_text", r"\text{\href{x.org}}"),
+        (
+            "href_javascript",
+            r"\text{\href{javascript:alert(1)}{click}}",
+        ),
+        (
+            "url_javascript_mixed_case",
+            r"\text{\url{JavaScript:alert(1)}}",
+        ),
+        ("href_data_url", r"\text{\href{data:text/html,x}{x}}"),
         ("text_unbraced_textbf", r"\text\textbf{x}y"),
         ("text_unbraced_href", r"\text\href{x.org}{a}"),
         ("text_unbraced_url", r"\text\url{x.org}y"),

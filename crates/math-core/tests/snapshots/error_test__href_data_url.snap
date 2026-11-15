@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{\\href{data:text/html,x}{x}}"
+---
+Error: Only http, https and mailto URLs (or relative URLs) are allowed as links.
+   ╭─[ <input>:1:12 ]
+   │
+ 1 │ \text{\href{data:text/html,x}{x}}
+   │            ─────────┬────────  
+   │                     ╰────────── disallowed URL scheme
+───╯

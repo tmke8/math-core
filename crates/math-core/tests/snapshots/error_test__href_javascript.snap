@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{\\href{javascript:alert(1)}{click}}"
+---
+Error: Only http, https and mailto URLs (or relative URLs) are allowed as links.
+   ╭─[ <input>:1:12 ]
+   │
+ 1 │ \text{\href{javascript:alert(1)}{click}}
+   │            ──────────┬──────────  
+   │                      ╰──────────── disallowed URL scheme
+───╯

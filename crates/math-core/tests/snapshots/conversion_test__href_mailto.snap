@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\href{mailto:a@b.org}{mail}}"
+---
+<math>
+    <mtext><a href="mailto:a@b.org">mail</a></mtext>
+</math>
