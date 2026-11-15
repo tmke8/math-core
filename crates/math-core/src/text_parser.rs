@@ -56,7 +56,18 @@ impl<'arena> Parser<'_, 'arena> {
                 self.tokens.next()
             };
             let (token, span) = tokloc?.into_parts();
-            let c: Result<SuperChar, LatexErrKind> = if matches!(token, Token::Dollar) {
+            let c: Result<SuperChar, LatexErrKind> = if str_builder.is_none()
+                && matches!(
+                    token,
+                    Token::Text(_)
+                        | Token::RaiseBox
+                        | Token::TextMode(TextToken::Style(_) | TextToken::Href | TextToken::Url)
+                ) {
+                // Without a string builder, we're expecting the argument of a text command,
+                // and it isn't enclosed in braces, e.g. `\text\textbf{x}`. As in LaTeX, a
+                // command that itself takes arguments cannot be such an argument.
+                Err(LatexErrKind::UnbracedCommandWithArgs)
+            } else if matches!(token, Token::Dollar) {
                 // In text mode, a `$` would switch to math mode, which is the feature we
                 // don't have yet. Anywhere else there is no mode for it to switch to.
                 Err(if text_mode {
@@ -143,21 +154,19 @@ impl<'arena> Parser<'_, 'arena> {
                         TextToken::Url => {
                             // Flush the pending text first; the string builder borrows
                             // the buffer, which we need for parsing the URL.
-                            let in_group = if let Some(builder) = str_builder {
-                                if !builder.is_empty() {
-                                    let text = builder.finish(self.arena);
-                                    snippets.push(TextSnippet(
-                                        current_style,
-                                        current_size,
-                                        current_voffset,
-                                        text,
-                                        current_href,
-                                    ));
-                                }
-                                true
-                            } else {
-                                false
-                            };
+                            // (We are always within a group here; see `UnbracedCommandWithArgs`.)
+                            if let Some(builder) = str_builder
+                                && !builder.is_empty()
+                            {
+                                let text = builder.finish(self.arena);
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size,
+                                    current_voffset,
+                                    text,
+                                    current_href,
+                                ));
+                            }
                             let (url, _) = self.parse_string_literal(true)?;
                             // As in LaTeX, URLs are always set in typewriter font.
                             snippets.push(TextSnippet(
@@ -167,25 +176,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 url,
                                 Some(url),
                             ));
-                            if in_group {
-                                str_builder = Some(self.buffer.get_builder());
-                            } else {
-                                // The `\url` was the entire argument of the style command,
-                                // e.g. `\text\url{...}`.
-                                style_stack.pop();
-                                brace_nesting = previous_nesting;
-                                discard_dead_sizes(
-                                    &mut size_stack,
-                                    style_stack.len(),
-                                    brace_nesting,
-                                );
-                                // If there are still styles to process, we must have been within a group.
-                                str_builder = if style_stack.is_empty() {
-                                    None
-                                } else {
-                                    Some(self.buffer.get_builder())
-                                };
-                            }
+                            str_builder = Some(self.buffer.get_builder());
                             continue;
                         }
                         TextToken::Href => {

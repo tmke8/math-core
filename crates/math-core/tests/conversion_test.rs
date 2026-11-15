@@ -988,7 +988,6 @@ fn inline_equations() {
             r"\text{\large \url{http://ex.org/~u/a_b?c=1&d=2}}",
         ),
         ("url_in_textbf", r"\textbf{a \url{x.org} b}"),
-        ("url_unbraced_text_arg", r"\text\url{x.org}y"),
         ("url_in_raisebox", r"\raisebox{2pt}{\url{x.org}}"),
         ("url_spaces", r"\text{a \url{ https://ex.org/ a b/ c } b}"),
         (

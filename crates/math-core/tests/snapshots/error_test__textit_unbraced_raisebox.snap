@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\textbf{\\textit\\raisebox{1pt}{x}}"
+---
+Error: A command with arguments must be enclosed in braces when it is the argument of a text command.
+   ╭─[ <input>:1:16 ]
+   │
+ 1 │ \textbf{\textit\raisebox{1pt}{x}}
+   │                ────┬────  
+   │                    ╰────── missing braces around this
+───╯

@@ -1,8 +1,0 @@
----
-source: crates/math-core/tests/conversion_test.rs
-expression: "\\text\\url{x.org}y"
----
-<math>
-    <mtext><a href="x.org"><code>x.org</code></a></mtext>
-    <mi>y</mi>
-</math>

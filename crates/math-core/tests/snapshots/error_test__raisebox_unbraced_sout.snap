@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\raisebox{1pt}\\sout{x}"
+---
+Error: A command with arguments must be enclosed in braces when it is the argument of a text command.
+   ╭─[ <input>:1:15 ]
+   │
+ 1 │ \raisebox{1pt}\sout{x}
+   │               ──┬──  
+   │                 ╰──── missing braces around this
+───╯
