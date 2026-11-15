@@ -414,6 +414,8 @@ pub enum TextToken {
     Letter(char),
     Style(HtmlTextStyle),
     Size(HtmlTextSize),
+    /// `\href`, a hyperlink with custom link text.
+    Href,
     /// `\url`, a hyperlink whose text is the URL.
     Url,
 }

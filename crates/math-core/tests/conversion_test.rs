@@ -991,6 +991,23 @@ fn inline_equations() {
         ("url_unbraced_text_arg", r"\text\url{x.org}y"),
         ("url_in_raisebox", r"\raisebox{2pt}{\url{x.org}}"),
         ("url_spaces", r"\text{a \url{ https://ex.org/ a b/ c } b}"),
+        (
+            "href_in_text",
+            r"\text{see \href{https://ex.org/a\%20b}{the docs} now}",
+        ),
+        (
+            "href_mixed_styles",
+            r"\text{\href{https://ex.org}{the \textbf{docs}}}",
+        ),
+        ("href_in_textbf", r"\textbf{\href{x.org}{a}}"),
+        ("href_with_size", r"\text{\large\href{x.org}{a}}"),
+        ("href_unbraced_link_text", r"\text{\href{x.org}y z}"),
+        ("href_in_raisebox", r"\raisebox{2pt}{\href{x.org}{a}}"),
+        (
+            "raisebox_in_href",
+            r"\text{\href{x.org}{a\raisebox{1pt}{b}}}",
+        ),
+        ("url_in_href", r"\text{\href{x.org}{a \url{y.org} b}}"),
         ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
         (
             "raisebox_stack_same",

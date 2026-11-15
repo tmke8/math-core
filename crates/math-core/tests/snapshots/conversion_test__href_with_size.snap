@@ -1,0 +1,7 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\text{\\large\\href{x.org}{a}}"
+---
+<math>
+    <mtext style="font-size:120%"><a href="x.org">a</a></mtext>
+</math>

@@ -1,0 +1,9 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "\\raisebox{2pt}{\\href{x.org}{a}}"
+---
+<math>
+    <mpadded voffset="0.2rem">
+        <mtext><a href="x.org">a</a></mtext>
+    </mpadded>
+</math>

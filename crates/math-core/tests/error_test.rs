@@ -118,6 +118,8 @@ fn inline_equations() {
         ("url_in_math_mode", r"\url{x.org}"),
         ("url_in_operatorname", r"\operatorname{\url{x.org}}"),
         ("url_unescaped_hash", r"\text{\url{x.org/#a}}"),
+        ("href_in_math_mode", r"\href{x.org}{a}"),
+        ("href_missing_text", r"\text{\href{x.org}}"),
         ("kern_math_unit", r"x\kern1mu y"),
         ("mkern_text_unit", r"x\mkern1em y"),
         ("hspace_math_unit", r"x\hspace{1mu} y"),

@@ -1737,7 +1737,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 class = Class::Operator;
                 let snippets = self.extract_text(None, None, false)?;
                 let mut builder = self.buffer.get_builder();
-                for TextSnippet(_style, _size, _voffset, text, _is_link) in snippets {
+                for TextSnippet(_style, _size, _voffset, text, _href) in snippets {
                     builder.push_str(text);
                 }
                 let letters = builder.finish(self.arena);
@@ -3659,15 +3659,16 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         Ok(Node::Space(latex_unit.length_with_unit(value)))
     }
 
-    /// Turn a snippet from [`Self::extract_text`] into a text node (or a hyperlink, for `\url`),
+    /// Turn a snippet from [`Self::extract_text`] into a text node (or a hyperlink, for `\url`
+    /// and `\href`),
     /// shifted vertically if the snippet has a vertical offset.
     fn text_snippet_to_node(
         &mut self,
-        TextSnippet(text_style, text_size, text_voffset, text, is_link): TextSnippet<'arena>,
+        TextSnippet(text_style, text_size, text_voffset, text, href): TextSnippet<'arena>,
     ) -> &'arena Node<'arena> {
-        let text_node = if is_link {
+        let text_node = if let Some(href) = href {
             Node::AHref(self.arena.alloc_ahref(AHref {
-                href: text,
+                href,
                 text,
                 text_style,
                 text_size,

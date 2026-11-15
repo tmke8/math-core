@@ -19,13 +19,13 @@ use crate::{
 };
 
 /// A run of text with uniform style and size.
-/// The last field is `true` if the text is a URL from `\url`, which should become a hyperlink.
+/// The last field is the link target if the text is part of a hyperlink (from `\url` or `\href`).
 pub(super) struct TextSnippet<'arena>(
     pub Option<HtmlTextStyle>,
     pub Option<HtmlTextSize>,
     pub Option<LengthSet>,
     pub &'arena str,
-    pub bool,
+    pub Option<&'arena str>,
 );
 
 impl<'arena> Parser<'_, 'arena> {
@@ -35,7 +35,7 @@ impl<'arena> Parser<'_, 'arena> {
         initial_voffset: Option<LengthSet>,
         text_mode: bool,
     ) -> ParseResult<Vec<TextSnippet<'arena>>> {
-        let mut style_stack = vec![(0usize, initial_style, initial_voffset)];
+        let mut style_stack = vec![(0usize, initial_style, initial_voffset, None)];
         let mut str_builder: Option<StringBuilder> = None;
         let mut snippets: Vec<TextSnippet<'arena>> = Vec::new();
         let mut accent_to_insert: Option<char> = None;
@@ -46,7 +46,7 @@ impl<'arena> Parser<'_, 'arena> {
         // reset on every style push, so the nesting level alone would be ambiguous.)
         let mut size_stack: Vec<(usize, usize, HtmlTextSize)> = Vec::new();
 
-        while let Some((previous_nesting, current_style, current_voffset)) =
+        while let Some((previous_nesting, current_style, current_voffset, current_href)) =
             style_stack.last().copied()
         {
             let current_size = size_stack.last().map(|&(_, _, size)| size);
@@ -94,10 +94,15 @@ impl<'arena> Parser<'_, 'arena> {
                                     current_size,
                                     current_voffset,
                                     text,
-                                    false,
+                                    current_href,
                                 ));
                             }
-                            style_stack.push((brace_nesting, Some(style), current_voffset));
+                            style_stack.push((
+                                brace_nesting,
+                                Some(style),
+                                current_voffset,
+                                current_href,
+                            ));
                             brace_nesting = 0;
                             continue;
                         }
@@ -112,7 +117,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
-                                        false,
+                                        current_href,
                                     ));
                                     str_builder = Some(self.buffer.get_builder());
                                 }
@@ -146,7 +151,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
-                                        false,
+                                        current_href,
                                     ));
                                 }
                                 true
@@ -160,7 +165,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 url,
-                                true,
+                                Some(url),
                             ));
                             if in_group {
                                 str_builder = Some(self.buffer.get_builder());
@@ -181,6 +186,34 @@ impl<'arena> Parser<'_, 'arena> {
                                     Some(self.buffer.get_builder())
                                 };
                             }
+                            continue;
+                        }
+                        TextToken::Href => {
+                            // Flush the pending text first; the string builder borrows
+                            // the buffer, which we need for parsing the URL.
+                            if let Some(builder) = str_builder
+                                && !builder.is_empty()
+                            {
+                                let text = builder.finish(self.arena);
+                                snippets.push(TextSnippet(
+                                    current_style,
+                                    current_size,
+                                    current_voffset,
+                                    text,
+                                    current_href,
+                                ));
+                            }
+                            let (href, _) = self.parse_string_literal(true)?;
+                            // The link text is the argument of a new scope, just like the
+                            // argument of `\textbf`. All text in it links to `href`.
+                            style_stack.push((
+                                brace_nesting,
+                                current_style,
+                                current_voffset,
+                                Some(href),
+                            ));
+                            brace_nesting = 0;
+                            str_builder = None;
                             continue;
                         }
                     }
@@ -232,7 +265,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 output,
-                                false,
+                                current_href,
                             ));
                             style_stack.pop();
                             brace_nesting = previous_nesting;
@@ -271,7 +304,7 @@ impl<'arena> Parser<'_, 'arena> {
                                             current_size,
                                             current_voffset,
                                             text,
-                                            false,
+                                            current_href,
                                         ));
                                     }
                                     discard_dead_sizes(
@@ -293,7 +326,7 @@ impl<'arena> Parser<'_, 'arena> {
                                         current_size,
                                         current_voffset,
                                         text,
-                                        false,
+                                        current_href,
                                     ));
                                 }
                                 style_stack.pop();
@@ -323,7 +356,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
-                                false,
+                                current_href,
                             ));
                         }
                         let new_style = match (current_style, style) {
@@ -334,7 +367,7 @@ impl<'arena> Parser<'_, 'arena> {
                             }
                             _ => style,
                         };
-                        style_stack.push((brace_nesting, new_style, current_voffset));
+                        style_stack.push((brace_nesting, new_style, current_voffset, current_href));
                         brace_nesting = 0;
                         continue;
                     }
@@ -348,7 +381,7 @@ impl<'arena> Parser<'_, 'arena> {
                                 current_size,
                                 current_voffset,
                                 text,
-                                false,
+                                current_href,
                             ));
                         }
 
@@ -379,7 +412,12 @@ impl<'arena> Parser<'_, 'arena> {
                             None => new_voffset,
                         };
 
-                        style_stack.push((brace_nesting, current_style, Some(voffset)));
+                        style_stack.push((
+                            brace_nesting,
+                            current_style,
+                            Some(voffset),
+                            current_href,
+                        ));
                         brace_nesting = 0;
                         str_builder = None;
                         continue;
@@ -411,7 +449,7 @@ impl<'arena> Parser<'_, 'arena> {
                             current_size,
                             current_voffset,
                             output,
-                            false,
+                            current_href,
                         ));
                         style_stack.pop();
                         brace_nesting = previous_nesting;
@@ -472,7 +510,7 @@ impl<'arena> Parser<'_, 'arena> {
                     current_size,
                     current_voffset,
                     text,
-                    false,
+                    current_href,
                 ));
                 style_stack.pop();
                 brace_nesting = previous_nesting;
