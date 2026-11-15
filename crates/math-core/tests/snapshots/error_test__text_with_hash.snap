@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\text{a#1}"
+---
+Error: Macro parameter found outside of custom command definition.
+   ╭─[ <input>:1:8 ]
+   │
+ 1 │ \text{a#1}
+   │        ─┬  
+   │         ╰── unexpected macro parameter
+───╯

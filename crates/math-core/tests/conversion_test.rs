@@ -1118,6 +1118,14 @@ fn block_equations() {
         ("tag5", r#"\begin{align*} \tag{32}1\\2\end{align*}"#),
         ("tag_with_non_number", r"\begin{align}x\tag{A1}\end{align}"),
         ("tag_with_empty", r"\begin{align} x \tag{} \\ y \end{align}"),
+        (
+            "tag_text_mode",
+            r#"\begin{align} x \tag{a~b\"a} \\ y \tag*{\textbf{A} 1} \end{align}"#,
+        ),
+        (
+            "tag_text_mode_eqref",
+            r"\begin{align} x \label{l} \tag{\emph{x}y} \\ \eqref{l} \end{align}",
+        ),
         ("tag_with_zero", r"\begin{align} x \tag{0} \\ y \end{align}"),
         (
             "tag_html_escape",

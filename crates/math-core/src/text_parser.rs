@@ -484,6 +484,8 @@ impl<'arena> Parser<'_, 'arena> {
 
                     _ => Err(LatexErrKind::CouldNotExtractText),
                 }
+            } else if let Token::CustomCmdArgInput(_) = token {
+                Err(LatexErrKind::MacroParameterOutsideCustomCommand)
             } else {
                 Err(LatexErrKind::NotValidInTextMode)
             };

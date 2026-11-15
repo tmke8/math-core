@@ -336,6 +336,8 @@ fn block_equations() {
             r"\begin{align}{a \\ b}\end{align}",
         ),
         ("tag_with_hash", r"\begin{align}\tag{a#1}1\end{align}"),
+        ("tag_with_math", r"\begin{align}\tag{$x$}1\end{align}"),
+        ("text_with_hash", r"\text{a#1}"),
         ("label_with_nobreakspace", r"x\label{a\nobreakspace b}"),
         ("label_with_space_cmd", r"x\label{a\space b}"),
         ("label_with_control_space", r"x\label{a\ b}"),

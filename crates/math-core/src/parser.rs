@@ -657,7 +657,14 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 Ok(())
             }
             Token::Tag { parenthesized } => {
-                let (tag_name, _) = self.parse_string_literal(false)?;
+                // The argument of `\tag` is in text mode. For now, we only keep the text
+                // itself and discard all style information.
+                let snippets = self.extract_text(None, None, true)?;
+                let mut builder = self.buffer.get_builder();
+                for TextSnippet(_style, _size, _voffset, text, _href) in snippets {
+                    builder.push_str(text);
+                }
+                let tag_name = builder.finish(self.arena);
                 let misplaced = |correct_place| LatexErrKind::CannotBeUsedHere {
                     got: LimitedUsabilityToken::Tag,
                     correct_place,
