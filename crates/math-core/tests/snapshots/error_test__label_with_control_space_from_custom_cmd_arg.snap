@@ -1,0 +1,11 @@
+---
+source: crates/math-core/tests/error_test.rs
+expression: "\\newcommand{\\lab}[1]{x\\label{#1}}\\lab\\ "
+---
+Error: Expected non-special ASCII characters in string literal.
+   ╭─[ <input>:1:38 ]
+   │
+ 1 │ \newcommand{\lab}[1]{x\label{#1}}\lab\
+   │                                      ─┬  
+   │                                       ╰── special or not ASCII
+───╯

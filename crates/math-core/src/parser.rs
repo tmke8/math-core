@@ -3128,7 +3128,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         for arg_num in 0..num_args {
             // The tokens keep the names they came from, so that an argument which is
             // substituted into a `\newcommand` can be recorded by name like any other token.
-            let queued = self.tokens.next_keeping_name()?;
+            // `MathOrTextMode` is not unwrapped, because the argument may end up in text mode
+            // or in a string literal, just like the tokens of an argument in braces.
+            let queued = self.tokens.next_non_whitespace_keeping_name()?;
             match queued.token() {
                 Token::GroupBegin => {
                     self.tokens
