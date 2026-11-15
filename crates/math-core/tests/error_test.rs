@@ -321,7 +321,7 @@ fn block_equations() {
             "newline_in_group_in_align",
             r"\begin{align}{a \\ b}\end{align}",
         ),
-        ("tag_with_underscore", r"\begin{align}\tag{a_b}1\end{align}"),
+        ("tag_with_hash", r"\begin{align}\tag{a#1}1\end{align}"),
         (
             "duplicate_label",
             r#"\begin{align}\label{a}1\label{b}\end{align}"#,

@@ -221,8 +221,8 @@ impl<'source> Lexer<'source> {
             ),
             '[' => Token::SquareBracketOpen,
             ']' => Token::SquareBracketClose,
-            '^' => Token::Circumflex,
-            '_' => Token::Underscore,
+            '^' => Token::Superscript,
+            '_' => Token::Subscript,
             '`' => Token::Letter(symbol::LEFT_SINGLE_QUOTATION_MARK, Mode::MathOrText),
             '{' => Token::GroupBegin,
             '}' => Token::GroupEnd,
@@ -355,12 +355,15 @@ enum EnvMarker {
 pub(crate) fn recover_limited_ascii(tok: Token) -> Option<char> {
     match tok {
         Token::Letter(c, _) if c.is_ascii_alphabetic() || matches!(c, '.' | '?' | '@') => Some(c),
-        Token::Digit(ch) | Token::MathOrTextMode(_, ch)
-            if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') =>
-        {
-            Some(ch)
-        }
+        Token::Digit(ch) => Some(ch),
+        Token::MathOrTextMode(_, ch) if ch.is_ascii() && !matches!(ch, '&' | '{' | '}') => Some(ch),
         Token::Whitespace => Some(' '),
+        Token::Dollar => Some('$'),
+        Token::NewColumn => Some('&'),
+        Token::SquareBracketOpen => Some('['),
+        Token::SquareBracketClose => Some(']'),
+        Token::Superscript => Some('^'),
+        Token::Subscript => Some('_'),
         _ => None,
     }
 }
@@ -513,8 +516,7 @@ mod tests {
 
     #[test]
     fn test_recover_limited_ascii() {
-        let input =
-            " !()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz|";
+        let input = " !$&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz|";
         let mut lexer = Lexer::new(input);
 
         let mut output = String::new();
@@ -531,5 +533,30 @@ mod tests {
             }
         }
         assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_rejected_limited_ascii() {
+        // verify that these characters are not recovered by `recover_limited_ascii`
+        let test_cases = [
+            "\u{007F}", // control character
+            "\u{0080}", "\u{00A0}", "\u{00FF}", // non-ASCII characters
+            "{", "}", "#1", "%", // reserved characters
+            r"\&", r"\{", r"\}", r"\>", r"\^", r"\_", r"\$", r"\%", r"\!",
+            r"\|", // escaped ASCII characters
+        ];
+
+        let parser_cfg = crate::ParserConfig::default();
+        for input in test_cases {
+            let mut lexer = Lexer::new(input);
+            let tok = match lexer.next_token().expect("Failed to get next token") {
+                LexerOutput::Token(tokspan) => tokspan.into_token(),
+                LexerOutput::CommandName(name, _) => {
+                    crate::commands::resolve_builtin_cmd(&parser_cfg, name)
+                        .unwrap_or_else(|| panic!("Failed to resolve command: {}", name))
+                }
+            };
+            std::assert_matches!(recover_limited_ascii(tok), None, "Input: {:?}", input);
+        }
     }
 }

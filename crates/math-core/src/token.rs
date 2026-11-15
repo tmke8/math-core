@@ -78,9 +78,9 @@ pub enum Token {
     /// `\genfrac`
     Genfrac,
     /// The character `_` for subscripts.
-    Underscore,
+    Subscript,
     /// The character `^` for superscripts.
-    Circumflex,
+    Superscript,
     /// `\prescript`
     Prescript,
     /// `\sideset`
@@ -705,8 +705,8 @@ impl Token {
             | Frac(_)
             | InfixGenFrac { .. }
             | Genfrac
-            | Underscore
-            | Circumflex
+            | Subscript
+            | Superscript
             | Prescript
             | Sideset
             | Binom(_)

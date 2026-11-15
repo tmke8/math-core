@@ -1275,8 +1275,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 } else {
                     Node::UnderAccent(x.as_op(), OpAttrs::empty(), target)
                 };
-                if (is_over && matches!(self.tokens.peek().token(), Token::Circumflex))
-                    || (!is_over && matches!(self.tokens.peek().token(), Token::Underscore))
+                if (is_over && matches!(self.tokens.peek().token(), Token::Superscript))
+                    || (!is_over && matches!(self.tokens.peek().token(), Token::Subscript))
                 {
                     let target = self.commit(base);
                     self.next_token()?; // Discard the circumflex or underscore token.
@@ -2140,7 +2140,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     },
                 })
             }
-            tok @ (Token::Underscore | Token::Circumflex | Token::Prime(_)) => {
+            tok @ (Token::Subscript | Token::Superscript | Token::Prime(_)) => {
                 let bounds = self
                     .get_bounds(Some((tok, span)))?
                     .ensure_no_explicit_limits()?;
@@ -3167,7 +3167,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     ) -> ParseResult<BoundsWithLimits<'arena>> {
         core::debug_assert_matches!(
             first,
-            Some((Token::Underscore | Token::Circumflex | Token::Prime(_), _)) | None
+            Some((Token::Subscript | Token::Superscript | Token::Prime(_), _)) | None
         );
 
         let mut ret: BoundsWithLimits = BoundsWithLimits::default();
@@ -3184,7 +3184,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
             let next_token = next_token.unwrap_math_ref();
             if matches!(
                 next_token,
-                Token::Underscore | Token::Circumflex | Token::Prime(_) | Token::Limits(_)
+                Token::Subscript | Token::Superscript | Token::Prime(_) | Token::Limits(_)
             ) {
                 let token = *next_token;
                 // consume the token we're currently looking at
@@ -3193,9 +3193,9 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                 }
                 // parse it into a bound
                 let (bound_starter_kind, bound_to_replace) = match token {
-                    Token::Circumflex => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
+                    Token::Superscript => (BoundStarterKind::Circumflex, &mut ret.bounds.1),
                     Token::Prime(kind) => (BoundStarterKind::Prime(kind), &mut ret.bounds.1),
-                    Token::Underscore => (BoundStarterKind::Underscore, &mut ret.bounds.0),
+                    Token::Subscript => (BoundStarterKind::Underscore, &mut ret.bounds.0),
                     Token::Limits(kind) => {
                         ret.limits_span = Some((kind, next_span));
                         continue;
@@ -3292,7 +3292,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                             primes.push((new_kind.direction(), new_kind.count()));
                         }
                     }
-                    Token::Circumflex => break true,
+                    Token::Superscript => break true,
                     _ => break false,
                 }
 
@@ -3357,7 +3357,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
         if !matches!(kind, BoundStarterKind::Prime(_)) {
             let next = self.tokens.next()?;
             match next.token() {
-                Token::Underscore | Token::Circumflex | Token::Prime(_) => {
+                Token::Subscript | Token::Superscript | Token::Prime(_) => {
                     return Err(Box::new(LatexError(
                         next.span().into(),
                         LatexErrKind::BoundFollowedByBound,
