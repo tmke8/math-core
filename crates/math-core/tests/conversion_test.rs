@@ -990,6 +990,7 @@ fn inline_equations() {
         ("url_in_textbf", r"\textbf{a \url{x.org} b}"),
         ("url_unbraced_text_arg", r"\text\url{x.org}y"),
         ("url_in_raisebox", r"\raisebox{2pt}{\url{x.org}}"),
+        ("url_spaces", r"\text{a \url{ https://ex.org/ a b/ c } b}"),
         ("raisebox_negative", r"\raisebox{-1em}{foobar}"),
         (
             "raisebox_stack_same",

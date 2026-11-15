@@ -3699,7 +3699,7 @@ impl<'state, 'arena> Parser<'state, 'arena> {
     /// Parse an argument consisting only of (limited) ASCII characters into a string.
     ///
     /// If `url` is `true`, the escaped characters `\%` and `\#` are also accepted and
-    /// turned into `%` and `#`, as in the argument of `\url`.
+    /// turned into `%` and `#`, and spaces are ignored, as in the argument of `\url`.
     pub(super) fn parse_string_literal(
         &mut self,
         url: bool,
@@ -3725,6 +3725,8 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                     ch @ (symbol::PERCENT_SIGN | symbol::NUMBER_SIGN),
                     Mode::MathOrText,
                 ) if url => Some(ch),
+                // Like the `url` package, we ignore spaces in URLs.
+                Token::Whitespace if url => continue,
                 tok => recover_limited_ascii(tok),
             };
             let Some(ch) = ch else {
@@ -4230,7 +4232,7 @@ mod tests {
                 Parser::new(l, &arena, &parser_cfg, &mut state, MathDisplay::Inline).unwrap();
             p.parse_string_literal(url).map(|(s, _)| s.to_owned()).ok()
         };
-        let input = r"{https://example.com/a\%20b?c=d&e_f~g\#frag}";
+        let input = r"{https://example.com/a\%20b ?c=d&e_f~g\#frag }";
         assert_eq!(
             parse(input, true).as_deref(),
             Some("https://example.com/a%20b?c=d&e_f~g#frag")
