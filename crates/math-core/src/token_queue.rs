@@ -431,6 +431,9 @@ impl<'state, 'arena> TokenQueue<'state, 'arena> {
     ///
     /// This is for the places which want to get hold of the name of a command which is
     /// not defined (yet).
+    // This function is called (through `next()`) from many places. Without this attribute,
+    // it gets inlined into all of them, which adds ~2.5kB to the WASM binary.
+    #[inline(never)]
     pub(super) fn next_allowing_unresolved_command(
         &mut self,
     ) -> Result<QueuedTok<'arena>, Box<LatexError>> {
