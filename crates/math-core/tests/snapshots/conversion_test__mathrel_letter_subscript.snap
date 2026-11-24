@@ -1,0 +1,14 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a \\mathrel{x}_2 b"
+---
+<math>
+    <mi>a</mi>
+    <mpadded style="padding-left:0.2778em;padding-right:0.2778em;">
+        <msub>
+            <mi>x</mi>
+            <mn>2</mn>
+        </msub>
+    </mpadded>
+    <mi>b</mi>
+</math>

@@ -1032,6 +1032,23 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         right,
                         size: None,
                     },
+                    Node::IdentifierChar(..) | Node::IdentifierStr(_)
+                        if matches!(kind, MathClassKind::Rel) && !scripts.is_trivial() =>
+                    {
+                        // Relation spacing belongs outside the base and its scripts.
+                        let scripted = self.wrap_in_scripts(node, scripts);
+                        return Ok(Parsed::Node(
+                            class,
+                            self.commit(Node::Padded {
+                                node: scripted,
+                                width_0: false,
+                                height_0: false,
+                                left,
+                                right,
+                                voffset: None,
+                            }),
+                        ));
+                    }
                     _ => Node::Padded {
                         node,
                         width_0: false,

@@ -633,6 +633,9 @@ fn inline_equations() {
             r"x\mathrel{\overset{a}+}_2 y",
         ),
         ("mathrel_not_equal_subscript", r"(x\mathrel{\not=}_2)"),
+        ("mathrel_letter_superscript", r"\mathrel{x}^2 x"),
+        ("mathrel_letter_subscript", r"a \mathrel{x}_2 b"),
+        ("mathrel_letter_subsup", r"a \mathrel{x}_1^2 b"),
         (
             "underset_equal_subscript_before_closing_paren",
             r"(x\underset{a}=_2)",
