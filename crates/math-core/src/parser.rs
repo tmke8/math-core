@@ -1032,6 +1032,24 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         right,
                         size: None,
                     },
+                    _ if !scripts.is_trivial()
+                        && (left != Some(MathSpacing::Zero)
+                            || right != Some(MathSpacing::Zero)) =>
+                    {
+                        // Class spacing belongs outside the base and its scripts.
+                        let scripted = self.wrap_in_scripts(node, scripts);
+                        return Ok(Parsed::Node(
+                            class,
+                            self.commit(Node::Padded {
+                                node: scripted,
+                                width_0: false,
+                                height_0: false,
+                                left,
+                                right,
+                                voffset: None,
+                            }),
+                        ));
+                    }
                     _ => Node::Padded {
                         node,
                         width_0: false,

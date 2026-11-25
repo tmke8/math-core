@@ -1,0 +1,15 @@
+---
+source: crates/math-core/tests/conversion_test.rs
+expression: "a \\mathop{x}_1^2 b"
+---
+<math>
+    <mi>a</mi>
+    <mpadded style="padding-left:0.1667em;padding-right:0.1667em;">
+        <msubsup>
+            <mi>x</mi>
+            <mn>1</mn>
+            <mn>2</mn>
+        </msubsup>
+    </mpadded>
+    <mi>b</mi>
+</math>

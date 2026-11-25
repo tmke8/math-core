@@ -4,14 +4,14 @@ expression: "x\\mathrel{\\overset{a}+}_2 y"
 ---
 <math>
     <mi>x</mi>
-    <msub>
-        <mpadded style="padding-left:0.2778em;padding-right:0.2778em;">
+    <mpadded style="padding-left:0.2778em;padding-right:0.2778em;">
+        <msub>
             <mover>
                 <mo lspace="0" rspace="0">+</mo>
                 <mi>a</mi>
             </mover>
-        </mpadded>
-        <mn>2</mn>
-    </msub>
+            <mn>2</mn>
+        </msub>
+    </mpadded>
     <mi>y</mi>
 </math>
