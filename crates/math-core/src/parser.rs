@@ -1032,10 +1032,11 @@ impl<'state, 'arena> Parser<'state, 'arena> {
                         right,
                         size: None,
                     },
-                    Node::IdentifierChar(..) | Node::IdentifierStr(_)
-                        if matches!(kind, MathClassKind::Rel) && !scripts.is_trivial() =>
+                    _ if !scripts.is_trivial()
+                        && (left != Some(MathSpacing::Zero)
+                            || right != Some(MathSpacing::Zero)) =>
                     {
-                        // Relation spacing belongs outside the base and its scripts.
+                        // Class spacing belongs outside the base and its scripts.
                         let scripted = self.wrap_in_scripts(node, scripts);
                         return Ok(Parsed::Node(
                             class,
